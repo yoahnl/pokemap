@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -83,6 +85,78 @@ void main() {
       (await terminal).result,
       RuntimePresentationExecutionResult.skipped,
     );
+  });
+
+  test('holds the narrative clock while a bound interaction is unresolved',
+      () async {
+    final execution = RuntimePresentationExecutionController(
+      mediaController: RuntimePresentationMediaPlaybackController(
+        catalog: ProjectMediaCatalog(),
+        targetPlatform: PresentationMediaTargetPlatform.macos,
+        resolveUri: (_) => Uri(),
+        videoDriver: _UnusedVideoDriver(),
+      ),
+    );
+    final frames = <int>[];
+    final cueReached = Completer<void>();
+    final releaseCue = Completer<void>();
+    final player = RuntimePresentationScenePlaybackController(
+      executionController: execution,
+      onFrame: (_, frame) {
+        if (frame != null) frames.add(frame.timeUs);
+      },
+      frameDeltas: (_) => Stream<int>.fromIterable(<int>[600000, 400000]),
+    );
+    addTearDown(player.dispose);
+
+    final terminal = player.playPresentationCinematic(
+      ScenePresentationCinematicRuntimeRequest(
+        requestId: 'runtime:opening:cue',
+        createdAtEpochMs: 1,
+        projectRevision:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        contentHash:
+            'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        presentationCinematicId: 'opening',
+        interactionCueMarkerIds: const <String>{'ask_name'},
+        onInteractionCue: (markerId) async {
+          expect(markerId, 'ask_name');
+          cueReached.complete();
+          await releaseCue.future;
+        },
+        asset: PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 1000000,
+          tracks: [
+            PresentationTrack(
+              id: 'markers',
+              label: 'Repères',
+              kind: PresentationTrackKind.marker,
+              clips: [
+                PresentationMarkerClip(
+                  id: 'ask_name',
+                  startUs: 500000,
+                  label: 'Demander le nom',
+                  markerKind: PresentationMarkerKind.interactionCue,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await cueReached.future;
+    expect(frames, <int>[0, 600000]);
+    expect(player.isPlaying, isTrue);
+
+    releaseCue.complete();
+    expect(
+      (await terminal).result,
+      RuntimePresentationExecutionResult.completed,
+    );
+    expect(frames, <int>[0, 600000, 1000000]);
   });
 }
 

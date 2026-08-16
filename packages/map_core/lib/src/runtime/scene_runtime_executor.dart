@@ -6,23 +6,16 @@ import '../models/scene_execution_capabilities.dart';
 import 'scene_execution_context.dart';
 import 'scene_runtime_plan.dart';
 
-typedef SceneRuntimeIntentCallback = FutureOr<String> Function(
-  SceneRuntimePlanIntent intent,
-);
+typedef SceneRuntimeIntentCallback =
+    FutureOr<String> Function(SceneRuntimePlanIntent intent);
 
-typedef SceneRuntimeConsequenceCallback = FutureOr<String> Function(
-  SceneConsequence consequence,
-);
+typedef SceneRuntimeConsequenceCallback =
+    FutureOr<String> Function(SceneConsequence consequence);
 
-typedef SceneRuntimeNodeConsequenceCallback = FutureOr<String> Function(
-  String nodeId,
-  SceneConsequence consequence,
-);
+typedef SceneRuntimeNodeConsequenceCallback =
+    FutureOr<String> Function(String nodeId, SceneConsequence consequence);
 
-enum SceneRuntimeExecutionStatus {
-  completed,
-  failed,
-}
+enum SceneRuntimeExecutionStatus { completed, failed }
 
 enum SceneRuntimeExecutionErrorCode {
   missingStartNode,
@@ -85,8 +78,8 @@ final class SceneRuntimeExecutionResult {
     required List<SceneRuntimeExecutionTraceEntry> trace,
     SceneExecutionContext? context,
     this.capabilityIssueCode,
-  })  : trace = List<SceneRuntimeExecutionTraceEntry>.unmodifiable(trace),
-        context = context ?? SceneExecutionContext.empty;
+  }) : trace = List<SceneRuntimeExecutionTraceEntry>.unmodifiable(trace),
+       context = context ?? SceneExecutionContext.empty;
 
   final SceneRuntimeExecutionStatus status;
   final String sceneId;
@@ -100,10 +93,7 @@ final class SceneRuntimeExecutionResult {
 }
 
 final class SceneRuntimeExecutor {
-  SceneRuntimeExecutor({
-    required this.callbacks,
-    this.maxSteps = 100,
-  }) {
+  SceneRuntimeExecutor({required this.callbacks, this.maxSteps = 100}) {
     if (maxSteps < 1) {
       throw ArgumentError.value(
         maxSteps,
@@ -120,9 +110,7 @@ final class SceneRuntimeExecutor {
     SceneRuntimePlan plan, {
     SceneExecutionContext? context,
   }) async {
-    final nodesById = {
-      for (final node in plan.nodes) node.id: node,
-    };
+    final nodesById = {for (final node in plan.nodes) node.id: node};
     final startNode = nodesById[plan.startNodeId];
     final trace = <SceneRuntimeExecutionTraceEntry>[];
     var executionContext = context ?? SceneExecutionContext.empty;
@@ -272,11 +260,10 @@ final class SceneRuntimeExecutor {
         return _recordCallbackOutcome(
           node.id,
           context,
-          await _callbackOutput(
-            intent,
-            callbacks.evaluateCondition,
-            const {'true', 'false'},
-          ),
+          await _callbackOutput(intent, callbacks.evaluateCondition, const {
+            'true',
+            'false',
+          }),
         );
       case SceneRuntimePlanIntentKind.branchByOutcome:
         return _branchOutput(plan, node, context);
@@ -284,11 +271,10 @@ final class SceneRuntimeExecutor {
         return _recordCallbackOutcome(
           node.id,
           context,
-          await _callbackOutput(
-            intent,
-            callbacks.showDialogue,
-            {'completed', ...intent.expectedOutcomes},
-          ),
+          await _callbackOutput(intent, callbacks.showDialogue, {
+            'completed',
+            ...intent.expectedOutcomes,
+          }),
         );
       case SceneRuntimePlanIntentKind.startBattle:
         return _recordCallbackOutcome(
@@ -304,29 +290,22 @@ final class SceneRuntimeExecutor {
         return _recordCallbackOutcome(
           node.id,
           context,
-          await _callbackOutput(
-            intent,
-            callbacks.playCinematic,
-            const {'completed'},
-          ),
+          await _callbackOutput(intent, callbacks.playCinematic, const {
+            'completed',
+          }),
         );
       case SceneRuntimePlanIntentKind.playPresentationCinematic:
         final callback = callbacks.playPresentationCinematic;
         if (callback == null) {
           return const _OutputPortResult(
             errorCode: SceneRuntimeExecutionErrorCode.unsupportedIntent,
-            message:
-                'No Presentation Cinematic Scene executor is installed.',
+            message: 'No Presentation Cinematic Scene executor is installed.',
           );
         }
         return _recordCallbackOutcome(
           node.id,
           context,
-          await _callbackOutput(
-            intent,
-            callback,
-            const {'completed'},
-          ),
+          await _callbackOutput(intent, callback, const {'completed'}),
         );
       case SceneRuntimePlanIntentKind.applyConsequence:
         return _consequenceCallbackOutput(node.id, intent, context);
@@ -344,7 +323,11 @@ final class SceneRuntimeExecutor {
         return _recordCallbackOutcome(
           node.id,
           context,
-          await _callbackOutput(intent, callback, const {'completed'}),
+          await _callbackOutput(
+            intent,
+            callback,
+            intent.declaredOutputPortIds.toSet(),
+          ),
         );
     }
   }
@@ -379,7 +362,8 @@ final class SceneRuntimeExecutor {
     if (sourceOutcome == null) {
       return _OutputPortResult(
         errorCode: SceneRuntimeExecutionErrorCode.missingBranchSourceOutcome,
-        message: 'Scene branch "${node.id}" has no recorded outcome for '
+        message:
+            'Scene branch "${node.id}" has no recorded outcome for '
             'source "$sourceNodeId".',
       );
     }
@@ -399,7 +383,8 @@ final class SceneRuntimeExecutor {
         return _OutputPortResult(
           outputPortId: sourceOutcome,
           errorCode: SceneRuntimeExecutionErrorCode.unroutedOutcome,
-          message: 'Scene branch "${node.id}" has no exact route for '
+          message:
+              'Scene branch "${node.id}" has no exact route for '
               'outcome "$sourceOutcome".',
         );
       }
@@ -424,10 +409,7 @@ final class SceneRuntimeExecutor {
     SceneExecutionContext context,
   ) async {
     if (context.appliedPersistentNodeIds.contains(nodeId)) {
-      return _OutputPortResult(
-        outputPortId: 'completed',
-        context: context,
-      );
+      return _OutputPortResult(outputPortId: 'completed', context: context);
     }
     final consequence = intent.consequence;
     if (consequence == null) {
@@ -476,10 +458,7 @@ final class SceneRuntimeExecutor {
           message: 'Applied interactive command has no recorded outcome.',
         );
       }
-      return _OutputPortResult(
-        outputPortId: previousOutcome,
-        context: context,
-      );
+      return _OutputPortResult(outputPortId: previousOutcome, context: context);
     }
     final callback = callbacks.executeInteractiveCommand;
     if (callback == null) {
@@ -547,7 +526,8 @@ _TransitionResult _findTransition(
   if (matches.isEmpty) {
     return _TransitionResult(
       errorCode: SceneRuntimeExecutionErrorCode.missingTransition,
-      message: 'Scene runtime has no transition from "$currentNodeId" '
+      message:
+          'Scene runtime has no transition from "$currentNodeId" '
           'through port "$outputPortId".',
     );
   }
@@ -555,7 +535,8 @@ _TransitionResult _findTransition(
   if (matches.length > 1) {
     return _TransitionResult(
       errorCode: SceneRuntimeExecutionErrorCode.ambiguousTransition,
-      message: 'Scene runtime has multiple transitions from "$currentNodeId" '
+      message:
+          'Scene runtime has multiple transitions from "$currentNodeId" '
           'through port "$outputPortId".',
     );
   }
@@ -599,11 +580,7 @@ final class _OutputPortResult {
 }
 
 final class _TransitionResult {
-  const _TransitionResult({
-    this.edge,
-    this.errorCode,
-    this.message,
-  });
+  const _TransitionResult({this.edge, this.errorCode, this.message});
 
   final SceneRuntimePlanEdge? edge;
   final SceneRuntimeExecutionErrorCode? errorCode;

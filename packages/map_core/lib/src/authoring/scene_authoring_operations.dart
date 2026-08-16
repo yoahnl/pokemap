@@ -6,6 +6,7 @@ import '../models/project_new_game_config.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_execution_capabilities.dart';
+import '../models/scene_pre_session_interaction.dart';
 import '../read_models/narrative_dependency_index.dart';
 
 const sceneLibraryArchivedMetadataKey = 'pokemap.scene.archived';
@@ -14,11 +15,7 @@ const sceneLibraryFolderMetadataKey = 'pokemap.scene.libraryFolder';
 enum SceneLibraryMutationDisposition { applied, noChange, rejected }
 
 final class SceneLibraryLocation {
-  const SceneLibraryLocation({
-    this.folder,
-    this.storylineId,
-    this.chapterId,
-  });
+  const SceneLibraryLocation({this.folder, this.storylineId, this.chapterId});
 
   final String? folder;
   final String? storylineId;
@@ -181,14 +178,12 @@ SceneLibraryMutationResult duplicateSceneInProject(
 SceneLibraryMutationResult archiveSceneInProject(
   ProjectManifest project, {
   required String sceneId,
-}) =>
-    _setSceneArchived(project, sceneId: sceneId, archived: true);
+}) => _setSceneArchived(project, sceneId: sceneId, archived: true);
 
 SceneLibraryMutationResult restoreSceneInProject(
   ProjectManifest project, {
   required String sceneId,
-}) =>
-    _setSceneArchived(project, sceneId: sceneId, archived: false);
+}) => _setSceneArchived(project, sceneId: sceneId, archived: false);
 
 SceneLibraryMutationResult deleteSceneFromProject(
   ProjectManifest project, {
@@ -432,6 +427,30 @@ final class SceneActionConsequencePayloadUpdateResult {
   final SceneActionPayload updatedPayload;
 }
 
+final class ScenePreSessionInteractionPayloadUpdateResult {
+  const ScenePreSessionInteractionPayloadUpdateResult({
+    required this.updatedScene,
+    required this.updatedNode,
+    required this.updatedPayload,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode updatedNode;
+  final SceneActionPayload updatedPayload;
+}
+
+final class ScenePresentationInteractionCueBindingUpdateResult {
+  const ScenePresentationInteractionCueBindingUpdateResult({
+    required this.updatedScene,
+    required this.updatedNode,
+    required this.updatedPayload,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode updatedNode;
+  final ScenePresentationCinematicPayload updatedPayload;
+}
+
 final class SceneAuthorableOutputPort {
   const SceneAuthorableOutputPort({
     required this.id,
@@ -460,9 +479,7 @@ SceneDraftCreationResult createSceneDraftInProject(
     description: _trimOptional(description),
   );
   return SceneDraftCreationResult(
-    updatedProject: project.copyWith(
-      scenes: [...project.scenes, scene],
-    ),
+    updatedProject: project.copyWith(scenes: [...project.scenes, scene]),
     createdScene: scene,
   );
 }
@@ -471,6 +488,18 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForNode(
   SceneNode node,
 ) {
   final payload = node.payload;
+  if (payload is SceneActionPayload &&
+      payload.preSessionInteraction != null) {
+    final interaction = payload.preSessionInteraction!;
+    return [
+      for (final outputPortId in interaction.outputPortIds)
+        SceneAuthorableOutputPort(
+          id: outputPortId,
+          label: outputPortId,
+          edgeKind: SceneEdgeKind.actionCompleted,
+        ),
+    ];
+  }
   if (payload is SceneYarnDialoguePayload) {
     return [
       const SceneAuthorableOutputPort(
@@ -520,10 +549,15 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForNodeInGraph(
       break;
     }
   }
+  final sourcePayload = sourceNode?.payload;
+  final isStructuredInteraction =
+      sourcePayload is SceneActionPayload &&
+      sourcePayload.preSessionInteraction != null;
   if (sourceNode == null ||
       (sourceNode.kind != SceneNodeKind.yarnDialogue &&
           sourceNode.kind != SceneNodeKind.battle &&
-          sourceNode.kind != SceneNodeKind.condition)) {
+          sourceNode.kind != SceneNodeKind.condition &&
+          !isStructuredInteraction)) {
     return const <SceneAuthorableOutputPort>[];
   }
   final sourcePorts = authorableSceneOutputPortsForNode(sourceNode);
@@ -567,8 +601,7 @@ bool isSceneNodeDraftKindRemovable(SceneNodeKind kind) {
     SceneNodeKind.cinematic ||
     SceneNodeKind.presentationCinematic ||
     SceneNodeKind.branchByOutcome ||
-    SceneNodeKind.merge =>
-      true,
+    SceneNodeKind.merge => true,
   };
 }
 
@@ -577,8 +610,9 @@ String? sceneNodeDraftRemovalBlocker(SceneGraph graph, SceneNode node) {
     return 'Le nœud de départ ne peut pas être supprimé.';
   }
   if (node.kind == SceneNodeKind.end) {
-    final endCount =
-        graph.nodes.where((candidate) => candidate.kind == SceneNodeKind.end);
+    final endCount = graph.nodes.where(
+      (candidate) => candidate.kind == SceneNodeKind.end,
+    );
     if (endCount.length <= 1) {
       return 'Une scène doit garder au moins une fin.';
     }
@@ -595,74 +629,73 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
 ) {
   return switch (kind) {
     SceneNodeKind.start => const [
-        SceneAuthorableOutputPort(
-          id: 'completed',
-          label: 'completed',
-          edgeKind: SceneEdgeKind.defaultFlow,
-        ),
-      ],
+      SceneAuthorableOutputPort(
+        id: 'completed',
+        label: 'completed',
+        edgeKind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
     SceneNodeKind.condition => const [
-        SceneAuthorableOutputPort(
-          id: 'true',
-          label: 'true',
-          edgeKind: SceneEdgeKind.conditionTrue,
-        ),
-        SceneAuthorableOutputPort(
-          id: 'false',
-          label: 'false',
-          edgeKind: SceneEdgeKind.conditionFalse,
-        ),
-      ],
+      SceneAuthorableOutputPort(
+        id: 'true',
+        label: 'true',
+        edgeKind: SceneEdgeKind.conditionTrue,
+      ),
+      SceneAuthorableOutputPort(
+        id: 'false',
+        label: 'false',
+        edgeKind: SceneEdgeKind.conditionFalse,
+      ),
+    ],
     SceneNodeKind.merge => const [
-        SceneAuthorableOutputPort(
-          id: 'completed',
-          label: 'completed',
-          edgeKind: SceneEdgeKind.defaultFlow,
-        ),
-      ],
+      SceneAuthorableOutputPort(
+        id: 'completed',
+        label: 'completed',
+        edgeKind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
     SceneNodeKind.yarnDialogue => const [
-        SceneAuthorableOutputPort(
-          id: 'completed',
-          label: 'completed',
-          edgeKind: SceneEdgeKind.defaultFlow,
-        ),
-      ],
+      SceneAuthorableOutputPort(
+        id: 'completed',
+        label: 'completed',
+        edgeKind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
     SceneNodeKind.battle => const [
-        SceneAuthorableOutputPort(
-          id: 'victory',
-          label: 'victory',
-          edgeKind: SceneEdgeKind.battleVictory,
-        ),
-        SceneAuthorableOutputPort(
-          id: 'defeat',
-          label: 'defeat',
-          edgeKind: SceneEdgeKind.battleDefeat,
-        ),
-      ],
+      SceneAuthorableOutputPort(
+        id: 'victory',
+        label: 'victory',
+        edgeKind: SceneEdgeKind.battleVictory,
+      ),
+      SceneAuthorableOutputPort(
+        id: 'defeat',
+        label: 'defeat',
+        edgeKind: SceneEdgeKind.battleDefeat,
+      ),
+    ],
     SceneNodeKind.action => const [
-        SceneAuthorableOutputPort(
-          id: 'completed',
-          label: 'completed',
-          edgeKind: SceneEdgeKind.defaultFlow,
-        ),
-      ],
+      SceneAuthorableOutputPort(
+        id: 'completed',
+        label: 'completed',
+        edgeKind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
     SceneNodeKind.cinematic => const [
-        SceneAuthorableOutputPort(
-          id: 'completed',
-          label: 'completed',
-          edgeKind: SceneEdgeKind.cinematicCompleted,
-        ),
-      ],
+      SceneAuthorableOutputPort(
+        id: 'completed',
+        label: 'completed',
+        edgeKind: SceneEdgeKind.cinematicCompleted,
+      ),
+    ],
     SceneNodeKind.presentationCinematic => const [
-        SceneAuthorableOutputPort(
-          id: 'completed',
-          label: 'completed',
-          edgeKind: SceneEdgeKind.presentationCompleted,
-        ),
-      ],
+      SceneAuthorableOutputPort(
+        id: 'completed',
+        label: 'completed',
+        edgeKind: SceneEdgeKind.presentationCompleted,
+      ),
+    ],
     SceneNodeKind.end ||
-    SceneNodeKind.branchByOutcome =>
-      const <SceneAuthorableOutputPort>[],
+    SceneNodeKind.branchByOutcome => const <SceneAuthorableOutputPort>[],
   };
 }
 
@@ -761,7 +794,8 @@ SceneYarnDialoguePayloadUpdateResult updateSceneYarnDialoguePayload(
   final staleEdgeIds = <String>{};
   final updatedEdges = <SceneEdge>[];
   for (final edge in scene.graph.edges) {
-    final isStaleDialogueOutcome = edge.fromNodeId == nodeId &&
+    final isStaleDialogueOutcome =
+        edge.fromNodeId == nodeId &&
         edge.kind == SceneEdgeKind.dialogueOutcome &&
         !supportedOutcomeIds.contains(edge.fromPortId);
     if (isStaleDialogueOutcome) {
@@ -888,8 +922,9 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
   final updatedPayload = SceneBattlePayload(
     battleKind: normalizedBattleKind,
     trainerId: normalizedTrainerId,
-    battleTemplateId:
-        normalizedBattleKind == 'static' ? normalizedBattleTemplateId : null,
+    battleTemplateId: normalizedBattleKind == 'static'
+        ? normalizedBattleTemplateId
+        : null,
     npcEntityId: currentPayload.npcEntityId,
     declaredOutcomes: const ['victory', 'defeat'],
   );
@@ -1107,6 +1142,96 @@ SceneActionConsequencePayloadUpdateResult updateSceneActionConsequencePayload(
   );
 }
 
+ScenePreSessionInteractionPayloadUpdateResult
+updateScenePreSessionInteractionPayload(
+  SceneAsset scene, {
+  required String nodeId,
+  required ScenePreSessionInteractionSpec interaction,
+}) {
+  final node = _findNodeOrThrow(scene, nodeId, 'nodeId');
+  final payload = node.payload;
+  if (scene.executionProfile != SceneExecutionProfile.preSession ||
+      node.kind != SceneNodeKind.action ||
+      payload is! SceneActionPayload ||
+      payload.preSessionInteraction == null) {
+    throw ArgumentError.value(
+      nodeId,
+      'nodeId',
+      'Structured interaction editing requires a preSession action node.',
+    );
+  }
+  final updatedPayload = SceneActionPayload.preSessionInteraction(interaction);
+  final updatedNode = SceneNode(
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    description: node.description,
+    payload: updatedPayload,
+  );
+  return ScenePreSessionInteractionPayloadUpdateResult(
+    updatedScene: _sceneWithUpdatedNode(scene, updatedNode),
+    updatedNode: updatedNode,
+    updatedPayload: updatedPayload,
+  );
+}
+
+ScenePresentationInteractionCueBindingUpdateResult
+updateScenePresentationInteractionCueBinding(
+  SceneAsset scene, {
+  required String presentationNodeId,
+  required String markerId,
+  String? interactionNodeId,
+}) {
+  final node = _findNodeOrThrow(
+    scene,
+    presentationNodeId,
+    'presentationNodeId',
+  );
+  final payload = node.payload;
+  if (scene.executionProfile != SceneExecutionProfile.preSession ||
+      node.kind != SceneNodeKind.presentationCinematic ||
+      payload is! ScenePresentationCinematicPayload) {
+    throw ArgumentError.value(
+      presentationNodeId,
+      'presentationNodeId',
+      'Interaction cue binding requires a preSession Presentation node.',
+    );
+  }
+  final normalizedMarkerId = _trimRequired(
+    markerId,
+    'markerId',
+    'An interaction cue marker id is required.',
+  );
+  final normalizedInteractionNodeId = _trimOptional(interactionNodeId);
+  final updatedBindings = <ScenePresentationInteractionCueBinding>[
+    for (final binding in payload.interactionCueBindings)
+      if (binding.markerId != normalizedMarkerId &&
+          binding.interactionNodeId != normalizedInteractionNodeId)
+        binding,
+    if (normalizedInteractionNodeId != null)
+      ScenePresentationInteractionCueBinding(
+        markerId: normalizedMarkerId,
+        interactionNodeId: normalizedInteractionNodeId,
+      ),
+  ];
+  final updatedPayload = ScenePresentationCinematicPayload(
+    presentationCinematicId: payload.presentationCinematicId,
+    interactionCueBindings: updatedBindings,
+  );
+  final updatedNode = SceneNode(
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    description: node.description,
+    payload: updatedPayload,
+  );
+  return ScenePresentationInteractionCueBindingUpdateResult(
+    updatedScene: _sceneWithUpdatedNode(scene, updatedNode),
+    updatedNode: updatedNode,
+    updatedPayload: updatedPayload,
+  );
+}
+
 SceneNodeLayoutUpdateResult updateSceneNodeLayout(
   SceneAsset scene, {
   required String nodeId,
@@ -1236,13 +1361,11 @@ SceneNodeDraftCreationResult duplicateSceneNodeDraft(
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.presentationCinematic ||
-    SceneNodeKind.branchByOutcome =>
-      _linkedAssetNodeIdBaseForKind(source.kind),
+    SceneNodeKind.branchByOutcome => _linkedAssetNodeIdBaseForKind(source.kind),
     SceneNodeKind.action => 'node_action',
     SceneNodeKind.condition ||
     SceneNodeKind.merge ||
-    SceneNodeKind.end =>
-      _nodeIdBaseForKind(source.kind),
+    SceneNodeKind.end => _nodeIdBaseForKind(source.kind),
     SceneNodeKind.start => throw StateError('Unsupported duplicate node kind.'),
   };
   final duplicatedNodeId = _uniqueNodeId(
@@ -1264,8 +1387,11 @@ SceneNodeDraftCreationResult duplicateSceneNodeDraft(
     }
   }
   final createdLayout = sourceLayout == null
-      ? _layoutForNewNode(scene,
-          nodeId: duplicatedNodeId, afterNodeId: source.id)
+      ? _layoutForNewNode(
+          scene,
+          nodeId: duplicatedNodeId,
+          afterNodeId: source.id,
+        )
       : SceneNodeLayout(
           nodeId: duplicatedNodeId,
           x: sourceLayout.x + 32,
@@ -1491,10 +1617,7 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
     'Scene node deletion requires a node id.',
   );
   final removedNode = _findNodeOrThrow(scene, trimmedNodeId, 'nodeId');
-  final removalBlocker = sceneNodeDraftRemovalBlocker(
-    scene.graph,
-    removedNode,
-  );
+  final removalBlocker = sceneNodeDraftRemovalBlocker(scene.graph, removedNode);
   if (removalBlocker != null || !isSceneNodeDraftRemovable(removedNode)) {
     throw ArgumentError.value(
       nodeId,
@@ -1567,8 +1690,9 @@ void _validateConditionSourceForV0(SceneConditionSource source) {
       return;
     case SceneConditionSourceKind.fact:
       if (source.expectedFactValue != null) {
-        if (!source.expectedFactValue!.kind.compatibleOperators
-            .contains(source.factOperator)) {
+        if (!source.expectedFactValue!.kind.compatibleOperators.contains(
+          source.factOperator,
+        )) {
           throw ArgumentError.value(
             source.factOperator,
             'source.factOperator',
@@ -1914,10 +2038,10 @@ SceneAsset _duplicateSceneAsset(
   final generatedNodeIds = <String>{};
   final nodeIds = <String, String>{};
   for (final node in source.graph.nodes) {
-    final id = _uniqueNodeId(
-      '${node.id}_copy',
-      {...sourceNodeIds, ...generatedNodeIds},
-    );
+    final id = _uniqueNodeId('${node.id}_copy', {
+      ...sourceNodeIds,
+      ...generatedNodeIds,
+    });
     nodeIds[node.id] = id;
     generatedNodeIds.add(id);
   }
@@ -1926,10 +2050,10 @@ SceneAsset _duplicateSceneAsset(
   final generatedEdgeIds = <String>{};
   final edgeIds = <String, String>{};
   for (final edge in source.graph.edges) {
-    final id = _uniqueEdgeId(
-      '${edge.id}_copy',
-      {...sourceEdgeIds, ...generatedEdgeIds},
-    );
+    final id = _uniqueEdgeId('${edge.id}_copy', {
+      ...sourceEdgeIds,
+      ...generatedEdgeIds,
+    });
     edgeIds[edge.id] = id;
     generatedEdgeIds.add(id);
   }
@@ -1961,11 +2085,7 @@ SceneAsset _duplicateSceneAsset(
   final layout = SceneGraphLayout(
     nodeLayouts: [
       for (final item in source.layout.nodeLayouts)
-        SceneNodeLayout(
-          nodeId: nodeIds[item.nodeId]!,
-          x: item.x,
-          y: item.y,
-        ),
+        SceneNodeLayout(nodeId: nodeIds[item.nodeId]!, x: item.x, y: item.y),
     ],
     edgeLayouts: [
       for (final item in source.layout.edgeLayouts)
@@ -2082,8 +2202,9 @@ NarrativeEventRecord _replaceSceneInEventRecord(
         source: draft.source,
         conditions: draft.conditions,
         conditionExpression: draft.conditionExpression,
-        sceneId:
-            draft.sceneId == sourceSceneId ? replacementSceneId : draft.sceneId,
+        sceneId: draft.sceneId == sourceSceneId
+            ? replacementSceneId
+            : draft.sceneId,
         reusePolicy: draft.reusePolicy,
         priority: draft.priority,
         order: draft.order,
@@ -2092,22 +2213,22 @@ NarrativeEventRecord _replaceSceneInEventRecord(
     ),
     configured: (definition, enabled) =>
         NarrativeEventRecord.configuredStructurallyUnchecked(
-      NarrativeEventDefinition(
-        id: definition.id,
-        name: definition.name,
-        source: definition.source,
-        conditions: definition.conditions,
-        conditionExpression: definition.conditionExpression,
-        sceneId: definition.sceneId == sourceSceneId
-            ? replacementSceneId
-            : definition.sceneId,
-        reusePolicy: definition.reusePolicy,
-        priority: definition.priority,
-        order: definition.order,
-        resetPolicy: definition.resetPolicy,
-      ),
-      enabled: enabled,
-    ),
+          NarrativeEventDefinition(
+            id: definition.id,
+            name: definition.name,
+            source: definition.source,
+            conditions: definition.conditions,
+            conditionExpression: definition.conditionExpression,
+            sceneId: definition.sceneId == sourceSceneId
+                ? replacementSceneId
+                : definition.sceneId,
+            reusePolicy: definition.reusePolicy,
+            priority: definition.priority,
+            order: definition.order,
+            resetPolicy: definition.resetPolicy,
+          ),
+          enabled: enabled,
+        ),
   );
 }
 
@@ -2119,9 +2240,7 @@ List<String> _replaceUniqueSceneIds(
   final seen = <String>{};
   return [
     for (final sceneId in sceneIds)
-      if (seen.add(
-        sceneId == sourceSceneId ? replacementSceneId : sceneId,
-      ))
+      if (seen.add(sceneId == sourceSceneId ? replacementSceneId : sceneId))
         sceneId == sourceSceneId ? replacementSceneId : sceneId,
   ];
 }
@@ -2138,16 +2257,8 @@ SceneAsset _createSceneDraft({
     graph: SceneGraph(
       startNodeId: 'node_start',
       nodes: [
-        SceneNode(
-          id: 'node_start',
-          kind: SceneNodeKind.start,
-          title: 'Début',
-        ),
-        SceneNode(
-          id: 'node_end',
-          kind: SceneNodeKind.end,
-          title: 'Fin',
-        ),
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start, title: 'Début'),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end, title: 'Fin'),
       ],
       edges: [
         SceneEdge(
@@ -2305,10 +2416,7 @@ String _sanitizeEdgeIdPart(String value) {
   return slug.isEmpty ? 'id' : slug;
 }
 
-void _validateNodeCapabilityForAuthoring(
-  SceneAsset scene,
-  SceneNode node,
-) {
+void _validateNodeCapabilityForAuthoring(SceneAsset scene, SceneNode node) {
   final capabilityId = sceneExecutionCapabilityForNode(
     scene.executionProfile,
     node,
@@ -2336,8 +2444,7 @@ bool _isSupportedDraftNodeKind(SceneNodeKind kind) {
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.presentationCinematic ||
-    SceneNodeKind.branchByOutcome =>
-      false,
+    SceneNodeKind.branchByOutcome => false,
   };
 }
 
@@ -2347,14 +2454,12 @@ bool _isSupportedLinkedAssetPayloadKind(SceneNodeKind kind) {
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.presentationCinematic ||
-    SceneNodeKind.branchByOutcome =>
-      true,
+    SceneNodeKind.branchByOutcome => true,
     SceneNodeKind.start ||
     SceneNodeKind.end ||
     SceneNodeKind.condition ||
     SceneNodeKind.action ||
-    SceneNodeKind.merge =>
-      false,
+    SceneNodeKind.merge => false,
   };
 }
 
@@ -2369,8 +2474,11 @@ String _nodeIdBaseForKind(SceneNodeKind kind) {
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.presentationCinematic ||
-    SceneNodeKind.branchByOutcome =>
-      throw ArgumentError.value(kind, 'kind', 'Unsupported draft node kind.'),
+    SceneNodeKind.branchByOutcome => throw ArgumentError.value(
+      kind,
+      'kind',
+      'Unsupported draft node kind.',
+    ),
   };
 }
 
@@ -2385,12 +2493,11 @@ String _linkedAssetNodeIdBaseForKind(SceneNodeKind kind) {
     SceneNodeKind.end ||
     SceneNodeKind.condition ||
     SceneNodeKind.action ||
-    SceneNodeKind.merge =>
-      throw ArgumentError.value(
-        kind,
-        'kind',
-        'Unsupported linked asset node kind.',
-      ),
+    SceneNodeKind.merge => throw ArgumentError.value(
+      kind,
+      'kind',
+      'Unsupported linked asset node kind.',
+    ),
   };
 }
 
@@ -2405,8 +2512,11 @@ String _defaultTitleForKind(SceneNodeKind kind) {
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.presentationCinematic ||
-    SceneNodeKind.branchByOutcome =>
-      throw ArgumentError.value(kind, 'kind', 'Unsupported draft node kind.'),
+    SceneNodeKind.branchByOutcome => throw ArgumentError.value(
+      kind,
+      'kind',
+      'Unsupported draft node kind.',
+    ),
   };
 }
 
@@ -2421,12 +2531,11 @@ String _defaultLinkedAssetTitleForKind(SceneNodeKind kind) {
     SceneNodeKind.end ||
     SceneNodeKind.condition ||
     SceneNodeKind.action ||
-    SceneNodeKind.merge =>
-      throw ArgumentError.value(
-        kind,
-        'kind',
-        'Unsupported linked asset node kind.',
-      ),
+    SceneNodeKind.merge => throw ArgumentError.value(
+      kind,
+      'kind',
+      'Unsupported linked asset node kind.',
+    ),
   };
 }
 
@@ -2465,11 +2574,7 @@ SceneNodeLayout _layoutForNewNode(
 
   source ??= _rightMostLayout(layouts);
   if (source != null) {
-    return SceneNodeLayout(
-      nodeId: nodeId,
-      x: source.x + 300,
-      y: source.y,
-    );
+    return SceneNodeLayout(nodeId: nodeId, x: source.x + 300, y: source.y);
   }
 
   return SceneNodeLayout(
@@ -2513,11 +2618,7 @@ String _slugify(String value) {
   return slug.endsWith('_') ? slug.substring(0, slug.length - 1) : slug;
 }
 
-String _trimRequired(
-  String value,
-  String argumentName,
-  String message,
-) {
+String _trimRequired(String value, String argumentName, String message) {
   final trimmed = value.trim();
   if (trimmed.isEmpty) {
     throw ArgumentError.value(value, argumentName, message);

@@ -7,11 +7,7 @@ import '../models/map_data.dart';
 import '../models/enums.dart';
 import '../read_models/linked_asset_public_contracts.dart';
 
-enum SceneDiagnosticSeverity {
-  error,
-  warning,
-  info,
-}
+enum SceneDiagnosticSeverity { error, warning, info }
 
 enum SceneDiagnosticCode {
   missingStartNode,
@@ -73,14 +69,7 @@ enum SceneDiagnosticCode {
   emptyGraph,
 }
 
-enum SceneDiagnosticTarget {
-  scene,
-  graph,
-  node,
-  edge,
-  layout,
-  outcome,
-}
+enum SceneDiagnosticTarget { scene, graph, node, edge, layout, outcome }
 
 final class SceneDiagnostic {
   const SceneDiagnostic({
@@ -124,23 +113,22 @@ final class SceneDiagnostic {
 
   @override
   int get hashCode => Object.hash(
-        code,
-        severity,
-        message,
-        sceneId,
-        target,
-        nodeId,
-        edgeId,
-        outcomeId,
-        suggestedFixLabel,
-        capabilityIssueCode,
-      );
+    code,
+    severity,
+    message,
+    sceneId,
+    target,
+    nodeId,
+    edgeId,
+    outcomeId,
+    suggestedFixLabel,
+    capabilityIssueCode,
+  );
 }
 
 final class SceneDiagnosticsReport {
-  SceneDiagnosticsReport({
-    required List<SceneDiagnostic> diagnostics,
-  }) : _diagnostics = List<SceneDiagnostic>.unmodifiable(diagnostics);
+  SceneDiagnosticsReport({required List<SceneDiagnostic> diagnostics})
+    : _diagnostics = List<SceneDiagnostic>.unmodifiable(diagnostics);
 
   final List<SceneDiagnostic> _diagnostics;
 
@@ -150,7 +138,8 @@ final class SceneDiagnosticsReport {
 
   int get errorCount => _diagnostics
       .where(
-          (diagnostic) => diagnostic.severity == SceneDiagnosticSeverity.error)
+        (diagnostic) => diagnostic.severity == SceneDiagnosticSeverity.error,
+      )
       .length;
 
   int get warningCount => _diagnostics
@@ -161,7 +150,8 @@ final class SceneDiagnosticsReport {
 
   int get infoCount => _diagnostics
       .where(
-          (diagnostic) => diagnostic.severity == SceneDiagnosticSeverity.info)
+        (diagnostic) => diagnostic.severity == SceneDiagnosticSeverity.info,
+      )
       .length;
 
   bool get hasDiagnostics => _diagnostics.isNotEmpty;
@@ -177,9 +167,7 @@ final class SceneDiagnosticsReport {
 
 SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
   final diagnostics = <SceneDiagnostic>[];
-  final nodeById = {
-    for (final node in scene.graph.nodes) node.id: node,
-  };
+  final nodeById = {for (final node in scene.graph.nodes) node.id: node};
   final nodeIds = nodeById.keys.toSet();
 
   if (scene.graph.nodes.isEmpty) {
@@ -317,7 +305,8 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
               SceneDiagnosticCode.capabilityForbiddenForProfile,
           },
           severity: SceneDiagnosticSeverity.error,
-          message: 'Le profil ${scene.executionProfile.name} refuse la '
+          message:
+              'Le profil ${scene.executionProfile.name} refuse la '
               'capability $capabilityId.',
           sceneId: scene.id,
           nodeId: node.id,
@@ -442,8 +431,9 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   final dialogueById = <String, DialoguePublicContract>{
     for (final dialogue in contracts.dialogues) dialogue.id: dialogue,
   };
-  final trainerIds =
-      contracts.battles.map((battle) => battle.trainerId).toSet();
+  final trainerIds = contracts.battles
+      .map((battle) => battle.trainerId)
+      .toSet();
   final staticEncounterTrainerIds = contracts.battles
       .where(
         (battle) =>
@@ -458,15 +448,19 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   final factIds = project.facts.map((fact) => fact.id).toSet();
   final worldRuleIds = project.worldRules.map((rule) => rule.id).toSet();
   final projectMapIds = project.maps.map((map) => map.id).toSet();
-  final starterOptionIds =
-      project.newGame.starterOptions.map((option) => option.id).toSet();
+  final starterOptionIds = project.newGame.starterOptions
+      .map((option) => option.id)
+      .toSet();
   final badgeIds = project.badges.map((badge) => badge.id).toSet();
   final storyStepCounts = <String, int>{};
   for (final storyline in project.storylines) {
     for (final chapter in storyline.chapters) {
       for (final step in chapter.steps) {
-        storyStepCounts.update(step.id, (count) => count + 1,
-            ifAbsent: () => 1);
+        storyStepCounts.update(
+          step.id,
+          (count) => count + 1,
+          ifAbsent: () => 1,
+        );
       }
     }
   }
@@ -489,8 +483,9 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
             ),
           );
         } else {
-          final declaredOutcomeIds =
-              dialogue.declaredOutcomes.map((outcome) => outcome.id).toSet();
+          final declaredOutcomeIds = dialogue.declaredOutcomes
+              .map((outcome) => outcome.id)
+              .toSet();
           for (final expectedOutcomeId in payload.expectedOutcomes) {
             if (declaredOutcomeIds.contains(expectedOutcomeId)) continue;
             diagnostics.add(
@@ -512,8 +507,9 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
       case SceneBattlePayload():
         final isTrainer = payload.battleKind == 'trainer';
         final isStatic = payload.battleKind == 'static';
-        final validTrainerIds =
-            isStatic ? staticEncounterTrainerIds : trainerIds;
+        final validTrainerIds = isStatic
+            ? staticEncounterTrainerIds
+            : trainerIds;
         if ((isTrainer || isStatic) &&
             (payload.trainerId == null ||
                 !validTrainerIds.contains(payload.trainerId))) {
@@ -523,9 +519,9 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
               severity: SceneDiagnosticSeverity.error,
               message: isStatic
                   ? 'La rencontre statique doit référencer un profil '
-                      '« static-encounter » présent dans le projet.'
+                        '« static-encounter » présent dans le projet.'
                   : 'Le combat référence un profil d’adversaire absent du '
-                      'projet.',
+                        'projet.',
               sceneId: scene.id,
               nodeId: node.id,
               target: SceneDiagnosticTarget.node,
@@ -561,8 +557,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
               sceneId: scene.id,
               nodeId: node.id,
               target: SceneDiagnosticTarget.node,
-              suggestedFixLabel:
-                  'Choisir une CinematicAsset existante.',
+              suggestedFixLabel: 'Choisir une CinematicAsset existante.',
             ),
           );
         }
@@ -1014,7 +1009,8 @@ void _diagnoseActionConsequenceAgainstProject(
   final interactiveCommand = payload.interactiveCommand;
   if (interactiveCommand is SceneMoveNpcInteractiveCommand) {
     final mapData = mapsById[interactiveCommand.mapId];
-    final npcExists = mapData?.entities.any(
+    final npcExists =
+        mapData?.entities.any(
           (entity) =>
               entity.id == interactiveCommand.entityId &&
               entity.kind == MapEntityKind.npc,
@@ -1095,8 +1091,9 @@ void _diagnoseActionConsequenceAgainstProject(
       if (mapData == null) {
         return;
       }
-      final hasEvent =
-          mapData.events.any((event) => event.id == consequence.eventId);
+      final hasEvent = mapData.events.any(
+        (event) => event.id == consequence.eventId,
+      );
       if (!hasEvent) {
         diagnostics.add(
           SceneDiagnostic(
@@ -1189,7 +1186,8 @@ void _diagnoseActionConsequenceAgainstProject(
         return;
       }
       final mapData = mapsById[consequence.mapId];
-      final npcExists = mapData?.entities.any(
+      final npcExists =
+          mapData?.entities.any(
             (entity) =>
                 entity.id == consequence.entityId &&
                 entity.kind == MapEntityKind.npc,
@@ -1563,48 +1561,48 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(
 ) {
   return switch (node.kind) {
     SceneNodeKind.start => const [
-        _SceneOutputPortSpec(
-          id: 'completed',
-          edgeKinds: {SceneEdgeKind.defaultFlow},
-          required: true,
-        ),
-      ],
+      _SceneOutputPortSpec(
+        id: 'completed',
+        edgeKinds: {SceneEdgeKind.defaultFlow},
+        required: true,
+      ),
+    ],
     SceneNodeKind.condition => const [
-        _SceneOutputPortSpec(
-          id: 'true',
-          edgeKinds: {SceneEdgeKind.conditionTrue},
-          required: true,
-        ),
-        _SceneOutputPortSpec(
-          id: 'false',
-          edgeKinds: {SceneEdgeKind.conditionFalse},
-          required: true,
-        ),
-      ],
+      _SceneOutputPortSpec(
+        id: 'true',
+        edgeKinds: {SceneEdgeKind.conditionTrue},
+        required: true,
+      ),
+      _SceneOutputPortSpec(
+        id: 'false',
+        edgeKinds: {SceneEdgeKind.conditionFalse},
+        required: true,
+      ),
+    ],
     SceneNodeKind.merge => const [
-        _SceneOutputPortSpec(
-          id: 'completed',
-          edgeKinds: {SceneEdgeKind.defaultFlow},
-          required: true,
-        ),
-      ],
+      _SceneOutputPortSpec(
+        id: 'completed',
+        edgeKinds: {SceneEdgeKind.defaultFlow},
+        required: true,
+      ),
+    ],
     SceneNodeKind.yarnDialogue => _yarnDialogueOutputPortSpecs(node),
     SceneNodeKind.battle => _battleOutputPortSpecs(node),
     SceneNodeKind.action => _actionOutputPortSpecs(node),
     SceneNodeKind.cinematic => const [
-        _SceneOutputPortSpec(
-          id: 'completed',
-          edgeKinds: {SceneEdgeKind.cinematicCompleted},
-          required: true,
-        ),
-      ],
+      _SceneOutputPortSpec(
+        id: 'completed',
+        edgeKinds: {SceneEdgeKind.cinematicCompleted},
+        required: true,
+      ),
+    ],
     SceneNodeKind.presentationCinematic => const [
-        _SceneOutputPortSpec(
-          id: 'completed',
-          edgeKinds: {SceneEdgeKind.presentationCompleted},
-          required: true,
-        ),
-      ],
+      _SceneOutputPortSpec(
+        id: 'completed',
+        edgeKinds: {SceneEdgeKind.presentationCompleted},
+        required: true,
+      ),
+    ],
     SceneNodeKind.end => const [],
     SceneNodeKind.branchByOutcome => _branchOutputPortSpecs(node, nodeById),
   };
@@ -1612,10 +1610,16 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(
 
 List<_SceneOutputPortSpec> _actionOutputPortSpecs(SceneNode node) {
   final payload = node.payload;
-  final interactiveCommand =
-      payload is SceneActionPayload ? payload.interactiveCommand : null;
+  final interactiveCommand = payload is SceneActionPayload
+      ? payload.interactiveCommand
+      : null;
+  final preSessionInteraction = payload is SceneActionPayload
+      ? payload.preSessionInteraction
+      : null;
   final outputPortIds =
-      interactiveCommand?.outputPortIds ?? const <String>['completed'];
+      interactiveCommand?.outputPortIds ??
+      preSessionInteraction?.outputPortIds ??
+      const <String>['completed'];
   return <_SceneOutputPortSpec>[
     for (final outputPortId in outputPortIds)
       _SceneOutputPortSpec(
@@ -1668,21 +1672,23 @@ List<_SceneOutputPortSpec> _branchOutputPortSpecs(
 List<String> _outcomePortIdsForBranchSource(SceneNode node) {
   return switch (node.payload) {
     SceneYarnDialoguePayload(:final expectedOutcomes) => <String>[
-        'completed',
-        for (final outcome in expectedOutcomes)
-          if (outcome != 'completed') outcome,
-      ],
-    SceneBattlePayload(:final declaredOutcomes) => declaredOutcomes.isEmpty
-        ? const <String>['victory', 'defeat']
-        : declaredOutcomes,
+      'completed',
+      for (final outcome in expectedOutcomes)
+        if (outcome != 'completed') outcome,
+    ],
+    SceneBattlePayload(:final declaredOutcomes) =>
+      declaredOutcomes.isEmpty
+          ? const <String>['victory', 'defeat']
+          : declaredOutcomes,
     SceneConditionPayload() => const <String>['true', 'false'],
+    SceneActionPayload(:final preSessionInteraction?) =>
+      preSessionInteraction.outputPortIds,
     SceneStartPayload() ||
     SceneActionPayload() ||
     SceneCinematicPayload() ||
     SceneMergePayload() ||
     SceneEndPayload() ||
-    SceneBranchByOutcomePayload() =>
-      const <String>[],
+    SceneBranchByOutcomePayload() => const <String>[],
     _ => const <String>[],
   };
 }
@@ -1744,8 +1750,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.storyStepCompletion ||
-    SceneConditionSourceKind.consumedEvent =>
-      true,
+    SceneConditionSourceKind.consumedEvent => true,
     SceneConditionSourceKind.storyStepActive ||
     SceneConditionSourceKind.inventoryItem ||
     SceneConditionSourceKind.partyState ||
@@ -1753,8 +1758,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.dialogueOutcome ||
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||
-    SceneConditionSourceKind.worldState =>
-      false,
+    SceneConditionSourceKind.worldState => false,
   };
 }
 
@@ -1765,11 +1769,12 @@ bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
           source.operator == SceneConditionOperator.isFalse ||
           source.operator == SceneConditionOperator.equals &&
               source.value != null,
-    SceneConditionSourceKind.fact => source.expectedFactValue != null ||
-        source.operator == SceneConditionOperator.isTrue ||
-        source.operator == SceneConditionOperator.isFalse ||
-        source.operator == SceneConditionOperator.equals &&
-            (source.value == 'true' || source.value == 'false'),
+    SceneConditionSourceKind.fact =>
+      source.expectedFactValue != null ||
+          source.operator == SceneConditionOperator.isTrue ||
+          source.operator == SceneConditionOperator.isFalse ||
+          source.operator == SceneConditionOperator.equals &&
+              (source.value == 'true' || source.value == 'false'),
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.consumedEvent =>
       source.operator == SceneConditionOperator.isTrue ||
@@ -1783,8 +1788,7 @@ bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
     SceneConditionSourceKind.dialogueOutcome ||
     SceneConditionSourceKind.battleOutcome ||
     SceneConditionSourceKind.scriptVariable ||
-    SceneConditionSourceKind.worldState =>
-      false,
+    SceneConditionSourceKind.worldState => false,
   };
 }
 

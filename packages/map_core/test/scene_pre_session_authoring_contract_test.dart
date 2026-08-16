@@ -92,6 +92,79 @@ void main() {
         ),
         interactions,
       );
+      expect(interactions[0].outputPortIds, const ['completed']);
+      expect(interactions[1].outputPortIds, const ['option_a']);
+      expect(interactions[2].outputPortIds, const ['completed']);
+      expect(interactions[3].outputPortIds, const ['confirmed', 'declined']);
+      expect(interactions[4].outputPortIds, const ['completed']);
+    });
+
+    test('builds the exact runtime request used by previews and playback', () {
+      final interaction = ScenePreSessionInteractionSpec.selection(
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'newGame.starter.prompt',
+          fallbackText: 'Choisis ton partenaire.',
+        ),
+        options: [
+          SceneInteractionOption(
+            id: 'starter_leaf',
+            label: SceneInteractionPrompt(
+              localizationKey: 'newGame.starter.leaf',
+              fallbackText: 'Feuille',
+            ),
+          ),
+        ],
+        constraints: SceneSelectionConstraints(
+          minSelections: 1,
+          maxSelections: 1,
+        ),
+      );
+
+      final request = interaction.buildRequest(
+        requestId: 'preview:starter',
+        revision: 4,
+      );
+
+      expect(request, isA<SceneSelectionInteractionRequest>());
+      expect(request.requestId, 'preview:starter');
+      expect(request.revision, 4);
+      expect(request.prompt, interaction.prompt);
+      expect(
+        (request as SceneSelectionInteractionRequest).options,
+        interaction.options,
+      );
+      expect(request.constraints, interaction.selectionConstraints);
+    });
+
+    test('round-trips Presentation cue bindings to interaction nodes', () {
+      final payload = ScenePresentationCinematicPayload(
+        presentationCinematicId: 'opening',
+        interactionCueBindings: const [
+          ScenePresentationInteractionCueBinding(
+            markerId: 'ask_name',
+            interactionNodeId: 'input_name',
+          ),
+        ],
+      );
+
+      expect(SceneNodePayload.fromJson(payload.toJson()), payload);
+      expect(payload.interactionCueBindings.single.markerId, 'ask_name');
+      expect(
+        () => ScenePresentationCinematicPayload(
+          presentationCinematicId: 'opening',
+          interactionCueBindings: const [
+            ScenePresentationInteractionCueBinding(
+              markerId: 'ask_name',
+              interactionNodeId: 'input_name',
+            ),
+            ScenePresentationInteractionCueBinding(
+              markerId: 'ask_name',
+              interactionNodeId: 'input_other',
+            ),
+          ],
+        ),
+        throwsA(isA<ValidationException>()),
+      );
     });
 
     test('builds typed interaction and draft-local condition intents', () {
@@ -152,7 +225,7 @@ void main() {
             SceneEdge(
               id: 'interaction_condition',
               fromNodeId: 'choose_avatar',
-              fromPortId: 'completed',
+              fromPortId: 'avatar_a',
               toNodeId: 'has_avatar',
               kind: SceneEdgeKind.defaultFlow,
             ),
@@ -205,6 +278,112 @@ void main() {
         SceneRuntimePlanIntentKind.requestStructuredInteraction,
       );
       expect(interactionIntent.preSessionInteraction, interaction);
+      expect(interactionIntent.sourceNodeId, 'choose_avatar');
+    });
+
+    test('compiles Presentation cue bindings into the runtime intent', () {
+      final interaction = ScenePreSessionInteractionSpec.message(
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'newGame.intro.message',
+          fallbackText: 'Bienvenue.',
+        ),
+      );
+      final scene = SceneAsset(
+        id: 'scene_pre_session',
+        name: 'Pré-session',
+        executionProfile: SceneExecutionProfile.preSession,
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'presentation',
+              kind: SceneNodeKind.presentationCinematic,
+              payload: ScenePresentationCinematicPayload(
+                presentationCinematicId: 'opening',
+                interactionCueBindings: const [
+                  ScenePresentationInteractionCueBinding(
+                    markerId: 'welcome',
+                    interactionNodeId: 'message',
+                  ),
+                ],
+              ),
+            ),
+            SceneNode(
+              id: 'message',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.preSessionInteraction(interaction),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'start_presentation',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'presentation',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'presentation_message',
+              fromNodeId: 'presentation',
+              fromPortId: 'completed',
+              toNodeId: 'message',
+              kind: SceneEdgeKind.presentationCompleted,
+            ),
+            SceneEdge(
+              id: 'message_end',
+              fromNodeId: 'message',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+          ],
+        ),
+      );
+
+      final plan = buildSceneRuntimePlan(scene).plan!;
+      final presentationIntent = plan.nodes
+          .singleWhere((node) => node.id == 'presentation')
+          .intent;
+
+      expect(presentationIntent.sourceNodeId, 'presentation');
+      expect(
+        presentationIntent.presentationInteractionNodeIdsByMarkerId,
+        const {'welcome': 'message'},
+      );
+    });
+
+    test('rejects cue bindings to missing or non-interaction nodes', () {
+      SceneAsset build(String interactionNodeId) => SceneAsset(
+        id: 'scene_pre_session',
+        name: 'Pré-session',
+        executionProfile: SceneExecutionProfile.preSession,
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'presentation',
+              kind: SceneNodeKind.presentationCinematic,
+              payload: ScenePresentationCinematicPayload(
+                presentationCinematicId: 'opening',
+                interactionCueBindings: [
+                  ScenePresentationInteractionCueBinding(
+                    markerId: 'ask_name',
+                    interactionNodeId: interactionNodeId,
+                  ),
+                ],
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: const [],
+        ),
+      );
+
+      expect(() => build('missing'), throwsA(isA<ValidationException>()));
+      expect(() => build('end'), throwsA(isA<ValidationException>()));
     });
 
     test('rejects preSession semantics from a world Scene fail-closed', () {

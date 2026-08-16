@@ -132,6 +132,45 @@ final class RuntimePresentationScenePlaybackController
     if (!await _synchronizeVideo(active, frame)) return false;
     if (!_isCurrent(active)) return false;
     onFrame(active.request, frame);
+    if (!await _runInteractionCues(active)) return false;
+    return true;
+  }
+
+  Future<bool> _runInteractionCues(
+    _RuntimePresentationActiveRun active,
+  ) async {
+    final handler = active.request.onInteractionCue;
+    final currentPlayheadUs = active.clock.playheadUs;
+    if (handler == null) {
+      active.publishedPlayheadUs = currentPlayheadUs;
+      return true;
+    }
+    final dueMarkerIds = <(int, String)>[];
+    for (final track in active.request.asset.tracks) {
+      for (final clip in track.clips) {
+        if (clip is! PresentationMarkerClip ||
+            clip.markerKind != PresentationMarkerKind.interactionCue ||
+            !active.request.interactionCueMarkerIds.contains(clip.id) ||
+            active.triggeredMarkerIds.contains(clip.id)) {
+          continue;
+        }
+        final crossed = active.publishedPlayheadUs < 0
+            ? clip.startUs <= currentPlayheadUs
+            : clip.startUs > active.publishedPlayheadUs &&
+                clip.startUs <= currentPlayheadUs;
+        if (crossed) dueMarkerIds.add((clip.startUs, clip.id));
+      }
+    }
+    dueMarkerIds.sort((left, right) {
+      final time = left.$1.compareTo(right.$1);
+      return time != 0 ? time : left.$2.compareTo(right.$2);
+    });
+    active.publishedPlayheadUs = currentPlayheadUs;
+    for (final marker in dueMarkerIds) {
+      active.triggeredMarkerIds.add(marker.$2);
+      await handler(marker.$2);
+      if (!_isCurrent(active)) return false;
+    }
     return true;
   }
 
@@ -238,6 +277,8 @@ final class _RuntimePresentationActiveRun {
   int clockToken;
   final int generation;
   String? videoMediaId;
+  int publishedPlayheadUs = -1;
+  final Set<String> triggeredMarkerIds = <String>{};
 }
 
 PresentationExecutionCorrelation _correlation(

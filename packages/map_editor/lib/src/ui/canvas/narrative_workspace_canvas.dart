@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
 
@@ -68,6 +69,7 @@ import 'scenes/scene_action_builder.dart';
 import 'scenes/scene_graph_read_only_view.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
 import 'scenes_workspace.dart';
+import 'scenes/scene_pre_session_interaction_dialog.dart';
 import 'step_studio_workspace.dart';
 import 'storylines_workspace.dart';
 
@@ -1111,6 +1113,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   )
                   .toList(growable: false) ??
               const [],
+        newGameConfig:
+            editor.project?.newGame ?? const ProjectNewGameConfig(),
         onCreateAndLinkPresentation:
             ({
             required String sceneId,
@@ -1433,6 +1437,51 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               );
               return result.createdNode.id;
             } on ArgumentError {
+              return null;
+            }
+          },
+        onAddPreSessionInteractionDraft:
+            ({
+            required String sceneId,
+            required String targetNodeId,
+            required ScenePreSessionInteractionDraft draft,
+          }) async {
+            final project = editor.project;
+            if (project == null) return null;
+            final scene = project.scenes
+                .where((candidate) => candidate.id == sceneId)
+                .firstOrNull;
+            if (scene == null) return null;
+            final authoringMaps = editor.activeMap == null
+                ? const <MapData>[]
+                : <MapData>[editor.activeMap!];
+            final nodeId = _nextSceneInteractionNodeId(
+              scene,
+              draft.interaction.kind,
+            );
+            final cue = draft.cueBinding;
+            try {
+              final projected = const SceneActions().insertPreSessionInteraction(
+                project,
+                maps: authoringMaps,
+                sceneId: sceneId,
+                nodeId: nodeId,
+                targetNodeId: targetNodeId,
+                title: draft.title,
+                interaction: draft.interaction,
+                cueBinding: cue == null
+                    ? null
+                    : ScenePreSessionInteractionCueBindingDraft(
+                        presentationNodeId: cue.presentationNodeId,
+                        markerId: cue.markerId,
+                      ),
+              );
+              editorNotifier.applyInMemoryProjectManifest(
+                projected,
+                statusMessage: 'Scene pre-session interaction added',
+              );
+              return nodeId;
+            } on Object {
               return null;
             }
           },
@@ -1787,6 +1836,42 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               );
               return true;
             } on ArgumentError {
+              return false;
+            }
+          },
+        onUpdatePreSessionInteractionDraft:
+            ({
+            required String sceneId,
+            required String nodeId,
+            required ScenePreSessionInteractionDraft draft,
+          }) async {
+            final project = editor.project;
+            if (project == null) return false;
+            final authoringMaps = editor.activeMap == null
+                ? const <MapData>[]
+                : <MapData>[editor.activeMap!];
+            final cue = draft.cueBinding;
+            try {
+              final projected = const SceneActions().updatePreSessionInteraction(
+                project,
+                maps: authoringMaps,
+                sceneId: sceneId,
+                nodeId: nodeId,
+                interaction: draft.interaction,
+                replaceCueBinding: true,
+                cueBinding: cue == null
+                    ? null
+                    : ScenePreSessionInteractionCueBindingDraft(
+                        presentationNodeId: cue.presentationNodeId,
+                        markerId: cue.markerId,
+                      ),
+              );
+              editorNotifier.applyInMemoryProjectManifest(
+                projected,
+                statusMessage: 'Scene pre-session interaction updated',
+              );
+              return true;
+            } on Object {
               return false;
             }
           },
@@ -4695,6 +4780,20 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
         SceneActionPickerOption(id: cinematic.id, label: cinematic.title),
     ],
   };
+}
+
+String _nextSceneInteractionNodeId(
+  SceneAsset scene,
+  SceneInteractionRequestKind kind,
+) {
+  final ids = scene.graph.nodes.map((node) => node.id).toSet();
+  final base = 'interaction_${kind.name}';
+  if (!ids.contains(base)) return base;
+  var suffix = 2;
+  while (ids.contains('${base}_$suffix')) {
+    suffix++;
+  }
+  return '${base}_$suffix';
 }
 
 String _sceneFieldAbilityLabel(FieldAbility ability) => switch (ability) {

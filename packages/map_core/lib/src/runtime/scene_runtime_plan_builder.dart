@@ -115,10 +115,7 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
         diagnostic.severity == SceneRuntimePlanDiagnosticSeverity.error,
   );
   if (hasBlockingDiagnostic) {
-    return SceneRuntimePlanBuildResult(
-      plan: null,
-      diagnostics: diagnostics,
-    );
+    return SceneRuntimePlanBuildResult(plan: null, diagnostics: diagnostics);
   }
 
   return SceneRuntimePlanBuildResult(
@@ -164,35 +161,38 @@ SceneRuntimePlanIntent _runtimeIntentForNode(
   return switch (node.kind) {
     SceneNodeKind.start => SceneRuntimePlanIntent.start(),
     SceneNodeKind.end => SceneRuntimePlanIntent.end(
-        sceneOutcomeId: (node.payload as SceneEndPayload).sceneOutcomeId,
-        outcomePolicy: (node.payload as SceneEndPayload).outcomePolicy,
-      ),
+      sceneOutcomeId: (node.payload as SceneEndPayload).sceneOutcomeId,
+      outcomePolicy: (node.payload as SceneEndPayload).outcomePolicy,
+    ),
     SceneNodeKind.condition => SceneRuntimePlanIntent.evaluateCondition(
-        source: (node.payload as SceneConditionPayload).conditionSource!,
-      ),
+      source: (node.payload as SceneConditionPayload).conditionSource!,
+    ),
     SceneNodeKind.merge => SceneRuntimePlanIntent.merge(),
     SceneNodeKind.yarnDialogue => _dialogueIntent(
-        node.payload as SceneYarnDialoguePayload,
-      ),
-    SceneNodeKind.battle => _battleIntent(
-        node.payload as SceneBattlePayload,
-      ),
+      node.payload as SceneYarnDialoguePayload,
+    ),
+    SceneNodeKind.battle => _battleIntent(node.payload as SceneBattlePayload),
     SceneNodeKind.cinematic => SceneRuntimePlanIntent.playCinematic(
-        cinematicId: (node.payload as SceneCinematicPayload).cinematicId,
-      ),
+      cinematicId: (node.payload as SceneCinematicPayload).cinematicId,
+    ),
     SceneNodeKind.presentationCinematic =>
       SceneRuntimePlanIntent.playPresentationCinematic(
         presentationCinematicId:
             (node.payload as ScenePresentationCinematicPayload)
                 .presentationCinematicId,
+        sourceNodeId: node.id,
+        interactionNodeIdsByMarkerId: {
+          for (final binding
+              in (node.payload as ScenePresentationCinematicPayload)
+                  .interactionCueBindings)
+            binding.markerId: binding.interactionNodeId,
+        },
       ),
-    SceneNodeKind.action => _actionIntent(
-        node.payload as SceneActionPayload,
-      ),
+    SceneNodeKind.action => _actionIntent(node),
     SceneNodeKind.branchByOutcome => _branchIntent(
-        node.payload as SceneBranchByOutcomePayload,
-        nodeById,
-      ),
+      node.payload as SceneBranchByOutcomePayload,
+      nodeById,
+    ),
   };
 }
 
@@ -217,31 +217,35 @@ SceneRuntimePlanIntent _branchIntent(
 List<String> _declaredOutcomePortsForNode(SceneNode node) {
   return switch (node.payload) {
     SceneYarnDialoguePayload(:final expectedOutcomes) => <String>[
-        'completed',
-        for (final outcome in expectedOutcomes)
-          if (outcome != 'completed') outcome,
-      ],
-    SceneBattlePayload(:final declaredOutcomes) => declaredOutcomes.isEmpty
-        ? const <String>['victory', 'defeat']
-        : declaredOutcomes,
+      'completed',
+      for (final outcome in expectedOutcomes)
+        if (outcome != 'completed') outcome,
+    ],
+    SceneBattlePayload(:final declaredOutcomes) =>
+      declaredOutcomes.isEmpty
+          ? const <String>['victory', 'defeat']
+          : declaredOutcomes,
     SceneConditionPayload() => const <String>['true', 'false'],
+    SceneActionPayload(:final preSessionInteraction?) =>
+      preSessionInteraction.outputPortIds,
     SceneStartPayload() ||
     SceneActionPayload() ||
     SceneCinematicPayload() ||
     ScenePresentationCinematicPayload() ||
     SceneMergePayload() ||
     SceneEndPayload() ||
-    SceneBranchByOutcomePayload() =>
-      const <String>[],
+    SceneBranchByOutcomePayload() => const <String>[],
     _ => const <String>[],
   };
 }
 
-SceneRuntimePlanIntent _actionIntent(SceneActionPayload payload) {
+SceneRuntimePlanIntent _actionIntent(SceneNode node) {
+  final payload = node.payload as SceneActionPayload;
   final preSessionInteraction = payload.preSessionInteraction;
   if (preSessionInteraction != null) {
     return SceneRuntimePlanIntent.requestStructuredInteraction(
       interaction: preSessionInteraction,
+      sourceNodeId: node.id,
     );
   }
   final command = payload.interactiveCommand;
@@ -254,9 +258,7 @@ SceneRuntimePlanIntent _actionIntent(SceneActionPayload payload) {
       'Legacy ActionNode must be blocked before runtime intent creation.',
     );
   }
-  return SceneRuntimePlanIntent.applyConsequence(
-    consequence: consequence,
-  );
+  return SceneRuntimePlanIntent.applyConsequence(consequence: consequence);
 }
 
 SceneRuntimePlanIntent _dialogueIntent(SceneYarnDialoguePayload payload) {

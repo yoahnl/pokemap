@@ -284,6 +284,7 @@ final class SceneAsset {
       'SceneAsset.declaredOutcomes',
     );
     this.layout._validateAgainst(graph);
+    _validatePresentationInteractionCueBindings(graph);
   }
 
   factory SceneAsset.fromJson(Map<String, dynamic> json) {
@@ -359,21 +360,51 @@ final class SceneAsset {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        name,
-        executionProfile,
-        description,
-        storylineId,
-        chapterId,
-        Object.hashAll(tags),
-        graph,
-        layout,
-        Object.hashAll(declaredOutcomes),
-        _mapHash(metadata),
-      );
+    id,
+    name,
+    executionProfile,
+    description,
+    storylineId,
+    chapterId,
+    Object.hashAll(tags),
+    graph,
+    layout,
+    Object.hashAll(declaredOutcomes),
+    _mapHash(metadata),
+  );
 
   @override
   String toString() => 'SceneAsset(id: $id, name: $name)';
+}
+
+void _validatePresentationInteractionCueBindings(SceneGraph graph) {
+  final nodesById = <String, SceneNode>{
+    for (final node in graph.nodes) node.id: node,
+  };
+  final boundInteractionNodeIds = <String>{};
+  for (final node in graph.nodes) {
+    final payload = node.payload;
+    if (payload is! ScenePresentationCinematicPayload) continue;
+    for (final binding in payload.interactionCueBindings) {
+      final target = nodesById[binding.interactionNodeId];
+      final targetPayload = target?.payload;
+      if (target?.kind != SceneNodeKind.action ||
+          targetPayload is! SceneActionPayload ||
+          targetPayload.preSessionInteraction == null) {
+        throw ValidationException(
+          'Scene Presentation interaction cue "${binding.markerId}" must '
+          'reference a structured preSession interaction node: '
+          '${binding.interactionNodeId}',
+        );
+      }
+      if (!boundInteractionNodeIds.add(binding.interactionNodeId)) {
+        throw ValidationException(
+          'A structured preSession interaction node can be bound to only one '
+          'Presentation interaction cue: ${binding.interactionNodeId}',
+        );
+      }
+    }
+  }
 }
 
 @immutable
@@ -382,15 +413,14 @@ final class SceneGraph {
     required this.startNodeId,
     List<SceneNode> nodes = const <SceneNode>[],
     List<SceneEdge> edges = const <SceneEdge>[],
-  })  : nodes = List<SceneNode>.unmodifiable(nodes),
-        edges = List<SceneEdge>.unmodifiable(edges) {
+  }) : nodes = List<SceneNode>.unmodifiable(nodes),
+       edges = List<SceneEdge>.unmodifiable(edges) {
     _requireNotBlank(startNodeId, 'SceneGraph.startNodeId');
     _validateUniqueIds(this.nodes.map((node) => node.id), 'SceneGraph.nodes');
     _validateUniqueIds(this.edges.map((edge) => edge.id), 'SceneGraph.edges');
 
     final nodeIds = this.nodes.map((node) => node.id).toSet();
-    final startNode = this
-        .nodes
+    final startNode = this.nodes
         .where((node) => node.id == startNodeId)
         .cast<SceneNode?>()
         .firstOrNull;
@@ -1213,13 +1243,59 @@ final class SceneCinematicPayload extends SceneNodePayload {
 }
 
 @immutable
+final class ScenePresentationInteractionCueBinding {
+  const ScenePresentationInteractionCueBinding({
+    required this.markerId,
+    required this.interactionNodeId,
+  });
+
+  factory ScenePresentationInteractionCueBinding.fromJson(
+    Map<String, dynamic> json,
+  ) => ScenePresentationInteractionCueBinding(
+    markerId: _readRequiredString(json, 'markerId'),
+    interactionNodeId: _readRequiredString(json, 'interactionNodeId'),
+  );
+
+  final String markerId;
+  final String interactionNodeId;
+
+  Map<String, dynamic> toJson() => {
+    'markerId': markerId,
+    'interactionNodeId': interactionNodeId,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScenePresentationInteractionCueBinding &&
+          other.markerId == markerId &&
+          other.interactionNodeId == interactionNodeId;
+
+  @override
+  int get hashCode => Object.hash(markerId, interactionNodeId);
+}
+
+@immutable
 final class ScenePresentationCinematicPayload extends SceneNodePayload {
   ScenePresentationCinematicPayload({
     required this.presentationCinematicId,
-  }) {
+    List<ScenePresentationInteractionCueBinding> interactionCueBindings =
+        const <ScenePresentationInteractionCueBinding>[],
+  }) : interactionCueBindings =
+           List<ScenePresentationInteractionCueBinding>.unmodifiable(
+             interactionCueBindings,
+           ) {
     _requireNotBlank(
       presentationCinematicId,
       'ScenePresentationCinematicPayload.presentationCinematicId',
+    );
+    _validateUniqueIds(
+      this.interactionCueBindings.map((binding) => binding.markerId),
+      'ScenePresentationCinematicPayload.interactionCueBindings.markerId',
+    );
+    _validateUniqueIds(
+      this.interactionCueBindings.map((binding) => binding.interactionNodeId),
+      'ScenePresentationCinematicPayload.interactionCueBindings.interactionNodeId',
     );
   }
 
@@ -1227,8 +1303,15 @@ final class ScenePresentationCinematicPayload extends SceneNodePayload {
     Map<String, dynamic> json,
   ) {
     return ScenePresentationCinematicPayload(
-      presentationCinematicId:
-          _readRequiredString(json, 'presentationCinematicId'),
+      presentationCinematicId: _readRequiredString(
+        json,
+        'presentationCinematicId',
+      ),
+      interactionCueBindings: _readObjectList(
+        json,
+        'interactionCueBindings',
+        ScenePresentationInteractionCueBinding.fromJson,
+      ),
     );
   }
 
@@ -1236,21 +1319,30 @@ final class ScenePresentationCinematicPayload extends SceneNodePayload {
   SceneNodeKind get kind => SceneNodeKind.presentationCinematic;
 
   final String presentationCinematicId;
+  final List<ScenePresentationInteractionCueBinding> interactionCueBindings;
 
   @override
   Map<String, dynamic> toJson() => {
-        'kind': _enumToJson(kind),
-        'presentationCinematicId': presentationCinematicId,
-      };
+    'kind': _enumToJson(kind),
+    'presentationCinematicId': presentationCinematicId,
+    if (interactionCueBindings.isNotEmpty)
+      'interactionCueBindings': interactionCueBindings
+          .map((binding) => binding.toJson())
+          .toList(growable: false),
+  };
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ScenePresentationCinematicPayload &&
-          other.presentationCinematicId == presentationCinematicId;
+          other.presentationCinematicId == presentationCinematicId &&
+          _listEquals(other.interactionCueBindings, interactionCueBindings);
 
   @override
-  int get hashCode => presentationCinematicId.hashCode;
+  int get hashCode => Object.hash(
+    presentationCinematicId,
+    Object.hashAll(interactionCueBindings),
+  );
 }
 
 @immutable

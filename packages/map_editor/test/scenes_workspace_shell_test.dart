@@ -367,11 +367,15 @@ void main() {
         );
 
         final presentationButton = tester.widget<PokeMapButton>(
-          find.byKey(
-            const ValueKey('scenes-add-node-presentation-cinematic'),
-          ),
+          find.byKey(const ValueKey('scenes-add-node-presentation-cinematic')),
         );
         expect(presentationButton.onPressed, isNotNull);
+        for (final kind in SceneInteractionRequestKind.values) {
+          final interactionButton = tester.widget<PokeMapButton>(
+            find.byKey(ValueKey('scenes-add-node-interaction-${kind.name}')),
+          );
+          expect(interactionButton.onPressed, isNotNull, reason: kind.name);
+        }
 
         for (final key in [
           'scenes-add-node-condition-disabled-profile',

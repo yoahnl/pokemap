@@ -102,21 +102,21 @@ final class NarrativeProjectDiagnostic {
   bool get hasDeterministicRepair => false;
 
   String get stableKey => <String?>[
-        severity.name,
-        domain.name,
-        code,
-        path,
-        mapId,
-        eventId,
-        sceneId,
-        dialogueId,
-        cinematicId,
-        storylineId,
-        chapterId,
-        stepId,
-        factId,
-        worldRuleId,
-      ].map((value) => value ?? '').join('\u001f');
+    severity.name,
+    domain.name,
+    code,
+    path,
+    mapId,
+    eventId,
+    sceneId,
+    dialogueId,
+    cinematicId,
+    storylineId,
+    chapterId,
+    stepId,
+    factId,
+    worldRuleId,
+  ].map((value) => value ?? '').join('\u001f');
 }
 
 @immutable
@@ -182,10 +182,8 @@ final class NarrativeProjectValidationReport {
     required List<NarrativeProjectDiagnostic> diagnostics,
     required List<NarrativeMapEventsView> mapEventViews,
     this.symbolicReachability,
-  })  : diagnostics =
-            List<NarrativeProjectDiagnostic>.unmodifiable(diagnostics),
-        mapEventViews =
-            List<NarrativeMapEventsView>.unmodifiable(mapEventViews);
+  }) : diagnostics = List<NarrativeProjectDiagnostic>.unmodifiable(diagnostics),
+       mapEventViews = List<NarrativeMapEventsView>.unmodifiable(mapEventViews);
 
   final List<NarrativeProjectDiagnostic> diagnostics;
   final List<NarrativeMapEventsView> mapEventViews;
@@ -196,19 +194,19 @@ final class NarrativeProjectValidationReport {
 
   int get errorCount => diagnostics
       .where(
-          (item) => item.severity == NarrativeProjectDiagnosticSeverity.error)
+        (item) => item.severity == NarrativeProjectDiagnosticSeverity.error,
+      )
       .length;
   int get warningCount => diagnostics
       .where(
-          (item) => item.severity == NarrativeProjectDiagnosticSeverity.warning)
+        (item) => item.severity == NarrativeProjectDiagnosticSeverity.warning,
+      )
       .length;
   int get infoCount => diagnostics
       .where((item) => item.severity == NarrativeProjectDiagnosticSeverity.info)
       .length;
-  int get totalEventCount => mapEventViews.fold(
-        0,
-        (sum, view) => sum + view.events.length,
-      );
+  int get totalEventCount =>
+      mapEventViews.fold(0, (sum, view) => sum + view.events.length);
   bool get isPlayable => errorCount == 0;
 
   List<NarrativeProjectDiagnostic> byCode(String code) =>
@@ -218,10 +216,9 @@ final class NarrativeProjectValidationReport {
 
   List<NarrativeProjectDiagnostic> byDomain(
     NarrativeProjectDiagnosticDomain domain,
-  ) =>
-      List<NarrativeProjectDiagnostic>.unmodifiable(
-        diagnostics.where((item) => item.domain == domain),
-      );
+  ) => List<NarrativeProjectDiagnostic>.unmodifiable(
+    diagnostics.where((item) => item.domain == domain),
+  );
 }
 
 /// Builds the single narrative playability verdict used by the editor.
@@ -238,10 +235,12 @@ NarrativeProjectValidationReport validateNarrativeProject(
 }) {
   final diagnostics = <NarrativeProjectDiagnostic>[];
   final mapsById = {for (final map in maps) map.id: map};
-  final normalizedKnownSpeciesIds =
-      knownSpeciesIds == null ? null : _trimmedNonBlankIds(knownSpeciesIds);
-  final normalizedKnownMoveIds =
-      knownMoveIds == null ? null : _trimmedNonBlankIds(knownMoveIds);
+  final normalizedKnownSpeciesIds = knownSpeciesIds == null
+      ? null
+      : _trimmedNonBlankIds(knownSpeciesIds);
+  final normalizedKnownMoveIds = knownMoveIds == null
+      ? null
+      : _trimmedNonBlankIds(knownMoveIds);
 
   _appendLegacyNarrativeDiagnostics(project, maps, diagnostics);
   _appendSceneDiagnostics(project, diagnostics);
@@ -320,7 +319,8 @@ void _appendSceneOutcomePolicyDiagnostics(
           code: 'sceneOutcomePolicyIndeterminate',
           severity: NarrativeProjectDiagnosticSeverity.warning,
           domain: NarrativeProjectDiagnosticDomain.scene,
-          message: 'La fin « ${node.title ?? node.id} » ne déclare pas si elle '
+          message:
+              'La fin « ${node.title ?? node.id} » ne déclare pas si elle '
               'fait progresser, autorise un nouvel essai ou accepte un échec '
               'terminal. Le Validator ne peut pas l’inférer depuis son label.',
           path: 'scenes.${scene.id}.nodes.${node.id}.outcomePolicy',
@@ -397,12 +397,13 @@ void _appendSymbolicReachabilityDiagnostics(
         issue.verdict == NarrativeSymbolicVerdict.indeterminate;
     target.add(
       NarrativeProjectDiagnostic(
-        code: issue.code ==
+        code:
+            issue.code ==
                 NarrativeSymbolicIssueCode.mutuallyExclusiveRequirements
             ? 'narrativeMutuallyExclusiveRequirements'
             : indeterminate
-                ? 'narrativeSolvabilityIndeterminate'
-                : 'narrativeSolvabilityFailed',
+            ? 'narrativeSolvabilityIndeterminate'
+            : 'narrativeSolvabilityFailed',
         severity: issue.optional
             ? NarrativeProjectDiagnosticSeverity.warning
             : NarrativeProjectDiagnosticSeverity.error,
@@ -427,8 +428,10 @@ void _appendLegacyNarrativeDiagnostics(
   List<MapData> maps,
   List<NarrativeProjectDiagnostic> target,
 ) {
-  for (final diagnostic
-      in diagnoseNarrativeProject(project, maps: maps).diagnostics) {
+  for (final diagnostic in diagnoseNarrativeProject(
+    project,
+    maps: maps,
+  ).diagnostics) {
     target.add(
       NarrativeProjectDiagnostic(
         code: diagnostic.kind.name,
@@ -445,10 +448,7 @@ void _appendLegacyNarrativeDiagnostics(
   }
   final migrationScan = buildNarrativeLegacyMigrationScan(
     project,
-    legacyMapEventCount: maps.fold(
-      0,
-      (sum, map) => sum + map.events.length,
-    ),
+    legacyMapEventCount: maps.fold(0, (sum, map) => sum + map.events.length),
   );
   if (migrationScan.legacyRemainingCount > 0) {
     target.add(
@@ -456,8 +456,8 @@ void _appendLegacyNarrativeDiagnostics(
         code: 'narrativeLegacyRemaining',
         severity:
             migrationScan.blockerCount > 0 || migrationScan.lossRiskCount > 0
-                ? NarrativeProjectDiagnosticSeverity.warning
-                : NarrativeProjectDiagnosticSeverity.info,
+            ? NarrativeProjectDiagnosticSeverity.warning
+            : NarrativeProjectDiagnosticSeverity.info,
         domain: NarrativeProjectDiagnosticDomain.runtime,
         message:
             '${migrationScan.legacyRemainingCount} source(s) narrative legacy '
@@ -476,12 +476,14 @@ void _appendSceneDiagnostics(
   List<NarrativeProjectDiagnostic> target,
 ) {
   for (final scene in project.scenes) {
-    for (final diagnostic
-        in diagnoseSceneAgainstProject(scene, project).diagnostics) {
+    for (final diagnostic in diagnoseSceneAgainstProject(
+      scene,
+      project,
+    ).diagnostics) {
       final dialogueId =
           diagnostic.code == SceneDiagnosticCode.dialogueRefUnknown
-              ? _sceneNodeDialogueId(scene, diagnostic.nodeId)
-              : null;
+          ? _sceneNodeDialogueId(scene, diagnostic.nodeId)
+          : null;
       target.add(
         NarrativeProjectDiagnostic(
           code: diagnostic.code.name,
@@ -514,8 +516,9 @@ void _appendStorylineLinkDiagnostics(
   ProjectManifest project,
   List<NarrativeProjectDiagnostic> target,
 ) {
-  for (final diagnostic
-      in diagnoseStorylineSceneLinks(project: project).diagnostics) {
+  for (final diagnostic in diagnoseStorylineSceneLinks(
+    project: project,
+  ).diagnostics) {
     target.add(
       NarrativeProjectDiagnostic(
         code: diagnostic.code.name,
@@ -546,8 +549,9 @@ void _appendCinematicDiagnostics(
   ProjectManifest project,
   List<NarrativeProjectDiagnostic> target,
 ) {
-  for (final diagnostic
-      in diagnoseCinematicsAgainstProject(project).diagnostics) {
+  for (final diagnostic in diagnoseCinematicsAgainstProject(
+    project,
+  ).diagnostics) {
     target.add(
       NarrativeProjectDiagnostic(
         code: diagnostic.code.name,
@@ -575,8 +579,10 @@ void _appendWorldRuleDiagnostics(
   List<MapData> maps,
   List<NarrativeProjectDiagnostic> target,
 ) {
-  for (final diagnostic
-      in diagnoseWorldRules(project, maps: maps).diagnostics) {
+  for (final diagnostic in diagnoseWorldRules(
+    project,
+    maps: maps,
+  ).diagnostics) {
     target.add(
       NarrativeProjectDiagnostic(
         code: diagnostic.code.name,
@@ -605,8 +611,10 @@ void _appendEventSceneLinkDiagnostics(
   List<MapData> maps,
   List<NarrativeProjectDiagnostic> target,
 ) {
-  for (final diagnostic
-      in diagnoseEventSceneLinks(project: project, maps: maps).diagnostics) {
+  for (final diagnostic in diagnoseEventSceneLinks(
+    project: project,
+    maps: maps,
+  ).diagnostics) {
     target.add(
       NarrativeProjectDiagnostic(
         code: diagnostic.code.name,
@@ -639,8 +647,10 @@ void _appendEventV2Diagnostics(
 ) {
   final registry = project.eventRegistry;
   if (registry == null) return;
-  final catalog =
-      buildNarrativeEventProjectCatalog(project: project, maps: maps);
+  final catalog = buildNarrativeEventProjectCatalog(
+    project: project,
+    maps: maps,
+  );
   final report = buildNarrativeEventValidationReport(
     registry: registry,
     catalog: catalog,
@@ -984,9 +994,12 @@ NarrativeProjectDiagnostic _sceneBattleDiagnostic({
   );
 }
 
-void _appendSolvabilityDiagnostics(ProjectManifest project, List<MapData> maps,
-    List<NarrativeProjectDiagnostic> target,
-    {required NarrativeSymbolicReachabilityReport symbolicReachability}) {
+void _appendSolvabilityDiagnostics(
+  ProjectManifest project,
+  List<MapData> maps,
+  List<NarrativeProjectDiagnostic> target, {
+  required NarrativeSymbolicReachabilityReport symbolicReachability,
+}) {
   final reachability = _solveNarrativeReachability(project, maps);
   final reachableSceneIds = {
     ...reachability.sceneIds,
@@ -1140,14 +1153,8 @@ void _appendSolvabilityDiagnostics(ProjectManifest project, List<MapData> maps,
   }
 }
 
-({
-  Set<String> sceneIds,
-  Set<String> trueFactIds,
-  Set<String> completedStepIds,
-}) _solveNarrativeReachability(
-  ProjectManifest project,
-  List<MapData> maps,
-) {
+({Set<String> sceneIds, Set<String> trueFactIds, Set<String> completedStepIds})
+_solveNarrativeReachability(ProjectManifest project, List<MapData> maps) {
   final mapsById = {for (final map in maps) map.id: map};
   final possibleFactValues = <String, Set<bool>>{
     for (final fact in project.facts)
@@ -1421,9 +1428,10 @@ Set<bool> _legacyVariableValues(
   final id = variable.substring(separatorIndex + 1);
   return switch (kind) {
     'fact' => possibleFactValues[id] ?? const <bool>{false},
-    'event' => reachableEventIds.contains(id)
-        ? const <bool>{false, true}
-        : const <bool>{false},
+    'event' =>
+      reachableEventIds.contains(id)
+          ? const <bool>{false, true}
+          : const <bool>{false},
     _ => const <bool>{},
   };
 }
@@ -1473,8 +1481,8 @@ void _collectLegacyConditionVariables(
         target.add('fact\u001f$factId');
       }
     case ScriptConditionType.factEquals:
-      final valueType =
-          condition.params[ScriptConditionParams.valueType]?.trim();
+      final valueType = condition.params[ScriptConditionParams.valueType]
+          ?.trim();
       final value = condition.params[ScriptConditionParams.value]?.trim();
       final factId = condition.params[ScriptConditionParams.factId]?.trim();
       if (valueType == NarrativeValueKind.boolean.wireName &&
@@ -1544,13 +1552,13 @@ bool? _evaluateLegacyConditionForAssignment(
       if (eventId == null || eventId.isEmpty) return null;
       return assignment['event\u001f$eventId'];
     case ScriptConditionType.playerOnMap:
-      final expectedMapId =
-          condition.params[ScriptConditionParams.mapId]?.trim();
+      final expectedMapId = condition.params[ScriptConditionParams.mapId]
+          ?.trim();
       if (expectedMapId == null || expectedMapId.isEmpty) return null;
       return expectedMapId == mapId;
     case ScriptConditionType.factEquals:
-      final valueType =
-          condition.params[ScriptConditionParams.valueType]?.trim();
+      final valueType = condition.params[ScriptConditionParams.valueType]
+          ?.trim();
       final value = condition.params[ScriptConditionParams.value]?.trim();
       final factId = condition.params[ScriptConditionParams.factId]?.trim();
       if (valueType != NarrativeValueKind.boolean.wireName ||
@@ -1618,10 +1626,12 @@ List<NarrativeMapEventsView> _buildMapEventViews(
       final groupKey = source == null
           ? '__unassigned__'
           : source.kind == NarrativeEventSourceKind.outcomeReceived
-              ? '__outcomes__'
-              : mapId;
+          ? '__outcomes__'
+          : mapId;
       final sceneId = _recordSceneId(record);
-      groups.putIfAbsent(groupKey, () => <NarrativeMapEventEntry>[]).add(
+      groups
+          .putIfAbsent(groupKey, () => <NarrativeMapEventEntry>[])
+          .add(
             NarrativeMapEventEntry(
               eventId: record.id,
               label: _recordLabel(record),
@@ -1634,20 +1644,25 @@ List<NarrativeMapEventsView> _buildMapEventViews(
               sourceConnected: _sourceConnected(source, mapsById),
               sceneId: sceneId,
               sceneLabel: _sceneLabel(project, sceneId),
-              sceneConnected: sceneId != null &&
+              sceneConnected:
+                  sceneId != null &&
                   project.scenes.any((scene) => scene.id == sceneId),
               conditionCount: _recordConditions(record).length,
               diagnosticCount: diagnostics
-                  .where((diagnostic) =>
-                      diagnostic.eventId == record.id &&
-                      diagnostic.severity ==
-                          NarrativeProjectDiagnosticSeverity.error)
+                  .where(
+                    (diagnostic) =>
+                        diagnostic.eventId == record.id &&
+                        diagnostic.severity ==
+                            NarrativeProjectDiagnosticSeverity.error,
+                  )
                   .length,
               warningCount: diagnostics
-                  .where((diagnostic) =>
-                      diagnostic.eventId == record.id &&
-                      diagnostic.severity ==
-                          NarrativeProjectDiagnosticSeverity.warning)
+                  .where(
+                    (diagnostic) =>
+                        diagnostic.eventId == record.id &&
+                        diagnostic.severity ==
+                            NarrativeProjectDiagnosticSeverity.warning,
+                  )
                   .length,
             ),
           );
@@ -1704,16 +1719,15 @@ NarrativeProjectDiagnostic _storylineShapeDiagnostic({
   required String code,
   required String message,
   required StorylineAsset storyline,
-}) =>
-    NarrativeProjectDiagnostic(
-      code: code,
-      severity: NarrativeProjectDiagnosticSeverity.error,
-      domain: NarrativeProjectDiagnosticDomain.storyline,
-      message: message,
-      path: 'storylines.${storyline.id}',
-      destination: NarrativeProjectDiagnosticDestination.storyline,
-      storylineId: storyline.id,
-    );
+}) => NarrativeProjectDiagnostic(
+  code: code,
+  severity: NarrativeProjectDiagnosticSeverity.error,
+  domain: NarrativeProjectDiagnosticDomain.storyline,
+  message: message,
+  path: 'storylines.${storyline.id}',
+  destination: NarrativeProjectDiagnosticDestination.storyline,
+  storylineId: storyline.id,
+);
 
 NarrativeProjectDiagnostic _stepDiagnostic({
   required String code,
@@ -1721,18 +1735,17 @@ NarrativeProjectDiagnostic _stepDiagnostic({
   required StorylineAsset storyline,
   required String chapterId,
   required StorylineStep step,
-}) =>
-    NarrativeProjectDiagnostic(
-      code: code,
-      severity: NarrativeProjectDiagnosticSeverity.error,
-      domain: NarrativeProjectDiagnosticDomain.storyline,
-      message: message,
-      path: 'storylines.${storyline.id}.$chapterId.${step.id}',
-      destination: NarrativeProjectDiagnosticDestination.storyline,
-      storylineId: storyline.id,
-      chapterId: chapterId,
-      stepId: step.id,
-    );
+}) => NarrativeProjectDiagnostic(
+  code: code,
+  severity: NarrativeProjectDiagnosticSeverity.error,
+  domain: NarrativeProjectDiagnosticDomain.storyline,
+  message: message,
+  path: 'storylines.${storyline.id}.$chapterId.${step.id}',
+  destination: NarrativeProjectDiagnosticDestination.storyline,
+  storylineId: storyline.id,
+  chapterId: chapterId,
+  stepId: step.id,
+);
 
 bool _stepHasReachableScene(StorylineStep step, Set<String> enabledSceneIds) =>
     step.sceneLinkIds.any(enabledSceneIds.contains);
@@ -1789,7 +1802,12 @@ bool _sceneEdgeIsStaticallyTraversable(
     case SceneNodeKind.branchByOutcome:
       return false;
     case SceneNodeKind.action:
-      return edge.fromPortId == 'completed' &&
+      final payload = node.payload as SceneActionPayload;
+      final declaredPorts =
+          payload.preSessionInteraction?.outputPortIds ??
+          payload.interactiveCommand?.outputPortIds ??
+          const <String>['completed'];
+      return declaredPorts.contains(edge.fromPortId) &&
           (edge.kind == SceneEdgeKind.defaultFlow ||
               edge.kind == SceneEdgeKind.actionCompleted);
     case SceneNodeKind.cinematic:
@@ -1868,10 +1886,10 @@ bool _sceneEdgeIsStaticallyTraversable(
       SceneConditionOperator.isTrue => value,
       SceneConditionOperator.isFalse => !value,
       SceneConditionOperator.equals => switch (source.value) {
-          'true' || SceneConditionValues.completed => value,
-          'false' || SceneConditionValues.notCompleted => !value,
-          _ => null,
-        },
+        'true' || SceneConditionValues.completed => value,
+        'false' || SceneConditionValues.notCompleted => !value,
+        _ => null,
+      },
     };
   }
 
@@ -1899,7 +1917,7 @@ String? _legacyDialogueId(NarrativeValidationDiagnostic diagnostic) {
   return switch (diagnostic.kind) {
     NarrativeValidationDiagnosticKind.openDialogueReferencesUnknownDialogue ||
     NarrativeValidationDiagnosticKind
-          .conditionalDialogueReferencesUnknownDialogue =>
+        .conditionalDialogueReferencesUnknownDialogue =>
       diagnostic.referencedId,
     _ => null,
   };
@@ -1907,21 +1925,19 @@ String? _legacyDialogueId(NarrativeValidationDiagnostic diagnostic) {
 
 NarrativeProjectDiagnosticDomain _legacyDomain(
   NarrativeValidationDiagnosticKind kind,
-) =>
-    switch (kind) {
-      NarrativeValidationDiagnosticKind.openDialogueReferencesUnknownDialogue ||
-      NarrativeValidationDiagnosticKind
-            .conditionalDialogueReferencesUnknownDialogue =>
-        NarrativeProjectDiagnosticDomain.dialogue,
-      NarrativeValidationDiagnosticKind.flagReadNeverProduced ||
-      NarrativeValidationDiagnosticKind.setFlagNeverRead =>
-        NarrativeProjectDiagnosticDomain.fact,
-      NarrativeValidationDiagnosticKind
-          .visibilityRuleConditionalMissingPredicate ||
-      NarrativeValidationDiagnosticKind.worldRulePredicateEmptyRefId =>
-        NarrativeProjectDiagnosticDomain.worldRule,
-      _ => NarrativeProjectDiagnosticDomain.storyline,
-    };
+) => switch (kind) {
+  NarrativeValidationDiagnosticKind.openDialogueReferencesUnknownDialogue ||
+  NarrativeValidationDiagnosticKind
+      .conditionalDialogueReferencesUnknownDialogue =>
+    NarrativeProjectDiagnosticDomain.dialogue,
+  NarrativeValidationDiagnosticKind.flagReadNeverProduced ||
+  NarrativeValidationDiagnosticKind.setFlagNeverRead =>
+    NarrativeProjectDiagnosticDomain.fact,
+  NarrativeValidationDiagnosticKind.visibilityRuleConditionalMissingPredicate ||
+  NarrativeValidationDiagnosticKind.worldRulePredicateEmptyRefId =>
+    NarrativeProjectDiagnosticDomain.worldRule,
+  _ => NarrativeProjectDiagnosticDomain.storyline,
+};
 
 NarrativeProjectDiagnosticDestination _legacyDestination(
   NarrativeValidationDiagnostic diagnostic,
@@ -1940,13 +1956,11 @@ NarrativeProjectDiagnosticDestination _legacyDestination(
 
 NarrativeProjectDiagnosticSeverity _legacySeverity(
   NarrativeValidationSeverity severity,
-) =>
-    switch (severity) {
-      NarrativeValidationSeverity.error =>
-        NarrativeProjectDiagnosticSeverity.error,
-      NarrativeValidationSeverity.warning =>
-        NarrativeProjectDiagnosticSeverity.warning,
-    };
+) => switch (severity) {
+  NarrativeValidationSeverity.error => NarrativeProjectDiagnosticSeverity.error,
+  NarrativeValidationSeverity.warning =>
+    NarrativeProjectDiagnosticSeverity.warning,
+};
 
 NarrativeProjectDiagnosticSeverity _legacySeverityForProject(
   ProjectManifest project,
@@ -1973,16 +1987,15 @@ NarrativeProjectDiagnosticSeverity _legacySeverityForProject(
 NarrativeProjectDiagnosticDestination _eventDestination(
   NarrativeEventValidationDestinationKind kind,
   String? mapId,
-) =>
-    switch (kind) {
-      NarrativeEventValidationDestinationKind.mapSource =>
-        NarrativeProjectDiagnosticDestination.map,
-      NarrativeEventValidationDestinationKind.eventSource when mapId != null =>
-        NarrativeProjectDiagnosticDestination.map,
-      NarrativeEventValidationDestinationKind.scene =>
-        NarrativeProjectDiagnosticDestination.scene,
-      _ => NarrativeProjectDiagnosticDestination.event,
-    };
+) => switch (kind) {
+  NarrativeEventValidationDestinationKind.mapSource =>
+    NarrativeProjectDiagnosticDestination.map,
+  NarrativeEventValidationDestinationKind.eventSource when mapId != null =>
+    NarrativeProjectDiagnosticDestination.map,
+  NarrativeEventValidationDestinationKind.scene =>
+    NarrativeProjectDiagnosticDestination.scene,
+  _ => NarrativeProjectDiagnosticDestination.event,
+};
 
 String? _eventMapId(ProjectManifest project, String? eventId) {
   if (eventId == null) return null;
@@ -2003,9 +2016,9 @@ NarrativeEventSourceRef? _recordSource(NarrativeEventRecord record) =>
     );
 
 String? _recordSceneId(NarrativeEventRecord record) => record.when(
-      draft: (draft) => draft.sceneId,
-      configured: (definition, _) => definition.sceneId,
-    );
+  draft: (draft) => draft.sceneId,
+  configured: (definition, _) => definition.sceneId,
+);
 
 String? _sceneLabel(ProjectManifest project, String? sceneId) {
   if (sceneId == null) return null;
@@ -2016,9 +2029,9 @@ String? _sceneLabel(ProjectManifest project, String? sceneId) {
 }
 
 String _recordLabel(NarrativeEventRecord record) => record.when(
-      draft: (draft) => draft.name,
-      configured: (definition, _) => definition.name,
-    );
+  draft: (draft) => draft.name,
+  configured: (definition, _) => definition.name,
+);
 
 List<NarrativeEventCondition> _recordConditions(NarrativeEventRecord record) =>
     record.when(
@@ -2069,10 +2082,7 @@ bool _sourceConnected(
           break;
         }
       }
-      return (
-        label: entity?.inspectorHeadline,
-        entityKind: entity?.kind,
-      );
+      return (label: entity?.inspectorHeadline, entityKind: entity?.kind);
     },
     triggerEnter: (mapId, triggerId) {
       MapTrigger? trigger;
@@ -2089,14 +2099,8 @@ bool _sourceConnected(
         entityKind: null,
       );
     },
-    mapEnter: (mapId) => (
-      label: mapsById[mapId]?.name,
-      entityKind: null,
-    ),
-    outcomeReceived: (outcome) => (
-      label: outcome.outcomeId,
-      entityKind: null,
-    ),
+    mapEnter: (mapId) => (label: mapsById[mapId]?.name, entityKind: null),
+    outcomeReceived: (outcome) => (label: outcome.outcomeId, entityKind: null),
   );
 }
 

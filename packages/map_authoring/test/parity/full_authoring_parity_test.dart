@@ -1588,6 +1588,7 @@ Map<String, Object?> _stableReceipt(Object? raw) {
 const Set<String> _cin033CertifiedActionIds = <String>{
   'scene.preSession.create',
   'scene.preSession.interaction.insert',
+  'scene.preSession.interaction.update',
   'scene.preSession.presentation.insert',
   'scene.preSession.presentation.createAndLink',
   'scene.preSession.condition.insert',

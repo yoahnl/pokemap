@@ -57,6 +57,21 @@ final class _Harness {
           id: 'presentation_opening',
           title: 'Ouverture',
           durationUs: 1000000,
+          tracks: [
+            PresentationTrack(
+              id: 'markers',
+              label: 'Repères',
+              kind: PresentationTrackKind.marker,
+              clips: [
+                PresentationMarkerClip(
+                  id: 'cue_player_name',
+                  startUs: 500000,
+                  label: 'Demander le nom',
+                  markerKind: PresentationMarkerKind.interactionCue,
+                ),
+              ],
+            ),
+          ],
         ),
       ],
       newGame: const ProjectNewGameConfig(
@@ -225,7 +240,24 @@ final class _Harness {
       'targetNodeId': 'end',
       'presentationCinematicId': 'presentation_opening',
     });
-    await apply(4, 'scene.preSession.presentation.createAndLink', const {
+    await apply(4, 'scene.preSession.interaction.update', <String, Object?>{
+      'sceneId': 'new_game_intro',
+      'nodeId': 'ask_name',
+      'interaction': ScenePreSessionInteractionSpec.text(
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'newGame.playerName.prompt',
+          fallbackText: 'Comment veux-tu t’appeler ?',
+        ),
+        resultBinding: const ScenePreSessionResultBinding(
+          field: ScenePreSessionDraftField.playerName,
+        ),
+      ).toJson(),
+      'cueBinding': const <String, Object?>{
+        'presentationNodeId': 'opening',
+        'markerId': 'cue_player_name',
+      },
+    });
+    await apply(5, 'scene.preSession.presentation.createAndLink', const {
       'sceneId': 'new_game_intro',
       'nodeId': 'studio_logo',
       'targetNodeId': 'end',
@@ -236,7 +268,7 @@ final class _Harness {
       'targetFolderId': null,
       'targetIndex': 0,
     });
-    await apply(5, 'scene.preSession.condition.insert', const {
+    await apply(6, 'scene.preSession.condition.insert', const {
       'sceneId': 'new_game_intro',
       'nodeId': 'has_name',
       'targetNodeId': 'end',
@@ -244,7 +276,7 @@ final class _Harness {
       'draftField': 'playerName',
       'operator': 'isTrue',
     });
-    await apply(6, 'scene.preSession.end.configure', const {
+    await apply(7, 'scene.preSession.end.configure', const {
       'sceneId': 'new_game_intro',
       'nodeId': 'end',
       'outcomeId': 'ready',
@@ -397,6 +429,7 @@ const _createParameters = <String, Object?>{
 const _actionIds = <String>{
   'scene.preSession.create',
   'scene.preSession.interaction.insert',
+  'scene.preSession.interaction.update',
   'scene.preSession.presentation.insert',
   'scene.preSession.presentation.createAndLink',
   'scene.preSession.condition.insert',

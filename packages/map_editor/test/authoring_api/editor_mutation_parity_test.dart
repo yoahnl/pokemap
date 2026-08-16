@@ -2009,6 +2009,14 @@ ProjectManifest _cin033EditorManifest() => ProjectManifest(
           id: 'secondary',
           label: 'Secondary',
           kind: PresentationTrackKind.marker,
+          clips: <PresentationClip>[
+            PresentationMarkerClip(
+              id: 'cue_player_name',
+              startUs: 500000,
+              label: 'Ask player name',
+              markerKind: PresentationMarkerKind.interactionCue,
+            ),
+          ],
         ),
       ],
     ),
@@ -2123,6 +2131,19 @@ List<_Cin033EditorStep> _cin033EditorSteps() => <_Cin033EditorStep>[
     'cinematicId': 'opening',
     'clipId': 'extra',
   }, confirmed: true),
+  const _Cin033EditorStep('presentationClip.create', <String, Object?>{
+    'cinematicId': 'opening',
+    'trackId': 'secondary',
+    'clip': <String, Object?>{
+      'id': 'cue_player_name',
+      'kind': 'marker',
+      'startUs': 500000,
+      'durationUs': 0,
+      'label': 'Ask player name',
+      'markerKind': 'interactionCue',
+      'required': false,
+    },
+  }),
   const _Cin033EditorStep('presentationLayer.create', <String, Object?>{
     'cinematicId': 'opening',
     'layer': <String, Object?>{
@@ -2188,6 +2209,23 @@ List<_Cin033EditorStep> _cin033EditorSteps() => <_Cin033EditorStep>[
       'presentationCinematicId': 'opening',
     },
   ),
+  _Cin033EditorStep('scene.preSession.interaction.update', <String, Object?>{
+    'sceneId': 'new_game_intro',
+    'nodeId': 'ask_name',
+    'interaction': ScenePreSessionInteractionSpec.text(
+      prompt: SceneInteractionPrompt(
+        localizationKey: 'newGame.playerName.prompt',
+        fallbackText: 'Comment veux-tu t’appeler ?',
+      ),
+      resultBinding: const ScenePreSessionResultBinding(
+        field: ScenePreSessionDraftField.playerName,
+      ),
+    ).toJson(),
+    'cueBinding': const <String, Object?>{
+      'presentationNodeId': 'opening',
+      'markerId': 'cue_player_name',
+    },
+  }),
   const _Cin033EditorStep(
     'scene.preSession.condition.insert',
     <String, Object?>{
@@ -2231,6 +2269,7 @@ const Set<String> _cin033CertifiedActionIds = <String>{
   'presentationLayer.delete',
   'scene.preSession.create',
   'scene.preSession.interaction.insert',
+  'scene.preSession.interaction.update',
   'scene.preSession.presentation.insert',
   'scene.preSession.condition.insert',
   'scene.preSession.end.configure',

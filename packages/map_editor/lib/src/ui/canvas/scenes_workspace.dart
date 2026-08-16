@@ -17,114 +17,138 @@ import 'scenes/scene_graph_read_only_view.dart';
 import 'scenes/scene_library_panel.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
 import 'scenes/scene_presentation_cinematic_picker.dart';
+import 'scenes/scene_pre_session_interaction_dialog.dart';
 
-typedef SceneDraftCreator = Future<String?> Function({
-  required String name,
-  String? description,
-});
+typedef SceneDraftCreator =
+    Future<String?> Function({required String name, String? description});
 
-typedef SceneNodeDraftCreator = Future<String?> Function({
-  required String sceneId,
-  required SceneNodeKind kind,
-});
+typedef SceneNodeDraftCreator =
+    Future<String?> Function({
+      required String sceneId,
+      required SceneNodeKind kind,
+    });
 
-typedef SceneLinkedAssetNodeDraftCreator = Future<String?> Function({
-  required String sceneId,
-  required SceneNodePayload payload,
-  String? title,
-});
+typedef SceneLinkedAssetNodeDraftCreator =
+    Future<String?> Function({
+      required String sceneId,
+      required SceneNodePayload payload,
+      String? title,
+    });
 
-typedef SceneConsequenceActionNodeDraftCreator = Future<String?> Function({
-  required String sceneId,
-  required SceneConsequence consequence,
-  String? title,
-});
+typedef SceneConsequenceActionNodeDraftCreator =
+    Future<String?> Function({
+      required String sceneId,
+      required SceneConsequence consequence,
+      String? title,
+    });
 
-typedef _SelectedLinkedAssetNodeDraftCreator = Future<void> Function({
-  required SceneNodePayload payload,
-  String? title,
-});
+typedef _SelectedLinkedAssetNodeDraftCreator =
+    Future<void> Function({required SceneNodePayload payload, String? title});
 
-typedef _SelectedConsequenceActionNodeDraftCreator = Future<void> Function({
-  required SceneConsequence consequence,
-  String? title,
-});
+typedef _SelectedConsequenceActionNodeDraftCreator =
+    Future<void> Function({
+      required SceneConsequence consequence,
+      String? title,
+    });
 
-typedef SceneEdgeDraftCreator = Future<String?> Function({
-  required String sceneId,
-  required String fromNodeId,
-  required String fromPortId,
-  required String toNodeId,
-});
+typedef SceneEdgeDraftCreator =
+    Future<String?> Function({
+      required String sceneId,
+      required String fromNodeId,
+      required String fromPortId,
+      required String toNodeId,
+    });
 
-typedef SceneEdgeDraftRemover = Future<bool> Function({
-  required String sceneId,
-  required String edgeId,
-});
+typedef SceneEdgeDraftRemover =
+    Future<bool> Function({required String sceneId, required String edgeId});
 
-typedef SceneNodeDraftRemover = Future<bool> Function({
-  required String sceneId,
-  required String nodeId,
-});
+typedef SceneNodeDraftRemover =
+    Future<bool> Function({required String sceneId, required String nodeId});
 
-typedef SceneNodeDraftDuplicator = Future<String?> Function({
-  required String sceneId,
-  required String nodeId,
-});
+typedef SceneNodeDraftDuplicator =
+    Future<String?> Function({required String sceneId, required String nodeId});
 
-typedef SceneNodeLayoutUpdater = Future<void> Function({
-  required String sceneId,
-  required String nodeId,
-  required double x,
-  required double y,
-});
+typedef SceneNodeLayoutUpdater =
+    Future<void> Function({
+      required String sceneId,
+      required String nodeId,
+      required double x,
+      required double y,
+    });
 
-typedef SceneConditionSourceUpdater = Future<bool> Function({
-  required String sceneId,
-  required String nodeId,
-  required SceneConditionSource source,
-});
+typedef SceneConditionSourceUpdater =
+    Future<bool> Function({
+      required String sceneId,
+      required String nodeId,
+      required SceneConditionSource source,
+    });
 
-typedef SceneEndPayloadUpdater = Future<bool> Function({
-  required String sceneId,
-  required String nodeId,
-  String? sceneOutcomeId,
-  required SceneOutcomePolicy? outcomePolicy,
-});
+typedef SceneEndPayloadUpdater =
+    Future<bool> Function({
+      required String sceneId,
+      required String nodeId,
+      String? sceneOutcomeId,
+      required SceneOutcomePolicy? outcomePolicy,
+    });
 
-typedef SceneYarnDialoguePayloadUpdater = Future<bool> Function({
-  required String sceneId,
-  required String nodeId,
-  required String dialogueId,
-  String? yarnNodeName,
-  required List<String> expectedOutcomes,
-});
+typedef SceneYarnDialoguePayloadUpdater =
+    Future<bool> Function({
+      required String sceneId,
+      required String nodeId,
+      required String dialogueId,
+      String? yarnNodeName,
+      required List<String> expectedOutcomes,
+    });
 
-typedef SceneBattlePayloadUpdater = Future<bool> Function({
-  required String sceneId,
-  required String nodeId,
-  required String trainerId,
-  required String battleKind,
-  String? battleTemplateId,
-});
+typedef SceneBattlePayloadUpdater =
+    Future<bool> Function({
+      required String sceneId,
+      required String nodeId,
+      required String trainerId,
+      required String battleKind,
+      String? battleTemplateId,
+    });
 
-typedef SceneCinematicPayloadUpdater = Future<bool> Function({
-  required String sceneId,
-  required String nodeId,
-  required String cinematicId,
-});
+typedef SceneCinematicPayloadUpdater =
+    Future<bool> Function({
+      required String sceneId,
+      required String nodeId,
+      required String cinematicId,
+    });
 
-typedef SceneActionConsequenceUpdater = Future<bool> Function({
-  required String sceneId,
-  required String nodeId,
-  required SceneConsequence consequence,
-});
+typedef SceneActionConsequenceUpdater =
+    Future<bool> Function({
+      required String sceneId,
+      required String nodeId,
+      required SceneConsequence consequence,
+    });
 
-typedef SceneLinkedAssetOpener = void Function({
-  required String sceneId,
-  required String nodeId,
-  required String assetId,
-});
+typedef ScenePreSessionInteractionDraftCreator =
+    Future<String?> Function({
+      required String sceneId,
+      required String targetNodeId,
+      required ScenePreSessionInteractionDraft draft,
+    });
+
+typedef ScenePreSessionInteractionDraftUpdater =
+    Future<bool> Function({
+      required String sceneId,
+      required String nodeId,
+      required ScenePreSessionInteractionDraft draft,
+    });
+
+typedef _SelectedPreSessionInteractionDraftCreator =
+    Future<void> Function({
+      required String targetNodeId,
+      required ScenePreSessionInteractionDraft draft,
+    });
+
+typedef SceneLinkedAssetOpener =
+    void Function({
+      required String sceneId,
+      required String nodeId,
+      required String assetId,
+    });
 
 final class ScenePresentationCreateAndLinkOutcome {
   const ScenePresentationCreateAndLinkOutcome({
@@ -186,6 +210,7 @@ class ScenesWorkspace extends StatefulWidget {
     this.cinematicsLibrary,
     this.presentationCinematics = const [],
     this.presentationFolders = const [],
+    this.newGameConfig = const ProjectNewGameConfig(),
     this.conditionSourceOptions = const [],
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
@@ -206,6 +231,7 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onAddNodeDraft,
     required this.onAddLinkedAssetNodeDraft,
     required this.onAddConsequenceActionNodeDraft,
+    this.onAddPreSessionInteractionDraft,
     required this.onAddEdgeDraft,
     required this.onRemoveEdgeDraft,
     required this.onRemoveNodeDraft,
@@ -217,6 +243,7 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onUpdateBattlePayload,
     required this.onUpdateCinematicPayload,
     required this.onUpdateActionConsequence,
+    this.onUpdatePreSessionInteractionDraft,
     this.onOpenDialogue,
     this.onOpenCinematic,
     this.onCreateAndLinkPresentation,
@@ -233,12 +260,13 @@ class ScenesWorkspace extends StatefulWidget {
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<PresentationCinematicAsset> presentationCinematics;
   final List<CinematicLibraryFolder> presentationFolders;
+  final ProjectNewGameConfig newGameConfig;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
-      actionPickerOptions;
+  actionPickerOptions;
   final String? requestedSceneId;
   final String? requestedNodeId;
   final int? requestedSceneFocusNonce;
@@ -254,6 +282,7 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneNodeDraftCreator onAddNodeDraft;
   final SceneLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
   final SceneConsequenceActionNodeDraftCreator onAddConsequenceActionNodeDraft;
+  final ScenePreSessionInteractionDraftCreator? onAddPreSessionInteractionDraft;
   final SceneEdgeDraftCreator onAddEdgeDraft;
   final SceneEdgeDraftRemover onRemoveEdgeDraft;
   final SceneNodeDraftRemover onRemoveNodeDraft;
@@ -265,6 +294,8 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneBattlePayloadUpdater onUpdateBattlePayload;
   final SceneCinematicPayloadUpdater onUpdateCinematicPayload;
   final SceneActionConsequenceUpdater onUpdateActionConsequence;
+  final ScenePreSessionInteractionDraftUpdater?
+  onUpdatePreSessionInteractionDraft;
   final SceneLinkedAssetOpener? onOpenDialogue;
   final SceneLinkedAssetOpener? onOpenCinematic;
   final ScenePresentationCreateAndLinkCreator? onCreateAndLinkPresentation;
@@ -813,19 +844,19 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
               pendingConnection: _pendingConnection,
               focusNodeForNodeId: selectedScene == null
                   ? null
-                  : (nodeId) => _graphNodeFocusNodeFor(
-                        selectedScene.id,
-                        nodeId,
-                      ),
+                  : (nodeId) =>
+                        _graphNodeFocusNodeFor(selectedScene.id, nodeId),
               onSelectNode: _handleGraphNodeTap,
               onSelectEdge: _handleGraphEdgeTap,
               onAddNodeDraft: _addNodeDraft,
               onAddLinkedAssetNodeDraft: _addLinkedAssetNodeDraft,
               onAddConsequenceActionNodeDraft: _addConsequenceActionNodeDraft,
+              onAddPreSessionInteractionDraft: _addPreSessionInteractionDraft,
               linkedAssetContracts: widget.linkedAssetContracts,
               cinematicsLibrary: widget.cinematicsLibrary,
               presentationCinematics: widget.presentationCinematics,
               presentationFolders: widget.presentationFolders,
+              newGameConfig: widget.newGameConfig,
               viewport: _graphViewport,
               inspector: _sceneInspector,
               onViewportChanged: (viewport) {
@@ -881,6 +912,8 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     onUpdateEndPayload: _updateEndPayload,
                     linkedAssetContracts: widget.linkedAssetContracts,
                     cinematicsLibrary: widget.cinematicsLibrary,
+                    presentationCinematics: widget.presentationCinematics,
+                    newGameConfig: widget.newGameConfig,
                     onUpdateYarnDialoguePayload: _updateYarnDialoguePayload,
                     onOpenDialogue: (dialogueId) {
                       final sceneId = selectedScene.id;
@@ -908,6 +941,8 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     consequenceEventOptions: widget.consequenceEventOptions,
                     consequenceCatalogs: widget.consequenceCatalogs,
                     onUpdateActionConsequence: _updateActionConsequence,
+                    onUpdatePreSessionInteraction:
+                        _updatePreSessionInteractionDraft,
                   ),
           ),
         );
@@ -1037,6 +1072,27 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     if (!mounted || createdNodeId == null) {
       return;
     }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = createdNodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+  }
+
+  Future<void> _addPreSessionInteractionDraft({
+    required String targetNodeId,
+    required ScenePreSessionInteractionDraft draft,
+  }) async {
+    final selected = _selectedScene;
+    final creator = widget.onAddPreSessionInteractionDraft;
+    if (selected == null || creator == null) return;
+    final createdNodeId = await creator(
+      sceneId: selected.id,
+      targetNodeId: targetNodeId,
+      draft: draft,
+    );
+    if (!mounted || createdNodeId == null) return;
     setState(() {
       _selectedSceneId = selected.id;
       _selectedNodeId = createdNodeId;
@@ -1345,6 +1401,28 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     if (!mounted || !updated) {
       return false;
     }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = nodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+    return true;
+  }
+
+  Future<bool> _updatePreSessionInteractionDraft({
+    required String nodeId,
+    required ScenePreSessionInteractionDraft draft,
+  }) async {
+    final selected = _selectedScene;
+    final updater = widget.onUpdatePreSessionInteractionDraft;
+    if (selected == null || updater == null) return false;
+    final updated = await updater(
+      sceneId: selected.id,
+      nodeId: nodeId,
+      draft: draft,
+    );
+    if (!mounted || !updated) return false;
     setState(() {
       _selectedSceneId = selected.id;
       _selectedNodeId = nodeId;
@@ -1813,6 +1891,14 @@ String? _emptyToNull(String raw) {
   return value.isEmpty ? null : value;
 }
 
+IconData _interactionIcon(SceneInteractionRequestKind kind) => switch (kind) {
+  SceneInteractionRequestKind.message => CupertinoIcons.text_bubble,
+  SceneInteractionRequestKind.text => CupertinoIcons.text_cursor,
+  SceneInteractionRequestKind.choice => CupertinoIcons.list_bullet,
+  SceneInteractionRequestKind.confirmation => CupertinoIcons.check_mark_circled,
+  SceneInteractionRequestKind.selection => CupertinoIcons.square_list,
+};
+
 class _SceneReadOnlySummary extends StatelessWidget {
   const _SceneReadOnlySummary({
     required this.scene,
@@ -1825,10 +1911,12 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.onAddNodeDraft,
     required this.onAddLinkedAssetNodeDraft,
     required this.onAddConsequenceActionNodeDraft,
+    required this.onAddPreSessionInteractionDraft,
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
     required this.presentationCinematics,
     required this.presentationFolders,
+    required this.newGameConfig,
     required this.viewport,
     required this.inspector,
     required this.onViewportChanged,
@@ -1855,11 +1943,14 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final _SelectedLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
   final _SelectedConsequenceActionNodeDraftCreator
-      onAddConsequenceActionNodeDraft;
+  onAddConsequenceActionNodeDraft;
+  final _SelectedPreSessionInteractionDraftCreator
+  onAddPreSessionInteractionDraft;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<PresentationCinematicAsset> presentationCinematics;
   final List<CinematicLibraryFolder> presentationFolders;
+  final ProjectNewGameConfig newGameConfig;
   final SceneGraphViewport viewport;
   final NarrativeSceneInspector inspector;
   final ValueChanged<SceneGraphViewport> onViewportChanged;
@@ -1895,10 +1986,12 @@ class _SceneReadOnlySummary extends StatelessWidget {
               onAddNodeDraft: onAddNodeDraft,
               onAddLinkedAssetNodeDraft: onAddLinkedAssetNodeDraft,
               onAddConsequenceActionNodeDraft: onAddConsequenceActionNodeDraft,
+              onAddPreSessionInteractionDraft: onAddPreSessionInteractionDraft,
               linkedAssetContracts: linkedAssetContracts,
               cinematicsLibrary: cinematicsLibrary,
               presentationCinematics: presentationCinematics,
               presentationFolders: presentationFolders,
+              newGameConfig: newGameConfig,
               viewport: viewport,
               inspector: inspector,
               onViewportChanged: onViewportChanged,
@@ -1945,10 +2038,12 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.onAddNodeDraft,
     required this.onAddLinkedAssetNodeDraft,
     required this.onAddConsequenceActionNodeDraft,
+    required this.onAddPreSessionInteractionDraft,
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
     required this.presentationCinematics,
     required this.presentationFolders,
+    required this.newGameConfig,
     required this.viewport,
     required this.inspector,
     required this.onViewportChanged,
@@ -1975,11 +2070,14 @@ class _SelectedSceneSummary extends StatelessWidget {
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final _SelectedLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
   final _SelectedConsequenceActionNodeDraftCreator
-      onAddConsequenceActionNodeDraft;
+  onAddConsequenceActionNodeDraft;
+  final _SelectedPreSessionInteractionDraftCreator
+  onAddPreSessionInteractionDraft;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<PresentationCinematicAsset> presentationCinematics;
   final List<CinematicLibraryFolder> presentationFolders;
+  final ProjectNewGameConfig newGameConfig;
   final SceneGraphViewport viewport;
   final NarrativeSceneInspector inspector;
   final ValueChanged<SceneGraphViewport> onViewportChanged;
@@ -2046,6 +2144,8 @@ class _SelectedSceneSummary extends StatelessWidget {
             onAddNodeDraft: onAddNodeDraft,
             onAddLinkedAssetNodeDraft: onAddLinkedAssetNodeDraft,
             onAddConsequenceActionNodeDraft: onAddConsequenceActionNodeDraft,
+            onAddPreSessionInteractionDraft: onAddPreSessionInteractionDraft,
+            newGameConfig: newGameConfig,
           ),
           const SizedBox(height: 8),
           _SceneEdgeDraftToolbar(
@@ -2116,6 +2216,8 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     required this.onAddNodeDraft,
     required this.onAddLinkedAssetNodeDraft,
     required this.onAddConsequenceActionNodeDraft,
+    required this.onAddPreSessionInteractionDraft,
+    required this.newGameConfig,
   });
 
   final NarrativeSceneSummary scene;
@@ -2132,11 +2234,14 @@ class _SceneNodeDraftPalette extends StatelessWidget {
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
-      actionPickerOptions;
+  actionPickerOptions;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final _SelectedLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
   final _SelectedConsequenceActionNodeDraftCreator
-      onAddConsequenceActionNodeDraft;
+  onAddConsequenceActionNodeDraft;
+  final _SelectedPreSessionInteractionDraftCreator
+  onAddPreSessionInteractionDraft;
+  final ProjectNewGameConfig newGameConfig;
 
   @override
   Widget build(BuildContext context) {
@@ -2167,6 +2272,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     final cinematicReason = hasCanonicalCinematics
         ? null
         : 'Créez d’abord une cinématique dans la Cinematics Library.';
+    final interactionTargetId = _presentationInsertionTarget();
     const worldOnlyReason = 'réservé aux scènes in-game';
     return SizedBox(
       key: const ValueKey('scenes-add-node-palette'),
@@ -2200,6 +2306,26 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                         ? null
                         : () => onAddNodeDraft(SceneNodeKind.condition),
                   ),
+                  if (isPreSession) ...[
+                    for (final kind in SceneInteractionRequestKind.values)
+                      _NodeDraftButton(
+                        buttonKey: ValueKey(
+                          'scenes-add-node-interaction-${kind.name}',
+                        ),
+                        label: scenePreSessionInteractionKindLabel(kind),
+                        icon: _interactionIcon(kind),
+                        disabledReason: interactionTargetId == null
+                            ? 'aucun point d’insertion linéaire'
+                            : null,
+                        onPressed: interactionTargetId == null
+                            ? null
+                            : () => _editAndAddInteraction(
+                                context,
+                                kind,
+                                interactionTargetId,
+                              ),
+                      ),
+                  ],
                   _NodeDraftButton(
                     buttonKey: const ValueKey('scenes-add-node-merge'),
                     label: 'Merge',
@@ -2355,6 +2481,34 @@ class _SceneNodeDraftPalette extends StatelessWidget {
         ],
       ),
       title: contract.label,
+    );
+  }
+
+  Future<void> _editAndAddInteraction(
+    BuildContext context,
+    SceneInteractionRequestKind kind,
+    String targetNodeId,
+  ) async {
+    final occupiedMarkerIds = <String>{
+      for (final node in scene.graph.nodes)
+        if (node.payload case final ScenePresentationCinematicPayload payload)
+          for (final binding in payload.interactionCueBindings)
+            binding.markerId,
+    };
+    final cueOptions = buildScenePreSessionInteractionCueOptions(
+      graph: scene.graph,
+      cinematics: presentationCinematics,
+    ).where((option) => !occupiedMarkerIds.contains(option.markerId)).toList();
+    final draft = await showScenePreSessionInteractionEditor(
+      context: context,
+      kind: kind,
+      newGameConfig: newGameConfig,
+      cueOptions: cueOptions,
+    );
+    if (draft == null) return;
+    await onAddPreSessionInteractionDraft(
+      targetNodeId: targetNodeId,
+      draft: draft,
     );
   }
 

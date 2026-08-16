@@ -1151,7 +1151,17 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
                 id: "secondary",
                 label: "Secondary",
                 kind: "marker",
-                clips: [],
+                clips: [
+                  {
+                    id: "cue_player_name",
+                    kind: "marker",
+                    startUs: 500_000,
+                    durationUs: 0,
+                    label: "Ask player name",
+                    markerKind: "interactionCue",
+                    required: false,
+                  },
+                ],
               },
             ],
           },
@@ -1204,19 +1214,24 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
       confirmed = false,
     ): Promise<void> => {
       sequence += 1;
-      const planned = await toolData(fixture.client, "pokemap_plan", {
-        projectHandle,
-        request: {
-          requestId: "cin033-request-" + sequence,
-          actionId,
-          actionVersion: 1,
-          workspaceHandle,
-          parameters,
-          expectedRevision: revision,
-          idempotencyKey: "cin033-idempotency-" + sequence,
-          dryRun: false,
-        },
-      });
+      let planned: JsonRecord;
+      try {
+        planned = await toolData(fixture.client, "pokemap_plan", {
+          projectHandle,
+          request: {
+            requestId: "cin033-request-" + sequence,
+            actionId,
+            actionVersion: 1,
+            workspaceHandle,
+            parameters,
+            expectedRevision: revision,
+            idempotencyKey: "cin033-idempotency-" + sequence,
+            dryRun: false,
+          },
+        });
+      } catch (error) {
+        throw new Error(`Failed to plan ${actionId}`, { cause: error });
+      }
       const confirmation = confirmed
         ? await toolData(fixture.client, "pokemap_apply", {
             operation: "confirm",
@@ -1410,6 +1425,22 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
         confirmed: true,
       },
       {
+        actionId: "presentationClip.create",
+        parameters: {
+          cinematicId: "opening",
+          trackId: "secondary",
+          clip: {
+            id: "cue_player_name",
+            kind: "marker",
+            startUs: 500_000,
+            durationUs: 0,
+            label: "Ask player name",
+            markerKind: "interactionCue",
+            required: false,
+          },
+        },
+      },
+      {
         actionId: "presentationLayer.create",
         parameters: {
           cinematicId: "opening",
@@ -1496,6 +1527,26 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
           nodeId: "opening",
           targetNodeId: "end",
           presentationCinematicId: "opening",
+        },
+      },
+      {
+        actionId: "scene.preSession.interaction.update",
+        parameters: {
+          sceneId: "new_game_intro",
+          nodeId: "ask_name",
+          interaction: {
+            kind: "text",
+            prompt: {
+              localizationKey: "newGame.playerName.prompt",
+              fallbackText: "Comment veux-tu t’appeler ?",
+            },
+            textConstraints: { minGraphemes: 0, maxGraphemes: 48 },
+            resultBinding: { field: "playerName" },
+          },
+          cueBinding: {
+            presentationNodeId: "opening",
+            markerId: "cue_player_name",
+          },
         },
       },
       {

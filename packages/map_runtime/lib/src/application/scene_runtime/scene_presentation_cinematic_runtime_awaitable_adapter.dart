@@ -15,15 +15,23 @@ abstract interface class ScenePresentationCinematicRuntimePlayer {
   );
 }
 
+typedef ScenePresentationInteractionCueHandler = Future<void> Function(
+  String markerId,
+);
+
 final class ScenePresentationCinematicRuntimeRequest {
-  const ScenePresentationCinematicRuntimeRequest({
+  ScenePresentationCinematicRuntimeRequest({
     required this.requestId,
     required this.createdAtEpochMs,
     required this.projectRevision,
     required this.contentHash,
     required this.presentationCinematicId,
     required this.asset,
-  });
+    this.onInteractionCue,
+    Set<String> interactionCueMarkerIds = const <String>{},
+  }) : interactionCueMarkerIds = Set<String>.unmodifiable(
+          interactionCueMarkerIds,
+        );
 
   final String requestId;
   final int createdAtEpochMs;
@@ -31,6 +39,8 @@ final class ScenePresentationCinematicRuntimeRequest {
   final String contentHash;
   final String presentationCinematicId;
   final PresentationCinematicAsset asset;
+  final ScenePresentationInteractionCueHandler? onInteractionCue;
+  final Set<String> interactionCueMarkerIds;
 }
 
 typedef RuntimePresentationSceneLaunch = FutureOr<void> Function(
@@ -102,7 +112,10 @@ final class ScenePresentationCinematicRuntimeAwaitableAdapter {
   var _nextRunSequence = 1;
 
   Future<ScenePresentationCinematicRuntimeAwaitableResult>
-      playPresentationCinematic(SceneRuntimePlanIntent intent) async {
+      playPresentationCinematic(
+    SceneRuntimePlanIntent intent, {
+    ScenePresentationInteractionCueHandler? onInteractionCue,
+  }) async {
     final presentationCinematicId = intent.presentationCinematicId?.trim();
     if (presentationCinematicId == null || presentationCinematicId.isEmpty) {
       return const ScenePresentationCinematicRuntimeAwaitableResult.failed(
@@ -134,6 +147,9 @@ final class ScenePresentationCinematicRuntimeAwaitableAdapter {
       contentHash: computePresentationCinematicContentHash(asset),
       presentationCinematicId: presentationCinematicId,
       asset: asset,
+      onInteractionCue: onInteractionCue,
+      interactionCueMarkerIds:
+          intent.presentationInteractionNodeIdsByMarkerId.keys.toSet(),
     );
     RuntimePresentationExecutionTerminal terminal;
     try {

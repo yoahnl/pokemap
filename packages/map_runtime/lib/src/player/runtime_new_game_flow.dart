@@ -141,7 +141,8 @@ final class RuntimeTextPreSessionSceneRunner
         scene.single.executionProfile != SceneExecutionProfile.preSession) {
       throw StateError('The configured preSession Scene is unavailable.');
     }
-    final plan = buildSceneRuntimePlan(scene.single);
+    final activeScene = scene.single;
+    final plan = buildSceneRuntimePlan(activeScene);
     if (!plan.canBuild || plan.plan == null) {
       throw StateError(
         'The configured preSession Scene cannot run: '
@@ -151,6 +152,7 @@ final class RuntimeTextPreSessionSceneRunner
     var dialogueSerial = 0;
     var interactionSerial = 0;
     var currentDraft = draft;
+    final handledInteractionOutputsByNodeId = <String, String>{};
     Future<String> unsupported(SceneRuntimePlanIntent intent) async {
       throw StateError(
         'Unsupported preSession intent ${intent.kind.name} in text mode.',
@@ -171,7 +173,37 @@ final class RuntimeTextPreSessionSceneRunner
         playPresentationCinematic: (intent) async {
           final adapter = presentationCinematic;
           if (adapter == null) return unsupported(intent);
-          final result = await adapter.playPresentationCinematic(intent);
+          final result = await adapter.playPresentationCinematic(
+            intent,
+            onInteractionCue: (markerId) async {
+              final interactionNodeId =
+                  intent.presentationInteractionNodeIdsByMarkerId[markerId];
+              final interactionNode = activeScene.graph.nodes
+                  .where((node) => node.id == interactionNodeId)
+                  .firstOrNull;
+              final interactionPayload = interactionNode?.payload;
+              if (interactionNodeId == null ||
+                  interactionPayload is! SceneActionPayload ||
+                  interactionPayload.preSessionInteraction == null) {
+                throw StateError(
+                  'Presentation interaction cue "$markerId" is not linked '
+                  'to a structured Scene interaction.',
+                );
+              }
+              final interactionResult = await _runStructuredInteraction(
+                intent: SceneRuntimePlanIntent.requestStructuredInteraction(
+                  interaction: interactionPayload.preSessionInteraction!,
+                  sourceNodeId: interactionNodeId,
+                ),
+                requestId: '$runId:scene:${interactionSerial++}',
+                draft: currentDraft,
+                interactions: interactions,
+              );
+              currentDraft = interactionResult.draft;
+              handledInteractionOutputsByNodeId[interactionNodeId] =
+                  interactionResult.outputPortId;
+            },
+          );
           if (result.success) return result.scenePortId!;
           throw StateError(
             result.diagnosticCode ??
@@ -181,13 +213,19 @@ final class RuntimeTextPreSessionSceneRunner
         },
         executeInteractiveCommand: unsupported,
         requestStructuredInteraction: (intent) async {
-          currentDraft = await _runStructuredInteraction(
+          final handledOutput =
+              handledInteractionOutputsByNodeId[intent.sourceNodeId];
+          if (handledOutput != null) {
+            return handledOutput;
+          }
+          final interactionResult = await _runStructuredInteraction(
             intent: intent,
             requestId: '$runId:scene:${interactionSerial++}',
             draft: currentDraft,
             interactions: interactions,
           );
-          return 'completed';
+          currentDraft = interactionResult.draft;
+          return interactionResult.outputPortId;
         },
         applyConsequence: (_) async {
           throw StateError('Consequences are unavailable before GameState.');
@@ -200,7 +238,8 @@ final class RuntimeTextPreSessionSceneRunner
     return currentDraft;
   }
 
-  Future<NewGameDraft> _runStructuredInteraction({
+  Future<({NewGameDraft draft, String outputPortId})>
+      _runStructuredInteraction({
     required SceneRuntimePlanIntent intent,
     required String requestId,
     required NewGameDraft draft,
@@ -210,43 +249,26 @@ final class RuntimeTextPreSessionSceneRunner
     if (spec == null) {
       throw StateError('The preSession interaction specification is missing.');
     }
-    final request = switch (spec.kind) {
-      SceneInteractionRequestKind.message => SceneInteractionRequest.message(
-          requestId: requestId,
-          revision: 0,
-          prompt: spec.prompt,
-        ),
-      SceneInteractionRequestKind.choice => SceneInteractionRequest.choice(
-          requestId: requestId,
-          revision: 0,
-          prompt: spec.prompt,
-          options: spec.options,
-        ),
-      SceneInteractionRequestKind.text => SceneInteractionRequest.text(
-          requestId: requestId,
-          revision: 0,
-          prompt: spec.prompt,
-          constraints: spec.textConstraints,
-        ),
-      SceneInteractionRequestKind.confirmation =>
-        SceneInteractionRequest.confirmation(
-          requestId: requestId,
-          revision: 0,
-          prompt: spec.prompt,
-        ),
-      SceneInteractionRequestKind.selection =>
-        SceneInteractionRequest.selection(
-          requestId: requestId,
-          revision: 0,
-          prompt: spec.prompt,
-          options: spec.options,
-          constraints: spec.selectionConstraints,
-        ),
-    };
+    final request = spec.buildRequest(requestId: requestId, revision: 0);
     final response = await interactions.request(request);
     _rejectCancellation(response);
+    final outputPortId = switch (response) {
+      SceneAcknowledgedInteractionResult() => 'completed',
+      SceneChoiceSelectedInteractionResult(:final selectedOptionId) =>
+        selectedOptionId,
+      SceneTextSubmittedInteractionResult() => 'completed',
+      SceneConfirmedInteractionResult(:final value) =>
+        value ? 'confirmed' : 'declined',
+      SceneSelectionSubmittedInteractionResult() => 'completed',
+      SceneCancelledInteractionResult() => throw StateError(
+          'The preSession interaction was cancelled.',
+        ),
+      _ => throw StateError(
+          'The preSession interaction returned an unsupported result.',
+        ),
+    };
     final binding = spec.resultBinding;
-    if (binding == null) return draft;
+    if (binding == null) return (draft: draft, outputPortId: outputPortId);
     final selectedIdentity = switch (response) {
       SceneChoiceSelectedInteractionResult(:final selectedOptionId) =>
         selectedOptionId,
@@ -276,7 +298,7 @@ final class RuntimeTextPreSessionSceneRunner
         'The preSession interaction result could not update the New Game draft.',
       );
     }
-    return result.draft;
+    return (draft: result.draft, outputPortId: outputPortId);
   }
 
   Future<String> _runDialogue({

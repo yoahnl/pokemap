@@ -8,6 +8,16 @@ import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
 import 'presentation_cinematic_template_actions.dart';
 
+final class ScenePreSessionInteractionCueBindingDraft {
+  const ScenePreSessionInteractionCueBindingDraft({
+    required this.presentationNodeId,
+    required this.markerId,
+  });
+
+  final String presentationNodeId;
+  final String markerId;
+}
+
 final class SceneActions {
   const SceneActions();
 
@@ -37,6 +47,15 @@ final class SceneActions {
       'scene.preSession.interaction.insert',
       'Insert a structured preSession interaction before a Scene node',
       resourceKinds: const ['project', 'scene'],
+    ),
+    narrativeActionDescriptor(
+      'scene.preSession.interaction.update',
+      'Update a structured preSession interaction and its optional cue link',
+      resourceKinds: const [
+        'project',
+        'scene',
+        'presentationCinematic',
+      ],
     ),
     narrativeActionDescriptor(
       'scene.preSession.presentation.insert',
@@ -192,7 +211,14 @@ final class SceneActions {
       case 'scene.preSession.interaction.insert':
         rejectUnknownNarrativeParameters(
           parameters,
-          const {'sceneId', 'nodeId', 'targetNodeId', 'title', 'interaction'},
+          const {
+            'sceneId',
+            'nodeId',
+            'targetNodeId',
+            'title',
+            'interaction',
+            'cueBinding',
+          },
         );
         final sceneId = narrativeStringParameter(parameters, 'sceneId');
         final projected = insertPreSessionInteraction(
@@ -205,6 +231,29 @@ final class SceneActions {
           interaction: _decodePreSessionInteraction(
             narrativeObjectParameter(parameters, 'interaction'),
           ),
+          cueBinding: _decodeOptionalCueBinding(parameters),
+        );
+        return _preSessionProjectDraft(
+          context,
+          projected,
+          sceneId: sceneId,
+        );
+      case 'scene.preSession.interaction.update':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {'sceneId', 'nodeId', 'interaction', 'cueBinding'},
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final projected = updatePreSessionInteraction(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          nodeId: narrativeStringParameter(parameters, 'nodeId'),
+          interaction: _decodePreSessionInteraction(
+            narrativeObjectParameter(parameters, 'interaction'),
+          ),
+          replaceCueBinding: parameters.containsKey('cueBinding'),
+          cueBinding: _decodeOptionalCueBinding(parameters),
         );
         return _preSessionProjectDraft(
           context,
@@ -518,10 +567,11 @@ final class SceneActions {
     required String targetNodeId,
     required ScenePreSessionInteractionSpec interaction,
     String? title,
+    ScenePreSessionInteractionCueBindingDraft? cueBinding,
   }) {
     final scene = _requirePreSessionScene(project, sceneId);
     _validatePreSessionInteractionBinding(project, interaction);
-    final updated = _insertLinearNode(
+    var updated = _insertLinearNode(
       scene,
       node: SceneNode(
         id: nodeId,
@@ -531,7 +581,64 @@ final class SceneActions {
       ),
       targetNodeId: targetNodeId,
       outgoingEdgeKind: SceneEdgeKind.actionCompleted,
+      outgoingPortIds: interaction.outputPortIds,
     );
+    if (cueBinding != null) {
+      _validateInteractionCueBinding(
+        project,
+        scene: updated,
+        binding: cueBinding,
+      );
+      updated = updateScenePresentationInteractionCueBinding(
+        updated,
+        presentationNodeId: cueBinding.presentationNodeId,
+        markerId: cueBinding.markerId,
+        interactionNodeId: nodeId,
+      ).updatedScene;
+    }
+    return upsert(project, maps: maps, scene: updated);
+  }
+
+  ProjectManifest updatePreSessionInteraction(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required ScenePreSessionInteractionSpec interaction,
+    bool replaceCueBinding = false,
+    ScenePreSessionInteractionCueBindingDraft? cueBinding,
+  }) {
+    final scene = _requirePreSessionScene(project, sceneId);
+    _validatePreSessionInteractionBinding(project, interaction);
+    var updated = updateScenePreSessionInteractionPayload(
+      scene,
+      nodeId: nodeId,
+      interaction: interaction,
+    ).updatedScene;
+    updated = _reconcileInteractionOutputEdges(
+      updated,
+      nodeId: nodeId,
+      outputPortIds: interaction.outputPortIds,
+    );
+    if (replaceCueBinding) {
+      updated = _withoutInteractionCueBindings(
+        updated,
+        interactionNodeId: nodeId,
+      );
+      if (cueBinding != null) {
+        _validateInteractionCueBinding(
+          project,
+          scene: updated,
+          binding: cueBinding,
+        );
+        updated = updateScenePresentationInteractionCueBinding(
+          updated,
+          presentationNodeId: cueBinding.presentationNodeId,
+          markerId: cueBinding.markerId,
+          interactionNodeId: nodeId,
+        ).updatedScene;
+      }
+    }
     return upsert(project, maps: maps, scene: updated);
   }
 
@@ -636,8 +743,7 @@ final class SceneActions {
         'The Presentation create-and-link projection contains invalid references.',
         details: <String, Object?>{
           'diagnostics': <Object?>[
-            for (final diagnostic in referenceDiagnostics)
-              diagnostic.toJson(),
+            for (final diagnostic in referenceDiagnostics) diagnostic.toJson(),
           ],
         },
       );
@@ -908,6 +1014,97 @@ final class SceneActions {
   }
 }
 
+ScenePreSessionInteractionCueBindingDraft? _decodeOptionalCueBinding(
+  Map<String, Object?> parameters,
+) {
+  if (!parameters.containsKey('cueBinding') ||
+      parameters['cueBinding'] == null) {
+    return null;
+  }
+  final raw = parameters['cueBinding'];
+  if (raw is! Map) {
+    throw ArgumentError.value(raw, 'cueBinding', 'must be an object or null');
+  }
+  final value = <String, Object?>{
+    for (final entry in raw.entries)
+      if (entry.key is String) entry.key as String: entry.value,
+  };
+  rejectUnknownNarrativeParameters(
+    value,
+    const {'presentationNodeId', 'markerId'},
+  );
+  return ScenePreSessionInteractionCueBindingDraft(
+    presentationNodeId: narrativeStringParameter(value, 'presentationNodeId'),
+    markerId: narrativeStringParameter(value, 'markerId'),
+  );
+}
+
+void _validateInteractionCueBinding(
+  ProjectManifest project, {
+  required SceneAsset scene,
+  required ScenePreSessionInteractionCueBindingDraft binding,
+}) {
+  final presentationNode = scene.graph.nodes
+      .where((node) => node.id == binding.presentationNodeId)
+      .firstOrNull;
+  final payload = presentationNode?.payload;
+  if (presentationNode?.kind != SceneNodeKind.presentationCinematic ||
+      payload is! ScenePresentationCinematicPayload) {
+    throw NarrativeAuthoringException(
+      'scene.preSession.interaction.presentation_node_unknown',
+      'The interaction cue must target a Presentation node in the Scene.',
+      details: <String, Object?>{
+        'presentationNodeId': binding.presentationNodeId,
+      },
+    );
+  }
+  final cinematic = project.presentationCinematics
+      .where((asset) => asset.id == payload.presentationCinematicId)
+      .firstOrNull;
+  final markerExists = cinematic?.tracks.any(
+        (track) => track.clips.any(
+          (clip) =>
+              clip is PresentationMarkerClip &&
+              clip.id == binding.markerId &&
+              clip.markerKind == PresentationMarkerKind.interactionCue,
+        ),
+      ) ??
+      false;
+  if (!markerExists) {
+    throw NarrativeAuthoringException(
+      'scene.preSession.interaction.marker_unknown',
+      'The selected marker is not an Interaction cue of this Presentation.',
+      details: <String, Object?>{
+        'presentationCinematicId': payload.presentationCinematicId,
+        'markerId': binding.markerId,
+      },
+    );
+  }
+}
+
+SceneAsset _withoutInteractionCueBindings(
+  SceneAsset scene, {
+  required String interactionNodeId,
+}) {
+  var updated = scene;
+  final bindings = <(String, String)>[
+    for (final node in scene.graph.nodes)
+      if (node.payload case final ScenePresentationCinematicPayload payload)
+        for (final binding in payload.interactionCueBindings)
+          if (binding.interactionNodeId == interactionNodeId)
+            (node.id, binding.markerId),
+  ];
+  for (final binding in bindings) {
+    updated = updateScenePresentationInteractionCueBinding(
+      updated,
+      presentationNodeId: binding.$1,
+      markerId: binding.$2,
+      interactionNodeId: null,
+    ).updatedScene;
+  }
+  return updated;
+}
+
 ProjectPauseActionId _decodePauseActionId(String value) {
   try {
     return ProjectPauseActionId.values.byName(value);
@@ -1129,6 +1326,7 @@ SceneAsset _insertLinearNode(
   required SceneNode node,
   required String targetNodeId,
   required SceneEdgeKind outgoingEdgeKind,
+  List<String> outgoingPortIds = const <String>['completed'],
 }) {
   _requireNewNodeIds(scene, <String>[node.id]);
   final target = _requireTargetNode(scene, targetNodeId);
@@ -1150,13 +1348,58 @@ SceneAsset _insertLinearNode(
             _copyEdge(edge, toNodeId: node.id)
           else
             edge,
-        SceneEdge(
-          id: _edgeId(node.id, 'completed', targetNodeId),
-          fromNodeId: node.id,
-          fromPortId: 'completed',
-          toNodeId: targetNodeId,
-          kind: outgoingEdgeKind,
-        ),
+        for (final outputPortId in outgoingPortIds)
+          SceneEdge(
+            id: _edgeId(node.id, outputPortId, targetNodeId),
+            fromNodeId: node.id,
+            fromPortId: outputPortId,
+            toNodeId: targetNodeId,
+            kind: outgoingEdgeKind,
+          ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _reconcileInteractionOutputEdges(
+  SceneAsset scene, {
+  required String nodeId,
+  required List<String> outputPortIds,
+}) {
+  final outgoing = scene.graph.edges
+      .where((edge) => edge.fromNodeId == nodeId)
+      .toList(growable: false);
+  if (outgoing.isEmpty) {
+    throw NarrativeAuthoringException(
+      'scene.preSession.interaction.output_missing',
+      'The structured interaction has no outgoing route.',
+      details: <String, Object?>{'nodeId': nodeId},
+    );
+  }
+  final existingByPort = <String, SceneEdge>{
+    for (final edge in outgoing) edge.fromPortId: edge,
+  };
+  final fallbackTargetNodeId = outgoing.first.toNodeId;
+  final outputPorts = outputPortIds.toSet();
+  return _copyScene(
+    scene,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: scene.graph.nodes,
+      edges: <SceneEdge>[
+        for (final edge in scene.graph.edges)
+          if (edge.fromNodeId != nodeId ||
+              outputPorts.contains(edge.fromPortId))
+            edge,
+        for (final outputPortId in outputPortIds)
+          if (!existingByPort.containsKey(outputPortId))
+            SceneEdge(
+              id: _edgeId(nodeId, outputPortId, fallbackTargetNodeId),
+              fromNodeId: nodeId,
+              fromPortId: outputPortId,
+              toNodeId: fallbackTargetNodeId,
+              kind: SceneEdgeKind.actionCompleted,
+            ),
       ],
     ),
   );

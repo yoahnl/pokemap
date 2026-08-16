@@ -467,6 +467,7 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 const Set<String> _cin006CertifiedActionIds = <String>{
   'scene.preSession.create',
   'scene.preSession.interaction.insert',
+  'scene.preSession.interaction.update',
   'scene.preSession.presentation.insert',
   'scene.preSession.presentation.createAndLink',
   'scene.preSession.condition.insert',

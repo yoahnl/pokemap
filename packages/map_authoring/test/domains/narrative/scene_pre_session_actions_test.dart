@@ -10,6 +10,7 @@ void main() {
         containsAll(const {
           'scene.preSession.create',
           'scene.preSession.interaction.insert',
+          'scene.preSession.interaction.update',
           'scene.preSession.presentation.insert',
           'scene.preSession.condition.insert',
           'scene.preSession.end.configure',
@@ -148,6 +149,170 @@ void main() {
       );
     });
 
+    test('links, edits and clears an interaction cue without raw payloads', () {
+      final actions = const SceneActions();
+      var project = actions.createPreSessionScene(
+        _project(),
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        name: 'Nouvelle partie',
+        templateId: 'minimal',
+        setAsEntrypoint: true,
+      );
+      project = actions.insertPreSessionPresentation(
+        project,
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        nodeId: 'opening',
+        targetNodeId: 'end',
+        presentationCinematicId: 'presentation_opening',
+      );
+      project = actions.insertPreSessionInteraction(
+        project,
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        nodeId: 'welcome',
+        targetNodeId: 'end',
+        title: 'Message de bienvenue',
+        interaction: ScenePreSessionInteractionSpec.message(
+          prompt: SceneInteractionPrompt(
+            localizationKey: 'newGame.welcome',
+            fallbackText: 'Bienvenue.',
+          ),
+        ),
+        cueBinding: const ScenePreSessionInteractionCueBindingDraft(
+          presentationNodeId: 'opening',
+          markerId: 'cue_welcome',
+        ),
+      );
+
+      var scene = project.scenes.single;
+      var presentation = scene.graph.nodes
+          .singleWhere((node) => node.id == 'opening')
+          .payload as ScenePresentationCinematicPayload;
+      expect(
+        presentation.interactionCueBindings,
+        const [
+          ScenePresentationInteractionCueBinding(
+            markerId: 'cue_welcome',
+            interactionNodeId: 'welcome',
+          ),
+        ],
+      );
+      expect(
+        PresentationReferenceGraph.build(
+          cinematics: project.presentationCinematics,
+          scenes: project.scenes,
+        ).usagesOf(
+          const PresentationReferenceKey.interactionCue(
+            'cue_welcome',
+            presentationCinematicId: 'presentation_opening',
+          ),
+        ),
+        hasLength(1),
+      );
+
+      project = actions.updatePreSessionInteraction(
+        project,
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        nodeId: 'welcome',
+        interaction: ScenePreSessionInteractionSpec.message(
+          prompt: SceneInteractionPrompt(
+            localizationKey: 'newGame.welcome',
+            fallbackText: 'Bienvenue à Avelune.',
+          ),
+        ),
+        replaceCueBinding: true,
+      );
+
+      scene = project.scenes.single;
+      presentation = scene.graph.nodes
+          .singleWhere((node) => node.id == 'opening')
+          .payload as ScenePresentationCinematicPayload;
+      expect(presentation.interactionCueBindings, isEmpty);
+      expect(
+        ((scene.graph.nodes.singleWhere((node) => node.id == 'welcome').payload
+                as SceneActionPayload)
+            .preSessionInteraction!
+            .prompt
+            .fallbackText),
+        'Bienvenue à Avelune.',
+      );
+    });
+
+    test('authors and reconciles typed interaction result outputs', () {
+      final actions = const SceneActions();
+      var project = actions.createPreSessionScene(
+        _project(),
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        name: 'Nouvelle partie',
+        templateId: 'minimal',
+        setAsEntrypoint: true,
+      );
+      project = actions.insertPreSessionInteraction(
+        project,
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        nodeId: 'choose_path',
+        targetNodeId: 'end',
+        interaction: ScenePreSessionInteractionSpec.choice(
+          prompt: SceneInteractionPrompt(
+            localizationKey: 'newGame.path.prompt',
+          ),
+          options: [
+            SceneInteractionOption(
+              id: 'forest',
+              label: SceneInteractionPrompt(
+                localizationKey: 'newGame.path.forest',
+              ),
+            ),
+            SceneInteractionOption(
+              id: 'coast',
+              label: SceneInteractionPrompt(
+                localizationKey: 'newGame.path.coast',
+              ),
+            ),
+          ],
+        ),
+      );
+
+      var scene = project.scenes.single;
+      expect(
+        scene.graph.edges
+            .where((edge) => edge.fromNodeId == 'choose_path')
+            .map((edge) => edge.fromPortId),
+        containsAll(const ['forest', 'coast']),
+      );
+      expect(buildSceneRuntimePlan(scene).canBuild, isTrue);
+
+      project = actions.updatePreSessionInteraction(
+        project,
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        nodeId: 'choose_path',
+        interaction: ScenePreSessionInteractionSpec.confirmation(
+          prompt: SceneInteractionPrompt(
+            localizationKey: 'newGame.path.confirm',
+          ),
+        ),
+      );
+
+      scene = project.scenes.single;
+      expect(
+        scene.graph.edges
+            .where((edge) => edge.fromNodeId == 'choose_path')
+            .map((edge) => edge.fromPortId),
+        containsAll(const ['confirmed', 'declined']),
+      );
+      expect(
+        scene.graph.edges.where((edge) => edge.fromNodeId == 'choose_path'),
+        hasLength(2),
+      );
+      expect(buildSceneRuntimePlan(scene).canBuild, isTrue);
+    });
+
     test('rejects semantic preSession edits against a world Scene', () {
       final project = _project().copyWith(
         scenes: [
@@ -255,6 +420,22 @@ ProjectManifest _project() {
         id: 'presentation_opening',
         title: 'Ouverture',
         durationUs: 1000000,
+        tracks: [
+          PresentationTrack(
+            id: 'markers',
+            label: 'Repères',
+            kind: PresentationTrackKind.marker,
+            clips: [
+              PresentationMarkerClip(
+                id: 'cue_welcome',
+                startUs: 500000,
+                label: 'Bienvenue',
+                markerKind: PresentationMarkerKind.interactionCue,
+                required: true,
+              ),
+            ],
+          ),
+        ],
       ),
     ],
     newGame: ProjectNewGameConfig(

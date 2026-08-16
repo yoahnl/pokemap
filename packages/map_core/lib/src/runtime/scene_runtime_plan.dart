@@ -131,6 +131,8 @@ final class SceneRuntimePlanIntent {
     List<String> battleDeclaredOutcomes = const <String>[],
     this.cinematicId,
     this.presentationCinematicId,
+    this.sourceNodeId,
+    Map<String, String> presentationInteractionNodeIdsByMarkerId = const {},
     this.consequence,
     this.interactiveCommand,
     this.preSessionInteraction,
@@ -138,7 +140,11 @@ final class SceneRuntimePlanIntent {
         expectedOutcomes = List<String>.unmodifiable(expectedOutcomes),
        battleDeclaredOutcomes = List<String>.unmodifiable(
          battleDeclaredOutcomes,
-       );
+       ),
+       presentationInteractionNodeIdsByMarkerId =
+           Map<String, String>.unmodifiable(
+             presentationInteractionNodeIdsByMarkerId,
+           );
 
   factory SceneRuntimePlanIntent.start() {
     return SceneRuntimePlanIntent._(kind: SceneRuntimePlanIntentKind.start);
@@ -220,10 +226,14 @@ final class SceneRuntimePlanIntent {
 
   factory SceneRuntimePlanIntent.playPresentationCinematic({
     required String presentationCinematicId,
+    String? sourceNodeId,
+    Map<String, String> interactionNodeIdsByMarkerId = const {},
   }) {
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.playPresentationCinematic,
       presentationCinematicId: presentationCinematicId,
+      sourceNodeId: sourceNodeId,
+      presentationInteractionNodeIdsByMarkerId: interactionNodeIdsByMarkerId,
     );
   }
 
@@ -247,10 +257,12 @@ final class SceneRuntimePlanIntent {
 
   factory SceneRuntimePlanIntent.requestStructuredInteraction({
     required ScenePreSessionInteractionSpec interaction,
+    String? sourceNodeId,
   }) {
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.requestStructuredInteraction,
       preSessionInteraction: interaction,
+      sourceNodeId: sourceNodeId,
     );
   }
 
@@ -271,6 +283,8 @@ final class SceneRuntimePlanIntent {
   final List<String> battleDeclaredOutcomes;
   final String? cinematicId;
   final String? presentationCinematicId;
+  final String? sourceNodeId;
+  final Map<String, String> presentationInteractionNodeIdsByMarkerId;
   final SceneConsequence? consequence;
   final SceneInteractiveCommand? interactiveCommand;
   final ScenePreSessionInteractionSpec? preSessionInteraction;
@@ -329,6 +343,11 @@ final class SceneRuntimePlanIntent {
           _listEquals(other.battleDeclaredOutcomes, battleDeclaredOutcomes) &&
           other.cinematicId == cinematicId &&
           other.presentationCinematicId == presentationCinematicId &&
+          other.sourceNodeId == sourceNodeId &&
+          _mapEquals(
+            other.presentationInteractionNodeIdsByMarkerId,
+            presentationInteractionNodeIdsByMarkerId,
+          ) &&
           other.consequence == consequence &&
           other.interactiveCommand == interactiveCommand &&
           other.preSessionInteraction == preSessionInteraction;
@@ -351,7 +370,15 @@ final class SceneRuntimePlanIntent {
         npcEntityId,
         Object.hashAll(battleDeclaredOutcomes),
         cinematicId,
-        presentationCinematicId,
+        Object.hash(
+          presentationCinematicId,
+          sourceNodeId,
+          Object.hashAllUnordered(
+            presentationInteractionNodeIdsByMarkerId.entries.map(
+              (entry) => Object.hash(entry.key, entry.value),
+            ),
+          ),
+        ),
         consequence,
         interactiveCommand,
         preSessionInteraction,
@@ -518,6 +545,15 @@ bool _listEquals<T>(List<T> a, List<T> b) {
     if (a[index] != b[index]) {
       return false;
     }
+  }
+  return true;
+}
+
+bool _mapEquals<K, V>(Map<K, V> a, Map<K, V> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (final entry in a.entries) {
+    if (!b.containsKey(entry.key) || b[entry.key] != entry.value) return false;
   }
   return true;
 }

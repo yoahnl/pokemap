@@ -152,7 +152,54 @@ final class ScenePreSessionInteractionSpec {
   final SceneSelectionConstraints? selectionConstraints;
   final ScenePreSessionResultBinding? resultBinding;
 
-  List<String> get outputPortIds => const <String>['completed'];
+  SceneInteractionRequest buildRequest({
+    required String requestId,
+    required int revision,
+  }) => switch (kind) {
+    SceneInteractionRequestKind.message => SceneInteractionRequest.message(
+      requestId: requestId,
+      revision: revision,
+      prompt: prompt,
+    ),
+    SceneInteractionRequestKind.choice => SceneInteractionRequest.choice(
+      requestId: requestId,
+      revision: revision,
+      prompt: prompt,
+      options: options,
+    ),
+    SceneInteractionRequestKind.text => SceneInteractionRequest.text(
+      requestId: requestId,
+      revision: revision,
+      prompt: prompt,
+      constraints: textConstraints,
+    ),
+    SceneInteractionRequestKind.confirmation =>
+      SceneInteractionRequest.confirmation(
+        requestId: requestId,
+        revision: revision,
+        prompt: prompt,
+      ),
+    SceneInteractionRequestKind.selection => SceneInteractionRequest.selection(
+      requestId: requestId,
+      revision: revision,
+      prompt: prompt,
+      options: options,
+      constraints: selectionConstraints,
+    ),
+  };
+
+  List<String> get outputPortIds => switch (kind) {
+    SceneInteractionRequestKind.choice => List<String>.unmodifiable(
+      options.map((option) => option.id),
+    ),
+    SceneInteractionRequestKind.confirmation => const <String>[
+      'confirmed',
+      'declined',
+    ],
+    SceneInteractionRequestKind.message ||
+    SceneInteractionRequestKind.text ||
+    SceneInteractionRequestKind.selection => const <String>['completed'],
+  };
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'kind': kind.name,

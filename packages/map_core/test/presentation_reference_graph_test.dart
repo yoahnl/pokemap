@@ -393,6 +393,33 @@ void main() {
         }),
       );
     });
+
+    test('rejects a required interaction cue without a Scene binding', () {
+      final graph = PresentationReferenceGraph.build(
+        cinematics: [_cinematic(requiredInteractionCue: true)],
+      );
+
+      expect(graph.preflight.canPublish, isFalse);
+      expect(
+        graph.diagnostics,
+        contains(
+          isA<PresentationReferenceDiagnostic>()
+              .having(
+                (diagnostic) => diagnostic.code,
+                'code',
+                PresentationReferenceDiagnosticCodes.referenceMissing,
+              )
+              .having(
+                (diagnostic) => diagnostic.target,
+                'target',
+                const PresentationReferenceKey.interactionCue(
+                  'cue.choice',
+                  presentationCinematicId: 'cinematic.opening',
+                ),
+              ),
+        ),
+      );
+    });
   });
 }
 
@@ -400,6 +427,7 @@ PresentationCinematicAsset _cinematic({
   List<String> visualResourceIds = const [],
   String? audioResourceId,
   String? captionResourceId,
+  bool requiredInteractionCue = false,
 }) {
   final tracks = <PresentationTrack>[
     if (visualResourceIds.isNotEmpty)
@@ -456,6 +484,7 @@ PresentationCinematicAsset _cinematic({
           startUs: 50000,
           label: 'Choice',
           markerKind: PresentationMarkerKind.interactionCue,
+          required: requiredInteractionCue,
         ),
       ],
     ),

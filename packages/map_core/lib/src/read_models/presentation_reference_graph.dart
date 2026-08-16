@@ -13,6 +13,7 @@ enum PresentationReferenceKind {
 
 enum PresentationReferenceRelation {
   sceneCinematic,
+  sceneInteractionCue,
   clipMedia,
   mediaSource,
   mediaPoster,
@@ -437,10 +438,23 @@ final class _PendingReferenceEdge {
   final Set<ProjectMediaKind> acceptedMediaTypes;
 }
 
+final class _RequiredInteractionCue {
+  const _RequiredInteractionCue({
+    required this.owner,
+    required this.target,
+    required this.path,
+  });
+
+  final PresentationReferenceKey owner;
+  final PresentationReferenceKey target;
+  final String path;
+}
+
 final class _PresentationReferenceGraphBuilder {
   final Map<PresentationReferenceKey, PresentationReferenceNode> _nodes = {};
   final List<_PendingReferenceEdge> _pendingEdges = [];
   final List<PresentationReferenceDiagnostic> _diagnostics = [];
+  final List<_RequiredInteractionCue> _requiredInteractionCues = [];
 
   void addCinematics(Iterable<PresentationCinematicAsset> source) {
     final cinematics = source.toList()
@@ -509,13 +523,20 @@ final class _PresentationReferenceGraphBuilder {
             case PresentationMarkerClip(
               markerKind: PresentationMarkerKind.interactionCue,
             ):
-              _define(
-                PresentationReferenceKey.interactionCue(
-                  clip.id,
-                  presentationCinematicId: cinematic.id,
-                ),
-                clip.label,
+              final key = PresentationReferenceKey.interactionCue(
+                clip.id,
+                presentationCinematicId: cinematic.id,
               );
+              _define(key, clip.label);
+              if (clip.required) {
+                _requiredInteractionCues.add(
+                  _RequiredInteractionCue(
+                    owner: owner,
+                    target: key,
+                    path: '$path.required',
+                  ),
+                );
+              }
             case PresentationMarkerClip():
               break;
           }
@@ -542,6 +563,24 @@ final class _PresentationReferenceGraphBuilder {
                 '.payload.presentationCinematicId',
             relation: PresentationReferenceRelation.sceneCinematic,
           );
+          for (
+            var index = 0;
+            index < payload.interactionCueBindings.length;
+            index++
+          ) {
+            final binding = payload.interactionCueBindings[index];
+            _reference(
+              owner: owner,
+              target: PresentationReferenceKey.interactionCue(
+                binding.markerId,
+                presentationCinematicId: payload.presentationCinematicId,
+              ),
+              path:
+                  'scenes[${scene.id}].graph.nodes[${node.id}]'
+                  '.payload.interactionCueBindings[$index].markerId',
+              relation: PresentationReferenceRelation.sceneInteractionCue,
+            );
+          }
         }
       }
     }
@@ -667,6 +706,29 @@ final class _PresentationReferenceGraphBuilder {
             ),
           );
       }
+    }
+    final linkedInteractionCues = {
+      for (final edge in edges)
+        if (edge.relation ==
+                PresentationReferenceRelation.sceneInteractionCue &&
+            edge.resolution == PresentationReferenceResolution.resolved)
+          edge.target,
+    };
+    for (final cue in _requiredInteractionCues) {
+      if (linkedInteractionCues.contains(cue.target)) continue;
+      _diagnostics.add(
+        PresentationReferenceDiagnostic(
+          code: PresentationReferenceDiagnosticCodes.referenceMissing,
+          severity: PresentationReferenceSeverity.error,
+          message:
+              'The required interaction cue is not linked to a Scene interaction.',
+          action:
+              'Link this cue to exactly one structured pre-session interaction.',
+          target: cue.target,
+          owner: cue.owner,
+          path: cue.path,
+        ),
+      );
     }
     _diagnostics.addAll(_fallbackCycleDiagnostics(edges));
     return PresentationReferenceGraph._(

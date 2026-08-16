@@ -7,41 +7,54 @@ import '../../../features/narrative/state/scene_consequence_catalog_providers.da
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_cinematic_picker.dart';
+import 'scene_pre_session_interaction_dialog.dart';
 
-typedef SceneConditionSourceDraftUpdater = Future<bool> Function({
-  required String nodeId,
-  required SceneConditionSource source,
-});
+typedef SceneConditionSourceDraftUpdater =
+    Future<bool> Function({
+      required String nodeId,
+      required SceneConditionSource source,
+    });
 
-typedef SceneEndPayloadDraftUpdater = Future<bool> Function({
-  required String nodeId,
-  String? sceneOutcomeId,
-  required SceneOutcomePolicy? outcomePolicy,
-});
+typedef SceneEndPayloadDraftUpdater =
+    Future<bool> Function({
+      required String nodeId,
+      String? sceneOutcomeId,
+      required SceneOutcomePolicy? outcomePolicy,
+    });
 
-typedef SceneYarnDialoguePayloadDraftUpdater = Future<bool> Function({
-  required String nodeId,
-  required String dialogueId,
-  String? yarnNodeName,
-  required List<String> expectedOutcomes,
-});
+typedef SceneYarnDialoguePayloadDraftUpdater =
+    Future<bool> Function({
+      required String nodeId,
+      required String dialogueId,
+      String? yarnNodeName,
+      required List<String> expectedOutcomes,
+    });
 
-typedef SceneBattlePayloadDraftUpdater = Future<bool> Function({
-  required String nodeId,
-  required String trainerId,
-  required String battleKind,
-  String? battleTemplateId,
-});
+typedef SceneBattlePayloadDraftUpdater =
+    Future<bool> Function({
+      required String nodeId,
+      required String trainerId,
+      required String battleKind,
+      String? battleTemplateId,
+    });
 
-typedef SceneCinematicPayloadDraftUpdater = Future<bool> Function({
-  required String nodeId,
-  required String cinematicId,
-});
+typedef SceneCinematicPayloadDraftUpdater =
+    Future<bool> Function({
+      required String nodeId,
+      required String cinematicId,
+    });
 
-typedef SceneActionConsequenceDraftUpdater = Future<bool> Function({
-  required String nodeId,
-  required SceneConsequence consequence,
-});
+typedef SceneActionConsequenceDraftUpdater =
+    Future<bool> Function({
+      required String nodeId,
+      required SceneConsequence consequence,
+    });
+
+typedef ScenePreSessionInteractionEditorUpdater =
+    Future<bool> Function({
+      required String nodeId,
+      required ScenePreSessionInteractionDraft draft,
+    });
 
 final class SceneConditionSourcePickerOption {
   const SceneConditionSourcePickerOption({
@@ -114,6 +127,8 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.onUpdateEndPayload,
     this.linkedAssetContracts,
     this.cinematicsLibrary,
+    this.presentationCinematics = const [],
+    this.newGameConfig = const ProjectNewGameConfig(),
     this.onUpdateYarnDialoguePayload,
     this.onOpenDialogue,
     this.onUpdateBattlePayload,
@@ -123,6 +138,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.consequenceEventOptions = const [],
     this.consequenceCatalogs = const SceneConsequenceCatalogs.unavailable(),
     this.onUpdateActionConsequence,
+    this.onUpdatePreSessionInteraction,
   });
 
   final NarrativeSceneSummary scene;
@@ -135,6 +151,8 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final SceneEndPayloadDraftUpdater? onUpdateEndPayload;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
+  final List<PresentationCinematicAsset> presentationCinematics;
+  final ProjectNewGameConfig newGameConfig;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
   final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
@@ -144,6 +162,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
   final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
+  final ScenePreSessionInteractionEditorUpdater? onUpdatePreSessionInteraction;
 
   @override
   Widget build(BuildContext context) {
@@ -169,26 +188,29 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
               onRemoveEdgeDraft: onRemoveEdgeDraft,
             )
           : node == null
-              ? const _NodeInspectorEmptyState()
-              : _NodeInspectorBody(
-                  scene: scene,
-                  node: node,
-                  onRemoveNodeDraft: onRemoveNodeDraft,
-                  conditionSourceOptions: conditionSourceOptions,
-                  onUpdateConditionSource: onUpdateConditionSource,
-                  onUpdateEndPayload: onUpdateEndPayload,
-                  linkedAssetContracts: linkedAssetContracts,
-                  cinematicsLibrary: cinematicsLibrary,
-                  onUpdateYarnDialoguePayload: onUpdateYarnDialoguePayload,
-                  onOpenDialogue: onOpenDialogue,
-                  onUpdateBattlePayload: onUpdateBattlePayload,
-                  onUpdateCinematicPayload: onUpdateCinematicPayload,
-                  onOpenCinematic: onOpenCinematic,
-                  consequenceFactOptions: consequenceFactOptions,
-                  consequenceEventOptions: consequenceEventOptions,
-                  consequenceCatalogs: consequenceCatalogs,
-                  onUpdateActionConsequence: onUpdateActionConsequence,
-                ),
+          ? const _NodeInspectorEmptyState()
+          : _NodeInspectorBody(
+              scene: scene,
+              node: node,
+              onRemoveNodeDraft: onRemoveNodeDraft,
+              conditionSourceOptions: conditionSourceOptions,
+              onUpdateConditionSource: onUpdateConditionSource,
+              onUpdateEndPayload: onUpdateEndPayload,
+              linkedAssetContracts: linkedAssetContracts,
+              cinematicsLibrary: cinematicsLibrary,
+              presentationCinematics: presentationCinematics,
+              newGameConfig: newGameConfig,
+              onUpdateYarnDialoguePayload: onUpdateYarnDialoguePayload,
+              onOpenDialogue: onOpenDialogue,
+              onUpdateBattlePayload: onUpdateBattlePayload,
+              onUpdateCinematicPayload: onUpdateCinematicPayload,
+              onOpenCinematic: onOpenCinematic,
+              consequenceFactOptions: consequenceFactOptions,
+              consequenceEventOptions: consequenceEventOptions,
+              consequenceCatalogs: consequenceCatalogs,
+              onUpdateActionConsequence: onUpdateActionConsequence,
+              onUpdatePreSessionInteraction: onUpdatePreSessionInteraction,
+            ),
     );
   }
 
@@ -285,6 +307,8 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.onUpdateEndPayload,
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
+    required this.presentationCinematics,
+    required this.newGameConfig,
     required this.onUpdateYarnDialoguePayload,
     required this.onOpenDialogue,
     required this.onUpdateBattlePayload,
@@ -294,6 +318,7 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.consequenceEventOptions,
     required this.consequenceCatalogs,
     required this.onUpdateActionConsequence,
+    required this.onUpdatePreSessionInteraction,
   });
 
   final NarrativeSceneSummary scene;
@@ -304,6 +329,8 @@ class _NodeInspectorBody extends StatelessWidget {
   final SceneEndPayloadDraftUpdater? onUpdateEndPayload;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
+  final List<PresentationCinematicAsset> presentationCinematics;
+  final ProjectNewGameConfig newGameConfig;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
   final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
@@ -313,6 +340,7 @@ class _NodeInspectorBody extends StatelessWidget {
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
   final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
+  final ScenePreSessionInteractionEditorUpdater? onUpdatePreSessionInteraction;
 
   @override
   Widget build(BuildContext context) {
@@ -390,7 +418,19 @@ class _NodeInspectorBody extends StatelessWidget {
             ),
             const SizedBox(height: 10),
           ],
-          if (node.kind == SceneNodeKind.action &&
+          if (node.payload case SceneActionPayload(
+            preSessionInteraction: final interaction?,
+          )) ...[
+            _PreSessionInteractionAuthoringPanel(
+              scene: scene,
+              node: node,
+              interaction: interaction,
+              presentationCinematics: presentationCinematics,
+              newGameConfig: newGameConfig,
+              onUpdatePayload: onUpdatePreSessionInteraction,
+            ),
+            const SizedBox(height: 10),
+          ] else if (node.kind == SceneNodeKind.action &&
               node.payload is SceneActionPayload) ...[
             _ActionConsequenceAuthoringPanel(
               node: node,
@@ -1104,6 +1144,125 @@ class _CinematicPayloadAuthoringPanel extends StatelessWidget {
     await updater(nodeId: node.id, cinematicId: selected.id);
   }
 }
+
+class _PreSessionInteractionAuthoringPanel extends StatelessWidget {
+  const _PreSessionInteractionAuthoringPanel({
+    required this.scene,
+    required this.node,
+    required this.interaction,
+    required this.presentationCinematics,
+    required this.newGameConfig,
+    required this.onUpdatePayload,
+  });
+
+  final NarrativeSceneSummary scene;
+  final SceneNode node;
+  final ScenePreSessionInteractionSpec interaction;
+  final List<PresentationCinematicAsset> presentationCinematics;
+  final ProjectNewGameConfig newGameConfig;
+  final ScenePreSessionInteractionEditorUpdater? onUpdatePayload;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentCue = _currentCueBinding();
+    return _InspectorSection(
+      title: 'Interaction pré-session',
+      children: [
+        _InspectorRow(
+          label: 'Type',
+          value: scenePreSessionInteractionKindLabel(interaction.kind),
+        ),
+        _InspectorRow(
+          label: 'Texte',
+          value:
+              interaction.prompt.fallbackText ??
+              interaction.prompt.localizationKey,
+        ),
+        _InspectorRow(
+          label: 'Résultat',
+          value: _bindingLabel(interaction.resultBinding?.field),
+        ),
+        _InspectorRow(
+          label: 'Moment',
+          value: currentCue?.label ?? 'Après le bloc précédent',
+        ),
+        const SizedBox(height: 4),
+        PokeMapButton(
+          key: const ValueKey('scene-interaction-edit-action'),
+          onPressed: onUpdatePayload == null
+              ? null
+              : () => _editInteraction(context, currentCue),
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.slider_horizontal_3),
+          child: const Text('Modifier l’interaction'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _editInteraction(
+    BuildContext context,
+    ScenePreSessionInteractionCueOption? currentCue,
+  ) async {
+    final updater = onUpdatePayload;
+    if (updater == null) return;
+    final occupied = <String>{
+      for (final candidate in scene.graph.nodes)
+        if (candidate.payload
+            case final ScenePresentationCinematicPayload payload)
+          for (final binding in payload.interactionCueBindings)
+            if (binding.interactionNodeId != node.id) binding.markerId,
+    };
+    final options = buildScenePreSessionInteractionCueOptions(
+      graph: scene.graph,
+      cinematics: presentationCinematics,
+    ).where((option) => !occupied.contains(option.markerId)).toList();
+    final draft = await showScenePreSessionInteractionEditor(
+      context: context,
+      kind: interaction.kind,
+      newGameConfig: newGameConfig,
+      cueOptions: options,
+      initialInteraction: interaction,
+      initialTitle: node.title,
+      initialCueBinding: currentCue,
+    );
+    if (draft == null || !context.mounted) return;
+    await updater(nodeId: node.id, draft: draft);
+  }
+
+  ScenePreSessionInteractionCueOption? _currentCueBinding() {
+    String? presentationNodeId;
+    String? markerId;
+    for (final candidate in scene.graph.nodes) {
+      final payload = candidate.payload;
+      if (payload is! ScenePresentationCinematicPayload) continue;
+      for (final binding in payload.interactionCueBindings) {
+        if (binding.interactionNodeId != node.id) continue;
+        presentationNodeId = candidate.id;
+        markerId = binding.markerId;
+      }
+    }
+    if (presentationNodeId == null || markerId == null) return null;
+    return buildScenePreSessionInteractionCueOptions(
+          graph: scene.graph,
+          cinematics: presentationCinematics,
+        )
+        .where(
+          (option) =>
+              option.presentationNodeId == presentationNodeId &&
+              option.markerId == markerId,
+        )
+        .firstOrNull;
+  }
+}
+
+String _bindingLabel(ScenePreSessionDraftField? field) => switch (field) {
+  null => 'Aucun champ de Nouvelle partie',
+  ScenePreSessionDraftField.playerName => 'Nom du joueur',
+  ScenePreSessionDraftField.avatarCharacterId => 'Avatar du joueur',
+  ScenePreSessionDraftField.starterOptionId => 'Starter choisi',
+};
 
 class _ActionConsequenceAuthoringPanel extends StatelessWidget {
   const _ActionConsequenceAuthoringPanel({
