@@ -343,6 +343,9 @@ final class StandalonePlayerSaveGateway implements PlayerSaveGateway {
   }
 
   @override
+  Future<void> deleteSave(SaveSlotAddress address) async {}
+
+  @override
   Future<String?> openReadHandle(SaveSlotAddress address) async {
     if (address != _address || await readEnvelope() == null) return null;
     return 'standalone-save-v1';

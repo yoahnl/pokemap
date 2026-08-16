@@ -64,6 +64,7 @@ final class RuntimePlayerCoordinator {
   PlayerSaveSummary? _latestSave;
   _RuntimeLaunchRequest? _retryLaunch;
   RuntimePlayerSnapshot? _lifecycleResumeSnapshot;
+  SaveSlotAddress? _unusableSaveAddress;
   Future<bool>? _activeSaveBoundary;
   HeadlessSceneInteractionPort? _preSessionInteractions;
   StreamSubscription<SceneInteractionRequest>? _preSessionSubscription;
@@ -135,6 +136,7 @@ final class RuntimePlayerCoordinator {
         case RuntimePlayerAction.finishCredits:
         case RuntimePlayerAction.cancel:
         case RuntimePlayerAction.resolvePreSessionInteraction:
+        case RuntimePlayerAction.deleteUnusableSave:
         case RuntimePlayerAction.returnToHost:
           break;
       }
@@ -306,6 +308,12 @@ final class RuntimePlayerCoordinator {
         final address = _address(slot);
         final save = await _saveGateway.readSummary(address);
         if (save == null || !save.canContinue) {
+          if (save != null) {
+            _unusableSaveAddress = address;
+            _publish(
+              _snapshot.next(saveRecovery: _unusableSaveRecovery),
+            );
+          }
           return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
             safeMessage: save?.safeUnavailableReason ??
@@ -313,6 +321,8 @@ final class RuntimePlayerCoordinator {
           );
         }
         return _launchSave(save, GameSessionLaunchMode.load);
+      case RuntimePlayerAction.deleteUnusableSave:
+        return _deleteUnusableSave();
       case RuntimePlayerAction.retry:
         if (_snapshot.phase == RuntimePlayerPhase.completing &&
             _sessions.snapshot.state == GameSessionState.completing) {
@@ -1351,6 +1361,8 @@ final class RuntimePlayerCoordinator {
         hasDiscoveredSave: _latestSave != null,
         continueSave: _latestSave,
         clearContinueSave: _latestSave == null,
+        saveRecovery: _titleSaveRecovery,
+        clearSaveRecovery: _titleSaveRecovery == null,
         actions: _titleActions,
       ),
     );
@@ -1466,6 +1478,10 @@ final class RuntimePlayerCoordinator {
     final unavailableReason = save?.safeUnavailableReason ??
         'No compatible save is available for this game.';
     return <RuntimePlayerActionAvailability>[
+      if (save != null && !save.canContinue)
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.deleteUnusableSave,
+        ),
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.newGame,
       ),
@@ -1657,6 +1673,39 @@ final class RuntimePlayerCoordinator {
 
   // Kept in one place so a later profile selector cannot accidentally omit
   // the stable game identity.
+  SaveLoadDiagnostic? get _titleSaveRecovery {
+    final save = _latestSave;
+    if (save == null || save.canContinue) return null;
+    _unusableSaveAddress = save.address;
+    return _unusableSaveRecovery;
+  }
+
+  static const SaveLoadDiagnostic _unusableSaveRecovery = SaveLoadDiagnostic(
+    code: SaveLoadFailureCode.unsupportedSchema,
+    recommendedActions: <SaveRecoveryAction>[
+      SaveRecoveryAction.retry,
+      SaveRecoveryAction.deleteSave,
+      SaveRecoveryAction.returnToTitle,
+    ],
+  );
+
+  Future<RuntimePlayerCommandResult> _deleteUnusableSave() async {
+    final address = _unusableSaveAddress;
+    if (address == null) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.unavailable,
+        safeMessage: 'No unusable save is selected.',
+      );
+    }
+    await _saveGateway.deleteSave(address);
+    _unusableSaveAddress = null;
+    await _loadTitleData();
+    _publish(_snapshot.next(clearSaveRecovery: true));
+    return const RuntimePlayerCommandResult(
+      status: RuntimePlayerCommandStatus.accepted,
+    );
+  }
+
   SaveSlotAddress _address(RuntimePlayerLoadSlot slot) {
     return SaveSlotAddress(
       gameId: _gameSource.identity.gameId,

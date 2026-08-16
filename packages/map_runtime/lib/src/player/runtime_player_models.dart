@@ -48,6 +48,7 @@ enum RuntimePlayerAction {
   retry,
   cancel,
   resolvePreSessionInteraction,
+  deleteUnusableSave,
 }
 
 final class RuntimePlayerSaveAddress {
@@ -203,6 +204,7 @@ final class RuntimePlayerSnapshot {
     this.continueSave,
     this.activeSaveAddress,
     this.saveReceipt,
+    this.saveRecovery,
     this.pauseMenuState = const PlayerPauseMenuState.empty(),
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> pauseDetails =
         const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
@@ -262,6 +264,7 @@ final class RuntimePlayerSnapshot {
   final PlayerSaveSummary? continueSave;
   final RuntimePlayerSaveAddress? activeSaveAddress;
   final RuntimePlayerSaveReceipt? saveReceipt;
+  final SaveLoadDiagnostic? saveRecovery;
   final PlayerPauseMenuState pauseMenuState;
   final Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
       pauseDetails;
@@ -309,6 +312,8 @@ final class RuntimePlayerSnapshot {
     RuntimePlayerSaveAddress? activeSaveAddress,
     bool clearActiveSaveAddress = false,
     RuntimePlayerSaveReceipt? saveReceipt,
+    SaveLoadDiagnostic? saveRecovery,
+    bool clearSaveRecovery = false,
     bool clearSaveReceipt = false,
     PlayerPauseMenuState? pauseMenuState,
     bool clearPauseMenuState = false,
@@ -326,6 +331,9 @@ final class RuntimePlayerSnapshot {
           ? null
           : preSessionRequest ?? this.preSessionRequest,
       actions: actions ?? this.actions,
+      saveRecovery: clearSaveRecovery
+          ? null
+          : saveRecovery ?? this.saveRecovery,
       loadingProgress:
           clearLoadingProgress ? null : loadingProgress ?? this.loadingProgress,
       result: clearResult ? null : result ?? this.result,

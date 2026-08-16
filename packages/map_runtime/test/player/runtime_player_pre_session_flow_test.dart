@@ -166,6 +166,46 @@ void main() {
     expect(harness.source.requests, isEmpty);
   });
 
+  test('a refused Continue publishes recovery actions and can delete the save',
+      () async {
+    final seed = RuntimePlayerTestHarness();
+    final existing = unusablePlayerSave(seed.source.identity);
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(latestSave: existing);
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.continueGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+
+    final recovery = harness.coordinator.snapshot.saveRecovery;
+    expect(recovery, isNotNull);
+    expect(
+      recovery!.recommendedActions,
+      contains(SaveRecoveryAction.deleteSave),
+    );
+
+    final deleted = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.deleteUnusableSave,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+
+    expect(deleted.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.saves.deletedAddresses, <SaveSlotAddress>[existing.address]);
+    expect(harness.coordinator.snapshot.saveRecovery, isNull);
+    expect(await harness.saves.readSummary(existing.address), isNull);
+  });
+
   test('confirmed overwrite keeps the old save until a checkpoint commits',
       () async {
     final seed = RuntimePlayerTestHarness();
