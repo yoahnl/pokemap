@@ -66,30 +66,34 @@ SaveStorageDiagnostic compatibilityDiagnostic(
         ),
     };
 
+enum PrimaryCorruptionOutcome {
+  backupUsable,
+  slotUnusable,
+  deferredToCompatibility,
+}
+
 SaveStorageDiagnostic primaryCorruptDiagnostic({
-  required bool recoverableFromBackup,
+  required PrimaryCorruptionOutcome outcome,
   int? expectedSaveFormat,
 }) =>
-    recoverableFromBackup
-        ? SaveStorageDiagnostic(
-            SaveStorageDiagnosticCode.primaryCorrupt,
-            'The primary save is corrupt and was quarantined.',
-            expectedSaveFormat: expectedSaveFormat,
-            recommendedActions: const <SaveRecoveryAction>[
-              SaveRecoveryAction.restoreBackup,
-              SaveRecoveryAction.returnToTitle,
-            ],
-          )
-        : SaveStorageDiagnostic(
-            SaveStorageDiagnosticCode.primaryCorrupt,
-            'The primary save is corrupt and was quarantined.',
-            expectedSaveFormat: expectedSaveFormat,
-            recommendedActions: const <SaveRecoveryAction>[
-              SaveRecoveryAction.retry,
-              SaveRecoveryAction.deleteSave,
-              SaveRecoveryAction.returnToTitle,
-            ],
-          );
+    SaveStorageDiagnostic(
+      SaveStorageDiagnosticCode.primaryCorrupt,
+      'The primary save is corrupt and was quarantined.',
+      expectedSaveFormat: expectedSaveFormat,
+      recommendedActions: switch (outcome) {
+        PrimaryCorruptionOutcome.backupUsable => const <SaveRecoveryAction>[
+            SaveRecoveryAction.restoreBackup,
+            SaveRecoveryAction.returnToTitle,
+          ],
+        PrimaryCorruptionOutcome.slotUnusable => const <SaveRecoveryAction>[
+            SaveRecoveryAction.retry,
+            SaveRecoveryAction.deleteSave,
+            SaveRecoveryAction.returnToTitle,
+          ],
+        PrimaryCorruptionOutcome.deferredToCompatibility =>
+          const <SaveRecoveryAction>[SaveRecoveryAction.returnToTitle],
+      },
+    );
 
 SaveStorageDiagnostic backupUsedDiagnostic({
   int? detectedSaveFormat,

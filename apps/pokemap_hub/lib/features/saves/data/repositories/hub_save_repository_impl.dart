@@ -672,7 +672,7 @@ final class HubSaveStore
               <SaveStorageDiagnostic>[
                 if (primaryCorrupt)
                   primaryCorruptDiagnostic(
-                    recoverableFromBackup: true,
+                    outcome: PrimaryCorruptionOutcome.backupUsable,
                     expectedSaveFormat: identity.saveFormat,
                   ),
                 if (recovered)
@@ -701,7 +701,7 @@ final class HubSaveStore
               <SaveStorageDiagnostic>[
                 if (primaryCorrupt)
                   primaryCorruptDiagnostic(
-                    recoverableFromBackup: true,
+                    outcome: PrimaryCorruptionOutcome.deferredToCompatibility,
                     expectedSaveFormat: identity.saveFormat,
                   ),
                 compatibilityDiagnostic(
@@ -723,7 +723,7 @@ final class HubSaveStore
         <SaveStorageDiagnostic>[
           if (primaryCorrupt)
             primaryCorruptDiagnostic(
-              recoverableFromBackup: false,
+              outcome: PrimaryCorruptionOutcome.slotUnusable,
               expectedSaveFormat: identity.saveFormat,
             )
           else

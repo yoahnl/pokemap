@@ -110,6 +110,30 @@ void main() {
     expect(await target.exists(), isTrue);
   });
 
+  test('a corrupt primary with an unusable backup never offers restoration',
+      () async {
+    final store = HubSaveStore(supportRoot: root, identity: identity);
+    await store.write(_envelope(identity, marker: 'old', revision: 1));
+    await store.write(_envelope(identity, marker: 'new', revision: 2));
+    await _tamperChecksum(File(p.join(_slotPath(root), 'save.json')));
+    final newerGame = HubSaveStore(
+      supportRoot: root,
+      identity: _identity(saveFormat: 2),
+    );
+
+    final read = await newerGame.read(address);
+
+    expect(read.status, SaveSlotReadStatus.incompatible);
+    final corrupt = read.diagnostics.firstWhere(
+      (d) => d.code == SaveStorageDiagnosticCode.primaryCorrupt,
+    );
+    expect(
+      corrupt.recommendedActions,
+      isNot(contains(SaveRecoveryAction.restoreBackup)),
+      reason: 'the surviving backup cannot be loaded by this build',
+    );
+  });
+
   test('a missing migration chain reports detected and expected formats',
       () async {
     final store = HubSaveStore(supportRoot: root, identity: identity);
