@@ -235,17 +235,6 @@ void _appendPublicationInvariants({
       ),
     );
   }
-  if (newGame.enabled && !hasInitialParty && !hasStarterOptions) {
-    target.add(
-      _diagnostic(
-        code: 'exportPlayablePartyUnavailable',
-        message: 'Nouvelle Partie ne fournit ni équipe initiale ni choix de '
-            'starter : le joueur ne peut pas commencer à jouer.',
-        path: 'newGame.initialParty',
-        suggestedFixLabel: 'Ajouter une équipe initiale ou un starter.',
-      ),
-    );
-  }
   final preSessionSceneId = newGame.preSessionSceneId?.trim();
   final preSessionScene = preSessionSceneId == null
       ? null

@@ -336,7 +336,7 @@ void main() {
     });
 
     test(
-      'rejects a new game without an initial party or starter path',
+      'exports a new game without an initial party or starter path',
       () async {
         final root = await createAuthorProject(withDialogue: false);
         addTearDown(() => root.delete(recursive: true));
@@ -350,9 +350,14 @@ void main() {
         newGame.remove('preSessionSceneId');
         await projectFile.writeAsString(jsonEncode(project), flush: true);
 
-        await _expectReadinessFailure(
-          root,
-          diagnosticCode: 'exportPlayablePartyUnavailable',
+        final artifact = await const GamePackageExportService().build(
+          projectRoot: root,
+          profile: neutralExportProfile(),
+        );
+
+        expect(
+          artifact.inspection.payloadPaths,
+          contains('project/project.json'),
         );
       },
     );
