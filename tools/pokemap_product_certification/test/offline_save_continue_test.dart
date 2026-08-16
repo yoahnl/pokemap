@@ -59,7 +59,6 @@ void main() {
           saves: store,
           mountGame: (_) async => mountCount++,
           unmountGame: (_) async => unmountCount++,
-          saveIdFactory: () => '123e4567-e89b-42d3-a456-426614174000',
           now: () => DateTime.utc(2026, 7, 25, 12),
         ).call(newGame);
         await firstAdapter.prepare(newGame);
@@ -154,4 +153,11 @@ GameSessionDescriptor _descriptor(
   grantedCapabilities: launch.grantedCapabilities,
   locale: 'en',
   accessibility: const GameSessionAccessibilityOptions(),
+  initialGameState: mode == GameSessionLaunchMode.newGame
+      ? const GameState(
+          saveId: '123e4567-e89b-42d3-a456-426614174000',
+          currentMapId: NeutralCertificationGameFixture.fixedMapId,
+          trainerProfile: TrainerProfile(name: 'Ari'),
+        )
+      : null,
 );

@@ -118,11 +118,7 @@ final class NeutralCertificationGameFixture {
       File(p.join(root.path, 'maps', 'clockwork_harbor.json')),
       map.toJson(),
     );
-    await SeedPokemonDemoDataUseCase(
-      snapshotController: FilePokemonReadRepository(),
-    ).execute(
-      ProjectFileSystem(root.path),
-    );
+    await _writePokemonCatalogsWithMinimalMedia(root);
     await File(
       p.join(root.path, 'LICENSE.txt'),
     ).writeAsString('PokeMap neutral certification fixture.', flush: true);
@@ -185,6 +181,39 @@ final class NeutralCertificationGameFixture {
     profile: exportProfile,
     outputFile: outputFile,
   );
+
+  Future<void> _writePokemonCatalogsWithMinimalMedia(Directory root) async {
+    await SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(),
+    ).execute(ProjectFileSystem(root.path));
+    final imageBytes = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk'
+      '+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    );
+    for (final speciesId in const <String>['bulbasaur', 'ivysaur']) {
+      final frontPath = 'assets/pokemon/sprites/$speciesId/front.png';
+      final backPath = 'assets/pokemon/sprites/$speciesId/back.png';
+      await _writeJson(
+        File(p.join(root.path, 'data', 'pokemon', 'media', '$speciesId.json')),
+        <String, Object?>{
+          'schemaVersion': currentPokemonDataSchemaVersion,
+          'speciesId': speciesId,
+          'defaultFormId': 'base',
+          'variants': <String, Object?>{
+            'base': <String, Object?>{
+              'frontStatic': frontPath,
+              'backStatic': backPath,
+            },
+          },
+        },
+      );
+      for (final relativePath in <String>[frontPath, backPath]) {
+        final file = File(p.join(root.path, relativePath));
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(imageBytes, flush: true);
+      }
+    }
+  }
 }
 
 final NarrativeEventRegistry _eventRegistry = NarrativeEventRegistry(
@@ -264,13 +293,15 @@ Map<String, Object?> _speciesFromTemplate(
   int index,
 ) {
   final species = jsonDecode(jsonEncode(template)) as Map<String, dynamic>;
-  species['id'] = 'clockling_$index';
+  final speciesId = 'clockling_$index';
+  species['id'] = speciesId;
   species['slug'] = 'clockling-$index';
   species['nationalDex'] = index + 1;
   species['names'] = <String, String>{
     'en': 'Clockling $index',
     'fr': 'Horlogre $index',
   };
+  (species['forms']! as Map<String, dynamic>)['baseFormId'] = speciesId;
   return species;
 }
 

@@ -134,6 +134,8 @@ void main() {
       const SaveEnvelopeCodec().encode(future),
       flush: true,
     );
+    final save = File(p.join(_slotPath(root), 'save.json'));
+    final before = await save.readAsBytes();
 
     final read = await olderStore.read(address);
 
@@ -142,6 +144,7 @@ void main() {
       read.diagnostics.single.code,
       SaveStorageDiagnosticCode.saveFormatFuture,
     );
+    expect(await save.readAsBytes(), before);
   });
 }
 

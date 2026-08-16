@@ -142,6 +142,7 @@ void main() {
     final primary = File(
       '${supportRoot.path}/saves/${identity.gameId}/player-1/slot-1/save.json',
     );
+    final previousBytes = await primary.readAsBytes();
     final hostileStore = HubSaveStore(
       supportRoot: supportRoot,
       identity: identity,
@@ -173,6 +174,7 @@ void main() {
     final recovered = await store.read(activeAddress(identity));
     expect(recovered.status, SaveSlotReadStatus.valid);
     expect(recovered.envelope?.updatedAt, previousAt);
+    expect(await primary.readAsBytes(), previousBytes);
     },
   );
 }
