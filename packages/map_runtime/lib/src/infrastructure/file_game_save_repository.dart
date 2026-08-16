@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../domain/repositories/game_save_repository.dart';
 import '../application/narrative_runtime_activity_gate.dart';
 import 'game_save_codec_executor.dart';
+import 'game_save_load_diagnostics.dart';
 
 /// Implémentation fichier de [GameSaveRepository].
 ///
@@ -106,7 +107,10 @@ class FileGameSaveRepository implements GameSaveRepository {
             return state;
           } catch (e, st) {
             debugPrint('[load] failed: $e\n$st');
-            throw GameSaveException('Failed to load game: $e');
+            throw GameSaveException(
+              'Failed to load game.',
+              diagnostic: describeGameSaveLoadFailure(e),
+            );
           }
         },
       );

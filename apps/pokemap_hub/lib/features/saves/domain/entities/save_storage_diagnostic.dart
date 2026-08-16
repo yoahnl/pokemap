@@ -31,14 +31,6 @@ enum SaveStorageDiagnosticCode {
   missing,
 }
 
-enum SaveRecoveryAction {
-  retry,
-  restoreBackup,
-  migrate,
-  deleteSave,
-  returnToTitle,
-}
-
 final class SaveStorageDiagnostic {
   const SaveStorageDiagnostic(
     this.code,

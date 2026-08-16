@@ -10821,7 +10821,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // 1. Lire puis migrer la sauvegarde sans toucher au runtime courant.
     GameState? rawLoadedState;
     try {
-      rawLoadedState = await _loadGameUseCase.executeOrThrow();
+      rawLoadedState = await _loadGameUseCase.execute();
     } on GameSaveException catch (error, stackTrace) {
       debugPrint('[load] save is unreadable: $error\n$stackTrace');
       _showNotification(
