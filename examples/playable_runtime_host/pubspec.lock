@@ -701,7 +701,7 @@ packages:
       path: "../../packages/map_editor"
       relative: true
     source: path
-    version: "0.3.4+304"
+    version: "0.3.5+305"
   map_gameplay:
     dependency: "direct main"
     description:

@@ -5,36 +5,86 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_hub/core/config/public_product_identity.dart';
 
 void main() {
-  test('mobile support claims are explicit and match committed runners',
-      () async {
-    final support = jsonDecode(
-      await File('tool/release/platform_support.json').readAsString(),
-    ) as Map<String, Object?>;
-    final platforms = support['platforms'] as Map<String, Object?>;
-    final ios = platforms['ios'] as Map<String, Object?>;
-    final android = platforms['android'] as Map<String, Object?>;
+  test(
+    'mobile support claims are explicit and match committed runners',
+    () async {
+      final support =
+          jsonDecode(
+                await File('tool/release/platform_support.json').readAsString(),
+              )
+              as Map<String, Object?>;
+      final platforms = support['platforms'] as Map<String, Object?>;
+      final ios = platforms['ios'] as Map<String, Object?>;
+      final android = platforms['android'] as Map<String, Object?>;
 
-    expect(ios['status'], 'xcode-cloud-target');
-    expect(ios['releaseGate'], 'xcode-cloud');
-    expect(ios['deviceDistribution'], 'xcode-cloud');
-    expect(android['status'], 'build-target');
-    expect(android['releaseGate'], 'release-apk-build');
-    expect(android['deviceDistribution'], 'github-release');
-    expect(Directory('ios').existsSync(), isTrue);
-    expect(Directory('android').existsSync(), isTrue);
+      expect(ios['status'], 'xcode-cloud-target');
+      expect(ios['releaseGate'], 'xcode-cloud');
+      expect(ios['deviceDistribution'], 'xcode-cloud');
+      expect(android['status'], 'build-target');
+      expect(android['releaseGate'], 'release-apk-build');
+      expect(android['deviceDistribution'], 'github-release');
+      expect(Directory('ios').existsSync(), isTrue);
+      expect(Directory('android').existsSync(), isTrue);
+    },
+  );
+
+  test(
+    'iOS native plugins are linked only through Swift Package Manager',
+    () async {
+      final pubspec = await File('pubspec.yaml').readAsString();
+      final xcodeProject =
+          await File('ios/Runner.xcodeproj/project.pbxproj').readAsString();
+
+      expect(pubspec, contains('enable-swift-package-manager: true'));
+      expect(
+        xcodeProject,
+        contains('FlutterGeneratedPluginSwiftPackage in Frameworks'),
+      );
+      expect(xcodeProject, contains('isa = XCLocalSwiftPackageReference;'));
+      expect(xcodeProject, contains('packageProductDependencies'));
+      expect(
+        xcodeProject,
+        isNot(contains('IPHONEOS_DEPLOYMENT_TARGET = 13.0')),
+      );
+      expect(xcodeProject, contains('IPHONEOS_DEPLOYMENT_TARGET = 15.0'));
+      expect(
+        await File('ios/Flutter/AppFrameworkInfo.plist').readAsString(),
+        contains('<string>15.0</string>'),
+      );
+      expect(File('ios/Podfile').existsSync(), isFalse);
+      expect(File('ios/Podfile.lock').existsSync(), isFalse);
+      expect(Directory('ios/Pods').existsSync(), isFalse);
+
+      for (final path in <String>[
+        'ios/.gitignore',
+        'ios/Flutter/Debug.xcconfig',
+        'ios/Flutter/Release.xcconfig',
+        'ios/Runner.xcodeproj/project.pbxproj',
+        'ios/Runner.xcworkspace/contents.xcworkspacedata',
+      ]) {
+        final contents = await File(path).readAsString();
+        expect(contents, isNot(contains('Pods')), reason: path);
+        expect(contents, isNot(contains('CocoaPods')), reason: path);
+        expect(contents, isNot(contains('.podspec')), reason: path);
+      }
+    },
+  );
+
+  test('native mobile codec smoke has a wireless-device driver', () {
+    expect(
+      File('test_driver/native_codec_playback_driver.dart').existsSync(),
+      isTrue,
+    );
   });
 
   test('iOS identity and public product branding belong to Avelune', () async {
-    final project = await File(
-      'ios/Runner.xcodeproj/project.pbxproj',
-    ).readAsString();
+    final project =
+        await File('ios/Runner.xcodeproj/project.pbxproj').readAsString();
     final info = await File('ios/Runner/Info.plist').readAsString();
 
     expect(
       project,
-      contains(
-        'PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.avelune.player;',
-      ),
+      contains('PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.avelune.player;'),
     );
     expect(project, contains('INFOPLIST_KEY_CFBundleDisplayName = Avelune;'));
     expect(project, isNot(contains('PRODUCT_BUNDLE_IDENTIFIER = app.pokemap')));
@@ -49,12 +99,14 @@ void main() {
     final gradle = await File('android/app/build.gradle.kts').readAsString();
     final manifest =
         await File('android/app/src/main/AndroidManifest.xml').readAsString();
-    final activity = await File(
-      'android/app/src/main/kotlin/com/yoahnl/avelune/player/MainActivity.kt',
-    ).readAsString();
-    final productIdentity = await File(
-      'lib/core/config/public_product_identity.dart',
-    ).readAsString();
+    final activity =
+        await File(
+          'android/app/src/main/kotlin/com/yoahnl/avelune/player/MainActivity.kt',
+        ).readAsString();
+    final productIdentity =
+        await File(
+          'lib/core/config/public_product_identity.dart',
+        ).readAsString();
 
     expect(gradle, contains('namespace = "com.yoahnl.avelune.player"'));
     expect(gradle, contains('applicationId = "com.yoahnl.avelune.player"'));
@@ -80,32 +132,32 @@ void main() {
     expect(productIdentity, contains("=> 'Avelune'"));
   });
 
-  test('Android streams selected packages into the application cache',
-      () async {
-    final activity = await File(
-      'android/app/src/main/kotlin/com/yoahnl/avelune/player/MainActivity.kt',
-    ).readAsString();
-    final adapter = await File(
-      'lib/platform/android_hub_platform_adapter.dart',
-    ).readAsString();
+  test('Android streams selected packages into the application cache', () async {
+    final activity =
+        await File(
+          'android/app/src/main/kotlin/com/yoahnl/avelune/player/MainActivity.kt',
+        ).readAsString();
+    final adapter =
+        await File(
+          'lib/platform/android_hub_platform_adapter.dart',
+        ).readAsString();
 
     expect(activity, contains('Intent.ACTION_OPEN_DOCUMENT'));
-    expect(
-      activity,
-      contains('input.copyTo(output, bufferSize = 64 * 1024)'),
-    );
+    expect(activity, contains('input.copyTo(output, bufferSize = 64 * 1024)'));
     expect(activity, isNot(contains('readBytes')));
     expect(adapter, contains("invokeMethod<String>('pickPackage')"));
     expect(adapter, isNot(contains('openFile(')));
   });
 
   test('GitHub delegates iOS to Xcode Cloud and releases Android', () async {
-    final hubWorkflow = await File(
-      '../../.github/workflows/pokemap_hub_product_certification.yml',
-    ).readAsString();
-    final androidWorkflow = await File(
-      '../../.github/workflows/avelune_android_release.yml',
-    ).readAsString();
+    final hubWorkflow =
+        await File(
+          '../../.github/workflows/pokemap_hub_product_certification.yml',
+        ).readAsString();
+    final androidWorkflow =
+        await File(
+          '../../.github/workflows/avelune_android_release.yml',
+        ).readAsString();
 
     expect(hubWorkflow, isNot(contains('ios-simulator-certification:')));
     expect(hubWorkflow, isNot(contains('flutter build ios')));
@@ -115,7 +167,9 @@ void main() {
     expect(androidWorkflow, contains('flutter build apk --release'));
     expect(androidWorkflow, contains('AVELUNE_ANDROID_KEYSTORE_BASE64'));
     expect(
-        androidWorkflow, contains('AVELUNE_REQUIRE_RELEASE_SIGNING: "true"'));
+      androidWorkflow,
+      contains('AVELUNE_REQUIRE_RELEASE_SIGNING: "true"'),
+    );
     expect(androidWorkflow, contains('Validate Avelune release version'));
     expect(
       androidWorkflow,
@@ -130,17 +184,15 @@ void main() {
       isNot(contains(r'test "${{ inputs.confirmation }}" = RELEASE')),
     );
     expect(androidWorkflow, contains('Avelune-android-'));
-    expect(
-      androidWorkflow,
-      contains(r'gh release create "$RELEASE_TAG"'),
-    );
+    expect(androidWorkflow, contains(r'gh release create "$RELEASE_TAG"'));
     expect(androidWorkflow, isNot(contains('PokeMap-android')));
   });
 
   test('GitHub publishes signed Android bundles to Play internal', () async {
-    final androidWorkflow = await File(
-      '../../.github/workflows/avelune_android_release.yml',
-    ).readAsString();
+    final androidWorkflow =
+        await File(
+          '../../.github/workflows/avelune_android_release.yml',
+        ).readAsString();
 
     expect(androidWorkflow, contains('flutter build appbundle --release'));
     expect(androidWorkflow, contains('publish-play-internal:'));
