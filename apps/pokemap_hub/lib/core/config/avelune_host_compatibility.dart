@@ -12,7 +12,7 @@ GamePackageHostCompatibility aveluneHostCompatibility() =>
         'overworld.menu@1',
         'world.shop@1',
       },
-      supportedProjectFormats: <String>{ProjectVersion.v6.name},
-      currentProjectFormat: ProjectVersion.v6.name,
+      supportedProjectFormats: <String>{ProjectVersion.v7.name},
+      currentProjectFormat: ProjectVersion.v7.name,
       supportedSaveFormats: const <int>{1},
     );
