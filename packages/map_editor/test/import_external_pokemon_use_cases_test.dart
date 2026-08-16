@@ -91,7 +91,7 @@ void main() {
         'https://assets.example.test/bulbasaur/cry.ogg':
             PokemonExternalBinaryAsset(
           sourceUrl: 'https://assets.example.test/bulbasaur/cry.ogg',
-          bytes: Uint8List.fromList(<int>[21, 22, 23, 24]),
+          bytes: Uint8List.fromList(<int>[0x4f, 0x67, 0x67, 0x53]),
           contentType: 'audio/ogg',
         ),
       },
@@ -905,6 +905,44 @@ void main() {
       expect(await projectFile.readAsString(), beforeProjectJson);
     });
 
+    test('persists a downloaded MP3 cry with its detected extension', () async {
+      externalSourceRepository.binaryAssets[
+              'https://assets.example.test/bulbasaur/cry.ogg'] =
+          PokemonExternalBinaryAsset(
+        sourceUrl: 'https://assets.example.test/bulbasaur/cry.ogg',
+        bytes: Uint8List.fromList(<int>[0xff, 0xfb, 0x94, 0xc4]),
+        contentType: 'audio/ogg',
+      );
+
+      final result = await singleUseCase.execute(
+        workspace,
+        speciesId: 'bulbasaur',
+      );
+
+      final media = await readRepository.readMediaById(workspace, 'bulbasaur');
+      final cry = media.variants['base']?.cry;
+
+      expect(cry, 'assets/pokemon/cries/bulbasaur.mp3');
+      expect(
+        result.downloadedAssets
+            .singleWhere((asset) => asset.label == 'Cri')
+            .relativePath,
+        cry,
+      );
+      expect(
+        await File(workspace.resolveProjectRelativePath(cry!)).readAsBytes(),
+        <int>[0xff, 0xfb, 0x94, 0xc4],
+      );
+      expect(
+        await File(
+          workspace.resolveProjectRelativePath(
+            'assets/pokemon/cries/bulbasaur.ogg',
+          ),
+        ).exists(),
+        isFalse,
+      );
+    });
+
     test('refuses GIF assets without persisting a ghost media ref', () async {
       final beforeProjectJson = await projectFile.readAsString();
       final payload =
@@ -1447,7 +1485,6 @@ const String _bulbasaurShowdownPayload = '''
   "weightkg": 6.9
 }
 ''';
-
 const String _bulbasaurPokemonSpeciesPayload = '''
 {
   "name": "bulbasaur",

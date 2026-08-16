@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:map_distribution/map_distribution.dart';
+
 import '../contracts/artifact_ref.dart';
 import 'project_file_reader.dart';
 
@@ -413,11 +415,8 @@ String sniffArtifactMediaType(List<int> bytes) {
       String.fromCharCodes(bytes.sublist(8, 12)) == 'WEBP') {
     return 'image/webp';
   }
-  if (_startsWith(bytes, const [0x4f, 0x67, 0x67, 0x53])) return 'audio/ogg';
-  if (_startsWith(bytes, const [0x49, 0x44, 0x33]) ||
-      (bytes.length >= 2 && bytes[0] == 0xff && (bytes[1] & 0xe0) == 0xe0)) {
-    return 'audio/mpeg';
-  }
+  final audioFormat = detectAudioMediaFormat(bytes);
+  if (audioFormat != null) return audioFormat.mediaType;
   if (_startsWith(bytes, const [0x00, 0x01, 0x00, 0x00]) ||
       _startsWith(bytes, const [0x4f, 0x54, 0x54, 0x4f])) {
     return 'font/ttf';

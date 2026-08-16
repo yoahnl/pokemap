@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../errors/application_errors.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import '../ports/pokemon_external_source_repository.dart';
 import '../ports/pokemon_write_repository.dart';
 import '../ports/project_workspace.dart';
@@ -561,6 +562,7 @@ class ImportExternalPokemonSpeciesUseCase {
       final resolvedMedia = await _resolvePersistedMediaFromDisk(
         workspace,
         media,
+        downloadedAssets: assetBatch.results,
       );
 
       if (mediaPlan.action == PokemonExternalImportArtifactAction.create ||
@@ -1007,6 +1009,9 @@ class ImportExternalPokemonSpeciesUseCase {
       final absolutePath =
           workspace.resolveProjectRelativePath(candidate.relativePath);
       final existedBefore = await workspace.fileExists(absolutePath);
+      var resolvedRelativePath = candidate.relativePath;
+      var resolvedAbsolutePath = absolutePath;
+      var resolvedExistedBefore = existedBefore;
       final sourceUrl = candidate.sourceUrl?.trim();
       if (sourceUrl == null || sourceUrl.isEmpty) {
         final localExistsAfter = await workspace.fileExists(absolutePath);
@@ -1124,12 +1129,44 @@ class ImportExternalPokemonSpeciesUseCase {
           continue;
         }
 
+        if (candidate.label == 'Cri') {
+          final format = detectAudioMediaFormat(asset.bytes)!;
+          resolvedRelativePath = _replaceFileExtension(
+            candidate.relativePath,
+            format.extension,
+          );
+          resolvedAbsolutePath =
+              workspace.resolveProjectRelativePath(resolvedRelativePath);
+          resolvedExistedBefore =
+              await workspace.fileExists(resolvedAbsolutePath);
+          if (resolvedExistedBefore &&
+              mergePolicy !=
+                  PokemonExternalImportMergePolicy.overwriteExisting) {
+            final message =
+                '${candidate.label} left untouched because the detected-format local asset already exists.';
+            results.add(
+              PokemonExternalAssetDownloadResult(
+                label: candidate.label,
+                relativePath: resolvedRelativePath,
+                sourceUrl: sourceUrl,
+                wasWritten: false,
+                existedBefore: true,
+                contentType: asset.contentType,
+                message: message,
+              ),
+            );
+            warnings.add(message);
+            continue;
+          }
+        }
+
         await writeRepository.saveBinaryAsset(
           workspace,
-          relativePath: candidate.relativePath,
+          relativePath: resolvedRelativePath,
           bytes: asset.bytes,
         );
-        final existsAfterWrite = await workspace.fileExists(absolutePath);
+        final existsAfterWrite =
+            await workspace.fileExists(resolvedAbsolutePath);
         if (!existsAfterWrite) {
           final message =
               '${candidate.label} download completed but no local file was found afterwards; the media ref will be omitted.';
@@ -1137,10 +1174,10 @@ class ImportExternalPokemonSpeciesUseCase {
           results.add(
             PokemonExternalAssetDownloadResult(
               label: candidate.label,
-              relativePath: candidate.relativePath,
+              relativePath: resolvedRelativePath,
               sourceUrl: sourceUrl,
               wasWritten: false,
-              existedBefore: existedBefore,
+              existedBefore: resolvedExistedBefore,
               contentType: asset.contentType,
               message: message,
             ),
@@ -1150,15 +1187,16 @@ class ImportExternalPokemonSpeciesUseCase {
         results.add(
           PokemonExternalAssetDownloadResult(
             label: candidate.label,
-            relativePath: candidate.relativePath,
+            relativePath: resolvedRelativePath,
             sourceUrl: sourceUrl,
             wasWritten: true,
-            existedBefore: existedBefore,
+            existedBefore: resolvedExistedBefore,
             contentType: asset.contentType,
           ),
         );
       } on EditorApplicationException catch (error) {
-        final localExistsAfter = await workspace.fileExists(absolutePath);
+        final localExistsAfter =
+            await workspace.fileExists(resolvedAbsolutePath);
         final message = localExistsAfter
             ? '${candidate.label} download failed: ${error.message}. The existing local asset was kept.'
             : '${candidate.label} download failed: ${error.message}. No local asset exists; the media ref will be omitted.';
@@ -1166,15 +1204,16 @@ class ImportExternalPokemonSpeciesUseCase {
         results.add(
           PokemonExternalAssetDownloadResult(
             label: candidate.label,
-            relativePath: candidate.relativePath,
+            relativePath: resolvedRelativePath,
             sourceUrl: sourceUrl,
             wasWritten: false,
-            existedBefore: existedBefore,
+            existedBefore: resolvedExistedBefore,
             message: message,
           ),
         );
       } catch (error) {
-        final localExistsAfter = await workspace.fileExists(absolutePath);
+        final localExistsAfter =
+            await workspace.fileExists(resolvedAbsolutePath);
         final message = localExistsAfter
             ? '${candidate.label} download failed: $error. The existing local asset was kept.'
             : '${candidate.label} download failed: $error. No local asset exists; the media ref will be omitted.';
@@ -1182,10 +1221,10 @@ class ImportExternalPokemonSpeciesUseCase {
         results.add(
           PokemonExternalAssetDownloadResult(
             label: candidate.label,
-            relativePath: candidate.relativePath,
+            relativePath: resolvedRelativePath,
             sourceUrl: sourceUrl,
             wasWritten: false,
-            existedBefore: existedBefore,
+            existedBefore: resolvedExistedBefore,
             message: message,
           ),
         );
@@ -1256,14 +1295,25 @@ class ImportExternalPokemonSpeciesUseCase {
   //   éviter des refs fantômes de sheets.
   Future<PokemonMediaFile> _resolvePersistedMediaFromDisk(
     ProjectWorkspace workspace,
-    PokemonMediaFile plannedMedia,
-  ) async {
+    PokemonMediaFile plannedMedia, {
+    required List<PokemonExternalAssetDownloadResult> downloadedAssets,
+  }) async {
+    final downloadedCryPath = downloadedAssets
+        .where(
+          (asset) =>
+              asset.label == 'Cri' && (asset.wasWritten || asset.existedBefore),
+        )
+        .map((asset) => asset.relativePath)
+        .firstOrNull;
     final resolvedVariants = <String, PokemonMediaVariant>{};
 
     for (final entry in plannedMedia.variants.entries) {
       resolvedVariants[entry.key] = await _resolvePersistedMediaVariantFromDisk(
         workspace,
         entry.value,
+        cryPath: entry.key == plannedMedia.defaultFormId
+            ? downloadedCryPath
+            : null,
       );
     }
 
@@ -1276,8 +1326,9 @@ class ImportExternalPokemonSpeciesUseCase {
 
   Future<PokemonMediaVariant> _resolvePersistedMediaVariantFromDisk(
     ProjectWorkspace workspace,
-    PokemonMediaVariant plannedVariant,
-  ) async {
+    PokemonMediaVariant plannedVariant, {
+    String? cryPath,
+  }) async {
     return PokemonMediaVariant(
       frontStatic: await _resolveGuaranteedLocalAssetPath(
         workspace,
@@ -1313,7 +1364,7 @@ class ImportExternalPokemonSpeciesUseCase {
       ),
       cry: await _resolveGuaranteedLocalAssetPath(
         workspace,
-        plannedVariant.cry,
+        cryPath ?? plannedVariant.cry,
       ),
       animations: await _resolvePersistedAnimationsFromDisk(
         workspace,
@@ -1397,16 +1448,6 @@ class ImportExternalPokemonSpeciesUseCase {
     return true;
   }
 
-  bool _looksLikeOggBytes(List<int> bytes) {
-    if (bytes.length < 4) {
-      return false;
-    }
-    return bytes[0] == 0x4F &&
-        bytes[1] == 0x67 &&
-        bytes[2] == 0x67 &&
-        bytes[3] == 0x53;
-  }
-
   bool _isGifContentType(String? contentType) {
     final normalized = contentType?.trim().toLowerCase();
     if (normalized == null || normalized.isEmpty) {
@@ -1419,24 +1460,21 @@ class ImportExternalPokemonSpeciesUseCase {
     _PokemonExternalAssetCandidate candidate,
     PokemonExternalBinaryAsset asset,
   ) {
+    if (candidate.label == 'Cri') {
+      return detectAudioMediaFormat(asset.bytes) != null;
+    }
     final normalized = asset.contentType?.trim().toLowerCase();
     if (normalized == null || normalized.isEmpty) {
-      // On n'accepte plus silencieusement un binaire "sans identité".
-      // Quand le serveur oublie le `content-type`, on exige au minimum une
-      // signature binaire compatible avec le format attendu :
-      // - PNG pour les images ;
-      // - OGG pour les cries.
-      return candidate.label == 'Cri'
-          ? _looksLikeOggBytes(asset.bytes)
-          : _looksLikePngBytes(asset.bytes);
+      return _looksLikePngBytes(asset.bytes);
     }
-
-    if (candidate.label == 'Cri') {
-      return normalized.contains('audio/ogg') ||
-          normalized.contains('application/ogg');
-    }
-
     return normalized.contains('image/png');
+  }
+
+  String _replaceFileExtension(String path, String extension) {
+    final separator = path.lastIndexOf('/');
+    final dot = path.lastIndexOf('.');
+    final stem = dot > separator ? path.substring(0, dot) : path;
+    return '$stem$extension';
   }
 }
 

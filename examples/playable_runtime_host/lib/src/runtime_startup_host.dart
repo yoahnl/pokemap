@@ -592,6 +592,9 @@ String? _mediaTypeFor(String path) => switch (p.extension(path).toLowerCase()) {
   '.m4a' => 'audio/mp4',
   '.mp3' => 'audio/mpeg',
   '.ogg' => 'audio/ogg',
+  '.wav' => 'audio/wav',
+  '.flac' => 'audio/flac',
+  '.aac' => 'audio/aac',
   '.vtt' => 'text/vtt',
   _ => null,
 };

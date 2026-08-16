@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 
+import 'audio_media_format.dart';
 import 'game_package_format_exception.dart';
 import 'game_package_manifest.dart';
 import 'game_package_security_policy.dart';
@@ -277,13 +278,11 @@ final class GamePackageContentValidator {
   }
 
   bool _matchesMediaMagic(String extension, Uint8List bytes) {
+    final audioFormat = audioMediaFormatForExtension(extension);
+    if (audioFormat != null) {
+      return detectAudioMediaFormat(bytes) == audioFormat;
+    }
     return switch (extension) {
-      '.ogg' => _asciiAt(bytes, 0, 'OggS'),
-      '.wav' => _asciiAt(bytes, 0, 'RIFF') && _asciiAt(bytes, 8, 'WAVE'),
-      '.flac' => _asciiAt(bytes, 0, 'fLaC'),
-      '.mp3' => _asciiAt(bytes, 0, 'ID3') ||
-          (bytes.length >= 2 && bytes[0] == 0xff && (bytes[1] & 0xe0) == 0xe0),
-      '.m4a' => _asciiAt(bytes, 4, 'ftyp'),
       '.mp4' => _asciiAt(bytes, 4, 'ftyp'),
       '.ttf' =>
         _startsWith(bytes, <int>[0, 1, 0, 0]) || _asciiAt(bytes, 0, 'true'),
@@ -478,6 +477,7 @@ final class GamePackageContentValidator {
     '.mp3',
     '.flac',
     '.m4a',
+    '.aac',
   };
   static const Set<String> _fontExtensions = <String>{
     '.ttf',
@@ -572,6 +572,7 @@ final class GamePackageContentValidator {
     '.mp3': 'audio/mpeg',
     '.flac': 'audio/flac',
     '.m4a': 'audio/mp4',
+    '.aac': 'audio/aac',
     '.mp4': 'video/mp4',
     '.vtt': 'text/vtt',
     '.ttf': 'font/ttf',
