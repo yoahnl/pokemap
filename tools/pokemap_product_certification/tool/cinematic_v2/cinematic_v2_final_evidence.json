@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "dependencies": [
+    {
+      "ticket": "BETA-CIN-010",
+      "workflowStatus": "toReview",
+      "technicalVerdict": "pass",
+      "sourceCommit": "c327494b89a4b1ff54a675793b775015c346d43b"
+    },
+    {
+      "ticket": "BETA-CIN-028",
+      "workflowStatus": "toReview",
+      "technicalVerdict": "pass",
+      "sourceCommit": "27a6301a12ebde7745b974ee62f49c1529160c34"
+    },
+    {
+      "ticket": "BETA-CIN-033",
+      "workflowStatus": "toReview",
+      "technicalVerdict": "pass",
+      "sourceCommit": "bfdbe76e0acaa3c8202d1c79aa42d38b385c61f5"
+    },
+    {
+      "ticket": "BETA-CIN-036",
+      "workflowStatus": "toReview",
+      "technicalVerdict": "pass",
+      "sourceCommit": "4f40eb6706db367c357702caa9fcbe3d0f61758f"
+    },
+    {
+      "ticket": "BETA-CIN-038",
+      "workflowStatus": "toReview",
+      "technicalVerdict": "partial",
+      "sourceCommit": "68c00aae67f452523fc6d58600e7de0c10d92220"
+    },
+    {
+      "ticket": "BETA-CIN-041",
+      "workflowStatus": "done",
+      "technicalVerdict": "pass",
+      "sourceCommit": "6d23d3035067cb1b89bd5ea2c0fac3c784607468"
+    },
+    {
+      "ticket": "BETA-LCH-001",
+      "workflowStatus": "toReview",
+      "technicalVerdict": "partial",
+      "sourceCommit": "ed52c7082ae3e5940baafeaccc8ce8d72be6ca9c"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "preSessionRails",
+      "sourceTicket": "BETA-LCH-001",
+      "sourceCommit": "ed52c7082ae3e5940baafeaccc8ce8d72be6ca9c",
+      "status": "passed",
+      "summary": "Absent and text-only pre-session rails preserve project configuration and commit once.",
+      "command": "cd packages/map_runtime && flutter test test/player/runtime_player_pre_session_flow_test.dart test/player/runtime_text_pre_session_scene_runner_test.dart",
+      "resultSha256": "58d386ea47ec5dd452ce54245ad02c5f0b44a232c43c5d1f67dc4395a6cde6c8",
+      "limitations": []
+    },
+    {
+      "id": "authoringTransports",
+      "sourceTicket": "BETA-CIN-033",
+      "sourceCommit": "bfdbe76e0acaa3c8202d1c79aa42d38b385c61f5",
+      "status": "passed",
+      "summary": "Presentation and pre-session semantics are covered through direct API, JSONL, Editor and MCP adapters.",
+      "command": "cd packages/map_authoring && dart test test/domains/narrative/presentation_cinematic_authoring_test.dart test/tooling/jsonl_presentation_cinematic_flow_test.dart test/tooling/jsonl_scene_pre_session_flow_test.dart ; cd ../../tools/pokemap_mcp && node --import tsx --test --test-name-pattern=CIN-033 test/mutation_server.test.ts",
+      "resultSha256": "a369080a20f03b1e93b7c2a47f2b4bf842614d95a1dd48b8e6586250213205ef",
+      "limitations": []
+    },
+    {
+      "id": "replacementCanary",
+      "sourceTicket": "BETA-CIN-042",
+      "sourceCommit": "f23c8c24e8da2ad88b1d3404c51b62df5b991da2",
+      "status": "passed",
+      "summary": "Authoring, package, install, Presentation, interaction, map, save, Continue and crash rollback run in one canary.",
+      "command": "cd tools/pokemap_product_certification && flutter test tool/cinematic_v2/cinematic_v2_replacement_canary_test.dart",
+      "resultSha256": "64358210b152aa1215489c48ab8b10b9bf1f5f5c26e8c85438ef935444aec3ff",
+      "limitations": []
+    },
+    {
+      "id": "previewRuntimeParity",
+      "sourceTicket": "BETA-CIN-041",
+      "sourceCommit": "6d23d3035067cb1b89bd5ea2c0fac3c784607468",
+      "status": "passed",
+      "summary": "Studio preview and runtime consume the same frame, revision, orientation and timestamp contract.",
+      "command": "cd packages/map_editor && flutter test test/ui/canvas/cinematics/presentation_preview_runtime_parity_test.dart",
+      "resultSha256": "4e14fd0e382c92cf5b0e03385b2010c5a89a3c789f352806b4f698c343f7c3ec",
+      "limitations": []
+    },
+    {
+      "id": "offlinePackaging",
+      "sourceTicket": "BETA-CIN-027",
+      "sourceCommit": "d95f0e65bd5b7de500a748621bad9a842f5637ab",
+      "status": "passed",
+      "summary": "Presentation media, captions, fallbacks and hashes survive deterministic package installation without source files.",
+      "command": "cd tools/pokemap_product_certification && flutter test test/neutral_game_package_test.dart test/offline_save_continue_test.dart",
+      "resultSha256": "cf8ae24eb93dc00701ffbcf7b7665ee1dfe9ce5a8c0882e4e9f716bce1ab6d48",
+      "limitations": []
+    },
+    {
+      "id": "saveRollback",
+      "sourceTicket": "BETA-CIN-036",
+      "sourceCommit": "4f40eb6706db367c357702caa9fcbe3d0f61758f",
+      "status": "passed",
+      "summary": "Future formats and failed promotion preserve or restore the exact previous save bytes.",
+      "command": "cd apps/pokemap_hub && flutter test test/features/installation/game_install_recovery_test.dart test/features/saves/hub_save_migration_test.dart test/features/session/hub_session_checkpoint_committer_test.dart",
+      "resultSha256": "f4d4cef34b289403f6cd67b7a5b98158ea64de5656eb6f2658ef51e10d8c2fa4",
+      "limitations": []
+    },
+    {
+      "id": "platformMatrix",
+      "sourceTicket": "BETA-CIN-028",
+      "sourceCommit": "27a6301a12ebde7745b974ee62f49c1529160c34",
+      "status": "passed",
+      "summary": "Six platform receipts are aggregated without averaging away fallback-only or out-of-scope verdicts.",
+      "command": "cd tools/pokemap_product_certification && flutter test test/platform_certification_repository_gate_test.dart",
+      "resultSha256": "faa15025fb869018652811016a1b959c0540c8f19023f9f1564e0314f987405e",
+      "limitations": [
+        "windows-linux-video-poster-fallback",
+        "web-runtime-out-of-scope"
+      ]
+    },
+    {
+      "id": "runtimePerformance",
+      "sourceTicket": "BETA-CIN-038",
+      "sourceCommit": "68c00aae67f452523fc6d58600e7de0c10d92220",
+      "status": "blocked",
+      "summary": "The local profile smoke is green but the exact-SHA device matrix is incomplete.",
+      "command": null,
+      "resultSha256": null,
+      "limitations": [
+        "exact-sha-clean-receipt-pending",
+        "ios-android-lifecycle-device-proof-deferred"
+      ]
+    },
+    {
+      "id": "observabilityPrivacy",
+      "sourceTicket": "BETA-CIN-037",
+      "sourceCommit": "5a647d0fe39a23fb1d73ddd28c27b20d7b48034e",
+      "status": "passed",
+      "summary": "Execution emits one correlated terminal receipt without player text, captions or local paths.",
+      "command": "cd packages/map_core && dart test test/presentation_execution_observability_test.dart",
+      "resultSha256": "8fbc463a24dc80b9db70cbd1e7632aef30543ec384e267dc160b0b87813d0d8c",
+      "limitations": []
+    },
+    {
+      "id": "accessibilityLifecycle",
+      "sourceTicket": "BETA-CIN-040",
+      "sourceCommit": "a7e2f7993ef961a8b87a83d9f9ddc5c3369558dd",
+      "status": "passed",
+      "summary": "Keyboard, focus, IME, localization, responsive layouts and reduced effects are covered by focused suites.",
+      "command": "cd packages/map_editor && flutter test test/ui/canvas/cinematics/presentation_studio_shell_test.dart test/ui/canvas/cinematics/presentation_studio_responsive_canvas_test.dart",
+      "resultSha256": "7fb5a373a157f98af3e78eed82d0d55c138e4c5095ad1d9ecad26dfca498b7b6",
+      "limitations": []
+    },
+    {
+      "id": "mediaFailureHandling",
+      "sourceTicket": "BETA-CIN-032",
+      "sourceCommit": "fcfa34e2e62109ce302b6e429bcca33a86058285",
+      "status": "passed",
+      "summary": "Missing, corrupt and unsupported media fail safely with skip, fallback, cleanup and stable diagnostics.",
+      "command": "cd packages/map_runtime && flutter test test/cinematic_media_playback_contract_test.dart test/player/runtime_presentation_media_selection_test.dart",
+      "resultSha256": "442ff975d0f0161720954d16755f5ed6012510e47f5e9f0768d0454ba94f4268",
+      "limitations": []
+    },
+    {
+      "id": "zeroLegacyCutover",
+      "sourceTicket": "BETA-CIN-010",
+      "sourceCommit": "c327494b89a4b1ff54a675793b775015c346d43b",
+      "status": "passed",
+      "summary": "Production code contains neither executable cinematic legacy paths nor dual readers.",
+      "command": "cd tools/pokemap_product_certification && flutter test test/cinematic_v2_zero_legacy_gate_test.dart",
+      "resultSha256": "a5d2ca2a72f04c49741e8c3e4c6ea65f1c6d639498ccda38a4597a7377af45b6",
+      "limitations": []
+    }
+  ]
+}
