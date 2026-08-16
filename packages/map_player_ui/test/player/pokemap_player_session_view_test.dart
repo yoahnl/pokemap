@@ -649,6 +649,126 @@ void main() {
     },
   );
 
+  testWidgets(
+    'keeps preSession presentation chrome out of the cinematic',
+    (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+        RuntimePlayerSnapshot(
+          revision: 19,
+          phase: RuntimePlayerPhase.preSession,
+          gameTitle: 'Aube',
+          preferences: const PlayerPreferencesSnapshot(
+            locale: 'fr',
+            accessibility: GameSessionAccessibilityOptions(),
+            showInputHints: true,
+          ),
+        ),
+      );
+      final presentation = ValueNotifier<RuntimePresentationFrameSnapshot?>(
+        RuntimePresentationFrameSnapshot(
+          assetRevision: 'opening-revision-9',
+          frame: _presentationFrame(),
+          orientation: PresentationFrameOrientation.landscape,
+        ),
+      );
+      var skipCalls = 0;
+      addTearDown(controller.dispose);
+      addTearDown(presentation.dispose);
+
+      await tester.pumpWidget(
+        _app(
+          _view(
+            controller,
+            presentationFrame: presentation,
+            presentationContentPort: _PresentationContentPort(),
+            onPresentationSkip: () async => skipCalls += 1,
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('runtime-presentation-skip')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('runtime-player-input-hints')),
+        findsNothing,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(skipCalls, 0);
+    },
+  );
+
+  testWidgets('leaves keyboard letters to a focused preSession text field',
+      (tester) async {
+    final request = SceneInteractionRequest.text(
+      requestId: 'player-name',
+      revision: 1,
+      prompt: SceneInteractionPrompt(
+        localizationKey: 'newGame.playerName.prompt',
+        fallbackText: 'Quel est ton prénom ?',
+      ),
+      constraints: SceneTextInputConstraints(
+        minGraphemes: 1,
+        maxGraphemes: 24,
+      ),
+    );
+    final controller = _FakeRuntimePlayerCoordinator(
+      RuntimePlayerSnapshot(
+        revision: 20,
+        phase: RuntimePlayerPhase.preSession,
+        gameTitle: 'Aube',
+        preSessionRequest: request,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.resolvePreSessionInteraction,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_app(_view(controller)));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('scene-interaction-text-field')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'Scene interaction text',
+    );
+    final inputAuthority = tester.widget<Focus>(
+      find.byKey(
+        const ValueKey<String>('runtime-player-keyboard-input-authority'),
+      ),
+    );
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+
+    for (final key in const <(PhysicalKeyboardKey, LogicalKeyboardKey)>[
+      (PhysicalKeyboardKey.keyW, LogicalKeyboardKey.keyW),
+      (PhysicalKeyboardKey.keyA, LogicalKeyboardKey.keyA),
+      (PhysicalKeyboardKey.keyS, LogicalKeyboardKey.keyS),
+      (PhysicalKeyboardKey.keyD, LogicalKeyboardKey.keyD),
+    ]) {
+      expect(
+        inputAuthority.onKeyEvent!(
+          focusNode,
+          KeyDownEvent(
+            physicalKey: key.$1,
+            logicalKey: key.$2,
+            timeStamp: Duration.zero,
+          ),
+        ),
+        KeyEventResult.ignored,
+      );
+    }
+
+    expect(controller.commands, isEmpty);
+  });
+
   testWidgets('keeps the game scene mounted only across live session phases',
       (tester) async {
     final lifecycle = _SceneLifecycle();

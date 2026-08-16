@@ -1006,6 +1006,14 @@ final class RuntimePlayerCoordinator {
       );
     }
     final resolution = interactions.resolve(result);
+    if (resolution.status == SceneInteractionResolutionStatus.accepted) {
+      _publish(
+        _snapshot.next(
+          clearPreSessionRequest: true,
+          actions: _cancelActions,
+        ),
+      );
+    }
     return RuntimePlayerCommandResult(
       status: switch (resolution.status) {
         SceneInteractionResolutionStatus.accepted =>

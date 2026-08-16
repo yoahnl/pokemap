@@ -270,7 +270,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   }) async {
     final command = playerInputCommandFromRuntimeEvent(event, source: source);
     if (widget.presentationFrame?.value != null && command.isPress) {
-      if (command.action == PlayerInputAction.confirm) {
+      if (command.action == PlayerInputAction.confirm &&
+          _latestSnapshot.phase != RuntimePlayerPhase.preSession) {
         await widget.onPresentationSkip?.call();
       } else if (command.action == PlayerInputAction.back ||
           command.action == PlayerInputAction.menu) {
@@ -304,6 +305,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     final runtimeEvent = _controlProfile.runtimeEventFromKeyEvent(event);
     if (runtimeEvent == null) return KeyEventResult.ignored;
     final isHardwareGamepad = event.deviceType == ui.KeyEventDeviceType.gamepad;
+    if (!isHardwareGamepad && _editableTextHasFocus()) {
+      return KeyEventResult.ignored;
+    }
     if (isHardwareGamepad && widget.controllerInputEnabled) {
       // The normalized gamepad stream is authoritative while enabled. Some
       // platforms also expose controller buttons as hardware keys; consuming
@@ -319,6 +323,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       ),
     );
     return KeyEventResult.handled;
+  }
+
+  bool _editableTextHasFocus() {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) return false;
+    return focusContext.widget is EditableText ||
+        focusContext.findAncestorWidgetOfExactType<EditableText>() != null;
   }
 
   void _releaseGameplayDirections() {
@@ -533,7 +544,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
                   RuntimePresentationFrameSurface(
                     snapshot: frame,
                     contentPort: widget.presentationContentPort!,
-                    onSkip: widget.onPresentationSkip,
+                    onSkip: snapshot.phase == RuntimePlayerPhase.preSession
+                        ? null
+                        : widget.onPresentationSkip,
                   ),
                   if (snapshot.preSessionRequest case final request?)
                     PlayerSceneInteractionSurface(
@@ -597,6 +610,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
             onCommand: widget.controller.dispatchWorldService,
           ),
         if (!showTouchControls &&
+            snapshot.phase != RuntimePlayerPhase.preSession &&
+            widget.presentationFrame?.value == null &&
             (snapshot.preferences?.showInputHints ?? false) &&
             snapshot.activeInputSource != PlayerInputSource.touch)
           const Positioned(

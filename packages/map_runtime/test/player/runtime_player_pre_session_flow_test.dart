@@ -176,6 +176,48 @@ void main() {
     expect(harness.adapters, hasLength(1));
   });
 
+  test('clears a resolved preSession request while its runner continues',
+      () async {
+    final release = Completer<void>();
+    final harness = RuntimePlayerTestHarness(
+      preSessionRunner: _HoldingMessagePreSessionRunner(release.future),
+    );
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final launch = harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    await _waitForInteraction(harness.coordinator);
+    final snapshot = harness.coordinator.snapshot;
+    final request = snapshot.preSessionRequest!;
+
+    final resolution = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.resolvePreSessionInteraction,
+        snapshotRevision: snapshot.revision,
+        payload: SceneInteractionResult.acknowledged(
+          requestId: request.requestId,
+          revision: request.revision,
+        ),
+      ),
+    );
+
+    expect(resolution.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.preSession);
+    expect(harness.coordinator.snapshot.preSessionRequest, isNull);
+
+    release.complete();
+    expect((await launch).status, RuntimePlayerCommandStatus.accepted);
+  });
+
   test('cancel and a late preload completion cannot create a session',
       () async {
     final gate = Completer<void>();
@@ -268,6 +310,36 @@ final class _MessagePreSessionRunner implements RuntimeNewGamePreSessionRunner {
     if (result is SceneCancelledInteractionResult) {
       throw StateError('cancelled');
     }
+    return draft;
+  }
+}
+
+final class _HoldingMessagePreSessionRunner
+    implements RuntimeNewGamePreSessionRunner {
+  _HoldingMessagePreSessionRunner(this.release);
+
+  final Future<void> release;
+
+  @override
+  Future<NewGameDraft> run({
+    required String runId,
+    required NewGameDraft draft,
+    required SceneStructuredInteractionPort interactions,
+  }) async {
+    final result = await interactions.request(
+      SceneInteractionRequest.message(
+        requestId: '$runId:intro',
+        revision: 0,
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'test.pre_session.intro',
+          fallbackText: 'Bienvenue.',
+        ),
+      ),
+    );
+    if (result is SceneCancelledInteractionResult) {
+      throw StateError('cancelled');
+    }
+    await release;
     return draft;
   }
 }
