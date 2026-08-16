@@ -3420,7 +3420,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     );
   }
 
-  void _moveSelectedPresentationText(Offset delta) {
+  void _moveSelectedPresentationText(
+    PresentationFrameOrientation orientation,
+    Offset delta,
+  ) {
     if (!_presentationDocumentController.isOpen) return;
     final route = widget.documentRoute;
     final selectedClipId =
@@ -3452,8 +3455,22 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
                 localizationKey: clip.localizationKey,
                 style: clip.style,
                 easing: clip.easing,
-                from: _translatePresentationComposition(clip.from, delta),
-                to: _translatePresentationComposition(clip.to, delta),
+                from: clip.from,
+                to: clip.to,
+                landscapeCompositionOverride:
+                    orientation == PresentationFrameOrientation.landscape
+                    ? _translatePresentationComposition(
+                        clip.landscapeCompositionOverride ?? clip.to,
+                        delta,
+                      )
+                    : clip.landscapeCompositionOverride,
+                portraitCompositionOverride:
+                    orientation == PresentationFrameOrientation.portrait
+                    ? _translatePresentationComposition(
+                        clip.portraitCompositionOverride ?? clip.to,
+                        delta,
+                      )
+                    : clip.portraitCompositionOverride,
                 transitionIn: clip.transitionIn,
                 transitionOut: clip.transitionOut,
               ),
@@ -4464,17 +4481,33 @@ PresentationFrameOrientationOverrides _presentationOrientationOverrides(
   visualsByClipId: <String, PresentationVisualOrientationOverride>{
     for (final track in asset.tracks)
       for (final clip in track.clips)
-        if (clip is PresentationVisualClip &&
-            (clip.landscapeCompositionOverride != null ||
-                clip.portraitCompositionOverride != null))
+        if ((clip is PresentationVisualClip || clip is PresentationTextClip) &&
+            (_landscapeCompositionOverride(clip) != null ||
+                _portraitCompositionOverride(clip) != null))
           clip.id: PresentationVisualOrientationOverride(
-            landscape: clip.landscapeCompositionOverride,
-            portrait: clip.portraitCompositionOverride,
-            reducedMotionLandscape: clip.landscapeCompositionOverride,
-            reducedMotionPortrait: clip.portraitCompositionOverride,
+            landscape: _landscapeCompositionOverride(clip),
+            portrait: _portraitCompositionOverride(clip),
+            reducedMotionLandscape: _landscapeCompositionOverride(clip),
+            reducedMotionPortrait: _portraitCompositionOverride(clip),
           ),
   },
 );
+
+PresentationVisualComposition? _landscapeCompositionOverride(
+  PresentationClip clip,
+) => switch (clip) {
+  PresentationVisualClip() => clip.landscapeCompositionOverride,
+  PresentationTextClip() => clip.landscapeCompositionOverride,
+  _ => null,
+};
+
+PresentationVisualComposition? _portraitCompositionOverride(
+  PresentationClip clip,
+) => switch (clip) {
+  PresentationVisualClip() => clip.portraitCompositionOverride,
+  PresentationTextClip() => clip.portraitCompositionOverride,
+  _ => null,
+};
 
 List<PresentationStudioResponsiveMediaBinding>
     _presentationResponsiveMediaBindings(PresentationCinematicAsset asset) =>

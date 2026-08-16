@@ -392,6 +392,8 @@ PresentationTextClip _decodeTextClip(Map<String, Object?> clip, String path) {
     'easing',
     'from',
     'to',
+    'landscapeCompositionOverride',
+    'portraitCompositionOverride',
     'transitionIn',
     'transitionOut',
   }, path: path);
@@ -420,6 +422,18 @@ PresentationTextClip _decodeTextClip(Map<String, Object?> clip, String path) {
       to: clip['to'] == null
           ? null
           : _decodeVisualComposition(clip['to'], '$path.to'),
+      landscapeCompositionOverride: clip['landscapeCompositionOverride'] == null
+          ? null
+          : _decodeVisualComposition(
+              clip['landscapeCompositionOverride'],
+              '$path.landscapeCompositionOverride',
+            ),
+      portraitCompositionOverride: clip['portraitCompositionOverride'] == null
+          ? null
+          : _decodeVisualComposition(
+              clip['portraitCompositionOverride'],
+              '$path.portraitCompositionOverride',
+            ),
       transitionIn: clip['transitionIn'] == null
           ? null
           : _decodeVisualTransition(clip['transitionIn'], '$path.transitionIn'),
@@ -726,6 +740,14 @@ Map<String, Object?> _encodeClip(PresentationClip clip) {
         'from': _encodeVisualComposition(clip.from),
       if (clip.to != PresentationVisualComposition.identity)
         'to': _encodeVisualComposition(clip.to),
+      if (clip.landscapeCompositionOverride != null)
+        'landscapeCompositionOverride': _encodeVisualComposition(
+          clip.landscapeCompositionOverride!,
+        ),
+      if (clip.portraitCompositionOverride != null)
+        'portraitCompositionOverride': _encodeVisualComposition(
+          clip.portraitCompositionOverride!,
+        ),
       if (clip.transitionIn != PresentationVisualTransition.none)
         'transitionIn': _encodeVisualTransition(clip.transitionIn),
       if (clip.transitionOut != PresentationVisualTransition.none)

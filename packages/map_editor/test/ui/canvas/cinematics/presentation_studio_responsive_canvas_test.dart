@@ -344,14 +344,16 @@ void main() {
       asset,
       timeUs: 0,
     );
-    final deltas = <Offset>[];
+    final drags =
+        <({PresentationFrameOrientation orientation, Offset delta})>[];
 
     await _pumpResponsiveCanvas(
       tester,
       controller: controller,
       frameBuilder: (_) => frame,
       asset: asset,
-      onSelectedTextDrag: deltas.add,
+      onSelectedTextDrag: (orientation, delta) =>
+          drags.add((orientation: orientation, delta: delta)),
     );
 
     final frameFinder = find.byKey(presentationStudioViewportFrameKey);
@@ -362,9 +364,10 @@ void main() {
     );
     await tester.pump();
 
-    final total = deltas.fold<Offset>(Offset.zero, (sum, item) => sum + item);
-    expect(total.dx, closeTo(.1, .01));
-    expect(total.dy, closeTo(-.1, .01));
+    expect(drags, hasLength(1));
+    expect(drags.single.orientation, PresentationFrameOrientation.landscape);
+    expect(drags.single.delta.dx, closeTo(.1, .01));
+    expect(drags.single.delta.dy, closeTo(-.1, .01));
 
     controller.selection.clear();
     await tester.pump();
@@ -672,7 +675,7 @@ Future<void> _pumpResponsiveCanvas(
   Size surfaceSize = const Size(1280, 800),
   String? fontFamily,
   VoidCallback? onRetry,
-  ValueChanged<Offset>? onSelectedTextDrag,
+  PresentationSelectedTextDrag? onSelectedTextDrag,
   Locale locale = const Locale('fr'),
   TextScaler textScaler = TextScaler.noScaling,
 }) async {

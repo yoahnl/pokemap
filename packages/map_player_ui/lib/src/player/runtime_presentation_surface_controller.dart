@@ -119,12 +119,33 @@ final class RuntimePresentationSurfaceController
       assetRevision: request.contentHash,
       frame: frame,
       orientation: _orientation,
+      orientationOverrides: _orientationOverrides(request.asset),
       mediaBindings: _mediaBindings(request.asset),
       reduceMotion: reduceMotion,
       reduceFlashes: reduceFlashes,
       showCaptions: showCaptions,
     );
   }
+
+  PresentationFrameOrientationOverrides _orientationOverrides(
+    PresentationCinematicAsset asset,
+  ) =>
+      PresentationFrameOrientationOverrides(
+        visualsByClipId: <String, PresentationVisualOrientationOverride>{
+          for (final track in asset.tracks)
+            for (final clip in track.clips)
+              if ((clip is PresentationVisualClip ||
+                      clip is PresentationTextClip) &&
+                  (_landscapeCompositionOverride(clip) != null ||
+                      _portraitCompositionOverride(clip) != null))
+                clip.id: PresentationVisualOrientationOverride(
+                  landscape: _landscapeCompositionOverride(clip),
+                  portrait: _portraitCompositionOverride(clip),
+                  reducedMotionLandscape: _landscapeCompositionOverride(clip),
+                  reducedMotionPortrait: _portraitCompositionOverride(clip),
+                ),
+        },
+      );
 
   String _resolveVisualMediaId(
     ScenePresentationCinematicRuntimeRequest request,
@@ -245,6 +266,24 @@ final class RuntimePresentationSurfaceController
     super.dispose();
   }
 }
+
+PresentationVisualComposition? _landscapeCompositionOverride(
+  PresentationClip clip,
+) =>
+    switch (clip) {
+      PresentationVisualClip() => clip.landscapeCompositionOverride,
+      PresentationTextClip() => clip.landscapeCompositionOverride,
+      _ => null,
+    };
+
+PresentationVisualComposition? _portraitCompositionOverride(
+  PresentationClip clip,
+) =>
+    switch (clip) {
+      PresentationVisualClip() => clip.portraitCompositionOverride,
+      PresentationTextClip() => clip.portraitCompositionOverride,
+      _ => null,
+    };
 
 List<PresentationFrameMediaBinding> _mediaBindings(
   PresentationCinematicAsset asset,

@@ -1737,6 +1737,8 @@ PresentationClip _copyClip(
           easing: clip.easing,
           from: clip.from,
           to: clip.to,
+          landscapeCompositionOverride: clip.landscapeCompositionOverride,
+          portraitCompositionOverride: clip.portraitCompositionOverride,
           transitionIn: clip.transitionIn,
           transitionOut: clip.transitionOut,
         ),

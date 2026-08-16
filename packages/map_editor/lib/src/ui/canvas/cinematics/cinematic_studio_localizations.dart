@@ -614,6 +614,11 @@ final class CinematicStudioCopy {
   String get color => isEnglish ? 'Color' : 'Couleur';
   String get textColor => isEnglish ? 'Text color' : 'Couleur du texte';
   String get hue => isEnglish ? 'Hue' : 'Teinte';
+  String get hexadecimal =>
+      isEnglish ? 'Hexadecimal (advanced)' : 'Hexadécimal (avancé)';
+  String get invalidColorHex => isEnglish
+      ? 'Enter 6 or 8 hexadecimal characters.'
+      : 'Saisissez 6 ou 8 caractères hexadécimaux.';
   String get saturation => isEnglish ? 'Saturation' : 'Saturation';
   String get brightness => isEnglish ? 'Brightness' : 'Luminosité';
   String get weight => isEnglish ? 'Weight' : 'Graisse';

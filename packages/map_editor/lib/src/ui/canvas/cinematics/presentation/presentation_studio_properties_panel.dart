@@ -114,10 +114,11 @@ class PresentationStudioPropertiesPanel extends StatelessWidget {
     ],
     final PresentationTextClip clip => <Widget>[
       PresentationTextInspectorSection(
-        key: ValueKey<String>('text-${clip.id}'),
+        key: ValueKey<String>('text-${clip.id}-${orientation.name}'),
         cinematicId: asset.id,
         trackId: located.track.id,
         clip: clip,
+        orientation: orientation,
         onCommand: onCommand,
       ),
       const SizedBox(height: 12),
@@ -585,12 +586,14 @@ class PresentationTextInspectorSection extends StatefulWidget {
     required this.cinematicId,
     required this.trackId,
     required this.clip,
+    required this.orientation,
     required this.onCommand,
   });
 
   final String cinematicId;
   final String trackId;
   final PresentationTextClip clip;
+  final PresentationFrameOrientation orientation;
   final ValueChanged<PresentationStudioPropertyCommand> onCommand;
 
   @override
@@ -651,6 +654,18 @@ class _PresentationTextInspectorSectionState
   @override
   Widget build(BuildContext context) {
     final copy = CinematicStudioCopy.of(context);
+    final composition = switch (widget.orientation) {
+      PresentationFrameOrientation.landscape =>
+        widget.clip.landscapeCompositionOverride ?? widget.clip.to,
+      PresentationFrameOrientation.portrait =>
+        widget.clip.portraitCompositionOverride ?? widget.clip.to,
+    };
+    final hasOverride = switch (widget.orientation) {
+      PresentationFrameOrientation.landscape =>
+        widget.clip.landscapeCompositionOverride != null,
+      PresentationFrameOrientation.portrait =>
+        widget.clip.portraitCompositionOverride != null,
+    };
     return PokeMapCinematicInspectorSection(
       title: copy.text,
       child: Column(
@@ -686,7 +701,7 @@ class _PresentationTextInspectorSectionState
           const SizedBox(height: 10),
           _NumberPropertyField(
             label: copy.positionX,
-            value: widget.clip.to.translateX,
+            value: composition.translateX,
             fieldKey: const ValueKey<String>(
               'presentation-property-text-position-x',
             ),
@@ -695,12 +710,34 @@ class _PresentationTextInspectorSectionState
           const SizedBox(height: 10),
           _NumberPropertyField(
             label: copy.positionY,
-            value: widget.clip.to.translateY,
+            value: composition.translateY,
             fieldKey: const ValueKey<String>(
               'presentation-property-text-position-y',
             ),
             onChanged: (value) => _moveTo(translateY: value),
           ),
+          if (hasOverride) ...<Widget>[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: PokeMapButton(
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.ghost,
+                onPressed: () => _emitClip(
+                  widget.orientation == PresentationFrameOrientation.landscape
+                      ? _copyText(
+                          widget.clip,
+                          landscapeCompositionOverride: null,
+                        )
+                      : _copyText(
+                          widget.clip,
+                          portraitCompositionOverride: null,
+                        ),
+                ),
+                child: Text(copy.resetToShared),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           PokeMapColorPicker(
             label: copy.color,
@@ -715,6 +752,8 @@ class _PresentationTextInspectorSectionState
             saturationLabel: copy.saturation,
             brightnessLabel: copy.brightness,
             opacityLabel: copy.opacity,
+            hexLabel: copy.hexadecimal,
+            invalidHexLabel: copy.invalidColorHex,
             onChanged: (value) =>
                 _emit(_copyTextStyle(widget.clip.style, colorHex: value)),
           ),
@@ -818,39 +857,44 @@ class _PresentationTextInspectorSectionState
     PresentationVisualComposition? from,
     PresentationVisualComposition? to,
   }) {
+    _emitClip(
+      _copyText(
+        widget.clip,
+        text: text,
+        localizationKey: localizationKey,
+        style: style,
+        from: from,
+        to: to,
+      ),
+    );
+  }
+
+  void _emitClip(PresentationTextClip clip) {
     widget.onCommand(
       PresentationStudioPropertyCommand.updateClip(
         cinematicId: widget.cinematicId,
         trackId: widget.trackId,
-        clip: _copyText(
-          widget.clip,
-          text: text,
-          localizationKey: localizationKey,
-          style: style,
-          from: from,
-          to: to,
-        ),
+        clip: clip,
       ),
     );
   }
 
   void _moveTo({double? translateX, double? translateY}) {
-    final currentTo = widget.clip.to;
-    final nextTo = _copyComposition(
-      currentTo,
+    final current = switch (widget.orientation) {
+      PresentationFrameOrientation.landscape =>
+        widget.clip.landscapeCompositionOverride ?? widget.clip.to,
+      PresentationFrameOrientation.portrait =>
+        widget.clip.portraitCompositionOverride ?? widget.clip.to,
+    };
+    final next = _copyComposition(
+      current,
       translateX: translateX,
       translateY: translateY,
     );
-    final deltaX = nextTo.translateX - currentTo.translateX;
-    final deltaY = nextTo.translateY - currentTo.translateY;
-    _emit(
-      widget.clip.style,
-      from: _copyComposition(
-        widget.clip.from,
-        translateX: widget.clip.from.translateX + deltaX,
-        translateY: widget.clip.from.translateY + deltaY,
-      ),
-      to: nextTo,
+    _emitClip(
+      widget.orientation == PresentationFrameOrientation.landscape
+          ? _copyText(widget.clip, landscapeCompositionOverride: next)
+          : _copyText(widget.clip, portraitCompositionOverride: next),
     );
   }
 }
@@ -1820,6 +1864,8 @@ PresentationTextClip _copyText(
   PresentationTextStyle? style,
   PresentationVisualComposition? from,
   PresentationVisualComposition? to,
+  Object? landscapeCompositionOverride = _unsetProperty,
+  Object? portraitCompositionOverride = _unsetProperty,
   PresentationEasing? easing,
   PresentationVisualTransition? transitionIn,
   PresentationVisualTransition? transitionOut,
@@ -1836,6 +1882,14 @@ PresentationTextClip _copyText(
   easing: easing ?? clip.easing,
   from: from ?? clip.from,
   to: to ?? clip.to,
+  landscapeCompositionOverride:
+      identical(landscapeCompositionOverride, _unsetProperty)
+      ? clip.landscapeCompositionOverride
+      : landscapeCompositionOverride as PresentationVisualComposition?,
+  portraitCompositionOverride:
+      identical(portraitCompositionOverride, _unsetProperty)
+      ? clip.portraitCompositionOverride
+      : portraitCompositionOverride as PresentationVisualComposition?,
   transitionIn: transitionIn ?? clip.transitionIn,
   transitionOut: transitionOut ?? clip.transitionOut,
 );

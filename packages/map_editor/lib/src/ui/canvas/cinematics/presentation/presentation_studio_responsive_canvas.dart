@@ -41,6 +41,9 @@ const presentationStudioLoopKey = ValueKey<String>('presentation-studio-loop');
 
 enum PresentationStudioCanvasMode { landscape, portrait, compare }
 
+typedef PresentationSelectedTextDrag =
+    void Function(PresentationFrameOrientation orientation, Offset delta);
+
 enum PresentationStudioResponsiveMediaKind {
   image,
   video,
@@ -588,7 +591,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
   final bool showCaptions;
   final PresentationCinematicAsset? asset;
   final VoidCallback? onRetry;
-  final ValueChanged<Offset>? onSelectedTextDrag;
+  final PresentationSelectedTextDrag? onSelectedTextDrag;
 
   @override
   Widget build(BuildContext context) {
@@ -688,12 +691,13 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
       orientationOverrides: orientationOverrides,
       onFocused: () => controller.focus(orientation),
       onRetry: onRetry,
+      compositionDragClipId: controller.selectedClipId,
       onCompositionDrag:
           frame?.texts.any(
                 (clip) => clip.clipId == controller.selectedClipId,
               ) ==
               true
-          ? onSelectedTextDrag
+          ? (delta) => onSelectedTextDrag?.call(orientation, delta)
           : null,
       onCompositionTap: frame == null || asset == null
           ? null

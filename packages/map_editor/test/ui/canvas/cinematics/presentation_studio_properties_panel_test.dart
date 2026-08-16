@@ -184,8 +184,11 @@ void main() {
     await tester.pump();
 
     final positioned = commands.removeLast().parameters['clip']! as Map;
-    expect((positioned['from']! as Map)['translateX'], 0.25);
-    expect((positioned['to']! as Map)['translateX'], 0.25);
+    expect(
+      (positioned['landscapeCompositionOverride']! as Map)['translateX'],
+      0.25,
+    );
+    expect(positioned['portraitCompositionOverride'], isNull);
 
     await tester.ensureVisible(
       find.byKey(
@@ -203,14 +206,17 @@ void main() {
     expect(find.text('Saturation'), findsOneWidget);
     expect(find.text('Brightness'), findsOneWidget);
     expect(find.text('Opacity'), findsOneWidget);
+    expect(find.text('Hexadecimal (advanced)'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('pokemap-color-preset-3')));
-    await tester.pump();
+    await tester.enterText(
+      find.byKey(pokeMapColorPickerHexFieldKey),
+      '#33669980',
+    );
     await tester.tap(find.byKey(pokeMapColorPickerApplyKey));
     await tester.pumpAndSettle();
 
     final colored = commands.single.parameters['clip']! as Map;
-    expect((colored['style']! as Map)['colorHex'], '#7AA2FFFF');
+    expect((colored['style']! as Map)['colorHex'], '#33669980');
   });
 
   testWidgets('registry dispatches text audio caption and marker inspectors', (

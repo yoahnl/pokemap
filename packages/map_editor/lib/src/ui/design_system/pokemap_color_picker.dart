@@ -4,12 +4,16 @@ import '../../theme/theme.dart';
 import 'pokemap_button.dart';
 import 'pokemap_dialog.dart';
 import 'pokemap_guided_slider.dart';
+import 'pokemap_text_field.dart';
 
 const pokeMapColorPickerDialogKey = ValueKey<String>(
   'pokemap-color-picker-dialog',
 );
 const pokeMapColorPickerApplyKey = ValueKey<String>(
   'pokemap-color-picker-apply',
+);
+const pokeMapColorPickerHexFieldKey = ValueKey<String>(
+  'pokemap-color-picker-hex-field',
 );
 
 class PokeMapColorPicker extends StatelessWidget {
@@ -25,6 +29,8 @@ class PokeMapColorPicker extends StatelessWidget {
     required this.saturationLabel,
     required this.brightnessLabel,
     required this.opacityLabel,
+    required this.hexLabel,
+    required this.invalidHexLabel,
     this.buttonKey,
   });
 
@@ -38,6 +44,8 @@ class PokeMapColorPicker extends StatelessWidget {
   final String saturationLabel;
   final String brightnessLabel;
   final String opacityLabel;
+  final String hexLabel;
+  final String invalidHexLabel;
   final Key? buttonKey;
 
   @override
@@ -61,6 +69,8 @@ class PokeMapColorPicker extends StatelessWidget {
               saturationLabel: saturationLabel,
               brightnessLabel: brightnessLabel,
               opacityLabel: opacityLabel,
+              hexLabel: hexLabel,
+              invalidHexLabel: invalidHexLabel,
             ),
           );
           if (selected != null && selected != valueHex) onChanged(selected);
@@ -82,6 +92,8 @@ class _PokeMapColorPickerDialog extends StatefulWidget {
     required this.saturationLabel,
     required this.brightnessLabel,
     required this.opacityLabel,
+    required this.hexLabel,
+    required this.invalidHexLabel,
   });
 
   final String valueHex;
@@ -92,6 +104,8 @@ class _PokeMapColorPickerDialog extends StatefulWidget {
   final String saturationLabel;
   final String brightnessLabel;
   final String opacityLabel;
+  final String hexLabel;
+  final String invalidHexLabel;
 
   @override
   State<_PokeMapColorPickerDialog> createState() =>
@@ -111,11 +125,22 @@ class _PokeMapColorPickerDialogState extends State<_PokeMapColorPickerDialog> {
   ];
 
   late HSVColor _color;
+  late final TextEditingController _hexController;
+  String? _hexError;
 
   @override
   void initState() {
     super.initState();
     _color = HSVColor.fromColor(_colorFromHex(widget.valueHex));
+    _hexController = TextEditingController(
+      text: _hexFromColor(_color.toColor()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _hexController.dispose();
+    super.dispose();
   }
 
   @override
@@ -137,7 +162,10 @@ class _PokeMapColorPickerDialogState extends State<_PokeMapColorPickerDialog> {
           const SizedBox(width: 8),
           PokeMapButton(
             key: pokeMapColorPickerApplyKey,
-            onPressed: () => Navigator.of(context).pop(selectedHex),
+            onPressed: () {
+              if (!_commitHex()) return;
+              Navigator.of(context).pop(_hexFromColor(_color.toColor()));
+            },
             child: Text(widget.applyLabel),
           ),
         ],
@@ -185,10 +213,8 @@ class _PokeMapColorPickerDialogState extends State<_PokeMapColorPickerDialog> {
                       semanticLabel: _presets[index],
                       size: PokeMapButtonSize.small,
                       variant: PokeMapButtonVariant.ghost,
-                      onPressed: () => setState(
-                        () => _color = HSVColor.fromColor(
-                          _colorFromHex(_presets[index]),
-                        ),
+                      onPressed: () => _setColor(
+                        HSVColor.fromColor(_colorFromHex(_presets[index])),
                       ),
                       child: _ColorSwatch(
                         color: _colorFromHex(_presets[index]),
@@ -204,34 +230,61 @@ class _PokeMapColorPickerDialogState extends State<_PokeMapColorPickerDialog> {
                 min: 0,
                 max: 360,
                 onChanged: (value) =>
-                    setState(() => _color = _color.withHue(value.toDouble())),
+                    _setColor(_color.withHue(value.toDouble())),
               ),
               const SizedBox(height: 8),
               PokeMapGuidedSlider(
                 label: widget.saturationLabel,
                 value: (_color.saturation * 100).round(),
                 onChanged: (value) =>
-                    setState(() => _color = _color.withSaturation(value / 100)),
+                    _setColor(_color.withSaturation(value / 100)),
               ),
               const SizedBox(height: 8),
               PokeMapGuidedSlider(
                 label: widget.brightnessLabel,
                 value: (_color.value * 100).round(),
-                onChanged: (value) =>
-                    setState(() => _color = _color.withValue(value / 100)),
+                onChanged: (value) => _setColor(_color.withValue(value / 100)),
               ),
               const SizedBox(height: 8),
               PokeMapGuidedSlider(
                 label: widget.opacityLabel,
                 value: (_color.alpha * 100).round(),
-                onChanged: (value) =>
-                    setState(() => _color = _color.withAlpha(value / 100)),
+                onChanged: (value) => _setColor(_color.withAlpha(value / 100)),
+              ),
+              const SizedBox(height: 14),
+              PokeMapTextField(
+                label: widget.hexLabel,
+                controller: _hexController,
+                fieldKey: pokeMapColorPickerHexFieldKey,
+                errorText: _hexError,
+                onChanged: (_) {
+                  if (_hexError != null) setState(() => _hexError = null);
+                },
+                onSubmitted: (_) => _commitHex(),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _setColor(HSVColor color) {
+    setState(() {
+      _color = color;
+      _hexController.text = _hexFromColor(color.toColor());
+      _hexError = null;
+    });
+  }
+
+  bool _commitHex() {
+    final value = _normalizeHex(_hexController.text);
+    if (value == null) {
+      setState(() => _hexError = widget.invalidHexLabel);
+      return false;
+    }
+    _setColor(HSVColor.fromColor(_colorFromHex(value)));
+    return true;
   }
 }
 
@@ -260,6 +313,13 @@ Color _colorFromHex(String value) {
   final blue = int.parse(rgba.substring(4, 6), radix: 16);
   final alpha = int.parse(rgba.substring(6, 8), radix: 16);
   return Color.fromARGB(alpha, red, green, blue);
+}
+
+String? _normalizeHex(String value) {
+  final candidate = value.trim().toUpperCase();
+  final body = candidate.startsWith('#') ? candidate.substring(1) : candidate;
+  if (!RegExp(r'^[0-9A-F]{6}([0-9A-F]{2})?$').hasMatch(body)) return null;
+  return '#${body.length == 6 ? '${body}FF' : body}';
 }
 
 String _hexFromColor(Color color) {

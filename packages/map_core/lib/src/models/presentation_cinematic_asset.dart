@@ -701,6 +701,8 @@ final class PresentationTextClip extends PresentationClip {
     this.easing = PresentationEasing.linear,
     PresentationVisualComposition? from,
     PresentationVisualComposition? to,
+    this.landscapeCompositionOverride,
+    this.portraitCompositionOverride,
     PresentationVisualTransition? transitionIn,
     PresentationVisualTransition? transitionOut,
   }) : layerId = _requiredString(layerId, 'PresentationTextClip.layerId'),
@@ -735,6 +737,8 @@ final class PresentationTextClip extends PresentationClip {
   final PresentationEasing easing;
   final PresentationVisualComposition from;
   final PresentationVisualComposition to;
+  final PresentationVisualComposition? landscapeCompositionOverride;
+  final PresentationVisualComposition? portraitCompositionOverride;
   final PresentationVisualTransition transitionIn;
   final PresentationVisualTransition transitionOut;
 
@@ -755,6 +759,8 @@ final class PresentationTextClip extends PresentationClip {
           other.easing == easing &&
           other.from == from &&
           other.to == to &&
+          other.landscapeCompositionOverride == landscapeCompositionOverride &&
+          other.portraitCompositionOverride == portraitCompositionOverride &&
           other.transitionIn == transitionIn &&
           other.transitionOut == transitionOut;
 
@@ -770,6 +776,8 @@ final class PresentationTextClip extends PresentationClip {
     easing,
     from,
     to,
+    landscapeCompositionOverride,
+    portraitCompositionOverride,
     transitionIn,
     transitionOut,
   );

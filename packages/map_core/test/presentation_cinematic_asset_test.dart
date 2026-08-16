@@ -37,6 +37,19 @@ void main() {
                 resourceId: 'text_opening_title',
                 easing: PresentationEasing.easeInOut,
               ),
+              PresentationTextClip(
+                id: 'responsive_title',
+                startUs: 2_000_000,
+                durationUs: 6_000_000,
+                layerId: 'title',
+                text: 'Bienvenue',
+                landscapeCompositionOverride: PresentationVisualComposition(
+                  translateX: -.2,
+                ),
+                portraitCompositionOverride: PresentationVisualComposition(
+                  translateY: .3,
+                ),
+              ),
             ],
           ),
           PresentationTrack(

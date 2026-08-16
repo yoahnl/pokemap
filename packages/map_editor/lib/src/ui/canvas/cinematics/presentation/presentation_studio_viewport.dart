@@ -127,6 +127,7 @@ class PresentationStudioViewport extends StatefulWidget {
     this.onFocused,
     this.onCompositionTap,
     this.onCompositionDrag,
+    this.compositionDragClipId,
   });
 
   final PresentationStudioViewportController? controller;
@@ -145,6 +146,7 @@ class PresentationStudioViewport extends StatefulWidget {
   final VoidCallback? onFocused;
   final ValueChanged<Offset>? onCompositionTap;
   final ValueChanged<Offset>? onCompositionDrag;
+  final String? compositionDragClipId;
 
   @override
   State<PresentationStudioViewport> createState() =>
@@ -158,6 +160,7 @@ class _PresentationStudioViewportState
   final FocusNode _focusNode = FocusNode(
     debugLabel: 'Presentation Studio viewport',
   );
+  Offset _compositionDragDelta = Offset.zero;
 
   @override
   void initState() {
@@ -171,6 +174,10 @@ class _PresentationStudioViewportState
     if (oldWidget.controller != widget.controller) {
       if (_ownsController) _controller.dispose();
       _adoptController(widget.controller);
+    }
+    if (oldWidget.compositionDragClipId != widget.compositionDragClipId ||
+        oldWidget.orientation != widget.orientation) {
+      _compositionDragDelta = Offset.zero;
     }
   }
 
@@ -280,21 +287,21 @@ class _PresentationStudioViewportState
                                       onPanStart:
                                           widget.onCompositionDrag == null
                                           ? null
-                                          : (_) => _requestFocus(),
+                                          : (_) => _startCompositionDrag(),
                                       onPanUpdate:
                                           widget.onCompositionDrag == null
                                           ? null
-                                          : (details) =>
-                                                widget.onCompositionDrag!(
-                                                  Offset(
-                                                    details.delta.dx /
-                                                        (size.width *
-                                                            _controller.zoom),
-                                                    details.delta.dy /
-                                                        (size.height *
-                                                            _controller.zoom),
-                                                  ),
-                                                ),
+                                          : (details) => _updateCompositionDrag(
+                                              details.delta,
+                                              size,
+                                            ),
+                                      onPanEnd: widget.onCompositionDrag == null
+                                          ? null
+                                          : (_) => _commitCompositionDrag(),
+                                      onPanCancel:
+                                          widget.onCompositionDrag == null
+                                          ? null
+                                          : _cancelCompositionDrag,
                                       onTapUp: widget.onCompositionTap == null
                                           ? null
                                           : (details) =>
@@ -368,7 +375,82 @@ class _PresentationStudioViewportState
       reduceMotion: widget.reduceMotion,
       reduceFlashes: widget.reduceFlashes,
       showCaptions: widget.showCaptions,
-      orientationOverrides: widget.orientationOverrides,
+      orientationOverrides: _orientationOverridesWithDragPreview(frame),
+    );
+  }
+
+  void _startCompositionDrag() {
+    _requestFocus();
+    setState(() => _compositionDragDelta = Offset.zero);
+  }
+
+  void _updateCompositionDrag(Offset delta, Size size) {
+    setState(() {
+      _compositionDragDelta += Offset(
+        delta.dx / (size.width * _controller.zoom),
+        delta.dy / (size.height * _controller.zoom),
+      );
+    });
+  }
+
+  void _commitCompositionDrag() {
+    final delta = _compositionDragDelta;
+    setState(() => _compositionDragDelta = Offset.zero);
+    if (delta != Offset.zero) widget.onCompositionDrag?.call(delta);
+  }
+
+  void _cancelCompositionDrag() {
+    if (_compositionDragDelta == Offset.zero) return;
+    setState(() => _compositionDragDelta = Offset.zero);
+  }
+
+  PresentationFrameOrientationOverrides _orientationOverridesWithDragPreview(
+    PresentationFrame frame,
+  ) {
+    final clipId = widget.compositionDragClipId;
+    if (clipId == null || _compositionDragDelta == Offset.zero) {
+      return widget.orientationOverrides;
+    }
+    PresentationTextFrameClip? selected;
+    for (final clip in frame.texts) {
+      if (clip.clipId == clipId) {
+        selected = clip;
+        break;
+      }
+    }
+    if (selected == null) return widget.orientationOverrides;
+    final current = widget.orientationOverrides.visualsByClipId[clipId];
+    final composition =
+        current?.resolve(
+          orientation: widget.orientation,
+          fallback: selected.composition,
+          reduceMotion: false,
+        ) ??
+        selected.composition;
+    final translated = _translateComposition(
+      composition,
+      _compositionDragDelta,
+    );
+    return PresentationFrameOrientationOverrides(
+      visualsByClipId: <String, PresentationVisualOrientationOverride>{
+        ...widget.orientationOverrides.visualsByClipId,
+        clipId: switch (widget.orientation) {
+          PresentationFrameOrientation.landscape =>
+            PresentationVisualOrientationOverride(
+              landscape: translated,
+              portrait: current?.portrait,
+              reducedMotionLandscape: translated,
+              reducedMotionPortrait: current?.reducedMotionPortrait,
+            ),
+          PresentationFrameOrientation.portrait =>
+            PresentationVisualOrientationOverride(
+              landscape: current?.landscape,
+              portrait: translated,
+              reducedMotionLandscape: current?.reducedMotionLandscape,
+              reducedMotionPortrait: translated,
+            ),
+        },
+      },
     );
   }
 
@@ -471,3 +553,19 @@ Size _fitSize(Size available, double aspectRatio) {
   }
   return Size(width, width / aspectRatio);
 }
+
+PresentationVisualComposition _translateComposition(
+  PresentationVisualComposition composition,
+  Offset delta,
+) => PresentationVisualComposition(
+  translateX: composition.translateX + delta.dx,
+  translateY: composition.translateY + delta.dy,
+  scaleX: composition.scaleX,
+  scaleY: composition.scaleY,
+  rotationTurns: composition.rotationTurns,
+  opacity: composition.opacity,
+  cropLeft: composition.cropLeft,
+  cropTop: composition.cropTop,
+  cropRight: composition.cropRight,
+  cropBottom: composition.cropBottom,
+);

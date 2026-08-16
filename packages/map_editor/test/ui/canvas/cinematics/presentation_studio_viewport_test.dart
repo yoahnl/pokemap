@@ -219,6 +219,7 @@ void main() {
     await tester.pump();
 
     final total = deltas.fold<Offset>(Offset.zero, (sum, item) => sum + item);
+    expect(deltas, hasLength(1));
     expect(total.dx, closeTo(.2, .01));
     expect(total.dy, closeTo(-.1, .01));
   });

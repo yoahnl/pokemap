@@ -33,11 +33,40 @@ void main() {
           id: 'opening',
           title: 'Opening',
           durationUs: 1000000,
+          layers: <PresentationLayer>[
+            PresentationLayer(id: 'title-layer', label: 'Title', zIndex: 0),
+          ],
+          tracks: <PresentationTrack>[
+            PresentationTrack(
+              id: 'visuals',
+              label: 'Visuals',
+              kind: PresentationTrackKind.visual,
+              clips: <PresentationClip>[
+                PresentationTextClip(
+                  id: 'title',
+                  startUs: 0,
+                  durationUs: 1000000,
+                  layerId: 'title-layer',
+                  text: 'Opening',
+                  landscapeCompositionOverride:
+                      PresentationVisualComposition(translateX: -.2),
+                  portraitCompositionOverride: PresentationVisualComposition(
+                    translateY: .3,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
     expect(terminal.result, RuntimePresentationExecutionResult.completed);
-    expect(values.whereType<RuntimePresentationFrameSnapshot>(), isNotEmpty);
+    final snapshot = values
+        .whereType<RuntimePresentationFrameSnapshot>()
+        .firstWhere((value) => value.frame.texts.isNotEmpty);
+    final override = snapshot.orientationOverrides.visualsByClipId['title'];
+    expect(override?.landscape?.translateX, -.2);
+    expect(override?.portrait?.translateY, .3);
     expect(controller.value, isNull);
   });
 
