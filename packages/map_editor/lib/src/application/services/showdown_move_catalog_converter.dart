@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
+import 'pokemon_move_local_id.dart';
 
 /// Convertit un snapshot Showdown `moves.json` vers le catalogue local `moves`.
 ///
@@ -77,7 +78,7 @@ class ShowdownMoveCatalogConverter {
 
     final entry = rawEntry.cast<String, dynamic>();
     final displayName = _readDisplayName(rawId, entry);
-    final localId = _normalizeSnakeCaseId(displayName);
+    final localId = normalizePokemonMoveLocalId(displayName);
     if (localId.isEmpty) {
       throw EditorPersistenceException(
         'Showdown move entry "$rawId" does not expose a usable local id',
@@ -1247,18 +1248,6 @@ class ShowdownMoveCatalogConverter {
       return value.isNotEmpty;
     }
     return true;
-  }
-
-  String _normalizeSnakeCaseId(String rawValue) {
-    final lowerCase = rawValue.trim().toLowerCase();
-    if (lowerCase.isEmpty) {
-      return '';
-    }
-
-    final separated = lowerCase.replaceAll(RegExp(r'[\s-]+'), '_');
-    final asciiSafe = separated.replaceAll(RegExp(r'[^a-z0-9_]+'), '');
-    final collapsed = asciiSafe.replaceAll(RegExp(r'_+'), '_');
-    return collapsed.replaceAll(RegExp(r'^_|_$'), '');
   }
 
   String _humanizeIdentifier(String rawId) {
