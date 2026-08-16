@@ -1271,7 +1271,7 @@ class _BattleRootTile extends StatelessWidget {
             ),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final compact = constraints.maxHeight < 58;
+                final compact = constraints.maxHeight < 64;
                 final ultraCompact = constraints.maxHeight < 44;
                 return Stack(
                   children: <Widget>[

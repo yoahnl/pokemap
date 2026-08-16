@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../localization/player_localizations.dart';
+import '../theme/pokemap_player_battle_theme.dart';
 import 'player_battle_scene.dart';
 import 'player_battle_surface.dart';
-import '../theme/pokemap_player_battle_theme.dart';
 
 export 'player_battle_scene.dart';
 export 'player_battle_surface.dart';
@@ -36,7 +37,7 @@ class PlayerBattleOverlay extends StatelessWidget {
           playerHudRect: snapshot.playerHud.rect,
         ),
         battleLabel: snapshot.battleLabel,
-        title: snapshot.title,
+        title: _localizedBattleTitle(context.playerL10n, snapshot.mode),
         prompt: snapshot.prompt,
         narrationLines: snapshot.narrationLines,
         commands: _commands(snapshot, battle),
@@ -63,6 +64,19 @@ class PlayerBattleOverlay extends StatelessWidget {
     );
   }
 }
+
+String _localizedBattleTitle(
+  PokeMapPlayerLocalizations localizations,
+  BattleCommandOverlayMode mode,
+) =>
+    switch (mode) {
+      BattleCommandOverlayMode.root => localizations.battleCommands,
+      BattleCommandOverlayMode.fight => localizations.battleMoves,
+      BattleCommandOverlayMode.bag => localizations.battleBag,
+      BattleCommandOverlayMode.bagMedicineTarget => localizations.battleTarget,
+      BattleCommandOverlayMode.pokemon => localizations.battlePokemon,
+      BattleCommandOverlayMode.continueOnly => localizations.battleContinue,
+    };
 
 List<PlayerBattleCommandViewData> _commands(
   BattleCommandOverlaySnapshot snapshot,

@@ -3023,6 +3023,46 @@ void main() {
       expect(overlay.currentNarrationText, contains('Vas-y, sproutle !'));
     });
 
+    test('uses localized species names in prompts, narration and Flutter HUDs',
+        () async {
+      BattleCommandOverlaySnapshot? snapshot;
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: _session(
+          player: _combatant(
+            speciesId: 'froakie',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'caterpie',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(436, 697),
+        resolveSpeciesDisplayName: (speciesId) => switch (speciesId) {
+          'froakie' => 'Grenousse',
+          'caterpie' => 'Chenipan',
+          _ => speciesId,
+        },
+        useFlutterCommandOverlay: true,
+        onCommandOverlaySnapshotChanged: (value) => snapshot = value,
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(overlay.currentPromptText, 'Que doit faire Grenousse ?');
+      expect(
+        overlay.currentNarrationText,
+        contains('Un Chenipan sauvage apparaît !'),
+      );
+      expect(overlay.currentNarrationText, contains('Vas-y, Grenousse !'));
+      expect(snapshot?.enemyHud.speciesLabel, 'Chenipan');
+      expect(snapshot?.playerHud.speciesLabel, 'Grenousse');
+    });
+
     test('keeps the resolved timeline visible when a real turn exists',
         () async {
       final initialSession = _session(

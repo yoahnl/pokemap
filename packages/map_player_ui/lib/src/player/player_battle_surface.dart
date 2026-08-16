@@ -243,7 +243,6 @@ class PlayerBattleSurface extends StatelessWidget {
                   sideId: 'enemy',
                   profile: battle,
                   dense: true,
-                  showDenseOwner: layout.enemyHudRect.height >= 64,
                   showDenseDetails: layout.enemyHudRect.height >= 52,
                 ),
               ),
@@ -259,7 +258,6 @@ class PlayerBattleSurface extends StatelessWidget {
                   sideId: 'player',
                   profile: battle,
                   dense: true,
-                  showDenseOwner: layout.playerHudRect.height >= 64,
                   showDenseDetails: layout.playerHudRect.height >= 52,
                 ),
               ),
@@ -371,7 +369,6 @@ class PlayerBattleSurface extends StatelessWidget {
                         sideId: 'enemy',
                         profile: battle,
                         dense: false,
-                        showDenseOwner: false,
                         showDenseDetails: false,
                       ),
                     ),
@@ -397,7 +394,6 @@ class PlayerBattleSurface extends StatelessWidget {
                         sideId: 'player',
                         profile: battle,
                         dense: false,
-                        showDenseOwner: false,
                         showDenseDetails: false,
                       ),
                     ),
@@ -429,7 +425,6 @@ class _BattleHud extends StatelessWidget {
     required this.sideId,
     required this.profile,
     required this.dense,
-    required this.showDenseOwner,
     required this.showDenseDetails,
   });
 
@@ -437,19 +432,32 @@ class _BattleHud extends StatelessWidget {
   final String sideId;
   final ProjectBattlePresentationProfile? profile;
   final bool dense;
-  final bool showDenseOwner;
   final bool showDenseDetails;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.4;
+    const densePadding = PlayerSpacing.xxs;
     final paletteText = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
           context
               .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
               ?.text,
         ) ??
         colors.textPrimary;
+    final sideAccent = sideId == 'enemy' ? colors.danger : colors.focus;
+    final paletteSurface = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          context
+              .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
+              ?.surface,
+        ) ??
+        context.playerSemanticTheme.battleHudSurface;
+    final paletteBorder = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          context
+              .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
+              ?.border,
+        ) ??
+        colors.outline;
     final hpRatio = data.maxHp <= 0
         ? 0.0
         : (data.effectiveTargetDisplayedHp / data.maxHp).clamp(0.0, 1.0);
@@ -469,7 +477,7 @@ class _BattleHud extends StatelessWidget {
                 colors.success;
     return PlayerPanel(
       padding: EdgeInsets.all(
-        dense ? 0 : PlayerSpacing.sm,
+        dense ? densePadding : PlayerSpacing.sm,
       ),
       elevated: true,
       role: PlayerPanelRole.battleHud,
@@ -478,22 +486,20 @@ class _BattleHud extends StatelessWidget {
           ? dense
               ? context.playerWindowTheme
                   ?.style(ProjectWindowRole.battle)
-                  .copyWith(contentPadding: 0)
+                  .copyWith(contentPadding: densePadding.round())
               : null
           : _battleWindowStyle(
               id: 'battle-hud-$sideId',
               shape: profile!.hudShape,
-              padding: dense ? 0 : 12,
+              padding: dense ? densePadding : 12,
             ),
-      surfaceColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-        context
-            .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
-            ?.surface,
+      surfaceColorOverride: Color.alphaBlend(
+        sideAccent.withValues(alpha: .10),
+        paletteSurface,
       ),
-      borderColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-        context
-            .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
-            ?.border,
+      borderColorOverride: Color.alphaBlend(
+        sideAccent.withValues(alpha: .72),
+        paletteBorder,
       ),
       textColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
         context
@@ -511,22 +517,6 @@ class _BattleHud extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              if (dense &&
-                  showDenseOwner &&
-                  !largeText &&
-                  (profile?.showOwnerLabel ?? true))
-                Text(
-                  data.ownerLabel,
-                  key: ValueKey<String>('battle-owner-$sideId'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.playerTypography
-                      .combatStyle(
-                        Theme.of(context).textTheme.labelSmall ??
-                            const TextStyle(),
-                      )
-                      .copyWith(color: paletteText),
-                ),
               if (dense)
                 Row(
                   children: <Widget>[
@@ -568,19 +558,6 @@ class _BattleHud extends StatelessWidget {
                   ],
                 )
               else ...<Widget>[
-                if (profile?.showOwnerLabel ?? true) ...<Widget>[
-                  Text(
-                    data.ownerLabel,
-                    key: ValueKey<String>('battle-owner-$sideId'),
-                    style: context.playerTypography
-                        .combatStyle(
-                          Theme.of(context).textTheme.labelSmall ??
-                              const TextStyle(),
-                        )
-                        .copyWith(color: paletteText),
-                  ),
-                  const SizedBox(height: PlayerSpacing.xxs),
-                ],
                 Row(
                   children: <Widget>[
                     Expanded(
@@ -651,6 +628,7 @@ class _BattleHud extends StatelessWidget {
                   shape: profile?.hpBarShape ?? ProjectBattleHpBarShape.rounded,
                   color: hpColor,
                   backgroundColor: colors.outline.withValues(alpha: 0.35),
+                  height: dense ? 6 : 8,
                 ),
               ),
               if (dense) ...<Widget>[
@@ -750,6 +728,7 @@ class _BattleCommandPanel extends StatelessWidget {
         spacingScale: spacingScale,
         profile: profile,
         panelProfile: panelProfile,
+        stacked: compactPortrait,
       );
     }
     final layout = panelProfile.layout == ProjectBattleCommandLayout.radial &&
@@ -987,6 +966,7 @@ class _BattleSeparatedCommandDock extends StatelessWidget {
     required this.spacingScale,
     required this.profile,
     required this.panelProfile,
+    required this.stacked,
   });
 
   final PlayerBattleViewData data;
@@ -995,9 +975,11 @@ class _BattleSeparatedCommandDock extends StatelessWidget {
   final double spacingScale;
   final ProjectBattlePresentationProfile? profile;
   final ProjectBattlePanelPresentationProfile panelProfile;
+  final bool stacked;
 
   @override
   Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.4;
     final panelPadding = panelProfile.padding * spacingScale;
     final panelSurface = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
       panelProfile.surfaceColor,
@@ -1036,42 +1018,61 @@ class _BattleSeparatedCommandDock extends StatelessWidget {
           child: child,
         );
 
+    final dialoguePanel = panel(
+      key: const ValueKey<String>('battle-dialogue-panel'),
+      id: 'battle-dialogue',
+      child: _BattleDialoguePane(data: data),
+    );
+    final actionsPanel = panel(
+      key: const ValueKey<String>('battle-actions-panel'),
+      id: 'battle-actions-${data.panelKind.name}',
+      child: _BattleActionsPane(
+        data: data,
+        onAction: onAction,
+        itemIconBuilder: itemIconBuilder,
+        spacingScale: spacingScale,
+        showProjectIcons: data.panelKind == PlayerBattlePanelKind.commands &&
+            (profile?.showCommandIcons ?? false),
+        selectionColor: selectionColor,
+      ),
+    );
+
     return RepaintBoundary(
       key: const ValueKey<String>('battle-command-panel'),
       child: SizedBox.expand(
         child: FocusTraversalGroup(
           policy: ReadingOrderTraversalPolicy(),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Expanded(
-                flex: 47,
-                child: panel(
-                  key: const ValueKey<String>('battle-dialogue-panel'),
-                  id: 'battle-dialogue',
-                  child: _BattleDialoguePane(data: data),
+          child: stacked
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Flexible(
+                      flex: !largeText
+                          ? 2
+                          : data.forcedReplacement
+                              ? 4
+                              : 3,
+                      child: dialoguePanel,
+                    ),
+                    SizedBox(height: PlayerSpacing.xs * spacingScale),
+                    Expanded(
+                      flex: !largeText
+                          ? 5
+                          : data.forcedReplacement
+                              ? 3
+                              : 4,
+                      child: actionsPanel,
+                    ),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Expanded(flex: 47, child: dialoguePanel),
+                    SizedBox(width: PlayerSpacing.xs * spacingScale),
+                    Expanded(flex: 53, child: actionsPanel),
+                  ],
                 ),
-              ),
-              SizedBox(width: PlayerSpacing.xs * spacingScale),
-              Expanded(
-                flex: 53,
-                child: panel(
-                  key: const ValueKey<String>('battle-actions-panel'),
-                  id: 'battle-actions-${data.panelKind.name}',
-                  child: _BattleActionsPane(
-                    data: data,
-                    onAction: onAction,
-                    itemIconBuilder: itemIconBuilder,
-                    spacingScale: spacingScale,
-                    showProjectIcons:
-                        data.panelKind == PlayerBattlePanelKind.commands &&
-                            (profile?.showCommandIcons ?? false),
-                    selectionColor: selectionColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -1144,6 +1145,12 @@ class _BattleActionsPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final showHeader =
         data.panelKind != PlayerBattlePanelKind.commands || data.canGoBack;
+    final paletteText = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          context
+              .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
+              ?.text,
+        ) ??
+        context.playerColors.textPrimary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -1157,8 +1164,9 @@ class _BattleActionsPane extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.playerTypography.combatStyle(
-                    Theme.of(context).textTheme.titleMedium ??
-                        const TextStyle(),
+                    (Theme.of(context).textTheme.titleMedium ??
+                            const TextStyle())
+                        .copyWith(color: paletteText),
                   ),
                 ),
               ),
@@ -1174,7 +1182,7 @@ class _BattleActionsPane extends StatelessWidget {
                             ),
                           )
                       : null,
-                  icon: const Icon(Icons.arrow_back_rounded),
+                  icon: Icon(Icons.arrow_back_rounded, color: paletteText),
                 ),
             ],
           ),
@@ -1451,7 +1459,7 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
             : toneColor);
     final surfaceColor = hasBattlePalette
         ? Color.alphaBlend(
-            accent.withValues(alpha: entry.selected ? .34 : .24),
+            accent.withValues(alpha: entry.selected ? .48 : .34),
             colors.surfaceElevated,
           )
         : entry.selected
@@ -1487,9 +1495,9 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
               constraints: BoxConstraints(minHeight: widget.dense ? 48 : 64),
               child: Padding(
                 padding: widget.dense
-                    ? const EdgeInsets.symmetric(
+                    ? EdgeInsets.symmetric(
                         horizontal: PlayerSpacing.xs,
-                        vertical: PlayerSpacing.xxs,
+                        vertical: largeText ? 3 : PlayerSpacing.xxs,
                       )
                     : const EdgeInsets.all(PlayerSpacing.sm),
                 child: Row(
@@ -1596,12 +1604,14 @@ class _BattleHpBar extends StatelessWidget {
     required this.shape,
     required this.color,
     required this.backgroundColor,
+    required this.height,
   });
 
   final double value;
   final ProjectBattleHpBarShape shape;
   final Color color;
   final Color backgroundColor;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -1612,7 +1622,7 @@ class _BattleHpBar extends StatelessWidget {
           for (var index = 0; index < 10; index++) ...<Widget>[
             Expanded(
               child: SizedBox(
-                height: 8,
+                height: height,
                 child: ColoredBox(
                   color: index < active ? color : backgroundColor,
                 ),
@@ -1624,7 +1634,7 @@ class _BattleHpBar extends StatelessWidget {
       );
     }
     final indicator = LinearProgressIndicator(
-      minHeight: 8,
+      minHeight: height,
       value: value,
       color: color,
       backgroundColor: backgroundColor,
@@ -1720,9 +1730,9 @@ Color _toneColor(
   return switch (tone) {
     PlayerBattleEntryTone.medicine => colors.success,
     PlayerBattleEntryTone.attack ||
-    PlayerBattleEntryTone.special ||
     PlayerBattleEntryTone.capture =>
       colors.primary,
+    PlayerBattleEntryTone.special => colors.focus,
     PlayerBattleEntryTone.support ||
     PlayerBattleEntryTone.switching =>
       colors.warning,

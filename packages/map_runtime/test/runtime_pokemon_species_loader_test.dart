@@ -90,6 +90,10 @@ void main() {
         jsonEncode(<String, dynamic>{
           'schemaVersion': currentPokemonDataSchemaVersion,
           'id': 'targetmon',
+          'names': <String, String>{
+            'en': 'Targetmon',
+            'fr': 'Ciblemon',
+          },
           'forms': <String, dynamic>{'formId': 'summer'},
           'typing': <String, dynamic>{
             'types': <String>['grass'],
@@ -129,6 +133,8 @@ void main() {
       );
 
       expect(species.formId, 'summer');
+      expect(species.displayName('fr-FR'), 'Ciblemon');
+      expect(species.displayName('de'), 'targetmon');
       expect(species.primaryAbilityId, 'overgrow');
       expect(species.standardAbilityIds, <String>['overgrow', 'chlorophyll']);
       expect(

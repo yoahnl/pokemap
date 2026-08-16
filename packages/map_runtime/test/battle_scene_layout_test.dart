@@ -222,7 +222,7 @@ void main() {
       expect(layout.viewportClass, BattleViewportClass.compactPortrait);
       expect(
           layout.commandPanelLayoutMode, BattleCommandPanelLayoutMode.stacked);
-      expect(layout.commandPanelRect.height, inInclusiveRange(248.0, 276.0));
+      expect(layout.commandPanelRect.height, inInclusiveRange(280.0, 304.0));
       expect(
         layout.stageRect.bottom,
         lessThanOrEqualTo(layout.commandPanelRect.top - 10),

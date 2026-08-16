@@ -101,7 +101,7 @@ final class BattleSceneLayout {
     };
     final commandPanelHeight = switch (viewportClass) {
       BattleViewportClass.compactPortrait =>
-        (sceneRect.height * 0.315).clamp(248.0, 272.0).toDouble(),
+        (sceneRect.height * 0.315).clamp(280.0, 304.0).toDouble(),
       BattleViewportClass.mediumLandscape =>
         (sceneRect.height * 0.34).clamp(138.0, 168.0).toDouble(),
       BattleViewportClass.wideDesktop =>
@@ -247,8 +247,8 @@ final class BattleSceneLayout {
           (sceneRect.width * 0.33).clamp(122.0, 160.0).toDouble(),
           (sceneRect.height * 0.061).clamp(46.0, 52.0).toDouble(),
         ),
-      BattleViewportClass.mediumLandscape => mapRect(16, 8, 210, 68),
-      BattleViewportClass.wideDesktop => mapRect(16, 8, 210, 68),
+      BattleViewportClass.mediumLandscape => mapRect(16, 8, 210, 70),
+      BattleViewportClass.wideDesktop => mapRect(16, 8, 210, 70),
     };
     final playerHudRect = switch (viewportClass) {
       BattleViewportClass.compactPortrait => Rect.fromLTWH(
@@ -261,8 +261,8 @@ final class BattleSceneLayout {
           (sceneRect.width * 0.36).clamp(142.0, 180.0).toDouble(),
           (sceneRect.height * 0.068).clamp(54.0, 60.0).toDouble(),
         ),
-      BattleViewportClass.mediumLandscape => mapRect(668, 232, 244, 72),
-      BattleViewportClass.wideDesktop => mapRect(668, 232, 244, 72),
+      BattleViewportClass.mediumLandscape => mapRect(668, 232, 244, 74),
+      BattleViewportClass.wideDesktop => mapRect(668, 232, 244, 74),
     };
 
     return BattleSceneLayout._(

@@ -56,17 +56,30 @@ void main() {
             findsOneWidget,
           );
           _expectRectClose(panelRect, layout.commandPanelRect);
-          expect(dialogueRect.left, closeTo(panelRect.left, 0.5));
-          expect(dialogueRect.top, closeTo(panelRect.top, 0.5));
-          expect(dialogueRect.bottom, closeTo(panelRect.bottom, 0.5));
-          expect(actionsRect.right, closeTo(panelRect.right, 0.5));
-          expect(actionsRect.top, closeTo(panelRect.top, 0.5));
-          expect(actionsRect.bottom, closeTo(panelRect.bottom, 0.5));
-          expect(actionsRect.left - dialogueRect.right, closeTo(8, 0.5));
-          expect(
-            dialogueRect.width / panelRect.width,
-            closeTo(0.47, 0.03),
-          );
+          final compactPortrait =
+              viewport.width < 480 && viewport.height > viewport.width;
+          if (compactPortrait) {
+            expect(dialogueRect.left, closeTo(panelRect.left, 0.5));
+            expect(dialogueRect.right, closeTo(panelRect.right, 0.5));
+            expect(dialogueRect.top, closeTo(panelRect.top, 0.5));
+            expect(actionsRect.left, closeTo(panelRect.left, 0.5));
+            expect(actionsRect.right, closeTo(panelRect.right, 0.5));
+            expect(actionsRect.bottom, closeTo(panelRect.bottom, 0.5));
+            expect(actionsRect.top - dialogueRect.bottom, closeTo(8, 0.5));
+            expect(dialogueRect.bottom, lessThan(actionsRect.top));
+          } else {
+            expect(dialogueRect.left, closeTo(panelRect.left, 0.5));
+            expect(dialogueRect.top, closeTo(panelRect.top, 0.5));
+            expect(dialogueRect.bottom, closeTo(panelRect.bottom, 0.5));
+            expect(actionsRect.right, closeTo(panelRect.right, 0.5));
+            expect(actionsRect.top, closeTo(panelRect.top, 0.5));
+            expect(actionsRect.bottom, closeTo(panelRect.bottom, 0.5));
+            expect(actionsRect.left - dialogueRect.right, closeTo(8, 0.5));
+            expect(
+              dialogueRect.width / panelRect.width,
+              closeTo(0.47, 0.03),
+            );
+          }
           expect(
             dialogueRect.contains(
               tester.getCenter(
@@ -89,6 +102,24 @@ void main() {
               find.byKey(const ValueKey<String>('battle-hud-target-player')),
             ),
             layout.playerHudRect,
+          );
+          expect(
+            find.byKey(const ValueKey<String>('battle-owner-enemy')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const ValueKey<String>('battle-owner-player')),
+            findsNothing,
+          );
+          expect(
+            tester
+                .getRect(
+                  find.byKey(
+                    const ValueKey<String>('battle-species-enemy'),
+                  ),
+                )
+                .left,
+            greaterThanOrEqualTo(layout.enemyHudRect.left + 4),
           );
           for (var index = 0; index < 4; index++) {
             final entryRect = tester.getRect(
@@ -277,6 +308,40 @@ void main() {
       );
       expect(species.style?.color, semantic.textPrimary);
       expect(exactHp.style?.color, semantic.textPrimary);
+      final enemyMaterial = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byKey(
+                const ValueKey<String>('battle-hud-target-enemy'),
+              ),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      final playerMaterial = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byKey(
+                const ValueKey<String>('battle-hud-target-player'),
+              ),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(
+        enemyMaterial.color,
+        Color.alphaBlend(
+          semantic.danger.withValues(alpha: .10),
+          semantic.battleHudSurface,
+        ),
+      );
+      expect(
+        playerMaterial.color,
+        Color.alphaBlend(
+          theme.extension<PokeMapPlayerColors>()!.focus.withValues(alpha: .10),
+          semantic.battleHudSurface,
+        ),
+      );
     },
   );
 
@@ -338,29 +403,135 @@ void main() {
       expect(
         entryMaterial(0).color,
         Color.alphaBlend(
-          const Color(0xFFB83B54).withValues(alpha: .34),
+          const Color(0xFFB83B54).withValues(alpha: .48),
           surface,
         ),
       );
       expect(
         entryMaterial(1).color,
         Color.alphaBlend(
-          semantic.warning.withValues(alpha: .24),
+          semantic.warning.withValues(alpha: .34),
           surface,
         ),
       );
       expect(
         entryMaterial(2).color,
         Color.alphaBlend(
-          semantic.success.withValues(alpha: .24),
+          semantic.success.withValues(alpha: .34),
           surface,
         ),
       );
       expect(
         entryMaterial(3).color,
         Color.alphaBlend(
-          const Color(0xFF305FD9).withValues(alpha: .24),
+          const Color(0xFF305FD9).withValues(alpha: .34),
           surface,
+        ),
+      );
+    },
+  );
+
+  testWidgets(
+    'French battle chrome and move tones stay distinct on the project palette',
+    (tester) async {
+      const semantic = PokeMapPlayerSemanticTheme(
+        primary: Color(0xFFB83B54),
+        onPrimary: Color(0xFFFFFFFF),
+        background: Color(0xFFE0E0DF),
+        surface: Color(0xFFF8F8F8),
+        surfaceElevated: Color(0xFFF8F8F8),
+        textPrimary: Color(0xFF303030),
+        textSecondary: Color(0xFF5A5A5A),
+        outline: Color(0xFF484848),
+        success: Color(0xFF16794B),
+        warning: Color(0xFF8A5100),
+        danger: Color(0xFFB4233C),
+        titleSurface: Color(0xFFE0E0DF),
+        dialogueSurface: Color(0xFFF8F8F8),
+        menuSurface: Color(0xFFF8F8F8),
+        overworldHudSurface: Color(0xFFF8F8F8),
+        battleHudSurface: Color(0xFFF8F8F8),
+      );
+      final theme = PokeMapPlayerTheme.withSurfacePalettes(
+        PokeMapPlayerTheme.withSemanticTheme(
+          PokeMapPlayerTheme.light(),
+          semantic,
+        ),
+        const ProjectPresentationSurfacePalettesProfile(
+          battle: ProjectSurfacePaletteProfile(
+            surface: '#F8F8F8',
+            border: '#484848',
+            text: '#303030',
+          ),
+        ),
+      );
+      final playerColors = theme.extension<PokeMapPlayerColors>()!;
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          title: 'MOVES',
+          entries: const <BattleCommandOverlayEntry>[
+            BattleCommandOverlayEntry(
+              index: 0,
+              kind: BattleCommandOverlayEntryKind.move,
+              primaryLabel: 'Rugissement',
+              secondaryLabel: '',
+              enabled: true,
+              selected: false,
+              tone: BattleCommandOverlayEntryTone.support,
+            ),
+            BattleCommandOverlayEntry(
+              index: 1,
+              kind: BattleCommandOverlayEntryKind.move,
+              primaryLabel: "Écras'Face",
+              secondaryLabel: '',
+              enabled: true,
+              selected: false,
+              tone: BattleCommandOverlayEntryTone.attack,
+            ),
+            BattleCommandOverlayEntry(
+              index: 2,
+              kind: BattleCommandOverlayEntryKind.move,
+              primaryLabel: 'Écume',
+              secondaryLabel: '',
+              enabled: true,
+              selected: false,
+              tone: BattleCommandOverlayEntryTone.special,
+            ),
+          ],
+        ),
+        onCommand: (_) {},
+        theme: theme,
+      );
+
+      Material entryMaterial(int index) {
+        final semantics = tester.widget<Semantics>(
+          find.byKey(ValueKey<String>('battle-entry-$index')),
+        );
+        return (semantics.child! as Tooltip).child! as Material;
+      }
+
+      expect(find.text('CAPACITÉS'), findsOneWidget);
+      expect(find.text('MOVES'), findsNothing);
+      expect(
+        entryMaterial(0).color,
+        Color.alphaBlend(
+          semantic.warning.withValues(alpha: .34),
+          semantic.surfaceElevated,
+        ),
+      );
+      expect(
+        entryMaterial(1).color,
+        Color.alphaBlend(
+          semantic.primary.withValues(alpha: .34),
+          semantic.surfaceElevated,
+        ),
+      );
+      expect(
+        entryMaterial(2).color,
+        Color.alphaBlend(
+          playerColors.focus.withValues(alpha: .34),
+          semantic.surfaceElevated,
         ),
       );
     },
@@ -786,6 +957,8 @@ BattleCommandOverlaySnapshot _snapshot({
   int enemyHp = 23,
   int enemyMaxHp = 80,
   String? enemyStatus = 'PAR',
+  String? title,
+  List<BattleCommandOverlayEntry>? entries,
 }) {
   final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
   return BattleCommandOverlaySnapshot(
@@ -811,32 +984,34 @@ BattleCommandOverlaySnapshot _snapshot({
       maxHp: 72,
     ),
     battleLabel: 'COMBAT DE DRESSEUR',
-    title: mode == BattleCommandOverlayMode.pokemon ? 'ÉQUIPE' : 'CAPACITÉS',
+    title: title ??
+        (mode == BattleCommandOverlayMode.pokemon ? 'ÉQUIPE' : 'CAPACITÉS'),
     prompt: phase == BattlePresentationPhase.forcedReplacement
         ? 'Choisissez un remplaçant.'
         : 'Choisissez une capacité.',
     narrationLines: const <String>[],
-    entries: const <BattleCommandOverlayEntry>[
-      BattleCommandOverlayEntry(
-        index: 0,
-        kind: BattleCommandOverlayEntryKind.move,
-        primaryLabel: 'Vive-Attaque',
-        secondaryLabel: 'NORMAL · PP 0/30',
-        enabled: false,
-        selected: false,
-        tone: BattleCommandOverlayEntryTone.disabled,
-      ),
-      BattleCommandOverlayEntry(
-        index: 1,
-        kind: BattleCommandOverlayEntryKind.move,
-        primaryLabel: 'Tonnerre',
-        secondaryLabel: 'ÉLECTRIK · PP 12/15',
-        statusLabel: 'Super efficace',
-        enabled: true,
-        selected: true,
-        tone: BattleCommandOverlayEntryTone.special,
-      ),
-    ],
+    entries: entries ??
+        const <BattleCommandOverlayEntry>[
+          BattleCommandOverlayEntry(
+            index: 0,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Vive-Attaque',
+            secondaryLabel: 'NORMAL · PP 0/30',
+            enabled: false,
+            selected: false,
+            tone: BattleCommandOverlayEntryTone.disabled,
+          ),
+          BattleCommandOverlayEntry(
+            index: 1,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Tonnerre',
+            secondaryLabel: 'ÉLECTRIK · PP 12/15',
+            statusLabel: 'Super efficace',
+            enabled: true,
+            selected: true,
+            tone: BattleCommandOverlayEntryTone.special,
+          ),
+        ],
     interactionsEnabled: true,
     canGoBack: canGoBack,
   );

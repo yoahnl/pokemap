@@ -354,6 +354,7 @@ class RuntimePokemonSpeciesLoader {
     final speciesFile = _parseSharedSpeciesFile(rawJson, filePath: filePath);
     final runtimeSpecies = RuntimePokemonSpecies(
       id: expectedSpeciesId,
+      names: Map<String, String>.unmodifiable(speciesFile.names),
       formId: speciesFile.forms.formId,
       typing: typing,
       baseHp: baseHp,
@@ -630,6 +631,7 @@ final class _RuntimePokemonSpeciesSnapshot {
 class RuntimePokemonSpecies {
   const RuntimePokemonSpecies({
     required this.id,
+    this.names = const <String, String>{},
     this.formId = '',
     required this.typing,
     required this.baseHp,
@@ -652,7 +654,14 @@ class RuntimePokemonSpecies {
   });
 
   final String id;
+  final Map<String, String> names;
   final String formId;
+
+  String displayName(String locale) => resolveLocalizedName(
+        names: names,
+        locale: locale,
+        fallback: id,
+      );
 
   /// Typing défensif minimal réellement nécessaire à partir de BE5.
   ///

@@ -270,6 +270,12 @@ final class PokeMapPlayerLocalizations {
   String get postBattle => _fr ? 'Après-combat' : 'Post-battle';
   String get progression => _fr ? 'Progression' : 'Progress';
   String get battleResult => _fr ? 'Résultat du combat' : 'Battle result';
+  String get battleCommands => _fr ? 'COMMANDES' : 'COMMANDS';
+  String get battleMoves => _fr ? 'CAPACITÉS' : 'MOVES';
+  String get battleBag => _fr ? 'SAC' : 'BAG';
+  String get battleTarget => _fr ? 'CIBLE' : 'TARGET';
+  String get battlePokemon => _fr ? 'ÉQUIPE' : 'POKÉMON';
+  String get battleContinue => _fr ? 'CONTINUER' : 'CONTINUE';
   String get reward => _fr ? 'Récompense' : 'Reward';
   String get decision => _fr ? 'Décision' : 'Decision';
   String get shopItems => _fr ? 'Objets' : 'Items';

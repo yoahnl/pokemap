@@ -55,12 +55,18 @@ String buildBattleDecisionPromptForOverlay(BattleDecisionRequest request) {
   };
 }
 
-String buildBattleDecisionPromptForSession(BattleSession session) {
+typedef BattleSpeciesDisplayNameResolver = String Function(String speciesId);
+
+String buildBattleDecisionPromptForSession(
+  BattleSession session, {
+  BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName =
+      _battleDisplayName,
+}) {
   return switch (session.decisionRequest) {
     BattleTurnChoiceRequest() =>
-      'Que doit faire ${_battleDisplayName(session.state.player.speciesId)} ?',
+      'Que doit faire ${resolveSpeciesDisplayName(session.state.player.speciesId)} ?',
     BattleForcedReplacementRequest() =>
-      '${_battleDisplayName(session.state.player.speciesId)} est K.O. Choisis un remplaçant.',
+      '${resolveSpeciesDisplayName(session.state.player.speciesId)} est K.O. Choisis un remplaçant.',
     BattleContinueRequest() => 'Appuie pour continuer.',
     BattleWaitRequest(:final reason) => switch (reason) {
         BattleWaitReason.battleFinished => 'Combat terminé.',
@@ -138,7 +144,11 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
 /// - on reste adossé à la timeline observable du moteur ;
 /// - quand aucun tour n'est disponible, on retombe sur la requête courante ;
 /// - on n'invente pas de narration "UI-only".
-List<String> buildBattleNarrationLinesForOverlay(BattleSession session) {
+List<String> buildBattleNarrationLinesForOverlay(
+  BattleSession session, {
+  BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName =
+      _battleDisplayName,
+}) {
   final currentTurn = session.state.currentTurn;
   if (currentTurn != null) {
     final lines = buildBattleTurnLinesForOverlay(currentTurn);
@@ -154,12 +164,19 @@ List<String> buildBattleNarrationLinesForOverlay(BattleSession session) {
     ]);
   }
 
-  return buildBattleOpeningNarrationLinesForOverlay(session);
+  return buildBattleOpeningNarrationLinesForOverlay(
+    session,
+    resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+  );
 }
 
-List<String> buildBattleOpeningNarrationLinesForOverlay(BattleSession session) {
-  final enemyName = _battleDisplayName(session.state.enemy.speciesId);
-  final playerName = _battleDisplayName(session.state.player.speciesId);
+List<String> buildBattleOpeningNarrationLinesForOverlay(
+  BattleSession session, {
+  BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName =
+      _battleDisplayName,
+}) {
+  final enemyName = resolveSpeciesDisplayName(session.state.enemy.speciesId);
+  final playerName = resolveSpeciesDisplayName(session.state.player.speciesId);
   if (session.setup.isTrainerBattle) {
     final trainerName = session.setup.trainerId?.trim();
     final challenger = trainerName == null || trainerName.isEmpty
@@ -431,6 +448,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.bagItemIconResolver,
     this.genderResolver,
     this.resolveMoveDisplayName = _defaultBattleMoveDisplayName,
+    this.resolveSpeciesDisplayName = _battleDisplayName,
     this.showDebugPanel = false,
     RuntimeMoveCatalog? moveCatalog,
     BattleMoveVisualResolver? moveVisualResolver,
@@ -474,6 +492,7 @@ class BattleOverlayComponent extends PositionComponent {
   final BattleBagItemIconResolver? bagItemIconResolver;
   final BattleCombatantGenderResolver? genderResolver;
   final BattleMoveDisplayNameResolver resolveMoveDisplayName;
+  final BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName;
   final RuntimeMoveCatalog _moveCatalog;
   late final BattleMoveVisualResolver _moveVisualResolver;
   final BattleFxBundleCache _fxBundleCache;
@@ -560,12 +579,18 @@ class BattleOverlayComponent extends PositionComponent {
   String get currentPromptText =>
       _commandPanel?.currentPromptText ??
       _currentCommandOverlaySnapshot?.prompt ??
-      buildBattleDecisionPromptForSession(_session);
+      buildBattleDecisionPromptForSession(
+        _session,
+        resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+      );
 
   @visibleForTesting
   String get currentNarrationText =>
       (_currentCommandOverlaySnapshot?.narrationLines ??
-              buildBattleNarrationLinesForOverlay(_session))
+              buildBattleNarrationLinesForOverlay(
+                _session,
+                resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+              ))
           .join('\n');
 
   @visibleForTesting
@@ -720,7 +745,7 @@ class BattleOverlayComponent extends PositionComponent {
       sceneFootAnchor: layout.enemyFootAnchor,
       spriteFootXRatio: 0.5,
       isPlayerSide: false,
-      speciesLabel: _session.state.enemy.speciesId,
+      speciesLabel: resolveSpeciesDisplayName(_session.state.enemy.speciesId),
       visualAssetCache: visualAssetCache,
     );
     await add(_enemyCombatant!);
@@ -736,7 +761,7 @@ class BattleOverlayComponent extends PositionComponent {
       sceneFootAnchor: layout.playerFootAnchor,
       spriteFootXRatio: 0.68,
       isPlayerSide: true,
-      speciesLabel: _session.state.player.speciesId,
+      speciesLabel: resolveSpeciesDisplayName(_session.state.player.speciesId),
       visualAssetCache: visualAssetCache,
     );
     await add(_playerCombatant!);
@@ -1322,7 +1347,8 @@ class BattleOverlayComponent extends PositionComponent {
 
     if (_enemyCombatant != null && enemySpriteSpec != null) {
       await _enemyCombatant!.sync(
-        speciesLabel: displayedEnemyCombatant.speciesId,
+        speciesLabel:
+            resolveSpeciesDisplayName(displayedEnemyCombatant.speciesId),
         spriteSpec: enemySpriteSpec,
       );
       if (!_isCurrentPresentationGeneration(presentationGeneration)) {
@@ -1331,7 +1357,8 @@ class BattleOverlayComponent extends PositionComponent {
     }
     if (_playerCombatant != null && playerSpriteSpec != null) {
       await _playerCombatant!.sync(
-        speciesLabel: displayedPlayerCombatant.speciesId,
+        speciesLabel:
+            resolveSpeciesDisplayName(displayedPlayerCombatant.speciesId),
         spriteSpec: playerSpriteSpec,
       );
       if (!_isCurrentPresentationGeneration(presentationGeneration)) {
@@ -1421,9 +1448,8 @@ class BattleOverlayComponent extends PositionComponent {
       combatant: combatant,
       isPlayerSide: isPlayerSide,
     );
-    return genderSymbol == null
-        ? combatant.speciesId
-        : '${combatant.speciesId} $genderSymbol';
+    final speciesName = resolveSpeciesDisplayName(combatant.speciesId);
+    return genderSymbol == null ? speciesName : '$speciesName $genderSymbol';
   }
 
   void _syncPanelsOnly() {
@@ -1472,13 +1498,19 @@ class BattleOverlayComponent extends PositionComponent {
         medicineTargetPrompt ??
         bagPrompt ??
         partyPrompt ??
-        buildBattleDecisionPromptForSession(_session);
+        buildBattleDecisionPromptForSession(
+          _session,
+          resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+        );
     final resolvedNarration = isPresenting
         ? const <String>[]
         : (medicineTargetNarration ??
             bagNarration ??
             partyNarration ??
-            buildBattleNarrationLinesForOverlay(_session));
+            buildBattleNarrationLinesForOverlay(
+              _session,
+              resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+            ));
 
     _commandPanel?.sync(
       battleLabel: _titleForSession(),
@@ -1583,7 +1615,7 @@ class BattleOverlayComponent extends PositionComponent {
     return BattleCommandOverlayHudSnapshot(
       rect: rect,
       ownerLabel: ownerLabel,
-      speciesLabel: combatant.speciesId,
+      speciesLabel: resolveSpeciesDisplayName(combatant.speciesId),
       level: combatant.level,
       currentHp: combatant.currentHp,
       maxHp: combatant.maxHp,
@@ -1665,7 +1697,8 @@ class BattleOverlayComponent extends PositionComponent {
                 (entry) => BattleCommandOverlayEntry(
                   index: entry.key,
                   kind: BattleCommandOverlayEntryKind.party,
-                  primaryLabel: entry.value.speciesId,
+                  primaryLabel:
+                      resolveSpeciesDisplayName(entry.value.speciesId),
                   secondaryLabel:
                       '${entry.value.currentHp}/${entry.value.maxHp} PV',
                   trailingLabel: 'Nv. ${entry.value.level}',
@@ -1689,7 +1722,8 @@ class BattleOverlayComponent extends PositionComponent {
                 (entry) => BattleCommandOverlayEntry(
                   index: entry.key,
                   kind: BattleCommandOverlayEntryKind.medicineTarget,
-                  primaryLabel: entry.value.speciesId,
+                  primaryLabel:
+                      resolveSpeciesDisplayName(entry.value.speciesId),
                   secondaryLabel:
                       '${entry.value.currentHp}/${entry.value.maxHp} PV',
                   trailingLabel: 'Nv. ${entry.value.level}',
@@ -2851,7 +2885,7 @@ class BattleOverlayComponent extends PositionComponent {
         return;
       }
       await sceneCombatant.sync(
-        speciesLabel: combatant.speciesId,
+        speciesLabel: resolveSpeciesDisplayName(combatant.speciesId),
         spriteSpec: spriteSpec,
       );
       if (!_isCurrentPresentationGeneration(presentationGeneration)) {

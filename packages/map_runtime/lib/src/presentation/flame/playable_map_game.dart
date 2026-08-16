@@ -7589,6 +7589,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         projectRootDirectory: _bundle.projectRootDirectory,
         pokemonConfig: _bundle.manifest.pokemon,
       );
+      final battleSpeciesDisplayNames =
+          await _loadBattleSpeciesDisplayNames(_battleSession!);
 
       // Afficher l'overlay de combat avec la session
       final overlay = _traceSync(
@@ -7608,6 +7610,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           ),
           genderResolver: genderResolver,
           resolveMoveDisplayName: _resolveBattleMoveDisplayName,
+          resolveSpeciesDisplayName: (speciesId) =>
+              battleSpeciesDisplayNames[speciesId] ?? speciesId,
           onPlayerChoice: _onPlayerBattleChoice,
           onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
           onCommandOverlaySnapshotChanged: (snapshot) {
@@ -7649,6 +7653,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return fallbackName;
     }
     return move.displayName(runtimeLocale);
+  }
+
+  Future<Map<String, String>> _loadBattleSpeciesDisplayNames(
+    BattleSession session,
+  ) async {
+    final state = session.state;
+    final speciesIds = <String>{
+      state.player.speciesId,
+      state.enemy.speciesId,
+      for (final combatant in state.playerReserve) combatant.speciesId,
+      for (final combatant in state.enemyReserve) combatant.speciesId,
+    };
+    final species = await Future.wait(
+      speciesIds.map(
+        (speciesId) => _battleSpeciesLoader.loadById(
+          projectRootDirectory: _bundle.projectRootDirectory,
+          pokemonConfig: _bundle.manifest.pokemon,
+          speciesId: speciesId,
+        ),
+      ),
+    );
+    return Map<String, String>.unmodifiable(<String, String>{
+      for (final entry in species) entry.id: entry.displayName(runtimeLocale),
+    });
   }
 
   /// Mappe BattleStartRequest → BattleSetup.
