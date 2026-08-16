@@ -13,3 +13,4 @@ export 'src/item_system_transport_evidence_collector.dart';
 export 'src/item_system_v1_certification_runner.dart';
 export 'src/neutral_certification_game_fixture.dart';
 export 'src/product_certification_receipt.dart';
+export 'src/presentation_runtime_performance_receipt.dart';
