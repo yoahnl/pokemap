@@ -20,6 +20,13 @@ enum PokeMapCinematicDocumentState {
 
 enum PokeMapCinematicPanelTab { layers, properties }
 
+const pokeMapCinematicLayersTabKey = ValueKey<String>(
+  'pokemap-cinematic-layers-tab',
+);
+const pokeMapCinematicPropertiesTabKey = ValueKey<String>(
+  'pokemap-cinematic-properties-tab',
+);
+
 class PokeMapCinematicInspectorSection extends StatelessWidget {
   const PokeMapCinematicInspectorSection({
     super.key,
@@ -305,6 +312,7 @@ class PokeMapCinematicPanelTabs extends StatelessWidget {
           children: [
             Expanded(
               child: PokeMapButton(
+                key: pokeMapCinematicLayersTabKey,
                 semanticLabel: layersLabel,
                 onPressed: onChanged == null
                     ? null
@@ -318,6 +326,7 @@ class PokeMapCinematicPanelTabs extends StatelessWidget {
             const SizedBox(width: 4),
             Expanded(
               child: PokeMapButton(
+                key: pokeMapCinematicPropertiesTabKey,
                 semanticLabel: propertiesLabel,
                 onPressed: onChanged == null
                     ? null

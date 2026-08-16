@@ -156,6 +156,22 @@ final class PresentationStudioInsertionResult {
   final String? layerId;
 }
 
+final class PresentationStudioPreparedInsertion {
+  PresentationStudioPreparedInsertion({
+    required this.actionId,
+    required Map<String, Object?> parameters,
+    required this.trackId,
+    required this.clipId,
+    required this.layerId,
+  }) : parameters = Map<String, Object?>.unmodifiable(parameters);
+
+  final String actionId;
+  final Map<String, Object?> parameters;
+  final String trackId;
+  final String clipId;
+  final String? layerId;
+}
+
 final class PresentationStudioImportCancelled implements Exception {
   const PresentationStudioImportCancelled();
 }
@@ -279,59 +295,16 @@ final class CanonicalPresentationStudioAddAuthoringGateway
       projectRootPath,
       expectedProject,
     );
-    final cinematic = expectedProject.presentationCinematics.singleWhere(
-      (item) => item.id == request.asset.id,
-    );
-    _validateInsertion(cinematic, request);
     final identity = _identity('presentation_insert');
-    final layerId = _requiresLayer(request.category) ? 'layer-$identity' : null;
-    final trackId = 'track-$identity';
-    final clipId = 'clip-$identity';
-    final layer = layerId == null
-        ? null
-        : PresentationLayer(
-            id: layerId,
-            label: request.label,
-            zIndex:
-                cinematic.layers.fold<int>(
-                  -1,
-                  (maximum, item) =>
-                      item.zIndex > maximum ? item.zIndex : maximum,
-                ) +
-                1,
-          );
-    final clip = _clip(request, clipId: clipId, layerId: layerId);
-    final track = PresentationTrack(
-      id: trackId,
-      label: request.label,
-      kind: clip.trackKind,
-      clips: <PresentationClip>[clip],
-    );
-    final encoded = encodePresentationCinematicAsset(
-      PresentationCinematicAsset(
-        id: cinematic.id,
-        title: cinematic.title,
-        description: cinematic.description,
-        durationUs: cinematic.durationUs,
-        layers: layer == null
-            ? const <PresentationLayer>[]
-            : <PresentationLayer>[layer],
-        tracks: <PresentationTrack>[track],
-      ),
+    final prepared = preparePresentationStudioInsertion(
+      expectedProject,
+      request: request,
+      identity: identity,
     );
     final plan = await _mutations.plan(
       projectRootPath,
-      actionId: 'presentationTimeline.insert',
-      parameters: <String, Object?>{
-        'cinematicId': cinematic.id,
-        'targetVisualFolderId': layer == null
-            ? null
-            : request.targetVisualFolderId,
-        'layer': layer == null
-            ? null
-            : (encoded['layers']! as List<Object?>).single,
-        'track': (encoded['tracks']! as List<Object?>).single,
-      },
+      actionId: prepared.actionId,
+      parameters: prepared.parameters,
       idempotencyKey: identity,
       requestId: '${identity}_request',
       expectedRevision: before.snapshotRevision,
@@ -344,9 +317,9 @@ final class CanonicalPresentationStudioAddAuthoringGateway
     return PresentationStudioInsertionResult(
       manifest: after.manifest,
       receiptId: applied.receipt.receiptId,
-      trackId: trackId,
-      clipId: clipId,
-      layerId: layerId,
+      trackId: prepared.trackId,
+      clipId: prepared.clipId,
+      layerId: prepared.layerId,
     );
   }
 
@@ -370,6 +343,74 @@ final class CanonicalPresentationStudioAddAuthoringGateway
     _sequence += 1;
     return '${DateTime.now().toUtc().microsecondsSinceEpoch}-$_sequence';
   }
+}
+
+PresentationStudioPreparedInsertion preparePresentationStudioInsertion(
+  ProjectManifest project, {
+  required PresentationStudioInsertionRequest request,
+  required String identity,
+}) {
+  final normalizedIdentity = identity.trim();
+  if (normalizedIdentity.isEmpty || normalizedIdentity != identity) {
+    throw ArgumentError.value(identity, 'identity', 'must be nonblank');
+  }
+  final cinematic = project.presentationCinematics.singleWhere(
+    (item) => item.id == request.asset.id,
+  );
+  _validateInsertion(cinematic, request);
+  final layerId = _requiresLayer(request.category)
+      ? 'layer-$normalizedIdentity'
+      : null;
+  final trackId = 'track-$normalizedIdentity';
+  final clipId = 'clip-$normalizedIdentity';
+  final layer = layerId == null
+      ? null
+      : PresentationLayer(
+          id: layerId,
+          label: request.label,
+          zIndex:
+              cinematic.layers.fold<int>(
+                -1,
+                (maximum, item) =>
+                    item.zIndex > maximum ? item.zIndex : maximum,
+              ) +
+              1,
+        );
+  final clip = _clip(request, clipId: clipId, layerId: layerId);
+  final track = PresentationTrack(
+    id: trackId,
+    label: request.label,
+    kind: clip.trackKind,
+    clips: <PresentationClip>[clip],
+  );
+  final encoded = encodePresentationCinematicAsset(
+    PresentationCinematicAsset(
+      id: cinematic.id,
+      title: cinematic.title,
+      description: cinematic.description,
+      durationUs: cinematic.durationUs,
+      layers: layer == null
+          ? const <PresentationLayer>[]
+          : <PresentationLayer>[layer],
+      tracks: <PresentationTrack>[track],
+    ),
+  );
+  return PresentationStudioPreparedInsertion(
+    actionId: 'presentationTimeline.insert',
+    parameters: <String, Object?>{
+      'cinematicId': cinematic.id,
+      'targetVisualFolderId': layer == null
+          ? null
+          : request.targetVisualFolderId,
+      'layer': layer == null
+          ? null
+          : (encoded['layers']! as List<Object?>).single,
+      'track': (encoded['tracks']! as List<Object?>).single,
+    },
+    trackId: trackId,
+    clipId: clipId,
+    layerId: layerId,
+  );
 }
 
 List<Map<String, Object?>> _queryAll(

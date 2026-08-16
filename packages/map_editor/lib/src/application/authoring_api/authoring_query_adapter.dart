@@ -17,10 +17,10 @@ final class AuthoringQueryAdapter
     required ProjectFileReader fileReader,
     ProjectSnapshotFingerprintCache? fingerprintCache,
     ProjectSnapshotCache? snapshotCache,
-  })  : _fileReader = fileReader,
-        _fingerprintCache =
-            fingerprintCache ?? ProjectSnapshotFingerprintCache(),
-        _snapshotCache = snapshotCache ?? ProjectSnapshotCache();
+  }) : _fileReader = fileReader,
+       _fingerprintCache =
+           fingerprintCache ?? ProjectSnapshotFingerprintCache(),
+       _snapshotCache = snapshotCache ?? ProjectSnapshotCache();
 
   final ProjectFileReader _fileReader;
   final ProjectSnapshotFingerprintCache _fingerprintCache;
@@ -217,12 +217,12 @@ final class EditorAuthoringReadSession {
     required ProjectSnapshot snapshot,
     required void Function(int delta) onOperationDelta,
     required void Function() onClosed,
-  })  : _api = api,
-        _workspaceHandle = workspaceHandle,
-        _projectHandle = projectHandle,
-        _snapshot = snapshot,
-        _onOperationDelta = onOperationDelta,
-        _onClosed = onClosed;
+  }) : _api = api,
+       _workspaceHandle = workspaceHandle,
+       _projectHandle = projectHandle,
+       _snapshot = snapshot,
+       _onOperationDelta = onOperationDelta,
+       _onClosed = onClosed;
 
   final AuthoringReadServicePort _api;
   final WorkspaceHandle _workspaceHandle;
@@ -239,6 +239,18 @@ final class EditorAuthoringReadSession {
   bool get isClosed => _closed;
 
   String get snapshotRevision => _snapshot.revision;
+
+  PresentationCinematicDraft presentationCinematicDraft({
+    required ProjectManifest expectedProject,
+    bool allowProjectedProject = false,
+  }) {
+    _requireOpen();
+    return PresentationCinematicDraft.fromSnapshot(
+      _snapshot,
+      expectedProject: expectedProject,
+      allowProjectedProject: allowProjectedProject,
+    );
+  }
 
   ProjectManifest get manifest {
     _requireOpen();
@@ -319,7 +331,8 @@ final class EditorAuthoringReadSession {
   Map<String, Object?> validate() {
     _requireOpen();
     final references = ProjectReferenceIndex.fromSnapshot(_snapshot);
-    final hasErrors = references.diagnostics.any(
+    final hasErrors =
+        references.diagnostics.any(
           (diagnostic) => diagnostic.severity == ProjectReferenceSeverity.error,
         ) ||
         _snapshot.loadDiagnostics.any((diagnostic) => diagnostic.blocking);

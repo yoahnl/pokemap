@@ -51,9 +51,7 @@ void main() {
         expect(find.byType(ProjectExplorerPanel), findsNothing);
         expect(
           find.byKey(
-            const ValueKey<String>(
-              'narrative-studio-product-nav-cinematics',
-            ),
+            const ValueKey<String>('narrative-studio-product-nav-cinematics'),
           ),
           findsOneWidget,
         );
@@ -82,9 +80,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text(
-          'Narrative Studio  /  Cinématiques  /  Intro cinématique',
-        ),
+        find.text('Narrative Studio  /  Cinématiques  /  Intro cinématique'),
         findsOneWidget,
       );
       expect(
@@ -121,9 +117,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(CinematicBuilderWorkspace), findsOneWidget);
       await tester.tap(
-        find.byKey(
-          const ValueKey('narrative-studio-product-nav-cinematics'),
-        ),
+        find.byKey(const ValueKey('narrative-studio-product-nav-cinematics')),
       );
       await tester.pumpAndSettle();
       expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
@@ -169,9 +163,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(
-          const ValueKey('cinematics-library-requested-unavailable'),
-        ),
+        find.byKey(const ValueKey('cinematics-library-requested-unavailable')),
         findsOneWidget,
       );
       expect(find.text('Cinématique introuvable'), findsOneWidget);
@@ -181,15 +173,14 @@ void main() {
         findsNothing,
         reason: 'Une cible obsolète ne doit pas sélectionner le premier item.',
       );
-      final staleNavigation =
-          container.read(narrativeStudioNavigationControllerProvider);
+      final staleNavigation = container.read(
+        narrativeStudioNavigationControllerProvider,
+      );
       expect(staleNavigation.pendingReturn, returnExpectation);
       expect(staleNavigation.restorationRequest, isNull);
 
       await tester.tap(
-        find.byKey(
-          const ValueKey('narrative-studio-product-nav-return'),
-        ),
+        find.byKey(const ValueKey('narrative-studio-product-nav-return')),
       );
       await tester.pumpAndSettle();
 
@@ -204,9 +195,7 @@ void main() {
         isNull,
       );
       expect(
-        find.byKey(
-          const ValueKey('cinematics-library-requested-unavailable'),
-        ),
+        find.byKey(const ValueKey('cinematics-library-requested-unavailable')),
         findsNothing,
       );
       expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
@@ -240,9 +229,7 @@ void main() {
         find.byKey(const ValueKey('cinematic-asset-presentation-opening')),
       );
       await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('cinematic-open-selection')),
-      );
+      await tester.tap(find.byKey(const ValueKey('cinematic-open-selection')));
       await tester.pumpAndSettle();
 
       final route = container
@@ -260,9 +247,7 @@ void main() {
         ),
       );
       expect(
-        find.byKey(
-          const ValueKey('cinematics-presentation-document-route'),
-        ),
+        find.byKey(const ValueKey('cinematics-presentation-document-route')),
         findsOneWidget,
       );
       expect(find.byType(PresentationStudioShell), findsOneWidget);
@@ -283,9 +268,7 @@ void main() {
       await tester.tap(find.byKey(presentationStudioPortraitModeKey));
       await tester.pump();
       expect(
-        find.byKey(
-          const ValueKey('presentation-studio-portrait-viewport'),
-        ),
+        find.byKey(const ValueKey('presentation-studio-portrait-viewport')),
         findsOneWidget,
       );
 
@@ -443,8 +426,9 @@ void main() {
       );
       expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
 
-      final deleteButton =
-          find.byKey(const ValueKey('cinematics-library-delete-button'));
+      final deleteButton = find.byKey(
+        const ValueKey('cinematics-library-delete-button'),
+      );
       await tester.tap(deleteButton);
       await tester.pump();
       await tester.tap(deleteButton);
@@ -513,9 +497,10 @@ void main() {
 
       expect(find.byType(CinematicBuilderWorkspace), findsOneWidget);
       expect(
-        _readManifest(manifestFile).cinematics.singleWhere(
-          (asset) => asset.title == 'Arrivée sur l’île',
-        ).timeline.steps,
+        _readManifest(manifestFile).cinematics
+            .singleWhere((asset) => asset.title == 'Arrivée sur l’île')
+            .timeline
+            .steps,
         hasLength(2),
       );
       expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
@@ -548,21 +533,90 @@ void main() {
         findsOneWidget,
       );
       expect(
-        _readManifest(manifestFile)
-            .presentationCinematics
-            .map((asset) => asset.title),
+        _readManifest(
+          manifestFile,
+        ).presentationCinematics.map((asset) => asset.title),
         contains('Ouverture céleste'),
       );
       expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
     },
   );
 
-  testWidgets(
-    'Cinematics never reports a dirty no-op retry as saved',
-    (tester) async {
-      final root = Directory.systemTemp.createTempSync(
-        'cinematics_authoring_failed_retry_',
-      );
+  testWidgets('Presentation edits stay local without blocking on persistence', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'presentation_local_document_',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final manifestFile = File('${root.path}/project.json');
+    final project = _cinematicsProject();
+    manifestFile.writeAsStringSync(jsonEncode(project.toJson()));
+    final gateway = _SynchronousManifestGateway();
+    final container = await pumpEditorShellPage(
+      tester,
+      initialState: EditorState(
+        project: project,
+        workspaceMode: EditorWorkspaceMode.cinematics,
+      ),
+      surfaceSize: const Size(1672, 941),
+      overrides: [
+        narrativeAuthoringPersistenceGatewayProvider.overrideWithValue(gateway),
+      ],
+    );
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = notifier.state.copyWith(projectRootPath: root.path);
+    await tester.pump();
+
+    await tester.tap(find.text('Cinématiques de présentation'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-folder-presentation-openings')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-asset-presentation-opening')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('cinematic-open-selection')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(pokeMapCinematicPropertiesTabKey));
+    await tester.pump();
+
+    final titleField = find.byKey(
+      const ValueKey<String>('presentation-property-title'),
+    );
+    expect(titleField, findsOneWidget);
+    await tester.enterText(titleField, 'Ouverture instantanée');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(
+      _readManifest(manifestFile).presentationCinematics.single.title,
+      'Ouverture Avelune',
+    );
+    expect(gateway.calls, 0);
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(
+              of: titleField,
+              matching: find.byType(EditableText),
+            ),
+          )
+          .controller
+          .text,
+      'Ouverture instantanée',
+    );
+  });
+
+  testWidgets('Cinematics never reports a dirty no-op retry as saved', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'cinematics_authoring_failed_retry_',
+    );
       addTearDown(() => root.deleteSync(recursive: true));
       final manifestFile = File('${root.path}/project.json');
       final project = _cinematicsProject().copyWith(scenarios: const []);
@@ -586,16 +640,18 @@ void main() {
 
       await tester.tap(
         find.byKey(const ValueKey('cinematics-library-advanced-manager')),
-      );
-      await tester.pumpAndSettle();
+    );
+    await tester.pumpAndSettle();
 
-      final titleField =
-          find.byKey(const ValueKey('cinematics-library-title-field'));
-      final saveButton =
-          find.byKey(const ValueKey('cinematics-library-save-button'));
-      await tester.enterText(titleField, 'Intro locale non enregistrée');
-      await _invokeAsyncPokeMapButton(
-        tester,
+    final titleField = find.byKey(
+      const ValueKey('cinematics-library-title-field'),
+    );
+    final saveButton = find.byKey(
+      const ValueKey('cinematics-library-save-button'),
+    );
+    await tester.enterText(titleField, 'Intro locale non enregistrée');
+    await _invokeAsyncPokeMapButton(
+      tester,
         saveButton,
         () =>
             !container.read(editorNotifierProvider).isSaving &&
@@ -638,11 +694,10 @@ void main() {
       expect(
         find.text(
           'Modification non enregistrée. Consultez le diagnostic du projet.',
-        ),
-        findsOneWidget,
-      );
-    },
-  );
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('Cinematics project-absent state still owns one shared page', (
     tester,
@@ -704,8 +759,9 @@ void main() {
         greaterThan(80),
         reason: 'Library list height: $size',
       );
-      final entry =
-          find.byKey(const ValueKey('cinematic-entry-cinematic_intro'));
+      final entry = find.byKey(
+        const ValueKey('cinematic-entry-cinematic_intro'),
+      );
       expect(entry, findsOneWidget, reason: 'Library entry viewport: $size');
       await tester.tap(entry);
       await tester.pumpAndSettle();
@@ -734,9 +790,7 @@ void main() {
         find.byKey(const ValueKey('cinematic-asset-presentation-opening')),
       );
       await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('cinematic-open-selection')),
-      );
+      await tester.tap(find.byKey(const ValueKey('cinematic-open-selection')));
       await tester.pumpAndSettle();
       expect(find.byType(PresentationStudioShell), findsOneWidget);
       expect(find.byType(PresentationStudioViewport), findsOneWidget);
@@ -827,9 +881,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         await tester.tap(
-          find.byKey(
-            const ValueKey('cinematics-library-open-builder-button'),
-          ),
+          find.byKey(const ValueKey('cinematics-library-open-builder-button')),
         );
       }
       await tester.pumpAndSettle();
@@ -854,10 +906,7 @@ ProjectManifest _readManifest(File file) {
   return ProjectManifest.fromJson(Map<String, dynamic>.from(decoded as Map));
 }
 
-Future<void> _pumpUntil(
-  WidgetTester tester,
-  bool Function() condition,
-) async {
+Future<void> _pumpUntil(WidgetTester tester, bool Function() condition) async {
   for (var attempt = 0; attempt < 100; attempt++) {
     await tester.pump(const Duration(milliseconds: 20));
     if (condition()) return;
@@ -894,13 +943,10 @@ final class _SynchronousManifestGateway
     NarrativeAuthoringTransaction transaction,
   ) {
     calls += 1;
-    File(transaction.projectPath).writeAsStringSync(
-      jsonEncode(transaction.after.toJson()),
-      flush: true,
-    );
-    return Future.value(
-      const NarrativeAuthoringPersistenceResult.committed(),
-    );
+    File(
+      transaction.projectPath,
+    ).writeAsStringSync(jsonEncode(transaction.after.toJson()), flush: true);
+    return Future.value(const NarrativeAuthoringPersistenceResult.committed());
   }
 }
 

@@ -8,6 +8,12 @@ import '../../../design_system/design_system.dart';
 import '../cinematic_studio_localizations.dart';
 import 'presentation_studio_diagnostic.dart';
 
+typedef PresentationStudioDraftInserter =
+    Future<PresentationStudioInsertionResult> Function(
+      PresentationStudioInsertionRequest request,
+    );
+typedef PresentationStudioMediaRefresh = Future<bool> Function();
+
 class PresentationStudioAddPanel extends StatefulWidget {
   const PresentationStudioAddPanel({
     super.key,
@@ -19,6 +25,9 @@ class PresentationStudioAddPanel extends StatefulWidget {
     required this.playheadUs,
     required this.onProjectChanged,
     required this.onInserted,
+    this.onInsertDraft,
+    this.durableExpectedProject,
+    this.onMediaImported,
     this.targetVisualFolderId,
   });
 
@@ -31,6 +40,9 @@ class PresentationStudioAddPanel extends StatefulWidget {
   final String? targetVisualFolderId;
   final ValueChanged<ProjectManifest> onProjectChanged;
   final ValueChanged<PresentationStudioInsertionResult> onInserted;
+  final PresentationStudioDraftInserter? onInsertDraft;
+  final ProjectManifest? durableExpectedProject;
+  final PresentationStudioMediaRefresh? onMediaImported;
 
   @override
   State<PresentationStudioAddPanel> createState() =>
@@ -125,7 +137,7 @@ class _PresentationStudioAddPanelState
     try {
       final result = await widget.gateway.importMedia(
         widget.projectRootPath,
-        expectedProject: _project,
+        expectedProject: widget.durableExpectedProject ?? _project,
         request: PresentationStudioMediaImportRequest(
           category: _category,
           picked: picked,
@@ -133,8 +145,13 @@ class _PresentationStudioAddPanelState
         isCancelled: () => generation != _importGeneration,
       );
       if (!mounted || generation != _importGeneration) return;
+      final refresh = widget.onMediaImported;
+      if (refresh != null && !await refresh()) {
+        throw StateError('Le catalogue média local n’a pas pu être rafraîchi.');
+      }
+      if (!mounted || generation != _importGeneration) return;
       setState(() {
-        _currentProject = result.manifest;
+        _currentProject = widget.onInsertDraft == null ? result.manifest : null;
         _media = <PresentationStudioMediaCatalogItem>[
           ..._media.where((item) => item.id != result.media.id),
           result.media,
@@ -144,7 +161,9 @@ class _PresentationStudioAddPanelState
         _insertionComplete = false;
         _retryMutation = null;
       });
-      widget.onProjectChanged(result.manifest);
+      if (widget.onInsertDraft == null) {
+        widget.onProjectChanged(result.manifest);
+      }
     } on PresentationStudioImportCancelled {
       if (!mounted || generation != _importGeneration) return;
       setState(() => _importing = false);
@@ -179,21 +198,25 @@ class _PresentationStudioAddPanelState
       _retryMutation = null;
     });
     try {
-      final result = await widget.gateway.insert(
-        widget.projectRootPath,
-        expectedProject: _project,
-        request: PresentationStudioInsertionRequest(
-          asset: _asset,
-          category: _category,
-          playheadUs: _frozenPlayheadUs,
-          durationUs: durationUs,
-          label:
-              media?.label ??
-              CinematicStudioCopy.of(context).quickLabel(_category.name),
-          mediaId: media?.id,
-          targetVisualFolderId: _frozenTargetVisualFolderId,
-        ),
+      final request = PresentationStudioInsertionRequest(
+        asset: _asset,
+        category: _category,
+        playheadUs: _frozenPlayheadUs,
+        durationUs: durationUs,
+        label:
+            media?.label ??
+            CinematicStudioCopy.of(context).quickLabel(_category.name),
+        mediaId: media?.id,
+        targetVisualFolderId: _frozenTargetVisualFolderId,
       );
+      final insertDraft = widget.onInsertDraft;
+      final result = insertDraft == null
+          ? await widget.gateway.insert(
+              widget.projectRootPath,
+              expectedProject: _project,
+              request: request,
+            )
+          : await insertDraft(request);
       if (!mounted) return;
       setState(() {
         _currentProject = result.manifest;
@@ -201,7 +224,7 @@ class _PresentationStudioAddPanelState
         _insertionComplete = true;
         _retryMutation = null;
       });
-      widget.onProjectChanged(result.manifest);
+      if (insertDraft == null) widget.onProjectChanged(result.manifest);
       widget.onInserted(result);
     } on Object catch (error) {
       if (!mounted) return;

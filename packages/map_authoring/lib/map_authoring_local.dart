@@ -8,6 +8,8 @@ export 'src/domains/assets/tiled_image_collection_packer.dart'
     show TiledImageCollectionRasterCodec;
 export 'src/domains/gameplay/pokemon_catalog_coherence_loader.dart'
     show PokemonCatalogCoherenceLoader;
+export 'src/domains/narrative/presentation_cinematic_draft.dart'
+    show PresentationCinematicDraft, PresentationCinematicDraftException;
 export 'src/ports/artifact_store.dart'
     show LocalArtifactStore, maximumAuthoringArtifactBytesV1;
 export 'src/ports/project_file_reader.dart'
