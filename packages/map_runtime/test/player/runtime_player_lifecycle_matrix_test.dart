@@ -33,8 +33,16 @@ void main() {
     await expectLater(harness.coordinator.resumeFromLifecycle(), completes);
     expect(
       harness.coordinator.snapshot.phase,
-      isNot(RuntimePlayerPhase.lifecyclePaused),
-      reason: 'the player must never stay stuck on the suspended phase',
+      RuntimePlayerPhase.paused,
+      reason: 'the checkpoint resolves to its pause before the suspension',
+    );
+    expect(
+      harness.saves.commits.map((commit) => commit.trigger),
+      <GameSessionCheckpointTrigger>[
+        GameSessionCheckpointTrigger.manual,
+        GameSessionCheckpointTrigger.lifecyclePause,
+      ],
+      reason: 'the suspension still adds its own safety autosave',
     );
   });
 
@@ -78,7 +86,8 @@ void main() {
 
     expect(
       harness.coordinator.snapshot.phase,
-      isNot(RuntimePlayerPhase.lifecyclePaused),
+      RuntimePlayerPhase.credits,
+      reason: 'credits are not a suspendable session phase',
     );
   });
 }
