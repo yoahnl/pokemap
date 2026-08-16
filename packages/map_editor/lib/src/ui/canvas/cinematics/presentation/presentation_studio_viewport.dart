@@ -34,9 +34,12 @@ final class PresentationStudioViewportController extends ChangeNotifier {
   static const double maximumZoom = 3;
   static const double zoomFactor = 1.25;
   static const double keyboardPanStep = 24;
+  static const double fittedPanLimit = 48;
 
   double _zoom = 1;
   Offset _pan = Offset.zero;
+  Size? _viewportSize;
+  Size? _frameSize;
 
   double get zoom => _zoom;
   Offset get pan => _pan;
@@ -47,8 +50,22 @@ final class PresentationStudioViewportController extends ChangeNotifier {
 
   void panBy(Offset delta) {
     if (delta == Offset.zero) return;
-    _pan += delta;
+    final next = _constrainPan(_pan + delta);
+    if (next == _pan) return;
+    _pan = next;
     notifyListeners();
+  }
+
+  void configureBounds({required Size viewportSize, required Size frameSize}) {
+    if (!viewportSize.isFinite ||
+        !frameSize.isFinite ||
+        viewportSize.isEmpty ||
+        frameSize.isEmpty) {
+      return;
+    }
+    _viewportSize = viewportSize;
+    _frameSize = frameSize;
+    _pan = _constrainPan(_pan);
   }
 
   void recenter() {
@@ -68,7 +85,26 @@ final class PresentationStudioViewportController extends ChangeNotifier {
     final next = value.clamp(minimumZoom, maximumZoom).toDouble();
     if (next == _zoom) return;
     _zoom = next;
+    _pan = _constrainPan(_pan);
     notifyListeners();
+  }
+
+  Offset _constrainPan(Offset candidate) {
+    final viewportSize = _viewportSize;
+    final frameSize = _frameSize;
+    if (viewportSize == null || frameSize == null) return candidate;
+    final horizontalLimit = math.max(
+      fittedPanLimit,
+      (frameSize.width * _zoom - viewportSize.width) / 2,
+    );
+    final verticalLimit = math.max(
+      fittedPanLimit,
+      (frameSize.height * _zoom - viewportSize.height) / 2,
+    );
+    return Offset(
+      candidate.dx.clamp(-horizontalLimit, horizontalLimit),
+      candidate.dy.clamp(-verticalLimit, verticalLimit),
+    );
   }
 }
 
@@ -221,42 +257,49 @@ class _PresentationStudioViewportState
                             constraints.biggest,
                             widget.orientation.aspectRatio,
                           );
-                          return Center(
-                            child: Transform.translate(
-                              key: presentationStudioViewportTransformKey,
-                              offset: _controller.pan,
-                              child: Transform.scale(
-                                scale: _controller.zoom,
-                                child: SizedBox(
-                                  key: presentationStudioViewportFrameKey,
-                                  width: size.width,
-                                  height: size.height,
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTapUp: widget.onCompositionTap == null
-                                        ? null
-                                        : (details) => widget.onCompositionTap!(
-                                            Offset(
-                                              details.localPosition.dx /
-                                                  size.width,
-                                              details.localPosition.dy /
-                                                  size.height,
-                                            ),
-                                          ),
-                                    child: PokeMapCinematicViewport(
-                                      composition: _composition,
-                                      semanticLabel: copy.framePreview,
-                                      showSafeArea: widget.showSafeArea,
-                                      state: _designSystemState,
-                                      statusLabel: widget.errorMessage,
-                                      retryLabel:
-                                          widget.state ==
-                                              PresentationStudioViewportState
-                                                  .error
-                                          ? copy.retryRender
-                                          : null,
-                                      onRetry: widget.onRetry,
-                                      child: _content(copy),
+                          _controller.configureBounds(
+                            viewportSize: constraints.biggest,
+                            frameSize: size,
+                          );
+                          return ClipRect(
+                            child: Center(
+                              child: Transform.translate(
+                                key: presentationStudioViewportTransformKey,
+                                offset: _controller.pan,
+                                child: Transform.scale(
+                                  scale: _controller.zoom,
+                                  child: SizedBox(
+                                    key: presentationStudioViewportFrameKey,
+                                    width: size.width,
+                                    height: size.height,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTapUp: widget.onCompositionTap == null
+                                          ? null
+                                          : (details) =>
+                                                widget.onCompositionTap!(
+                                                  Offset(
+                                                    details.localPosition.dx /
+                                                        size.width,
+                                                    details.localPosition.dy /
+                                                        size.height,
+                                                  ),
+                                                ),
+                                      child: PokeMapCinematicViewport(
+                                        composition: _composition,
+                                        semanticLabel: copy.framePreview,
+                                        showSafeArea: widget.showSafeArea,
+                                        state: _designSystemState,
+                                        statusLabel: widget.errorMessage,
+                                        retryLabel:
+                                            widget.state ==
+                                                PresentationStudioViewportState
+                                                    .error
+                                            ? copy.retryRender
+                                            : null,
+                                        onRetry: widget.onRetry,
+                                        child: _content(copy),
+                                      ),
                                     ),
                                   ),
                                 ),

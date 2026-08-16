@@ -52,6 +52,58 @@ void main() {
     },
   );
 
+  test('viewport controller clamps pan to the visible frame bounds', () {
+    final controller = PresentationStudioViewportController();
+    controller.configureBounds(
+      viewportSize: const Size(800, 600),
+      frameSize: const Size(640, 360),
+    );
+
+    controller.panBy(const Offset(10000, -10000));
+    expect(controller.pan, const Offset(48, -48));
+
+    controller.zoomIn();
+    controller.zoomIn();
+    controller.panBy(const Offset(10000, -10000));
+    expect(controller.pan, const Offset(100, -48));
+
+    controller.zoomOut();
+    expect(controller.pan, const Offset(48, -48));
+  });
+
+  testWidgets('viewport clips the transformed frame to its workspace', (
+    tester,
+  ) async {
+    final controller = PresentationStudioViewportController();
+    await _pumpViewport(
+      tester,
+      controller: controller,
+      frame: PresentationFrame(
+        cinematicId: 'opening',
+        timeUs: 0,
+        durationUs: 1000000,
+      ),
+    );
+
+    expect(
+      find.ancestor(
+        of: find.byKey(presentationStudioViewportTransformKey),
+        matching: find.byType(ClipRect),
+      ),
+      findsOneWidget,
+    );
+    controller.panBy(const Offset(10000, 10000));
+    await tester.pump();
+
+    final viewportRect = tester.getRect(
+      find.byKey(presentationStudioViewportGestureKey),
+    );
+    final frameRect = tester.getRect(
+      find.byKey(presentationStudioViewportFrameKey),
+    );
+    expect(viewportRect.contains(frameRect.center), isTrue);
+  });
+
   testWidgets(
     'viewport forwards the exact frame to the shared Player renderer',
     (tester) async {
