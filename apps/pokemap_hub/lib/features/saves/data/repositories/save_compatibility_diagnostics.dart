@@ -2,36 +2,120 @@ import 'package:map_core/map_core.dart';
 
 import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
 
-/// Maps a compatibility verdict onto the diagnostic the player is shown.
 SaveStorageDiagnostic compatibilityDiagnostic(
-  SaveCompatibilityCode code,
-) =>
+  SaveCompatibilityCode code, {
+  int? detectedSaveFormat,
+  int? expectedSaveFormat,
+}) =>
     switch (code) {
-      SaveCompatibilityCode.saveGameMismatch => const SaveStorageDiagnostic(
+      SaveCompatibilityCode.saveGameMismatch => SaveStorageDiagnostic(
           SaveStorageDiagnosticCode.saveGameMismatch,
           'Save belongs to another game.',
+          detectedSaveFormat: detectedSaveFormat,
+          expectedSaveFormat: expectedSaveFormat,
+          recommendedActions: const <SaveRecoveryAction>[
+            SaveRecoveryAction.returnToTitle,
+          ],
         ),
-      SaveCompatibilityCode.saveCompatibilityMismatch =>
-        const SaveStorageDiagnostic(
+      SaveCompatibilityCode.saveCompatibilityMismatch => SaveStorageDiagnostic(
           SaveStorageDiagnosticCode.saveCompatibilityMismatch,
           'Save compatibility identifier does not match this game.',
+          detectedSaveFormat: detectedSaveFormat,
+          expectedSaveFormat: expectedSaveFormat,
+          recommendedActions: const <SaveRecoveryAction>[
+            SaveRecoveryAction.returnToTitle,
+          ],
         ),
-      SaveCompatibilityCode.saveFormatFuture => const SaveStorageDiagnostic(
+      SaveCompatibilityCode.saveFormatFuture => SaveStorageDiagnostic(
           SaveStorageDiagnosticCode.saveFormatFuture,
           'Save was written by a future unsupported format.',
+          detectedSaveFormat: detectedSaveFormat,
+          expectedSaveFormat: expectedSaveFormat,
+          recommendedActions: const <SaveRecoveryAction>[
+            SaveRecoveryAction.returnToTitle,
+          ],
         ),
-      SaveCompatibilityCode.saveMigrationRequired =>
-        const SaveStorageDiagnostic(
+      SaveCompatibilityCode.saveMigrationRequired => SaveStorageDiagnostic(
           SaveStorageDiagnosticCode.saveMigrationRequired,
           'Save requires migration.',
+          detectedSaveFormat: detectedSaveFormat,
+          expectedSaveFormat: expectedSaveFormat,
+          recommendedActions: const <SaveRecoveryAction>[
+            SaveRecoveryAction.migrate,
+            SaveRecoveryAction.returnToTitle,
+          ],
         ),
-      SaveCompatibilityCode.saveMigrationUnavailable =>
-        const SaveStorageDiagnostic(
+      SaveCompatibilityCode.saveMigrationUnavailable => SaveStorageDiagnostic(
           SaveStorageDiagnosticCode.saveMigrationUnavailable,
           'No migration chain is available for this save.',
+          detectedSaveFormat: detectedSaveFormat,
+          expectedSaveFormat: expectedSaveFormat,
+          recommendedActions: const <SaveRecoveryAction>[
+            SaveRecoveryAction.returnToTitle,
+          ],
         ),
-      SaveCompatibilityCode.migrationFailed => const SaveStorageDiagnostic(
+      SaveCompatibilityCode.migrationFailed => SaveStorageDiagnostic(
           SaveStorageDiagnosticCode.saveMigrationUnavailable,
           'Save migration failed.',
+          detectedSaveFormat: detectedSaveFormat,
+          expectedSaveFormat: expectedSaveFormat,
+          recommendedActions: const <SaveRecoveryAction>[
+            SaveRecoveryAction.retry,
+            SaveRecoveryAction.returnToTitle,
+          ],
         ),
     };
+
+enum PrimaryCorruptionOutcome {
+  backupUsable,
+  slotUnusable,
+  deferredToCompatibility,
+}
+
+SaveStorageDiagnostic primaryCorruptDiagnostic({
+  required PrimaryCorruptionOutcome outcome,
+  int? expectedSaveFormat,
+}) =>
+    SaveStorageDiagnostic(
+      SaveStorageDiagnosticCode.primaryCorrupt,
+      'The primary save is corrupt and was quarantined.',
+      expectedSaveFormat: expectedSaveFormat,
+      recommendedActions: switch (outcome) {
+        PrimaryCorruptionOutcome.backupUsable => const <SaveRecoveryAction>[
+            SaveRecoveryAction.restoreBackup,
+            SaveRecoveryAction.returnToTitle,
+          ],
+        PrimaryCorruptionOutcome.slotUnusable => const <SaveRecoveryAction>[
+            SaveRecoveryAction.retry,
+            SaveRecoveryAction.deleteSave,
+            SaveRecoveryAction.returnToTitle,
+          ],
+        PrimaryCorruptionOutcome.deferredToCompatibility =>
+          const <SaveRecoveryAction>[SaveRecoveryAction.returnToTitle],
+      },
+    );
+
+SaveStorageDiagnostic backupUsedDiagnostic({
+  int? detectedSaveFormat,
+  int? expectedSaveFormat,
+}) =>
+    SaveStorageDiagnostic(
+      SaveStorageDiagnosticCode.backupUsed,
+      'A valid backup is available; promotion requires confirmation.',
+      detectedSaveFormat: detectedSaveFormat,
+      expectedSaveFormat: expectedSaveFormat,
+      recommendedActions: const <SaveRecoveryAction>[
+        SaveRecoveryAction.restoreBackup,
+        SaveRecoveryAction.returnToTitle,
+      ],
+    );
+
+SaveStorageDiagnostic missingSlotDiagnostic({int? expectedSaveFormat}) =>
+    SaveStorageDiagnostic(
+      SaveStorageDiagnosticCode.missing,
+      'No save exists for this slot.',
+      expectedSaveFormat: expectedSaveFormat,
+      recommendedActions: const <SaveRecoveryAction>[
+        SaveRecoveryAction.returnToTitle,
+      ],
+    );

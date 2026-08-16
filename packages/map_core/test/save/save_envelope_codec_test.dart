@@ -10,8 +10,7 @@ void main() {
   group('SaveEnvelopeCodec', () {
     test('accepts and round-trips the canonical Phase 0 fixture', () {
       final fixture = File(
-        '../../reports/product/pokemap_hub/phase_0/saves/examples/'
-        'minimal-valid-save-envelope.json',
+        'test/fixtures/save/minimal-valid-save-envelope.json',
       ).readAsStringSync();
 
       final envelope = codec.decode(fixture);

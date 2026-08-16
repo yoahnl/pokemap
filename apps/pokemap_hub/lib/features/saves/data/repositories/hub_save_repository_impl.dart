@@ -139,11 +139,8 @@ final class HubSaveStore
       return SaveSlotRead(
         address: address,
         status: SaveSlotReadStatus.missing,
-        diagnostics: const <SaveStorageDiagnostic>[
-          SaveStorageDiagnostic(
-            SaveStorageDiagnosticCode.missing,
-            'No save exists for this slot.',
-          ),
+        diagnostics: <SaveStorageDiagnostic>[
+          missingSlotDiagnostic(expectedSaveFormat: identity.saveFormat),
         ],
       );
     }
@@ -566,6 +563,9 @@ final class HubSaveStore
         try {
           final currentEnvelope =
               await _integrity.decodeCandidate(current, envelope.address);
+          if (currentEnvelope.checksum == envelope.checksum) {
+            return currentEnvelope;
+          }
           final currentCompatibility = compatibilityEvaluator.evaluate(
             save: currentEnvelope.compatibility,
             game: identity,
@@ -633,7 +633,7 @@ final class HubSaveStore
     SaveSlotAddress address, {
     required bool migrationChainAvailable,
   }) async {
-    final diagnostics = <SaveStorageDiagnostic>[];
+    var primaryCorrupt = false;
     final candidates = <(File, SaveSlotSource)>[
       (File(p.join(slot.path, 'save.json')), SaveSlotSource.current),
       (
@@ -651,12 +651,7 @@ final class HubSaveStore
         envelope = await _integrity.decodeCandidate(file, address);
       } catch (error) {
         if (candidate.$2 == SaveSlotSource.current) {
-          diagnostics.add(
-            const SaveStorageDiagnostic(
-              SaveStorageDiagnosticCode.primaryCorrupt,
-              'The primary save is corrupt and was quarantined.',
-            ),
-          );
+          primaryCorrupt = true;
         }
         await _integrity.quarantine(slot, file);
         continue;
@@ -669,14 +664,6 @@ final class HubSaveStore
       switch (compatibility.disposition) {
         case SaveCompatibilityDisposition.accept:
           final recovered = candidate.$2 != SaveSlotSource.current;
-          if (recovered) {
-            diagnostics.add(
-              const SaveStorageDiagnostic(
-                SaveStorageDiagnosticCode.backupUsed,
-                'A valid backup is available; promotion requires confirmation.',
-              ),
-            );
-          }
           return SaveSlotRead(
             address: address,
             status: recovered
@@ -684,49 +671,68 @@ final class HubSaveStore
                 : SaveSlotReadStatus.valid,
             envelope: envelope,
             source: candidate.$2,
-            diagnostics: List<SaveStorageDiagnostic>.unmodifiable(diagnostics),
+            diagnostics: List<SaveStorageDiagnostic>.unmodifiable(
+              <SaveStorageDiagnostic>[
+                if (primaryCorrupt)
+                  primaryCorruptDiagnostic(
+                    outcome: PrimaryCorruptionOutcome.backupUsable,
+                    expectedSaveFormat: identity.saveFormat,
+                  ),
+                if (recovered)
+                  backupUsedDiagnostic(
+                    detectedSaveFormat: envelope.saveFormat,
+                    expectedSaveFormat: identity.saveFormat,
+                  ),
+              ],
+            ),
           );
         case SaveCompatibilityDisposition.migrate:
-          return SaveSlotRead(
-            address: address,
-            status: SaveSlotReadStatus.migrationRequired,
-            envelope: envelope,
-            source: candidate.$2,
-            diagnostics: const <SaveStorageDiagnostic>[
-              SaveStorageDiagnostic(
-                SaveStorageDiagnosticCode.saveMigrationRequired,
-                'This save requires a trusted engine migration.',
-              ),
-            ],
-          );
         case SaveCompatibilityDisposition.reject:
+          final rejected =
+              compatibility.disposition == SaveCompatibilityDisposition.reject;
           return SaveSlotRead(
             address: address,
-            status: SaveSlotReadStatus.incompatible,
+            status: rejected
+                ? SaveSlotReadStatus.incompatible
+                : SaveSlotReadStatus.migrationRequired,
             envelope:
                 compatibility.code == SaveCompatibilityCode.saveGameMismatch
                     ? null
                     : envelope,
             source: candidate.$2,
-            diagnostics: <SaveStorageDiagnostic>[
-              compatibilityDiagnostic(compatibility.code!),
-            ],
+            diagnostics: List<SaveStorageDiagnostic>.unmodifiable(
+              <SaveStorageDiagnostic>[
+                if (primaryCorrupt)
+                  primaryCorruptDiagnostic(
+                    outcome: PrimaryCorruptionOutcome.deferredToCompatibility,
+                    expectedSaveFormat: identity.saveFormat,
+                  ),
+                compatibilityDiagnostic(
+                  compatibility.code!,
+                  detectedSaveFormat: envelope.saveFormat,
+                  expectedSaveFormat: identity.saveFormat,
+                ),
+              ],
+            ),
           );
       }
     }
     return SaveSlotRead(
       address: address,
-      status: diagnostics.isEmpty
-          ? SaveSlotReadStatus.missing
-          : SaveSlotReadStatus.corrupt,
-      diagnostics: diagnostics.isEmpty
-          ? const <SaveStorageDiagnostic>[
-              SaveStorageDiagnostic(
-                SaveStorageDiagnosticCode.missing,
-                'No save exists for this slot.',
-              ),
-            ]
-          : List<SaveStorageDiagnostic>.unmodifiable(diagnostics),
+      status: primaryCorrupt
+          ? SaveSlotReadStatus.corrupt
+          : SaveSlotReadStatus.missing,
+      diagnostics: List<SaveStorageDiagnostic>.unmodifiable(
+        <SaveStorageDiagnostic>[
+          if (primaryCorrupt)
+            primaryCorruptDiagnostic(
+              outcome: PrimaryCorruptionOutcome.slotUnusable,
+              expectedSaveFormat: identity.saveFormat,
+            )
+          else
+            missingSlotDiagnostic(expectedSaveFormat: identity.saveFormat),
+        ],
+      ),
     );
   }
 

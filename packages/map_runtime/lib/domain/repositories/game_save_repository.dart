@@ -2,9 +2,10 @@ import 'package:map_core/map_core.dart';
 
 /// Exception levée en cas d'échec de sauvegarde/chargement.
 class GameSaveException implements Exception {
-  const GameSaveException(this.message);
+  const GameSaveException(this.message, {this.diagnostic});
 
   final String message;
+  final SaveLoadDiagnostic? diagnostic;
 
   @override
   String toString() => 'GameSaveException: $message';

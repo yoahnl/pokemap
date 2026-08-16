@@ -570,6 +570,8 @@ export 'domain/repositories/game_save_repository.dart'
     show GameSaveRepository, GameSaveException;
 export 'src/infrastructure/file_game_save_repository.dart'
     show FileGameSaveRepository;
+export 'src/infrastructure/game_save_load_diagnostics.dart'
+    show describeGameSaveLoadFailure;
 export 'src/infrastructure/project_tileset_visual_resolution.dart'
     show resolveRuntimeProjectTilesetVisual;
 export 'src/infrastructure/game_save_codec_executor.dart'

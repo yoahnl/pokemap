@@ -5,9 +5,11 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
+import '../theme/pokemap_player_theme.dart';
 import '../localization/player_localizations.dart';
 import 'player_pause_menu.dart';
 import 'player_control_profile.dart';
+import 'player_save_recovery_surface.dart';
 import 'player_save_strings.dart';
 import 'player_scene_interaction_surface.dart';
 import 'player_session_surfaces.dart';
@@ -74,8 +76,37 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           ),
           child: overlay ?? const SizedBox.shrink(),
         ),
+        if (snapshot.saveRecovery case final recovery?
+            when snapshot.phase == RuntimePlayerPhase.title)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(PlayerSpacing.md),
+                child: PlayerSaveRecoverySurface(
+                  diagnostic: recovery,
+                  onAction: _dispatchRecovery,
+                ),
+              ),
+            ),
+          ),
       ],
     );
+  }
+
+  void _dispatchRecovery(SaveRecoveryAction action) {
+    switch (action) {
+      case SaveRecoveryAction.deleteSave:
+        _dispatch(RuntimePlayerAction.deleteUnusableSave);
+      case SaveRecoveryAction.retry:
+        _dispatch(RuntimePlayerAction.continueGame);
+      case SaveRecoveryAction.restoreBackup:
+      case SaveRecoveryAction.migrate:
+      case SaveRecoveryAction.returnToTitle:
+        break;
+    }
   }
 
   Widget? _overlay(BuildContext context) {

@@ -10,18 +10,8 @@ class LoadGameUseCase {
 
   /// Charge l'état de la partie.
   ///
-  /// Retourne `null` si aucune sauvegarde n'existe ou en cas d'échec.
-  Future<GameState?> execute() async {
-    try {
-      return await _repo.load();
-    } on GameSaveException {
-      return null;
-    }
-  }
-
-  /// Loads while preserving the repository failure for an actionable UI.
-  ///
-  /// Runtime composition uses this variant to distinguish an absent save
-  /// (`null`) from a corrupt or unreadable save ([GameSaveException]).
-  Future<GameState?> executeOrThrow() => _repo.load();
+  /// Retourne `null` uniquement si aucune sauvegarde n'existe. Une sauvegarde
+  /// illisible lève [GameSaveException] : la confondre avec une absence
+  /// reviendrait à proposer une réinitialisation silencieuse.
+  Future<GameState?> execute() => _repo.load();
 }

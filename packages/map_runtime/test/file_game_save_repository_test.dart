@@ -214,12 +214,44 @@ void main() {
       await expectLater(
         repository.load,
         throwsA(
+          isA<GameSaveException>()
+              .having(
+                (error) => error.message,
+                'message',
+                isNot(contains('UnsupportedSaveSchema')),
+              )
+              .having(
+                (error) => error.diagnostic?.code,
+                'diagnostic.code',
+                SaveLoadFailureCode.unsupportedSchema,
+              )
+              .having(
+                (error) => error.diagnostic?.expectedSchemaVersion,
+                'diagnostic.expectedSchemaVersion',
+                currentItemSystemSaveSchemaVersion,
+              ),
+        ),
+      );
+    });
+
+    test('a corrupt save is never reported as an absent save', () async {
+      final filePath = await repository.exposedSaveFilePath();
+      await File(filePath).writeAsString('{"saveId": "truncated"');
+
+      await expectLater(
+        repository.load,
+        throwsA(
           isA<GameSaveException>().having(
-            (error) => error.message,
-            'message',
-            contains('UnsupportedSaveSchema'),
+            (error) => error.diagnostic?.recommendedActions,
+            'diagnostic.recommendedActions',
+            isNotEmpty,
           ),
         ),
+      );
+      await expectLater(
+        LoadGameUseCase(repository).execute,
+        throwsA(isA<GameSaveException>()),
+        reason: 'swallowing the failure would look like a fresh save slot',
       );
     });
 

@@ -35,6 +35,9 @@ final class HubPlayerSaveGateway implements PlayerSaveGateway {
   }
 
   @override
+  Future<void> deleteSave(SaveSlotAddress address) => store.deleteSlot(address);
+
+  @override
   Future<String?> openReadHandle(SaveSlotAddress address) async {
     final envelope = await readLaunchableEnvelope(address);
     return envelope == null ? null : hubSaveReadHandle(envelope);

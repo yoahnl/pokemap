@@ -68,6 +68,8 @@ abstract interface class PlayerSaveGateway {
 
   Future<String?> openReadHandle(SaveSlotAddress address);
 
+  Future<void> deleteSave(SaveSlotAddress address);
+
   Future<void> commit(GameSessionCheckpointCommit request);
 }
 

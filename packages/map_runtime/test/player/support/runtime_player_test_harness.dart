@@ -230,6 +230,7 @@ final class MemoryPlayerSaveGateway implements PlayerSaveGateway {
   final GameIdentity identity;
   final _summaries = <SaveSlotAddress, PlayerSaveSummary>{};
   final commits = <GameSessionCheckpointCommit>[];
+  final deletedAddresses = <SaveSlotAddress>[];
   final commitAttempts = <GameSessionCheckpointCommit>[];
   PlayerSaveSummary? _latestSave;
   Object? commitError;
@@ -244,6 +245,13 @@ final class MemoryPlayerSaveGateway implements PlayerSaveGateway {
     if (value case final save?) {
       _summaries[save.address] = save;
     }
+  }
+
+  @override
+  Future<void> deleteSave(SaveSlotAddress address) async {
+    _summaries.remove(address);
+    if (_latestSave?.address == address) _latestSave = null;
+    deletedAddresses.add(address);
   }
 
   @override
@@ -489,6 +497,24 @@ PlayerSaveSummary compatiblePlayerSave(GameIdentity identity) {
     playTimeSeconds: 120,
     status: SaveStatus.active,
     canContinue: true,
+  );
+}
+
+PlayerSaveSummary unusablePlayerSave(
+  GameIdentity identity, {
+  String reason = 'This save was written by a newer version of the game.',
+}) {
+  return PlayerSaveSummary(
+    address: SaveSlotAddress(
+      gameId: identity.gameId,
+      profileId: 'player',
+      slotId: 'slot_1',
+    ),
+    updatedAt: DateTime.utc(2026, 7, 25, 12),
+    playTimeSeconds: 120,
+    status: SaveStatus.active,
+    canContinue: false,
+    safeUnavailableReason: reason,
   );
 }
 

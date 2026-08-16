@@ -158,6 +158,9 @@ final class _MemorySaveGateway implements PlayerSaveGateway {
   Future<void> commit(GameSessionCheckpointCommit request) async {}
 
   @override
+  Future<void> deleteSave(SaveSlotAddress address) async {}
+
+  @override
   Future<String?> openReadHandle(SaveSlotAddress address) async {
     return address == summary.address ? 'opaque-save-revision' : null;
   }
