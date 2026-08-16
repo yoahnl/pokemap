@@ -171,11 +171,10 @@ final class GameSessionDescriptor {
       );
     }
     if (initialGameState != null &&
-        (initialGameState!.saveId != slotId ||
-            initialGameState!.currentMapId.trim().isEmpty)) {
+        initialGameState!.currentMapId.trim().isEmpty) {
       throw const GameSessionException(
         GameSessionErrorCode.invalidDescriptor,
-        'The initial GameState must target the descriptor slot and a map.',
+        'The initial GameState must target a map.',
       );
     }
   }

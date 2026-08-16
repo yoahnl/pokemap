@@ -1410,7 +1410,8 @@ NarrativeSymbolicState _applyAction({
 
   final interactive = payload.interactiveCommand;
   final commandId = interactive?.kind.name ?? payload.actionKind;
-  if (interactive == null && consequence == null || interactive != null) {
+  if (payload.preSessionInteraction == null &&
+      (interactive == null && consequence == null || interactive != null)) {
     final descriptor = commandId == null ? null : catalog.byId(commandId);
     final expectedBackend = interactive == null
         ? null

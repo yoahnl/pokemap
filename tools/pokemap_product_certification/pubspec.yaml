@@ -20,6 +20,8 @@ dependencies:
     path: ../../packages/map_editor
   map_gameplay:
     path: ../../packages/map_gameplay
+  map_player_ui:
+    path: ../../packages/map_player_ui
   map_runtime:
     path: ../../packages/map_runtime
   path: ^1.9.0

@@ -26,7 +26,7 @@ void main() {
         locale: 'fr-FR',
       );
 
-      expect(state.saveId, 'slot-1');
+      expect(state.saveId, '018f255f-2d50-4f4f-8aa2-c893ae06b8c1');
       expect(state.currentMapId, 'map_start');
       expect(state.playerPosition, const GridPos(x: 7, y: 8));
       expect(state.playerFacing, EntityFacing.east);
@@ -276,6 +276,7 @@ NewGameSeed _seed({
     operationId: 'new-game-1',
     projectRevision: 'project-r1',
     slotId: 'slot-1',
+    saveId: '018f255f-2d50-4f4f-8aa2-c893ae06b8c1',
     draftId: 'draft-1',
     draftRevision: 4,
     playerName: playerName,

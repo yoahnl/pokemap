@@ -3,7 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import 'narrative_value.dart';
 import 'save_data.dart';
 
-const int newGameSeedSchemaVersion = 1;
+const int newGameSeedSchemaVersion = 2;
 
 @immutable
 final class NewGameSeed {
@@ -11,6 +11,7 @@ final class NewGameSeed {
     required this.operationId,
     required this.projectRevision,
     required this.slotId,
+    required this.saveId,
     required this.draftId,
     required this.draftRevision,
     required this.playerName,
@@ -24,6 +25,7 @@ final class NewGameSeed {
   final String operationId;
   final String projectRevision;
   final String slotId;
+  final String saveId;
   final String draftId;
   final int draftRevision;
   final String playerName;
@@ -35,6 +37,6 @@ final class NewGameSeed {
   @override
   String toString() =>
       'NewGameSeed(operationId: $operationId, projectRevision: '
-      '$projectRevision, slotId: $slotId, draftId: $draftId, '
+      '$projectRevision, slotId: $slotId, saveId: $saveId, draftId: $draftId, '
       'draftRevision: $draftRevision, variableCount: ${variables.length})';
 }

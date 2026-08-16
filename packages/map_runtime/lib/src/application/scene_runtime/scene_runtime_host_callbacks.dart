@@ -8,6 +8,7 @@ final class SceneRuntimeHostCallbacks {
     required this.playCinematic,
     this.playPresentationCinematic,
     this.executeInteractiveCommand,
+    this.requestStructuredInteraction,
   });
 
   final SceneRuntimeIntentCallback evaluateCondition;
@@ -16,6 +17,7 @@ final class SceneRuntimeHostCallbacks {
   final SceneRuntimeIntentCallback playCinematic;
   final SceneRuntimeIntentCallback? playPresentationCinematic;
   final SceneRuntimeIntentCallback? executeInteractiveCommand;
+  final SceneRuntimeIntentCallback? requestStructuredInteraction;
 
   SceneRuntimeExecutionCallbacks toExecutionCallbacks({
     required SceneRuntimeConsequenceCallback applyConsequence,
@@ -30,6 +32,7 @@ final class SceneRuntimeHostCallbacks {
       applyConsequence: applyConsequence,
       applyConsequenceWithNodeId: applyConsequenceWithNodeId,
       executeInteractiveCommand: executeInteractiveCommand,
+      requestStructuredInteraction: requestStructuredInteraction,
     );
   }
 }

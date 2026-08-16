@@ -235,6 +235,40 @@ void main() {
     );
   });
 
+  test('save identity is independent from the selected slot', () {
+    final identity = GameIdentity(
+      gameId: 'com.pokemap.identity-test',
+      gameVersion: '1.0.0',
+      projectFormat: ProjectFormat.v2,
+      saveFormat: 1,
+      compatibilityId: 'identity-test-v1',
+    );
+
+    final descriptor = GameSessionDescriptor(
+      sessionId: 'session-new',
+      sessionToken: 'token',
+      identity: identity,
+      profileId: 'player',
+      slotId: 'slot_1',
+      launchMode: GameSessionLaunchMode.newGame,
+      installedVersionHandle: 'installed',
+      runtimeApiVersion: '1.0.0',
+      grantedCapabilities: const <String>{},
+      locale: 'fr',
+      accessibility: const GameSessionAccessibilityOptions(),
+      initialGameState: const GameState(
+        saveId: '550e8400-e29b-41d4-a716-446655440000',
+        currentMapId: 'map_start',
+      ),
+    );
+
+    expect(descriptor.slotId, 'slot_1');
+    expect(
+      descriptor.initialGameState?.saveId,
+      '550e8400-e29b-41d4-a716-446655440000',
+    );
+  });
+
   test('invalid revisions and contradictory availability are rejected', () {
     expect(
       () => RuntimePlayerSnapshot(

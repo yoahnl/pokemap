@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/new_game_draft.dart';
@@ -192,6 +195,12 @@ NewGameSeed buildNewGameSeed({
   operationId: operationId,
   projectRevision: token.projectRevision,
   slotId: token.slotId,
+  saveId: _deterministicSaveId(
+    operationId: operationId,
+    projectRevision: token.projectRevision,
+    slotId: token.slotId,
+    draftId: draft.draftId,
+  ),
   draftId: draft.draftId,
   draftRevision: token.draftRevision,
   playerName: draft.playerName,
@@ -200,6 +209,31 @@ NewGameSeed buildNewGameSeed({
   starterOptionId: draft.starterOptionId,
   variables: draft.variables,
 );
+
+String _deterministicSaveId({
+  required String operationId,
+  required String projectRevision,
+  required String slotId,
+  required String draftId,
+}) {
+  final bytes = sha256
+      .convert(
+        utf8.encode(
+          jsonEncode(<String>[operationId, projectRevision, slotId, draftId]),
+        ),
+      )
+      .bytes
+      .take(16)
+      .toList(growable: false);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  final hex = bytes
+      .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+      .join();
+  return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+      '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
+      '${hex.substring(20)}';
+}
 
 NewGameSeedCommitResult commitNewGameDraft({
   required NewGameSeedCommitJournal journal,

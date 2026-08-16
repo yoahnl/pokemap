@@ -48,6 +48,7 @@ final class SceneRuntimeExecutionCallbacks {
     this.applyConsequenceWithNodeId,
     this.playPresentationCinematic,
     this.executeInteractiveCommand,
+    this.requestStructuredInteraction,
   });
 
   final SceneRuntimeIntentCallback evaluateCondition;
@@ -58,6 +59,7 @@ final class SceneRuntimeExecutionCallbacks {
   final SceneRuntimeConsequenceCallback applyConsequence;
   final SceneRuntimeNodeConsequenceCallback? applyConsequenceWithNodeId;
   final SceneRuntimeIntentCallback? executeInteractiveCommand;
+  final SceneRuntimeIntentCallback? requestStructuredInteraction;
 }
 
 final class SceneRuntimeExecutionTraceEntry {
@@ -331,10 +333,18 @@ final class SceneRuntimeExecutor {
       case SceneRuntimePlanIntentKind.executeInteractiveCommand:
         return _interactiveCommandCallbackOutput(node.id, intent, context);
       case SceneRuntimePlanIntentKind.requestStructuredInteraction:
-        return const _OutputPortResult(
-          errorCode: SceneRuntimeExecutionErrorCode.unsupportedIntent,
-          message:
-              'No structured preSession interaction executor is installed.',
+        final callback = callbacks.requestStructuredInteraction;
+        if (callback == null) {
+          return const _OutputPortResult(
+            errorCode: SceneRuntimeExecutionErrorCode.unsupportedIntent,
+            message:
+                'No structured preSession interaction executor is installed.',
+          );
+        }
+        return _recordCallbackOutcome(
+          node.id,
+          context,
+          await _callbackOutput(intent, callback, const {'completed'}),
         );
     }
   }

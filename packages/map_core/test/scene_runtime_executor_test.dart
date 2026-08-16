@@ -26,6 +26,66 @@ void main() {
       );
     });
 
+    test('executes a structured preSession interaction callback', () async {
+      final scene = SceneAsset(
+        id: 'scene_pre_session',
+        name: 'Pre-session',
+        executionProfile: SceneExecutionProfile.preSession,
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: <SceneNode>[
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_input',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.preSessionInteraction(
+                ScenePreSessionInteractionSpec.text(
+                  prompt: SceneInteractionPrompt(
+                    localizationKey: 'new_game.name',
+                    fallbackText: 'Votre nom ?',
+                  ),
+                ),
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: <SceneEdge>[
+            SceneEdge(
+              id: 'edge_start_input',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_input',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_input_end',
+              fromNodeId: 'node_input',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+      );
+      final intents = <SceneRuntimePlanIntent>[];
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(
+          requestStructuredInteraction: (intent) {
+            intents.add(intent);
+            return 'completed';
+          },
+        ),
+      ).execute(buildSceneRuntimePlan(scene).plan!);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(intents, hasLength(1));
+      expect(
+        intents.single.preSessionInteraction?.kind,
+        SceneInteractionRequestKind.text,
+      );
+    });
+
     test('exposes final scene outcome id from end intent', () async {
       final plan = _plan(
         nodes: [
@@ -681,6 +741,8 @@ SceneRuntimeExecutionCallbacks _callbacks({
   FutureOr<String> Function(SceneRuntimePlanIntent intent)? showDialogue,
   FutureOr<String> Function(SceneRuntimePlanIntent intent)? startBattle,
   FutureOr<String> Function(SceneRuntimePlanIntent intent)? playCinematic,
+  FutureOr<String> Function(SceneRuntimePlanIntent intent)?
+      requestStructuredInteraction,
   FutureOr<String> Function(SceneConsequence consequence)? applyConsequence,
 }) {
   return SceneRuntimeExecutionCallbacks(
@@ -688,6 +750,7 @@ SceneRuntimeExecutionCallbacks _callbacks({
     showDialogue: showDialogue ?? (_) => 'completed',
     startBattle: startBattle ?? (_) => 'victory',
     playCinematic: playCinematic ?? (_) => 'completed',
+    requestStructuredInteraction: requestStructuredInteraction,
     applyConsequence: applyConsequence ?? (_) => 'completed',
   );
 }

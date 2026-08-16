@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import '../application/dialogue_runtime_models.dart';
 import '../application/load_dialogue_content.dart';
 import '../application/resolve_dialogue.dart';
+import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
 import 'runtime_initial_map_preloader.dart';
 
 abstract interface class RuntimeNewGamePreSessionRunner {
@@ -43,11 +44,17 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
   RuntimeProjectNewGameFlowPort({
     required Future<String> Function() projectFilePath,
     required RuntimeInitialMapPreloader initialMapPreloader,
+    RuntimeNewGamePreSessionRunnerFactory? preSessionRunnerFactory,
+    void Function()? cancelActivePreSession,
   })  : _projectFilePath = projectFilePath,
-        _initialMapPreloader = initialMapPreloader;
+        _initialMapPreloader = initialMapPreloader,
+        _preSessionRunnerFactory = preSessionRunnerFactory,
+        _cancelActivePreSession = cancelActivePreSession;
 
   final Future<String> Function() _projectFilePath;
   final RuntimeInitialMapPreloader _initialMapPreloader;
+  final RuntimeNewGamePreSessionRunnerFactory? _preSessionRunnerFactory;
+  final void Function()? _cancelActivePreSession;
 
   @override
   Future<RuntimeNewGamePreparation> prepare() async {
@@ -73,11 +80,17 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
       startMap: bundle.map,
       preSessionRunner: sceneId == null || sceneId.isEmpty
           ? null
-          : RuntimeTextPreSessionSceneRunner(
-              project: bundle.manifest,
-              projectRootDirectory: bundle.projectRootDirectory,
-              sceneId: sceneId,
-            ),
+          : (_preSessionRunnerFactory?.call(
+                project: bundle.manifest,
+                projectRootDirectory: bundle.projectRootDirectory,
+                projectRevision: snapshot.revision,
+                sceneId: sceneId,
+              ) ??
+              RuntimeTextPreSessionSceneRunner(
+                project: bundle.manifest,
+                projectRootDirectory: bundle.projectRootDirectory,
+                sceneId: sceneId,
+              )),
     );
   }
 
@@ -88,8 +101,19 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
   }
 
   @override
-  void clear() => _initialMapPreloader.clear();
+  void clear() {
+    _cancelActivePreSession?.call();
+    _initialMapPreloader.clear();
+  }
 }
+
+typedef RuntimeNewGamePreSessionRunnerFactory = RuntimeNewGamePreSessionRunner
+    Function({
+  required ProjectManifest project,
+  required String projectRootDirectory,
+  required String projectRevision,
+  required String sceneId,
+});
 
 final class RuntimeTextPreSessionSceneRunner
     implements RuntimeNewGamePreSessionRunner {
@@ -97,11 +121,14 @@ final class RuntimeTextPreSessionSceneRunner
     required this.project,
     required String projectRootDirectory,
     required this.sceneId,
+    this.presentationCinematic,
   }) : projectRootDirectory = p.normalize(p.absolute(projectRootDirectory));
 
   final ProjectManifest project;
   final String projectRootDirectory;
   final String sceneId;
+  final ScenePresentationCinematicRuntimeAwaitableAdapter?
+      presentationCinematic;
 
   @override
   Future<NewGameDraft> run({
@@ -122,6 +149,8 @@ final class RuntimeTextPreSessionSceneRunner
       );
     }
     var dialogueSerial = 0;
+    var interactionSerial = 0;
+    var currentDraft = draft;
     Future<String> unsupported(SceneRuntimePlanIntent intent) async {
       throw StateError(
         'Unsupported preSession intent ${intent.kind.name} in text mode.',
@@ -139,8 +168,27 @@ final class RuntimeTextPreSessionSceneRunner
         ),
         startBattle: unsupported,
         playCinematic: unsupported,
-        playPresentationCinematic: unsupported,
+        playPresentationCinematic: (intent) async {
+          final adapter = presentationCinematic;
+          if (adapter == null) return unsupported(intent);
+          final result = await adapter.playPresentationCinematic(intent);
+          if (result.success) return result.scenePortId!;
+          throw StateError(
+            result.diagnosticCode ??
+                result.message ??
+                'The Presentation cinematic failed.',
+          );
+        },
         executeInteractiveCommand: unsupported,
+        requestStructuredInteraction: (intent) async {
+          currentDraft = await _runStructuredInteraction(
+            intent: intent,
+            requestId: '$runId:scene:${interactionSerial++}',
+            draft: currentDraft,
+            interactions: interactions,
+          );
+          return 'completed';
+        },
         applyConsequence: (_) async {
           throw StateError('Consequences are unavailable before GameState.');
         },
@@ -149,7 +197,86 @@ final class RuntimeTextPreSessionSceneRunner
     if (result.status != SceneRuntimeExecutionStatus.completed) {
       throw StateError(result.message ?? 'The preSession Scene failed.');
     }
-    return draft;
+    return currentDraft;
+  }
+
+  Future<NewGameDraft> _runStructuredInteraction({
+    required SceneRuntimePlanIntent intent,
+    required String requestId,
+    required NewGameDraft draft,
+    required SceneStructuredInteractionPort interactions,
+  }) async {
+    final spec = intent.preSessionInteraction;
+    if (spec == null) {
+      throw StateError('The preSession interaction specification is missing.');
+    }
+    final request = switch (spec.kind) {
+      SceneInteractionRequestKind.message => SceneInteractionRequest.message(
+          requestId: requestId,
+          revision: 0,
+          prompt: spec.prompt,
+        ),
+      SceneInteractionRequestKind.choice => SceneInteractionRequest.choice(
+          requestId: requestId,
+          revision: 0,
+          prompt: spec.prompt,
+          options: spec.options,
+        ),
+      SceneInteractionRequestKind.text => SceneInteractionRequest.text(
+          requestId: requestId,
+          revision: 0,
+          prompt: spec.prompt,
+          constraints: spec.textConstraints,
+        ),
+      SceneInteractionRequestKind.confirmation =>
+        SceneInteractionRequest.confirmation(
+          requestId: requestId,
+          revision: 0,
+          prompt: spec.prompt,
+        ),
+      SceneInteractionRequestKind.selection =>
+        SceneInteractionRequest.selection(
+          requestId: requestId,
+          revision: 0,
+          prompt: spec.prompt,
+          options: spec.options,
+          constraints: spec.selectionConstraints,
+        ),
+    };
+    final response = await interactions.request(request);
+    _rejectCancellation(response);
+    final binding = spec.resultBinding;
+    if (binding == null) return draft;
+    final selectedIdentity = switch (response) {
+      SceneChoiceSelectedInteractionResult(:final selectedOptionId) =>
+        selectedOptionId,
+      SceneSelectionSubmittedInteractionResult(:final selectedOptionIds) =>
+        selectedOptionIds.single,
+      _ => null,
+    };
+    final command = switch (binding.field) {
+      ScenePreSessionDraftField.playerName => NewGameDraftCommand.setPlayerName(
+          expectedRevision: draft.revision,
+          playerName: (response as SceneTextSubmittedInteractionResult).value,
+        ),
+      ScenePreSessionDraftField.avatarCharacterId =>
+        NewGameDraftCommand.selectAvatar(
+          expectedRevision: draft.revision,
+          avatarCharacterId: selectedIdentity,
+        ),
+      ScenePreSessionDraftField.starterOptionId =>
+        NewGameDraftCommand.selectStarter(
+          expectedRevision: draft.revision,
+          starterOptionId: selectedIdentity,
+        ),
+    };
+    final result = draft.apply(command);
+    if (result.status != NewGameDraftCommandStatus.applied) {
+      throw StateError(
+        'The preSession interaction result could not update the New Game draft.',
+      );
+    }
+    return result.draft;
   }
 
   Future<String> _runDialogue({
@@ -286,19 +413,58 @@ Future<_RuntimeNewGameProjectSnapshot> _readProjectSnapshot(
   if (mapJson is! Map<String, dynamic>) {
     throw const FormatException('The start map must be an object.');
   }
+  final fingerprintEntries = <NarrativeProjectFingerprintEntry>[
+    NarrativeProjectFingerprintEntry(
+      relativePath: 'project.json',
+      bytes: projectBytes,
+    ),
+    NarrativeProjectFingerprintEntry(
+      relativePath: relativeMapPath,
+      bytes: mapBytes,
+    ),
+  ];
+  if (project.presentationCinematics.isNotEmpty) {
+    for (final relativePath in const <String>[
+      'assets/.pokemap-media.json',
+      'assets/.pokemap-assets.json',
+    ]) {
+      final file = File(p.joinAll(<String>[
+        projectRoot,
+        ...relativePath.split('/'),
+      ]));
+      if (await file.exists()) {
+        fingerprintEntries.add(
+          NarrativeProjectFingerprintEntry(
+            relativePath: relativePath,
+            bytes: await file.readAsBytes(),
+          ),
+        );
+      }
+    }
+    final mediaStore = Directory(
+      p.join(projectRoot, 'assets', '.pokemap-store'),
+    );
+    if (await mediaStore.exists()) {
+      final blobs = await mediaStore
+          .list(followLinks: false)
+          .where((entity) => entity is File)
+          .cast<File>()
+          .toList();
+      blobs.sort((left, right) => left.path.compareTo(right.path));
+      for (final blob in blobs) {
+        final relativePath = p.relative(blob.path, from: projectRoot);
+        fingerprintEntries.add(
+          NarrativeProjectFingerprintEntry(
+            relativePath: relativePath.replaceAll(r'\', '/'),
+            bytes: await blob.readAsBytes(),
+          ),
+        );
+      }
+    }
+  }
   return _RuntimeNewGameProjectSnapshot(
     project: project,
     map: MapData.fromJson(mapJson),
-    revision:
-        computeNarrativeProjectFingerprint(<NarrativeProjectFingerprintEntry>[
-      NarrativeProjectFingerprintEntry(
-        relativePath: 'project.json',
-        bytes: projectBytes,
-      ),
-      NarrativeProjectFingerprintEntry(
-        relativePath: relativeMapPath,
-        bytes: mapBytes,
-      ),
-    ]),
+    revision: computeNarrativeProjectFingerprint(fingerprintEntries),
   );
 }

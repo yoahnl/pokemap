@@ -10,6 +10,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_bootstrap.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_installed_presentation_runtime.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
@@ -77,6 +78,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   StreamSubscription<RuntimeStartupSnapshot>? _startupSubscription;
   bool _lifecycleActive = true;
   bool _reducedMotion = false;
+  HubInstalledPresentationRuntime? _presentationRuntime;
 
   @override
   void initState() {
@@ -124,6 +126,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       _controlProfileStore = prepared.controlProfileStore;
       _controlProfile = prepared.controlProfile;
       _reducedMotion = prepared.reducedMotion;
+      _presentationRuntime = prepared.presentationRuntime;
       _viewController = player_ui.RuntimePlayerCoordinatorViewController(
         prepared.coordinator,
       );
@@ -191,6 +194,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (startup != null) {
         unawaited(startup.resumeFromLifecycle());
       }
+      unawaited(_presentationRuntime?.controller.resumeAfterLifecycle());
       return;
     }
     if (state == AppLifecycleState.inactive ||
@@ -203,6 +207,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (startup != null) {
         unawaited(startup.pauseForLifecycle());
       }
+      unawaited(_presentationRuntime?.controller.pauseForLifecycle());
     }
   }
 
@@ -334,29 +339,54 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   Widget _buildSessionView(
     player_ui.RuntimePlayerCoordinatorViewController viewController,
     player_ui.RuntimePlayerPresentation presentation,
-  ) => player_ui.PokeMapPlayerSessionView(
-    key: const ValueKey<String>('pokemap-runtime-player-view'),
-    controller: viewController,
-    titlePresentation: presentation.title,
-    pauseMenuLabels: presentation.pauseMenuLabels,
-    pausePresentation: presentation.pausePresentation,
-    gameplayInputRoute: _sessions?.handleInput,
-    gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
-    dialoguePresentation: _mountedGame?.dialoguePresentationListenable,
-    onDialogueCommand: _mountedGame?.dispatchDialoguePresentationCommand,
-    battlePresentation: _mountedGame?.battleCommandOverlayListenable,
-    onBattleCommand: _mountedGame?.dispatchBattlePresentationCommand,
-    controlProfile: _controlProfile,
-    onControlProfileChanged: _updateControlProfile,
-    gameSceneBuilder: (_) {
-      final game = _mountedGame;
-      return game == null
-          ? const SizedBox.expand(
-            key: ValueKey<String>('runtime-game-awaiting-mount'),
-          )
-          : GameWidget(key: ObjectKey(game), game: game, autofocus: false);
-    },
-  );
+  ) {
+    final presentationRuntime = _presentationRuntime;
+    if (presentationRuntime != null) {
+      final size = MediaQuery.sizeOf(context);
+      final orientation =
+          size.height > size.width
+              ? player_ui.PresentationFrameOrientation.portrait
+              : player_ui.PresentationFrameOrientation.landscape;
+      if (presentationRuntime.controller.orientation != orientation) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            presentationRuntime.controller.setOrientation(orientation);
+          }
+        });
+      }
+    }
+    return player_ui.PokeMapPlayerSessionView(
+      key: const ValueKey<String>('pokemap-runtime-player-view'),
+      controller: viewController,
+      titlePresentation: presentation.title,
+      pauseMenuLabels: presentation.pauseMenuLabels,
+      pausePresentation: presentation.pausePresentation,
+      gameplayInputRoute: _sessions?.handleInput,
+      gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
+      dialoguePresentation: _mountedGame?.dialoguePresentationListenable,
+      onDialogueCommand: _mountedGame?.dispatchDialoguePresentationCommand,
+      battlePresentation: _mountedGame?.battleCommandOverlayListenable,
+      onBattleCommand: _mountedGame?.dispatchBattlePresentationCommand,
+      controlProfile: _controlProfile,
+      onControlProfileChanged: _updateControlProfile,
+      presentationFrame: presentationRuntime?.controller,
+      presentationContentPort: presentationRuntime?.controller,
+      onPresentationSkip:
+          presentationRuntime == null
+              ? null
+              : () async {
+                await presentationRuntime.controller.skipActive();
+              },
+      gameSceneBuilder: (_) {
+        final game = _mountedGame;
+        return game == null
+            ? const SizedBox.expand(
+              key: ValueKey<String>('runtime-game-awaiting-mount'),
+            )
+            : GameWidget(key: ObjectKey(game), game: game, autofocus: false);
+      },
+    );
+  }
 
   void _updateControlProfile(player_ui.PlayerControlProfile profile) {
     if (profile == _controlProfile) return;
@@ -374,6 +404,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     _viewController = null;
     _sessions = null;
     _audioMixer = null;
+    final presentationRuntime = _presentationRuntime;
+    _presentationRuntime = null;
+    if (presentationRuntime != null) {
+      unawaited(presentationRuntime.close());
+    }
     final startupSubscription = _startupSubscription;
     _startupSubscription = null;
     if (startupSubscription != null) {

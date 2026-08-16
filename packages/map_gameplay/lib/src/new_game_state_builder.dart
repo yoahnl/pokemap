@@ -86,7 +86,7 @@ GameState createNewGameStateFromSeed({
   final state = createNewGameStateFromProject(
     project: project,
     startMap: startMap,
-    saveId: seed.slotId,
+    saveId: seed.saveId,
     playerName: seed.playerName,
     playerAvatarCharacterId: seed.avatarCharacterId,
     playerPronounSet: seed.pronounSet,

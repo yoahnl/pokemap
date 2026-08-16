@@ -90,6 +90,45 @@ void main() {
       );
     });
 
+    test('treats a preSession interaction as a traversable typed action', () {
+      final report = solveNarrativeSceneSymbolically(
+        SceneAsset(
+          id: 'scene_pre_session',
+          name: 'Pré-session',
+          executionProfile: SceneExecutionProfile.preSession,
+          graph: SceneGraph(
+            startNodeId: 'start',
+            nodes: [
+              SceneNode(id: 'start', kind: SceneNodeKind.start),
+              SceneNode(
+                id: 'player_name',
+                kind: SceneNodeKind.action,
+                payload: SceneActionPayload.preSessionInteraction(
+                  ScenePreSessionInteractionSpec.text(
+                    prompt: SceneInteractionPrompt(
+                      localizationKey: 'newGame.playerName.prompt',
+                    ),
+                    resultBinding: const ScenePreSessionResultBinding(
+                      field: ScenePreSessionDraftField.playerName,
+                    ),
+                  ),
+                ),
+              ),
+              SceneNode(id: 'end', kind: SceneNodeKind.end),
+            ],
+            edges: [
+              _edge('start_name', 'start', 'completed', 'player_name'),
+              _edge('name_end', 'player_name', 'completed', 'end'),
+            ],
+          ),
+        ),
+      );
+
+      expect(report.verdict, NarrativeSymbolicVerdict.pass);
+      expect(report.issues, isEmpty);
+      expect(report.terminalStates, hasLength(1));
+    });
+
     test('reports a cycle as fail with reproducible provenance', () {
       final scene = SceneAsset(
         id: 'scene_cycle',

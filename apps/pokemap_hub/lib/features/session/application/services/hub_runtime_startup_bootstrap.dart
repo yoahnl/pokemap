@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
@@ -11,6 +12,7 @@ import 'package:pokemap_hub/features/saves/application/services/hub_save_profile
 import 'package:pokemap_hub/features/session/application/gateways/hub_player_preferences_gateway.dart';
 import 'package:pokemap_hub/features/session/application/gateways/hub_player_save_gateway.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_in_process_session_factory.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_installed_presentation_runtime.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_game_source.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
 import 'package:pokemap_hub/features/session/application/services/player_launch_failure.dart';
@@ -28,6 +30,7 @@ final class HubRuntimeStartupPreparedData {
     required this.controlProfileStore,
     required this.controlProfile,
     required this.reducedMotion,
+    this.presentationRuntime,
   });
 
   final GameSessionController sessions;
@@ -38,6 +41,7 @@ final class HubRuntimeStartupPreparedData {
   final ControlProfileRepositoryInterface controlProfileStore;
   final player_ui.PlayerControlProfile controlProfile;
   final bool reducedMotion;
+  final HubInstalledPresentationRuntime? presentationRuntime;
 }
 
 final class HubRuntimeStartupBootstrap
@@ -55,6 +59,8 @@ final class HubRuntimeStartupBootstrap
     required this.stopIntroPlayback,
     required this.defaultProfileDisplayNameForLocale,
     this.diagnosticLogFile,
+    this.presentationFrameDeltas,
+    this.presentationBeforeTerminal,
   });
 
   final Directory supportRoot;
@@ -69,11 +75,14 @@ final class HubRuntimeStartupBootstrap
   final Future<void> Function() stopIntroPlayback;
   final String Function(String locale) defaultProfileDisplayNameForLocale;
   final File? diagnosticLogFile;
+  final RuntimePresentationFrameDeltas? presentationFrameDeltas;
+  final RuntimePresentationBeforeTerminal? presentationBeforeTerminal;
 
   @override
   Future<RuntimeStartupBootstrapResult<HubRuntimeStartupPreparedData>> prepare({
     required RuntimeStartupBootstrapStageSink onStageCompleted,
   }) async {
+    HubInstalledPresentationRuntime? presentationRuntime;
     try {
       final launch = await launchResolver.resolve(game);
       onStageCompleted(RuntimeStartupBootstrapStage.projectResolution);
@@ -122,23 +131,46 @@ final class HubRuntimeStartupBootstrap
       );
       onStageCompleted(RuntimeStartupBootstrapStage.presentationBinding);
 
+      final projectFile = await launch.assets.resolveReference(launch.project);
+      final projectJson = jsonDecode(await projectFile.readAsString());
+      if (projectJson is! Map<String, dynamic>) {
+        throw const FormatException('Installed project must be an object.');
+      }
+      final installedProject = ProjectManifest.fromJson(projectJson);
+      if (installedProject.presentationCinematics.isNotEmpty) {
+        final media =
+            _referencesPresentationMedia(installedProject)
+                ? await const HubInstalledPresentationMediaLoader().load(
+                  launch.assets,
+                )
+                : HubInstalledPresentationMedia(
+                  catalog: ProjectMediaCatalog(),
+                  mediaUris: const <String, Uri>{},
+                );
+        presentationRuntime = HubInstalledPresentationRuntime(
+          runtimeSourceId: launch.identity.gameId,
+          media: media,
+          targetPlatform: currentPresentationMediaTargetPlatform(),
+          audioMixer: audioMixer,
+          reducedMotion: preferences.reducedMotion,
+          frameDeltas: presentationFrameDeltas,
+          beforeTerminal: presentationBeforeTerminal,
+        );
+      }
+
       final gameSource = HubRuntimeGameSource(
         launch: launch,
         preferencesGateway: preferencesGateway,
       );
       final initialMapPreloader = RuntimeInitialMapPreloader(
-        projectFilePath: () async {
-          final project = await launch.assets.resolveReference(launch.project);
-          return project.path;
-        },
+        projectFilePath: () async => projectFile.path,
         loadSave: saveGateway.readLaunchableEnvelope,
       );
       final newGameFlow = RuntimeProjectNewGameFlowPort(
-        projectFilePath: () async {
-          final project = await launch.assets.resolveReference(launch.project);
-          return project.path;
-        },
+        projectFilePath: () async => projectFile.path,
         initialMapPreloader: initialMapPreloader,
+        preSessionRunnerFactory: presentationRuntime?.buildPreSessionRunner,
+        cancelActivePreSession: presentationRuntime?.cancelActive,
       );
       final sessionFactory = HubInProcessSessionFactory(
         launch: launch,
@@ -193,9 +225,11 @@ final class HubRuntimeStartupBootstrap
           controlProfileStore: controlProfileRepository,
           controlProfile: controlProfile,
           reducedMotion: preferences.reducedMotion,
+          presentationRuntime: presentationRuntime,
         ),
       );
     } on Object catch (error, stackTrace) {
+      await presentationRuntime?.close();
       final recorded = await recordPlayerLaunchFailure(
         game: game,
         supportRoot: supportRoot,
@@ -212,4 +246,20 @@ final class HubRuntimeStartupBootstrap
       );
     }
   }
+}
+
+bool _referencesPresentationMedia(ProjectManifest project) {
+  for (final cinematic in project.presentationCinematics) {
+    for (final track in cinematic.tracks) {
+      if (track.clips.any(
+        (clip) =>
+            clip is PresentationVisualClip ||
+            clip is PresentationAudioClip ||
+            clip is PresentationCaptionClip,
+      )) {
+        return true;
+      }
+    }
+  }
+  return false;
 }

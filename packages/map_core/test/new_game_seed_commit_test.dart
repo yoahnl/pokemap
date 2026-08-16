@@ -30,6 +30,14 @@ void main() {
       expect(receipt.token.slotId, 'slot-1');
       expect(receipt.token.draftRevision, draft.revision);
       expect(receipt.seed, isNotNull);
+      expect(
+        receipt.seed!.saveId,
+        matches(
+          RegExp(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+          ),
+        ),
+      );
       expect(receipt.seed!.draftId, draft.draftId);
       expect(receipt.seed!.playerName, 'Élodie');
       expect(receipt.seed!.avatarCharacterId, 'hero-a');

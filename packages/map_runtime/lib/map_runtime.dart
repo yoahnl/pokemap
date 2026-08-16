@@ -69,6 +69,7 @@ export 'src/player/runtime_presentation_execution_controller.dart'
         RuntimePresentationExecutionTerminal,
         RuntimePresentationExecutionTerminalSink,
         RuntimePresentationRunToken;
+export 'src/player/runtime_presentation_scene_playback_controller.dart';
 export 'src/player/runtime_intro_sequence_controller.dart'
     show
         RuntimeIntroPhase,

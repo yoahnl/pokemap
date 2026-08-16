@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -36,10 +38,14 @@ class RuntimePresentationFrameSurface extends StatelessWidget {
     super.key,
     required this.snapshot,
     required this.contentPort,
+    this.onSkip,
+    this.skipLabel = 'Passer',
   });
 
   final RuntimePresentationFrameSnapshot snapshot;
   final PresentationFrameContentPort contentPort;
+  final Future<void> Function()? onSkip;
+  final String skipLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -52,14 +58,29 @@ class RuntimePresentationFrameSurface extends StatelessWidget {
     return ColoredBox(
       key: const ValueKey<String>('runtime-presentation-frame-surface'),
       color: context.playerColors.background,
-      child: PresentationFrameRenderer(
-        frame: snapshot.frame,
-        orientation: snapshot.orientation,
-        contentPort: resolvedContentPort,
-        reduceMotion: snapshot.reduceMotion,
-        reduceFlashes: snapshot.reduceFlashes,
-        showCaptions: snapshot.showCaptions,
-        orientationOverrides: snapshot.orientationOverrides,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          PresentationFrameRenderer(
+            frame: snapshot.frame,
+            orientation: snapshot.orientation,
+            contentPort: resolvedContentPort,
+            reduceMotion: snapshot.reduceMotion,
+            reduceFlashes: snapshot.reduceFlashes,
+            showCaptions: snapshot.showCaptions,
+            orientationOverrides: snapshot.orientationOverrides,
+          ),
+          if (onSkip != null)
+            PositionedDirectional(
+              end: 24,
+              bottom: 24,
+              child: FilledButton.tonal(
+                key: const ValueKey<String>('runtime-presentation-skip'),
+                onPressed: () => unawaited(onSkip!()),
+                child: Text(skipLabel),
+              ),
+            ),
+        ],
       ),
     );
   }

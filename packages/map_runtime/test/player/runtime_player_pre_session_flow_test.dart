@@ -30,7 +30,7 @@ void main() {
     expect(harness.source.requests, hasLength(1));
     final state = harness.source.requests.single.initialGameState;
     expect(state, isNotNull);
-    expect(state!.saveId, 'slot_1');
+    expect(state!.saveId, 'a1d9f8ee-9bec-5c3d-85ce-9f5c4c8a2556');
     expect(state.currentMapId, 'start_map');
     expect(state.scriptVariables.values['player_name']?.value, 'Player');
     expect(harness.newGameFlow.project.newGame.toJson(), configBefore);

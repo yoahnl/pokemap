@@ -110,6 +110,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.pausePresentation,
     this.presentationFrame,
     this.presentationContentPort,
+    this.onPresentationSkip,
   }) : assert(
           presentationFrame == null || presentationContentPort != null,
         );
@@ -152,6 +153,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final PlayerPausePresentation? pausePresentation;
   final ValueListenable<RuntimePresentationFrameSnapshot?>? presentationFrame;
   final PresentationFrameContentPort? presentationContentPort;
+  final Future<void> Function()? onPresentationSkip;
 
   @override
   State<PokeMapPlayerSessionView> createState() =>
@@ -265,6 +267,16 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     RuntimeInputEvent event, {
     required PlayerInputSource source,
   }) async {
+    final command = playerInputCommandFromRuntimeEvent(event, source: source);
+    if (widget.presentationFrame?.value != null && command.isPress) {
+      if (command.action == PlayerInputAction.confirm) {
+        await widget.onPresentationSkip?.call();
+      } else if (command.action == PlayerInputAction.back ||
+          command.action == PlayerInputAction.menu) {
+        await _dispatchAction(RuntimePlayerAction.cancel);
+      }
+      return;
+    }
     final router = PlayerInputRouter(
       surface: _inputSurface,
       routeGameplay: widget.gameplayInputRoute ?? (_) => false,
@@ -272,7 +284,6 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       toggleMenu: _toggleMenu,
       releaseGameplayDirections: _releaseGameplayDirections,
     );
-    final command = playerInputCommandFromRuntimeEvent(event, source: source);
     final surface = _inputSurface();
     final handled = await router.route(command);
     final directional = command.action == PlayerInputAction.up ||
@@ -517,6 +528,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
                 : RuntimePresentationFrameSurface(
                     snapshot: frame,
                     contentPort: widget.presentationContentPort!,
+                    onSkip: widget.onPresentationSkip,
                   ),
           ),
         if (showTouchControls)

@@ -77,6 +77,7 @@ void main() {
         ),
       );
       final contentPort = _PresentationContentPort();
+      var skipCalls = 0;
       addTearDown(controller.dispose);
       addTearDown(presentation.dispose);
 
@@ -86,6 +87,7 @@ void main() {
             controller,
             presentationFrame: presentation,
             presentationContentPort: contentPort,
+            onPresentationSkip: () async => skipCalls += 1,
             touchControlsAvailable: true,
             gameplayInputRoute: (_) => true,
           ),
@@ -118,6 +120,11 @@ void main() {
         find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
         findsNothing,
       );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('runtime-presentation-skip')),
+      );
+      await tester.pump();
+      expect(skipCalls, 1);
 
       presentation.value = null;
       await tester.pump();
@@ -1524,6 +1531,7 @@ PokeMapPlayerSessionView _view(
   PlayerControlProfile? controlProfile,
   ValueListenable<RuntimePresentationFrameSnapshot?>? presentationFrame,
   PresentationFrameContentPort? presentationContentPort,
+  Future<void> Function()? onPresentationSkip,
 }) {
   return PokeMapPlayerSessionView(
     controller: controller,
@@ -1551,6 +1559,7 @@ PokeMapPlayerSessionView _view(
     controlProfile: controlProfile,
     presentationFrame: presentationFrame,
     presentationContentPort: presentationContentPort,
+    onPresentationSkip: onPresentationSkip,
   );
 }
 
