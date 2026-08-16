@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -424,6 +425,14 @@ List<String> _validateContract(Map<String, dynamic> contract) {
     for (final platform in _objects(contract['platformMatrix']))
       platform['platform'] as String: platform,
   };
+  const platformNames = <PresentationMediaTargetPlatform, String>{
+    PresentationMediaTargetPlatform.macos: 'macOS',
+    PresentationMediaTargetPlatform.ios: 'iOS',
+    PresentationMediaTargetPlatform.android: 'Android',
+    PresentationMediaTargetPlatform.web: 'Web',
+    PresentationMediaTargetPlatform.windows: 'Windows',
+    PresentationMediaTargetPlatform.linux: 'Linux',
+  };
   if (platforms.keys.toSet().difference({
         'macOS',
         'iOS',
@@ -433,12 +442,19 @@ List<String> _validateContract(Map<String, dynamic> contract) {
         'Linux',
       }).isNotEmpty ||
       platforms.length != 6 ||
-      platforms['macOS']?['packaging'] != 'spmOnly' ||
-      platforms['Windows']?['audioVideo'] !=
-          'unsupportedUntilPluginAndBuildCertification' ||
-      platforms['Linux']?['audioVideo'] !=
-          'unsupportedUntilPluginAndBuildCertification') {
+      platforms['macOS']?['packaging'] != 'spmOnly') {
     issues.add('platform.matrix_invalid');
+  }
+  for (final entry in platformNames.entries) {
+    final platform = platforms[entry.value];
+    final capabilities = presentationMediaPlatformCapabilities(entry.key);
+    if (platform == null ||
+        platform['image'] != capabilities.image.id ||
+        platform['audio'] != capabilities.audio.id ||
+        platform['video'] != capabilities.video.id ||
+        platform['captions'] != capabilities.captions.id) {
+      issues.add('platform.${entry.key.name}.capabilities_invalid');
+    }
   }
 
   final accessibility = _object(contract['accessibilityAndInput']);

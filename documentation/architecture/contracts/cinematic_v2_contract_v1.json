@@ -451,39 +451,51 @@
   "platformMatrix": [
     {
       "platform": "macOS",
-      "staticAndText": "target",
-      "audioVideo": "conditionalUntilBETA-CIN-047",
+      "image": "supported",
+      "audio": "supported",
+      "video": "supported",
+      "captions": "supported",
       "packaging": "spmOnly"
     },
     {
       "platform": "iOS",
-      "staticAndText": "target",
-      "audioVideo": "conditionalUntilBETA-CIN-047",
+      "image": "supported",
+      "audio": "supported",
+      "video": "supported",
+      "captions": "supported",
       "packaging": "platformBuildRequired"
     },
     {
       "platform": "Android",
-      "staticAndText": "target",
-      "audioVideo": "conditionalUntilBETA-CIN-047",
+      "image": "supported",
+      "audio": "supported",
+      "video": "supported",
+      "captions": "supported",
       "packaging": "platformBuildRequired"
     },
     {
       "platform": "Web",
-      "staticAndText": "target",
-      "audioVideo": "conditionalAutoplayAndOfflinePreflight",
-      "packaging": "webBuildRequired"
+      "image": "unsupported",
+      "audio": "unsupported",
+      "video": "unsupported",
+      "captions": "unsupported",
+      "packaging": "failClosedNoRunner"
     },
     {
       "platform": "Windows",
-      "staticAndText": "target",
-      "audioVideo": "unsupportedUntilPluginAndBuildCertification",
-      "packaging": "explicitPosterFallbackOrFail"
+      "image": "target",
+      "audio": "target",
+      "video": "fallback-only",
+      "captions": "target",
+      "packaging": "releaseBuildAndLaunchWithPosterFallback"
     },
     {
       "platform": "Linux",
-      "staticAndText": "target",
-      "audioVideo": "unsupportedUntilPluginAndBuildCertification",
-      "packaging": "explicitPosterFallbackOrFail"
+      "image": "target",
+      "audio": "target",
+      "video": "fallback-only",
+      "captions": "target",
+      "packaging": "releaseBuildAndLaunchWithPosterFallback"
     }
   ],
   "accessibilityAndInput": {

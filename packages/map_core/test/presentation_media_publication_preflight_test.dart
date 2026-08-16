@@ -148,6 +148,106 @@ void main() {
       );
     });
 
+    test('uses one conservative capability matrix for every platform', () {
+      expect(
+        presentationMediaPlatformCapabilities(
+          PresentationMediaTargetPlatform.web,
+        ).toJson(),
+        <String, Object?>{
+          'image': 'unsupported',
+          'audio': 'unsupported',
+          'video': 'unsupported',
+          'captions': 'unsupported',
+        },
+      );
+
+      for (final platform in <PresentationMediaTargetPlatform>{
+        PresentationMediaTargetPlatform.windows,
+        PresentationMediaTargetPlatform.linux,
+      }) {
+        final capabilities = presentationMediaPlatformCapabilities(platform);
+        expect(capabilities.image, PresentationMediaPlatformCapability.target);
+        expect(capabilities.audio, PresentationMediaPlatformCapability.target);
+        expect(
+          capabilities.video,
+          PresentationMediaPlatformCapability.fallbackOnly,
+        );
+        expect(
+          capabilities.captions,
+          PresentationMediaPlatformCapability.target,
+        );
+      }
+    });
+
+    test('rejects an uncertified Web target before resolving media', () {
+      final receipt = const PresentationMediaPublicationPreflight().inspect(
+        catalog: ProjectMediaCatalog(
+          entries: <ProjectMediaAsset>[
+            _media(
+              id: 'opening-image',
+              kind: ProjectMediaKind.image,
+              sizeBytes: 100,
+              width: 100,
+              height: 100,
+            ),
+          ],
+        ),
+        cinematics: <PresentationCinematicAsset>[
+          _cinematic(resourceId: 'opening-image'),
+        ],
+        targetPlatforms: const <PresentationMediaTargetPlatform>{
+          PresentationMediaTargetPlatform.web,
+        },
+      );
+
+      expect(receipt.canPublish, isFalse);
+      expect(receipt.platforms.single.resolutions, isEmpty);
+      expect(
+        receipt.platforms.single.diagnostics.single,
+        isA<PresentationMediaPublicationDiagnostic>()
+            .having(
+              (diagnostic) => diagnostic.code,
+              'code',
+              PresentationMediaPublicationDiagnosticCodes.platformUnsupported,
+            )
+            .having(
+              (diagnostic) => diagnostic.constraint,
+              'constraint',
+              PresentationMediaPublicationConstraints.platformCertification,
+            )
+            .having((diagnostic) => diagnostic.path, 'path', 'platforms.web'),
+      );
+    });
+
+    test('default publication excludes uncertified platforms', () {
+      final receipt = const PresentationMediaPublicationPreflight().inspect(
+        catalog: ProjectMediaCatalog(
+          entries: <ProjectMediaAsset>[
+            _media(
+              id: 'opening-image',
+              kind: ProjectMediaKind.image,
+              sizeBytes: 100,
+              width: 100,
+              height: 100,
+            ),
+          ],
+        ),
+        cinematics: <PresentationCinematicAsset>[
+          _cinematic(resourceId: 'opening-image'),
+        ],
+      );
+
+      expect(receipt.canPublish, isTrue);
+      expect(
+        receipt.platforms.map((entry) => entry.platform).toSet(),
+        defaultPresentationMediaTargetPlatforms,
+      );
+      expect(
+        receipt.platforms.map((entry) => entry.platform),
+        isNot(contains(PresentationMediaTargetPlatform.web)),
+      );
+    });
+
     test('reports missing rights and every authored budget overflow', () {
       final catalog = ProjectMediaCatalog(
         entries: <ProjectMediaAsset>[

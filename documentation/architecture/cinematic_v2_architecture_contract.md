@@ -187,18 +187,18 @@ Les codes initiaux sont définis dans le contrat JSON. L'UI les localise ; elle 
 
 Les gates V1 demandent `50` cycles lifecycle, un décodeur maximum, zéro handle média final, une dérive RSS d'au plus `10 %` entre les cycles 5 et 50, skip p95 sous `100 ms`, poster p95 sous `500 ms`, première frame vidéo p95 sous `1 s`, aucun stall main isolate au-delà de `100 ms` et `99 %` des frames UI sous `16,7 ms` dans le scénario certifié.
 
-La matrice initiale est volontairement prudente :
+La décision `BETA-CIN-047` reste volontairement prudente :
 
-| Plateforme | Statique/texte | Audio/vidéo | Gate |
-|---|---|---|---|
-| macOS | cible | conditionnel | build + lifecycle, SPM uniquement |
-| iOS | cible | conditionnel | build plateforme |
-| Android | cible | conditionnel | build plateforme |
-| Web | cible | conditionnel | autoplay, codecs et offline |
-| Windows | cible | non supporté initialement | plugin + build requis, sinon poster explicite ou rejet |
-| Linux | cible | non supporté initialement | plugin + build requis, sinon poster explicite ou rejet |
+| Plateforme | Image | Audio | Vidéo | Captions | Gate |
+|---|---|---|---|---|---|
+| macOS | supporté | supporté | supporté | supporté | build + lifecycle, SPM uniquement |
+| iOS | supporté | supporté | supporté | supporté | build plateforme et distribution Xcode Cloud |
+| Android | supporté | supporté | supporté | supporté | build plateforme et distribution GitHub Release |
+| Web | non supporté | non supporté | non supporté | non supporté | rejet avant résolution média, aucun runner commité |
+| Windows | cible | cible | fallback poster uniquement | cible | build + lancement release avant promotion |
+| Linux | cible | cible | fallback poster uniquement | cible | build + lancement release avant promotion |
 
-Un statut `target` n'est pas un statut `supported`. `BETA-CIN-047` promeut uniquement les cases fraîchement prouvées.
+Un statut `target` n'est pas un statut `supported`. La présence d'un runner, d'un dossier plateforme ou d'un plugin n'est jamais une preuve de support. Web reste fail-closed tant qu'un runner et un parcours autoplay, codecs et offline ne sont pas certifiés. Windows et Linux exigent un poster explicite pour toute vidéo de présentation et restent des cibles jusqu'à une preuve build + lancement fraîche.
 
 ## CIN-ADR-017 — Canary et retrait legacy strict
 

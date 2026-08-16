@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:map_core/map_core.dart';
+
 final class PresentationRuntimePerformanceReceipt {
   PresentationRuntimePerformanceReceipt._(this._json);
 
@@ -302,14 +304,7 @@ final class PresentationRuntimePerformanceReceipt {
           )['samplesUs'],
         },
       },
-      platformSupport: const <String, Object?>{
-        'schemaVersion': 1,
-        'platforms': <String, Object?>{
-          'macos': <String, Object?>{'status': 'supported'},
-          'ios': <String, Object?>{'status': 'xcode-cloud-target'},
-          'android': <String, Object?>{'status': 'build-target'},
-        },
-      },
+      platformSupport: _canonicalPlatformSupport(),
       provenance: _map(json['provenance'], r'$.provenance'),
     );
     if (!_deepEquals(rebuilt.toJson(), json)) {
@@ -335,28 +330,89 @@ final class PresentationRuntimePerformanceReceipt {
 (List<String>, List<String>) _validatePlatformSupport(
   Map<String, Object?> json,
 ) {
-  if (json['schemaVersion'] != 1) {
-    throw const FormatException(r'$.platformSupport.schemaVersion must be 1.');
+  if (json['schemaVersion'] != 2) {
+    throw const FormatException(r'$.platformSupport.schemaVersion must be 2.');
   }
   final platforms = _map(json['platforms'], r'$.platformSupport.platforms');
-  final expected = <String, String>{
-    'macos': 'supported',
-    'ios': 'xcode-cloud-target',
-    'android': 'build-target',
-  };
-  for (final entry in expected.entries) {
+  final expectedPlatformSupport = _canonicalPlatformSupport();
+  final expectedPlatforms = _map(
+    expectedPlatformSupport['platforms'],
+    r'$.expectedPlatformSupport.platforms',
+  );
+  if (platforms.keys
+          .toSet()
+          .difference(expectedPlatforms.keys.toSet())
+          .isNotEmpty ||
+      expectedPlatforms.keys
+          .toSet()
+          .difference(platforms.keys.toSet())
+          .isNotEmpty) {
+    throw const FormatException(
+      r'$.platformSupport.platforms must contain exactly macos, ios, android, windows, linux and web.',
+    );
+  }
+  for (final entry in expectedPlatforms.entries) {
     final platform = _map(
       platforms[entry.key],
       r'$.platformSupport.platforms.' + entry.key,
     );
-    if (platform['status'] != entry.value) {
+    final expected = _map(
+      entry.value,
+      r'$.expectedPlatformSupport.platforms.' + entry.key,
+    );
+    if (platform['status'] != expected['status']) {
       throw FormatException(
         r'$.platformSupport.platforms.' +
-            '${entry.key}.status must be ${entry.value}.',
+            '${entry.key}.status must be ${expected['status']}.',
       );
+    }
+    final capabilities = _map(
+      platform['capabilities'],
+      r'$.platformSupport.platforms.' + entry.key + '.capabilities',
+    );
+    _expectKeys(capabilities, const <String>{
+      'image',
+      'audio',
+      'video',
+      'captions',
+    }, r'$.platformSupport.platforms.' + entry.key + '.capabilities');
+    final expectedCapabilities = _map(
+      expected['capabilities'],
+      r'$.expectedPlatformSupport.platforms.' + entry.key + '.capabilities',
+    );
+    for (final capability in expectedCapabilities.entries) {
+      if (capabilities[capability.key] != capability.value) {
+        throw FormatException(
+          r'$.platformSupport.platforms.' +
+              '${entry.key}.capabilities.${capability.key} must be ${capability.value}.',
+        );
+      }
     }
   }
   return (const <String>['macos'], const <String>['ios', 'android']);
+}
+
+Map<String, Object?> _canonicalPlatformSupport() {
+  const statuses = <PresentationMediaTargetPlatform, String>{
+    PresentationMediaTargetPlatform.macos: 'supported',
+    PresentationMediaTargetPlatform.ios: 'xcode-cloud-target',
+    PresentationMediaTargetPlatform.android: 'build-target',
+    PresentationMediaTargetPlatform.windows: 'build-and-launch-target',
+    PresentationMediaTargetPlatform.linux: 'build-and-launch-target',
+    PresentationMediaTargetPlatform.web: 'unsupported',
+  };
+  return <String, Object?>{
+    'schemaVersion': 2,
+    'platforms': <String, Object?>{
+      for (final platform in PresentationMediaTargetPlatform.values)
+        platform.name: <String, Object?>{
+          'status': statuses[platform],
+          'capabilities': presentationMediaPlatformCapabilities(
+            platform,
+          ).toJson(),
+        },
+    },
+  };
 }
 
 Map<String, Object?> _validateProvenance(Map<String, Object?> provenance) {

@@ -233,12 +233,35 @@ Map<String, Object?> _validMeasurements() => <String, Object?>{
 };
 
 Map<String, Object?> _platformSupport() => <String, Object?>{
-  'schemaVersion': 1,
+  'schemaVersion': 2,
   'platforms': <String, Object?>{
-    'macos': <String, Object?>{'status': 'supported'},
-    'ios': <String, Object?>{'status': 'xcode-cloud-target'},
-    'android': <String, Object?>{'status': 'build-target'},
-    'windows': <String, Object?>{'status': 'build-and-launch-target'},
-    'linux': <String, Object?>{'status': 'build-and-launch-target'},
+    'macos': _platform('supported', 'supported'),
+    'ios': _platform('xcode-cloud-target', 'supported'),
+    'android': _platform('build-target', 'supported'),
+    'windows': _platform(
+      'build-and-launch-target',
+      'target',
+      video: 'fallback-only',
+    ),
+    'linux': _platform(
+      'build-and-launch-target',
+      'target',
+      video: 'fallback-only',
+    ),
+    'web': _platform('unsupported', 'unsupported'),
+  },
+};
+
+Map<String, Object?> _platform(
+  String status,
+  String capability, {
+  String? video,
+}) => <String, Object?>{
+  'status': status,
+  'capabilities': <String, Object?>{
+    'image': capability,
+    'audio': capability,
+    'video': video ?? capability,
+    'captions': capability,
   },
 };

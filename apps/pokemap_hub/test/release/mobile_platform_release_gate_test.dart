@@ -23,6 +23,8 @@ void main() {
       expect(android['status'], 'build-target');
       expect(android['releaseGate'], 'release-apk-build');
       expect(android['deviceDistribution'], 'github-release');
+      expect((ios['capabilities'] as Map)['video'], 'supported');
+      expect((android['capabilities'] as Map)['video'], 'supported');
       expect(Directory('ios').existsSync(), isTrue);
       expect(Directory('android').existsSync(), isTrue);
     },

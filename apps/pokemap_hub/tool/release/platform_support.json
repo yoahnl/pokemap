@@ -1,34 +1,70 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "platforms": {
     "macos": {
       "status": "supported",
       "releaseGate": "developer-id-notarized-dmg",
-      "introVideoPlayback": "native"
+      "capabilities": {
+        "image": "supported",
+        "audio": "supported",
+        "video": "supported",
+        "captions": "supported"
+      }
     },
     "windows": {
       "status": "build-and-launch-target",
       "releaseGate": "release-build-and-launch",
-      "introVideoPlayback": "fallback-only",
-      "reason": "video_player 2.9.5 has no registered Windows backend."
+      "capabilities": {
+        "image": "target",
+        "audio": "target",
+        "video": "fallback-only",
+        "captions": "target"
+      },
+      "reason": "video_player 2.13.0 has no registered Windows backend; Presentation video requires an authored poster fallback."
     },
     "linux": {
       "status": "build-and-launch-target",
       "releaseGate": "release-build-and-launch",
-      "introVideoPlayback": "fallback-only",
-      "reason": "video_player 2.9.5 has no registered Linux backend."
+      "capabilities": {
+        "image": "target",
+        "audio": "target",
+        "video": "fallback-only",
+        "captions": "target"
+      },
+      "reason": "video_player 2.13.0 has no registered Linux backend; Presentation video requires an authored poster fallback."
     },
     "ios": {
       "status": "xcode-cloud-target",
       "releaseGate": "xcode-cloud",
-      "introVideoPlayback": "native",
+      "capabilities": {
+        "image": "supported",
+        "audio": "supported",
+        "video": "supported",
+        "captions": "supported"
+      },
       "deviceDistribution": "xcode-cloud"
     },
     "android": {
       "status": "build-target",
       "releaseGate": "release-apk-build",
-      "introVideoPlayback": "native",
+      "capabilities": {
+        "image": "supported",
+        "audio": "supported",
+        "video": "supported",
+        "captions": "supported"
+      },
       "deviceDistribution": "github-release"
+    },
+    "web": {
+      "status": "unsupported",
+      "releaseGate": "fail-closed-no-runner",
+      "capabilities": {
+        "image": "unsupported",
+        "audio": "unsupported",
+        "video": "unsupported",
+        "captions": "unsupported"
+      },
+      "reason": "No committed Web runner or certified autoplay, offline and codec journey; plugin presence is not support evidence."
     }
   }
 }

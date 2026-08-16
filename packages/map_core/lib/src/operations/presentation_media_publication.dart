@@ -10,9 +10,99 @@ enum PresentationMediaTargetPlatform {
   linux,
 }
 
+enum PresentationMediaPlatformCapability {
+  supported,
+  target,
+  fallbackOnly,
+  unsupported;
+
+  String get id => switch (this) {
+    supported => 'supported',
+    target => 'target',
+    fallbackOnly => 'fallback-only',
+    unsupported => 'unsupported',
+  };
+}
+
+final class PresentationMediaPlatformCapabilities {
+  const PresentationMediaPlatformCapabilities({
+    required this.image,
+    required this.audio,
+    required this.video,
+    required this.captions,
+  });
+
+  final PresentationMediaPlatformCapability image;
+  final PresentationMediaPlatformCapability audio;
+  final PresentationMediaPlatformCapability video;
+  final PresentationMediaPlatformCapability captions;
+
+  bool get isPublicationTarget =>
+      image != PresentationMediaPlatformCapability.unsupported ||
+      audio != PresentationMediaPlatformCapability.unsupported ||
+      video != PresentationMediaPlatformCapability.unsupported ||
+      captions != PresentationMediaPlatformCapability.unsupported;
+
+  PresentationMediaPlatformCapability forKind(ProjectMediaKind kind) =>
+      switch (kind.id) {
+        'image' || 'poster' => image,
+        'audio' => audio,
+        'video' => video,
+        'captions' => captions,
+        _ => PresentationMediaPlatformCapability.unsupported,
+      };
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'image': image.id,
+    'audio': audio.id,
+    'video': video.id,
+    'captions': captions.id,
+  };
+}
+
+const Set<PresentationMediaTargetPlatform>
+defaultPresentationMediaTargetPlatforms = <PresentationMediaTargetPlatform>{
+  PresentationMediaTargetPlatform.android,
+  PresentationMediaTargetPlatform.ios,
+  PresentationMediaTargetPlatform.macos,
+  PresentationMediaTargetPlatform.windows,
+  PresentationMediaTargetPlatform.linux,
+};
+
+PresentationMediaPlatformCapabilities presentationMediaPlatformCapabilities(
+  PresentationMediaTargetPlatform platform,
+) => switch (platform) {
+  PresentationMediaTargetPlatform.android ||
+  PresentationMediaTargetPlatform.ios ||
+  PresentationMediaTargetPlatform.macos =>
+    const PresentationMediaPlatformCapabilities(
+      image: PresentationMediaPlatformCapability.supported,
+      audio: PresentationMediaPlatformCapability.supported,
+      video: PresentationMediaPlatformCapability.supported,
+      captions: PresentationMediaPlatformCapability.supported,
+    ),
+  PresentationMediaTargetPlatform.windows ||
+  PresentationMediaTargetPlatform.linux =>
+    const PresentationMediaPlatformCapabilities(
+      image: PresentationMediaPlatformCapability.target,
+      audio: PresentationMediaPlatformCapability.target,
+      video: PresentationMediaPlatformCapability.fallbackOnly,
+      captions: PresentationMediaPlatformCapability.target,
+    ),
+  PresentationMediaTargetPlatform.web =>
+    const PresentationMediaPlatformCapabilities(
+      image: PresentationMediaPlatformCapability.unsupported,
+      audio: PresentationMediaPlatformCapability.unsupported,
+      video: PresentationMediaPlatformCapability.unsupported,
+      captions: PresentationMediaPlatformCapability.unsupported,
+    ),
+};
+
 abstract final class PresentationMediaPublicationDiagnosticCodes {
   static const mediaMissing = 'cinematic.presentation.media_missing';
   static const mediaUnsupported = 'cinematic.presentation.media_unsupported';
+  static const platformUnsupported =
+      'cinematic.presentation.platform_unsupported';
   static const budgetExceeded = 'cinematic.presentation.budget_exceeded';
   static const provenanceMissing = mediaUnsupported;
   static const licenseMissing = mediaUnsupported;
@@ -28,6 +118,7 @@ abstract final class PresentationMediaPublicationDiagnosticCodes {
 abstract final class PresentationMediaPublicationConstraints {
   static const mediaReference = 'mediaReference';
   static const platformCompatibility = 'platformCompatibility';
+  static const platformCertification = 'platformCertification';
   static const provenance = 'provenance';
   static const license = 'license';
   static const technicalMetadata = 'technicalMetadata';
@@ -239,14 +330,7 @@ final class PresentationMediaPublicationPreflight {
     PresentationMediaBudgetPolicy policy =
         const PresentationMediaBudgetPolicy(),
     Set<PresentationMediaTargetPlatform> targetPlatforms =
-        const <PresentationMediaTargetPlatform>{
-          PresentationMediaTargetPlatform.android,
-          PresentationMediaTargetPlatform.ios,
-          PresentationMediaTargetPlatform.macos,
-          PresentationMediaTargetPlatform.web,
-          PresentationMediaTargetPlatform.windows,
-          PresentationMediaTargetPlatform.linux,
-        },
+        defaultPresentationMediaTargetPlatforms,
   }) {
     final orderedCinematics = cinematics.toList()
       ..sort((left, right) => left.id.compareTo(right.id));
@@ -370,6 +454,30 @@ final class PresentationMediaPublicationPreflight {
     for (final platform in orderedPlatforms) {
       final resolutions = <PresentationMediaPlatformResolution>[];
       final platformDiagnostics = <PresentationMediaPublicationDiagnostic>[];
+      final capabilities = presentationMediaPlatformCapabilities(platform);
+      if (!capabilities.isPublicationTarget) {
+        platformDiagnostics.add(
+          PresentationMediaPublicationDiagnostic(
+            code:
+                PresentationMediaPublicationDiagnosticCodes.platformUnsupported,
+            constraint:
+                PresentationMediaPublicationConstraints.platformCertification,
+            path: 'platforms.${platform.name}',
+            message: 'Presentation is not certified for this target platform.',
+            platform: platform,
+          ),
+        );
+        platforms.add(
+          PresentationMediaPlatformReport(
+            platform: platform,
+            payloadBytes: 0,
+            estimatedDecodedVisualBytes: 0,
+            resolutions: resolutions,
+            diagnostics: platformDiagnostics,
+          ),
+        );
+        continue;
+      }
       for (final mediaId in allMediaIds.toList()..sort()) {
         final resolution = resolvePresentationMediaForPlatform(
           catalog,
@@ -681,11 +789,14 @@ bool isPresentationMediaCompatible(
 ) {
   final metadata = media.technicalMetadata;
   if (metadata == null) return false;
+  final capability = presentationMediaPlatformCapabilities(
+    platform,
+  ).forKind(media.kind);
+  if (capability == PresentationMediaPlatformCapability.unsupported ||
+      capability == PresentationMediaPlatformCapability.fallbackOnly) {
+    return false;
+  }
   if (media.kind == ProjectMediaKind.video) {
-    if (platform == PresentationMediaTargetPlatform.windows ||
-        platform == PresentationMediaTargetPlatform.linux) {
-      return false;
-    }
     return metadata.mediaType == 'video/mp4' &&
         metadata.container == 'mp4' &&
         metadata.codec == 'h264' &&
