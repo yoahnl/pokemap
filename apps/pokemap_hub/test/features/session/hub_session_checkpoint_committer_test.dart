@@ -62,6 +62,40 @@ void main() {
     },
   );
 
+  test('replaying the exact same checkpoint commit stays a no-op', () async {
+    final committer = HubSessionCheckpointCommitter(store: store);
+    final descriptor = _descriptor(identity);
+    final first = _checkpoint(updatedAt: DateTime.utc(2026, 7, 25, 1));
+    final second = _checkpoint(updatedAt: DateTime.utc(2026, 7, 25, 2));
+    GameSessionCheckpointCommit commitOf(GameSessionCheckpoint checkpoint) =>
+        GameSessionCheckpointCommit(
+          descriptor: descriptor.publicContext,
+          checkpoint: checkpoint,
+          status: SaveStatus.active,
+        );
+
+    await committer.commit(commitOf(first));
+    await committer.commit(commitOf(second));
+    final beforeReplay = await store.read(activeAddress(identity));
+    await committer.commit(commitOf(second));
+
+    final afterReplay = await store.read(activeAddress(identity));
+    expect(afterReplay.envelope?.checksum, beforeReplay.envelope?.checksum);
+    final backup = const SaveEnvelopeCodec().decode(
+      await File(
+        '${supportRoot.path}/saves/${identity.gameId}/'
+        '${activeAddress(identity).profileId}/'
+        '${activeAddress(identity).slotId}/save.backup.json',
+      ).readAsString(),
+      expectedAddress: activeAddress(identity),
+    );
+    expect(
+      backup.updatedAt,
+      first.updatedAt,
+      reason: 'a replayed commit must not push the previous generation out',
+    );
+  });
+
   test(
     'rejects mismatched identity and malformed completion metadata',
       () async {

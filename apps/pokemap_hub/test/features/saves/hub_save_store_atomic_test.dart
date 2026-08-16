@@ -42,6 +42,30 @@ void main() {
     expect(backup.state['marker'], 'old');
   });
 
+  test('a replayed checkpoint never consumes the backup generation', () async {
+    final store = HubSaveStore(supportRoot: root, identity: identity);
+    await store.write(_envelope(identity, marker: 'old', revision: 1));
+    await store.write(_envelope(identity, marker: 'new', revision: 2));
+
+    final replayed = await store.writeVerified(
+      _envelope(identity, marker: 'new', revision: 2),
+    );
+
+    final current = await store.read(address);
+    final backup = const SaveEnvelopeCodec().decode(
+      await File(p.join(_slotPath(root), 'save.backup.json')).readAsString(),
+      expectedAddress: address,
+    );
+
+    expect(current.envelope!.state['marker'], 'new');
+    expect(
+      backup.state['marker'],
+      'old',
+      reason: 'replaying a committed checkpoint must not rotate itself out',
+    );
+    expect(replayed.checksum, current.envelope!.checksum);
+  });
+
   test('quarantines corrupt primary and exposes valid backup', () async {
     final store = HubSaveStore(supportRoot: root, identity: identity);
     await store.write(_envelope(identity, marker: 'old', revision: 1));

@@ -563,6 +563,9 @@ final class HubSaveStore
         try {
           final currentEnvelope =
               await _integrity.decodeCandidate(current, envelope.address);
+          if (currentEnvelope.checksum == envelope.checksum) {
+            return currentEnvelope;
+          }
           final currentCompatibility = compatibilityEvaluator.evaluate(
             save: currentEnvelope.compatibility,
             game: identity,
