@@ -195,6 +195,34 @@ void main() {
     expect(controller.zoom, 1.25);
   });
 
+  testWidgets('selected content drag emits normalized frame deltas', (
+    tester,
+  ) async {
+    final deltas = <Offset>[];
+    await _pumpViewport(
+      tester,
+      frame: PresentationFrame(
+        cinematicId: 'opening',
+        timeUs: 0,
+        durationUs: 1000000,
+      ),
+      onCompositionDrag: deltas.add,
+    );
+    final frameRect = tester.getRect(
+      find.byKey(presentationStudioViewportFrameKey),
+    );
+
+    await tester.drag(
+      find.byKey(presentationStudioViewportFrameKey),
+      Offset(frameRect.width * .2, frameRect.height * -.1),
+    );
+    await tester.pump();
+
+    final total = deltas.fold<Offset>(Offset.zero, (sum, item) => sum + item);
+    expect(total.dx, closeTo(.2, .01));
+    expect(total.dy, closeTo(-.1, .01));
+  });
+
   testWidgets(
     'empty, missing media and renderer error keep the canvas explicit',
     (tester) async {
@@ -305,6 +333,7 @@ Future<void> _pumpViewport(
   Size surfaceSize = const Size(900, 620),
   Locale locale = const Locale('fr'),
   TextScaler textScaler = TextScaler.noScaling,
+  ValueChanged<Offset>? onCompositionDrag,
 }) async {
   tester.view.physicalSize = surfaceSize;
   tester.view.devicePixelRatio = 1;
@@ -332,6 +361,7 @@ Future<void> _pumpViewport(
           state: state,
           errorMessage: errorMessage,
           onRetry: () {},
+          onCompositionDrag: onCompositionDrag,
         ),
       ),
     ),

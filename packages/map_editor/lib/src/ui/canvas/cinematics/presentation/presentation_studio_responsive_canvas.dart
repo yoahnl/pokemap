@@ -574,6 +574,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
     this.showCaptions = true,
     this.asset,
     this.onRetry,
+    this.onSelectedTextDrag,
   });
 
   final PresentationStudioResponsiveCanvasController controller;
@@ -587,13 +588,14 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
   final bool showCaptions;
   final PresentationCinematicAsset? asset;
   final VoidCallback? onRetry;
+  final ValueChanged<Offset>? onSelectedTextDrag;
 
   @override
   Widget build(BuildContext context) {
     final copy = CinematicStudioCopy.of(context);
     return AnimatedBuilder(
       key: presentationStudioResponsiveCanvasKey,
-      animation: controller,
+      animation: Listenable.merge([controller, controller.selection]),
       builder: (context, _) {
         final frame = frameBuilder(controller.playheadUs);
         final issues = frame == null
@@ -686,6 +688,13 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
       orientationOverrides: orientationOverrides,
       onFocused: () => controller.focus(orientation),
       onRetry: onRetry,
+      onCompositionDrag:
+          frame?.texts.any(
+                (clip) => clip.clipId == controller.selectedClipId,
+              ) ==
+              true
+          ? onSelectedTextDrag
+          : null,
       onCompositionTap: frame == null || asset == null
           ? null
           : (position) => controller.selection.selectCanvas(

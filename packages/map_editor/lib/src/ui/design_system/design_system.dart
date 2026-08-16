@@ -19,6 +19,7 @@ export 'pokemap_asset_thumbnail.dart';
 export 'pokemap_button.dart';
 export 'pokemap_card.dart';
 export 'pokemap_confirmation_dialog.dart';
+export 'pokemap_color_picker.dart';
 export 'pokemap_context_menu.dart';
 export 'pokemap_dashboard_primitives.dart';
 export 'pokemap_desktop_layout.dart';

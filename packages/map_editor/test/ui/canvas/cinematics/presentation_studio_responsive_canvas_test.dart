@@ -304,6 +304,82 @@ void main() {
     expect(controller.selection.value?.clipId, 'hero-clip');
   });
 
+  testWidgets('selected text drag crosses the responsive canvas boundary', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
+      initialSelection: const PresentationStudioSelection(
+        layerId: 'title-layer',
+        trackId: 'visuals',
+        clipId: 'title-clip',
+      ),
+    );
+    addTearDown(controller.dispose);
+    final asset = PresentationCinematicAsset(
+      id: 'opening',
+      title: 'Opening',
+      durationUs: 4_000_000,
+      layers: <PresentationLayer>[
+        PresentationLayer(id: 'title-layer', label: 'Title', zIndex: 0),
+      ],
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'visuals',
+          label: 'Visuals',
+          kind: PresentationTrackKind.visual,
+          clips: <PresentationClip>[
+            PresentationTextClip(
+              id: 'title-clip',
+              startUs: 0,
+              durationUs: 4_000_000,
+              layerId: 'title-layer',
+              text: 'Opening',
+            ),
+          ],
+        ),
+      ],
+    );
+    final frame = const PresentationCinematicEvaluator().evaluate(
+      asset,
+      timeUs: 0,
+    );
+    final deltas = <Offset>[];
+
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (_) => frame,
+      asset: asset,
+      onSelectedTextDrag: deltas.add,
+    );
+
+    final frameFinder = find.byKey(presentationStudioViewportFrameKey);
+    final frameRect = tester.getRect(frameFinder);
+    await tester.drag(
+      frameFinder,
+      Offset(frameRect.width * .1, frameRect.height * -.1),
+    );
+    await tester.pump();
+
+    final total = deltas.fold<Offset>(Offset.zero, (sum, item) => sum + item);
+    expect(total.dx, closeTo(.1, .01));
+    expect(total.dy, closeTo(-.1, .01));
+
+    controller.selection.clear();
+    await tester.pump();
+    expect(
+      tester
+          .widget<PresentationStudioViewport>(
+            find.byKey(
+              const ValueKey('presentation-studio-landscape-viewport'),
+            ),
+          )
+          .onCompositionDrag,
+      isNull,
+    );
+  });
+
   testWidgets('Compare applies distinct transforms to the same frame', (
     tester,
   ) async {
@@ -596,6 +672,7 @@ Future<void> _pumpResponsiveCanvas(
   Size surfaceSize = const Size(1280, 800),
   String? fontFamily,
   VoidCallback? onRetry,
+  ValueChanged<Offset>? onSelectedTextDrag,
   Locale locale = const Locale('fr'),
   TextScaler textScaler = TextScaler.noScaling,
 }) async {
@@ -639,6 +716,7 @@ Future<void> _pumpResponsiveCanvas(
           showCaptions: showCaptions,
           asset: asset,
           onRetry: onRetry,
+          onSelectedTextDrag: onSelectedTextDrag,
         ),
       ),
     ),

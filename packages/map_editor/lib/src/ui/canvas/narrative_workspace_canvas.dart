@@ -3057,6 +3057,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         mediaBindings: _presentationResponsiveMediaBindings(resolvedAsset),
             asset: resolvedAsset,
             onRetry: _presentationResponsiveCanvasController.setReady,
+            onSelectedTextDrag: _presentationDocumentController.isOpen
+                ? _moveSelectedPresentationText
+                : null,
           );
       final projectContentController = _presentationProjectContentController;
       final presentationCanvas = projectContentController == null
@@ -3415,6 +3418,51 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       impact: 'La propriété reste inchangée et le brouillon est conservé.',
       retry: () => unawaited(_applyPresentationPropertyCommand(command)),
     );
+  }
+
+  void _moveSelectedPresentationText(Offset delta) {
+    if (!_presentationDocumentController.isOpen) return;
+    final route = widget.documentRoute;
+    final selectedClipId =
+        _presentationResponsiveCanvasController.selection.value?.clipId;
+    if (route?.kind != NarrativeDocumentKind.presentationCinematic ||
+        selectedClipId == null) {
+      return;
+    }
+    final cinematicId = route!.documentId;
+    for (final track in _presentationDocumentController.manifest
+        .presentationCinematics
+        .where((asset) => asset.id == cinematicId)
+        .expand((asset) => asset.tracks)) {
+      for (final clip in track.clips) {
+        if (clip.id != selectedClipId || clip is! PresentationTextClip) {
+          continue;
+        }
+        unawaited(
+          _applyPresentationPropertyCommand(
+            PresentationStudioPropertyCommand.updateClip(
+              cinematicId: cinematicId,
+              trackId: track.id,
+              clip: PresentationTextClip(
+                id: clip.id,
+                startUs: clip.startUs,
+                durationUs: clip.durationUs,
+                layerId: clip.layerId,
+                text: clip.text,
+                localizationKey: clip.localizationKey,
+                style: clip.style,
+                easing: clip.easing,
+                from: _translatePresentationComposition(clip.from, delta),
+                to: _translatePresentationComposition(clip.to, delta),
+                transitionIn: clip.transitionIn,
+                transitionOut: clip.transitionOut,
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+    }
   }
 
   Future<PresentationStudioInsertionResult> _insertPresentationDraft(
@@ -4450,6 +4498,22 @@ List<PresentationStudioResponsiveMediaBinding>
                   requireDurationMetadata: false,
                 ),
         ];
+
+PresentationVisualComposition _translatePresentationComposition(
+  PresentationVisualComposition composition,
+  Offset delta,
+) => PresentationVisualComposition(
+  translateX: composition.translateX + delta.dx,
+  translateY: composition.translateY + delta.dy,
+  scaleX: composition.scaleX,
+  scaleY: composition.scaleY,
+  rotationTurns: composition.rotationTurns,
+  opacity: composition.opacity,
+  cropLeft: composition.cropLeft,
+  cropTop: composition.cropTop,
+  cropRight: composition.cropRight,
+  cropBottom: composition.cropBottom,
+);
 
 final class _PresentationStudioContentPort
     implements PresentationFrameContentPort {

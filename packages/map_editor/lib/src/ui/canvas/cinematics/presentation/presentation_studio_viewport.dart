@@ -126,6 +126,7 @@ class PresentationStudioViewport extends StatefulWidget {
     this.orientationOverrides = const PresentationFrameOrientationOverrides(),
     this.onFocused,
     this.onCompositionTap,
+    this.onCompositionDrag,
   });
 
   final PresentationStudioViewportController? controller;
@@ -143,6 +144,7 @@ class PresentationStudioViewport extends StatefulWidget {
   final PresentationFrameOrientationOverrides orientationOverrides;
   final VoidCallback? onFocused;
   final ValueChanged<Offset>? onCompositionTap;
+  final ValueChanged<Offset>? onCompositionDrag;
 
   @override
   State<PresentationStudioViewport> createState() =>
@@ -274,6 +276,25 @@ class _PresentationStudioViewportState
                                     height: size.height,
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.opaque,
+                                      dragStartBehavior: DragStartBehavior.down,
+                                      onPanStart:
+                                          widget.onCompositionDrag == null
+                                          ? null
+                                          : (_) => _requestFocus(),
+                                      onPanUpdate:
+                                          widget.onCompositionDrag == null
+                                          ? null
+                                          : (details) =>
+                                                widget.onCompositionDrag!(
+                                                  Offset(
+                                                    details.delta.dx /
+                                                        (size.width *
+                                                            _controller.zoom),
+                                                    details.delta.dy /
+                                                        (size.height *
+                                                            _controller.zoom),
+                                                  ),
+                                                ),
                                       onTapUp: widget.onCompositionTap == null
                                           ? null
                                           : (details) =>

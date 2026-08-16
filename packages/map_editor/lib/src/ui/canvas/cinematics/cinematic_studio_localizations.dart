@@ -111,6 +111,7 @@ final class CinematicStudioCopy {
   String get archive => isEnglish ? 'Archive' : 'Archiver';
   String get delete => isEnglish ? 'Delete' : 'Supprimer';
   String get cancel => isEnglish ? 'Cancel' : 'Annuler';
+  String get apply => isEnglish ? 'Apply' : 'Appliquer';
   String get create => isEnglish ? 'Create' : 'Créer';
   String get newInGameCinematic =>
       isEnglish ? 'New in-game cinematic' : 'Nouvelle cinématique in-game';
@@ -611,6 +612,10 @@ final class CinematicStudioCopy {
   String get size => isEnglish ? 'Size' : 'Taille';
   String get font => isEnglish ? 'Font' : 'Police';
   String get color => isEnglish ? 'Color' : 'Couleur';
+  String get textColor => isEnglish ? 'Text color' : 'Couleur du texte';
+  String get hue => isEnglish ? 'Hue' : 'Teinte';
+  String get saturation => isEnglish ? 'Saturation' : 'Saturation';
+  String get brightness => isEnglish ? 'Brightness' : 'Luminosité';
   String get weight => isEnglish ? 'Weight' : 'Graisse';
   String get regular => isEnglish ? 'Regular' : 'Normale';
   String get medium => isEnglish ? 'Medium' : 'Moyenne';

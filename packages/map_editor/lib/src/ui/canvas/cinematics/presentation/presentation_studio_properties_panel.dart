@@ -604,10 +604,8 @@ class _PresentationTextInspectorSectionState
   late final TextEditingController _localizationKey;
   late final TextEditingController _fontSize;
   late final TextEditingController _fontFamily;
-  late final TextEditingController _colorHex;
   String? _textError;
   String? _fontSizeError;
-  String? _colorHexError;
 
   @override
   void initState() {
@@ -620,7 +618,6 @@ class _PresentationTextInspectorSectionState
     _fontFamily = TextEditingController(
       text: widget.clip.style.fontFamily ?? '',
     );
-    _colorHex = TextEditingController(text: widget.clip.style.colorHex);
   }
 
   @override
@@ -640,10 +637,6 @@ class _PresentationTextInspectorSectionState
     if (oldWidget.clip.style.fontFamily != widget.clip.style.fontFamily) {
       _fontFamily.text = widget.clip.style.fontFamily ?? '';
     }
-    if (oldWidget.clip.style.colorHex != widget.clip.style.colorHex) {
-      _colorHex.text = widget.clip.style.colorHex;
-      _colorHexError = null;
-    }
   }
 
   @override
@@ -652,7 +645,6 @@ class _PresentationTextInspectorSectionState
     _localizationKey.dispose();
     _fontSize.dispose();
     _fontFamily.dispose();
-    _colorHex.dispose();
     super.dispose();
   }
 
@@ -692,14 +684,39 @@ class _PresentationTextInspectorSectionState
             onSubmitted: (_) => _commit(),
           ),
           const SizedBox(height: 10),
-          PokeMapTextField(
-            label: copy.color,
-            controller: _colorHex,
+          _NumberPropertyField(
+            label: copy.positionX,
+            value: widget.clip.to.translateX,
             fieldKey: const ValueKey<String>(
-              'presentation-property-text-color',
+              'presentation-property-text-position-x',
             ),
-            errorText: _colorHexError,
-            onSubmitted: (_) => _commit(),
+            onChanged: (value) => _moveTo(translateX: value),
+          ),
+          const SizedBox(height: 10),
+          _NumberPropertyField(
+            label: copy.positionY,
+            value: widget.clip.to.translateY,
+            fieldKey: const ValueKey<String>(
+              'presentation-property-text-position-y',
+            ),
+            onChanged: (value) => _moveTo(translateY: value),
+          ),
+          const SizedBox(height: 10),
+          PokeMapColorPicker(
+            label: copy.color,
+            valueHex: widget.clip.style.colorHex,
+            buttonKey: const ValueKey<String>(
+              'presentation-property-text-color-picker',
+            ),
+            dialogTitle: copy.textColor,
+            cancelLabel: copy.cancel,
+            applyLabel: copy.apply,
+            hueLabel: copy.hue,
+            saturationLabel: copy.saturation,
+            brightnessLabel: copy.brightness,
+            opacityLabel: copy.opacity,
+            onChanged: (value) =>
+                _emit(_copyTextStyle(widget.clip.style, colorHex: value)),
           ),
           const SizedBox(height: 10),
           PokeMapDropdownField<PresentationTextWeight>(
@@ -774,20 +791,13 @@ class _PresentationTextInspectorSectionState
     final copy = CinematicStudioCopy.of(context);
     final text = _text.text.trim();
     final fontSize = double.tryParse(_fontSize.text.replaceAll(',', '.'));
-    final colorHex = _colorHex.text.trim();
     setState(() {
       _textError = text.isEmpty ? copy.textRequired : null;
       _fontSizeError = fontSize == null || fontSize <= 0
           ? copy.positiveSizeRequired
           : null;
-      _colorHexError =
-          RegExp(r'^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$').hasMatch(colorHex)
-          ? null
-          : 'Utilisez #RRGGBB ou #RRGGBBAA.';
     });
-    if (_textError != null ||
-        _fontSizeError != null ||
-        _colorHexError != null) {
+    if (_textError != null || _fontSizeError != null) {
       return;
     }
     _emit(
@@ -795,7 +805,6 @@ class _PresentationTextInspectorSectionState
         widget.clip.style,
         fontSize: fontSize,
         fontFamily: _fontFamily.text,
-        colorHex: colorHex,
       ),
       text: text,
       localizationKey: _localizationKey.text,
@@ -806,6 +815,8 @@ class _PresentationTextInspectorSectionState
     PresentationTextStyle style, {
     String? text,
     String? localizationKey,
+    PresentationVisualComposition? from,
+    PresentationVisualComposition? to,
   }) {
     widget.onCommand(
       PresentationStudioPropertyCommand.updateClip(
@@ -816,8 +827,30 @@ class _PresentationTextInspectorSectionState
           text: text,
           localizationKey: localizationKey,
           style: style,
+          from: from,
+          to: to,
         ),
       ),
+    );
+  }
+
+  void _moveTo({double? translateX, double? translateY}) {
+    final currentTo = widget.clip.to;
+    final nextTo = _copyComposition(
+      currentTo,
+      translateX: translateX,
+      translateY: translateY,
+    );
+    final deltaX = nextTo.translateX - currentTo.translateX;
+    final deltaY = nextTo.translateY - currentTo.translateY;
+    _emit(
+      widget.clip.style,
+      from: _copyComposition(
+        widget.clip.from,
+        translateX: widget.clip.from.translateX + deltaX,
+        translateY: widget.clip.from.translateY + deltaY,
+      ),
+      to: nextTo,
     );
   }
 }
@@ -1785,6 +1818,8 @@ PresentationTextClip _copyText(
   String? text,
   Object? localizationKey = _unsetProperty,
   PresentationTextStyle? style,
+  PresentationVisualComposition? from,
+  PresentationVisualComposition? to,
   PresentationEasing? easing,
   PresentationVisualTransition? transitionIn,
   PresentationVisualTransition? transitionOut,
@@ -1799,8 +1834,8 @@ PresentationTextClip _copyText(
       : localizationKey as String?,
   style: style ?? clip.style,
   easing: easing ?? clip.easing,
-  from: clip.from,
-  to: clip.to,
+  from: from ?? clip.from,
+  to: to ?? clip.to,
   transitionIn: transitionIn ?? clip.transitionIn,
   transitionOut: transitionOut ?? clip.transitionOut,
 );

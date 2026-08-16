@@ -6,6 +6,7 @@ import 'package:map_editor/src/application/authoring_api/presentation_studio_pro
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_properties_panel.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
 
 void main() {
@@ -127,7 +128,7 @@ void main() {
     expect(clip['mediaKind'], 'video');
   });
 
-  testWidgets('text keeps Unicode input and reports invalid color inline', (
+  testWidgets('text keeps Unicode input without exposing raw color syntax', (
     tester,
   ) async {
     final asset = _asset();
@@ -142,27 +143,74 @@ void main() {
       find.byKey(const ValueKey<String>('presentation-property-text')),
       content,
     );
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('presentation-property-text-color')),
-      'bleu magique',
-    );
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
-
-    expect(find.text('Utilisez #RRGGBB ou #RRGGBBAA.'), findsOneWidget);
-    expect(commands, isEmpty);
-    expect(selection.value?.clipId, 'text');
-
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('presentation-property-text-color')),
-      '#7AA2FFFF',
-    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
 
     final clip = commands.single.parameters['clip']! as Map;
     expect(clip['text'], content);
-    expect((clip['style']! as Map)['colorHex'], '#7AA2FFFF');
+    expect((clip['style']! as Map)['colorHex'], '#FFFFFF');
+    expect(selection.value?.clipId, 'text');
+    expect(
+      find.byKey(
+        const ValueKey<String>('presentation-property-text-color-picker'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('text position and visual color picker emit canonical values', (
+    tester,
+  ) async {
+    final asset = _asset();
+    final selection = PresentationStudioSelectionController()
+      ..selectClip(asset: asset, clipId: 'text');
+    final commands = <PresentationStudioPropertyCommand>[];
+    addTearDown(selection.dispose);
+
+    await _pump(
+      tester,
+      asset: asset,
+      selection: selection,
+      commands: commands,
+      locale: const Locale('en'),
+    );
+    await tester.enterText(
+      find.byKey(
+        const ValueKey<String>('presentation-property-text-position-x'),
+      ),
+      '0.25',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    final positioned = commands.removeLast().parameters['clip']! as Map;
+    expect((positioned['from']! as Map)['translateX'], 0.25);
+    expect((positioned['to']! as Map)['translateX'], 0.25);
+
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey<String>('presentation-property-text-color-picker'),
+      ),
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('presentation-property-text-color-picker'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(pokeMapColorPickerDialogKey), findsOneWidget);
+    expect(find.text('Hue'), findsOneWidget);
+    expect(find.text('Saturation'), findsOneWidget);
+    expect(find.text('Brightness'), findsOneWidget);
+    expect(find.text('Opacity'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('pokemap-color-preset-3')));
+    await tester.pump();
+    await tester.tap(find.byKey(pokeMapColorPickerApplyKey));
+    await tester.pumpAndSettle();
+
+    final colored = commands.single.parameters['clip']! as Map;
+    expect((colored['style']! as Map)['colorHex'], '#7AA2FFFF');
   });
 
   testWidgets('registry dispatches text audio caption and marker inspectors', (
