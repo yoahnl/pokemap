@@ -1032,6 +1032,58 @@ void main() {
     );
   });
 
+  test('exposes a preSession name request while New Game is pending', () async {
+    final harness = _RuntimeStartupTestHarness(
+      profile: _presentationWithIntroAndMusic(includeIntro: false),
+      preSessionRunner: _NamePreSessionRunner(),
+    );
+    addTearDown(harness.dispose);
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+    await harness.startup.dispatch(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.pressStart,
+        snapshotRevision: harness.startup.snapshot.revision,
+      ),
+    );
+
+    final launchFuture = harness.startup.dispatchPlayerCommand(
+      startupSnapshotRevision: harness.startup.snapshot.revision,
+      command: RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.player.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    await _waitForPreSessionRequest(harness.player.coordinator);
+    final startupPhaseWhilePending = harness.startup.snapshot.phase;
+    final playerSnapshot = harness.player.coordinator.snapshot;
+    final request = playerSnapshot.preSessionRequest!;
+
+    final resolution = await harness.player.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.resolvePreSessionInteraction,
+        snapshotRevision: playerSnapshot.revision,
+        payload: SceneInteractionResult.textSubmitted(
+          requestId: request.requestId,
+          revision: request.revision,
+          value: 'Yoahn',
+        ),
+      ),
+    );
+    final launch = await launchFuture;
+
+    expect(playerSnapshot.phase, RuntimePlayerPhase.preSession);
+    expect(request.kind, SceneInteractionRequestKind.text);
+    expect(startupPhaseWhilePending, RuntimeStartupPhase.launchingSession);
+    expect(resolution.status, RuntimePlayerCommandStatus.accepted);
+    expect(launch.status, RuntimePlayerCommandStatus.accepted);
+  });
+
   test('returning from a session re-enters the runtime title menu', () async {
     final harness = _RuntimeStartupTestHarness(
       profile: _presentationWithIntroAndMusic(includeIntro: false),
@@ -1385,6 +1437,7 @@ final class _RuntimeStartupTestHarness {
     RuntimeInitialMapPreloadPort? initialMapPreloadPort,
     RuntimeStartupClock? clock,
     Future<void> Function()? stopIntroPlayback,
+    RuntimeNewGamePreSessionRunner? preSessionRunner,
     bool reducedMotion = false,
     Completer<void>? audioStopGate,
     Future<void>? descriptorGate,
@@ -1397,6 +1450,7 @@ final class _RuntimeStartupTestHarness {
   })  : player = RuntimePlayerTestHarness(
           latestSave: latestSave,
           descriptorGate: descriptorGate,
+          preSessionRunner: preSessionRunner,
         ),
         clock = clock is _ControlledStartupClock
             ? clock
@@ -1440,6 +1494,27 @@ final class _RuntimeStartupTestHarness {
   late final RuntimeStartupCoordinator startup;
 
   Future<void> dispose() => startup.dispose();
+}
+
+final class _NamePreSessionRunner implements RuntimeNewGamePreSessionRunner {
+  @override
+  Future<NewGameDraft> run({
+    required String runId,
+    required NewGameDraft draft,
+    required SceneStructuredInteractionPort interactions,
+  }) async {
+    await interactions.request(
+      SceneInteractionRequest.text(
+        requestId: '$runId:player_name',
+        revision: 0,
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'test.pre_session.player_name',
+          fallbackText: 'Quel est ton prénom ?',
+        ),
+      ),
+    );
+    return draft;
+  }
 }
 
 final class _RuntimeStartupBootstrapTestHarness {
@@ -1735,4 +1810,14 @@ Future<void> _flushEvents() async {
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
+}
+
+Future<void> _waitForPreSessionRequest(
+  RuntimePlayerCoordinator coordinator,
+) async {
+  for (var attempt = 0; attempt < 100; attempt++) {
+    if (coordinator.snapshot.preSessionRequest != null) return;
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('No preSession interaction was published.');
 }

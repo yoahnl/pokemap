@@ -301,6 +301,10 @@ final class RuntimeStartupCoordinator {
         status: RuntimePlayerCommandStatus.cancelled,
       );
     }
+    _publishDesiredPhase(
+      RuntimeStartupPhase.launchingSession,
+      isTransitioning: false,
+    );
     final result = await _player.dispatch(command);
     if (!_isCurrent(generation)) {
       return const RuntimePlayerCommandResult(
