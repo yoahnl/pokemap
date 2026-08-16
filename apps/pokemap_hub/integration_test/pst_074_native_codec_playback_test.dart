@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:video_player/video_player.dart';
 
 void main() {
@@ -23,6 +24,34 @@ void main() {
       assetPath: 'assets/certification/intro_portrait_h264_aac.mp4',
       expectedSize: const Size(180, 320),
     );
+  });
+
+  testWidgets('native audio backend plays a packaged WAV', (_) async {
+    final temporaryDirectory = await Directory.systemTemp.createTemp(
+      'pokemap-native-audio-',
+    );
+    addTearDown(() => temporaryDirectory.delete(recursive: true));
+    final bytes = await rootBundle.load(
+      'packages/map_runtime/assets/audio/premium_splash_jingle.wav',
+    );
+    final audioFile = File('${temporaryDirectory.path}/splash-jingle.wav');
+    await audioFile.writeAsBytes(
+      bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+      flush: true,
+    );
+
+    final driver = FlameAudioCinematicRuntimeDriver();
+    Object? handle;
+    addTearDown(() async {
+      if (handle != null) await driver.stop(handle);
+    });
+
+    handle = await driver.play(audioFile.path, volume: 0.05, loop: false);
+    expect(handle, isNotNull);
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    await driver.setVolume(handle, 0.1);
+    await driver.stop(handle);
+    handle = null;
   });
 }
 
@@ -68,12 +97,20 @@ Future<void> _verifyNativePlayback(
     ),
   );
   await controller.play();
-  await Future<void>.delayed(const Duration(milliseconds: 750));
-  await tester.pump();
+
+  final playbackWait = Stopwatch()..start();
+  while (controller.value.position <= const Duration(milliseconds: 250) &&
+      !controller.value.hasError &&
+      playbackWait.elapsed < const Duration(seconds: 5)) {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await tester.pump();
+  }
 
   expect(controller.value.hasError, isFalse);
-  expect(controller.value.position,
-      greaterThan(const Duration(milliseconds: 250)));
+  expect(
+    controller.value.position,
+    greaterThan(const Duration(milliseconds: 250)),
+  );
   expect(controller.value.isPlaying, isTrue);
 
   await controller.pause();

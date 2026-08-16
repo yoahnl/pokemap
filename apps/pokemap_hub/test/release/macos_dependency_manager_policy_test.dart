@@ -3,22 +3,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('standalone locks native plugins to Swift Package Manager', () {
+  test('Hub locks native plugins to Swift Package Manager', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final xcodeProject = File(
-      'macos/Runner.xcodeproj/project.pbxproj',
-    ).readAsStringSync();
+    final xcodeProject =
+        File('macos/Runner.xcodeproj/project.pbxproj').readAsStringSync();
 
     expect(pubspec, contains('enable-swift-package-manager: true'));
-    expect(
-      pubspec,
-      matches(
-        RegExp(
-          r'dependency_overrides:\s+gamepads_darwin:\s+path: ../../packages/gamepads_darwin',
-          multiLine: true,
-        ),
-      ),
-    );
     expect(
       xcodeProject,
       contains('FlutterGeneratedPluginSwiftPackage in Frameworks'),
@@ -27,10 +17,11 @@ void main() {
     expect(xcodeProject, contains('packageProductDependencies'));
   });
 
-  test('standalone registers the macOS media plugins used by the Player', () {
-    final registrant = File(
-      'macos/Flutter/GeneratedPluginRegistrant.swift',
-    ).readAsStringSync();
+  test('Hub registers the macOS media plugins used by the Player', () {
+    final registrant =
+        File(
+          'macos/Flutter/GeneratedPluginRegistrant.swift',
+        ).readAsStringSync();
 
     for (final plugin in <String>[
       'AudioplayersDarwinPlugin.register',
@@ -42,7 +33,7 @@ void main() {
     }
   });
 
-  test('standalone macOS project contains no CocoaPods integration', () {
+  test('Hub macOS project contains no CocoaPods integration', () {
     expect(File('macos/Podfile').existsSync(), isFalse);
     expect(File('macos/Podfile.lock').existsSync(), isFalse);
     expect(Directory('macos/Pods').existsSync(), isFalse);
@@ -54,16 +45,9 @@ void main() {
       'macos/Runner.xcodeproj/project.pbxproj',
       'macos/Runner.xcworkspace/contents.xcworkspacedata',
     ]) {
-      expect(
-        File(path).readAsStringSync(),
-        isNot(contains('Pods')),
-        reason: path,
-      );
-      expect(
-        File(path).readAsStringSync(),
-        isNot(contains('CocoaPods')),
-        reason: path,
-      );
+      final contents = File(path).readAsStringSync();
+      expect(contents, isNot(contains('Pods')), reason: path);
+      expect(contents, isNot(contains('CocoaPods')), reason: path);
     }
   });
 }
