@@ -22,12 +22,21 @@ export interface CheckoutCatalogReceipt {
   presentationProfileVersion: number;
   presentationPresetVersion: number;
   presentationUpdateTransports: string[];
+  cinematicActionIds: string[];
+  cinematicResourceKinds: string[];
+  legacyCinematicCatalogIds: string[];
 }
 
 export interface PersonalizationCatalogCertification {
   presentationProfileVersion: number;
   presentationPresetVersion: number;
   presentationUpdateTransports: string[];
+}
+
+export interface CinematicV2CatalogCertification {
+  cinematicActionIds: string[];
+  cinematicResourceKinds: string[];
+  legacyCinematicCatalogIds: string[];
 }
 
 const requiredPresentationTransports = [
@@ -84,6 +93,7 @@ export async function verifyCheckoutCatalog(
     }
     const data = record(envelope.data);
     const certification = certifyPersonalizationCatalog(data);
+    const cinematicCertification = certifyCinematicV2Catalog(data);
 
     return {
       repositoryRoot,
@@ -94,10 +104,60 @@ export async function verifyCheckoutCatalog(
         "",
       serverEntryPoint,
       ...certification,
+      ...cinematicCertification,
     };
   } finally {
     await client.close();
   }
+}
+
+export function certifyCinematicV2Catalog(
+  data: JsonRecord,
+): CinematicV2CatalogCertification {
+  const actionIds = records(data.mutationActions).map((action) =>
+    string(action.id),
+  );
+  const resourceKinds = records(data.resourceKinds).map((resource) =>
+    string(resource.id),
+  );
+  const cinematicActionIds = actionIds.filter(
+    (id) =>
+      id.startsWith("cinematic.") ||
+      id.startsWith("cinematicLibrary") ||
+      id.startsWith("presentationCinematic"),
+  );
+  const cinematicResourceKinds = resourceKinds.filter(
+    (id) =>
+      id.startsWith("cinematicLibrary") ||
+      id.startsWith("presentationCinematic"),
+  );
+  const legacyCinematicCatalogIds = [
+    ...actionIds.filter(
+      (id) => id.startsWith("scenario.") || /^cutscene[.:]/i.test(id),
+    ),
+    ...resourceKinds.filter(
+      (id) => id === "scenario" || /^cutscene/i.test(id),
+    ),
+  ];
+
+  if (legacyCinematicCatalogIds.length > 0) {
+    throw new Error(
+      `Legacy cinematic catalog entries remain: ${legacyCinematicCatalogIds.join(", ")}.`,
+    );
+  }
+  if (
+    !cinematicActionIds.includes("cinematic.upsert") ||
+    !cinematicActionIds.includes("presentationCinematic.create") ||
+    !cinematicResourceKinds.includes("presentationCinematic")
+  ) {
+    throw new Error("Expected both canonical cinematic families in the catalog.");
+  }
+
+  return {
+    cinematicActionIds,
+    cinematicResourceKinds,
+    legacyCinematicCatalogIds,
+  };
 }
 
 export function certifyPersonalizationCatalog(
@@ -169,6 +229,13 @@ function strings(value: unknown): string[] {
 function number(value: unknown): number {
   if (typeof value !== "number") {
     throw new Error("Expected a numeric resource version from pokemap_describe.");
+  }
+  return value;
+}
+
+function string(value: unknown): string {
+  if (typeof value !== "string") {
+    throw new Error("Expected a string identifier from pokemap_describe.");
   }
   return value;
 }

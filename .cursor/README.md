@@ -19,7 +19,6 @@ La règle Cursor **`.cursor/rules/repository-instructions.mdc`** (`alwaysApply: 
 |---------|------|
 | [project_vision.md](project_vision.md) | Boussole produit PokeMap (no-code, accessibilité). |
 | [clean_architecture_rules.md](clean_architecture_rules.md) | Règles d’architecture et de modularité. |
-| [cutscene_studio_rules.md](cutscene_studio_rules.md) | Règles spécifiques Cutscene Studio. |
 | [ui_ux_rules.md](ui_ux_rules.md) | Principes UI/UX desktop no-code. |
 | [scope_rules.md](scope_rules.md) | Discipline de périmètre des changements. |
 | [code_generation_rules.md](code_generation_rules.md) | Attentes pour le code et la documentation générés. |
@@ -33,14 +32,15 @@ La règle Cursor **`.cursor/rules/repository-instructions.mdc`** (`alwaysApply: 
 
 ## Usage
 
-- Avant une refonte ou un module narratif, relire **scope** + **architecture** + le doc métier concerné (ex. Cutscene Studio).
+- Avant une refonte ou un module narratif, relire **scope** + **architecture** + les contrats du domaine concerné.
 - Après une passe structurante, mettre à jour ce dossier si une **décision durable** a été prise (nouvelle source de vérité, nouveau contrat runtime, etc.).
 - Ne pas y mettre de secrets, tokens, ou données personnelles.
 
 ## Relation avec le code
 
-Le découpage réel du domaine Cutscene Studio vit sous  
-`packages/map_editor/lib/src/features/narrative/application/cutscene_studio/`.  
+Le Cinematic Studio canonique est réparti entre les contrats de
+`map_core`/`map_authoring`, le runtime `map_runtime` et les surfaces sous
+`packages/map_editor/lib/src/ui/canvas/cinematics/`.
 Les règles `.cursor/` décrivent l’intention. Les faits persistants demandés
 explicitement sont consolidés sous `documentation/reports/editor/`; sinon le bilan reste dans
 la réponse finale.

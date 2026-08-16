@@ -20,8 +20,6 @@ import 'surface/surface_runtime_test_support.dart' show runtimeTilesetImage;
 
 const _sourceMapId = 'checkpoint_source';
 const _restoredMapId = 'checkpoint_restored';
-const _legacyBlockedFlag = 'legacy.must_not_run_during_checkpoint';
-const _staleCutsceneFlag = 'cutscene.must_not_resume_after_checkpoint';
 const _followScenarioId = 'legacy_follow_before_load';
 const _trainerId = 'checkpoint_trainer';
 
@@ -37,153 +35,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame checkpoint/load safety', () {
-    test(
-      'checkpoint already in progress refuses an atomic Cutscene start',
-      () async {
-        final gate = NarrativeRuntimeActivityGate();
-        final game = _game(
-          bundle: _bundle(map: _plainMap(_sourceMapId)),
-          initialState: _state(mapId: _sourceMapId),
-          narrativeRuntimeActivityGate: gate,
-        );
-        await _load(game);
-
-        final checkpointStarted = Completer<void>();
-        final releaseCheckpoint = Completer<void>();
-        final checkpoint = gate.runCheckpoint<void>(
-          NarrativeRuntimeCheckpointOperation.save,
-          () async {
-            checkpointStarted.complete();
-            await releaseCheckpoint.future;
-          },
-        );
-        await checkpointStarted.future;
-
-        expect(
-          game.startCutscene(_waitThenFlagCutscene('checkpoint_refused')),
-          isFalse,
-        );
-        game.update(20);
-        expect(game.isCutsceneRunning, isFalse);
-        expect(
-          game.gameStateSnapshot.storyFlags.activeFlags,
-          isNot(contains(_staleCutsceneFlag)),
-        );
-
-        releaseCheckpoint.complete();
-        await checkpoint;
-        expect(gate.activity, NarrativeRuntimeActivity.idle);
-      },
-    );
-
-    for (final fixture in <({
-      String name,
-      RuntimeCutsceneAsset cutscene,
-      List<ProjectDialogueEntry> dialogues,
-      RuntimeDialogueSessionLoader? dialogueLoader,
-    })>[
-      (
-        name: 'wait',
-        cutscene: _waitThenFlagCutscene('wait_before_load'),
-        dialogues: const <ProjectDialogueEntry>[],
-        dialogueLoader: null,
-      ),
-      (
-        name: 'choice',
-        cutscene: const RuntimeCutsceneAsset(
-          id: 'choice_before_load',
-          name: 'Choice before load',
-          steps: <RuntimeCutsceneStep>[
-            CutsceneChoiceStep(
-              choiceId: 'checkpoint_choice',
-              prompt: 'Choose',
-              options: <CutsceneChoiceOption>[
-                CutsceneChoiceOption(value: 'yes', label: 'Yes'),
-              ],
-            ),
-            CutsceneSetFlagStep(flagName: _staleCutsceneFlag),
-          ],
-        ),
-        dialogues: const <ProjectDialogueEntry>[],
-        dialogueLoader: null,
-      ),
-      (
-        name: 'dialogue',
-        cutscene: const RuntimeCutsceneAsset(
-          id: 'dialogue_before_load',
-          name: 'Dialogue before load',
-          steps: <RuntimeCutsceneStep>[
-            CutsceneDialogueStep(dialogueId: 'cutscene_dialogue'),
-            CutsceneSetFlagStep(flagName: _staleCutsceneFlag),
-          ],
-        ),
-        dialogues: const <ProjectDialogueEntry>[
-          ProjectDialogueEntry(
-            id: 'cutscene_dialogue',
-            name: 'Cutscene dialogue',
-            relativePath: 'dialogues/cutscene_dialogue.yarn',
-          ),
-        ],
-        dialogueLoader: (_) async => _singleLineDialogue(),
-      ),
-    ]) {
-      test(
-        '${fixture.name} Cutscene owns sceneSuspended, blocks checkpoints and '
-        'cannot mutate after cancellation/load',
-        () async {
-          final gate = NarrativeRuntimeActivityGate();
-          final repository = _GateMemoryRepository(gate)
-            ..storedState = _state(
-              mapId: _sourceMapId,
-              position: const GridPos(x: 2, y: 2),
-            );
-          final game = _game(
-            bundle: _bundle(
-              map: _plainMap(_sourceMapId),
-              dialogues: fixture.dialogues,
-            ),
-            initialState: _state(mapId: _sourceMapId),
-            narrativeRuntimeActivityGate: gate,
-            saveRepository: repository,
-            dialogueSessionLoader: fixture.dialogueLoader,
-          );
-          await _load(game);
-
-          expect(game.startCutscene(fixture.cutscene), isTrue);
-          game.update(0.016);
-          await Future<void>.delayed(Duration.zero);
-
-          expect(game.isCutsceneRunning, isTrue);
-          expect(gate.activity, NarrativeRuntimeActivity.sceneSuspended);
-          if (fixture.name == 'choice') {
-            expect(game.hasPendingCutsceneChoice, isTrue);
-          }
-          expect(await game.saveGame(), isFalse);
-          expect(await game.loadGame(), isFalse);
-          expect(repository.saveCount, 0);
-          expect(repository.loadCount, 0);
-
-          expect(game.cancelCutscene(), isTrue);
-          expect(game.isCutsceneRunning, isFalse);
-          expect(game.pendingCutsceneChoiceRequest, isNull);
-          expect(gate.activity, NarrativeRuntimeActivity.idle);
-
-          expect(await game.loadGame(), isTrue);
-          for (var i = 0; i < 8; i++) {
-            game.update(1);
-            await Future<void>.delayed(Duration.zero);
-          }
-          final state = game.gameStateSnapshot;
-          expect(state.playerPosition, const GridPos(x: 2, y: 2));
-          expect(
-            state.storyFlags.activeFlags,
-            isNot(contains(_staleCutsceneFlag)),
-          );
-          expect(game.isCutsceneRunning, isFalse);
-        },
-      );
-    }
-
     test(
       'battle handoff blocks load until async setup terminates',
       () async {
@@ -224,59 +75,6 @@ void main() {
           game.gameStateSnapshot.playerPosition,
           isNot(const GridPos(x: 3, y: 3)),
         );
-      },
-    );
-
-    test(
-      'Cutscene outcome source is refused while a checkpoint owns the '
-      'narrative gate',
-      () async {
-        final gate = NarrativeRuntimeActivityGate();
-        final game = _game(
-          bundle: _bundle(
-            map: _plainMap(_sourceMapId),
-            scenarios: <ScenarioAsset>[_outcomeFlagScenario()],
-          ),
-          initialState: _state(mapId: _sourceMapId),
-          narrativeRuntimeActivityGate: gate,
-        );
-        await _load(game);
-
-        final checkpointStarted = Completer<void>();
-        final releaseCheckpoint = Completer<void>();
-        final checkpoint = gate.runCheckpoint<void>(
-          NarrativeRuntimeCheckpointOperation.load,
-          () async {
-            checkpointStarted.complete();
-            await releaseCheckpoint.future;
-          },
-        );
-        await checkpointStarted.future;
-
-        expect(
-          game.startCutscene(
-            const RuntimeCutsceneAsset(
-              id: 'emit_during_checkpoint',
-              name: 'Emit during checkpoint',
-              steps: <RuntimeCutsceneStep>[
-                CutsceneEmitOutcomeStep(outcomeId: 'checkpoint.seed'),
-              ],
-            ),
-          ),
-          isFalse,
-        );
-        expect(() => game.update(0.016), returnsNormally);
-
-        expect(gate.checkpointInProgress, isTrue);
-        expect(game.isCutsceneRunning, isFalse);
-        expect(
-          game.gameStateSnapshot.storyFlags.activeFlags,
-          isNot(contains(_legacyBlockedFlag)),
-        );
-
-        releaseCheckpoint.complete();
-        await checkpoint;
-        expect(gate.activity, NarrativeRuntimeActivity.idle);
       },
     );
 
@@ -764,42 +562,6 @@ Future<Map<String, RuntimeTilesetImage>> _leaderTilesetLoader(
   };
 }
 
-ScenarioAsset _outcomeFlagScenario() {
-  return const ScenarioAsset(
-    id: 'blocked_checkpoint_scenario',
-    name: 'Blocked checkpoint scenario',
-    scope: ScenarioScope.globalStory,
-    entryNodeId: 'source',
-    nodes: <ScenarioNode>[
-      ScenarioNode(
-        id: 'source',
-        type: ScenarioNodeType.reference,
-        payload: ScenarioNodePayload(actionKind: kScenarioSourceOutcome),
-        binding: ScenarioNodeBinding(outcomeId: 'checkpoint.seed'),
-      ),
-      ScenarioNode(
-        id: 'set_flag',
-        type: ScenarioNodeType.action,
-        payload: ScenarioNodePayload(actionKind: kScenarioActionSetFlag),
-        binding: ScenarioNodeBinding(flagName: _legacyBlockedFlag),
-      ),
-      ScenarioNode(id: 'end', type: ScenarioNodeType.end),
-    ],
-    edges: <ScenarioEdge>[
-      ScenarioEdge(
-        id: 'source_to_flag',
-        fromNodeId: 'source',
-        toNodeId: 'set_flag',
-      ),
-      ScenarioEdge(
-        id: 'flag_to_end',
-        fromNodeId: 'set_flag',
-        toNodeId: 'end',
-      ),
-    ],
-  );
-}
-
 ScenarioAsset _mapEnterFollowScenario() {
   return const ScenarioAsset(
     id: _followScenarioId,
@@ -1013,17 +775,6 @@ DialogueSession _singleLineDialogue() {
     ],
     'Start',
   )!;
-}
-
-RuntimeCutsceneAsset _waitThenFlagCutscene(String id) {
-  return RuntimeCutsceneAsset(
-    id: id,
-    name: 'Wait then flag',
-    steps: const <RuntimeCutsceneStep>[
-      CutsceneWaitStep(durationMs: 10000),
-      CutsceneSetFlagStep(flagName: _staleCutsceneFlag),
-    ],
-  );
 }
 
 RuntimeActiveBattleContext _trainerContext() {

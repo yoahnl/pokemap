@@ -33,6 +33,8 @@ void main() {
 
     expect(game.debugIsCinematicPlaying, isTrue);
     expect(game.debugIsGameplayInputLocked, isTrue);
+    expect(await game.saveGame(), isFalse);
+    expect(await game.loadGame(), isFalse);
     expect(
       game.handleRuntimeInputEvent(
         const RuntimeInputEvent.press(RuntimeInputControl.right),

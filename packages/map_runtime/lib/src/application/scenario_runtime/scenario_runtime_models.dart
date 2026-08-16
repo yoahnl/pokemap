@@ -200,7 +200,7 @@ typedef ScenarioRuntimeRunScript = bool Function(
 typedef ScenarioRuntimeShowMessage = void Function(String message);
 
 /// Callback pour démarrer un déplacement de personnage depuis une action
-/// scénario (bridge Cutscene Studio -> runtime).
+/// du graphe narratif.
 typedef ScenarioRuntimeMoveCharacter = bool Function({
   required String entityId,
   required String targetKind,

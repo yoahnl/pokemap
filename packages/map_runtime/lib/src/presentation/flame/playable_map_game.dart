@@ -21,8 +21,6 @@ import '../../../src/application/load_game_use_case.dart';
 import '../../../src/application/save_game_use_case.dart';
 import '../../../src/infrastructure/file_game_save_repository.dart';
 import '../../application/battle_start_request.dart';
-import '../../application/cutscene_runtime_models.dart';
-import '../../application/cutscene_runtime_runner.dart';
 import '../../application/dialogue_runtime_models.dart';
 import '../../application/dialogue_variable_interpolation.dart';
 import '../../application/encounter_to_battle_request.dart';
@@ -221,7 +219,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameState? initialGameState,
     GameSaveRepository? saveRepository,
     this.bundleTransformer,
-    this.runtimeCutscenes = const <RuntimeCutsceneAsset>[],
     RuntimeDialogueSessionLoader? dialogueSessionLoader,
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
@@ -402,7 +399,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   final String projectFilePath;
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
-  final List<RuntimeCutsceneAsset> runtimeCutscenes;
   final MapActivationReason initialMapActivationReason;
   final String runtimeLocale;
 
@@ -666,7 +662,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _inFlightRootOutcomePublicationCount > 0 ||
       _narrativeActivityGate.activity != NarrativeRuntimeActivity.idle ||
       _narrativeActivityGate.checkpointInProgress ||
-      isCutsceneRunning ||
       _cinematicRuntimeController.isPlaying;
 
   bool get _hasCheckpointUnsafeRuntimeWorkForSave =>
@@ -689,7 +684,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       'outboxDrain=${_narrativeOutcomeDrainFuture != null} '
       'activity=${_narrativeActivityGate.activity.name} '
       'checkpoint=${_narrativeActivityGate.checkpointInProgress} '
-      'cutscene=$isCutsceneRunning '
       'pendingWarp=${_pendingWarp != null} '
       'pendingConnection=${_pendingConnection != null} '
       'pendingConnectionAnimation=${_pendingConnectionEntryAnimation != null} '
@@ -1524,10 +1518,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return _cachedGlobalStoryChapterIndex!;
   }
 
-  late final CutsceneRuntimeRunner _cutsceneRunner =
-      _buildCutsceneRuntimeRunner();
-  CutsceneChoiceRequest? _pendingCutsceneChoiceRequest;
-  NarrativeRuntimeActivityLease? _cutsceneActivityLease;
   ScriptedEntityMovementController? _scriptedEntityMovementController;
   final Map<String, GridPos> _runtimeNpcPositions = <String, GridPos>{};
   final Map<String, Completer<String>> _pendingSceneNpcMovesByEntity =
@@ -2228,11 +2218,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       RuntimeInputLockOwner.scriptedMovement,
       RuntimeInputSurface.blocked,
       _suppressOverworldInputForScriptedPlayerMovement(),
-    );
-    _setDerivedInputLock(
-      RuntimeInputLockOwner.cutscene,
-      RuntimeInputSurface.blocked,
-      isCutsceneRunning,
     );
   }
 
@@ -3365,120 +3350,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return controller.statusOf(entityId);
   }
 
-  /// true si une cutscene runtime est en cours d'exécution.
-  bool get isCutsceneRunning => _cutsceneRunner.isRunning;
-
-  /// Identifiant de la cutscene active, `null` si aucune.
-  String? get activeCutsceneId => _cutsceneRunner.activeCutsceneId;
-
-  /// Snapshot détaillé du runner cutscene.
-  CutsceneRuntimeStatus get cutsceneStatus => _cutsceneRunner.status;
-
-  /// Requête de choix en attente (si la cutscene attend une décision joueur).
-  CutsceneChoiceRequest? get pendingCutsceneChoiceRequest =>
-      _pendingCutsceneChoiceRequest;
-
-  bool get hasPendingCutsceneChoice => _pendingCutsceneChoiceRequest != null;
-
-  /// Dernier choix résolu pendant la cutscene active.
-  CutsceneChoiceResult? get lastCutsceneChoiceResult =>
-      _cutsceneRunner.lastChoiceResult;
-
-  /// Démarre une cutscene fournie explicitement.
-  ///
-  /// Cette API est utile pour des déclenchements runtime directs (tests,
-  /// scripts d'initialisation, futur bridge Step -> Cutscene).
-  bool startCutscene(RuntimeCutsceneAsset cutscene) {
-    return _tryStartCutscene(cutscene);
-  }
-
-  /// Démarre une cutscene depuis le registre runtime injecté au game host.
-  ///
-  /// Retourne `false` si l'ID est introuvable ou si une cutscene est déjà active.
-  bool startCutsceneById(String cutsceneId) {
-    if (!isLoaded) {
-      return false;
-    }
-    final normalized = cutsceneId.trim();
-    if (normalized.isEmpty) {
-      return false;
-    }
-    final cutscene = _findRuntimeCutsceneById(normalized);
-    if (cutscene == null) {
-      return false;
-    }
-    return _tryStartCutscene(cutscene);
-  }
-
-  bool _tryStartCutscene(RuntimeCutsceneAsset cutscene) {
-    if (!isLoaded ||
-        _flowPhase != _RuntimeFlowPhase.overworld ||
-        _cutsceneRunner.isRunning ||
-        _hasCheckpointUnsafeRuntimeWorkForSave) {
-      return false;
-    }
-    late final NarrativeRuntimeActivityLease lease;
-    try {
-      lease = _narrativeActivityGate.enter(
-        NarrativeRuntimeActivity.sceneSuspended,
-      );
-    } on NarrativeRuntimeActivityBlockedException {
-      return false;
-    }
-    _cutsceneActivityLease = lease;
-    _pendingCutsceneChoiceRequest = null;
-    try {
-      final started = _cutsceneRunner.start(cutscene);
-      _syncCutsceneLifecycle();
-      return started;
-    } catch (_) {
-      _releaseCutsceneActivityLease();
-      rethrow;
-    }
-  }
-
-  /// Cancels the active runtime Cutscene and releases checkpoint authority.
-  bool cancelCutscene() {
-    final cancelled = _cutsceneRunner.cancel();
-    _syncCutsceneLifecycle();
-    return cancelled;
-  }
-
-  void _cancelCutsceneForLoad() {
-    _cutsceneRunner.cancel(
-      reason: 'Cutscene cancelled by checkpoint load.',
-    );
-    _syncCutsceneLifecycle();
-  }
-
-  void _syncCutsceneLifecycle() {
-    _pendingCutsceneChoiceRequest = _cutsceneRunner.activeChoiceRequest;
-    if (!_cutsceneRunner.isRunning) {
-      _releaseCutsceneActivityLease();
-    }
-  }
-
-  void _releaseCutsceneActivityLease() {
-    _cutsceneActivityLease?.close();
-    _cutsceneActivityLease = null;
-  }
-
-  bool resolvePendingCutsceneChoiceByIndex(int selectedIndex) {
-    final resolved = _cutsceneRunner.resolveActiveChoiceByIndex(selectedIndex);
-    if (resolved) {
-      _syncCutsceneLifecycle();
-    }
-    return resolved;
-  }
-
-  bool resolvePendingCutsceneChoiceByValue(String selectedValue) {
-    final resolved = _cutsceneRunner.resolveActiveChoiceByValue(selectedValue);
-    if (resolved) {
-      _syncCutsceneLifecycle();
-    }
-    return resolved;
-  }
-
   void setBehaviorDebugOverlayVisible(bool visible) {
     _showBehaviorDebugOverlay = visible;
     if (!visible) {
@@ -4138,17 +4009,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           onlyEntityId: restoreOwnedMove.entityId,
         );
       }
-    }
-
-    // Tick runner cutscene MVP (séquentiel).
-    if (!blocksNewOverworldLaunch) {
-      _cutsceneRunner.update(dt);
-    }
-    _syncCutsceneLifecycle();
-    if (isCutsceneRunning) {
-      // Tant que la cutscene n'est pas terminée, on ne laisse pas la boucle
-      // input joueur déplacer le player.
-      return;
     }
 
     if (!inputAuthoritySnapshot.acceptsOverworldInput) {
@@ -5043,7 +4903,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       isOverworldFlow: _flowPhase == _RuntimeFlowPhase.overworld,
       flowPhaseName: _flowPhase.name,
       isDialogueOpen: _dialogueOverlay != null,
-      isCutsceneRunnerActive: isCutsceneRunning,
+      isCutsceneRunnerActive: _cinematicRuntimeController.isPlaying,
       hasPendingFollowCharacter: _pendingScenarioFollowRequest != null,
       hasPendingMoveContinuations:
           _pendingScenarioMoveContinuationsByEntity.isNotEmpty,
@@ -11869,9 +11729,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _clearTransientScenarioWorkForLoad() {
-    _cancelCutsceneForLoad();
-    _pendingCutsceneChoiceRequest = null;
-
     final battleOwner = _pendingScenarioBattleHandoff;
     _pendingScenarioBattleHandoff = null;
     if (battleOwner != null) {
@@ -12803,136 +12660,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       Direction.west => EntityFacing.east,
     };
     actor.setMotion(npcFacing, CharacterAnimationState.idle);
-  }
-
-  /// Construit le runner cutscene MVP avec callbacks runtime concrets.
-  ///
-  /// Le runner reste découplé de Flame; `PlayableMapGame` lui injecte juste
-  /// les opérations nécessaires.
-  CutsceneRuntimeRunner _buildCutsceneRuntimeRunner() {
-    return CutsceneRuntimeRunner(
-      context: CutsceneRuntimeContext(
-        openDialogue: (dialogueId, {startNode}) {
-          return _openScenarioDialogueById(
-            dialogueId,
-            startNode: startNode,
-            runtimeSourceId: 'cutscene',
-          );
-        },
-        isDialogueOpen: () => _dialogueOverlay != null,
-        requestChoice: (request) {
-          _pendingCutsceneChoiceRequest = request;
-          return true;
-        },
-        resolveCutsceneById: _findRuntimeCutsceneById,
-        moveNpcTo: ({required entityId, required destination}) {
-          return startScriptedNpcMove(
-            entityId: entityId,
-            destination: destination,
-          );
-        },
-        readNpcMovementStatus: (entityId) {
-          return scriptedNpcMovementStatus(entityId);
-        },
-        faceNpc: ({required entityId, required facing}) {
-          return _setNpcFacing(entityId, facing);
-        },
-        emitOutcome: (outcomeId) {
-          _emitCutsceneOutcome(outcomeId);
-        },
-        setFlag: (flagName) {
-          _gameState = _storyFlags.set(_gameState, flagName);
-          _refreshWorldNpcPresence();
-        },
-        clearFlag: (flagName) {
-          _gameState = _storyFlags.clear(_gameState, flagName);
-          _refreshWorldNpcPresence();
-        },
-        isFlagSet: (flagName) => _storyFlags.isSet(_gameState, flagName),
-        isOutcomeSet: (outcomeId) =>
-            _storyFlags.isSet(_gameState, scenarioOutcomeFlagName(outcomeId)),
-      ),
-    );
-  }
-
-  RuntimeCutsceneAsset? _findRuntimeCutsceneById(String cutsceneId) {
-    final normalized = cutsceneId.trim();
-    if (normalized.isEmpty) {
-      return null;
-    }
-    for (final candidate in runtimeCutscenes) {
-      if (candidate.id == normalized) {
-        return candidate;
-      }
-    }
-    return null;
-  }
-
-  /// Oriente explicitement un PNJ (étape `faceNpc` de cutscene).
-  ///
-  /// On met à jour:
-  /// - l'acteur visuel (immédiat),
-  /// - la map runtime en mémoire (facing npc), pour rester cohérent avec les
-  ///   futures logiques gameplay lisant l'orientation d'entité.
-  bool _setNpcFacing(String entityId, EntityFacing facing) {
-    final loaded = _loadedMapsById[_activeMapId];
-    final actor = loaded?.npcActorByEntityId[entityId];
-    if (actor == null) {
-      return false;
-    }
-    actor.setMotion(facing, CharacterAnimationState.idle);
-
-    final entities = _world.map.entities;
-    final index = entities.indexWhere((entity) => entity.id == entityId);
-    if (index < 0) {
-      return true;
-    }
-    final entity = entities[index];
-    final npc = entity.npc;
-    if (npc == null) {
-      return true;
-    }
-    final updatedEntities = List<MapEntity>.from(entities);
-    updatedEntities[index] = entity.copyWith(
-      npc: npc.copyWith(facing: facing),
-    );
-    final updatedMap = _world.map.copyWith(entities: updatedEntities);
-    _world = GameplayWorldState.initial(
-      map: updatedMap,
-      playerPos: _world.player.pos,
-      playerFacing: _world.player.facing,
-      playerMovementMode: _world.player.movementMode,
-      project: _bundle.manifest,
-      tileWidth: _bundle.manifest.settings.tileWidth,
-      tileHeight: _bundle.manifest.settings.tileHeight,
-      npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
-      mapEntityPresencePredicate:
-          _mapEntityPresencePredicateFor(_bundle.manifest),
-    );
-    _bundle = _bundle.copyWith(
-      map: updatedMap,
-    );
-    return true;
-  }
-
-  /// Émet un outcome depuis une cutscene.
-  ///
-  /// MVP:
-  /// 1) on persiste l'outcome comme flag `scenario.outcome.*`,
-  /// 2) on tente une transition vers un scénario global via `sourceOutcome`.
-  void _emitCutsceneOutcome(String outcomeId) {
-    final normalized = outcomeId.trim();
-    if (normalized.isEmpty) {
-      return;
-    }
-    _gameState =
-        _storyFlags.set(_gameState, scenarioOutcomeFlagName(normalized));
-    _refreshWorldNpcPresence();
-    _dispatchScenarioRuntimeSource(
-      ScenarioRuntimeSourceEvent.outcomeReceived(
-        outcomeId: normalized,
-      ),
-    );
   }
 
   /// (Re)crée le contrôleur de déplacement scripté pour la map active.

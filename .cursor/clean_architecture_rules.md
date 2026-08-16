@@ -33,15 +33,11 @@
 - Si le choix est « un gros fichier pratique aujourd’hui » vs « trois fichiers stables demain », choisir **la modularité**.
 - Refactor **physique** plutôt que sections commentées dans un monolithe.
 
-## Exemple de référence (Cutscene Studio)
+## Exemple de référence (Cinematic Studio)
 
-`packages/map_editor/lib/src/features/narrative/application/cutscene_studio/` :
+Le domaine respecte les frontières du monorepo :
 
-- `cutscene_studio_models.dart` — types métier, constantes, trim/outcome partagés.
-- `cutscene_studio_flow.dart` — projection tronc / flow effectif.
-- `cutscene_studio_flow_codec.dart` — JSON metadata.
-- `cutscene_studio_flow_mutations.dart` — DnD / édition structurelle.
-- `cutscene_studio_parser.dart` / `cutscene_studio_compiler.dart` — allers-retours `ScenarioAsset`.
-- `cutscene_studio_templates.dart` — seeds.
-- `cutscene_studio_runtime_advisories.dart` — honnêteté MVP.
-- `cutscene_studio_authoring.dart` — barrel.
+- `map_core` porte les modèles et codecs purs.
+- `map_authoring` porte les mutations et opérations sémantiques.
+- `map_runtime` porte l'exécution des cinématiques monde et présentation.
+- `map_editor/lib/src/ui/canvas/cinematics/` compose les surfaces no-code.

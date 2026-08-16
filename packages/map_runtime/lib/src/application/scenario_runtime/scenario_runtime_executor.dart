@@ -69,7 +69,7 @@ const String kScenarioActionGiveItem = 'giveItem';
 /// pour les predicates `stepCompleted` / `stepNotCompleted`.
 const String kScenarioActionCompleteStep = 'completeStep';
 
-/// Jonction pure graphe après compilation d’un embranchement (Cutscene Studio).
+/// Jonction pure du graphe après compilation d’un embranchement narratif.
 ///
 /// Ce n’est **pas** une attente temporelle: l’exécuteur avance immédiatement
 /// vers le nœud suivant, sans effet gameplay. L’authoring l’introduit pour
@@ -1079,8 +1079,7 @@ class ScenarioRuntimeExecutor {
                   scenarioId: scenario.id,
                   sourceNodeId: sourceId,
                   stopNodeId: node.id,
-                  message:
-                      'Action givePokemon sans formId dans "${node.id}".',
+                  message: 'Action givePokemon sans formId dans "${node.id}".',
                 );
               }
               final executionId = context.executionId.trim();

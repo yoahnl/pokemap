@@ -38,7 +38,6 @@ enum RuntimeInputLockOwner {
   narrativeDispatch,
   checkpoint,
   scriptedMovement,
-  cutscene,
   gameCompletion,
 }
 

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { test } from "node:test";
 
 import {
+  certifyCinematicV2Catalog,
   certifyPersonalizationCatalog,
   verifyCheckoutCatalog,
 } from "../src/checkout_catalog_verifier.js";
@@ -27,6 +28,12 @@ test("checkout verifier certifies the packaged server from the requested reposit
     "editor",
     "mcp",
   ]);
+  assert.ok(receipt.cinematicActionIds.includes("cinematic.upsert"));
+  assert.ok(
+    receipt.cinematicActionIds.includes("presentationCinematic.create"),
+  );
+  assert.deepEqual(receipt.legacyCinematicCatalogIds, []);
+  assert.ok(receipt.cinematicResourceKinds.includes("presentationCinematic"));
 });
 
 test("checkout verifier rejects a project outside the requested repository", async () => {
@@ -57,5 +64,23 @@ test("checkout verifier fails closed on stale presentation catalog evidence", ()
         },
       }),
     /presentation profile resource version 10/i,
+  );
+});
+
+test("checkout verifier rejects legacy cinematic actions and resources", () => {
+  assert.throws(
+    () =>
+      certifyCinematicV2Catalog({
+        mutationActions: [
+          { id: "cinematic.upsert" },
+          { id: "presentationCinematic.create" },
+          { id: "scenario.upsert" },
+        ],
+        resourceKinds: [
+          { id: "presentationCinematic" },
+          { id: "scenario" },
+        ],
+      }),
+    /legacy cinematic catalog entries/i,
   );
 });

@@ -2,7 +2,7 @@
 
 ## Règle d’or
 
-Une demande sur **Cutscene Studio** ne doit pas devenir une refonte du **shell**, de **Global Story**, ou du **layout global** sans justification **écrite** et **nécessité démontrable**.
+Une demande sur **Cinematic Studio** ne doit pas devenir une refonte du **shell**, de **Global Story**, ou du **layout global** sans justification **écrite** et **nécessité démontrable**.
 
 ## À éviter systématiquement
 
@@ -13,7 +13,7 @@ Une demande sur **Cutscene Studio** ne doit pas devenir une refonte du **shell**
 
 ## À favoriser
 
-- Changements **localisés** au package et au dossier concernés (`map_editor` + `cutscene_studio/` par exemple).
+- Changements **localisés** au package et au dossier concernés (`map_editor` + `ui/canvas/cinematics/` par exemple).
 - **Refactor physique** du module demandé plutôt que dispersion de la dette ailleurs.
 - **Tests** alignés sur le périmètre (pas toute la suite narrative « au cas où »).
 

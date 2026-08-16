@@ -565,50 +565,6 @@ export 'src/application/scripted_npc_anchor_passability.dart'
     show
         ScriptedNpcAnchorPassabilityResult,
         evaluateScriptedNpcAnchorPassability;
-export 'src/application/cutscene_runtime_models.dart'
-    show
-        RuntimeCutsceneAsset,
-        RuntimeCutsceneStep,
-        CutsceneChoiceOption,
-        CutsceneChoiceRequest,
-        CutsceneChoiceResult,
-        CutsceneDialogueStep,
-        CutsceneChoiceStep,
-        CutsceneLabelStep,
-        CutsceneGotoStep,
-        CutsceneGotoIfChoiceStep,
-        CutsceneGotoIfFlagStep,
-        CutsceneGotoIfOutcomeStep,
-        CutsceneMoveNpcToStep,
-        CutsceneWaitStep,
-        CutsceneWaitUntilDialogueClosedStep,
-        CutsceneWaitUntilNpcMoveCompletedStep,
-        CutsceneFaceNpcStep,
-        CutsceneEmitOutcomeStep,
-        CutsceneWaitUntilFlagStep,
-        CutsceneWaitUntilOutcomeStep,
-        CutsceneSetFlagStep,
-        CutsceneClearFlagStep,
-        CutsceneCallStep,
-        CutsceneRunnerState,
-        CutsceneRuntimeStatus;
-export 'src/application/cutscene_runtime_runner.dart'
-    show
-        CutsceneRuntimeContext,
-        CutsceneRuntimeRunner,
-        CutsceneOpenDialogue,
-        CutsceneIsDialogueOpen,
-        CutsceneRequestChoice,
-        CutsceneResolveById,
-        CutsceneMoveNpcTo,
-        CutsceneReadNpcMovementStatus,
-        CutsceneFaceNpc,
-        CutsceneEmitOutcome,
-        CutsceneSetFlag,
-        CutsceneClearFlag,
-        CutsceneIsFlagSet,
-        CutsceneIsOutcomeSet;
-
 // Save/Load system exports
 export 'domain/repositories/game_save_repository.dart'
     show GameSaveRepository, GameSaveException;
