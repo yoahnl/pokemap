@@ -31,11 +31,28 @@ enum SaveStorageDiagnosticCode {
   missing,
 }
 
+enum SaveRecoveryAction {
+  retry,
+  restoreBackup,
+  migrate,
+  deleteSave,
+  returnToTitle,
+}
+
 final class SaveStorageDiagnostic {
-  const SaveStorageDiagnostic(this.code, this.message);
+  const SaveStorageDiagnostic(
+    this.code,
+    this.message, {
+    this.detectedSaveFormat,
+    this.expectedSaveFormat,
+    this.recommendedActions = const <SaveRecoveryAction>[],
+  });
 
   final SaveStorageDiagnosticCode code;
   final String message;
+  final int? detectedSaveFormat;
+  final int? expectedSaveFormat;
+  final List<SaveRecoveryAction> recommendedActions;
 }
 
 enum SaveSlotReadStatus {
