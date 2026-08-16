@@ -27,6 +27,9 @@ const presentationStudioResponsiveMediaBlockerKey = ValueKey<String>(
 const presentationStudioTransportShortcutsKey = ValueKey<String>(
   'presentation-studio-transport-shortcuts',
 );
+const presentationStudioTemporalStatusSlotKey = ValueKey<String>(
+  'presentation-studio-temporal-status-slot',
+);
 const presentationStudioFrameBackwardKey = ValueKey<String>(
   'presentation-studio-frame-backward',
 );
@@ -306,6 +309,7 @@ class _PresentationStudioResponsiveToolbarState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
     _ticker = createTicker(_tick);
   }
 
@@ -320,6 +324,7 @@ class _PresentationStudioResponsiveToolbarState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     _ticker.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -342,7 +347,6 @@ class _PresentationStudioResponsiveToolbarState
       animation: controller,
       builder: (context, _) => CallbackShortcuts(
         bindings: <ShortcutActivator, VoidCallback>{
-          const SingleActivator(LogicalKeyboardKey.space): _togglePlayback,
           const SingleActivator(LogicalKeyboardKey.home): _stop,
           const SingleActivator(LogicalKeyboardKey.arrowLeft): _stepBackward,
           const SingleActivator(LogicalKeyboardKey.arrowRight): _stepForward,
@@ -359,9 +363,13 @@ class _PresentationStudioResponsiveToolbarState
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  PokeMapBadge(
-                    label: _statusLabel(copy),
-                    variant: _statusBadgeVariant,
+                  SizedBox(
+                    key: presentationStudioTemporalStatusSlotKey,
+                    width: 176,
+                    child: PokeMapBadge(
+                      label: _statusLabel(copy),
+                      variant: _statusBadgeVariant,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   PokeMapIconButton(
@@ -500,6 +508,34 @@ class _PresentationStudioResponsiveToolbarState
     PresentationPlaybackStatus.interactionHold => PokeMapBadgeVariant.warning,
     _ => PokeMapBadgeVariant.info,
   };
+
+  bool _handleGlobalKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.space ||
+        HardwareKeyboard.instance.isShiftPressed ||
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isAltPressed ||
+        HardwareKeyboard.instance.isMetaPressed ||
+        _textInputHasFocus ||
+        !_routeIsCurrent ||
+        !_transportsEnabled) {
+      return false;
+    }
+    _togglePlayback();
+    return true;
+  }
+
+  bool get _textInputHasFocus {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) return false;
+    return focusContext.widget is EditableText ||
+        focusContext.findAncestorWidgetOfExactType<EditableText>() != null;
+  }
+
+  bool get _routeIsCurrent {
+    final route = ModalRoute.of(context);
+    return route == null || route.isCurrent;
+  }
 
   void _togglePlayback() {
     if (!_transportsEnabled) return;

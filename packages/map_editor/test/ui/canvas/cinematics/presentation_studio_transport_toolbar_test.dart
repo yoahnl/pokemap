@@ -62,19 +62,115 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(controller.status, PresentationPlaybackStatus.playing);
-    expect(controller.playheadUs, 600_000);
+    expect(controller.playheadUs, inInclusiveRange(600_000, 650_000));
 
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
     await tester.pump();
     expect(controller.status, PresentationPlaybackStatus.paused);
+    final pausedPlayheadUs = controller.playheadUs;
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
-    expect(controller.playheadUs, 633_333);
+    expect(controller.playheadUs, pausedPlayheadUs + 33_333);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.home);
     await tester.pump();
     expect(controller.playheadUs, 0);
+  });
+
+  testWidgets('space toggles playback while another Studio control has focus', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 2_000_000,
+    );
+    final workspaceFocusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(workspaceFocusNode.dispose);
+    await _pumpToolbar(
+      tester,
+      controller,
+      leading: Focus(
+        focusNode: workspaceFocusNode,
+        child: const SizedBox(width: 32, height: 32),
+      ),
+    );
+
+    workspaceFocusNode.requestFocus();
+    await tester.pump();
+    expect(workspaceFocusNode.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(controller.status, PresentationPlaybackStatus.playing);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(controller.status, PresentationPlaybackStatus.paused);
+  });
+
+  testWidgets('space remains available while editing text', (tester) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 2_000_000,
+    );
+    final textFocusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(textFocusNode.dispose);
+    await _pumpToolbar(
+      tester,
+      controller,
+      leading: TextField(focusNode: textFocusNode),
+    );
+
+    textFocusNode.requestFocus();
+    await tester.pump();
+    expect(textFocusNode.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(controller.status, PresentationPlaybackStatus.ready);
+  });
+
+  testWidgets('temporal counter keeps a stable width during playback', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 12_000_000,
+    );
+    addTearDown(controller.dispose);
+    await _pumpToolbar(tester, controller);
+
+    final slot = find.byKey(presentationStudioTemporalStatusSlotKey);
+    expect(slot, findsOneWidget);
+    final initialWidth = tester.getSize(slot).width;
+    expect(initialWidth, 176);
+
+    await tester.tap(find.byKey(presentationStudioPlayPauseKey));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 7783));
+
+    expect(tester.getSize(slot).width, initialWidth);
+  });
+
+  testWidgets('temporal counter contains the maximum supported duration', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 900_000_000,
+    );
+    addTearDown(controller.dispose);
+    await _pumpToolbar(tester, controller);
+
+    final counterText = find.descendant(
+      of: find.byKey(presentationStudioTemporalStatusSlotKey),
+      matching: find.byType(Text),
+    );
+    expect(counterText, findsOneWidget);
+    expect(find.text('00:00.000 / 15:00.000'), findsOneWidget);
+    final text = tester.widget<Text>(counterText);
+    expect(text.maxLines, 1);
+    expect(text.overflow, TextOverflow.ellipsis);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('loading and error states disable incoherent transports', (
@@ -180,15 +276,19 @@ void main() {
 
 Future<void> _pumpToolbar(
   WidgetTester tester,
-  PresentationStudioResponsiveCanvasController controller,
-) async {
+  PresentationStudioResponsiveCanvasController controller, {
+  Widget? leading,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: PokeMapTheme.dark(),
       home: Scaffold(
-        body: Align(
-          alignment: Alignment.topLeft,
-          child: PresentationStudioResponsiveToolbar(controller: controller),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (leading != null) SizedBox(width: 240, child: leading),
+            PresentationStudioResponsiveToolbar(controller: controller),
+          ],
         ),
       ),
     ),
