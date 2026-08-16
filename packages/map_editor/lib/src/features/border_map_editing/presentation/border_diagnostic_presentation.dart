@@ -110,6 +110,10 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
       'Ajoutez idéalement trois variantes de Pierre principale pour un résultat plus naturel.',
     'border.publication.stone_chain_transform_unavailable' =>
       'Autorisez les orientations requises pour les pierres, puis régénérez la galerie.',
+    'border.publication.coverage_gap_exceeded' =>
+      _publicationCoverageGapMessage(diagnostic),
+    'border.publication.coverage_overlap_exceeded' =>
+      _publicationCoverageOverlapMessage(diagnostic),
     'invalid_tile_size' =>
       'Choisissez des dimensions de tuile strictement positives.',
     'tile_size_exceeds_portable_integer_range' =>
@@ -155,6 +159,43 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
   ];
   return location.isEmpty ? message : '$message (${location.join(' · ')})';
 }
+
+String _publicationCoverageGapMessage(BorderDiagnostic diagnostic) {
+  final measured = diagnostic.parameters['longestContiguousGapPx'];
+  final tolerated = diagnostic.parameters['gapTolerancePx'];
+  if (measured is! int || tolerated is! int) {
+    return 'Augmentez le vide toléré ou ajustez les assets de la bordure.';
+  }
+  final sample = _publicationSampleLabel(diagnostic.parameters['sampleId']);
+  return 'Le cas « $sample » contient un vide de $measured px, au-dessus des '
+      '$tolerated px tolérés. Augmentez le vide toléré ou ajustez les assets.';
+}
+
+String _publicationCoverageOverlapMessage(BorderDiagnostic diagnostic) {
+  final measured = diagnostic.parameters['maximumPairwiseOverlapPx'];
+  final tolerated = diagnostic.parameters['maxOverlapPx'];
+  if (measured is! int || tolerated is! int) {
+    return 'Augmentez le chevauchement toléré ou ajustez les assets de la bordure.';
+  }
+  final sample = _publicationSampleLabel(diagnostic.parameters['sampleId']);
+  return 'Le cas « $sample » superpose $measured px, au-dessus des '
+      '$tolerated px tolérés. Augmentez le chevauchement toléré ou ajustez les assets.';
+}
+
+String _publicationSampleLabel(Object? sampleId) => switch (sampleId) {
+  'longEdge' => 'Longue portion',
+  'gentleCurve' => 'Courbe douce',
+  'sharpConvexCorner' => 'Angle convexe',
+  'sharpConcaveCorner' => 'Angle concave',
+  'hole' => 'Contour intérieur',
+  'smallIsland' => 'Petit îlot',
+  'sharpCorner' => 'Angle prononcé',
+  'endpoint' => 'Extrémité',
+  'opening' => 'Ouverture',
+  'sBend' => 'Courbe en S',
+  'closedLoop' => 'Boucle fermée',
+  _ => 'Aperçu canonique',
+};
 
 List<BorderDiagnostic> editorBorderPreviewDiagnosticsForMap({
   required MapData map,

@@ -12,6 +12,7 @@ environment:
 
 dependencies:
   crypto: ^3.0.7
+  image: ^4.2.0
   map_core:
     path: ../map_core
   map_distribution:

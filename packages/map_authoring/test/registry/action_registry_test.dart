@@ -85,6 +85,8 @@ void main() {
           'assetBlob',
           'assetCatalog',
           'battleProgression',
+          'borderBlueprint',
+          'borderSnapshot',
           'campaignContent',
           'characterStudioCatalog',
           'characterStudioCharacter',

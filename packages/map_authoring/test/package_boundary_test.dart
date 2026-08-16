@@ -11,6 +11,7 @@ void main() {
         MapAuthoringPackageBoundaries.allowedPackageDependencies,
         {
           'crypto',
+          'image',
           'map_core',
           'map_distribution',
           'path',
@@ -72,6 +73,7 @@ void main() {
         dependencyNames,
         {
           'crypto',
+          'image',
           'map_core',
           'map_distribution',
           'path',

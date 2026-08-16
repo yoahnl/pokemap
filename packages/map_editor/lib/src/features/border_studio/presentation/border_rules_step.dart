@@ -22,7 +22,8 @@ class BorderRulesStep extends StatelessWidget {
     final template = definition?.template;
     final isConnectedLine = template == BorderBlueprintTemplate.connectedLine;
     final isStoneChain = template == BorderBlueprintTemplate.stoneChainLine;
-    final supportsAutoRotation = isConnectedLine ||
+    final supportsAutoRotation =
+        isConnectedLine ||
         isStoneChain ||
         template == BorderBlueprintTemplate.masonryLine;
     return BorderStudioStepScaffold(
@@ -53,9 +54,7 @@ class BorderRulesStep extends StatelessWidget {
                       child: Text(_strictProfileLabel(template)),
                     ),
                     PokeMapButton(
-                      key: const ValueKey<String>(
-                        'border-studio-profile-wild',
-                      ),
+                      key: const ValueKey<String>('border-studio-profile-wild'),
                       onPressed: () =>
                           onRulesChanged(_wildFrom(rules, template)),
                       variant: PokeMapButtonVariant.secondary,
@@ -70,8 +69,8 @@ class BorderRulesStep extends StatelessWidget {
                   title: _isStrict(rules, template)
                       ? _strictAppliedLabel(template)
                       : _isWild(rules, template)
-                          ? _wildAppliedLabel(template)
-                          : 'Réglage personnalisé',
+                      ? _wildAppliedLabel(template)
+                      : 'Réglage personnalisé',
                   description:
                       'Les valeurs restent entières et déterministes pour chaque seed.',
                   tone: PokeMapTone.info,
@@ -87,8 +86,8 @@ class BorderRulesStep extends StatelessWidget {
                     description: rules.allowAutoRotation
                         ? 'Oriente chaque morceau pour suivre la ligne.'
                         : isStoneChain
-                            ? 'Conserve l\'éclairage et l\'orientation d\'origine des pierres.'
-                            : 'Conserve l\'asset sans rotation.',
+                        ? 'Conserve l\'éclairage et l\'orientation d\'origine des pierres.'
+                        : 'Conserve l\'asset sans rotation.',
                     value: rules.allowAutoRotation,
                     onChanged: (value) => onRulesChanged(
                       _copyRules(rules, allowAutoRotation: value),
@@ -158,10 +157,7 @@ class BorderRulesStep extends StatelessWidget {
                               'Décale légèrement la chaîne sans créer de gros blocs.',
                           value: rules.irregularityPermille ~/ 10,
                           onChanged: (value) => onRulesChanged(
-                            _copyRules(
-                              rules,
-                              irregularityPermille: value * 10,
-                            ),
+                            _copyRules(rules, irregularityPermille: value * 10),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -214,6 +210,45 @@ class BorderRulesStep extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 12),
+                      ] else ...[
+                        PokeMapGuidedSlider(
+                          key: const ValueKey<String>(
+                            'border-studio-connected-line-overlap-control',
+                          ),
+                          label: 'Chevauchement des raccords',
+                          description:
+                              'Autorise les morceaux voisins à se recouvrir pour fermer visuellement la ligne.',
+                          value: _connectedLineSliderValue(rules.maxOverlapPx),
+                          onChanged: (value) => onRulesChanged(
+                            _copyRules(
+                              rules,
+                              maxOverlapPx:
+                                  (value * _connectedLineMaximumPx / 100)
+                                      .round(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        PokeMapGuidedSlider(
+                          key: const ValueKey<String>(
+                            'border-studio-connected-line-gap-control',
+                          ),
+                          label: 'Vide toléré aux raccords',
+                          description:
+                              'Accepte les ouvertures transparentes propres au dessin de la clôture.',
+                          value: _connectedLineSliderValue(
+                            rules.gapTolerancePx,
+                          ),
+                          onChanged: (value) => onRulesChanged(
+                            _copyRules(
+                              rules,
+                              gapTolerancePx:
+                                  (value * _connectedLineMaximumPx / 100)
+                                      .round(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                       ],
                       PokeMapGuidedSlider(
                         key: const ValueKey<String>(
@@ -224,10 +259,7 @@ class BorderRulesStep extends StatelessWidget {
                             'Augmente la fréquence des alternatives compatibles.',
                         value: rules.variationPermille ~/ 10,
                         onChanged: (value) => onRulesChanged(
-                          _copyRules(
-                            rules,
-                            variationPermille: value * 10,
-                          ),
+                          _copyRules(rules, variationPermille: value * 10),
                         ),
                       ),
                     ],
@@ -283,8 +315,8 @@ class BorderRulesStep extends StatelessWidget {
                 PokeMapCard(
                   child: PokeMapSectionHeader(
                     title: 'Réglages avancés',
-                    description: template ==
-                                BorderBlueprintTemplate.organicEdge ||
+                    description:
+                        template == BorderBlueprintTemplate.organicEdge ||
                             isStoneChain
                         ? 'Chevauchement ${rules.maxOverlapPx} px · vide toléré ${rules.gapTolerancePx} px · profondeur ${rules.depthRows} rangée(s)'
                         : 'Chevauchement ${rules.maxOverlapPx} px · vide toléré ${rules.gapTolerancePx} px',
@@ -302,90 +334,90 @@ class BorderRulesStep extends StatelessWidget {
   BorderGenerationParams _strictFrom(
     BorderGenerationParams current,
     BorderBlueprintTemplate template,
-  ) =>
-      template == BorderBlueprintTemplate.stoneChainLine
-          ? _copyRules(
-              current,
-              irregularityPermille: 180,
-              detailDensityPermille: 0,
-              variationPermille: 1000,
-              maxOverlapPx: 8,
-              gapTolerancePx: 0,
-              depthRows: 2,
-              allowAutoRotation: false,
-            )
-          : _copyRules(
-              current,
-              irregularityPermille: 100,
-              detailDensityPermille: 250,
-              variationPermille: 100,
-              maxOverlapPx:
-                  template == BorderBlueprintTemplate.connectedLine ? 4 : null,
-              gapTolerancePx:
-                  template == BorderBlueprintTemplate.connectedLine ? 1 : null,
-            );
+  ) => template == BorderBlueprintTemplate.stoneChainLine
+      ? _copyRules(
+          current,
+          irregularityPermille: 180,
+          detailDensityPermille: 0,
+          variationPermille: 1000,
+          maxOverlapPx: 8,
+          gapTolerancePx: 0,
+          depthRows: 2,
+          allowAutoRotation: false,
+        )
+      : _copyRules(
+          current,
+          irregularityPermille: 100,
+          detailDensityPermille: 250,
+          variationPermille: 100,
+          maxOverlapPx: template == BorderBlueprintTemplate.connectedLine
+              ? 4
+              : null,
+          gapTolerancePx: template == BorderBlueprintTemplate.connectedLine
+              ? 1
+              : null,
+        );
 
   BorderGenerationParams _wildFrom(
     BorderGenerationParams current,
     BorderBlueprintTemplate template,
-  ) =>
-      template == BorderBlueprintTemplate.stoneChainLine
-          ? _copyRules(
-              current,
-              irregularityPermille: 420,
-              detailDensityPermille: 330,
-              variationPermille: 1000,
-              maxOverlapPx: 2,
-              gapTolerancePx: 3,
-              depthRows: 2,
-              allowAutoRotation: false,
-            )
-          : _copyRules(
-              current,
-              irregularityPermille: 750,
-              detailDensityPermille: 700,
-              variationPermille: 700,
-              maxOverlapPx:
-                  template == BorderBlueprintTemplate.connectedLine ? 32 : null,
-              gapTolerancePx:
-                  template == BorderBlueprintTemplate.connectedLine ? 6 : null,
-            );
+  ) => template == BorderBlueprintTemplate.stoneChainLine
+      ? _copyRules(
+          current,
+          irregularityPermille: 420,
+          detailDensityPermille: 330,
+          variationPermille: 1000,
+          maxOverlapPx: 2,
+          gapTolerancePx: 3,
+          depthRows: 2,
+          allowAutoRotation: false,
+        )
+      : _copyRules(
+          current,
+          irregularityPermille: 750,
+          detailDensityPermille: 700,
+          variationPermille: 700,
+          maxOverlapPx: template == BorderBlueprintTemplate.connectedLine
+              ? 32
+              : null,
+          gapTolerancePx: template == BorderBlueprintTemplate.connectedLine
+              ? 6
+              : null,
+        );
 
   bool _isStrict(
     BorderGenerationParams rules,
     BorderBlueprintTemplate template,
-  ) =>
-      template == BorderBlueprintTemplate.stoneChainLine
-          ? rules.irregularityPermille == 180 &&
-              rules.detailDensityPermille == 0 &&
-              rules.variationPermille == 1000 &&
-              rules.maxOverlapPx == 8 &&
-              rules.gapTolerancePx == 0 &&
-              rules.depthRows == 2 &&
-              !rules.allowAutoRotation
-          : rules.irregularityPermille == 100 &&
-              rules.detailDensityPermille == 250 &&
-              rules.variationPermille == 100 &&
-              (template != BorderBlueprintTemplate.connectedLine ||
-                  (rules.maxOverlapPx == 4 && rules.gapTolerancePx == 1));
+  ) => template == BorderBlueprintTemplate.stoneChainLine
+      ? rules.irregularityPermille == 180 &&
+            rules.detailDensityPermille == 0 &&
+            rules.variationPermille == 1000 &&
+            rules.maxOverlapPx == 8 &&
+            rules.gapTolerancePx == 0 &&
+            rules.depthRows == 2 &&
+            !rules.allowAutoRotation
+      : rules.irregularityPermille == 100 &&
+            rules.detailDensityPermille == 250 &&
+            rules.variationPermille == 100 &&
+            (template != BorderBlueprintTemplate.connectedLine ||
+                (rules.maxOverlapPx == 4 && rules.gapTolerancePx == 1));
 
   bool _isWild(
     BorderGenerationParams rules,
     BorderBlueprintTemplate template,
-  ) =>
-      template == BorderBlueprintTemplate.stoneChainLine
-          ? rules.irregularityPermille == 420 &&
-              rules.detailDensityPermille == 330 &&
-              rules.variationPermille == 1000 &&
-              rules.maxOverlapPx == 2 &&
-              rules.gapTolerancePx == 3 &&
-              rules.depthRows == 2 &&
-              !rules.allowAutoRotation
-          : rules.irregularityPermille == 750 &&
-              rules.detailDensityPermille == 700 &&
-              rules.variationPermille == 700 &&
-              (template != BorderBlueprintTemplate.connectedLine ||
-                  (rules.maxOverlapPx == 32 && rules.gapTolerancePx == 6));
+  ) => template == BorderBlueprintTemplate.stoneChainLine
+      ? rules.irregularityPermille == 420 &&
+            rules.detailDensityPermille == 330 &&
+            rules.variationPermille == 1000 &&
+            rules.maxOverlapPx == 2 &&
+            rules.gapTolerancePx == 3 &&
+            rules.depthRows == 2 &&
+            !rules.allowAutoRotation
+      : rules.irregularityPermille == 750 &&
+            rules.detailDensityPermille == 700 &&
+            rules.variationPermille == 700 &&
+            (template != BorderBlueprintTemplate.connectedLine ||
+                (rules.maxOverlapPx == 32 && rules.gapTolerancePx == 6));
 
   BorderGenerationParams _copyRules(
     BorderGenerationParams source, {
@@ -396,18 +428,23 @@ class BorderRulesStep extends StatelessWidget {
     int? gapTolerancePx,
     int? depthRows,
     bool? allowAutoRotation,
-  }) =>
-      BorderGenerationParams(
-        irregularityPermille:
-            irregularityPermille ?? source.irregularityPermille,
-        detailDensityPermille:
-            detailDensityPermille ?? source.detailDensityPermille,
-        variationPermille: variationPermille ?? source.variationPermille,
-        maxOverlapPx: maxOverlapPx ?? source.maxOverlapPx,
-        gapTolerancePx: gapTolerancePx ?? source.gapTolerancePx,
-        depthRows: depthRows ?? source.depthRows,
-        allowAutoRotation: allowAutoRotation ?? source.allowAutoRotation,
-      );
+  }) => BorderGenerationParams(
+    irregularityPermille: irregularityPermille ?? source.irregularityPermille,
+    detailDensityPermille:
+        detailDensityPermille ?? source.detailDensityPermille,
+    variationPermille: variationPermille ?? source.variationPermille,
+    maxOverlapPx: maxOverlapPx ?? source.maxOverlapPx,
+    gapTolerancePx: gapTolerancePx ?? source.gapTolerancePx,
+    depthRows: depthRows ?? source.depthRows,
+    allowAutoRotation: allowAutoRotation ?? source.allowAutoRotation,
+  );
+
+  int _connectedLineSliderValue(int pixels) {
+    final value = (pixels * 100 / _connectedLineMaximumPx).round();
+    if (value < 0) return 0;
+    if (value > 100) return 100;
+    return value;
+  }
 
   String _strictProfileLabel(BorderBlueprintTemplate template) =>
       switch (template) {
@@ -446,3 +483,5 @@ class BorderRulesStep extends StatelessWidget {
         BorderBlueprintTemplate.stoneChainLine => 'Profil naturel appliqué',
       };
 }
+
+const int _connectedLineMaximumPx = 32;

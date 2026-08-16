@@ -346,6 +346,18 @@ final class AuthoringResourceKindRegistry {
         summary: 'Map-owned semantic field derived from a published preset',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'borderBlueprint',
+        version: 1,
+        displayName: 'Border blueprint',
+        summary: 'Editable and published procedural Border definition',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'borderSnapshot',
+        version: 1,
+        displayName: 'Border visual snapshot',
+        summary: 'Immutable content-addressed Border visual frames',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'dialogue',
         version: 1,
         displayName: 'Dialogue',
@@ -564,6 +576,8 @@ final class AuthoringResourceKindRegistry {
       ),
     ], queryableResourceKindIds: const {
       'asset',
+      'borderBlueprint',
+      'borderSnapshot',
       'characterStudioCatalog',
       'characterStudioCharacter',
       'characterStudioDependency',

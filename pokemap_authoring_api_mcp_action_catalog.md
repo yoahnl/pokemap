@@ -1114,6 +1114,10 @@ environment.render_preview
 ### 13.3 Bordures
 
 ```text
+border.blueprint.draft.upsert
+border.blueprint.publish
+border.blueprint.set_deprecated
+border.blueprint.delete
 border_layer.stroke_add
 border_layer.stroke_update
 border_layer.stroke_delete

@@ -46,12 +46,14 @@ class BorderPreviewPublicationStep extends StatelessWidget {
         ? const <String>[]
         : unresolvedBorderRoleLabels(definition);
     final publication = state.publicationAvailability;
-    final requiresInvertedGallery = definition != null &&
+    final requiresInvertedGallery =
+        definition != null &&
         borderTemplateRequiresInvertedCanonicalGallery(definition.template);
     final expectedCases = definition == null
         ? 0
         : borderCanonicalGalleryCasesForTemplate(definition.template).length;
-    final hasCompleteGallery = preview != null &&
+    final hasCompleteGallery =
+        preview != null &&
         preview!.canonicalGalleryCases.length == expectedCases &&
         preview!.canonicalGalleryCases.every(
           (sample) =>
@@ -59,7 +61,8 @@ class BorderPreviewPublicationStep extends StatelessWidget {
               (!requiresInvertedGallery ||
                   sample.invertedResolution?.canApply == true),
         );
-    final canPublish = preview != null &&
+    final canPublish =
+        preview != null &&
         hasCompleteGallery &&
         preview!.canPublish &&
         publication.isAllowed &&
@@ -84,12 +87,22 @@ class BorderPreviewPublicationStep extends StatelessWidget {
     };
     final stoneChainErrorMessages =
         definition?.template == BorderBlueprintTemplate.stoneChainLine
-            ? <String>{
-                for (final diagnostic in state.diagnostics.diagnostics)
-                  if (diagnostic.severity == BorderDiagnosticSeverity.error)
-                    _stoneChainErrorMessage(diagnostic),
-              }.toList(growable: false)
-            : const <String>[];
+        ? <String>{
+            for (final diagnostic in state.diagnostics.diagnostics)
+              if (diagnostic.severity == BorderDiagnosticSeverity.error)
+                _stoneChainErrorMessage(diagnostic),
+          }.toList(growable: false)
+        : const <String>[];
+    final publicationErrorMessages =
+        definition?.template == BorderBlueprintTemplate.stoneChainLine
+        ? const <String>[]
+        : <String>{
+            for (final diagnostic in state.diagnostics.diagnostics)
+              if (diagnostic.severity == BorderDiagnosticSeverity.error &&
+                  diagnostic.code !=
+                      'border.publication.connected_line_transform_unavailable')
+                localizeEditorBorderDiagnostic(diagnostic),
+          }.toList(growable: false);
 
     return BorderStudioStepScaffold(
       title: '5. Aperçu et publication',
@@ -104,9 +117,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 PokeMapPanel(
-                  key: const ValueKey<String>(
-                    'border-studio-neutral-sandbox',
-                  ),
+                  key: const ValueKey<String>('border-studio-neutral-sandbox'),
                   header: Padding(
                     padding: const EdgeInsets.all(12),
                     child: PokeMapSectionHeader(
@@ -225,8 +236,10 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                                                     .settings
                                                     .tileHeight,
                                               ),
-                                              catalog: preview!.candidate
-                                                  .nextManifest.borderCatalog,
+                                              catalog: preview!
+                                                  .candidate
+                                                  .nextManifest
+                                                  .borderCatalog,
                                               framesBySnapshotId: previewFrames,
                                             ),
                                             _BorderGallerySidePreview(
@@ -251,8 +264,10 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                                                     .settings
                                                     .tileHeight,
                                               ),
-                                              catalog: preview!.candidate
-                                                  .nextManifest.borderCatalog,
+                                              catalog: preview!
+                                                  .candidate
+                                                  .nextManifest
+                                                  .borderCatalog,
                                               framesBySnapshotId: previewFrames,
                                             ),
                                           ],
@@ -277,8 +292,10 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                                           ),
                                           materialization:
                                               sample.resolution.materialization,
-                                          catalog: preview!.candidate
-                                              .nextManifest.borderCatalog,
+                                          catalog: preview!
+                                              .candidate
+                                              .nextManifest
+                                              .borderCatalog,
                                           framesBySnapshotId: previewFrames,
                                         ),
                                     ],
@@ -303,11 +320,10 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                       const SizedBox(width: 8),
                       PokeMapStatusTile(
                         label: 'Erreurs',
-                        value: '${_diagnosticCount(
-                          state,
-                          BorderDiagnosticSeverity.error,
-                        )}',
-                        tone: _diagnosticCount(
+                        value:
+                            '${_diagnosticCount(state, BorderDiagnosticSeverity.error)}',
+                        tone:
+                            _diagnosticCount(
                                   state,
                                   BorderDiagnosticSeverity.error,
                                 ) ==
@@ -318,10 +334,8 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                       const SizedBox(width: 8),
                       PokeMapStatusTile(
                         label: 'Avertissements',
-                        value: '${_diagnosticCount(
-                          state,
-                          BorderDiagnosticSeverity.warning,
-                        )}',
+                        value:
+                            '${_diagnosticCount(state, BorderDiagnosticSeverity.warning)}',
                         tone: state.warningCodes.isEmpty
                             ? PokeMapTone.success
                             : PokeMapTone.warning,
@@ -357,6 +371,37 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                     if (roleLabel != connectedLineTransformRoleLabels.last)
                       const SizedBox(height: 8),
                   ],
+                ],
+                if (publicationErrorMessages.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  PokeMapPanel(
+                    key: const ValueKey<String>(
+                      'border-studio-publication-errors',
+                    ),
+                    header: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: PokeMapSectionHeader(
+                        title: 'Corrections avant publication',
+                        description:
+                            'Ajustez ces réglages puis régénérez la galerie.',
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final message in publicationErrorMessages) ...[
+                          BorderStudioNotice(
+                            title: 'Raccord non validé',
+                            description: message,
+                            tone: PokeMapTone.danger,
+                            icon: CupertinoIcons.exclamationmark_triangle,
+                          ),
+                          if (message != publicationErrorMessages.last)
+                            const SizedBox(height: 8),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
                 if (stoneChainErrorMessages.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -417,16 +462,19 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                               key: ValueKey<String>(
                                 'border-studio-acknowledge-warning-$warningCode',
                               ),
-                              onPressed: state.acknowledgedWarningCodes
-                                      .contains(warningCode)
+                              onPressed:
+                                  state.acknowledgedWarningCodes.contains(
+                                    warningCode,
+                                  )
                                   ? null
                                   : () => onAcknowledgeWarning(warningCode),
                               variant: PokeMapButtonVariant.secondary,
                               size: PokeMapButtonSize.small,
                               leading: const Icon(CupertinoIcons.check_mark),
                               child: Text(
-                                state.acknowledgedWarningCodes
-                                        .contains(warningCode)
+                                state.acknowledgedWarningCodes.contains(
+                                      warningCode,
+                                    )
                                     ? 'Avertissement accepté'
                                     : 'J’ai vérifié cet avertissement',
                               ),
@@ -589,31 +637,31 @@ class BorderPreviewPublicationStep extends StatelessWidget {
     return 'Le solveur a détecté un point non bloquant qui demande votre validation visuelle.';
   }
 
-  String _stoneChainErrorMessage(BorderDiagnostic diagnostic) =>
-      switch (diagnostic.code) {
-        'border.publication.stone_chain_face_role_missing' =>
-          'Assignez au moins un asset au rôle Face de falaise.',
-        'border.publication.stone_chain_directional_coverage_missing' =>
-          'Renseignez l’orientation dessinée des assets pour couvrir Nord, Est, Sud et Ouest.',
-        'border.publication.stone_chain_mixed_orientation_modes' =>
-          'Choisissez un mode d’orientation cohérent pour tous les assets du sommet et de la face.',
-        _ => localizeEditorBorderDiagnostic(diagnostic),
-      };
+  String _stoneChainErrorMessage(
+    BorderDiagnostic diagnostic,
+  ) => switch (diagnostic.code) {
+    'border.publication.stone_chain_face_role_missing' =>
+      'Assignez au moins un asset au rôle Face de falaise.',
+    'border.publication.stone_chain_directional_coverage_missing' =>
+      'Renseignez l’orientation dessinée des assets pour couvrir Nord, Est, Sud et Ouest.',
+    'border.publication.stone_chain_mixed_orientation_modes' =>
+      'Choisissez un mode d’orientation cohérent pour tous les assets du sommet et de la face.',
+    _ => localizeEditorBorderDiagnostic(diagnostic),
+  };
 
   String _connectedLineRoleLabel(Object? wireName) => switch (wireName) {
-        'lineCap' => 'Extrémité',
-        'lineStraight' => 'Segment droit',
-        'lineCorner' => 'Angle',
-        _ => 'raccord de ligne',
-      };
+    'lineCap' => 'Extrémité',
+    'lineStraight' => 'Segment droit',
+    'lineCorner' => 'Angle',
+    _ => 'raccord de ligne',
+  };
 
   int _diagnosticCount(
     BorderStudioDraftState state,
     BorderDiagnosticSeverity severity,
-  ) =>
-      state.diagnostics.diagnostics
-          .where((diagnostic) => diagnostic.severity == severity)
-          .length;
+  ) => state.diagnostics.diagnostics
+      .where((diagnostic) => diagnostic.severity == severity)
+      .length;
 }
 
 class _BorderGallerySidePreview extends StatelessWidget {
@@ -639,26 +687,26 @@ class _BorderGallerySidePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 252,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PokeMapBadge(label: label),
-            ),
-            const SizedBox(height: 6),
-            BorderCanonicalGalleryCanvas(
-              key: canvasKey,
-              semanticsLabel: semanticsLabel,
-              mapSize: sample.mapSize,
-              geometry: sample.geometry,
-              tileSizePx: tileSizePx,
-              materialization: resolution?.materialization,
-              catalog: catalog,
-              framesBySnapshotId: framesBySnapshotId,
-            ),
-          ],
+    width: 252,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: PokeMapBadge(label: label),
         ),
-      );
+        const SizedBox(height: 6),
+        BorderCanonicalGalleryCanvas(
+          key: canvasKey,
+          semanticsLabel: semanticsLabel,
+          mapSize: sample.mapSize,
+          geometry: sample.geometry,
+          tileSizePx: tileSizePx,
+          materialization: resolution?.materialization,
+          catalog: catalog,
+          framesBySnapshotId: framesBySnapshotId,
+        ),
+      ],
+    ),
+  );
 }

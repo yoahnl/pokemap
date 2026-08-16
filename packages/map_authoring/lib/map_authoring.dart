@@ -31,6 +31,8 @@ export 'src/contracts/query_page.dart';
 export 'src/contracts/query_request.dart';
 export 'src/domains/maps/map_region_query.dart';
 export 'src/domains/maps/border_actions.dart';
+export 'src/domains/maps/border_catalog_actions.dart';
+export 'src/domains/maps/canonical_border_snapshot_compiler.dart';
 export 'src/domains/maps/collision_actions.dart';
 export 'src/domains/maps/entity_actions.dart';
 export 'src/domains/maps/environment_actions.dart';

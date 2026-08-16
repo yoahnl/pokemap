@@ -169,6 +169,21 @@ void main() {
         ),
       );
       for (final actionId in <String>[
+        'border.blueprint.delete',
+        'border.blueprint.draft.upsert',
+        'border.blueprint.publish',
+        'border.blueprint.set_deprecated',
+      ]) {
+        expect(
+          catalog.requireMutationAction(actionId).toJson(),
+          containsPair(
+            'endToEndVerifiedTransports',
+            <String>['cli', 'directApi', 'mcp'],
+          ),
+          reason: actionId,
+        );
+      }
+      for (final actionId in <String>[
         'campaign.encounter_table.upsert',
         'campaign.encounter_table.delete',
       ]) {
@@ -692,6 +707,7 @@ final Set<String> _approvedResourceKinds = {
   'smartTileLayer',
   'environmentPreset',
   'borderBlueprint',
+  'borderSnapshot',
   'borderFeature',
   'shadowPreset',
   'projectedBuildingShadowPreset',

@@ -81,28 +81,29 @@ void main() {
           _primitiveWithRole(primitive, roles[index]),
       ]);
       final candidateManifest = controller.saveDraft();
-      final candidateRecord =
-          candidateManifest.borderCatalog.recordById('connected-cliff')!;
+      final candidateRecord = candidateManifest.borderCatalog.recordById(
+        'connected-cliff',
+      )!;
       const service = BorderProjectElementAssetService();
       final coordinator = BorderStudioPublicationCoordinator(
         prepareProjectElementAsset: service.prepare,
         buildCandidate: const BorderPublicationCandidateBuilder().build,
-        resolveCanonicalGallery: ({
-          required blueprintId,
-          required blueprintRevision,
-          required visualSnapshots,
-          required tileSizePx,
-          required resolverVersion,
-        }) =>
-            BorderStudioCanonicalGalleryResolution.fromCore(
-          resolveBorderCanonicalGallery(
-            blueprintId: blueprintId,
-            blueprintRevision: blueprintRevision,
-            visualSnapshots: visualSnapshots,
-            tileSizePx: tileSizePx,
-            resolverVersion: resolverVersion,
-          ),
-        ),
+        resolveCanonicalGallery:
+            ({
+              required blueprintId,
+              required blueprintRevision,
+              required visualSnapshots,
+              required tileSizePx,
+              required resolverVersion,
+            }) => BorderStudioCanonicalGalleryResolution.fromCore(
+              resolveBorderCanonicalGallery(
+                blueprintId: blueprintId,
+                blueprintRevision: blueprintRevision,
+                visualSnapshots: visualSnapshots,
+                tileSizePx: tileSizePx,
+                resolverVersion: resolverVersion,
+              ),
+            ),
         publishRequest: (_) async => throw StateError('not used'),
       );
       BorderStudioPublicationPreview? preview;
@@ -115,15 +116,18 @@ void main() {
       });
 
       expect(preview, isNotNull);
-      expect(preview!.candidate.nextManifest.borderCatalog.formatVersion,
-          ProjectBorderCatalog.formatVersionV2);
+      expect(
+        preview!.candidate.nextManifest.borderCatalog.formatVersion,
+        ProjectBorderCatalog.formatVersionV2,
+      );
       expect(preview!.diagnostics.hasErrors, isFalse);
       expect(preview!.canPublish, isTrue);
     },
   );
 
-  testWidgets('masonry imports authorize the mirrored line side',
-      (tester) async {
+  testWidgets('masonry imports authorize the mirrored line side', (
+    tester,
+  ) async {
     final projectRoot = Directory.systemTemp.createTempSync(
       'pokemap_masonry_line_import_',
     );
@@ -189,8 +193,9 @@ void main() {
         _manifestWithAsset(),
         projectRoot.path,
       );
-      final controller =
-          container.read(borderStudioDraftControllerProvider.notifier);
+      final controller = container.read(
+        borderStudioDraftControllerProvider.notifier,
+      );
       await tester.tap(
         find.byKey(const ValueKey<String>('border-studio-new-blueprint')),
       );
@@ -207,9 +212,9 @@ void main() {
       expect(find.text('Rocher côtier'), findsOneWidget);
       expect(find.text('coast-rock'), findsNothing);
 
-      tester.widget<PokeMapDropdownField<String>>(picker).onChanged(
-            'coast-rock',
-          );
+      tester
+          .widget<PokeMapDropdownField<String>>(picker)
+          .onChanged('coast-rock');
       await tester.pump();
       expect(
         find.byKey(const ValueKey<String>('border-studio-analyze-asset')),
@@ -226,8 +231,10 @@ void main() {
           controller.state.workingDraft!.blueprint.definition.primitives;
       expect(primitives, hasLength(1));
       expect(primitives.single.sourceElementId, 'coast-rock');
-      expect(primitives.single.currentMetrics.pixelSize,
-          const GridSize(width: 2, height: 1));
+      expect(
+        primitives.single.currentMetrics.pixelSize,
+        const GridSize(width: 2, height: 1),
+      );
       expect(
         find.byKey(const ValueKey<String>('border-studio-asset-thumbnail')),
         findsOneWidget,
@@ -254,8 +261,15 @@ void main() {
       );
       await tester.pump();
       expect(
-        controller.state.workingDraft!.blueprint.definition.primitives.single
-            .currentMetrics.assetFingerprint,
+        controller
+            .state
+            .workingDraft!
+            .blueprint
+            .definition
+            .primitives
+            .single
+            .currentMetrics
+            .assetFingerprint,
         isNot(initialFingerprint),
       );
       expect(find.textContaining('a été relue explicitement'), findsOneWidget);
@@ -277,8 +291,9 @@ void main() {
     },
   );
 
-  testWidgets('stone assets expose and persist their authored orientation',
-      (tester) async {
+  testWidgets('stone assets expose and persist their authored orientation', (
+    tester,
+  ) async {
     final projectRoot = Directory.systemTemp.createTempSync(
       'pokemap_border_studio_orientation_ui_',
     );
@@ -325,32 +340,43 @@ void main() {
     );
     expect(picker, findsOneWidget);
     expect(find.text('Orientation dessinée dans l\'asset'), findsOneWidget);
-    final orientationField =
-        tester.widget<PokeMapDropdownField<BorderPrimitiveOrientation>>(picker);
-    expect(
-      orientationField.items.map((item) => item.label),
-      <String>['Historique', 'Nord', 'Est', 'Sud', 'Ouest'],
-    );
+    final orientationField = tester
+        .widget<PokeMapDropdownField<BorderPrimitiveOrientation>>(picker);
+    expect(orientationField.items.map((item) => item.label), <String>[
+      'Historique',
+      'Nord',
+      'Est',
+      'Sud',
+      'Ouest',
+    ]);
     orientationField.onChanged(BorderPrimitiveOrientation.west);
     await tester.pump();
 
     expect(
-      controller.state.workingDraft!.blueprint.definition.primitives.single
+      controller
+          .state
+          .workingDraft!
+          .blueprint
+          .definition
+          .primitives
+          .single
           .authoredOrientation,
       BorderPrimitiveOrientation.west,
     );
     expect(controller.state.diagnosticsAreCurrent, isFalse);
   });
 
-  testWidgets('edits the three guided rules and preserves advanced values',
-      (tester) async {
+  testWidgets('edits the three guided rules and preserves advanced values', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(
       tester,
       _emptyManifest(),
       Directory.systemTemp.path,
     );
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
+    final controller = container.read(
+      borderStudioDraftControllerProvider.notifier,
+    );
     await tester.tap(
       find.byKey(const ValueKey<String>('border-studio-new-blueprint')),
     );
@@ -401,9 +427,7 @@ void main() {
       await tester.pump();
 
       expect(
-        find.byKey(
-          const ValueKey<String>('border-studio-regularity-control'),
-        ),
+        find.byKey(const ValueKey<String>('border-studio-regularity-control')),
         findsNothing,
       );
       expect(
@@ -414,9 +438,26 @@ void main() {
         find.byKey(const ValueKey<String>('border-studio-variety-control')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'border-studio-connected-line-overlap-control',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('border-studio-connected-line-gap-control'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Variété'), findsWidgets);
       expect(find.text('Réglages avancés'), findsOneWidget);
-      expect(find.textContaining('Chevauchement'), findsOneWidget);
+      expect(
+        find.text('Chevauchement 4 px · vide toléré 1 px'),
+        findsOneWidget,
+      );
       final rotationToggle = find.byKey(
         const ValueKey<String>('border-studio-auto-rotation-toggle'),
       );
@@ -458,6 +499,23 @@ void main() {
         findsOneWidget,
       );
 
+      _changeSlider(tester, 'border-studio-connected-line-gap-control', 50);
+      await tester.pump();
+
+      final customRules = container
+          .read(borderStudioDraftControllerProvider)
+          .workingDraft!
+          .blueprint
+          .definition
+          .defaults;
+      expect(customRules.maxOverlapPx, 32);
+      expect(customRules.gapTolerancePx, 16);
+      expect(find.text('Réglage personnalisé'), findsOneWidget);
+      expect(
+        find.text('Chevauchement 32 px · vide toléré 16 px'),
+        findsOneWidget,
+      );
+
       await tester.tap(
         find.byKey(const ValueKey<String>('border-studio-profile-strict')),
       );
@@ -475,8 +533,9 @@ void main() {
     },
   );
 
-  testWidgets('stone-chain rules expose guided stone controls and profiles',
-      (tester) async {
+  testWidgets('stone-chain rules expose guided stone controls and profiles', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(
       tester,
       _emptyManifest(),
@@ -496,9 +555,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.byKey(
-        const ValueKey<String>('border-studio-stone-spacing-control'),
-      ),
+      find.byKey(const ValueKey<String>('border-studio-stone-spacing-control')),
       findsOneWidget,
     );
     expect(
@@ -509,9 +566,7 @@ void main() {
     );
     expect(
       find.byKey(
-        const ValueKey<String>(
-          'border-studio-stone-secondary-density-control',
-        ),
+        const ValueKey<String>('border-studio-stone-secondary-density-control'),
       ),
       findsOneWidget,
     );
@@ -520,15 +575,11 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(
-        const ValueKey<String>('border-studio-auto-rotation-toggle'),
-      ),
+      find.byKey(const ValueKey<String>('border-studio-auto-rotation-toggle')),
       findsOneWidget,
     );
     expect(
-      find.byKey(
-        const ValueKey<String>('border-studio-two-tier-toggle'),
-      ),
+      find.byKey(const ValueKey<String>('border-studio-two-tier-toggle')),
       findsOneWidget,
     );
     expect(find.text('Deux étages continus'), findsOneWidget);
@@ -582,11 +633,7 @@ void main() {
     expect(find.text('Espacement visible entre les pierres'), findsOneWidget);
     _changeSlider(tester, 'border-studio-stone-irregularity-control', 41);
     await tester.pump();
-    _changeSlider(
-      tester,
-      'border-studio-stone-secondary-density-control',
-      32,
-    );
+    _changeSlider(tester, 'border-studio-stone-secondary-density-control', 32);
     await tester.pump();
 
     var rules = container
@@ -638,8 +685,9 @@ void main() {
     expect(rules.allowAutoRotation, isFalse);
   });
 
-  testWidgets('masonry rules expose the automatic rotation toggle',
-      (tester) async {
+  testWidgets('masonry rules expose the automatic rotation toggle', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(
       tester,
       _emptyManifest(),
@@ -679,22 +727,26 @@ void main() {
     );
   });
 
-  testWidgets('duplicates, deletes, and renames drafts from guided actions',
-      (tester) async {
+  testWidgets('duplicates, deletes, and renames drafts from guided actions', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(
       tester,
       _manifestWithDraft(),
       Directory.systemTemp.path,
     );
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
+    final controller = container.read(
+      borderStudioDraftControllerProvider.notifier,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('border-studio-duplicate-blueprint')),
     );
     await tester.pump();
-    expect(controller.state.workingDraft!.blueprint.definition.name,
-        'Côte rocheuse — copie');
+    expect(
+      controller.state.workingDraft!.blueprint.definition.name,
+      'Côte rocheuse — copie',
+    );
     expect(controller.state.isDirty, isTrue);
     expect(find.text('coast-blueprint'), findsNothing);
 
@@ -703,8 +755,10 @@ void main() {
     );
     await tester.pump();
     expect(controller.state.selectedBlueprintId, 'coast-blueprint');
-    expect(controller.state.workingDraft!.blueprint.definition.name,
-        'Côte rocheuse');
+    expect(
+      controller.state.workingDraft!.blueprint.definition.name,
+      'Côte rocheuse',
+    );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('border-studio-rename-blueprint')),
@@ -716,14 +770,14 @@ void main() {
     expect(renameField, findsOneWidget);
     await tester.enterText(renameField, 'Falaise du port');
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('border-studio-confirm-rename'),
-      ),
+      find.byKey(const ValueKey<String>('border-studio-confirm-rename')),
     );
     await tester.pump();
 
-    expect(controller.state.workingDraft!.blueprint.definition.name,
-        'Falaise du port');
+    expect(
+      controller.state.workingDraft!.blueprint.definition.name,
+      'Falaise du port',
+    );
     expect(find.text('Falaise du port'), findsWidgets);
     expect(find.text('coast-blueprint'), findsNothing);
   });
@@ -738,8 +792,9 @@ void main() {
         _manifestWithSharedPrimitiveIds(),
         projectRoot.path,
       );
-      final controller =
-          container.read(borderStudioDraftControllerProvider.notifier);
+      final controller = container.read(
+        borderStudioDraftControllerProvider.notifier,
+      );
       await tester.tap(
         find.byKey(const ValueKey<String>('border-studio-step-Assets')),
       );
@@ -762,10 +817,7 @@ void main() {
         selectedPrimitive.currentMetrics.assetFingerprint,
         'fingerprint-b',
       );
-      expect(
-        find.textContaining('résultat a été ignoré'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('résultat a été ignoré'), findsOneWidget);
     },
   );
 
@@ -779,8 +831,9 @@ void main() {
         _manifestWithSharedPrimitiveIds(),
         projectRoot.path,
       );
-      final controller =
-          container.read(borderStudioDraftControllerProvider.notifier);
+      final controller = container.read(
+        borderStudioDraftControllerProvider.notifier,
+      );
       await tester.tap(
         find.byKey(const ValueKey<String>('border-studio-step-Assets')),
       );
@@ -793,9 +846,7 @@ void main() {
       await tester.pump();
       expect(
         tester
-            .widget<PokeMapAssetThumbnail>(
-              find.byType(PokeMapAssetThumbnail),
-            )
+            .widget<PokeMapAssetThumbnail>(find.byType(PokeMapAssetThumbnail))
             .imageBytes,
         isNotNull,
       );
@@ -805,9 +856,7 @@ void main() {
 
       expect(
         tester
-            .widget<PokeMapAssetThumbnail>(
-              find.byType(PokeMapAssetThumbnail),
-            )
+            .widget<PokeMapAssetThumbnail>(find.byType(PokeMapAssetThumbnail))
             .imageBytes,
         isNull,
       );
@@ -863,113 +912,113 @@ Future<ProviderContainer> _pumpWorkspace(
 }
 
 ProjectManifest _emptyManifest() => const ProjectManifest(
-      name: 'Border Studio UI',
-      version: ProjectVersion.v6,
-      maps: <ProjectMapEntry>[],
-      tilesets: <ProjectTilesetEntry>[],
-    );
+  name: 'Border Studio UI',
+  version: ProjectVersion.v6,
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[],
+);
 
 ProjectManifest _manifestWithAsset() => const ProjectManifest(
-      name: 'Border Studio UI',
-      version: ProjectVersion.v6,
-      maps: <ProjectMapEntry>[],
-      tilesets: <ProjectTilesetEntry>[
-        ProjectTilesetEntry(
-          id: 'coast',
-          name: 'Rochers côtiers',
-          relativePath: 'assets/tilesets/coast.png',
+  name: 'Border Studio UI',
+  version: ProjectVersion.v6,
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'coast',
+      name: 'Rochers côtiers',
+      relativePath: 'assets/tilesets/coast.png',
+    ),
+  ],
+  elements: <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'coast-rock',
+      name: 'Rocher côtier',
+      tilesetId: 'coast',
+      categoryId: 'coast',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
         ),
       ],
-      elements: <ProjectElementEntry>[
-        ProjectElementEntry(
-          id: 'coast-rock',
-          name: 'Rocher côtier',
-          tilesetId: 'coast',
-          categoryId: 'coast',
-          frames: <TilesetVisualFrame>[
-            TilesetVisualFrame(
-              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
-            ),
-          ],
-        ),
-      ],
-      settings: ProjectSettings(tileWidth: 2, tileHeight: 1),
-    );
+    ),
+  ],
+  settings: ProjectSettings(tileWidth: 2, tileHeight: 1),
+);
 
 ProjectManifest _manifestWithDraft() => ProjectManifest(
-      name: 'Border Studio UI',
-      version: ProjectVersion.v6,
-      maps: const <ProjectMapEntry>[],
-      tilesets: const <ProjectTilesetEntry>[],
-      borderCatalog: ProjectBorderCatalog(
-        records: <BorderBlueprintRecord>[
-          BorderBlueprintRecord(
-            id: 'coast-blueprint',
-            draft: BorderBlueprintDraft(
-              baseRevision: 0,
-              definition: BorderBlueprintDraftDefinition(
-                name: 'Côte rocheuse',
-                previewSeed: BorderSignedInt64.fromInt(42),
-                template: BorderBlueprintTemplate.organicEdge,
-                primitives: const <BorderPrimitiveDraft>[],
-                defaults: BorderGenerationParams(
-                  irregularityPermille: 250,
-                  detailDensityPermille: 500,
-                  variationPermille: 300,
-                  maxOverlapPx: 4,
-                  gapTolerancePx: 1,
-                  depthRows: 1,
-                ),
-                sortOrder: 0,
-              ),
+  name: 'Border Studio UI',
+  version: ProjectVersion.v6,
+  maps: const <ProjectMapEntry>[],
+  tilesets: const <ProjectTilesetEntry>[],
+  borderCatalog: ProjectBorderCatalog(
+    records: <BorderBlueprintRecord>[
+      BorderBlueprintRecord(
+        id: 'coast-blueprint',
+        draft: BorderBlueprintDraft(
+          baseRevision: 0,
+          definition: BorderBlueprintDraftDefinition(
+            name: 'Côte rocheuse',
+            previewSeed: BorderSignedInt64.fromInt(42),
+            template: BorderBlueprintTemplate.organicEdge,
+            primitives: const <BorderPrimitiveDraft>[],
+            defaults: BorderGenerationParams(
+              irregularityPermille: 250,
+              detailDensityPermille: 500,
+              variationPermille: 300,
+              maxOverlapPx: 4,
+              gapTolerancePx: 1,
+              depthRows: 1,
             ),
-          ),
-        ],
-      ),
-    );
-
-ProjectManifest _manifestWithSharedPrimitiveIds() => ProjectManifest(
-      name: 'Border Studio guarded assets',
-      version: ProjectVersion.v6,
-      maps: const <ProjectMapEntry>[],
-      tilesets: const <ProjectTilesetEntry>[
-        ProjectTilesetEntry(
-          id: 'coast',
-          name: 'Rochers côtiers',
-          relativePath: 'assets/tilesets/coast.png',
-        ),
-      ],
-      elements: const <ProjectElementEntry>[
-        ProjectElementEntry(
-          id: 'coast-rock',
-          name: 'Rocher côtier',
-          tilesetId: 'coast',
-          categoryId: 'coast',
-          frames: <TilesetVisualFrame>[
-            TilesetVisualFrame(
-              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
-            ),
-          ],
-        ),
-      ],
-      settings: const ProjectSettings(tileWidth: 2, tileHeight: 1),
-      borderCatalog: ProjectBorderCatalog(
-        records: <BorderBlueprintRecord>[
-          _recordWithSharedPrimitive(
-            id: 'coast-a',
-            name: 'Côte A',
-            fingerprint: 'fingerprint-a',
             sortOrder: 0,
           ),
-          _recordWithSharedPrimitive(
-            id: 'coast-b',
-            name: 'Côte B',
-            fingerprint: 'fingerprint-b',
-            sortOrder: 1,
-          ),
-        ],
+        ),
       ),
-    );
+    ],
+  ),
+);
+
+ProjectManifest _manifestWithSharedPrimitiveIds() => ProjectManifest(
+  name: 'Border Studio guarded assets',
+  version: ProjectVersion.v6,
+  maps: const <ProjectMapEntry>[],
+  tilesets: const <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'coast',
+      name: 'Rochers côtiers',
+      relativePath: 'assets/tilesets/coast.png',
+    ),
+  ],
+  elements: const <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'coast-rock',
+      name: 'Rocher côtier',
+      tilesetId: 'coast',
+      categoryId: 'coast',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+        ),
+      ],
+    ),
+  ],
+  settings: const ProjectSettings(tileWidth: 2, tileHeight: 1),
+  borderCatalog: ProjectBorderCatalog(
+    records: <BorderBlueprintRecord>[
+      _recordWithSharedPrimitive(
+        id: 'coast-a',
+        name: 'Côte A',
+        fingerprint: 'fingerprint-a',
+        sortOrder: 0,
+      ),
+      _recordWithSharedPrimitive(
+        id: 'coast-b',
+        name: 'Côte B',
+        fingerprint: 'fingerprint-b',
+        sortOrder: 1,
+      ),
+    ],
+  ),
+);
 
 BorderBlueprintRecord _recordWithSharedPrimitive({
   required String id,
@@ -1046,13 +1095,12 @@ Uint8List _changedAtlasBytes() {
 BorderPrimitiveDraft _primitiveWithRole(
   BorderPrimitiveDraft primitive,
   BorderPrimitiveRole role,
-) =>
-    BorderPrimitiveDraft(
-      id: primitive.id,
-      sourceElementId: primitive.sourceElementId,
-      role: role,
-      weight: primitive.weight,
-      anchorPx: primitive.anchorPx,
-      transforms: primitive.transforms,
-      currentMetrics: primitive.currentMetrics,
-    );
+) => BorderPrimitiveDraft(
+  id: primitive.id,
+  sourceElementId: primitive.sourceElementId,
+  role: role,
+  weight: primitive.weight,
+  anchorPx: primitive.anchorPx,
+  transforms: primitive.transforms,
+  currentMetrics: primitive.currentMetrics,
+);

@@ -701,6 +701,16 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
+  if (actionId.startsWith('border.blueprint.')) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_border_catalog_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_border_catalog_flow_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/border_catalog_server.test.ts',
+    };
+  }
   return const {};
 }
 
@@ -1077,6 +1087,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/autotile_determinism_test.dart',
   ),
   _ContractEvidenceRule(
+    ['border.blueprint.'],
+    'test/domains/maps/border_catalog_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['border_layer.'],
     'test/domains/maps/border_actions_test.dart',
   ),
@@ -1222,6 +1236,7 @@ const _semanticOwners = <String, String>{
   'smartTileLayer': 'map',
   'environmentPreset': 'project',
   'borderBlueprint': 'project',
+  'borderSnapshot': 'project',
   'borderFeature': 'map',
   'shadowPreset': 'project',
   'projectedBuildingShadowPreset': 'project',
@@ -1274,6 +1289,8 @@ const _semanticOwners = <String, String>{
 };
 
 const _requiredDirectReadResourceKinds = <String>{
+  'borderBlueprint',
+  'borderSnapshot',
   'characterStudioCatalog',
   'characterStudioCharacter',
   'characterStudioDependency',
@@ -1312,6 +1329,7 @@ const _visualResources = <String>{
   'smartTileLayer',
   'environmentPreset',
   'borderBlueprint',
+  'borderSnapshot',
   'borderFeature',
   'shadowPreset',
   'projectedBuildingShadowPreset',

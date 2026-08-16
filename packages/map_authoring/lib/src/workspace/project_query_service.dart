@@ -1007,6 +1007,32 @@ List<_QueryRecord> _records(
               },
             ),
       ];
+    case 'borderBlueprint':
+      final catalog = snapshot.manifest.borderCatalog;
+      return <_QueryRecord>[
+        for (final record in catalog.records)
+          _QueryRecord(
+            summary: _borderBlueprintSummary(record),
+            detail: <String, Object?>{
+              ...encodeBorderBlueprintRecordJson(
+                record,
+                formatVersion: catalog.formatVersion,
+              ),
+              'resourceKind': 'borderBlueprint',
+            },
+          ),
+      ];
+    case 'borderSnapshot':
+      return <_QueryRecord>[
+        for (final snapshot in snapshot.manifest.borderCatalog.visualSnapshots)
+          _QueryRecord(
+            summary: _borderSnapshotSummary(snapshot),
+            detail: <String, Object?>{
+              ...encodeBorderVisualSnapshotJson(snapshot),
+              'resourceKind': 'borderSnapshot',
+            },
+          ),
+      ];
     case 'dialogue':
       return [
         for (final dialogue in snapshot.manifest.dialogues)
@@ -1752,6 +1778,28 @@ Map<String, Object?> _smartTileLayerSummary(
       'presetId': layer.presetId,
       'usage': layer.usage.name,
       'authoredValueCount': smartTileAuthoredValueCount(layer),
+    };
+
+Map<String, Object?> _borderBlueprintSummary(BorderBlueprintRecord record) =>
+    <String, Object?>{
+      'id': record.id,
+      'name': record.draft.definition.name,
+      'resourceKind': 'borderBlueprint',
+      'template':
+          borderBlueprintTemplateV1WireName(record.draft.definition.template),
+      'baseRevision': record.draft.baseRevision,
+      'latestPublishedRevision': record.latestPublished?.revision,
+      'isDeprecated': record.isDeprecated,
+      'primitiveCount': record.draft.definition.primitives.length,
+    };
+
+Map<String, Object?> _borderSnapshotSummary(BorderVisualSnapshot snapshot) =>
+    <String, Object?>{
+      'id': snapshot.id,
+      'name': snapshot.id,
+      'resourceKind': 'borderSnapshot',
+      'contentFingerprint': snapshot.contentFingerprint,
+      'frameCount': snapshot.frames.length,
     };
 
 Map<String, Object?> _smartTileCoverageDetail(

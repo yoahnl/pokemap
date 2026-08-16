@@ -40,6 +40,7 @@ import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
 import '../support/authoring_performance_observer.dart';
 import '../domains/maps/border_actions.dart';
+import '../domains/maps/border_catalog_actions.dart';
 import '../domains/maps/collision_actions.dart';
 import '../domains/maps/entity_actions.dart';
 import '../domains/maps/environment_actions.dart';
@@ -109,6 +110,7 @@ final class MapMutationDispatcher {
         MemoryArtifactStore(
           maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
         );
+    final borderCatalog = BorderCatalogActions(artifactStore: artifacts);
     final assets = AssetActions(artifactStore: artifacts);
     final presentationMedia = PresentationMediaImportActions(
       artifactStore: artifacts,
@@ -190,6 +192,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: border.build,
+        ),
+      for (final descriptor in BorderCatalogActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: borderCatalog.build,
         ),
       for (final descriptor in CollisionActions.descriptors)
         MapMutationActionRegistration(
