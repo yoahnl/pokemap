@@ -395,8 +395,10 @@ void main() {
     required GameState gameState,
     required void Function(GameState) onGameStateUpdated,
     void Function(String)? onDialogueOpened,
+    String executionId = 'golden_slice_execution',
   }) {
     return ScenarioRuntimeExecutionContext(
+      executionId: executionId,
       gameState: gameState,
       onGameStateUpdated: onGameStateUpdated,
       openDialogue: (dialogueId, {startNode, runtimeSourceId}) {
@@ -406,6 +408,59 @@ void main() {
       runScript: (scriptId, {startNode, runtimeSourceId}) => false,
       showMessage: (_) {},
     );
+  }
+
+  /// Mirrors the runtime sequence for a scenario that grants a Pokemon:
+  /// the executor stops on the grant, the caller commits it, then the
+  /// scenario resumes. Hydration from species catalogs is covered by
+  /// runtime_player_pokemon_progression_hydrator_test, not here.
+  ScenarioRuntimeExecutionResult dispatchThroughGrants({
+    required ScenarioRuntimeExecutor executor,
+    required List<ScenarioAsset> scenarios,
+    required ScenarioRuntimeSourceEvent sourceEvent,
+    required GameState Function() readState,
+    required void Function(GameState) writeState,
+    void Function(String)? onDialogueOpened,
+  }) {
+    var result = executor.dispatch(
+      scenarios: scenarios,
+      sourceEvent: sourceEvent,
+      context: buildContext(
+        gameState: readState(),
+        onGameStateUpdated: writeState,
+        onDialogueOpened: onDialogueOpened,
+      ),
+    );
+
+    var guard = 0;
+    while (result.status == ScenarioRuntimeExecutionStatus.executedEffect &&
+        result.effect.type == ScenarioRuntimeEffectType.givePokemon) {
+      if (guard++ > 8) {
+        fail('the scenario kept requesting Pokemon grants without ending');
+      }
+      final granted = result.effect.pokemon;
+      expect(granted, isNotNull, reason: 'a grant effect must carry a Pokemon');
+      final current = readState();
+      writeState(
+        current.copyWith(
+          party: PlayerParty(
+            members: <PlayerPokemon>[...current.party.members, granted!],
+          ),
+        ),
+      );
+      result = executor.dispatchContinuation(
+        scenarios: scenarios,
+        scenarioId: result.scenarioId!,
+        sourceNodeId: result.sourceNodeId!,
+        resumeAfterNodeId: result.stopNodeId!,
+        context: buildContext(
+          gameState: readState(),
+          onGameStateUpdated: writeState,
+          onDialogueOpened: onDialogueOpened,
+        ),
+      );
+    }
+    return result;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -441,16 +496,15 @@ void main() {
         saveId: 'test_save',
       );
 
-      final result = executor.dispatch(
+      final result = dispatchThroughGrants(
+        executor: executor,
         scenarios: [mentorGivesPokemonScene()],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_start_map',
           entityId: 'test_mentor_npc',
         ),
-        context: buildContext(
-          gameState: state,
-          onGameStateUpdated: (next) => state = next,
-        ),
+        readState: () => state,
+        writeState: (next) => state = next,
       );
 
       // Scene completed successfully.
@@ -485,16 +539,15 @@ void main() {
         startMapId: 'test_start_map',
         saveId: 'test_save',
       );
-      executor.dispatch(
+      dispatchThroughGrants(
+        executor: executor,
         scenarios: [mentorGivesPokemonScene()],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_start_map',
           entityId: 'test_mentor_npc',
         ),
-        context: buildContext(
-          gameState: state,
-          onGameStateUpdated: (next) => state = next,
-        ),
+        readState: () => state,
+        writeState: (next) => state = next,
       );
 
       // Save and reload.
@@ -541,16 +594,15 @@ void main() {
         startMapId: 'test_start_map',
         saveId: 'test_save',
       );
-      executor.dispatch(
+      dispatchThroughGrants(
+        executor: executor,
         scenarios: [mentorGivesPokemonScene()],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_start_map',
           entityId: 'test_mentor_npc',
         ),
-        context: buildContext(
-          gameState: state,
-          onGameStateUpdated: (next) => state = next,
-        ),
+        readState: () => state,
+        writeState: (next) => state = next,
       );
 
       final ev = evaluator(state);
@@ -562,16 +614,15 @@ void main() {
         startMapId: 'test_start_map',
         saveId: 'test_save',
       );
-      executor.dispatch(
+      dispatchThroughGrants(
+        executor: executor,
         scenarios: [mentorGivesPokemonScene()],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_start_map',
           entityId: 'test_mentor_npc',
         ),
-        context: buildContext(
-          gameState: state,
-          onGameStateUpdated: (next) => state = next,
-        ),
+        readState: () => state,
+        writeState: (next) => state = next,
       );
 
       final saveData = saveDataFromGameState(state);
@@ -594,16 +645,15 @@ void main() {
         saveId: 'test_save',
       );
       // First: mentor scene runs.
-      executor.dispatch(
+      dispatchThroughGrants(
+        executor: executor,
         scenarios: [mentorGivesPokemonScene()],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_start_map',
           entityId: 'test_mentor_npc',
         ),
-        context: buildContext(
-          gameState: state,
-          onGameStateUpdated: (next) => state = next,
-        ),
+        readState: () => state,
+        writeState: (next) => state = next,
       );
 
       // Then: rival dialogue runs (opens dialogue and emits outcome).
@@ -652,16 +702,15 @@ void main() {
         saveId: 'test_save',
       );
       // Setup: mentor scene + outcome flag already set.
-      executor.dispatch(
+      dispatchThroughGrants(
+        executor: executor,
         scenarios: [mentorGivesPokemonScene()],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_start_map',
           entityId: 'test_mentor_npc',
         ),
-        context: buildContext(
-          gameState: state,
-          onGameStateUpdated: (next) => state = next,
-        ),
+        readState: () => state,
+        writeState: (next) => state = next,
       );
       // Set outcome flag as if dialogue completed.
       state = state.copyWith(
@@ -817,16 +866,15 @@ void main() {
         saveId: 'test_save',
       );
       // 1. Mentor gives pokemon.
-      executor.dispatch(
+      dispatchThroughGrants(
+        executor: executor,
         scenarios: [mentorGivesPokemonScene()],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_start_map',
           entityId: 'test_mentor_npc',
         ),
-        context: buildContext(
-          gameState: state,
-          onGameStateUpdated: (next) => state = next,
-        ),
+        readState: () => state,
+        writeState: (next) => state = next,
       );
       // 2. Set outcome flag.
       state = state.copyWith(
@@ -886,16 +934,15 @@ void main() {
         saveId: 'test_save',
       );
       // Full flow: mentor → battle victory.
-      executor.dispatch(
+      dispatchThroughGrants(
+        executor: executor,
         scenarios: [mentorGivesPokemonScene()],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_start_map',
           entityId: 'test_mentor_npc',
         ),
-        context: buildContext(
-          gameState: state,
-          onGameStateUpdated: (next) => state = next,
-        ),
+        readState: () => state,
+        writeState: (next) => state = next,
       );
       state = state.copyWith(
         storyFlags: state.storyFlags.copyWith(
