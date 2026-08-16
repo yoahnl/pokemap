@@ -1,5 +1,18 @@
 import 'package:map_battle/map_battle.dart';
 
+/// Résout le libellé affiché d'une attaque à partir de son identifiant.
+///
+/// `map_battle` reste volontairement pur et ne transporte pas de traductions :
+/// la résolution est donc injectée par la couche qui détient le catalogue
+/// projet et la locale courante.
+typedef BattleMoveDisplayNameResolver = String Function(
+  String moveId,
+  String fallbackName,
+);
+
+String _defaultMoveDisplayName(String moveId, String fallbackName) =>
+    fallbackName;
+
 enum BattleCommandChoiceTone {
   attack,
   special,
@@ -102,6 +115,8 @@ BattleCommandMenuModel buildBattleCommandMenuModel({
   required BattleCommandMenuMode mode,
   required int selectedRootIndex,
   required int selectedChoiceIndex,
+  BattleMoveDisplayNameResolver resolveMoveDisplayName =
+      _defaultMoveDisplayName,
 }) {
   final request = session.decisionRequest;
   final normalizedMode = normalizeBattleCommandMenuMode(
@@ -142,6 +157,7 @@ BattleCommandMenuModel buildBattleCommandMenuModel({
   final choiceEntries = _buildChoiceEntries(
     session: session,
     mode: safeMode,
+    resolveMoveDisplayName: resolveMoveDisplayName,
   );
   final safeChoiceIndex = choiceEntries.isEmpty
       ? 0
@@ -265,6 +281,7 @@ List<BattleCommandRootEntry> _buildRootEntries(BattleDecisionRequest request) {
 List<BattleCommandChoiceEntry> _buildChoiceEntries({
   required BattleSession session,
   required BattleCommandMenuMode mode,
+  required BattleMoveDisplayNameResolver resolveMoveDisplayName,
 }) {
   final request = session.decisionRequest;
   if (mode == BattleCommandMenuMode.root) {
@@ -277,14 +294,14 @@ List<BattleCommandChoiceEntry> _buildChoiceEntries({
   if (mode == BattleCommandMenuMode.fight) {
     return List<BattleCommandChoiceEntry>.unmodifiable(
       request.allowedChoices.whereType<PlayerBattleChoiceFight>().map(
-            (choice) => _entryForChoice(session, choice),
+            (choice) => _entryForChoice(session, choice, resolveMoveDisplayName),
           ),
     );
   }
   if (mode == BattleCommandMenuMode.pokemon) {
     return List<BattleCommandChoiceEntry>.unmodifiable(
       request.allowedChoices.whereType<PlayerBattleChoiceSwitch>().map(
-            (choice) => _entryForChoice(session, choice),
+            (choice) => _entryForChoice(session, choice, resolveMoveDisplayName),
           ),
     );
   }
@@ -318,6 +335,7 @@ String _choiceGroupTitleFor(BattleCommandMenuMode mode) {
 BattleCommandChoiceEntry _entryForChoice(
   BattleSession session,
   PlayerBattleChoice choice,
+  BattleMoveDisplayNameResolver resolveMoveDisplayName,
 ) {
   if (choice is PlayerBattleChoiceFight) {
     final move = session.state.player.moves[choice.moveIndex];
@@ -332,7 +350,7 @@ BattleCommandChoiceEntry _entryForChoice(
         move.power > 0 ? 'Power ${move.power}' : 'No direct damage';
     return BattleCommandChoiceEntry(
       choice: choice,
-      title: move.name,
+      title: resolveMoveDisplayName(move.id, move.name),
       subtitle: '$moveType · $moveKind · $powerLabel',
       tone: switch (move.category) {
         BattleMoveCategory.physical => BattleCommandChoiceTone.attack,

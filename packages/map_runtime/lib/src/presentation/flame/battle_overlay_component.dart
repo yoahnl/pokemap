@@ -413,6 +413,9 @@ String _battleDisplayName(String speciesId) => speciesId;
 /// - aucune logique parallèle aux requests ou à la timeline n'est créée ;
 /// - aucun resolver de background contextuel n'est introduit ici ;
 /// - aucun seam IA n'est introduit ici.
+String _defaultBattleMoveDisplayName(String moveId, String fallbackName) =>
+    fallbackName;
+
 class BattleOverlayComponent extends PositionComponent {
   BattleOverlayComponent({
     required BattleSession session,
@@ -427,6 +430,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.visualAssetCache,
     this.bagItemIconResolver,
     this.genderResolver,
+    this.resolveMoveDisplayName = _defaultBattleMoveDisplayName,
     this.showDebugPanel = false,
     RuntimeMoveCatalog? moveCatalog,
     BattleMoveVisualResolver? moveVisualResolver,
@@ -469,6 +473,7 @@ class BattleOverlayComponent extends PositionComponent {
   final BattleVisualAssetCache? visualAssetCache;
   final BattleBagItemIconResolver? bagItemIconResolver;
   final BattleCombatantGenderResolver? genderResolver;
+  final BattleMoveDisplayNameResolver resolveMoveDisplayName;
   final RuntimeMoveCatalog _moveCatalog;
   late final BattleMoveVisualResolver _moveVisualResolver;
   final BattleFxBundleCache _fxBundleCache;
@@ -1947,6 +1952,7 @@ class BattleOverlayComponent extends PositionComponent {
       mode: _effectiveMenuMode(),
       selectedRootIndex: _selectedRootIndex,
       selectedChoiceIndex: _selectedChoiceIndex,
+      resolveMoveDisplayName: resolveMoveDisplayName,
     );
   }
 

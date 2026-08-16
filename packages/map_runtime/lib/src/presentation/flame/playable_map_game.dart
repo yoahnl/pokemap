@@ -535,6 +535,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final GridPathfinder _followPathfinder = const GridPathfinder();
   final RuntimeMoveCatalogLoader _battleMoveCatalogLoader =
       RuntimeMoveCatalogLoader();
+  RuntimeMoveCatalog? _battleMovesCatalog;
   final RuntimeItemCatalogLoader _runtimeItemCatalogLoader =
       const RuntimeItemCatalogLoader();
   ItemCatalogSnapshot _itemCatalogSnapshot = ItemCatalogSnapshot.empty();
@@ -7584,6 +7585,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
 
+      _battleMovesCatalog = await _battleMoveCatalogLoader.load(
+        projectRootDirectory: _bundle.projectRootDirectory,
+        pokemonConfig: _bundle.manifest.pokemon,
+      );
+
       // Afficher l'overlay de combat avec la session
       final overlay = _traceSync(
         'battle',
@@ -7601,6 +7607,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             _itemCatalogSnapshot,
           ),
           genderResolver: genderResolver,
+          resolveMoveDisplayName: _resolveBattleMoveDisplayName,
           onPlayerChoice: _onPlayerBattleChoice,
           onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
           onCommandOverlaySnapshotChanged: (snapshot) {
@@ -7634,6 +7641,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         debugDetails: '$error\n$stackTrace',
       );
     }
+  }
+
+  String _resolveBattleMoveDisplayName(String moveId, String fallbackName) {
+    final move = _battleMovesCatalog?.entriesById[moveId];
+    if (move == null) {
+      return fallbackName;
+    }
+    return move.displayName(runtimeLocale);
   }
 
   /// Mappe BattleStartRequest → BattleSetup.
