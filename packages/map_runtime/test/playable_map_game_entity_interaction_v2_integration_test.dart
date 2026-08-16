@@ -106,6 +106,59 @@ void main() {
       );
     });
 
+    test('a Scenario that claims the entity suppresses the map event on its tile',
+        () async {
+      final fixture = _entityFixtures.first;
+      final game = _TestPlayableMapGame(
+        bundle: _legacyOnlyBundle(
+          fixture.entity,
+          scenarios: <ScenarioAsset>[_legacyScenario(fixture.entity.id)],
+          events: <MapEventDefinition>[_tileMessageEvent(fixture.entity.pos)],
+        ),
+        projectFilePath: '/tmp/event_v2_priority_claimed/project.json',
+      );
+
+      await _load(game);
+      expect(_pressPrimary(game), isTrue);
+      await _pumpUntil(
+        game,
+        () =>
+            game.gameStateSnapshot.storyFlags.activeFlags.contains(_legacyFlag),
+      );
+
+      expect(
+        game.debugNotificationText,
+        isNot(_tileEventMessage),
+        reason: 'a claimed entity interaction must not also fire its map event',
+      );
+    });
+
+    test('an unclaimed entity tile still falls back to its map event',
+        () async {
+      const entity = MapEntity(
+        id: 'custom_priority_fallback',
+        name: 'Unclaimed custom entity',
+        kind: MapEntityKind.custom,
+        pos: GridPos(x: 1, y: 0),
+      );
+      final game = _TestPlayableMapGame(
+        bundle: _legacyOnlyBundle(
+          entity,
+          events: <MapEventDefinition>[_tileMessageEvent(entity.pos)],
+        ),
+        projectFilePath: '/tmp/event_v2_priority_unclaimed/project.json',
+      );
+
+      await _load(game);
+      expect(_pressPrimary(game), isTrue);
+      await _pumpUntil(
+        game,
+        () => game.debugNotificationText == _tileEventMessage,
+      );
+
+      expect(game.debugNotificationText, _tileEventMessage);
+    });
+
     test('legacyOnly noMatch keeps native entity fallback', () async {
       const entity = MapEntity(
         id: 'custom_native_fallback',
@@ -535,9 +588,11 @@ RuntimeMapBundle _claimedIneligibleBundle(_EntityFixture fixture) {
 RuntimeMapBundle _legacyOnlyBundle(
   MapEntity entity, {
   List<ScenarioAsset> scenarios = const <ScenarioAsset>[],
+  List<MapEventDefinition> events = const <MapEventDefinition>[],
 }) {
   return _bundle(
     entity: entity,
+    events: events,
     eventRegistry: NarrativeEventRegistry(
       schemaVersion: 1,
       mode: EventSystemMode.legacyOnly,
@@ -574,6 +629,7 @@ RuntimeMapBundle _bundle({
   List<NarrativeFactDefinition> facts = const <NarrativeFactDefinition>[],
   List<SceneAsset> scenes = const <SceneAsset>[],
   List<ScenarioAsset> scenarios = const <ScenarioAsset>[],
+  List<MapEventDefinition> events = const <MapEventDefinition>[],
 }) {
   final project = ProjectManifest(
     name: 'Event V2 entity interaction integration',
@@ -599,13 +655,17 @@ RuntimeMapBundle _bundle({
   );
   return RuntimeMapBundle(
     manifest: project,
-    map: _map(entity),
+    map: _map(entity, events: events),
     projectRootDirectory: '/tmp/event_v2_entity',
     tilesetAbsolutePathsById: const <String, String>{},
   );
 }
 
-MapData _map(MapEntity entity) => MapData(
+MapData _map(
+  MapEntity entity, {
+  List<MapEventDefinition> events = const <MapEventDefinition>[],
+}) =>
+    MapData(
       id: _mapId,
       name: 'Event V2 Entity Map',
       size: const GridSize(width: 3, height: 2),
@@ -626,7 +686,19 @@ MapData _map(MapEntity entity) => MapData(
         ),
         entity,
       ],
+      events: events,
       mapMetadata: const MapMetadata(defaultSpawnId: 'spawn_start'),
+    );
+
+const _tileEventMessage = 'tile map event fired';
+
+MapEventDefinition _tileMessageEvent(GridPos pos) => MapEventDefinition(
+      id: 'tile_priority_event',
+      title: 'Tile priority event',
+      position: EventPosition(layerId: 'objects', x: pos.x, y: pos.y),
+      pages: const <MapEventPage>[
+        MapEventPage(pageNumber: 0, message: _tileEventMessage),
+      ],
     );
 
 NarrativeEventRecord _eventRecord(
