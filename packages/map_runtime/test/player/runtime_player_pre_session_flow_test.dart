@@ -135,6 +135,37 @@ void main() {
     expect(await harness.saves.readSummary(existing.address), same(existing));
   });
 
+  test('an unusable save explains itself when Continue is refused', () async {
+    final seed = RuntimePlayerTestHarness();
+    final existing = unusablePlayerSave(
+      seed.source.identity,
+      reason: 'This save was written by a newer version of the game.',
+    );
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(latestSave: existing);
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.continueGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.unavailable);
+    expect(
+      result.safeMessage,
+      existing.safeUnavailableReason,
+      reason: 'the player must learn why the save cannot be continued',
+    );
+    expect(harness.source.requests, isEmpty);
+  });
+
   test('confirmed overwrite keeps the old save until a checkpoint commits',
       () async {
     final seed = RuntimePlayerTestHarness();

@@ -306,9 +306,10 @@ final class RuntimePlayerCoordinator {
         final address = _address(slot);
         final save = await _saveGateway.readSummary(address);
         if (save == null || !save.canContinue) {
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'The selected save is unavailable or incompatible.',
+            safeMessage: save?.safeUnavailableReason ??
+                'The selected save is unavailable or incompatible.',
           );
         }
         return _launchSave(save, GameSessionLaunchMode.load);
