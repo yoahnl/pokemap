@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "platforms": [
+    {
+      "platform": "macos",
+      "verdict": "supported",
+      "status": "passed",
+      "sourceTicket": "BETA-CIN-045",
+      "sourceCommit": "7b92c5c1da3122d704b39b7fd27d5af05cefe012",
+      "build": "passed",
+      "smoke": "passed",
+      "policy": "passed",
+      "packageManager": "spm-only",
+      "bundleId": "app.pokemap.hub",
+      "commands": [
+        "flutter build macos --release --no-pub",
+        "flutter test -d macos integration_test/pst_074_native_codec_playback_test.dart",
+        "flutter test test/release/macos_dependency_manager_policy_test.dart"
+      ],
+      "limitations": []
+    },
+    {
+      "platform": "ios",
+      "verdict": "supported",
+      "status": "passed",
+      "sourceTicket": "BETA-CIN-046",
+      "sourceCommit": "ccfa690bff70f98dc46f51ad375a6d67fec3359e",
+      "build": "passed",
+      "smoke": "passed",
+      "policy": "passed",
+      "packageManager": "spm-only",
+      "bundleId": "com.yoahnl.avelune.player",
+      "commands": [
+        "flutter build ios --release --no-codesign --no-pub",
+        "flutter drive --profile -d ios-simulator --driver=test_driver/native_codec_playback_driver.dart --target=integration_test/pst_074_native_codec_playback_test.dart",
+        "flutter test test/release/mobile_platform_release_gate_test.dart"
+      ],
+      "limitations": [
+        "physical-device-launch-over-wifi-deferred"
+      ]
+    },
+    {
+      "platform": "android",
+      "verdict": "supported",
+      "status": "passed",
+      "sourceTicket": "BETA-CIN-046",
+      "sourceCommit": "ccfa690bff70f98dc46f51ad375a6d67fec3359e",
+      "build": "passed",
+      "smoke": "equivalent",
+      "policy": "passed",
+      "packageManager": "gradle",
+      "bundleId": "com.yoahnl.avelune.player",
+      "commands": [
+        "flutter build apk --release --no-pub",
+        "flutter test test/release/mobile_platform_release_gate_test.dart",
+        "dart test test/presentation_media_publication_preflight_test.dart"
+      ],
+      "limitations": [
+        "device-or-avd-unavailable-smoke-equivalent"
+      ]
+    },
+    {
+      "platform": "windows",
+      "verdict": "fallback-only",
+      "status": "passed",
+      "sourceTicket": "BETA-CIN-047",
+      "sourceCommit": "1d528d745e436e461b15aabf9bdd620fe06b8185",
+      "build": "target",
+      "smoke": "target",
+      "policy": "passed",
+      "packageManager": "native-runner",
+      "bundleId": null,
+      "commands": [
+        "flutter test test/release/desktop_platform_release_gate_test.dart",
+        "dart test test/presentation_media_publication_preflight_test.dart"
+      ],
+      "limitations": [
+        "video-poster-fallback-required",
+        "release-build-and-launch-remains-opt-in"
+      ]
+    },
+    {
+      "platform": "linux",
+      "verdict": "fallback-only",
+      "status": "passed",
+      "sourceTicket": "BETA-CIN-047",
+      "sourceCommit": "1d528d745e436e461b15aabf9bdd620fe06b8185",
+      "build": "target",
+      "smoke": "target",
+      "policy": "passed",
+      "packageManager": "native-runner",
+      "bundleId": null,
+      "commands": [
+        "flutter test test/release/desktop_platform_release_gate_test.dart",
+        "dart test test/presentation_media_publication_preflight_test.dart"
+      ],
+      "limitations": [
+        "video-poster-fallback-required",
+        "release-build-and-launch-remains-opt-in"
+      ]
+    },
+    {
+      "platform": "web",
+      "verdict": "out-of-scope",
+      "status": "passed",
+      "sourceTicket": "BETA-CIN-047",
+      "sourceCommit": "1d528d745e436e461b15aabf9bdd620fe06b8185",
+      "build": "not-applicable",
+      "smoke": "not-applicable",
+      "policy": "passed",
+      "packageManager": "none",
+      "bundleId": null,
+      "commands": [
+        "flutter test test/release/desktop_platform_release_gate_test.dart",
+        "dart test test/presentation_media_publication_preflight_test.dart"
+      ],
+      "limitations": [
+        "no-certified-runner",
+        "autoplay-offline-codec-journey-unproven"
+      ]
+    }
+  ]
+}
