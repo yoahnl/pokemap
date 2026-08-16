@@ -705,8 +705,7 @@ class _NarrativeMapReturnBanner extends ConsumerWidget {
           notifier.selectEventsWorkspace();
         case NarrativeStudioChildRoute.cinematicLibrary:
         case NarrativeStudioChildRoute.cinematicBuilder:
-        case NarrativeStudioChildRoute.cinematicLegacy:
-          notifier.selectCutsceneWorkspace();
+          notifier.selectCinematicsWorkspace();
         case NarrativeStudioChildRoute.dialogueEditor:
           notifier.selectDialogueWorkspace();
         case NarrativeStudioChildRoute.factsManager:

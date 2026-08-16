@@ -19,9 +19,8 @@ void main() {
       expect(controller.state.selectedStepId, 'step.starter');
       expect(controller.state.selectedGlobalStoryId, 'global.main');
 
-      controller.openCutscene(cutsceneScenarioId: 'cutscene.professor_intro');
-      expect(controller.state.view, NarrativeWorkspaceView.cutscene);
-      expect(controller.state.selectedCutsceneId, 'cutscene.professor_intro');
+      controller.openCinematics();
+      expect(controller.state.view, NarrativeWorkspaceView.cinematics);
 
       controller.selectOutcome('starter.selected.fire');
       expect(controller.state.selectedOutcomeId, 'starter.selected.fire');

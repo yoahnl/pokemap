@@ -13,7 +13,7 @@ void main() {
       (tester) async {
     await _pumpNarrativeShell(
       tester,
-      project: _project(cinematics: const [], includeBridge: false),
+      project: _project(cinematics: const [], includeScenario: false),
     );
 
     final noCanonicalButton = tester.widget<PokeMapButton>(
@@ -27,49 +27,47 @@ void main() {
 
     await _pumpNarrativeShell(
       tester,
-      project: _project(cinematics: const [], includeBridge: true),
+      project: _project(cinematics: const [], includeScenario: true),
     );
 
-    final bridgeOnlyButton = tester.widget<PokeMapButton>(
+    final scenarioOnlyButton = tester.widget<PokeMapButton>(
       find.byKey(const ValueKey('scenes-add-node-cinematic-disabled')).first,
     );
-    expect(bridgeOnlyButton.onPressed, isNull);
-    expect(
-      find.textContaining('bridges legacy existent'),
-      findsWidgets,
-    );
+    expect(scenarioOnlyButton.onPressed, isNull);
+    expect(find.textContaining('Créez d’abord une cinématique'), findsWidgets);
   });
 
-  testWidgets('canonical picker creates a CinematicNode and connects completed',
-      (tester) async {
-    final container = await _pumpNarrativeShell(tester, project: _project());
+  testWidgets(
+    'canonical picker creates a CinematicNode and connects completed',
+    (tester) async {
+      final container = await _pumpNarrativeShell(tester, project: _project());
 
-    final button = tester.widget<PokeMapButton>(
-      find.byKey(const ValueKey('scenes-add-node-cinematic')).first,
-    );
-    expect(button.onPressed, isNotNull);
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('scenes-add-node-cinematic')).first,
+      );
+      expect(button.onPressed, isNotNull);
 
-    button.onPressed!();
-    await tester.pumpAndSettle();
+      button.onPressed!();
+      await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const ValueKey('scene-cinematic-picker-dialog')),
-      findsOneWidget,
-    );
-    expect(find.text('Intro cinematic'), findsWidgets);
-    expect(find.text('Legacy cutscene'), findsWidgets);
-    expect(
-      find.byKey(
-        const ValueKey('scene-cinematic-picker-option-cinematic_intro'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(
-        const ValueKey('scene-cinematic-picker-option-scenario_cutscene'),
-      ),
-      findsNothing,
-    );
+      expect(
+        find.byKey(const ValueKey('scene-cinematic-picker-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Intro cinematic'), findsWidgets);
+      expect(find.text('Scenario flow'), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey('scene-cinematic-picker-option-cinematic_intro'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-cinematic-picker-option-scenario_flow'),
+        ),
+        findsNothing,
+      );
 
     await tester.tap(
       find.byKey(
@@ -152,18 +150,19 @@ void main() {
     expect(find.text('Second cinematic'), findsWidgets);
   });
 
-  testWidgets('inspector reports bridge legacy and unknown cinematic refs',
-      (tester) async {
+  testWidgets('inspector rejects Scenario and unknown cinematic refs', (
+    tester,
+  ) async {
     await _pumpNarrativeShell(
       tester,
-      project: _project(scene: _sceneWithCinematicRef('scenario_cutscene')),
+      project: _project(scene: _sceneWithCinematicRef('scenario_flow')),
     );
 
     await tester
         .tap(find.byKey(const ValueKey('scene-graph-node-node_cinematic')));
     await tester.pumpAndSettle();
-    expect(find.text('Bridge legacy'), findsWidgets);
-    expect(find.textContaining('Scenario/Cutscene legacy'), findsWidgets);
+    expect(find.text('Référence inconnue'), findsWidgets);
+    expect(find.textContaining('scenario_flow'), findsWidgets);
     expect(
       find.byKey(const ValueKey('scene-payload-edit-cinematic-action')),
       findsOneWidget,
@@ -271,18 +270,17 @@ Future<ProviderContainer> _pumpNarrativeShell(
 
 ProjectManifest _project({
   List<CinematicAsset>? cinematics,
-  bool includeBridge = true,
+  bool includeScenario = true,
   SceneAsset? scene,
 }) {
   return ProjectManifest(
     name: 'Scene cinematic picker test',
     maps: const [],
     tilesets: const [],
-    cinematics: cinematics ??
-        [
-          _cinematic(id: 'cinematic_intro', title: 'Intro cinematic'),
-        ],
-    scenarios: includeBridge ? [_scenarioBridge()] : const [],
+    cinematics:
+        cinematics ??
+        [_cinematic(id: 'cinematic_intro', title: 'Intro cinematic')],
+    scenarios: includeScenario ? [_scenario()] : const [],
     scenes: [scene ?? _baseScene()],
   );
 }
@@ -311,12 +309,11 @@ CinematicAsset _cinematic({
   );
 }
 
-ScenarioAsset _scenarioBridge() {
+ScenarioAsset _scenario() {
   return const ScenarioAsset(
-    id: 'scenario_cutscene',
-    name: 'Legacy cutscene',
+    id: 'scenario_flow',
+    name: 'Scenario flow',
     entryNodeId: 'scenario_start',
-    metadata: {'authoring.cutsceneSchema': 'test'},
   );
 }
 

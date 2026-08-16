@@ -990,10 +990,6 @@ const _legacyDirectColorReferenceBaseline = <String, int>{
   'lib/src/features/path_studio/path_studio_theme.dart': 19,
   'lib/src/features/path_studio/path_studio_tileset_image_picker.dart': 1,
   'lib/src/features/surface_painter/surface_layer_static_preview.dart': 1,
-  'lib/src/ui/canvas/cutscene_studio/cutscene_studio_workbench.dart': 16,
-  'lib/src/ui/canvas/cutscene_studio/cutscene_studio_workspace_support.dart':
-      10,
-  'lib/src/ui/canvas/cutscene_studio_workspace.dart': 2,
   'lib/src/ui/canvas/dialogue_studio/widgets/canvas/dialogue_canvas_cards.dart':
       4,
   'lib/src/ui/canvas/dialogue_studio/widgets/library/dialogue_library_tree.dart':
@@ -1084,8 +1080,6 @@ const _legacyChromeImportBaseline = <String>{
   'lib/src/features/environment_studio/widgets/environment_preset_list.dart',
   'lib/src/features/environment_studio/widgets/environment_preset_save_feedback.dart',
   'lib/src/features/surface_painter/surface_palette_panel.dart',
-  'lib/src/ui/canvas/cutscene_studio/cutscene_studio_workbench.dart',
-  'lib/src/ui/canvas/cutscene_studio_workspace.dart',
   'lib/src/ui/canvas/dialogue_studio_workspace.dart',
   'lib/src/ui/canvas/global_story_studio/global_story_studio_panels.dart',
   'lib/src/ui/canvas/global_story_studio/global_story_studio_shell.dart',

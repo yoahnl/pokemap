@@ -5,15 +5,13 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/l10n/app_localizations.dart';
 import 'package:map_editor/src/features/narrative/application/narrative_workspace_projection.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
-import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_legacy_migration_center.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
 import 'package:map_editor/src/ui/canvas/scenes/scene_graph_read_only_view.dart';
 import 'package:map_editor/src/ui/canvas/scenes/scene_node_read_only_inspector.dart';
 
 void main() {
-  testWidgets('full shell and migration state expose named semantic routes',
-      (tester) async {
+  testWidgets('full shell exposes a named semantic route', (tester) async {
     final semantics = tester.ensureSemantics();
     await tester.pumpWidget(
       _host(
@@ -23,7 +21,7 @@ void main() {
           onSelectDestination: (_) {},
           onSelectLocation: (_) {},
           onOpenMaps: () {},
-          workspace: NarrativeLegacyMigrationCenter(scan: _scan()),
+          workspace: const SizedBox.shrink(),
         ),
       ),
     );
@@ -32,10 +30,6 @@ void main() {
     expect(
       tester.getSemantics(find.byKey(narrativeStudioProductShellKey)).label,
       contains('PokeMap, Narrative Studio'),
-    );
-    expect(
-      tester.getSemantics(find.byKey(narrativeLegacyMigrationCenterKey)).label,
-      contains('Narrative Studio legacy migration center'),
     );
     for (final key in const <ValueKey<String>>[
       ValueKey('narrative-studio-product-nav-overview'),
@@ -138,37 +132,6 @@ void main() {
     },
   );
 }
-
-NarrativeLegacyMigrationScan _scan() => NarrativeLegacyMigrationScan(
-      schemaVersion: 1,
-      minimumProjectVersion: 'v1',
-      domains: const [
-        NarrativeLegacyMigrationDomainScan(
-          domain: NarrativeLegacyDomain.storyline,
-          remainingCount: 0,
-          readyCount: 0,
-          blockerCount: 0,
-          lossRiskCount: 0,
-          dependencyCount: 0,
-        ),
-        NarrativeLegacyMigrationDomainScan(
-          domain: NarrativeLegacyDomain.event,
-          remainingCount: 1,
-          readyCount: 0,
-          blockerCount: 1,
-          lossRiskCount: 1,
-          dependencyCount: 1,
-        ),
-        NarrativeLegacyMigrationDomainScan(
-          domain: NarrativeLegacyDomain.cinematic,
-          remainingCount: 0,
-          readyCount: 0,
-          blockerCount: 0,
-          lossRiskCount: 0,
-          dependencyCount: 0,
-        ),
-      ],
-    );
 
 NarrativeSceneSummary _sceneSummary() {
   final scene = SceneAsset(

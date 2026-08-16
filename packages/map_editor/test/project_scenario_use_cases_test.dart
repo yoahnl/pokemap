@@ -7,21 +7,18 @@ import 'package:map_editor/src/domain/repositories/repositories.dart';
 
 void main() {
   group('project_scenario_use_cases', () {
-    test('v2Only preserves unrelated Global Story and Cutscene authoring',
+    test('v2Only preserves unrelated local and global Scenario authoring',
         () async {
       final repository = _FakeProjectRepository();
       final workspace = _FakeWorkspace();
-      const cutscene = ScenarioAsset(
-        id: 'cutscene_intro',
-        name: 'Cutscene Intro',
+      const localFlow = ScenarioAsset(
+        id: 'local_flow',
+        name: 'Local Flow',
         scope: ScenarioScope.localEventFlow,
         entryNodeId: 'start',
         nodes: <ScenarioNode>[
           ScenarioNode(id: 'start', type: ScenarioNodeType.start),
         ],
-        metadata: <String, String>{
-          'authoring.cutsceneSchema': 'cutscene_studio_v2',
-        },
       );
       const globalStory = ScenarioAsset(
         id: 'global_story',
@@ -36,7 +33,7 @@ void main() {
         name: 'demo',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
-        scenarios: const <ScenarioAsset>[cutscene],
+        scenarios: const <ScenarioAsset>[localFlow],
         eventRegistry: NarrativeEventRegistry(
           schemaVersion: 1,
           mode: EventSystemMode.v2Only,
@@ -55,8 +52,8 @@ void main() {
           await UpdateProjectScenarioUseCase(repository).execute(
         workspace,
         afterCreate,
-        scenarioId: cutscene.id,
-        nextScenario: cutscene.copyWith(name: 'Cutscene Intro Updated'),
+        scenarioId: localFlow.id,
+        nextScenario: localFlow.copyWith(name: 'Local Flow Updated'),
       );
       final afterDelete =
           await DeleteProjectScenarioUseCase(repository).execute(
@@ -66,7 +63,7 @@ void main() {
       );
 
       expect(afterDelete.scenarios, hasLength(1));
-      expect(afterDelete.scenarios.single.name, 'Cutscene Intro Updated');
+      expect(afterDelete.scenarios.single.name, 'Local Flow Updated');
       expect(repository.lastSavedProject, afterDelete);
     });
 

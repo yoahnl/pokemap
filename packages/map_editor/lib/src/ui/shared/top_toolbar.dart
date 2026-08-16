@@ -657,9 +657,9 @@ class TopToolbar extends ConsumerWidget {
             ),
             ToolbarCapsuleButton(
               icon: CupertinoIcons.play_rectangle,
-              tooltip: 'Switch to Cutscene Studio',
-              selected: toolbar.workspaceMode == EditorWorkspaceMode.cutscene,
-              onPressed: notifier.selectCutsceneWorkspace,
+              tooltip: 'Ouvrir la Cinematics Library',
+              selected: toolbar.workspaceMode == EditorWorkspaceMode.cinematics,
+              onPressed: notifier.selectCinematicsWorkspace,
             ),
             ToolbarCapsuleButton(
               icon: CupertinoIcons.text_bubble,
@@ -720,7 +720,7 @@ class TopToolbar extends ConsumerWidget {
                 EditorWorkspaceMode.scenes => 'Scenes Workspace',
                 EditorWorkspaceMode.events => 'Event Builder',
                 EditorWorkspaceMode.step => 'Step Studio',
-                EditorWorkspaceMode.cutscene => 'Cutscene Studio',
+                EditorWorkspaceMode.cinematics => 'Cinematics Library',
                 EditorWorkspaceMode.dialogue => 'Dialogue Studio',
                 EditorWorkspaceMode.facts => 'Facts Manager',
                 EditorWorkspaceMode.shops => 'Boutique Builder',

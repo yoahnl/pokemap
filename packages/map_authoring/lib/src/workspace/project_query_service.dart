@@ -15,7 +15,6 @@ import '../domains/maps/world_graph_queries.dart';
 import '../domains/narrative/dialogue_authoring_service.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../domains/narrative/script_authoring_service.dart';
-import '../domains/narrative/scenario_actions.dart';
 import '../domains/narrative/storyline_inspection.dart';
 import '../registry/resource_kind_registry.dart';
 import 'project_snapshot.dart';
@@ -1099,21 +1098,6 @@ List<_QueryRecord> _records(
             },
           ),
       ];
-    case 'scenario':
-      const actions = ScenarioActions();
-      final migration = actions.migrationPreviewJson(snapshot.manifest);
-      return [
-        for (final scenario in snapshot.manifest.scenarios)
-          _QueryRecord(
-            summary: _scenarioSummary(scenario),
-            detail: {
-              ...scenario.toJson(),
-              'resourceKind': 'scenario',
-              'simulation': actions.simulate(scenario).toJson(),
-              'migration': migration,
-            },
-          ),
-      ];
     default:
       throw StateError(
         'Canonical queryable resource kind has no query route: '
@@ -1989,15 +1973,6 @@ Map<String, Object?> _storylineSummary(StorylineAsset storyline) => {
       'chapterCount': storyline.chapters.length,
       'stepCount': storyline.chapters
           .fold<int>(0, (count, chapter) => count + chapter.steps.length),
-    };
-
-Map<String, Object?> _scenarioSummary(ScenarioAsset scenario) => {
-      'id': scenario.id,
-      'name': scenario.name,
-      'resourceKind': 'scenario',
-      'scope': scenario.scope.name,
-      'nodeCount': scenario.nodes.length,
-      'edgeCount': scenario.edges.length,
     };
 
 String? _pokemonSpeciesDisplayName(

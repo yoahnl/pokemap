@@ -781,10 +781,10 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             child: InspectorEmbeddedFootnote(
               text: _l(
                 'Aucune entrée indexée pour ce type. '
-                    'Créez-en une dans Step Studio, Global Story ou Cutscene Studio, '
+                    'Créez-en une dans Step Studio, Global Story ou les Scènes, '
                     'ou complétez les flags dans vos scénarios.',
                 'No indexed entries for this type. '
-                    'Author them in Step Studio, Global Story, or Cutscene Studio, '
+                    'Author them in Step Studio, Global Story, or Scenes, '
                     'or add flags in your scenarios.',
               ),
               accent: EditorChrome.inspectorJoyCoral,

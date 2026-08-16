@@ -112,8 +112,6 @@ Nouveau champ optionnel :
 | `packages/map_runtime/lib/map_runtime.dart` | Export `ScenarioRuntimeShouldSkipScenario`. |
 | `packages/map_runtime/test/step_studio_completion_runtime_test.dart` | **Nouveau** — tests index / append. |
 | `packages/map_runtime/test/scenario_runtime_executor_test.dart` | Test `shouldSkipScenario`. |
-| `packages/map_editor/lib/src/ui/editor_shell_page.dart` | Libellé **Cutscene Studio**. |
-| `packages/map_editor/lib/src/ui/shared/top_toolbar.dart` | Tooltip Cutscene Studio. |
 
 ---
 
@@ -178,15 +176,6 @@ cd packages/map_runtime && flutter test
 ```
 
 *(Les sorties exactes peuvent varier selon la version du SDK ; l’état au moment du développement : succès complet.)*
-
----
-
-## 10. Renommage UI demandé
-
-- **`Cutscene Workspace`** → **`Cutscene Studio`** dans `editor_shell_page.dart`.
-- Tooltip : **`Switch to Cutscene Studio`** dans `top_toolbar.dart`.
-
-*(Une mention historique subsiste dans un rapport de lot sous `reports/lots/...` — non modifié ici car hors périmètre UI applicative.)*
 
 ---
 

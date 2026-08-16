@@ -402,39 +402,46 @@ const _worldMapCommandInventory =
 // them to World Explorer while preserving their current semantic tooltips.
 const _worldExplorerWorkspaceNavigationInventory =
     <String, _WorldMapControlSignature>{
-  'workspace.map':
-      _WorldMapControlSignature.capsuleTooltip('Switch to map workspace'),
-  'workspace.tileset':
-      _WorldMapControlSignature.capsuleTooltip('Switch to tileset workspace'),
-  'workspace.trainer':
-      _WorldMapControlSignature.capsuleTooltip('Switch to Encounter Studio'),
-  'workspace.pokemonCatalogs': _WorldMapControlSignature.capsuleTooltip(
-    'Switch to Catalogues Pokémon',
-  ),
-  'workspace.narrativeOverview': _WorldMapControlSignature.capsuleTooltip(
-    'Ouvrir Narrative Studio / Aperçu',
-  ),
-  'workspace.globalStory': _WorldMapControlSignature.capsuleTooltip(
-    'Switch to global story workspace',
-  ),
-  'workspace.step':
-      _WorldMapControlSignature.capsuleTooltip('Switch to Step Studio'),
-  'workspace.scenes':
-      _WorldMapControlSignature.capsuleTooltip('Ouvrir le workspace Scènes'),
-  'workspace.events': _WorldMapControlSignature.capsuleTooltip(
-    'Ouvrir le workspace Événements',
-  ),
-  'workspace.cutscene':
-      _WorldMapControlSignature.capsuleTooltip('Switch to Cutscene Studio'),
-  'workspace.dialogue':
-      _WorldMapControlSignature.capsuleTooltip('Switch to dialogue studio'),
-  'workspace.smartTiles': _WorldMapControlSignature.capsuleTooltip(
-    'Switch to Smart Tiles Studio',
-  ),
-  'workspace.environment': _WorldMapControlSignature.capsuleTooltip(
-    'Switch to Environment Studio',
-  ),
-};
+      'workspace.map': _WorldMapControlSignature.capsuleTooltip(
+        'Switch to map workspace',
+      ),
+      'workspace.tileset': _WorldMapControlSignature.capsuleTooltip(
+        'Switch to tileset workspace',
+      ),
+      'workspace.trainer': _WorldMapControlSignature.capsuleTooltip(
+        'Switch to Encounter Studio',
+      ),
+      'workspace.pokemonCatalogs': _WorldMapControlSignature.capsuleTooltip(
+        'Switch to Catalogues Pokémon',
+      ),
+      'workspace.narrativeOverview': _WorldMapControlSignature.capsuleTooltip(
+        'Ouvrir Narrative Studio / Aperçu',
+      ),
+      'workspace.globalStory': _WorldMapControlSignature.capsuleTooltip(
+        'Switch to global story workspace',
+      ),
+      'workspace.step': _WorldMapControlSignature.capsuleTooltip(
+        'Switch to Step Studio',
+      ),
+      'workspace.scenes': _WorldMapControlSignature.capsuleTooltip(
+        'Ouvrir le workspace Scènes',
+      ),
+      'workspace.events': _WorldMapControlSignature.capsuleTooltip(
+        'Ouvrir le workspace Événements',
+      ),
+      'workspace.cinematics': _WorldMapControlSignature.capsuleTooltip(
+        'Ouvrir la Cinematics Library',
+      ),
+      'workspace.dialogue': _WorldMapControlSignature.capsuleTooltip(
+        'Switch to dialogue studio',
+      ),
+      'workspace.smartTiles': _WorldMapControlSignature.capsuleTooltip(
+        'Switch to Smart Tiles Studio',
+      ),
+      'workspace.environment': _WorldMapControlSignature.capsuleTooltip(
+        'Switch to Environment Studio',
+      ),
+    };
 
 _WorldMapActionDestination? _destinationForCommand(String actionId) {
   for (final entry in _worldMapCommandInventory.entries) {

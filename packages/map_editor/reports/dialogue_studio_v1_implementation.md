@@ -30,7 +30,6 @@ L’UX « bibliothèque de scripts » ne répond pas au rôle **Dialogue Studio*
 | **Codec aligné sur le runtime + extensions** | Même structure de choix / indentation / `<<jump>>` que le parseur runtime ; **conservation** des autres `<<…>>` et des **nœuds vides** pour l’éditeur. |
 | **Preview autonome dans `map_editor`** | Pas de dépendance à `map_runtime` ; machine d’état minimale (`DialoguePreviewSession`) qui saute les commandes comme le runtime le fait largement aujourd’hui. |
 | **IA = Mistral REST direct** | Un client HTTP minimal (`MistralDialogueClient`) : pas de couche provider abstraite vide. Clé : champ UI + `MISTRAL_API_KEY` env. |
-| **Cutscene → Dialogue** | Callback unique `onOpenDialogueStudio` sur `CutsceneStudioWorkspace` : sélection du dialogue + `selectDialogueWorkspace()`. Changement **minimal** sur Cutscene. |
 | **Workspace `EditorWorkspaceMode.dialogue`** | Cohérent avec Global / Step / Cutscene ; bandeau narratif + toolbar + shell mis à jour. |
 
 ---
@@ -66,7 +65,6 @@ L’UX « bibliothèque de scripts » ne répond pas au rôle **Dialogue Studio*
 | `lib/src/ui/shared/top_toolbar.dart` | Bouton Dialogue Studio. |
 | `lib/src/ui/panels/narrative_library_panel.dart` | Raccourci « Dialogue ». |
 | `lib/src/ui/panels/narrative_inspector_panel.dart` | Libellé mode + sélection dialogue projet. |
-| `lib/src/ui/canvas/cutscene_studio_workspace.dart` | `onOpenDialogueStudio` + bouton « Ouvrir dans Dialogue Studio » sur bloc dialogue. |
 
 **Fichiers générés** (build_runner) : `use_case_providers.g.dart`, `editor_notifier.g.dart`, etc. — régénération standard du package.
 
@@ -138,12 +136,6 @@ L’UX « bibliothèque de scripts » ne répond pas au rôle **Dialogue Studio*
 ### Sauvegarde (`SaveDialogueYarnBodyUseCase`)
 
 - Résout le chemin via `ProjectWorkspace.resolveProjectRelativePath` et `File.writeAsString` — **manifest inchangé**.
-
-### Cutscene (`cutscene_studio_workspace.dart`)
-
-- Paramètre optionnel `onOpenDialogueStudio` pour ne pas casser d’autres contextes ; ici câblé depuis `narrative_workspace_canvas.dart`.
-
----
 
 ## 7. Tests ajoutés
 

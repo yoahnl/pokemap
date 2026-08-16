@@ -51,7 +51,6 @@ import 'cinematics/presentation/presentation_studio_project_content_controller.d
 import 'cinematics/presentation/presentation_studio_responsive_canvas.dart';
 import 'cinematics/presentation/presentation_studio_timeline.dart';
 import 'cinematics/presentation/presentation_timeline_editing_controller.dart';
-import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'events/event_builder_workspace.dart';
 import 'events_v2/event_builder_v2_product_route.dart';
@@ -88,18 +87,18 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     final editor = ref.watch(editorNotifierProvider);
     final editorNotifier = ref.read(editorNotifierProvider.notifier);
     final narrative = ref.watch(narrativeWorkspaceControllerProvider);
-    final narrativeController =
-        ref.read(narrativeWorkspaceControllerProvider.notifier);
+    final narrativeController = ref.read(
+      narrativeWorkspaceControllerProvider.notifier,
+    );
     final projection = ref.watch(narrativeWorkspaceProjectionProvider);
     final sceneFocus = ref.watch(narrativeSceneFocusProvider);
-    final studioNavigation =
-        ref.watch(narrativeStudioNavigationControllerProvider);
+    final studioNavigation = ref.watch(
+      narrativeStudioNavigationControllerProvider,
+    );
     final sceneConsequenceCatalogsAsync =
         editor.workspaceMode == EditorWorkspaceMode.scenes ||
                 editor.workspaceMode == EditorWorkspaceMode.shops
-            ? ref.watch(
-                sceneConsequenceCatalogsProvider(editor.projectRootPath),
-              )
+        ? ref.watch(sceneConsequenceCatalogsProvider(editor.projectRootPath))
             : const AsyncValue<SceneConsequenceCatalogs>.data(
                 SceneConsequenceCatalogs.unavailable(),
               );
@@ -120,15 +119,16 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       ),
     );
     final project = editor.project;
-    final catalogsWithStarters =
-        baseSceneConsequenceCatalogs.withConfiguredStarters(
+    final catalogsWithStarters = baseSceneConsequenceCatalogs
+        .withConfiguredStarters(
       project?.newGame.starterOptions ?? const <ProjectStarterOption>[],
     );
     final sceneConsequenceCatalogs = project == null
         ? catalogsWithStarters
         : catalogsWithStarters.withProjectStorySteps(project);
 
-    final showsMapEvents = editor.workspaceMode == EditorWorkspaceMode.events &&
+    final showsMapEvents =
+        editor.workspaceMode == EditorWorkspaceMode.events &&
         studioNavigation.location.destination ==
             NarrativeStudioDestination.events &&
         studioNavigation.location.childRoute ==
@@ -153,7 +153,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       );
       final readModel = ref.watch(narrativeMapEventsReadModelProvider(request));
       final restoration = studioNavigation.restorationRequest;
-      final mapRestoration = restoration != null &&
+      final mapRestoration =
+          restoration != null &&
               restoration.expectation.location.destination ==
                   NarrativeStudioDestination.events &&
               restoration.expectation.location.childRoute ==
@@ -234,7 +235,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
 
       void openScene(String sceneId) {
         ref.read(narrativeSceneFocusProvider.notifier).focus(sceneId);
-        ref.read(narrativeStudioNavigationControllerProvider.notifier).replace(
+        ref
+            .read(narrativeStudioNavigationControllerProvider.notifier)
+            .replace(
               NarrativeStudioRouteLocation.scenes(
                 selection: NarrativeStudioAssetSelection(
                   kind: NarrativeStudioAssetKind.scene,
@@ -246,7 +249,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       }
 
       void openFact(String factId) {
-        ref.read(narrativeStudioNavigationControllerProvider.notifier).replace(
+        ref
+            .read(narrativeStudioNavigationControllerProvider.notifier)
+            .replace(
               NarrativeStudioRouteLocation.facts(
                 selection: NarrativeStudioAssetSelection(
                   kind: NarrativeStudioAssetKind.fact,
@@ -258,7 +263,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       }
 
       void openRule(String ruleId) {
-        ref.read(narrativeStudioNavigationControllerProvider.notifier).replace(
+        ref
+            .read(narrativeStudioNavigationControllerProvider.notifier)
+            .replace(
               NarrativeStudioRouteLocation.worldRules(
                 selection: NarrativeStudioAssetSelection(
                   kind: NarrativeStudioAssetKind.worldRule,
@@ -340,7 +347,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           NarrativeValidatorPokemonCatalogRequest.fromValidationRequest(
         request,
       );
-      final requestedDiagnosticKey = studioNavigation.location.destination ==
+      final requestedDiagnosticKey =
+          studioNavigation.location.destination ==
                   NarrativeStudioDestination.validator &&
               studioNavigation.location.selection?.kind ==
                   NarrativeStudioAssetKind.diagnostic
@@ -348,8 +356,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           : null;
       final validatorRestoration = studioNavigation.restorationRequest;
       final report = ref.watch(narrativeValidatorReportProvider(request));
-      final multidimensionalReport =
-          ref.watch(narrativeStudioValidationReportProvider(request));
+      final multidimensionalReport = ref.watch(
+        narrativeStudioValidationReportProvider(request),
+      );
 
       void refreshReport() {
         ref.invalidate(
@@ -422,9 +431,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             ),
           ),
           operationId:
-              'remove-narrative-diagnostic-suppression-${narrativeValidationPayloadFingerprint({
-                'diagnosticId': diagnosticId
-              })}',
+              'remove-narrative-diagnostic-suppression-${narrativeValidationPayloadFingerprint({'diagnosticId': diagnosticId})}',
         );
         if (result?.succeeded == true) refreshReport();
       }
@@ -475,9 +482,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         return true;
       }
 
-      Future<void> openDiagnostic(
-        NarrativeProjectDiagnostic diagnostic,
-      ) async {
+      Future<void> openDiagnostic(NarrativeProjectDiagnostic diagnostic) async {
         final resolution = resolveNarrativeProjectDiagnostic(diagnostic);
         if (resolution.kind ==
             NarrativeStudioNavigationResolutionKind.unavailable) {
@@ -559,13 +564,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             editorNotifier.selectProjectDialogue(diagnostic.dialogueId);
             editorNotifier.selectDialogueWorkspace();
           case NarrativeProjectDiagnosticDestination.cinematic:
-            final cinematicId = diagnostic.cinematicId;
-            if (cinematicId != null) {
-              narrativeController.openCutscene(
-                cutsceneScenarioId: cinematicId,
-              );
-            }
-            editorNotifier.selectCutsceneWorkspace();
+            narrativeController.openCinematics();
+            editorNotifier.selectCinematicsWorkspace();
           case NarrativeProjectDiagnosticDestination.fact:
             editorNotifier.selectFactsWorkspace();
           case NarrativeProjectDiagnosticDestination.worldRule:
@@ -722,10 +722,10 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               icon: Icon(CupertinoIcons.cart),
             ),
           );
-        case EditorWorkspaceMode.cutscene:
+        case EditorWorkspaceMode.cinematics:
           return NarrativeStudioWorkspacePage(
             presentation: narrativeStudioRoutePresentationFor(
-              EditorWorkspaceMode.cutscene,
+              EditorWorkspaceMode.cinematics,
             )!,
             body: const PokeMapEmptyState(
               title: 'Aucun projet chargé',
@@ -747,13 +747,6 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           ? projection.globalStories.first
           : null,
     );
-    final selectedCutscene = _resolveScenarioById(
-      projection,
-      narrative.selectedCutsceneId,
-      fallback: projection.localEventFlows.isNotEmpty
-          ? projection.localEventFlows.first
-          : null,
-    );
     final selectedStep = _resolveStepById(
       projection,
       narrative.selectedStepId,
@@ -762,9 +755,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
 
     void openGlobalStory() {
       editorNotifier.selectGlobalStoryWorkspace();
-      narrativeController.openGlobalStory(
-        scenarioId: selectedGlobal?.id,
-      );
+      narrativeController.openGlobalStory(scenarioId: selectedGlobal?.id);
     }
 
     void openScenes() {
@@ -772,11 +763,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       narrativeController.openScenes();
     }
 
-    void openCutscene() {
-      editorNotifier.selectCutsceneWorkspace();
-      narrativeController.openCutscene(
-        cutsceneScenarioId: selectedCutscene?.id,
-      );
+    void openCinematics() {
+      editorNotifier.selectCinematicsWorkspace();
+      narrativeController.openCinematics();
     }
 
     void openDialogue() {
@@ -819,7 +808,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     }
 
     void openOverviewDiagnostic(NarrativeOverviewDiagnosticSummary item) {
-      ref.read(narrativeStudioNavigationControllerProvider.notifier).replace(
+      ref
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .replace(
             NarrativeStudioRouteLocation.validator(
               selection: NarrativeStudioAssetSelection(
                 kind: NarrativeStudioAssetKind.diagnostic,
@@ -833,8 +824,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
 
     void openResumeTarget(NarrativeOverviewResumeTarget target) {
       final assetId = target.assetId?.trim();
-      final navigation =
-          ref.read(narrativeStudioNavigationControllerProvider.notifier);
+      final navigation = ref.read(
+        narrativeStudioNavigationControllerProvider.notifier,
+      );
       switch (target.destination) {
         case NarrativeActivityDestination.overview:
           editorNotifier.selectNarrativeOverviewWorkspace();
@@ -889,7 +881,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                     ),
             ),
           );
-          editorNotifier.selectCutsceneWorkspace();
+          editorNotifier.selectCinematicsWorkspace();
           return;
         case NarrativeActivityDestination.dialogues:
           navigation.replace(
@@ -942,8 +934,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     NarrativeStudioReturnExpectation sceneReturnExpectation({
       required String sceneId,
       required String nodeId,
-    }) =>
-        NarrativeStudioReturnExpectation(
+    }) => NarrativeStudioReturnExpectation(
           location: NarrativeStudioRouteLocation.scenes(
             selection: NarrativeStudioAssetSelection(
               kind: NarrativeStudioAssetKind.scene,
@@ -964,7 +955,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           !project.dialogues.any((dialogue) => dialogue.id == assetId)) {
         return;
       }
-      ref.read(narrativeStudioNavigationControllerProvider.notifier).navigate(
+      ref
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .navigate(
             NarrativeStudioRouteLocation.dialogues(
               selection: NarrativeStudioAssetSelection(
                 kind: NarrativeStudioAssetKind.dialogue,
@@ -992,7 +985,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           !project.cinematics.any((cinematic) => cinematic.id == assetId)) {
         return;
       }
-      ref.read(narrativeStudioNavigationControllerProvider.notifier).navigate(
+      ref
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .navigate(
             NarrativeStudioRouteLocation.cinematics(
               childRoute: NarrativeStudioChildRoute.cinematicBuilder,
               selection: NarrativeStudioAssetSelection(
@@ -1007,10 +1002,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               nodeId: nodeId,
             ),
           );
-      editorNotifier.selectCutsceneWorkspace();
+      editorNotifier.selectCinematicsWorkspace();
     }
 
-    final selectedSceneRoute = studioNavigation.location.destination ==
+    final selectedSceneRoute =
+        studioNavigation.location.destination ==
                 NarrativeStudioDestination.scenes &&
             studioNavigation.location.selection?.kind ==
                 NarrativeStudioAssetKind.scene
@@ -1039,8 +1035,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                         '${overviewActivityAsync.error}'
                     : 'Chargement du journal d’activité…',
             projectValidationReport: overviewValidatorAsync?.asData?.value,
-            validatorAvailability: overviewValidatorAsync == null ||
-                    overviewValidatorAsync.hasError
+          validatorAvailability:
+              overviewValidatorAsync == null || overviewValidatorAsync.hasError
                 ? NarrativeOverviewAvailability.unavailable
                 : NarrativeOverviewAvailability.notEvaluated,
             validatorStatusMessage: overviewValidatorAsync == null
@@ -1051,7 +1047,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           ),
           onOpenStorylines: openGlobalStory,
           onOpenScenes: openScenes,
-          onOpenCutscenes: openCutscene,
+        onOpenCutscenes: openCinematics,
           onOpenDialogues: openDialogue,
           onOpenFacts: openFacts,
           onOpenWorldRules: openWorldRules,
@@ -1070,7 +1066,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       EditorWorkspaceMode.globalStory => StorylinesWorkspace(
           projection: projection,
           selectedGlobalStoryId: narrative.selectedGlobalStoryId,
-          requestedSelection: studioNavigation.location.destination ==
+        requestedSelection:
+            studioNavigation.location.destination ==
                   NarrativeStudioDestination.storylines
               ? studioNavigation.location.selection
               : null,
@@ -1086,10 +1083,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           strictRequestedSceneFocus: selectedSceneRoute != null,
           requestedFocusAnchorId:
               requestedSceneRestoration?.expectation.focusAnchorId,
-          requestedViewportX:
-              requestedSceneRestoration?.expectation.viewportX,
-          requestedViewportY:
-              requestedSceneRestoration?.expectation.viewportY,
+        requestedViewportX: requestedSceneRestoration?.expectation.viewportX,
+        requestedViewportY: requestedSceneRestoration?.expectation.viewportY,
           requestedZoom: requestedSceneRestoration?.expectation.zoom,
           requestedInspector:
               requestedSceneRestoration?.expectation.sceneInspector,
@@ -1105,7 +1100,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               : buildCinematicsLibraryReadModel(editor.project!),
           presentationCinematics:
               editor.project?.presentationCinematics ?? const [],
-          presentationFolders: editor.project?.cinematicLibraryCatalog.folders
+        presentationFolders:
+            editor.project?.cinematicLibraryCatalog.folders
                   .where(
                     (folder) =>
                         folder.family == CinematicLibraryFamily.presentation &&
@@ -1113,7 +1109,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   )
                   .toList(growable: false) ??
               const [],
-          onCreateAndLinkPresentation: ({
+        onCreateAndLinkPresentation:
+            ({
             required String sceneId,
             required String targetNodeId,
             required String title,
@@ -1158,7 +1155,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return null;
             }
           },
-          onOpenCreatedPresentation: ({
+        onOpenCreatedPresentation:
+            ({
             required String sceneId,
             required String returnNodeId,
             required String cinematicId,
@@ -1180,7 +1178,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                     ),
                   ),
                 );
-            editorNotifier.selectCutsceneWorkspace();
+              editorNotifier.selectCinematicsWorkspace();
           },
           conditionSourceOptions: editor.project == null
               ? const []
@@ -1211,7 +1209,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   editor.project!,
                   activeMap: editor.activeMap,
                 ),
-          onEditScene: ({
+        onEditScene:
+            ({
             required String sceneId,
             required String name,
             required SceneLibraryLocation location,
@@ -1258,10 +1257,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             }
             return result;
           },
-          onToggleArchiveScene: ({
-            required String sceneId,
-            required bool archived,
-          }) async {
+        onToggleArchiveScene:
+            ({required String sceneId, required bool archived}) async {
             final project = editor.project;
             if (project == null) return null;
             final result = archived
@@ -1275,10 +1272,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             }
             return result;
           },
-          onDeleteScene: ({
-            required String sceneId,
-            String? replacementSceneId,
-          }) async {
+        onDeleteScene:
+            ({required String sceneId, String? replacementSceneId}) async {
             final project = editor.project;
             if (project == null) return null;
             final maps = editor.activeMap == null
@@ -1301,10 +1296,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             }
             return result;
           },
-          onCreateSceneDraft: ({
-            required String name,
-            String? description,
-          }) async {
+        onCreateSceneDraft:
+            ({required String name, String? description}) async {
             final project = editor.project;
             if (project == null) {
               return null;
@@ -1320,16 +1313,15 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             );
             return result.createdScene.id;
           },
-          onAddNodeDraft: ({
-            required String sceneId,
-            required SceneNodeKind kind,
-          }) async {
+        onAddNodeDraft:
+            ({required String sceneId, required SceneNodeKind kind}) async {
             final project = editor.project;
             if (project == null) {
               return null;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return null;
             }
@@ -1345,7 +1337,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             );
             return result.createdNode.id;
           },
-          onAddLinkedAssetNodeDraft: ({
+        onAddLinkedAssetNodeDraft:
+            ({
             required String sceneId,
             required SceneNodePayload payload,
             String? title,
@@ -1354,8 +1347,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             if (project == null) {
               return null;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return null;
             }
@@ -1407,7 +1401,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return null;
             }
           },
-          onAddConsequenceActionNodeDraft: ({
+        onAddConsequenceActionNodeDraft:
+            ({
             required String sceneId,
             required SceneConsequence consequence,
             String? title,
@@ -1416,8 +1411,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             if (project == null) {
               return null;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return null;
             }
@@ -1438,7 +1434,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return null;
             }
           },
-          onAddEdgeDraft: ({
+        onAddEdgeDraft:
+            ({
             required String sceneId,
             required String fromNodeId,
             required String fromPortId,
@@ -1448,8 +1445,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             if (project == null) {
               return null;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return null;
             }
@@ -1471,16 +1469,15 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return null;
             }
           },
-          onRemoveEdgeDraft: ({
-            required String sceneId,
-            required String edgeId,
-          }) async {
+        onRemoveEdgeDraft:
+            ({required String sceneId, required String edgeId}) async {
             final project = editor.project;
             if (project == null) {
               return false;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return false;
             }
@@ -1500,16 +1497,15 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
-          onRemoveNodeDraft: ({
-            required String sceneId,
-            required String nodeId,
-          }) async {
+        onRemoveNodeDraft:
+            ({required String sceneId, required String nodeId}) async {
             final project = editor.project;
             if (project == null) {
               return false;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return false;
             }
@@ -1529,14 +1525,13 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
-          onDuplicateNodeDraft: ({
-            required String sceneId,
-            required String nodeId,
-          }) async {
+        onDuplicateNodeDraft:
+            ({required String sceneId, required String nodeId}) async {
             final project = editor.project;
             if (project == null) return null;
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) return null;
             try {
               final result = duplicateSceneNodeDraft(
@@ -1554,7 +1549,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return null;
             }
           },
-          onUpdateNodeLayout: ({
+        onUpdateNodeLayout:
+            ({
             required String sceneId,
             required String nodeId,
             required double x,
@@ -1564,8 +1560,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             if (project == null) {
               return;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return;
             }
@@ -1586,7 +1583,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return;
             }
           },
-          onUpdateConditionSource: ({
+        onUpdateConditionSource:
+            ({
             required String sceneId,
             required String nodeId,
             required SceneConditionSource source,
@@ -1595,8 +1593,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             if (project == null) {
               return false;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return false;
             }
@@ -1617,7 +1616,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
-          onUpdateYarnDialoguePayload: ({
+        onUpdateYarnDialoguePayload:
+            ({
             required String sceneId,
             required String nodeId,
             required String dialogueId,
@@ -1628,8 +1628,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             if (project == null) {
               return false;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return false;
             }
@@ -1652,7 +1653,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
-          onUpdateEndPayload: ({
+        onUpdateEndPayload:
+            ({
             required String sceneId,
             required String nodeId,
             String? sceneOutcomeId,
@@ -1660,8 +1662,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           }) async {
             final project = editor.project;
             if (project == null) return false;
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) return false;
             try {
               final result = updateSceneEndPayload(
@@ -1681,7 +1684,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
-          onUpdateBattlePayload: ({
+        onUpdateBattlePayload:
+            ({
             required String sceneId,
             required String nodeId,
             required String trainerId,
@@ -1692,8 +1696,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             if (project == null) {
               return false;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return false;
             }
@@ -1716,7 +1721,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
-          onUpdateCinematicPayload: ({
+        onUpdateCinematicPayload:
+            ({
             required String sceneId,
             required String nodeId,
             required String cinematicId,
@@ -1725,8 +1731,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             if (project == null) {
               return false;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return false;
             }
@@ -1748,7 +1755,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
-          onUpdateActionConsequence: ({
+        onUpdateActionConsequence:
+            ({
             required String sceneId,
             required String nodeId,
             required SceneConsequence consequence,
@@ -1757,8 +1765,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             if (project == null) {
               return false;
             }
-            final sceneIndex =
-                project.scenes.indexWhere((scene) => scene.id == sceneId);
+              final sceneIndex = project.scenes.indexWhere(
+                (scene) => scene.id == sceneId,
+              );
             if (sceneIndex < 0) {
               return false;
             }
@@ -1786,7 +1795,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           builder: (context, constraints) => EventBuilderV2ProductRoute(
             viewportWidth: MediaQuery.sizeOf(context).width,
             availableWidth: constraints.maxWidth,
-            legacyWorkspace: (editor.project?.eventRegistry?.mode ??
+          legacyWorkspace:
+              (editor.project?.eventRegistry?.mode ??
                         EventSystemMode.legacyOnly) ==
                     EventSystemMode.legacyOnly
                 ? EventBuilderWorkspace(
@@ -1796,12 +1806,10 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                       editor,
                       editorNotifier,
                     ),
-                    sceneOptions:
-                        _buildEventBuilderSceneOptions(editor.project),
+                  sceneOptions: _buildEventBuilderSceneOptions(editor.project),
                     factOptions: _buildEventBuilderFactOptions(editor.project),
                     eventConditionOptions:
-                        _buildEventBuilderConditionEventOptions(
-                            editor.activeMap),
+                      _buildEventBuilderConditionEventOptions(editor.activeMap),
                     mapOptions: _buildEventBuilderMapOptions(editor.project),
                     onOpenMap: (mapId) async {
                       final entry = _findProjectMapById(editor.project, mapId);
@@ -1854,20 +1862,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             );
           },
           onSelectOutcome: narrativeController.selectOutcome,
-          onOpenCutsceneStudio: (cutsceneScenarioId) {
-            // Même séquence que la bibliothèque narrative : sélection +
-            // état de vue, puis bascule du workspace éditeur.
-            narrativeController.selectCutscene(cutsceneScenarioId);
-            narrativeController.openCutscene(
-              cutsceneScenarioId: cutsceneScenarioId,
-            );
-            editorNotifier.selectCutsceneWorkspace();
-          },
           editorNotifier: editorNotifier,
           project: editor.project,
           activeMap: editor.activeMap,
         ),
-      EditorWorkspaceMode.cutscene => _CinematicsWorkspaceBody(
+      EditorWorkspaceMode.cinematics => _CinematicsWorkspaceBody(
           editorNotifier: editorNotifier,
           cinematicLibraryGateway: CanonicalCinematicLibraryAuthoringGateway(
             mutations: ref.read(authoringMutationAdapterProvider),
@@ -1888,8 +1887,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             mutations: ref.read(authoringMutationAdapterProvider),
             queries: ref.read(authoringQueryAdapterProvider),
           ),
-          presentationAddGateway:
-              CanonicalPresentationStudioAddAuthoringGateway(
+        presentationAddGateway: CanonicalPresentationStudioAddAuthoringGateway(
             mutations: ref.read(authoringMutationAdapterProvider),
             queries: ref.read(authoringQueryAdapterProvider),
           ),
@@ -1905,20 +1903,14 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           ),
           projectRootPath: editor.projectRootPath,
           project: editor.project,
-          activeMap: editor.activeMap,
-          projection: projection,
-          selectedCutscene: selectedCutscene,
-          requestedCinematicId: studioNavigation.location.destination ==
+        requestedCinematicId:
+            studioNavigation.location.destination ==
                       NarrativeStudioDestination.cinematics &&
                   studioNavigation.location.selection?.kind ==
                       NarrativeStudioAssetKind.cinematic
               ? studioNavigation.location.selection?.assetId
               : null,
           requestedCinematicNonce: studioNavigation.revision,
-          requestedCinematicChildRoute: studioNavigation.location.destination ==
-                  NarrativeStudioDestination.cinematics
-              ? studioNavigation.location.childRoute
-              : NarrativeStudioChildRoute.cinematicLibrary,
           documentRoute: studioNavigation.documentRoute,
           onRouteChanged: ref
               .read(narrativeStudioNavigationControllerProvider.notifier)
@@ -1935,13 +1927,6 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             }
             return source;
           },
-          onSelectCutscene: (scenarioId) {
-            narrativeController.selectCutscene(scenarioId);
-            narrativeController.openCutscene(
-              cutsceneScenarioId: scenarioId,
-            );
-          },
-          onSelectOutcome: narrativeController.selectOutcome,
           onOpenSceneUsage: ({required sceneId, required nodeId}) {
             ref
                 .read(narrativeStudioNavigationControllerProvider.notifier)
@@ -1964,7 +1949,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           mapRepository: ref.read(mapRepositoryProvider),
           readLatestProject: () => ref.read(editorNotifierProvider).project,
           initialMode: FactsWorldRulesWorkspaceMode.facts,
-          requestedFactId: studioNavigation.location.destination ==
+        requestedFactId:
+            studioNavigation.location.destination ==
                       NarrativeStudioDestination.facts &&
                   studioNavigation.location.selection?.kind ==
                       NarrativeStudioAssetKind.fact
@@ -2006,7 +1992,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           mapRepository: ref.read(mapRepositoryProvider),
           readLatestProject: () => ref.read(editorNotifierProvider).project,
           initialMode: FactsWorldRulesWorkspaceMode.worldRules,
-          requestedWorldRuleId: studioNavigation.location.destination ==
+        requestedWorldRuleId:
+            studioNavigation.location.destination ==
                       NarrativeStudioDestination.worldRules &&
                   studioNavigation.location.selection?.kind ==
                       NarrativeStudioAssetKind.worldRule
@@ -2024,9 +2011,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     return mainContent;
   }
 }
-EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
-  EditorState editor,
-) {
+
+EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(EditorState editor) {
   final project = editor.project;
   final activeMap = editor.activeMap;
   return buildEventBuilderReadModel(
@@ -2052,6 +2038,7 @@ EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
     },
   );
 }
+
 EventBuilderDraftCreationGate _buildEventBuilderDraftCreationGate(
   EditorState editor,
   EditorNotifier editorNotifier,
@@ -2075,7 +2062,8 @@ EventBuilderDraftCreationGate _buildEventBuilderDraftCreationGate(
         )
       : null;
   final autoResolvedLayer = destinationLayers.length == 1;
-  final resolvedLayer = activeObjectLayer ??
+  final resolvedLayer =
+      activeObjectLayer ??
       (autoResolvedLayer ? destinationLayers.single : null);
   return EventBuilderDraftCreationGate.positionPicker(
     mapId: activeMap.id,
@@ -2299,7 +2287,8 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
         return null;
       }
     },
-    onUpdateFact: ({
+    onUpdateFact:
+        ({
       required String factId,
       required String label,
       required String description,
@@ -2311,7 +2300,9 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
         if (latest == null) {
           return false;
         }
-        final current = latest.facts.firstWhere((fact) => fact.id == factId);
+            final current = latest.facts.firstWhere(
+              (fact) => fact.id == factId,
+            );
         final preview = current.valueKind == initialValue.kind
             ? null
             : previewNarrativeFactTypeChange(
@@ -2362,7 +2353,8 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
         return false;
       }
     },
-    onCreateWorldRule: ({
+    onCreateWorldRule:
+        ({
       required String label,
       required String description,
       required bool enabled,
@@ -2396,7 +2388,8 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
         return null;
       }
     },
-    onUpdateWorldRule: ({
+    onUpdateWorldRule:
+        ({
       required String ruleId,
       required String label,
       required String description,
@@ -2608,8 +2601,9 @@ List<SceneConsequenceEventPickerOption> _buildSceneConsequenceEventOptions(
     if (byMap != 0) {
       return byMap;
     }
-    final byEvent =
-        a.eventLabel.toLowerCase().compareTo(b.eventLabel.toLowerCase());
+    final byEvent = a.eventLabel.toLowerCase().compareTo(
+      b.eventLabel.toLowerCase(),
+    );
     if (byEvent != 0) {
       return byEvent;
     }
@@ -2654,7 +2648,6 @@ class _StepWorkspaceBody extends StatelessWidget {
     required this.selectedStep,
     required this.onSelectStep,
     required this.onSelectOutcome,
-    required this.onOpenCutsceneStudio,
   });
 
   final EditorNotifier editorNotifier;
@@ -2664,9 +2657,6 @@ class _StepWorkspaceBody extends StatelessWidget {
   final NarrativeStepSummary? selectedStep;
   final ValueChanged<String> onSelectStep;
   final ValueChanged<String?> onSelectOutcome;
-
-  /// Depuis Step Studio : ouvrir la mise en scène sans l’éditer dans la step.
-  final ValueChanged<String> onOpenCutsceneStudio;
 
   @override
   Widget build(BuildContext context) {
@@ -2683,7 +2673,6 @@ class _StepWorkspaceBody extends StatelessWidget {
         onSelectStep(stepId);
       },
       onSelectOutcome: onSelectOutcome,
-      onOpenCutsceneStudio: onOpenCutsceneStudio,
     );
   }
 }
@@ -2692,8 +2681,7 @@ PokeMapCinematicDocumentState _presentationDocumentState(
   NarrativeDocumentSessionStatus? status,
 ) => switch (status) {
   NarrativeDocumentSessionStatus.dirty => PokeMapCinematicDocumentState.dirty,
-  NarrativeDocumentSessionStatus.saving =>
-    PokeMapCinematicDocumentState.saving,
+  NarrativeDocumentSessionStatus.saving => PokeMapCinematicDocumentState.saving,
   NarrativeDocumentSessionStatus.saved => PokeMapCinematicDocumentState.saved,
   NarrativeDocumentSessionStatus.failed => PokeMapCinematicDocumentState.error,
   NarrativeDocumentSessionStatus.conflicted =>
@@ -2723,7 +2711,8 @@ PresentationStudioDiagnostic? _presentationDocumentDiagnostic(
       code: PresentationDiagnosticCodes.saveFailed,
       severity: PresentationDiagnosticSeverity.error,
       title: 'Enregistrement impossible',
-      cause: notifier.narrativeDocumentDiagnosticMessage ??
+    cause:
+        notifier.narrativeDocumentDiagnosticMessage ??
           'Le projet n’a pas pu être enregistré.',
       impact: 'Le brouillon local est conservé et peut être réessayé.',
       actionLabel: 'Réessayer l’enregistrement',
@@ -2732,10 +2721,10 @@ PresentationStudioDiagnostic? _presentationDocumentDiagnostic(
       code: PresentationDiagnosticCodes.saveConflict,
       severity: PresentationDiagnosticSeverity.error,
       title: 'Conflit d’enregistrement',
-      cause: notifier.narrativeDocumentDiagnosticMessage ??
+    cause:
+        notifier.narrativeDocumentDiagnosticMessage ??
           'Le projet a changé en dehors du Studio.',
-      impact:
-          'Le brouillon local est conservé ; aucune version n’a été écrasée.',
+    impact: 'Le brouillon local est conservé ; aucune version n’a été écrasée.',
       actionLabel: 'Recharger la version externe',
     ),
   _ => null,
@@ -2745,10 +2734,12 @@ VoidCallback? _presentationDocumentDiagnosticAction(
   EditorNotifier notifier,
   NarrativeDocumentSessionStatus? status,
 ) => switch (status) {
-  NarrativeDocumentSessionStatus.failed =>
-    () => unawaited(notifier.saveNarrativeDocument()),
-  NarrativeDocumentSessionStatus.conflicted =>
-    () => unawaited(notifier.reloadExternalNarrativeDocument()),
+  NarrativeDocumentSessionStatus.failed => () => unawaited(
+    notifier.saveNarrativeDocument(),
+  ),
+  NarrativeDocumentSessionStatus.conflicted => () => unawaited(
+    notifier.reloadExternalNarrativeDocument(),
+  ),
   _ => null,
 };
 
@@ -2764,26 +2755,19 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
     required this.presentationMediaReader,
     required this.projectRootPath,
     required this.project,
-    required this.activeMap,
-    required this.projection,
-    required this.selectedCutscene,
     required this.requestedCinematicId,
     required this.requestedCinematicNonce,
-    required this.requestedCinematicChildRoute,
     required this.documentRoute,
     required this.onRouteChanged,
     required this.onOpenPresentationDocument,
     required this.onCloseDocument,
-    required this.onSelectCutscene,
-    required this.onSelectOutcome,
     required this.onOpenSceneUsage,
   });
 
   final EditorNotifier editorNotifier;
   final CinematicLibraryAuthoringGateway cinematicLibraryGateway;
   final PresentationStudioLayerAuthoringGateway presentationLayerGateway;
-  final PresentationStudioTimelineAuthoringGateway
-      presentationTimelineGateway;
+  final PresentationStudioTimelineAuthoringGateway presentationTimelineGateway;
   final PresentationStudioPropertyAuthoringGateway presentationPropertyGateway;
   final PresentationStudioAddAuthoringGateway presentationAddGateway;
   final PresentationTimelineProjectionGateway
@@ -2791,18 +2775,12 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   final PresentationTimelineProjectionMediaReader presentationMediaReader;
   final String? projectRootPath;
   final ProjectManifest? project;
-  final MapData? activeMap;
-  final NarrativeWorkspaceProjection projection;
-  final NarrativeScenarioSummary? selectedCutscene;
   final String? requestedCinematicId;
   final int requestedCinematicNonce;
-  final NarrativeStudioChildRoute requestedCinematicChildRoute;
   final NarrativeDocumentRoute? documentRoute;
   final ValueChanged<NarrativeStudioRouteLocation> onRouteChanged;
   final ValueChanged<NarrativeDocumentRoute> onOpenPresentationDocument;
   final NarrativeDocumentSourceContext? Function() onCloseDocument;
-  final ValueChanged<String> onSelectCutscene;
-  final ValueChanged<String?> onSelectOutcome;
   final OpenCinematicSceneUsageCallback onOpenSceneUsage;
 
   @override
@@ -2811,14 +2789,12 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
 }
 
 class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
-  bool _showLegacyCutsceneStudio = false;
   NarrativeLibrarySourceContext? _restoredPresentationSource;
   late final PresentationStudioLayoutStore _presentationLayoutStore;
   late final PresentationStudioResponsiveCanvasController
       _presentationResponsiveCanvasController;
   bool _presentationLayerMutationPending = false;
-  PresentationTimelineEditingController?
-      _presentationTimelineEditingController;
+  PresentationTimelineEditingController? _presentationTimelineEditingController;
   PresentationTimelineProjectionController?
       _presentationTimelineProjectionController;
   PresentationStudioProjectContentController?
@@ -2844,7 +2820,6 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         PresentationStudioResponsiveCanvasController(durationUs: 0);
     _syncPresentationTimelineProjectionController();
     _syncPresentationProjectContentController();
-    _syncRequestedChildRoute();
     _capturePresentationSource();
   }
 
@@ -2860,10 +2835,6 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   @override
   void didUpdateWidget(covariant _CinematicsWorkspaceBody oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.requestedCinematicChildRoute !=
-        widget.requestedCinematicChildRoute) {
-      _syncRequestedChildRoute();
-    }
     if (oldWidget.documentRoute != widget.documentRoute) {
       _presentationResponsiveCanvasController.stop();
       _presentationTimelineEditingController?.cancelDrag();
@@ -2930,11 +2901,6 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     }
   }
 
-  void _syncRequestedChildRoute() {
-    _showLegacyCutsceneStudio = widget.requestedCinematicChildRoute ==
-        NarrativeStudioChildRoute.cinematicLegacy;
-  }
-
   void _capturePresentationSource() {
     final route = widget.documentRoute;
     if (route?.kind != NarrativeDocumentKind.presentationCinematic) return;
@@ -2952,40 +2918,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         child: Text(
           'Load a project to browse CinematicAsset.',
           textAlign: TextAlign.center,
-          style: DefaultTextStyle.of(context).style.copyWith(
-                color: context.pokeMapColors.textMuted,
-              ),
-        ),
-      );
-    }
-
-    if (_showLegacyCutsceneStudio) {
-      return NarrativeStudioWorkspacePage(
-        presentation: const NarrativeStudioRoutePresentation(
-          destination: NarrativeStudioDestination.cinematics,
-          label: 'Cinématiques',
-          breadcrumbLabels: ['Cinématiques', 'Ancien studio'],
-        ),
-        leading: PokeMapIconButton(
-          key: const ValueKey('cinematics-library-back-button'),
-          onPressed: () {
-            setState(() => _showLegacyCutsceneStudio = false);
-            widget.onRouteChanged(NarrativeStudioRouteLocation.cinematics());
-          },
-          tooltip: 'Retour à la bibliothèque de cinématiques',
-          variant: PokeMapIconButtonVariant.soft,
-          icon: const Icon(CupertinoIcons.chevron_left),
-        ),
-        body: PokeMapPageSurface(
-          child: _CutsceneWorkspaceBody(
-            editorNotifier: widget.editorNotifier,
-            project: project,
-            activeMap: widget.activeMap,
-            projection: widget.projection,
-            selectedCutscene: widget.selectedCutscene,
-            onSelectCutscene: widget.onSelectCutscene,
-            onSelectOutcome: widget.onSelectOutcome,
-          ),
+          style: DefaultTextStyle.of(
+            context,
+          ).style.copyWith(color: context.pokeMapColors.textMuted),
         ),
       );
     }
@@ -3053,7 +2988,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         narrativeStatus,
       );
       final activeDiagnostic = _presentationDiagnostic ?? documentDiagnostic;
-      final activeDiagnosticAction = _presentationDiagnosticAction ??
+      final activeDiagnosticAction =
+          _presentationDiagnosticAction ??
           _presentationDocumentDiagnosticAction(
             widget.editorNotifier,
             narrativeStatus,
@@ -3066,25 +3002,20 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           ? _presentationDocumentState(narrativeStatus)
           : PokeMapCinematicDocumentState.saved;
       final evaluator = const PresentationCinematicEvaluator();
-      Widget buildPresentationCanvas(PresentationFrameContentPort contentPort) =>
-          PresentationStudioResponsiveCanvas(
+      Widget buildPresentationCanvas(
+        PresentationFrameContentPort contentPort,
+      ) => PresentationStudioResponsiveCanvas(
             controller: _presentationResponsiveCanvasController,
             frameBuilder: (playheadUs) => documentIsEmpty
                 ? null
                 : evaluator.evaluate(
                     resolvedAsset,
-                    timeUs: playheadUs
-                        .clamp(0, resolvedAsset.durationUs)
-                        .toInt(),
+                timeUs: playheadUs.clamp(0, resolvedAsset.durationUs).toInt(),
                   ),
             contentPort: contentPort,
             playerTheme: PokeMapPlayerTheme.dark(),
-            orientationOverrides: _presentationOrientationOverrides(
-              resolvedAsset,
-            ),
-            mediaBindings: _presentationResponsiveMediaBindings(
-              resolvedAsset,
-            ),
+        orientationOverrides: _presentationOrientationOverrides(resolvedAsset),
+        mediaBindings: _presentationResponsiveMediaBindings(resolvedAsset),
             asset: resolvedAsset,
             onRetry: _presentationResponsiveCanvasController.setReady,
           );
@@ -3107,9 +3038,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           layoutStore: _presentationLayoutStore,
           diagnostic: activeDiagnostic,
           onDiagnosticAction: activeDiagnosticAction,
-          backButtonKey: const ValueKey(
-            'cinematics-presentation-route-back',
-          ),
+          backButtonKey: const ValueKey('cinematics-presentation-route-back'),
           onExit: _closePresentationDocument,
           onDiscard: isCreateAndLinkDraft
               ? () async {
@@ -3118,8 +3047,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               : () async {},
           onSave: isCreateAndLinkDraft
               ? () async {
-                  final saved =
-                      await widget.editorNotifier.saveNarrativeDocument();
+                  final saved = await widget.editorNotifier
+                      .saveNarrativeDocument();
                   if (saved) _closePresentationDocument();
                   return saved;
                 }
@@ -3133,9 +3062,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
             playheadUs: _presentationResponsiveCanvasController.playheadUs,
             selectionController:
                 _presentationResponsiveCanvasController.selection,
-            onCommand: (command) => unawaited(
-              _applyPresentationLayerCommand(command),
-            ),
+            onCommand: (command) =>
+                unawaited(_applyPresentationLayerCommand(command)),
           ),
           propertiesPanel: AnimatedBuilder(
             animation: Listenable.merge([
@@ -3149,9 +3077,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               orientation:
                   _presentationResponsiveCanvasController.activeOrientation,
               selectedClipIds: timelineEditingController.selectedClipIds,
-              onCommand: (command) => unawaited(
-                _applyPresentationPropertyCommand(command),
-              ),
+              onCommand: (command) =>
+                  unawaited(_applyPresentationPropertyCommand(command)),
               mutationPending: _presentationPropertyMutationPending,
               canUndo: _presentationPropertyUndo.isNotEmpty,
               canRedo: _presentationPropertyRedo.isNotEmpty,
@@ -3169,8 +3096,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
                 )
               : PresentationStudioAddPanel(
                   gateway: widget.presentationAddGateway,
-                  mediaPicker:
-                      const FilePickerPresentationStudioMediaPicker(),
+                  mediaPicker: const FilePickerPresentationStudioMediaPicker(),
                   projectRootPath: widget.projectRootPath!,
                   expectedProject: project,
                   asset: resolvedAsset,
@@ -3179,7 +3105,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
                   targetVisualFolderId: _selectedPresentationFolderId(
                     resolvedAsset,
                     _presentationResponsiveCanvasController
-                        .selection.value?.layerId,
+                        .selection
+                        .value
+                        ?.layerId,
                   ),
                   onProjectChanged: (manifest) {
                     widget.editorNotifier.acceptCanonicalProjectManifest(
@@ -3191,10 +3119,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
                     final updated = result.manifest.presentationCinematics
                         .singleWhere((item) => item.id == resolvedAsset.id);
                     _presentationResponsiveCanvasController.selection
-                        .selectClip(
-                          asset: updated,
-                          clipId: result.clipId,
-                        );
+                        .selectClip(asset: updated, clipId: result.clipId);
                   },
                 ),
           timeline: AnimatedBuilder(
@@ -3205,13 +3130,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               selectionController:
                   _presentationResponsiveCanvasController.selection,
               editingController: timelineEditingController,
-              projectionController:
-                  _presentationTimelineProjectionController,
-              onPlayheadChanged:
-                  _presentationResponsiveCanvasController.seekTo,
-              onCommand: (command) => unawaited(
-                _applyPresentationTimelineCommand(command),
-              ),
+              projectionController: _presentationTimelineProjectionController,
+              onPlayheadChanged: _presentationResponsiveCanvasController.seekTo,
+              onCommand: (command) =>
+                  unawaited(_applyPresentationTimelineCommand(command)),
               mutationPending: _presentationTimelineMutationPending,
               canUndo: _presentationTimelineUndo.isNotEmpty,
               canRedo: _presentationTimelineRedo.isNotEmpty,
@@ -3298,14 +3220,6 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onResolveBackdropTilesetPath:
           widget.editorNotifier.getTilesetAbsolutePathById,
       onOpenSceneUsage: widget.onOpenSceneUsage,
-      onOpenLegacyCutsceneStudio: () {
-        setState(() => _showLegacyCutsceneStudio = true);
-        widget.onRouteChanged(
-          NarrativeStudioRouteLocation.cinematics(
-            childRoute: NarrativeStudioChildRoute.cinematicLegacy,
-          ),
-        );
-      },
     );
   }
 
@@ -3648,8 +3562,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     if (cleanTitle.isEmpty) {
       return null;
     }
-    final result =
-        await widget.editorNotifier.executeNarrativeAuthoringMutation(
+    final result = await widget.editorNotifier
+        .executeNarrativeAuthoringMutation(
       (project) => NarrativeAssetMutation.createCinematic(
         project,
         title: cleanTitle,
@@ -3744,10 +3658,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     final project = widget.project;
     if (project == null) return null;
     try {
-      final result = duplicateCinematicAsset(
-        project,
-        cinematicId: cinematicId,
-      );
+      final result = duplicateCinematicAsset(project, cinematicId: cinematicId);
       final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
         action: 'library_duplicate',
@@ -3775,10 +3686,12 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       return await _applyCinematicDocumentEdit(
         result.updatedProject,
         action: archived ? 'library_archive' : 'library_restore',
-        label:
-            archived ? 'Archiver une cinématique' : 'Restaurer une cinématique',
-        statusMessage:
-            archived ? 'Cinématique archivée.' : 'Cinématique restaurée.',
+        label: archived
+            ? 'Archiver une cinématique'
+            : 'Restaurer une cinématique',
+        statusMessage: archived
+            ? 'Cinématique archivée.'
+            : 'Cinématique restaurée.',
       );
     } on ArgumentError {
       return false;
@@ -3826,8 +3739,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         label: archived
             ? 'Archiver plusieurs cinématiques'
             : 'Restaurer plusieurs cinématiques',
-        statusMessage:
-            archived ? 'Cinématiques archivées.' : 'Cinématiques restaurées.',
+        statusMessage: archived
+            ? 'Cinématiques archivées.'
+            : 'Cinématiques restaurées.',
       );
     } on ArgumentError {
       return false;
@@ -3835,8 +3749,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   }
 
   Future<bool> _removeCinematic({required String cinematicId}) async {
-    final result =
-        await widget.editorNotifier.executeNarrativeAuthoringMutation(
+    final result = await widget.editorNotifier
+        .executeNarrativeAuthoringMutation(
       (project) => NarrativeAssetMutation.deleteCinematic(
         project,
         cinematicId: cinematicId,
@@ -4428,10 +4342,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       return false;
     }
     try {
-      final result = updateCinematicAsset(
-        project,
-        cinematic,
-      );
+      final result = updateCinematicAsset(project, cinematic);
       final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
         action: 'asset_update',
@@ -4667,100 +4578,6 @@ final class _PresentationStudioContentPort
   );
 }
 
-class _CutsceneWorkspaceBody extends StatelessWidget {
-  const _CutsceneWorkspaceBody({
-    required this.editorNotifier,
-    required this.project,
-    required this.activeMap,
-    required this.projection,
-    required this.selectedCutscene,
-    required this.onSelectCutscene,
-    required this.onSelectOutcome,
-  });
-
-  final EditorNotifier editorNotifier;
-  final ProjectManifest? project;
-  final MapData? activeMap;
-  final NarrativeWorkspaceProjection projection;
-  final NarrativeScenarioSummary? selectedCutscene;
-  final ValueChanged<String> onSelectCutscene;
-  final ValueChanged<String?> onSelectOutcome;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 310,
-          child: _NarrativeListCard(
-            title: 'Local Event Flows / Cutscenes',
-            subtitle: 'Scene execution layer',
-            emptyText: 'No local flow available.',
-            children: projection.localEventFlows
-                .map(
-                  (scenario) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: PokeMapSidebarItem(
-                      selected: selectedCutscene?.id == scenario.id,
-                      compact: true,
-                      growForTextScale: true,
-                      onTap: () => onSelectCutscene(scenario.id),
-                      icon: const Icon(CupertinoIcons.play_rectangle),
-                      label: scenario.name,
-                      subtitle:
-                          '${scenario.nodeCount} nodes • entry: ${scenario.entryNodeId}',
-                      trailing: PokeMapIconButton(
-                        tooltip: 'Supprimer cette cutscene',
-                        variant: PokeMapIconButtonVariant.danger,
-                        size: 32,
-                        onPressed: () async {
-                          await deleteCutsceneWithUserConfirmation(
-                            context: context,
-                            editorNotifier: editorNotifier,
-                            projection: projection,
-                            scenarioId: scenario.id,
-                            selectedScenarioId: selectedCutscene?.id,
-                            onSelectReplacement: onSelectCutscene,
-                          );
-                        },
-                        icon: const Icon(CupertinoIcons.trash, size: 17),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: project == null
-              ? const PokeMapPanel(
-                  borderRadius: 20,
-                  expandChild: true,
-                  child: Center(
-                    child: Text('Load a project to edit cutscenes.'),
-                  ),
-                )
-              : CutsceneStudioWorkspace(
-                  readOnly: true,
-                  editorNotifier: editorNotifier,
-                  project: project!,
-                  activeMap: activeMap,
-                  projection: projection,
-                  selectedCutscene: selectedCutscene,
-                  onSelectCutscene: onSelectCutscene,
-                  onSelectOutcome: onSelectOutcome,
-                  onOpenDialogueStudio: (dialogueId) {
-                    editorNotifier.selectProjectDialogue(dialogueId);
-                    editorNotifier.selectDialogueWorkspace();
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-}
-
 Map<String, List<String>> _buildSceneConsumerPaths(
   ProjectManifest project, {
   MapData? activeMap,
@@ -4772,8 +4589,9 @@ Map<String, List<String>> _buildSceneConsumerPaths(
   return {
     for (final scene in project.scenes)
       scene.id: [
-        for (final usage
-            in index.usagesFor(NarrativeDependencyKey.scene(scene.id)))
+        for (final usage in index.usagesFor(
+          NarrativeDependencyKey.scene(scene.id),
+        ))
           if (usage.owner != NarrativeDependencyKey.scene(scene.id)) usage.path,
       ],
   };
@@ -4791,8 +4609,7 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
   );
   List<SceneActionPickerOption> fromCatalog(
     SceneConsequenceCatalogSection section,
-  ) =>
-      [
+  ) => [
         for (final option in section.options)
           SceneActionPickerOption(id: option.id, label: option.label),
       ];
@@ -4821,8 +4638,9 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
             parentId: species.id,
           ),
     ],
-    NarrativeCommandParameterKind.starter:
-        fromCatalog(catalogs.configuredStarters),
+    NarrativeCommandParameterKind.starter: fromCatalog(
+      catalogs.configuredStarters,
+    ),
     NarrativeCommandParameterKind.map: [
       for (final map in project.maps)
         SceneActionPickerOption(id: map.id, label: map.name),
@@ -4895,65 +4713,3 @@ String _sceneFieldAbilityLabel(FieldAbility ability) => switch (ability) {
       FieldAbility.waterfall => 'Cascade',
       FieldAbility.dive => 'Plongée',
     };
-
-class _NarrativeListCard extends StatelessWidget {
-  const _NarrativeListCard({
-    required this.title,
-    required this.subtitle,
-    required this.emptyText,
-    required this.children,
-  });
-
-  final String title;
-  final String subtitle;
-  final String emptyText;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return PokeMapPanel(
-      borderRadius: 20,
-      expandChild: true,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            title,
-            style: DefaultTextStyle.of(context).style.copyWith(
-                  color: context.pokeMapColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: DefaultTextStyle.of(context).style.copyWith(
-                  color: context.pokeMapColors.textMuted,
-                  fontSize: 12,
-                ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: children.isEmpty
-                ? Center(
-                    child: Text(
-                      emptyText,
-                      textAlign: TextAlign.center,
-                      style: DefaultTextStyle.of(context).style.copyWith(
-                            color: context.pokeMapColors.textMuted,
-                            fontSize: 12,
-                          ),
-                    ),
-                  )
-                : ListView.separated(
-                    itemBuilder: (context, index) => children[index],
-                    separatorBuilder: (_, _) => const SizedBox(height: 6),
-                    itemCount: children.length,
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}

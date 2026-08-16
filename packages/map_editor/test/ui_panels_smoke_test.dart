@@ -8,9 +8,6 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
-import 'package:map_editor/src/features/narrative/application/cutscene_studio_authoring.dart';
-import 'package:map_editor/src/features/narrative/application/narrative_workspace_projection.dart';
-import 'package:map_editor/src/ui/canvas/cutscene_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/dialogue_studio_workspace.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
@@ -97,60 +94,6 @@ void main() {
             name: 'Salut',
             relativePath: 'dialogues/pnj/dlg_hi.yarn',
             folderId: 'f_npc',
-          ),
-        ],
-        scenarios: <ScenarioAsset>[
-          ScenarioAsset(
-            id: 'cutscene_intro',
-            name: 'Intro cutscene',
-            scope: ScenarioScope.localEventFlow,
-            entryNodeId: 'start',
-            nodes: <ScenarioNode>[
-              ScenarioNode(
-                id: 'start',
-                type: ScenarioNodeType.start,
-              ),
-              ScenarioNode(
-                id: 'source',
-                type: ScenarioNodeType.reference,
-                binding: ScenarioNodeBinding(
-                  mapId: 'route_1',
-                  entityId: 'npc_1',
-                ),
-                payload: ScenarioNodePayload(
-                  actionKind: kCutsceneStudioSourceEntityInteract,
-                ),
-              ),
-              ScenarioNode(
-                id: 'dialogue_1',
-                type: ScenarioNodeType.dialogue,
-                binding: ScenarioNodeBinding(
-                  entityId: 'npc_1',
-                  dialogueId: 'dlg_hi',
-                ),
-              ),
-              ScenarioNode(
-                id: 'end',
-                type: ScenarioNodeType.end,
-              ),
-            ],
-            edges: <ScenarioEdge>[
-              ScenarioEdge(
-                id: 'edge_start_source',
-                fromNodeId: 'start',
-                toNodeId: 'source',
-              ),
-              ScenarioEdge(
-                id: 'edge_source_dialogue',
-                fromNodeId: 'source',
-                toNodeId: 'dialogue_1',
-              ),
-              ScenarioEdge(
-                id: 'edge_dialogue_end',
-                fromNodeId: 'dialogue_1',
-                toNodeId: 'end',
-              ),
-            ],
           ),
         ],
       );
@@ -255,42 +198,5 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets(
-        'CutsceneStudioWorkspace renders an editable local-event flow scenario',
-        (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final project = buildSampleProject();
-      final projection = buildNarrativeWorkspaceProjection(project);
-      final selectedCutscene = projection.localEventFlows.firstWhere(
-        (scenario) => scenario.id == 'cutscene_intro',
-      );
-      final notifier = container.read(editorNotifierProvider.notifier);
-
-      await pumpEditorSurface(
-        tester,
-        container,
-        child: SizedBox(
-          width: 1400,
-          height: 900,
-          child: CutsceneStudioWorkspace(
-            editorNotifier: notifier,
-            project: project,
-            activeMap: null,
-            projection: projection,
-            selectedCutscene: selectedCutscene,
-            onSelectCutscene: (_) {},
-            onSelectOutcome: (_) {},
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      expect(find.text('Configurer la source'), findsOneWidget);
-      expect(find.text('Cutscene'), findsWidgets);
-      expect(tester.takeException(), isNull);
-    });
   });
 }

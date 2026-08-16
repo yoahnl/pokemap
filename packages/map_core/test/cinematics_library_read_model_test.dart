@@ -5,15 +5,13 @@ import 'package:map_core/map_core.dart';
 
 void main() {
   group('buildCinematicsLibraryReadModel', () {
-    test('lists canonical CinematicAsset and scenario bridges separately', () {
+    test('lists only canonical CinematicAsset entries', () {
       final project = _projectWithCinematics();
 
       final readModel = buildCinematicsLibraryReadModel(project);
 
       expect(readModel.canonicalEntries, hasLength(1));
-      expect(readModel.bridgeEntries, hasLength(1));
       expect(readModel.metrics.canonicalCount, 1);
-      expect(readModel.metrics.bridgeCount, 1);
 
       final canonical = readModel.canonicalEntries.single;
       expect(canonical.id, 'cinematic_intro');
@@ -29,16 +27,7 @@ void main() {
       expect(canonical.timeline.actorIds, contains('actor_professor'));
       expect(canonical.isEditable, isTrue);
 
-      final bridge = readModel.bridgeEntries.single;
-      expect(bridge.id, 'scenario_cutscene');
-      expect(bridge.kind, CinematicsLibraryEntryKind.scenarioBridge);
-      expect(bridge.statusLabel, 'Bridge legacy Scenario/Cutscene');
-      expect(bridge.isEditable, isFalse);
-      expect(bridge.isRemovable, isFalse);
-      expect(
-        bridge.diagnostics.map((diagnostic) => diagnostic.code),
-        contains('scenarioBridge'),
-      );
+      expect(readModel.entryById('scenario_cutscene'), isNull);
     });
 
     test('attaches diagnostics and reports empty timeline metrics', () {
@@ -67,7 +56,7 @@ void main() {
       );
     });
 
-    test('reports canonical, bridge, and unknown Scene references', () {
+    test('reports non-canonical Scene references as unknown', () {
       final project = _projectWithCinematics(
         scenes: [
           _sceneReferencing(
@@ -96,11 +85,17 @@ void main() {
 
       final readModel = buildCinematicsLibraryReadModel(project);
 
-      expect(readModel.metrics.referencedCount, 2);
-      expect(readModel.unknownUsages, hasLength(1));
+      expect(readModel.metrics.referencedCount, 1);
+      expect(readModel.unknownUsages, hasLength(2));
       expect(
-        readModel.unknownUsages.single.referenceStatus,
+        readModel.unknownUsages.map((usage) => usage.sceneId),
+        containsAll(['scene_bridge', 'scene_unknown']),
+      );
+      expect(
+        readModel.unknownUsages.map((usage) => usage.referenceStatus),
+        everyElement(
         CinematicsLibraryReferenceStatus.unknown,
+        ),
       );
 
       final canonicalUsage = readModel.canonicalEntries.single.usages.single;
@@ -111,13 +106,6 @@ void main() {
       expect(
         canonicalUsage.referenceStatus,
         CinematicsLibraryReferenceStatus.canonical,
-      );
-
-      final bridgeUsage = readModel.bridgeEntries.single.usages.single;
-      expect(bridgeUsage.sceneId, 'scene_bridge');
-      expect(
-        bridgeUsage.referenceStatus,
-        CinematicsLibraryReferenceStatus.bridgeLegacy,
       );
     });
 

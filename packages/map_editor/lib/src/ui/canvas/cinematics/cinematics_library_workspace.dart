@@ -14,7 +14,6 @@ import '../../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
 import '../narrative_studio/narrative_studio_route_presentation.dart';
-import '../narrative_studio/narrative_legacy_migration_center.dart';
 import '../narrative_studio/narrative_studio_workspace_page.dart';
 import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_actor_sprite_preview_resolver.dart';
@@ -231,7 +230,7 @@ typedef BuildCinematicBackdropTileRenderPlanCallback
   required CinematicMapBackdropPreviewModel? previewModel,
 });
 
-enum _CinematicsLibraryFilter { all, canonical, bridge }
+enum _CinematicsLibraryFilter { all, canonical }
 
 class CinematicsLibraryWorkspace extends StatefulWidget {
   const CinematicsLibraryWorkspace({
@@ -274,7 +273,6 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     this.onLoadStageMapSnapshot,
     this.onBuildBackdropTileRenderPlan,
     this.onResolveBackdropTilesetPath,
-    this.onOpenLegacyCutsceneStudio,
     this.startExpanded = false,
     this.requestedEntryId,
     this.requestedEntryNonce,
@@ -339,7 +337,6 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final BuildCinematicBackdropTileRenderPlanCallback?
       onBuildBackdropTileRenderPlan;
   final ResolveCinematicBackdropTilesetPath? onResolveBackdropTilesetPath;
-  final VoidCallback? onOpenLegacyCutsceneStudio;
 
   @override
   State<CinematicsLibraryWorkspace> createState() =>
@@ -560,24 +557,14 @@ class _CinematicsLibraryWorkspaceState
       _loadingBackdropTileRenderPlanMapId = null;
       _loadingStageMapSourceCatalogMapId = null;
     }
-    final migrationScan = buildNarrativeLegacyMigrationScan(widget.project);
-
     if (!_showAdvancedManager) {
       return Material(
         type: MaterialType.transparency,
         child: NarrativeStudioWorkspacePage(
           presentation: narrativeStudioRoutePresentationFor(
-            EditorWorkspaceMode.cutscene,
+            EditorWorkspaceMode.cinematics,
           )!,
           actions: [
-            PokeMapButton(
-              key: const ValueKey('cinematics-library-open-legacy-button'),
-              onPressed: widget.onOpenLegacyCutsceneStudio,
-              variant: PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.small,
-              leading: const Icon(CupertinoIcons.archivebox),
-              child: const Text('Ancien studio'),
-            ),
             PokeMapButton(
               key: const ValueKey('cinematics-library-advanced-manager'),
               onPressed: () => setState(() => _showAdvancedManager = true),
@@ -615,7 +602,7 @@ class _CinematicsLibraryWorkspaceState
       type: MaterialType.transparency,
       child: NarrativeStudioWorkspacePage(
         presentation: narrativeStudioRoutePresentationFor(
-          EditorWorkspaceMode.cutscene,
+          EditorWorkspaceMode.cinematics,
         )!,
         leading: PokeMapIconButton(
           key: const ValueKey('cinematics-advanced-manager-back'),
@@ -624,27 +611,6 @@ class _CinematicsLibraryWorkspaceState
           variant: PokeMapIconButtonVariant.soft,
           icon: const Icon(CupertinoIcons.chevron_left),
         ),
-        actions: [
-          PokeMapButton(
-            key: const ValueKey('cinematics-library-open-migration-center'),
-            onPressed: () => showNarrativeLegacyMigrationCenter(
-              context: context,
-              scan: migrationScan,
-            ),
-            variant: PokeMapButtonVariant.secondary,
-            size: PokeMapButtonSize.small,
-            leading: const Icon(CupertinoIcons.arrow_2_circlepath),
-            child: Text('Migration (${migrationScan.legacyRemainingCount})'),
-          ),
-          PokeMapButton(
-            key: const ValueKey('cinematics-library-open-legacy-button'),
-            onPressed: widget.onOpenLegacyCutsceneStudio,
-            variant: PokeMapButtonVariant.secondary,
-            size: PokeMapButtonSize.small,
-            leading: const Icon(CupertinoIcons.archivebox),
-            child: const Text('Lire l’ancien Cutscene Studio'),
-          ),
-        ],
         body: PokeMapPageSurface(
           key: const ValueKey('cinematics-library-workspace'),
           child: LayoutBuilder(
@@ -875,7 +841,7 @@ class _CinematicsLibraryWorkspaceState
       type: MaterialType.transparency,
       child: NarrativeStudioWorkspacePage(
         presentation: narrativeStudioRoutePresentationFor(
-          EditorWorkspaceMode.cutscene,
+          EditorWorkspaceMode.cinematics,
         )!,
         body: PokeMapPageSurface(
           key: const ValueKey('cinematics-library-requested-unavailable'),
@@ -1327,18 +1293,6 @@ class _CinematicsLibraryWorkspaceState
           isSelected: _filter == _CinematicsLibraryFilter.canonical,
           child: const Text('Canoniques'),
         ),
-        PokeMapButton(
-          onPressed: () =>
-              setState(() => _filter = _CinematicsLibraryFilter.bridge),
-          variant: PokeMapButtonVariant.secondary,
-          size: PokeMapButtonSize.small,
-          isSelected: _filter == _CinematicsLibraryFilter.bridge,
-          child: const Text('Bridge legacy'),
-        ),
-        const PokeMapBadge(
-          label: 'Bridge non canonique',
-          variant: PokeMapBadgeVariant.warning,
-        ),
         SizedBox(
           width: 210,
           child: PokeMapDropdownField<CinematicsLibrarySort>(
@@ -1409,8 +1363,6 @@ class _CinematicsLibraryWorkspaceState
           _CinematicsLibraryFilter.all => null,
           _CinematicsLibraryFilter.canonical =>
             CinematicsLibraryEntryKind.canonical,
-          _CinematicsLibraryFilter.bridge =>
-            CinematicsLibraryEntryKind.scenarioBridge,
         },
       ),
     );
@@ -1427,8 +1379,7 @@ class _CinematicsLibraryWorkspaceState
         children: [
           _SectionTitle(
             title: 'Bibliothèque',
-            subtitle: '${readModel.metrics.canonicalCount} canonique(s) • '
-                '${readModel.metrics.bridgeCount} bridge(s)',
+            subtitle: '${readModel.metrics.canonicalCount} canonique(s)',
           ),
           const SizedBox(height: 10),
           PokeMapSearchField(
@@ -1524,13 +1475,9 @@ class _CinematicsLibraryWorkspaceState
         expandChild: true,
         child: _EmptyState(
           title: 'Aucune cinématique sélectionnée',
-          description:
-              'Sélectionnez une entrée canonique ou bridge pour inspecter son état.',
+          description: 'Sélectionnez une cinématique pour inspecter son état.',
         ),
       );
-    }
-    if (entry.kind == CinematicsLibraryEntryKind.scenarioBridge) {
-      return _BridgeDetailsPanel(entry: entry);
     }
     return _buildCanonicalDetails(context, entry);
   }
@@ -1777,8 +1724,6 @@ class _CinematicsLibraryWorkspaceState
           _CinematicsLibraryFilter.all => null,
           _CinematicsLibraryFilter.canonical =>
             CinematicsLibraryEntryKind.canonical,
-          _CinematicsLibraryFilter.bridge =>
-            CinematicsLibraryEntryKind.scenarioBridge,
         },
       ),
     );
@@ -1789,11 +1734,7 @@ class _CinematicsLibraryWorkspaceState
     if (current != null && readModel.entryById(current) != null) {
       return;
     }
-    final fallback = readModel.canonicalEntries.isNotEmpty
-        ? readModel.canonicalEntries.first
-        : readModel.bridgeEntries.isNotEmpty
-            ? readModel.bridgeEntries.first
-            : null;
+    final fallback = readModel.canonicalEntries.firstOrNull;
     _selectedEntryId = fallback?.id;
     _loadedEditorId = null;
   }
@@ -2001,17 +1942,6 @@ class _MetricsStrip extends StatelessWidget {
             subtitle: 'CinematicAsset',
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: PokeMapMetricCard(
-            title: 'Bridges legacy',
-            value: '${readModel.metrics.bridgeCount}',
-            icon: CupertinoIcons.archivebox,
-            tone: PokeMapTone.warning,
-            subtitle: 'Scenario/Cutscene',
-          ),
-        ),
-        const SizedBox(width: 8),
         Expanded(
           child: PokeMapMetricCard(
             title: 'Problèmes',
@@ -2053,10 +1983,6 @@ class _CompactMetricsStrip extends StatelessWidget {
         PokeMapBadge(
           label: '${readModel.metrics.canonicalCount} canoniques',
           variant: PokeMapBadgeVariant.info,
-        ),
-        PokeMapBadge(
-          label: '${readModel.metrics.bridgeCount} legacy',
-          variant: PokeMapBadgeVariant.warning,
         ),
         PokeMapBadge(
           label: '${readModel.metrics.referencedCount} référencées',
@@ -2153,7 +2079,6 @@ class _CinematicEntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final isBridge = entry.kind == CinematicsLibraryEntryKind.scenarioBridge;
     return PokeMapCard(
       selected: selected,
       onTap: onTap,
@@ -2162,7 +2087,7 @@ class _CinematicEntryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _CinematicGeneratedThumbnail(entry: entry, isBridge: isBridge),
+              _CinematicGeneratedThumbnail(entry: entry),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -2207,8 +2132,7 @@ class _CinematicEntryCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${isBridge ? 'Bridge legacy' : 'Canonique'} • '
-            '${_durationLabel(entry.timeline)} • '
+            'Canonique • ${_durationLabel(entry.timeline)} • '
             '${_usageLabel(entry.usages.length)}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -2232,19 +2156,14 @@ class _CinematicEntryCard extends StatelessWidget {
 }
 
 class _CinematicGeneratedThumbnail extends StatelessWidget {
-  const _CinematicGeneratedThumbnail({
-    required this.entry,
-    required this.isBridge,
-  });
+  const _CinematicGeneratedThumbnail({required this.entry});
 
   final CinematicsLibraryEntry entry;
-  final bool isBridge;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final tone = (isBridge ? PokeMapTone.warning : PokeMapTone.cinematic)
-        .resolve(context);
+    final tone = PokeMapTone.cinematic.resolve(context);
     return Semantics(
       label: 'Aperçu généré de ${entry.title}',
       image: true,
@@ -2259,11 +2178,7 @@ class _CinematicGeneratedThumbnail extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: entry.timeline.stepCount == 0
-            ? Icon(
-                isBridge ? CupertinoIcons.archivebox : CupertinoIcons.film,
-                size: 15,
-                color: tone.icon,
-              )
+            ? Icon(CupertinoIcons.film, size: 15, color: tone.icon)
             : Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -2378,59 +2293,6 @@ class _CinematicBulkBar extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BridgeDetailsPanel extends StatelessWidget {
-  const _BridgeDetailsPanel({required this.entry});
-
-  final CinematicsLibraryEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    return PokeMapPanel(
-      expandChild: true,
-      padding: const EdgeInsets.all(14),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _PanelHeader(
-              title: entry.title,
-              subtitle: entry.id,
-              badge: const PokeMapBadge(
-                label: 'Bridge legacy',
-                variant: PokeMapBadgeVariant.warning,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _KeyValue(label: 'Statut', value: entry.statusLabel),
-            const SizedBox(height: 8),
-            const _EmptyState(
-              title: 'Bridge legacy — pas un CinematicAsset canonique',
-              description:
-                  'Les bridges legacy viennent de l’ancien Cutscene Studio / ScenarioAsset. Ils restent lisibles, mais ne sont pas des CinematicAsset canoniques.',
-            ),
-            const SizedBox(height: 12),
-            const PokeMapBadge(
-              label: 'Migration future',
-              variant: PokeMapBadgeVariant.neutral,
-            ),
-            const SizedBox(height: 10),
-            const PokeMapButton(
-              key: ValueKey(
-                'cinematics-library-legacy-builder-disabled-button',
-              ),
-              onPressed: null,
-              variant: PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.small,
-              leading: Icon(CupertinoIcons.lock_fill),
-              child: Text('Builder canonique indisponible'),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -2713,15 +2575,11 @@ class _UsageTile extends StatelessWidget {
             label: switch (usage.referenceStatus) {
               CinematicsLibraryReferenceStatus.canonical =>
                 'Référence canonique',
-              CinematicsLibraryReferenceStatus.bridgeLegacy =>
-                'Référence bridge',
               CinematicsLibraryReferenceStatus.unknown => 'Référence inconnue',
             },
             variant: switch (usage.referenceStatus) {
               CinematicsLibraryReferenceStatus.canonical =>
                 PokeMapBadgeVariant.success,
-              CinematicsLibraryReferenceStatus.bridgeLegacy =>
-                PokeMapBadgeVariant.warning,
               CinematicsLibraryReferenceStatus.unknown =>
                 PokeMapBadgeVariant.error,
             },

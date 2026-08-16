@@ -11,7 +11,6 @@ import 'package:map_editor/src/application/services/narrative_template_catalog.d
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_plan_loader.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
-import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_legacy_migration_center.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 const _referenceCinematicSurfaceSize = Size(1663, 926);
@@ -21,13 +20,9 @@ void main() {
       'uses the shared Cinematics workspace page without a duplicate header',
       (tester) async {
     _setLargeSurface(tester);
-    var legacyOpenCount = 0;
 
     await tester.pumpWidget(
-      _Harness(
-        project: _project(),
-        onOpenLegacyCutsceneStudio: () => legacyOpenCount++,
-      ),
+      _Harness(project: _project()),
     );
     await tester.pumpAndSettle();
 
@@ -40,13 +35,13 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey('cinematics-library-open-legacy-button')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.byKey(
         const ValueKey('cinematics-library-open-migration-center'),
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Nouvelle cinématique'), findsNothing);
     expect(
@@ -76,28 +71,13 @@ void main() {
     );
     expect(editable.focusNode.hasFocus, isTrue);
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey('cinematics-library-open-migration-center'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byKey(narrativeLegacyMigrationCenterKey), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('migration-center-close')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(
-      find.byKey(const ValueKey('cinematics-library-open-legacy-button')),
-    );
-    await tester.pump();
-    expect(legacyOpenCount, 1);
   });
 
   testWidgets('shows empty state and creates a cinematic shell',
       (tester) async {
     _setLargeSurface(tester);
     await tester.pumpWidget(
-      _Harness(project: _project(cinematics: const [], includeBridge: false)),
+      _Harness(project: _project(cinematics: const [], includeScenario: false)),
     );
     await tester.pumpAndSettle();
 
@@ -120,7 +100,7 @@ void main() {
     expect(find.textContaining('Builder V2'), findsWidgets);
   });
 
-  testWidgets('lists canonical and bridge entries with read-only details',
+  testWidgets('does not project Scenario assets into the cinematic library',
       (tester) async {
     _setLargeSurface(tester);
     await tester.pumpWidget(
@@ -129,88 +109,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Intro cinematic'), findsWidgets);
-    expect(find.text('Legacy cutscene'), findsWidgets);
-    expect(find.text('1 scène'), findsWidgets);
-
-    final legacyEntry =
-        find.byKey(const ValueKey('cinematic-entry-scenario_cutscene'));
-    await tester.scrollUntilVisible(
-      legacyEntry,
-      300,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('cinematics-library-list')),
-        matching: find.byType(Scrollable),
-      ),
-    );
-    await tester.tap(
-      legacyEntry,
-    );
-    await tester.pumpAndSettle();
-
     expect(
-      find.text(
-        'Bridge legacy — pas un CinematicAsset canonique',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Bridge legacy Scenario/Cutscene'), findsOneWidget);
-    expect(
-      find.textContaining(
-        'Les bridges legacy viennent de l’ancien Cutscene Studio',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Migration future'), findsOneWidget);
-    expect(find.text('Sauvegarder les métadonnées'), findsNothing);
-  });
-
-  testWidgets('keeps canonical and legacy filters wired to the library',
-      (tester) async {
-    _setLargeSurface(tester);
-    await tester.pumpWidget(_Harness(project: _project()));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
-      findsOneWidget,
-    );
-
-    await tester.tap(
-      find.ancestor(
-        of: find.text('Canoniques'),
-        matching: find.byType(PokeMapButton),
-      ),
-    );
-    await tester.pump();
-
-    expect(
-      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
+      find.byKey(const ValueKey('cinematic-entry-scenario_flow')),
       findsNothing,
-    );
-
-    await tester.tap(
-      find.ancestor(
-        of: find.text('Bridge legacy').first,
-        matching: find.byType(PokeMapButton),
-      ),
-    );
-    await tester.pump();
-
-    expect(
-      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
-      findsOneWidget,
     );
   });
 
@@ -237,7 +138,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
+      find.byKey(const ValueKey('cinematic-entry-scenario_flow')),
       findsNothing,
     );
   });
@@ -426,7 +327,7 @@ void main() {
               ),
             ),
           ],
-          includeBridge: false,
+          includeScenario: false,
         ),
       ),
     );
@@ -475,7 +376,7 @@ void main() {
               ),
             ),
           ],
-          includeBridge: false,
+          includeScenario: false,
         ),
       ),
     );
@@ -537,7 +438,7 @@ void main() {
               ),
             ),
           ],
-          includeBridge: false,
+          includeScenario: false,
         ),
       ),
     );
@@ -656,7 +557,7 @@ void main() {
               ),
             ),
           ],
-          includeBridge: false,
+          includeScenario: false,
         ),
       ),
     );
@@ -738,7 +639,7 @@ void main() {
           ),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
 
     await tester.pumpWidget(
@@ -807,7 +708,7 @@ void main() {
           ),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     ).copyWith(
       settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
       tilesets: const [
@@ -905,7 +806,7 @@ void main() {
           ),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     ).copyWith(
       settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
       tilesets: const [
@@ -980,7 +881,7 @@ void main() {
           ),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     ).copyWith(
       settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
       tilesets: const [
@@ -1164,43 +1065,6 @@ void main() {
     expect(find.textContaining('actor_professor'), findsWidgets);
   });
 
-  testWidgets('keeps legacy bridge out of canonical builder shell',
-      (tester) async {
-    _setLargeSurface(tester);
-    await tester.pumpWidget(
-      _Harness(project: _project(), surfaceSize: const Size(1280, 960)),
-    );
-    await tester.pumpAndSettle();
-
-    final legacyEntry =
-        find.byKey(const ValueKey('cinematic-entry-scenario_cutscene'));
-    await tester.scrollUntilVisible(
-      legacyEntry,
-      300,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('cinematics-library-list')),
-        matching: find.byType(Scrollable),
-      ),
-    );
-    await tester.tap(
-      legacyEntry,
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
-      findsNothing,
-    );
-    expect(
-      find.text('Bridge legacy — pas un CinematicAsset canonique'),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('cinematic-builder-workspace')),
-      findsNothing,
-    );
-  });
-
   testWidgets('rejects referenced deletion and deletes unused canonicals',
       (tester) async {
     _setLargeSurface(tester);
@@ -1308,7 +1172,7 @@ void main() {
           ),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     ).copyWith(
       settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
       tilesets: const [
@@ -1414,7 +1278,6 @@ class _Harness extends StatefulWidget {
     required this.project,
     this.stageMapSnapshots,
     this.resolveTilesetPath,
-    this.onOpenLegacyCutsceneStudio,
     this.onOpenSceneUsage,
     this.surfaceSize = const Size(1280, 820),
   });
@@ -1422,7 +1285,6 @@ class _Harness extends StatefulWidget {
   final ProjectManifest project;
   final Map<String, MapData?>? stageMapSnapshots;
   final String? Function(String tilesetId)? resolveTilesetPath;
-  final VoidCallback? onOpenLegacyCutsceneStudio;
   final OpenCinematicSceneUsageCallback? onOpenSceneUsage;
   final Size surfaceSize;
 
@@ -1908,8 +1770,6 @@ class _HarnessState extends State<_Harness> {
                 return mapId == 'map_lab' ? _stageMapData() : null;
               },
               onResolveBackdropTilesetPath: widget.resolveTilesetPath,
-              onOpenLegacyCutsceneStudio:
-                  widget.onOpenLegacyCutsceneStudio ?? () {},
               onOpenSceneUsage: widget.onOpenSceneUsage,
             ),
           ),
@@ -2002,7 +1862,7 @@ ProjectManifest _project({
   List<CinematicAsset>? cinematics,
   List<CinematicAsset> extraCinematics = const [],
   List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
-  bool includeBridge = true,
+  bool includeScenario = true,
 }) {
   return ProjectManifest(
     name: 'cinematic_project',
@@ -2020,25 +1880,22 @@ ProjectManifest _project({
           nodeTitle: 'Play intro',
           cinematicId: 'cinematic_intro',
         ),
-      if (includeBridge)
+      if (includeScenario)
         _sceneReferencing(
-          id: 'scene_bridge',
-          name: 'Bridge scene',
-          nodeId: 'node_bridge',
-          nodeTitle: 'Play bridge',
-          cinematicId: 'scenario_cutscene',
+          id: 'scene_scenario',
+          name: 'Scenario scene',
+          nodeId: 'node_scenario',
+          nodeTitle: 'Play scenario',
+          cinematicId: 'scenario_flow',
         ),
     ],
-    scenarios: includeBridge
+    scenarios: includeScenario
         ? const <ScenarioAsset>[
             ScenarioAsset(
-              id: 'scenario_cutscene',
-              name: 'Legacy cutscene',
+              id: 'scenario_flow',
+              name: 'Scenario flow',
               scope: ScenarioScope.localEventFlow,
               entryNodeId: 'start',
-              metadata: <String, String>{
-                'authoring.cutsceneSchema': 'cutscene-studio-v0',
-              },
             ),
           ]
         : const <ScenarioAsset>[],

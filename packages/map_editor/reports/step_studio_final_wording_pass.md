@@ -36,7 +36,7 @@ Alignement **surface uniquement** du vocabulaire Step Studio sur la cible produi
 - Titres canvas déjà verrouillés : **Cette étape**, **Quand ça commence**, **Objectif**, **Scènes liées**, **Quand l’étape se termine**, **Résultats pour l’histoire**, **Changements sur la carte**.
 - **Condition de fin** / **Condition de fin enregistrée** / **Règle actuelle** dans l’inspecteur (condition de fin).
 - **Type de résultat** sur le dropdown des outcomes (pas de retour à « Portée »).
-- **Scène liée**, **Rôle de la scène**, **Référence de la scène**, renvoi **Cutscene Studio** où pertinent.
+- **Scène liée**, **Rôle de la scène**, **Référence de la scène**, renvoi **Cinematics Library** où pertinent.
 - **Étape associée (mémo uniquement)** pour `flowUnlocksStepId`.
 - Tuile palette **Fin** (accès condition de fin) : **non supprimée** — absent de ta liste courte navigation mais **indispensable** au workflow existant ; wording déjà clair.
 - **Repères & ajouts** en tête de palette (non repris dans la liste cible ; inchangé pour rester conservateur).
@@ -52,7 +52,7 @@ Alignement **surface uniquement** du vocabulaire Step Studio sur la cible produi
 - **Résultat** remplace **issue** : même objet métier (outcome local), vocabulaire plus naturel pour un créateur et moins « ticket technique ».
 - **Transition** + **N’active rien automatiquement** + **Étape associée (mémo uniquement)** : pas d’ambiguïté sur le fait qu’**aucune** autre étape ne s’active toute seule via ce mémo.
 - **Au centre** au lieu de **parcours** : ancrage spatial dans l’UI (colonne centrale) sans jargon « parcours ».
-- **Cutscene Studio** nommé explicitement là où on renvoie vers la mise en scène ; Step Studio reste sur la **logique d’étape**.
+- **Cinematics Library** nommée explicitement là où on renvoie vers les cinématiques ; Step Studio reste sur la **logique d’étape**.
 
 ## Fichiers touchés
 

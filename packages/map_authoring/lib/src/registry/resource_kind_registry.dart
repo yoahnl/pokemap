@@ -454,12 +454,6 @@ final class AuthoringResourceKindRegistry {
         summary: 'Chapter, Step and progression graph aggregate',
       ),
       AuthoringResourceKindDescriptor(
-        id: 'scenario',
-        version: 1,
-        displayName: 'Scenario',
-        summary: 'Legacy-readable local or global narrative flow',
-      ),
-      AuthoringResourceKindDescriptor(
         id: 'cinematic',
         version: 1,
         displayName: 'Cinematic',
@@ -606,7 +600,6 @@ final class AuthoringResourceKindRegistry {
       'presentationLayer',
       'presentationVisualFolder',
       'presentationMedia',
-      'scenario',
       'scene',
       'script',
       'smartTileAnimation',

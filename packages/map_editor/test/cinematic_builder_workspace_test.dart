@@ -212,7 +212,7 @@ void main() {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     final asset = _actorEmoteAuthoringCinematic(withEmoteStep: false);
     final mapData = _stageMapDataWithActorDisplayFixtures();
-    final project = _project(cinematics: [asset], includeBridge: false);
+    final project = _project(cinematics: [asset], includeScenario: false);
     final beforeMapData = mapData.toJson();
     var latestProject = project;
     var projectChangeCount = 0;
@@ -262,7 +262,7 @@ void main() {
       final asset = _actorEmoteAuthoringCinematic(withEmoteStep: false);
       final project = _project(
         cinematics: <CinematicAsset>[asset],
-        includeBridge: false,
+        includeScenario: false,
         animationDefinitions: const <CharacterCustomAnimationDefinition>[
           CharacterCustomAnimationDefinition(
             id: 'wave',
@@ -304,7 +304,7 @@ void main() {
   ) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     final asset = _actorEmoteAuthoringCinematic(emoteId: 'question');
-    final project = _project(cinematics: [asset], includeBridge: false);
+    final project = _project(cinematics: [asset], includeScenario: false);
     var latestProject = project;
 
     await _pumpBuilderHarness(
@@ -357,7 +357,7 @@ void main() {
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _actorEmoteAuthoringCinematic();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       var latestProject = project;
 
       await _pumpBuilderHarness(
@@ -433,7 +433,7 @@ void main() {
       await _loadScreenshotFonts();
       final asset = _actorEmoteAuthoringCinematic(emoteId: 'question');
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpBuilderHarness(
         tester,
@@ -481,7 +481,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _playbackActorEmoteCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -558,7 +558,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _playbackActorEmoteCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -730,7 +730,7 @@ void main() {
       await _loadScreenshotFonts();
       final asset = _playbackActorEmoteCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -796,7 +796,7 @@ void main() {
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraTargetZoomAuthoringCinematic();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpBuilderHarness(
         tester,
@@ -840,7 +840,7 @@ void main() {
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraTargetZoomAuthoringCinematic(cameraMode: 'reset');
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       var latestProject = project;
 
       await _pumpBuilderHarness(
@@ -891,7 +891,7 @@ void main() {
         targetActorId: 'actor_lysa',
         zoomPreset: 'close',
       );
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       var latestProject = project;
 
       await _pumpBuilderHarness(
@@ -935,7 +935,7 @@ void main() {
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraTargetZoomAuthoringCinematic(zoomPreset: 'wide');
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       var latestProject = project;
 
       await _pumpBuilderHarness(
@@ -985,7 +985,7 @@ void main() {
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraTargetZoomAuthoringCinematic(zoomPreset: 'close');
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       var latestProject = project;
 
       await _pumpBuilderHarness(
@@ -1037,7 +1037,7 @@ void main() {
       targetStagePointId: 'stage_point_balcony',
       zoomPreset: 'wide',
     );
-    final project = _project(cinematics: [asset], includeBridge: false);
+    final project = _project(cinematics: [asset], includeScenario: false);
     var latestProject = project;
 
     await _pumpBuilderHarness(
@@ -1077,7 +1077,7 @@ void main() {
       targetActorId: 'actor_lysa',
       zoomPreset: 'close',
     );
-    final project = _project(cinematics: [asset], includeBridge: false);
+    final project = _project(cinematics: [asset], includeScenario: false);
     var latestProject = project;
 
     await _pumpBuilderHarness(
@@ -1125,7 +1125,7 @@ void main() {
       targetStagePointId: 'stage_point_gate',
       zoomPreset: 'wide',
     );
-    final project = _project(cinematics: [asset], includeBridge: false);
+    final project = _project(cinematics: [asset], includeScenario: false);
     var latestProject = project;
 
     await _pumpBuilderHarness(
@@ -1168,7 +1168,7 @@ void main() {
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraTargetZoomAuthoringCinematic(withStagePoints: false);
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpBuilderHarness(
         tester,
@@ -1196,7 +1196,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraTargetZoomAuthoringCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -1260,7 +1260,7 @@ void main() {
         zoomPreset: 'medium',
       );
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -3889,7 +3889,7 @@ void main() {
           ),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     var latestProject = project;
     final beforeSteps = _asset(
@@ -4001,7 +4001,7 @@ void main() {
           ),
         ],
         cinematics: [asset],
-        includeBridge: false,
+        includeScenario: false,
       );
       var latestProject = project;
       final stageMapData = _stageMapDataWithVisualLayers();
@@ -4082,7 +4082,7 @@ void main() {
             timeline: CinematicTimeline(),
           ),
         ],
-        includeBridge: false,
+        includeScenario: false,
       );
 
       await _pumpBuilderHarness(
@@ -4153,7 +4153,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
 
     await _pumpBuilderHarness(
@@ -4230,7 +4230,7 @@ void main() {
             ),
           ),
         ],
-        includeBridge: false,
+        includeScenario: false,
       );
       var latestProject = project;
       final beforeActorBindings = _asset(
@@ -4341,7 +4341,7 @@ void main() {
             ),
           ),
         ],
-        includeBridge: false,
+        includeScenario: false,
       );
       var latestProject = project;
       final beforeTimeline = _asset(
@@ -4422,7 +4422,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     var latestProject = project;
 
@@ -4516,7 +4516,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     expect(
       appearanceItem(missingProject, 'cinematic_missing_character').kind,
@@ -4554,7 +4554,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     expect(
       appearanceItem(brokenProject, 'cinematic_unknown_character').kind,
@@ -4592,7 +4592,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     expect(
       appearanceItem(
@@ -4627,7 +4627,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     expect(
       appearanceItem(orphanProject, 'cinematic_orphan_character').kind,
@@ -4681,7 +4681,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     expect(
       appearanceItem(
@@ -4725,7 +4725,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     expect(
       appearanceItem(
@@ -4762,7 +4762,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     final readyItem = appearanceItem(readyProject, 'cinematic_ready_character');
     expect(readyItem.kind, CinematicStagePreviewReadinessItemKind.ok);
@@ -7724,7 +7724,7 @@ void main() {
             timeline: CinematicTimeline(),
           ),
         ],
-        includeBridge: false,
+        includeScenario: false,
       );
       await _pumpBuilder(
         tester,
@@ -7898,7 +7898,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _playbackDirectActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -8049,7 +8049,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _playbackDirectActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -8370,7 +8370,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _playbackDirectActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -8553,7 +8553,7 @@ void main() {
       await _loadScreenshotFonts();
       final asset = _playbackDirectActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -8639,7 +8639,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeOut);
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -8695,7 +8695,7 @@ void main() {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeIn);
     final mapData = _stageMapDataWithActorDisplayFixtures();
-    final project = _project(cinematics: [asset], includeBridge: false);
+    final project = _project(cinematics: [asset], includeScenario: false);
     final tileRenderPlan = await _referenceTileRenderPlanFor(
       project: project,
       mapData: mapData,
@@ -8737,7 +8737,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeOut);
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -8793,7 +8793,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeOut);
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -8858,7 +8858,7 @@ void main() {
       await _loadScreenshotFonts();
       final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeOut);
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -8933,7 +8933,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -9000,7 +9000,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'orbit');
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -9053,7 +9053,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraPreviewPlaybackCinematic(cameraMode: null);
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -9094,7 +9094,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'reset');
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -9142,7 +9142,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -9240,7 +9240,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -9339,7 +9339,7 @@ void main() {
       await _loadScreenshotFonts();
       final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -9417,7 +9417,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraGeometryPreviewCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final beforeProject = project.toJson();
       final beforeAsset = asset.toJson();
       final beforeMapData = mapData.toJson();
@@ -9471,7 +9471,7 @@ void main() {
         targetActorId: 'actor_lysa',
       );
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpCameraGeometryPreviewBuilder(
         tester,
@@ -9501,7 +9501,7 @@ void main() {
         zoomPreset: 'close',
       );
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpCameraGeometryPreviewBuilder(
         tester,
@@ -9532,7 +9532,7 @@ void main() {
       await tester.pumpAndSettle();
       final asset = _cameraGeometryPreviewCinematic(zoomPreset: zoomPreset);
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       await _pumpCameraGeometryPreviewBuilder(
         tester,
         project: project,
@@ -9562,7 +9562,7 @@ void main() {
       targetActorId: 'actor_missing',
     );
     final mapData = _stageMapDataWithActorDisplayFixtures();
-    final project = _project(cinematics: [asset], includeBridge: false);
+    final project = _project(cinematics: [asset], includeScenario: false);
 
     await _pumpCameraGeometryPreviewBuilder(
       tester,
@@ -9593,7 +9593,7 @@ void main() {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
     final mapData = _stageMapDataWithActorDisplayFixtures();
-    final project = _project(cinematics: [asset], includeBridge: false);
+    final project = _project(cinematics: [asset], includeScenario: false);
     final tileRenderPlan = await _referenceTileRenderPlanFor(
       project: project,
       mapData: mapData,
@@ -9632,7 +9632,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraGeometryPreviewTwoTargetsCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpCameraGeometryPreviewBuilder(
         tester,
@@ -9691,7 +9691,7 @@ void main() {
         zoomPreset: 'medium',
       );
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpCameraGeometryPreviewBuilder(
         tester,
@@ -9772,7 +9772,7 @@ void main() {
         targetStagePointId: 'stage_point_balcony',
       );
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpCameraGeometryPreviewBuilder(
         tester,
@@ -9820,7 +9820,7 @@ void main() {
         await tester.pumpAndSettle();
         final asset = _cameraPreviewPlaybackCinematic(cameraMode: cameraMode);
         final mapData = _stageMapDataWithActorDisplayFixtures();
-        final project = _project(cinematics: [asset], includeBridge: false);
+        final project = _project(cinematics: [asset], includeScenario: false);
         final tileRenderPlan = await _referenceTileRenderPlanFor(
           project: project,
           mapData: mapData,
@@ -9878,7 +9878,7 @@ void main() {
         targetStagePointId: 'stage_point_missing',
       );
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpCameraGeometryPreviewBuilder(
         tester,
@@ -9914,7 +9914,7 @@ void main() {
         targetActorId: 'actor_lysa',
       );
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final beforeProject = project.toJson();
       final beforeAsset = asset.toJson();
       final beforeMapData = mapData.toJson();
@@ -9964,7 +9964,7 @@ void main() {
         zoomPreset: 'medium',
       );
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpCameraGeometryPreviewBuilder(
         tester,
@@ -10053,7 +10053,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _playbackDirectActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -10163,7 +10163,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _playbackManualPathActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -10227,7 +10227,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _playbackDirectActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -10336,7 +10336,7 @@ void main() {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _playbackManualPathActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -11181,7 +11181,7 @@ void main() {
       await _loadScreenshotFonts();
       final asset = _playbackManualPathActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -11265,7 +11265,7 @@ void main() {
       await _loadScreenshotFonts();
       final asset = _playbackManualPathActorMoveCinematic();
       final mapData = _stageMapDataWithActorDisplayFixtures();
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
       final tileRenderPlan = await _referenceTileRenderPlanFor(
         project: project,
         mapData: mapData,
@@ -12133,7 +12133,7 @@ void main() {
             timeline: CinematicTimeline(),
           ),
         ],
-        includeBridge: false,
+        includeScenario: false,
       );
       final emptyBefore = emptyProject.toJson();
       await _pumpBuilder(
@@ -12879,7 +12879,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     await _pumpBuilderHarness(
       tester,
@@ -12930,7 +12930,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     var latestProject = project;
     await _pumpBuilderHarness(
@@ -12996,7 +12996,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     var latestProject = project;
     await _pumpBuilderHarness(
@@ -13050,7 +13050,7 @@ void main() {
             ),
           ),
         ],
-        includeBridge: false,
+        includeScenario: false,
       );
       await _pumpBuilderHarness(tester, project, 'cinematic_used_actor');
 
@@ -13174,7 +13174,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     await _pumpBuilderHarness(
       tester,
@@ -13264,7 +13264,7 @@ void main() {
           ],
         ),
       );
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpBuilderHarness(
         tester,
@@ -13369,7 +13369,7 @@ void main() {
         ),
         timeline: CinematicTimeline(),
       );
-      final project = _project(cinematics: [asset], includeBridge: false);
+      final project = _project(cinematics: [asset], includeScenario: false);
 
       await _pumpBuilderHarness(
         tester,
@@ -13484,7 +13484,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     await _pumpBuilderHarness(tester, project, 'cinematic_no_actor_move');
 
@@ -13742,7 +13742,7 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       ],
-      includeBridge: false,
+      includeScenario: false,
     );
     await _pumpBuilder(
       tester,
@@ -15281,7 +15281,7 @@ void main() {
             ),
           ),
         ],
-        includeBridge: false,
+        includeScenario: false,
       );
 
       await _pumpBuilderHarness(
@@ -15376,7 +15376,7 @@ void main() {
             ),
           ),
         ],
-        includeBridge: false,
+        includeScenario: false,
       );
 
       await _pumpBuilderHarness(
@@ -20861,7 +20861,7 @@ ProjectManifest _project({
   List<CinematicAsset>? cinematics,
   List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   List<CharacterCustomAnimationDefinition> animationDefinitions = const [],
-  bool includeBridge = true,
+  bool includeScenario = true,
 }) {
   return ProjectManifest(
     name: 'cinematic_project',
@@ -20882,25 +20882,22 @@ ProjectManifest _project({
           nodeTitle: 'Play intro',
           cinematicId: 'cinematic_intro',
         ),
-      if (includeBridge)
+      if (includeScenario)
         _sceneReferencing(
-          id: 'scene_bridge',
-          name: 'Bridge scene',
-          nodeId: 'node_bridge',
-          nodeTitle: 'Play bridge',
-          cinematicId: 'scenario_cutscene',
+          id: 'scene_scenario',
+          name: 'Scenario scene',
+          nodeId: 'node_scenario',
+          nodeTitle: 'Play scenario',
+          cinematicId: 'scenario_flow',
         ),
     ],
-    scenarios: includeBridge
+    scenarios: includeScenario
         ? const <ScenarioAsset>[
             ScenarioAsset(
-              id: 'scenario_cutscene',
-              name: 'Legacy cutscene',
+              id: 'scenario_flow',
+              name: 'Scenario flow',
               scope: ScenarioScope.localEventFlow,
               entryNodeId: 'start',
-              metadata: <String, String>{
-                'authoring.cutsceneSchema': 'cutscene-studio-v0',
-              },
             ),
           ]
         : const <ScenarioAsset>[],
@@ -20938,7 +20935,7 @@ ProjectManifest _project({
 }
 
 ProjectManifest _extendedBackdropProject({List<CinematicAsset>? cinematics}) {
-  return _project(cinematics: cinematics, includeBridge: false).copyWith(
+  return _project(cinematics: cinematics, includeScenario: false).copyWith(
     settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
     tilesets: const [
       ProjectTilesetEntry(
@@ -21964,7 +21961,7 @@ ProjectManifest _animatedLysaProject(
 }) {
   return _project(
     cinematics: [asset],
-    includeBridge: false,
+    includeScenario: false,
     characters: [
       _animatedLysaCharacter(
         includeRunAnimation: includeRunAnimation,

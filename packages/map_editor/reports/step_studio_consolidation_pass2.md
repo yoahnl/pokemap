@@ -97,7 +97,7 @@ Elles sont **sérialisées** et **affichées** dans Step Studio uniquement. Elle
 ## 8. Ce qui a été volontairement laissé inchangé
 
 - Aucun nouveau fichier module « pour faire propre » sans second consommateur.
-- Pas de modification de Global Story Studio, Cutscene Studio, ni shell narratif.
+- Pas de modification de Global Story Studio, de la Cinematics Library, ni du shell narratif.
 - Pas d’évolution du schéma `StepStudioDocument` ni des clés metadata.
 - Tests : aucun changement de comportement attendu côté assertions existantes (l’enum en moins n’était pas sérialisé).
 

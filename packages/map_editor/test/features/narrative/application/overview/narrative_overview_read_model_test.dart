@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/dialogue/application/dialogue_editor_validation.dart';
-import 'package:map_editor/src/features/narrative/application/cutscene_studio/cutscene_studio_models.dart';
 import 'package:map_editor/src/features/narrative/application/global_story_studio_authoring.dart';
 import 'package:map_editor/src/features/narrative/application/overview/narrative_overview_read_model.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
@@ -75,7 +74,9 @@ void main() {
             timeline: CinematicTimeline(),
           ),
         ],
-        scenes: <SceneAsset>[_scene('test_scene_1')],
+        scenes: <SceneAsset>[
+          _scene('test_cutscene_1', dialogueId: 'test_dialogue_1'),
+        ],
       );
 
       final model = buildNarrativeOverviewReadModel(project: project);
@@ -110,7 +111,7 @@ void main() {
           (module) => module.id == NarrativeOverviewModuleIds.cutscenes);
       expect(cutsceneModule.count, 1);
       expect(cutsceneModule.destination, 'cinematics_library');
-      expect(cutsceneModule.secondaryStats.single.count, 1);
+      expect(cutsceneModule.secondaryStats, isEmpty);
       expect(
           cutsceneModule.availability, NarrativeOverviewAvailability.available);
 
@@ -131,7 +132,7 @@ void main() {
             ),
           ],
           scenes: <SceneAsset>[
-            _scene('scene_one'),
+            _scene('test_cutscene_1', dialogueId: 'test_dialogue_1'),
             _scene('scene_two'),
           ],
         ),
@@ -161,9 +162,6 @@ void main() {
             name: 'Test Cutscene',
             scope: ScenarioScope.localEventFlow,
             entryNodeId: 'start',
-            metadata: <String, String>{
-              kCutsceneStudioSchemaMetadataKey: kCutsceneStudioSchemaVersion,
-            },
           ),
         ],
       );
@@ -370,7 +368,6 @@ void main() {
       for (final metric in model.metrics.all) {
         expect(metric.sourceLabel.trim(), isNotEmpty, reason: metric.id);
       }
-      expect(model.metrics.legacyRemaining.count, isNonNegative);
     });
 
     test('does not fabricate activity when the durable journal is empty', () {
@@ -481,13 +478,19 @@ StorylineAsset _canonicalStoryline() => StorylineAsset(
       ],
     );
 
-SceneAsset _scene(String id) => SceneAsset(
+SceneAsset _scene(String id, {String? dialogueId}) => SceneAsset(
       id: id,
       name: id,
       graph: SceneGraph(
         startNodeId: 'start',
         nodes: <SceneNode>[
           SceneNode(id: 'start', kind: SceneNodeKind.start),
+          if (dialogueId != null)
+            SceneNode(
+              id: 'dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(dialogueId: dialogueId),
+            ),
           SceneNode(id: 'end', kind: SceneNodeKind.end),
         ],
         edges: <SceneEdge>[
@@ -614,9 +617,6 @@ ScenarioAsset _cutsceneScenario({
     name: 'Test Cutscene',
     scope: ScenarioScope.localEventFlow,
     entryNodeId: 'start',
-    metadata: const <String, String>{
-      kCutsceneStudioSchemaMetadataKey: kCutsceneStudioSchemaVersion,
-    },
     nodes: <ScenarioNode>[
       if (dialogueId != null)
         ScenarioNode(

@@ -93,7 +93,6 @@ export 'src/domains/narrative/modern_narrative_inspection.dart';
 export 'src/domains/narrative/narrative_authoring_exception.dart';
 export 'src/domains/narrative/narrative_parity_gate.dart';
 export 'src/domains/narrative/scene_actions.dart';
-export 'src/domains/narrative/scenario_actions.dart';
 export 'src/domains/narrative/script_actions.dart';
 export 'src/domains/narrative/script_authoring_service.dart';
 export 'src/domains/narrative/storyline_actions.dart';

@@ -67,7 +67,7 @@ void main() {
       for (final eventSystemMode in EventSystemMode.values) {
         expect(
           NarrativeStudioShellPolicy.shouldUseProductShell(
-            workspaceMode: EditorWorkspaceMode.cutscene,
+            workspaceMode: EditorWorkspaceMode.cinematics,
             eventSystemMode: eventSystemMode,
           ),
           isTrue,
@@ -107,7 +107,7 @@ void main() {
             workspaceMode == EditorWorkspaceMode.scenes ||
             workspaceMode == EditorWorkspaceMode.globalStory ||
             workspaceMode == EditorWorkspaceMode.step ||
-            workspaceMode == EditorWorkspaceMode.cutscene ||
+            workspaceMode == EditorWorkspaceMode.cinematics ||
             workspaceMode == EditorWorkspaceMode.dialogue ||
             workspaceMode == EditorWorkspaceMode.facts ||
             workspaceMode == EditorWorkspaceMode.shops ||

@@ -42,7 +42,7 @@ part 'step_studio/step_studio_workspace_support.dart';
 
 /// Workspace central **Step Studio** — logique de progression d’une étape.
 ///
-/// RÔLE PRODUIT (à ne pas confondre avec Cutscene Studio ni Global Story) :
+/// RÔLE PRODUIT (à ne pas confondre avec Cinematics Library ni Global Story) :
 /// - **Global Story** : macro-progression, arcs, quelle step est débloquée.
 /// - **Step (ici)** : objectif, activation, completion, outcomes, références
 ///   cutscene, changements monde ; notes auteur (`flow*`) séparées des règles.
@@ -53,8 +53,8 @@ part 'step_studio/step_studio_workspace_support.dart';
 /// - canvas central : flux vertical lisible façon « Scratch métier »;
 /// - inspecteur droit : champs détaillés du bloc sélectionné.
 ///
-/// Les cutscenes ne s’éditent **pas** ici : on ne fait que les lier et
-/// proposer d’ouvrir Cutscene Studio.
+/// Les cinématiques ne s’éditent pas ici : ce workspace conserve uniquement
+/// les liens narratifs de la Step.
 class StepStudioWorkspace extends StatefulWidget {
   const StepStudioWorkspace({
     super.key,
@@ -65,7 +65,6 @@ class StepStudioWorkspace extends StatefulWidget {
     required this.selectedStepId,
     required this.onSelectStep,
     required this.onSelectOutcome,
-    this.onOpenCutsceneStudio,
   });
 
   final EditorNotifier editorNotifier;
@@ -75,9 +74,6 @@ class StepStudioWorkspace extends StatefulWidget {
   final String? selectedStepId;
   final ValueChanged<String?> onSelectStep;
   final ValueChanged<String?> onSelectOutcome;
-
-  /// Bascule vers Cutscene Studio sur une cutscene donnée (référence Step).
-  final void Function(String cutsceneScenarioId)? onOpenCutsceneStudio;
 
   @override
   State<StepStudioWorkspace> createState() => _StepStudioWorkspaceState();
@@ -1498,7 +1494,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
           ? Center(
               child: Text(
                 'Touchez une carte au centre ou un raccourci à gauche.\n'
-                'Les dialogues et la caméra se règlent dans Cutscene Studio.',
+                'Les dialogues et la caméra se règlent dans Cinematics Library.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: EditorChrome.subtleLabel(context),
@@ -1613,7 +1609,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
             _StepSectionCard(
               title: 'Scène liée',
               subtitle:
-                  'Référence et rôle — le contenu est dans Cutscene Studio.',
+                  'Référence et rôle — le contenu est dans Cinematics Library.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -1646,17 +1642,6 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                       setState(() => _flowInspectorFocus = null);
                     },
                   ),
-                  if (widget.onOpenCutsceneStudio != null) ...[
-                    const SizedBox(height: 10),
-                    InspectorEmbeddedSecondaryCapsule(
-                      accent: EditorChrome.inspectorJoyPlum,
-                      icon: CupertinoIcons.arrow_right_square,
-                      label: 'Ouvrir dans Cutscene Studio',
-                      enabled: _canEdit,
-                      onPressed: () =>
-                          widget.onOpenCutsceneStudio!(link.cutsceneId),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -1723,7 +1708,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         return _StepSectionCard(
           title: 'Résultats possibles',
           subtitle:
-              'Résultats de cette étape — pas la mise en scène (Cutscene Studio).',
+              'Résultats de cette étape — pas la mise en scène (Cinematics Library).',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

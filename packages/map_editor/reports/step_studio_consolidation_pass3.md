@@ -1,7 +1,7 @@
 # Step Studio — consolidation passe 3 (UX sobre, signaux honnêtes)
 
 **Date :** 2026-04-05  
-**Périmètre :** Step Studio uniquement (authoring + workspace + `step_studio/*` + test ciblé). Aucune modification de Global Story Studio, Cutscene Studio, `map_runtime`, `map_gameplay`, shell global.
+**Périmètre :** Step Studio uniquement (authoring + workspace + `step_studio/*` + test ciblé). Aucune modification de Global Story Studio, Cinematics Library, `map_runtime`, `map_gameplay`, shell global.
 
 ---
 

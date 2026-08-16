@@ -2148,7 +2148,6 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     final hasDialogues = contracts?.dialogues.isNotEmpty ?? false;
     final hasBattles = contracts?.battles.isNotEmpty ?? false;
     final canonicalCinematics = library?.canonicalEntries ?? const [];
-    final bridgeCinematics = library?.bridgeEntries ?? const [];
     final hasCanonicalCinematics = canonicalCinematics.isNotEmpty;
     final compatiblePresentations = presentationCinematics.toList()
       ..sort((left, right) => left.title.compareTo(right.title));
@@ -2167,9 +2166,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
         .toList(growable: false);
     final cinematicReason = hasCanonicalCinematics
         ? null
-        : bridgeCinematics.isNotEmpty
-            ? 'Des bridges legacy existent, mais aucun CinematicAsset canonique n’est disponible.'
-            : 'Créez d’abord une cinématique dans la Cinematics Library.';
+        : 'Créez d’abord une cinématique dans la Cinematics Library.';
     const worldOnlyReason = 'réservé aux scènes in-game';
     return SizedBox(
       key: const ValueKey('scenes-add-node-palette'),

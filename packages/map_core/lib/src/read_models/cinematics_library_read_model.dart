@@ -4,19 +4,11 @@ import '../diagnostics/cinematic_diagnostics.dart';
 import '../models/cinematic_asset.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
-import 'linked_asset_public_contracts.dart';
 import 'narrative_dependency_index.dart';
 
-enum CinematicsLibraryEntryKind {
-  canonical,
-  scenarioBridge,
-}
+enum CinematicsLibraryEntryKind { canonical }
 
-enum CinematicsLibraryReferenceStatus {
-  canonical,
-  bridgeLegacy,
-  unknown,
-}
+enum CinematicsLibraryReferenceStatus { canonical, unknown }
 
 enum CinematicsLibraryDiagnosticSeverity {
   error,
@@ -67,27 +59,18 @@ final class CinematicsLibraryGroup {
 final class CinematicsLibraryReadModel {
   CinematicsLibraryReadModel({
     required List<CinematicsLibraryEntry> canonicalEntries,
-    required List<CinematicsLibraryEntry> bridgeEntries,
     required List<CinematicsLibraryUsage> unknownUsages,
     required this.metrics,
-  })  : canonicalEntries =
-            List<CinematicsLibraryEntry>.unmodifiable(canonicalEntries),
-        bridgeEntries = List<CinematicsLibraryEntry>.unmodifiable(
-          bridgeEntries,
-        ),
-        unknownUsages = List<CinematicsLibraryUsage>.unmodifiable(
-          unknownUsages,
-        );
+  }) : canonicalEntries = List<CinematicsLibraryEntry>.unmodifiable(
+         canonicalEntries,
+       ),
+       unknownUsages = List<CinematicsLibraryUsage>.unmodifiable(unknownUsages);
 
   final List<CinematicsLibraryEntry> canonicalEntries;
-  final List<CinematicsLibraryEntry> bridgeEntries;
   final List<CinematicsLibraryUsage> unknownUsages;
   final CinematicsLibraryMetrics metrics;
 
-  List<CinematicsLibraryEntry> get allEntries => List.unmodifiable([
-        ...canonicalEntries,
-        ...bridgeEntries,
-      ]);
+  List<CinematicsLibraryEntry> get allEntries => canonicalEntries;
 
   CinematicsLibraryEntry? entryById(String cinematicId) {
     final id = cinematicId.trim();
@@ -187,7 +170,6 @@ final class CinematicsLibraryEntry {
     required List<CinematicsLibraryActor> requiredActors,
     required this.timeline,
     this.notes,
-    this.sourceScenarioId,
     required List<CinematicsLibraryDiagnosticView> diagnostics,
     required List<CinematicsLibraryUsage> usages,
     required this.isEditable,
@@ -215,7 +197,6 @@ final class CinematicsLibraryEntry {
   final List<CinematicsLibraryActor> requiredActors;
   final CinematicTimelineSummary timeline;
   final String? notes;
-  final String? sourceScenarioId;
   final List<CinematicsLibraryDiagnosticView> diagnostics;
   final List<CinematicsLibraryUsage> usages;
   final bool isEditable;
@@ -306,7 +287,6 @@ final class CinematicsLibraryDiagnosticView {
 final class CinematicsLibraryMetrics {
   const CinematicsLibraryMetrics({
     required this.canonicalCount,
-    required this.bridgeCount,
     required this.diagnosticCount,
     required this.referencedCount,
     required this.emptyTimelineCount,
@@ -314,7 +294,6 @@ final class CinematicsLibraryMetrics {
   });
 
   final int canonicalCount;
-  final int bridgeCount;
   final int diagnosticCount;
   final int referencedCount;
   final int emptyTimelineCount;
@@ -325,20 +304,12 @@ CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
   ProjectManifest project, {
   NarrativeDependencyIndex? dependencyIndex,
 }) {
-  final contracts = buildCinematicPublicContracts(project);
-  final bridgeContracts = {
-    for (final contract in contracts)
-      if (contract.sourceKind ==
-          CinematicPublicContractSourceKind.scenarioBridge)
-        contract.id: contract,
-  };
-  final canonicalIds =
-      project.cinematics.map((cinematic) => cinematic.id).toSet();
-  final bridgeIds = bridgeContracts.keys.toSet();
+  final canonicalIds = project.cinematics
+      .map((cinematic) => cinematic.id)
+      .toSet();
   final usagesByCinematicId = _collectSceneUsages(
     project.scenes,
     canonicalIds: canonicalIds,
-    bridgeIds: bridgeIds,
     dependencyIndex: dependencyIndex,
   );
   final diagnosticsByCinematicId = _groupCinematicDiagnostics(
@@ -396,40 +367,6 @@ CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
       ),
   ]..sort(_compareEntry);
 
-  final bridgeEntries = [
-    for (final contract in bridgeContracts.values)
-      CinematicsLibraryEntry(
-        id: contract.id,
-        title: contract.label,
-        kind: CinematicsLibraryEntryKind.scenarioBridge,
-        statusLabel: 'Bridge legacy Scenario/Cutscene',
-        mapId: contract.mapId,
-        mapLabel: contract.mapId == null
-            ? 'Sans lieu'
-            : mapLabels[contract.mapId] ?? 'Map manquante',
-        storylineTitle: 'Legacy',
-        chapterTitle: 'Bridge',
-        tags: const [],
-        requiredActors: const [],
-        timeline: CinematicTimelineSummary(
-          stepCount: 0,
-          estimatedDurationMs: null,
-          stepKindLabels: const [],
-          actorIds: const [],
-          previewLabels: const [],
-        ),
-        sourceScenarioId: contract.id,
-        diagnostics: [
-          for (final diagnostic in contract.diagnostics)
-            _fromContractDiagnostic(diagnostic),
-        ],
-        usages: usagesByCinematicId[contract.id] ?? const [],
-        isEditable: false,
-        isRemovable: false,
-        isArchived: false,
-      ),
-  ]..sort(_compareEntry);
-
   final unknownUsages = [
     for (final usages in usagesByCinematicId.values)
       for (final usage in usages)
@@ -439,17 +376,14 @@ CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
 
   return CinematicsLibraryReadModel(
     canonicalEntries: canonicalEntries,
-    bridgeEntries: bridgeEntries,
     unknownUsages: unknownUsages,
     metrics: CinematicsLibraryMetrics(
       canonicalCount: canonicalEntries.length,
-      bridgeCount: bridgeEntries.length,
-      diagnosticCount: [
-        for (final entry in [...canonicalEntries, ...bridgeEntries])
-          ...entry.diagnostics,
-      ].length,
+      diagnosticCount: canonicalEntries
+          .expand((entry) => entry.diagnostics)
+          .length,
       referencedCount: [
-        for (final entry in [...canonicalEntries, ...bridgeEntries])
+        for (final entry in canonicalEntries)
           if (entry.usages.isNotEmpty) entry.id,
       ].length,
       emptyTimelineCount:
@@ -479,7 +413,6 @@ Map<String, List<CinematicsLibraryDiagnosticView>> _groupCinematicDiagnostics(
 Map<String, List<CinematicsLibraryUsage>> _collectSceneUsages(
   List<SceneAsset> scenes, {
   required Set<String> canonicalIds,
-  required Set<String> bridgeIds,
   NarrativeDependencyIndex? dependencyIndex,
 }) {
   final usages = <String, List<CinematicsLibraryUsage>>{};
@@ -493,7 +426,6 @@ Map<String, List<CinematicsLibraryUsage>> _collectSceneUsages(
       final referenceStatus = _referenceStatusFor(
         cinematicId,
         canonicalIds: canonicalIds,
-        bridgeIds: bridgeIds,
       );
       final indexedUsages = dependencyIndex?.usagesFor(
         NarrativeDependencyKey(
@@ -517,13 +449,11 @@ Map<String, List<CinematicsLibraryUsage>> _collectSceneUsages(
           for (final edge in scene.graph.edges)
             if (edge.fromNodeId == node.id) edge.label ?? edge.fromPortId,
         ],
-        referenceResolution: referenceStatus ==
-                CinematicsLibraryReferenceStatus.bridgeLegacy
-            ? NarrativeDependencyResolution.legacyExternal
-            : indexedSceneUsage?.resolution ??
-                (referenceStatus == CinematicsLibraryReferenceStatus.canonical
-                    ? NarrativeDependencyResolution.resolved
-                    : NarrativeDependencyResolution.missing),
+        referenceResolution:
+            indexedSceneUsage?.resolution ??
+            (referenceStatus == CinematicsLibraryReferenceStatus.canonical
+                ? NarrativeDependencyResolution.resolved
+                : NarrativeDependencyResolution.missing),
       );
       usages.putIfAbsent(cinematicId, () => []).add(usage);
     }
@@ -539,13 +469,9 @@ Map<String, List<CinematicsLibraryUsage>> _collectSceneUsages(
 CinematicsLibraryReferenceStatus _referenceStatusFor(
   String cinematicId, {
   required Set<String> canonicalIds,
-  required Set<String> bridgeIds,
 }) {
   if (canonicalIds.contains(cinematicId)) {
     return CinematicsLibraryReferenceStatus.canonical;
-  }
-  if (bridgeIds.contains(cinematicId)) {
-    return CinematicsLibraryReferenceStatus.bridgeLegacy;
   }
   return CinematicsLibraryReferenceStatus.unknown;
 }
@@ -597,24 +523,6 @@ CinematicsLibraryDiagnosticView _fromCinematicDiagnostic(
     },
     message: diagnostic.message,
     sourceId: diagnostic.referenceId ?? diagnostic.stepId,
-  );
-}
-
-CinematicsLibraryDiagnosticView _fromContractDiagnostic(
-  LinkedAssetContractDiagnostic diagnostic,
-) {
-  return CinematicsLibraryDiagnosticView(
-    code: diagnostic.code.name,
-    severity: switch (diagnostic.severity) {
-      LinkedAssetContractDiagnosticSeverity.error =>
-        CinematicsLibraryDiagnosticSeverity.error,
-      LinkedAssetContractDiagnosticSeverity.warning =>
-        CinematicsLibraryDiagnosticSeverity.warning,
-      LinkedAssetContractDiagnosticSeverity.info =>
-        CinematicsLibraryDiagnosticSeverity.info,
-    },
-    message: diagnostic.message,
-    sourceId: diagnostic.sourceId,
   );
 }
 

@@ -12,7 +12,7 @@ import 'step_flow_focus.dart';
 // (`cutscenes`, `outcomes`, `worldChanges`, etc.) ou ajoute une ligne — jamais
 // un gadget sans donnée derrière.
 //
-// INTERDIT ici (Cutscene Studio uniquement) : dialogue, déplacement PNJ,
+// INTERDIT ici (Cinematics Library uniquement) : dialogue, déplacement PNJ,
 // caméra, timing, pathfinding.
 
 /// Colonne gauche : **parties de l’étape** (navigation) puis **ajouts** (lignes modèle).

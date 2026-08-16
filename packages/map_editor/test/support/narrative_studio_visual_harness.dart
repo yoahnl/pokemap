@@ -14,7 +14,7 @@ const narrativeStudioRealRouteModes = <EditorWorkspaceMode>[
   EditorWorkspaceMode.step,
   EditorWorkspaceMode.scenes,
   EditorWorkspaceMode.events,
-  EditorWorkspaceMode.cutscene,
+  EditorWorkspaceMode.cinematics,
   EditorWorkspaceMode.dialogue,
   EditorWorkspaceMode.facts,
   EditorWorkspaceMode.worldRules,

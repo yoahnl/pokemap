@@ -37,7 +37,7 @@ enum EditorWorkspaceMode {
   scenes,
   events,
   step,
-  cutscene,
+  cinematics,
 
   /// Studio de conversation (dialogues `.yarn` en blocs visuels).
   dialogue,

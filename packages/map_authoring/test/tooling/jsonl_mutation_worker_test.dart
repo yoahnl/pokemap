@@ -129,6 +129,41 @@ void main() {
     final workspaceHandle = opened.data['workspaceHandle']! as String;
     expect(opened.data['readOnly'], isFalse);
     final snapshot = await snapshots.load(ProjectHandle(projectHandle));
+    final manifestFile = File('${root.path}/project.json');
+    final beforeRemovedCommand = await manifestFile.readAsBytes();
+    final removedCommand = await _request(
+      worker,
+      'plan',
+      args: {
+        'projectHandle': projectHandle,
+        'request': AuthoringRequest(
+          requestId: 'removed-scenario-command',
+          actionId: 'scenario.upsert',
+          actionVersion: 1,
+          workspaceHandle: workspaceHandle,
+          parameters: const <String, Object?>{},
+          expectedRevision: snapshot.revision,
+          idempotencyKey: 'removed-scenario-command',
+          dryRun: false,
+        ).toJson(),
+      },
+    );
+    expect(removedCommand.status, AuthoringResultStatus.failure);
+    expect(removedCommand.error?.code, AuthoringErrorCode.unsupported);
+    expect(
+      removedCommand.error?.details['domainCode'],
+      'cinematic.capability_removed',
+    );
+    expect(await manifestFile.readAsBytes(), beforeRemovedCommand);
+    expect(
+      (await snapshots.load(ProjectHandle(projectHandle))).revision,
+      snapshot.revision,
+    );
+    expect(
+      (await mutations.history(ProjectHandle(projectHandle),
+          limit: 10))['entries'],
+      isEmpty,
+    );
     final request = AuthoringRequest(
       requestId: 'create-jsonl-map',
       actionId: 'map.create',

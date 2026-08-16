@@ -2,12 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Vue active du studio narratif dans l'îlot central.
-enum NarrativeWorkspaceView {
-  globalStory,
-  scenes,
-  step,
-  cutscene,
-}
+enum NarrativeWorkspaceView { globalStory, scenes, step, cinematics }
 
 /// Etat de sélection du studio narratif.
 ///
@@ -23,21 +18,18 @@ class NarrativeWorkspaceState {
     this.view = NarrativeWorkspaceView.globalStory,
     this.selectedGlobalStoryId,
     this.selectedStepId,
-    this.selectedCutsceneId,
     this.selectedOutcomeId,
   });
 
   final NarrativeWorkspaceView view;
   final String? selectedGlobalStoryId;
   final String? selectedStepId;
-  final String? selectedCutsceneId;
   final String? selectedOutcomeId;
 
   NarrativeWorkspaceState copyWith({
     NarrativeWorkspaceView? view,
     Object? selectedGlobalStoryId = _unset,
     Object? selectedStepId = _unset,
-    Object? selectedCutsceneId = _unset,
     Object? selectedOutcomeId = _unset,
   }) {
     return NarrativeWorkspaceState(
@@ -48,9 +40,6 @@ class NarrativeWorkspaceState {
       selectedStepId: identical(selectedStepId, _unset)
           ? this.selectedStepId
           : selectedStepId as String?,
-      selectedCutsceneId: identical(selectedCutsceneId, _unset)
-          ? this.selectedCutsceneId
-          : selectedCutsceneId as String?,
       selectedOutcomeId: identical(selectedOutcomeId, _unset)
           ? this.selectedOutcomeId
           : selectedOutcomeId as String?,
@@ -89,11 +78,8 @@ class NarrativeWorkspaceController extends Notifier<NarrativeWorkspaceState> {
     state = state.copyWith(view: NarrativeWorkspaceView.scenes);
   }
 
-  void openCutscene({String? cutsceneScenarioId}) {
-    state = state.copyWith(
-      view: NarrativeWorkspaceView.cutscene,
-      selectedCutsceneId: cutsceneScenarioId ?? state.selectedCutsceneId,
-    );
+  void openCinematics() {
+    state = state.copyWith(view: NarrativeWorkspaceView.cinematics);
   }
 
   void selectGlobalStory(String scenarioId) {
@@ -105,12 +91,6 @@ class NarrativeWorkspaceController extends Notifier<NarrativeWorkspaceState> {
   void selectStep(String stepId) {
     state = state.copyWith(
       selectedStepId: stepId,
-    );
-  }
-
-  void selectCutscene(String scenarioId) {
-    state = state.copyWith(
-      selectedCutsceneId: scenarioId,
     );
   }
 

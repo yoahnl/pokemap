@@ -101,8 +101,8 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.step);
   }
 
-  EditorState selectCutsceneWorkspace(EditorState current) {
-    return _openWorkspace(current, EditorWorkspaceMode.cutscene);
+  EditorState selectCinematicsWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.cinematics);
   }
 
   EditorState selectDialogueWorkspace(EditorState current) {

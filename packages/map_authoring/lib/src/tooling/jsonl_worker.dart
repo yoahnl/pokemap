@@ -816,7 +816,9 @@ AuthoringResult _failure(
 }
 
 AuthoringErrorCode _mapDomainErrorCode(String code) {
-  if (code.endsWith('_unsupported')) return AuthoringErrorCode.unsupported;
+  if (code.endsWith('_unsupported') || code.endsWith('_removed')) {
+    return AuthoringErrorCode.unsupported;
+  }
   if (code == 'map.not_found' || code == 'map.document_missing') {
     return AuthoringErrorCode.notFound;
   }

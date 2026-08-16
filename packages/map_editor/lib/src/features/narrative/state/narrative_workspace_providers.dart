@@ -31,18 +31,6 @@ final selectedGlobalStorySummaryProvider =
   return projection.scenarioById[narrative];
 });
 
-/// Sélectionne la cutscene actuellement pointée par l'état narratif.
-final selectedCutsceneSummaryProvider =
-    Provider<NarrativeScenarioSummary?>((ref) {
-  final projection = ref.watch(narrativeWorkspaceProjectionProvider);
-  final narrative = ref.watch(
-      narrativeWorkspaceControllerProvider.select((s) => s.selectedCutsceneId));
-  if (projection == null || narrative == null) {
-    return null;
-  }
-  return projection.scenarioById[narrative];
-});
-
 /// Sélectionne l'étape narrative courante à partir de l'id piloté par le
 /// contrôleur de workspace narratif.
 final selectedNarrativeStepSummaryProvider =

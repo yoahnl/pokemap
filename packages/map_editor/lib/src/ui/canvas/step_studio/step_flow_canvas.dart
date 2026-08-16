@@ -9,7 +9,7 @@ import 'step_flow_focus.dart';
 // -----------------------------------------------------------------------------
 //
 // Rôle produit : donner une **lecture claire au centre** (haut → bas) pour une personne
-// non développeuse — pas une check-list moteur, pas un mini Cutscene Studio.
+// non développeuse — pas une check-list moteur, pas un mini Cinematics Library.
 //
 // Hiérarchie honnête :
 // - Textes du fil (`flow*Label`) = **aide rédactionnelle** sauvegardée (JSON) ;
@@ -70,7 +70,7 @@ class StepFlowCanvas extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              'Les scènes se conçoivent dans Cutscene Studio. '
+              'Les scènes se conçoivent dans Cinematics Library. '
               'L’ordre au centre aide à lire l’étape ; ce n’est pas toujours un enchaînement strict dans le jeu.',
               style: TextStyle(
                 color: EditorChrome.subtleLabel(context),
@@ -173,7 +173,7 @@ class StepFlowCanvas extends StatelessWidget {
                   ? _emptyHint(
                       context,
                       'Plusieurs résultats pour la même étape ? Listez-les ici. '
-                      'Le détail à l’écran reste dans Cutscene Studio.',
+                      'Le détail à l’écran reste dans Cinematics Library.',
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

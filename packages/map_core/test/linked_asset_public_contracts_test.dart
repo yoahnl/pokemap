@@ -260,8 +260,7 @@ void main() {
       );
     });
 
-    test('builds cinematic scenario bridge contracts from cutscene metadata',
-        () {
+    test('does not build cinematic contracts from Scenario metadata', () {
       final contracts = buildCinematicPublicContracts(
         _manifest(
           scenarios: const [
@@ -277,29 +276,10 @@ void main() {
         ),
       );
 
-      expect(contracts, hasLength(1));
-      final contract = contracts.single;
-      expect(contract.id, 'scenario_cutscene');
-      expect(contract.label, 'Bridge Cutscene');
-      expect(
-        contract.sourceKind,
-        CinematicPublicContractSourceKind.scenarioBridge,
-      );
-      expect(contract.status, LinkedAssetContractStatus.bridgeOnly);
-      expect(contract.linear, isNull);
-      expect(contract.requiredActors, isEmpty);
-      expect(contract.mapId, isNull);
-      expect(contract.declaredOutputs.map((outcome) => outcome.id), [
-        'completed',
-      ]);
-      expect(
-        contract.diagnostics.map((diagnostic) => diagnostic.code),
-        contains(LinkedAssetContractDiagnosticCode.scenarioBridge),
-      );
+      expect(contracts, isEmpty);
     });
 
-    test('builds canonical cinematic asset contracts separately from bridges',
-        () {
+    test('builds canonical cinematic asset contracts only', () {
       final contracts = buildCinematicPublicContracts(
         _manifest(
           cinematics: [
@@ -321,23 +301,10 @@ void main() {
               ),
             ),
           ],
-          scenarios: const [
-            ScenarioAsset(
-              id: 'scenario_cutscene',
-              name: 'Bridge Cutscene',
-              entryNodeId: 'start',
-              metadata: {
-                'authoring.cutsceneSchema': 'cutscene_studio_v2',
-              },
-            ),
-          ],
         ),
       );
 
-      expect(contracts.map((contract) => contract.id), [
-        'scenario_cutscene',
-        'cinematic_intro',
-      ]);
+      expect(contracts.map((contract) => contract.id), ['cinematic_intro']);
       final canonical =
           contracts.singleWhere((contract) => contract.id == 'cinematic_intro');
       expect(
@@ -351,14 +318,6 @@ void main() {
       expect(canonical.declaredOutputs.map((outcome) => outcome.id), [
         'completed',
       ]);
-
-      final bridge = contracts
-          .singleWhere((contract) => contract.id == 'scenario_cutscene');
-      expect(
-        bridge.sourceKind,
-        CinematicPublicContractSourceKind.scenarioBridge,
-      );
-      expect(bridge.status, LinkedAssetContractStatus.bridgeOnly);
     });
 
     test('does not expose regular scenarios as cinematic contracts', () {
@@ -398,14 +357,11 @@ void main() {
               ],
             ),
           ],
-          scenarios: const [
-            ScenarioAsset(
-              id: 'scenario_cutscene',
-              name: 'Bridge Cutscene',
-              entryNodeId: 'start',
-              metadata: {
-                'authoring.cutsceneSchema': 'cutscene_studio_v2',
-              },
+          cinematics: [
+            CinematicAsset(
+              id: 'cinematic_test',
+              title: 'Cinematic Test',
+              timeline: CinematicTimeline(),
             ),
           ],
         ),
@@ -418,7 +374,7 @@ void main() {
         'trainer:trainer_scout',
       ]);
       expect(snapshot.cinematics.map((contract) => contract.id), [
-        'scenario_cutscene',
+        'cinematic_test',
       ]);
       expect(snapshot.actionContractsAvailable, isFalse);
       expect(snapshot.branchByOutcomeAvailable, isFalse);

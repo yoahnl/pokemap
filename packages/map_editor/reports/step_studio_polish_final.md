@@ -36,7 +36,7 @@
 | `flowUnlocksStepId` | Mémo éditeur | Inspecteur + JSON | **Moyen** : un créateur peut croire à un enchaînement — **canvas sans id** + libellé « sans effet automatique ». |
 | `activation` | Donnée structurée | Authoring, projection (résumé), futur moteur potentiel | Honnête via résumé sous la note. |
 | `completion` | Donnée structurée | Idem | Idem. |
-| `cutscenes` | Références réelles (id scénario projet) | Authoring + projection | OK — rappel Cutscene Studio explicite. |
+| `cutscenes` | Références historiques de scénario projet | Authoring + projection | Obsolète pour les cinématiques ; utiliser les Scènes et la Cinematics Library canonique. |
 | `outcomes` | Donnée structurée | Authoring + projection (ids) | **Jargon** réduit en UI (« variantes », « résultat pour l’histoire ») ; le modèle reste `outcomes`. |
 | `worldChanges` | Donnée structurée | Authoring | **Jargon** réduit (« sur la carte ») ; pas de renommage JSON. |
 
@@ -52,7 +52,7 @@
 |-------|---------------------|
 | Champ débloque une step | **Non** : texte inspecteur + absence id sur canvas. |
 | Note auteur = règle moteur | **Réduit** : formulations « phrase sur le fil » vs « réglage enregistré ». |
-| Cutscene éditable ici | **Non** : « contenu dans Cutscene Studio » répété. |
+| Cinématique éditable ici | **Non** : l’édition vit dans la Cinematics Library. |
 | Branche locale = branche runtime | **Non** : « ce n’est pas le graphe de la cutscene ». |
 | Carte = structure moteur | **Non** : fil = lecture ; pas de graphe d’exécution ajouté. |
 
@@ -137,7 +137,7 @@ Text(
   ),
 ),
 Text(
-  'Du début à la fin de l’étape. Les scènes se conçoivent dans Cutscene Studio.',
+  'Du début à la fin de l’étape. Les cinématiques se conçoivent dans la Cinematics Library.',
   ...
 ),
 ```

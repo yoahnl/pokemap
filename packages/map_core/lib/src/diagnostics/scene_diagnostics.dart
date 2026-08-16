@@ -71,7 +71,6 @@ enum SceneDiagnosticCode {
   capabilityForbiddenForProfile,
   capabilityUnknown,
   emptyGraph,
-  legacyScenarioLeak,
 }
 
 enum SceneDiagnosticTarget {
@@ -558,27 +557,12 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
               code: SceneDiagnosticCode.cinematicRefUnknown,
               severity: SceneDiagnosticSeverity.error,
               message:
-                  'La cinématique référencée n’existe pas comme CinematicAsset canonique ni bridge public.',
+                  'La cinématique référencée n’existe pas comme CinematicAsset canonique.',
               sceneId: scene.id,
               nodeId: node.id,
               target: SceneDiagnosticTarget.node,
               suggestedFixLabel:
-                  'Choisir une CinematicAsset existante ou un bridge explicitement disponible.',
-            ),
-          );
-        } else if (cinematic.sourceKind ==
-            CinematicPublicContractSourceKind.scenarioBridge) {
-          diagnostics.add(
-            SceneDiagnostic(
-              code: SceneDiagnosticCode.legacyScenarioLeak,
-              severity: SceneDiagnosticSeverity.warning,
-              message:
-                  'Cette cinématique référence un bridge Scenario legacy, pas une CinematicAsset canonique.',
-              sceneId: scene.id,
-              nodeId: node.id,
-              target: SceneDiagnosticTarget.node,
-              suggestedFixLabel:
-                  'Préférer une CinematicAsset canonique quand elle existe.',
+                  'Choisir une CinematicAsset existante.',
             ),
           );
         }

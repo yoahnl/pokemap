@@ -392,7 +392,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
         case NarrativeStudioDestination.events:
           notifier.selectEventsWorkspace();
         case NarrativeStudioDestination.cinematics:
-          notifier.selectCutsceneWorkspace();
+          notifier.selectCinematicsWorkspace();
         case NarrativeStudioDestination.dialogues:
           notifier.selectDialogueWorkspace();
         case NarrativeStudioDestination.facts:
@@ -419,10 +419,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
       switch (location.childRoute) {
         case NarrativeStudioChildRoute.storylineStep:
           notifier.selectStepWorkspace();
-        case NarrativeStudioChildRoute.cinematicLegacy:
         case NarrativeStudioChildRoute.cinematicLibrary:
         case NarrativeStudioChildRoute.cinematicBuilder:
-          notifier.selectCutsceneWorkspace();
+          notifier.selectCinematicsWorkspace();
         default:
           applyNarrativeDestination(location.destination);
       }
@@ -599,7 +598,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
       EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.events ||
       EditorWorkspaceMode.step ||
-      EditorWorkspaceMode.cutscene ||
+      EditorWorkspaceMode.cinematics ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
       EditorWorkspaceMode.shops ||
@@ -610,7 +609,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
     // NSC-13 adopts only Cinematics. Other Narrative Studio destinations keep
     // their existing undo stack until a later lot opts into this contract.
     final usesNarrativeDocumentSession =
-        workspaceMode == EditorWorkspaceMode.cutscene;
+        workspaceMode == EditorWorkspaceMode.cinematics;
     final usesSelfContainedWorkspaceHeader =
         workspaceMode == EditorWorkspaceMode.characterStudio;
 
@@ -672,7 +671,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
             EditorWorkspaceMode.scenes ||
             EditorWorkspaceMode.events ||
             EditorWorkspaceMode.step ||
-            EditorWorkspaceMode.cutscene ||
+            EditorWorkspaceMode.cinematics ||
             EditorWorkspaceMode.dialogue ||
             EditorWorkspaceMode.facts ||
             EditorWorkspaceMode.shops ||
@@ -686,7 +685,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
         EditorWorkspaceMode.scenes ||
         EditorWorkspaceMode.events ||
         EditorWorkspaceMode.step ||
-        EditorWorkspaceMode.cutscene ||
+        EditorWorkspaceMode.cinematics ||
         EditorWorkspaceMode.dialogue ||
         EditorWorkspaceMode.facts ||
         EditorWorkspaceMode.shops ||
@@ -1510,7 +1509,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
-                                                                .cutscene =>
+                                                                .cinematics =>
                                                               EditorChrome
                                                                   .islandNeutralTint,
                                                             EditorWorkspaceMode
@@ -1604,7 +1603,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
                                                             EditorWorkspaceMode
                                                                 .step ||
                                                             EditorWorkspaceMode
-                                                                .cutscene ||
+                                                                .cinematics ||
                                                             EditorWorkspaceMode
                                                                 .dialogue =>
                                                               const _EmptyWorkspaceInspector(),
@@ -1751,7 +1750,7 @@ bool _narrativeLocationMatchesWorkspace(
       location.destination == NarrativeStudioDestination.scenes,
     EditorWorkspaceMode.events =>
       location.destination == NarrativeStudioDestination.events,
-    EditorWorkspaceMode.cutscene =>
+    EditorWorkspaceMode.cinematics =>
       location.destination == NarrativeStudioDestination.cinematics,
     EditorWorkspaceMode.dialogue =>
       location.destination == NarrativeStudioDestination.dialogues,
@@ -1967,7 +1966,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.events ||
       EditorWorkspaceMode.step ||
-      EditorWorkspaceMode.cutscene ||
+      EditorWorkspaceMode.cinematics ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
       EditorWorkspaceMode.shops ||
@@ -1989,7 +1988,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.events ||
       EditorWorkspaceMode.step ||
-      EditorWorkspaceMode.cutscene ||
+      EditorWorkspaceMode.cinematics ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
       EditorWorkspaceMode.shops ||
@@ -2009,7 +2008,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.scenes => 'Scènes',
       EditorWorkspaceMode.events => 'Événements',
       EditorWorkspaceMode.step => 'Étapes',
-      EditorWorkspaceMode.cutscene => 'Cinématiques',
+      EditorWorkspaceMode.cinematics => 'Cinématiques',
       EditorWorkspaceMode.dialogue => 'Dialogue',
       EditorWorkspaceMode.facts => 'Facts',
       EditorWorkspaceMode.shops => 'Boutiques',
@@ -2155,7 +2154,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
               EditorWorkspaceMode.events =>
                 CupertinoIcons.bolt_horizontal_circle,
               EditorWorkspaceMode.step => CupertinoIcons.flag,
-              EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
+              EditorWorkspaceMode.cinematics => CupertinoIcons.play_rectangle,
               EditorWorkspaceMode.dialogue => CupertinoIcons.text_bubble,
               EditorWorkspaceMode.facts => CupertinoIcons.doc_text,
               EditorWorkspaceMode.shops => CupertinoIcons.cart,

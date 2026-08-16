@@ -3086,7 +3086,7 @@ class EditorNotifier extends _$EditorNotifier
   /// Charge une "snapshot" de map par id SANS changer la map active.
   ///
   /// Pourquoi cette API existe:
-  /// - certains workspaces (ex: Cutscene Studio) doivent proposer des
+  /// - certains workspaces (ex: Cinematics Library) doivent proposer des
   ///   dropdowns guidés (PNJ/triggers) pour n'importe quelle map du projet;
   /// - on ne veut pas forcer un changement de contexte utilisateur vers cette
   ///   map juste pour lire ses entités;
@@ -4483,8 +4483,8 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   /// Ouvre le workspace central "Cutscene".
-  void selectCutsceneWorkspace() {
-    state = _editorWorkspaceController.selectCutsceneWorkspace(state);
+  void selectCinematicsWorkspace() {
+    state = _editorWorkspaceController.selectCinematicsWorkspace(state);
   }
 
   /// Bascule vers Dialogue Studio (bibliothèque + canvas + inspecteur).
@@ -13000,7 +13000,7 @@ class EditorNotifier extends _$EditorNotifier
   //
   // Ce bloc réintroduit des mutations scénario ciblées, mais dans un cadre
   // beaucoup plus strict que l'ancien "Scenario Graph" générique:
-  // - surface d'édition centrale (Cutscene Studio v1 guidé),
+  // - surface d'édition centrale (Cinematics Library v1 guidé),
   // - opérations explicites create / update / delete,
   // - persistance via use-cases dédiés + validation `ProjectValidator`.
   //

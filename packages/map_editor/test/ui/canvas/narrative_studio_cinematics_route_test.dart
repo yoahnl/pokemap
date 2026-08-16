@@ -16,7 +16,6 @@ import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_st
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_responsive_canvas.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_timeline.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_viewport.dart';
-import 'package:map_editor/src/ui/canvas/cutscene_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
@@ -31,7 +30,7 @@ import '../../support/event_builder_v2_visual_harness.dart';
 
 void main() {
   testWidgets(
-    'Cinematics keeps one product shell and page through Library, Builder and legacy',
+    'Cinematics keeps one product shell and page through Library and Builder',
     (tester) async {
       final project = _cinematicsProject();
       final before = project.toJson();
@@ -40,7 +39,7 @@ void main() {
         tester,
         initialState: EditorState(
           project: project,
-          workspaceMode: EditorWorkspaceMode.cutscene,
+          workspaceMode: EditorWorkspaceMode.cinematics,
         ),
         surfaceSize: const Size(1672, 941),
       );
@@ -133,51 +132,9 @@ void main() {
         NarrativeStudioRouteLocation.cinematics(),
       );
 
-      await tester.tap(
-        find.byKey(
-          const ValueKey('cinematics-library-open-legacy-button'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expectSharedRoute();
-      expect(find.byType(CutsceneStudioWorkspace), findsOneWidget);
-      expect(find.text('Narrative Studio  ›  Step  ›  Cutscene'), findsNothing);
-      for (final action in <String>[
-        'Sauvegarder',
-        'Réinitialiser',
-        'Nouvelle cutscene',
-      ]) {
-        expect(find.text(action), findsOneWidget);
-      }
-      expect(find.text('Tester'), findsNothing);
-      expect(find.text('Simuler'), findsNothing);
       expect(
-        find.text('Narrative Studio  /  Cinématiques  /  Ancien studio'),
-        findsOneWidget,
-      );
-      expect(
-        container
-            .read(narrativeStudioNavigationControllerProvider)
-            .location
-            .childRoute,
-        NarrativeStudioChildRoute.cinematicLegacy,
-      );
-      expect(
-        find.byKey(const ValueKey('cinematics-library-back-button')),
-        findsOneWidget,
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey('cinematics-library-back-button')),
-      );
-      await tester.pumpAndSettle();
-
-      expectSharedRoute();
-      expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
-      expect(
-        container.read(narrativeStudioNavigationControllerProvider).location,
-        NarrativeStudioRouteLocation.cinematics(),
+        find.byKey(const ValueKey('cinematics-library-open-legacy-button')),
+        findsNothing,
       );
       expect(project.toJson(), before);
     },
@@ -190,7 +147,7 @@ void main() {
         tester,
         initialState: EditorState(
           project: _cinematicsProject(),
-          workspaceMode: EditorWorkspaceMode.cutscene,
+          workspaceMode: EditorWorkspaceMode.cinematics,
         ),
         surfaceSize: const Size(1672, 941),
       );
@@ -263,7 +220,7 @@ void main() {
         tester,
         initialState: EditorState(
           project: _cinematicsProject(),
-          workspaceMode: EditorWorkspaceMode.cutscene,
+          workspaceMode: EditorWorkspaceMode.cinematics,
         ),
         surfaceSize: const Size(1672, 941),
       );
@@ -408,7 +365,7 @@ void main() {
         tester,
         initialState: EditorState(
           project: project,
-          workspaceMode: EditorWorkspaceMode.cutscene,
+          workspaceMode: EditorWorkspaceMode.cinematics,
         ),
         surfaceSize: const Size(1672, 941),
         overrides: [
@@ -526,7 +483,7 @@ void main() {
         tester,
         initialState: EditorState(
           project: project,
-          workspaceMode: EditorWorkspaceMode.cutscene,
+          workspaceMode: EditorWorkspaceMode.cinematics,
         ),
         surfaceSize: const Size(1672, 941),
       );
@@ -612,22 +569,20 @@ void main() {
       manifestFile.writeAsStringSync(jsonEncode(project.toJson()));
       final gateway = _FailingManifestGateway();
 
-      final container = await pumpEditorShellPage(
-        tester,
-        initialState: EditorState(
-          project: project,
-          workspaceMode: EditorWorkspaceMode.cutscene,
-        ),
-        surfaceSize: const Size(1672, 941),
-        overrides: [
-          narrativeAuthoringPersistenceGatewayProvider.overrideWithValue(
-            gateway,
-          ),
-        ],
-      );
-      final notifier = container.read(editorNotifierProvider.notifier);
-      notifier.state = notifier.state.copyWith(projectRootPath: root.path);
-      await tester.pump();
+    final container = await pumpEditorShellPage(
+      tester,
+      initialState: EditorState(
+        project: project,
+        workspaceMode: EditorWorkspaceMode.cinematics,
+      ),
+      surfaceSize: const Size(1672, 941),
+      overrides: [
+        narrativeAuthoringPersistenceGatewayProvider.overrideWithValue(gateway),
+      ],
+    );
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = notifier.state.copyWith(projectRootPath: root.path);
+    await tester.pump();
 
       await tester.tap(
         find.byKey(const ValueKey('cinematics-library-advanced-manager')),
@@ -695,7 +650,7 @@ void main() {
     await pumpEditorShellPage(
       tester,
       initialState: const EditorState(
-        workspaceMode: EditorWorkspaceMode.cutscene,
+        workspaceMode: EditorWorkspaceMode.cinematics,
       ),
       surfaceSize: const Size(1280, 768),
     );
@@ -729,7 +684,7 @@ void main() {
       tester,
       initialState: EditorState(
         project: _cinematicsProject(),
-        workspaceMode: EditorWorkspaceMode.cutscene,
+        workspaceMode: EditorWorkspaceMode.cinematics,
       ),
       surfaceSize: sizes.first,
     );
@@ -766,22 +721,6 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-back-button')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('cinematics-library-open-legacy-button'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(CutsceneStudioWorkspace), findsOneWidget);
-      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
-      expect(tester.takeException(), isNull, reason: 'Legacy viewport: $size');
-
-      await tester.tap(
-        find.byKey(const ValueKey('cinematics-library-back-button')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
-
       await tester.tap(find.bySemanticsLabel('Cinématiques de présentation'));
       await tester.pumpAndSettle();
       final presentationFolder = find.byKey(
@@ -828,7 +767,7 @@ void main() {
         tester,
         initialState: EditorState(
           project: project,
-          workspaceMode: EditorWorkspaceMode.cutscene,
+          workspaceMode: EditorWorkspaceMode.cinematics,
         ),
         surfaceSize: const Size(1672, 941),
       );
@@ -864,57 +803,49 @@ void main() {
     'library',
     'presentation_library',
     'builder',
-    'legacy',
   ]) {
-    testWidgets(
-      'matches the full Cinematics $goldenState route at 1672x941',
-      (tester) async {
-        await loadEventBuilderV2PhaseKCaptureFonts();
-        await pumpEditorShellPage(
-          tester,
-          initialState: EditorState(
-            project: _cinematicsProject(),
-            workspaceMode: EditorWorkspaceMode.cutscene,
-          ),
-          surfaceSize: const Size(1672, 941),
-          fontFamily: eventBuilderV2PhaseKCaptureFontFamily,
-          cupertinoFontFamily: eventBuilderV2PhaseKCaptureFontFamily,
-        );
+    testWidgets('matches the full Cinematics $goldenState route at 1672x941', (
+      tester,
+    ) async {
+      await loadEventBuilderV2PhaseKCaptureFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: _cinematicsProject(),
+          workspaceMode: EditorWorkspaceMode.cinematics,
+        ),
+        surfaceSize: const Size(1672, 941),
+        fontFamily: eventBuilderV2PhaseKCaptureFontFamily,
+        cupertinoFontFamily: eventBuilderV2PhaseKCaptureFontFamily,
+      );
 
-        if (goldenState == 'presentation_library') {
-          await tester.tap(find.text('Cinématiques de présentation'));
-        } else if (goldenState == 'builder') {
-          await tester.tap(
-            find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
-          );
-          await tester.pumpAndSettle();
-          await tester.tap(
-            find.byKey(
-              const ValueKey('cinematics-library-open-builder-button'),
-            ),
-          );
-        } else if (goldenState == 'legacy') {
-          await tester.tap(
-            find.byKey(
-              const ValueKey('cinematics-library-open-legacy-button'),
-            ),
-          );
-        }
+      if (goldenState == 'presentation_library') {
+        await tester.tap(find.text('Cinématiques de présentation'));
+      } else if (goldenState == 'builder') {
+        await tester.tap(
+          find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+        );
         await tester.pumpAndSettle();
-        await tester.pump(const Duration(milliseconds: 200));
-        await tester.pump();
+        await tester.tap(
+          find.byKey(
+            const ValueKey('cinematics-library-open-builder-button'),
+          ),
+        );
+      }
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump();
 
-        final golden = File(
-          'test/goldens/narrative_studio/cinematics/'
-          'cinematics_${goldenState}_full_product_route_1672x941.png',
-        );
-        golden.parent.createSync(recursive: true);
-        await expectLater(
-          find.byType(EditorShellPage),
-          matchesGoldenFile(golden.absolute.path),
-        );
-      },
-    );
+      final golden = File(
+        'test/goldens/narrative_studio/cinematics/'
+        'cinematics_${goldenState}_full_product_route_1672x941.png',
+      );
+      golden.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(golden.absolute.path),
+      );
+    });
   }
 }
 
@@ -998,17 +929,6 @@ ProjectManifest _cinematicsProject() {
     version: ProjectVersion.v7,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
-    scenarios: const <ScenarioAsset>[
-      ScenarioAsset(
-        id: 'scenario_legacy',
-        name: 'Ancienne cinématique',
-        scope: ScenarioScope.localEventFlow,
-        entryNodeId: 'start',
-        metadata: <String, String>{
-          'authoring.cutsceneSchema': 'cutscene-studio-v0',
-        },
-      ),
-    ],
     cinematics: <CinematicAsset>[
       CinematicAsset(
         id: 'cinematic_intro',

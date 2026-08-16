@@ -10,7 +10,7 @@
 //
 // Règles respectées :
 // - vocabulaire **métier** (étape, chapitre, embranchement, débloque…)
-// - **pas** de mini-éditeur de cutscene ici : on renvoie vers Step / Cutscene Studio
+// - **pas** de mini-éditeur de cutscene ici : on renvoie vers Step / Cinematics Library
 // - hiérarchie visuelle forte, beaucoup d’air, pas de graphe libre
 //
 // Les callbacks mutateurs sont les **mêmes** que l’ancien [GlobalStoryMacroEditor] :

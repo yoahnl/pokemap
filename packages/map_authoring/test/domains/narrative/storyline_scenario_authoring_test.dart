@@ -3,7 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Storyline and Scenario authoring', () {
+  group('Storyline authoring', () {
     test('chapter and step reorder preserves every stable identity', () {
       final project = _manifest(storylines: [_storyline()]);
       final chapters = project.storylines.single.chapters;
@@ -81,31 +81,7 @@ void main() {
       expect(report.canPublish, isFalse);
     });
 
-    test('legacy migration preview and apply preserve readable Scenario', () {
-      final legacy = ScenarioAsset(
-        id: 'legacy_main',
-        name: 'Legacy main',
-        scope: ScenarioScope.globalStory,
-        entryNodeId: 'start',
-        nodes: const [
-          ScenarioNode(id: 'start', type: ScenarioNodeType.start),
-        ],
-      );
-      final project = _manifest(scenarios: [legacy]);
-      final preview = const ScenarioActions().migrationPreview(project);
-      final migrated = const ScenarioActions().migrateGlobalStory(
-        project,
-        scenarioId: legacy.id,
-      );
-
-      expect(preview.candidates.single.sourceScenarioId, legacy.id);
-      expect(migrated.scenarios.single.toJson(), legacy.toJson());
-      expect(migrated.storylines.single.legacySource!.sourceId, legacy.id);
-      expect(migrated.storylines.single.legacySource!.metadata['imported'],
-          'true');
-    });
-
-    test('dispatcher and resource registry expose Storyline and Scenario', () {
+    test('dispatcher and resource registry expose Storyline only', () {
       final actionIds = AuthoringMutationDispatcher.canonical()
           .descriptors
           .map((descriptor) => descriptor.id)
@@ -117,16 +93,21 @@ void main() {
           'storyline.delete',
           'storyline.reorder_chapters',
           'storyline.reorder_steps',
-          'scenario.upsert',
-          'scenario.delete',
-          'scenario.migrate_global_story',
         }),
       );
       expect(
         AuthoringResourceKindRegistry.canonicalMinimal()
             .resourceKinds
             .map((kind) => kind.id),
-        containsAll({'storyline', 'scenario'}),
+        contains('storyline'),
+      );
+      expect(
+        actionIds.where((actionId) => actionId.startsWith('scenario.')),
+        isEmpty,
+      );
+      expect(
+        AuthoringResourceKindRegistry.canonicalMinimal().find('scenario'),
+        isNull,
       );
     });
   });
@@ -134,14 +115,12 @@ void main() {
 
 ProjectManifest _manifest({
   List<StorylineAsset> storylines = const [],
-  List<ScenarioAsset> scenarios = const [],
 }) =>
     ProjectManifest(
       name: 'Storyline fixture',
       maps: const [],
       tilesets: const [],
       storylines: storylines,
-      scenarios: scenarios,
     );
 
 StorylineAsset _storyline() => StorylineAsset(

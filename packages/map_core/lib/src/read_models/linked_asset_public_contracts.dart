@@ -2,10 +2,8 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
-import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
 
-const String _cutsceneStudioSchemaMetadataKey = 'authoring.cutsceneSchema';
 const String _completedOutcomeId = 'completed';
 const String _victoryOutcomeId = 'victory';
 const String _defeatOutcomeId = 'defeat';
@@ -22,7 +20,6 @@ enum LinkedAssetContractDiagnosticCode {
   missingLabel,
   rawTechnicalLabel,
   missingOutcomeContract,
-  scenarioBridge,
   unsupportedSource,
   emptyTrainerTeam,
   missingBattleTemplateRef,
@@ -31,7 +28,6 @@ enum LinkedAssetContractDiagnosticCode {
 
 enum LinkedAssetContractStatus {
   available,
-  bridgeOnly,
   unavailable,
 }
 
@@ -42,7 +38,6 @@ enum BattlePublicContractKind {
 
 enum CinematicPublicContractSourceKind {
   cinematicAsset,
-  scenarioBridge,
 }
 
 enum OutcomeProducerPublicContractKind {
@@ -575,57 +570,6 @@ List<CinematicPublicContract> buildCinematicPublicContracts(
       ),
     );
   }
-  for (final scenario in project.scenarios) {
-    if (!_isCutsceneStudioScenarioBridge(scenario)) {
-      continue;
-    }
-    final id = scenario.id.trim();
-    final label = _labelOrId(scenario.name, id);
-    final diagnostics = <LinkedAssetContractDiagnostic>[
-      ..._labelDiagnostics(
-        rawLabel: scenario.name,
-        fallbackId: id,
-        sourceId: id,
-      ),
-      LinkedAssetContractDiagnostic(
-        code: LinkedAssetContractDiagnosticCode.scenarioBridge,
-        severity: LinkedAssetContractDiagnosticSeverity.warning,
-        message:
-            'This cinematic contract is a ScenarioAsset bridge, not a canonical CinematicAsset.',
-        sourceId: id,
-      ),
-    ];
-    if (id.isEmpty) {
-      diagnostics.add(
-        const LinkedAssetContractDiagnostic(
-          code: LinkedAssetContractDiagnosticCode.missingRef,
-          severity: LinkedAssetContractDiagnosticSeverity.error,
-          message:
-              'Scenario id is required for a stable cinematic bridge reference.',
-        ),
-      );
-    }
-
-    contracts.add(
-      CinematicPublicContract(
-        id: id,
-        label: label,
-        sourceKind: CinematicPublicContractSourceKind.scenarioBridge,
-        status: LinkedAssetContractStatus.bridgeOnly,
-        linear: null,
-        requiredActors: const [],
-        mapId: null,
-        declaredOutputs: const [
-          LinkedAssetOutcomeContract(
-            id: _completedOutcomeId,
-            label: 'Completed',
-          ),
-        ],
-        diagnostics: diagnostics,
-      ),
-    );
-  }
-
   contracts.sort(
     _compareByLabelThen(
       (contract) => contract.label,
@@ -694,12 +638,6 @@ String _battleLabel(
     return trainerClass;
   }
   return '$trainerClass $trainerLabel';
-}
-
-bool _isCutsceneStudioScenarioBridge(ScenarioAsset scenario) {
-  final schemaVersion =
-      scenario.metadata[_cutsceneStudioSchemaMetadataKey]?.trim();
-  return schemaVersion != null && schemaVersion.isNotEmpty;
 }
 
 List<LinkedAssetContractDiagnostic> _labelDiagnostics({

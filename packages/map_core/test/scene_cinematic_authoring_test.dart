@@ -40,7 +40,7 @@ void main() {
           scene.graph.nodes.map((node) => node.id), ['node_start', 'node_end']);
     });
 
-    test('refuses empty, unknown, and bridge-only cinematic ids', () {
+    test('refuses empty, unknown, and Scenario cinematic ids', () {
       final scene = _scene();
 
       expect(
@@ -62,7 +62,7 @@ void main() {
       expect(
         () => addSceneCinematicNodeDraft(
           scene,
-          project: _project(scenarios: [_scenarioBridge()]),
+          project: _project(scenarios: [_scenario()]),
           cinematicId: 'scenario_cutscene',
         ),
         throwsA(isA<ArgumentError>()),
@@ -150,7 +150,7 @@ void main() {
           cinematicId: 'scenario_cutscene',
           project: _project(
             cinematics: [_cinematic()],
-            scenarios: [_scenarioBridge()],
+            scenarios: [_scenario()],
           ),
         ),
         throwsA(isA<ArgumentError>()),
@@ -211,12 +211,11 @@ CinematicAsset _cinematic({
   );
 }
 
-ScenarioAsset _scenarioBridge() {
+ScenarioAsset _scenario() {
   return const ScenarioAsset(
     id: 'scenario_cutscene',
-    name: 'Legacy cutscene',
+    name: 'Scenario',
     entryNodeId: 'scenario_start',
-    metadata: {'authoring.cutsceneSchema': 'test'},
   );
 }
 

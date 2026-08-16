@@ -31,7 +31,6 @@ import '../domains/narrative/presentation_cinematic_template_actions.dart';
 import '../domains/narrative/event_actions.dart';
 import '../domains/narrative/fact_rule_actions.dart';
 import '../domains/narrative/scene_actions.dart';
-import '../domains/narrative/scenario_actions.dart';
 import '../domains/narrative/script_actions.dart';
 import '../domains/narrative/storyline_actions.dart';
 import '../ports/artifact_store.dart';
@@ -156,7 +155,6 @@ final class MapMutationDispatcher {
     const events = EventV2Actions();
     const factsAndRules = FactRuleActions();
     const storylines = StorylineActions();
-    const scenarios = ScenarioActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -380,11 +378,6 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: storylines.build,
         ),
-      for (final descriptor in ScenarioActions.descriptors)
-        MapMutationActionRegistration(
-          descriptor: descriptor,
-          build: scenarios.build,
-        ),
     ]);
   }
 
@@ -403,6 +396,16 @@ final class MapMutationDispatcher {
   MapMutationActionRegistration _registration(String actionId) {
     final registration = _registrations[actionId];
     if (registration == null) {
+      if (actionId.startsWith('scenario.')) {
+        throw MapAuthoringException(
+          code: 'cinematic.capability_removed',
+          message: 'The legacy Scenario cinematic capability was removed.',
+          details: {
+            'actionId': actionId,
+            'replacement': 'cinematic.*, presentation_cinematic.*, scene.*',
+          },
+        );
+      }
       throw MapAuthoringException(
         code: 'map.action_unsupported',
         message: 'The requested map authoring action is unsupported.',

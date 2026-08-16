@@ -1245,7 +1245,6 @@ const _semanticOwners = <String, String>{
   'dialogueFolder': 'project',
   'dialogue': 'dialogue',
   'script': 'script',
-  'scenario': 'scenario',
   'narrativeEvent': 'eventV2',
   'narrativeFact': 'fact',
   'worldRule': 'worldRule',

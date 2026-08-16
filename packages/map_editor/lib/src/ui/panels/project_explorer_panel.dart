@@ -246,7 +246,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         workspaceMode == EditorWorkspaceMode.scenes ||
         workspaceMode == EditorWorkspaceMode.events ||
         workspaceMode == EditorWorkspaceMode.step ||
-        workspaceMode == EditorWorkspaceMode.cutscene ||
+        workspaceMode == EditorWorkspaceMode.cinematics ||
         workspaceMode == EditorWorkspaceMode.dialogue;
   }
 

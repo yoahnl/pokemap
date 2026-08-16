@@ -2,7 +2,6 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../application/services/narrative_activity_journal.dart';
 import '../../../dialogue/application/dialogue_editor_validation.dart';
-import '../cutscene_studio/cutscene_studio_models.dart';
 import '../global_story_studio_authoring.dart';
 import '../step_studio_authoring.dart';
 
@@ -108,7 +107,6 @@ class NarrativeOverviewMetrics {
     required this.conditions,
     required this.worldRules,
     required this.facts,
-    required this.legacyRemaining,
   });
 
   final NarrativeMetricSummary chapters;
@@ -121,21 +119,19 @@ class NarrativeOverviewMetrics {
   final NarrativeMetricSummary conditions;
   final NarrativeMetricSummary worldRules;
   final NarrativeMetricSummary facts;
-  final NarrativeMetricSummary legacyRemaining;
 
   List<NarrativeMetricSummary> get all => <NarrativeMetricSummary>[
-        chapters,
-        scenes,
-        cutscenes,
-        quests,
-        dialogues,
-        dialogueLines,
-        openIssues,
-        conditions,
-        worldRules,
-        facts,
-        legacyRemaining,
-      ];
+    chapters,
+    scenes,
+    cutscenes,
+    quests,
+    dialogues,
+    dialogueLines,
+    openIssues,
+    conditions,
+    worldRules,
+    facts,
+  ];
 }
 
 class NarrativeMetricSummary {
@@ -401,13 +397,6 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
   final globalStories = project.scenarios
       .where((scenario) => scenario.scope == ScenarioScope.globalStory)
       .toList(growable: false);
-  final localEventFlows = project.scenarios
-      .where((scenario) => scenario.scope == ScenarioScope.localEventFlow)
-      .toList(growable: false);
-  final cutsceneScenarioIds = localEventFlows
-      .where(_hasCutsceneStudioMetadata)
-      .map((scenario) => scenario.id)
-      .toSet();
   final allStepContexts = _buildStepContexts(globalStories);
   final allSteps = allStepContexts
       .expand((context) => context.stepDocument.steps)
@@ -424,7 +413,6 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     canonicalMainStories: canonicalMainStories,
     globalStories: globalStories,
     project: project,
-    cutsceneScenarioIds: cutsceneScenarioIds,
     validationState: validation,
     authoringDiagnostics: authoringDiagnostics,
     narrativeValidationReport: narrativeValidationReport,
@@ -452,14 +440,6 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     emptyStateMessage: 'Aucune CinematicAsset canonique.',
     unavailableMessage: 'Cinématiques indisponibles.',
     sourceLabel: 'ProjectManifest.cinematics',
-  );
-  final cinematicBridges = _metricWithCount(
-    id: 'cinematic_bridges',
-    label: 'Bridges legacy',
-    count: cutsceneScenarioIds.length,
-    emptyStateMessage: 'Aucun bridge legacy Scenario/Cutscene.',
-    unavailableMessage: 'Bridges legacy indisponibles.',
-    sourceLabel: 'ProjectManifest.scenarios (bridges Cutscene Studio)',
   );
   final dialogues = _metricWithCount(
     id: 'dialogues',
@@ -515,16 +495,6 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
               ? 'Validation narrative locale'
               : 'NarrativeProjectValidationReport.diagnostics',
         ).copyWithAvailability(NarrativeOverviewAvailability.available);
-  final legacyScan = buildNarrativeLegacyMigrationScan(project);
-  final legacyRemaining = _metricWithCount(
-    id: 'legacy_remaining',
-    label: 'Legacy restant',
-    count: legacyScan.legacyRemainingCount,
-    emptyStateMessage: 'Aucune source legacy Narrative restante.',
-    unavailableMessage: 'Inventaire legacy indisponible.',
-    sourceLabel: 'NarrativeLegacyMigrationScan schema 1',
-  );
-
   final metrics = NarrativeOverviewMetrics(
     chapters: chapters,
     scenes: scenes,
@@ -555,12 +525,10 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     conditions: conditions,
     worldRules: worldRules,
     facts: facts,
-    legacyRemaining: legacyRemaining,
   );
 
   final modules = _buildModules(
     metrics,
-    cinematicBridges: cinematicBridges,
     worldRuleDiagnostics: worldRuleDiagnostics,
     worldRulePreviewLabels: [
       for (final rule in project.worldRules.take(3)) rule.label,
@@ -639,7 +607,6 @@ MainStoryOverviewSummary _buildMainStory({
   required List<StorylineAsset> canonicalMainStories,
   required List<ScenarioAsset> globalStories,
   required ProjectManifest project,
-  required Set<String> cutsceneScenarioIds,
   required EditorialStatusSummary validationState,
   required List<NarrativeAuthoringDiagnosticView> authoringDiagnostics,
   required NarrativeValidationReport? narrativeValidationReport,
@@ -727,15 +694,14 @@ MainStoryOverviewSummary _buildMainStory({
       .toList(growable: false)
     ..sort((a, b) => a.order.compareTo(b.order));
 
-  final linkedCutsceneIds = stepParse.document.steps
+  final knownSceneIds = project.scenes.map((scene) => scene.id).toSet();
+  final resolvedSceneIds = stepParse.document.steps
       .expand((step) => step.cutscenes.map((link) => link.cutsceneId))
-      .where((id) => id.trim().isNotEmpty)
+      .where((id) => id.trim().isNotEmpty && knownSceneIds.contains(id))
       .toSet();
-  final resolvedSceneIds =
-      linkedCutsceneIds.where(cutsceneScenarioIds.contains).toSet();
-  final linkedDialogues = _collectDialogueIdsFromScenarios(
+  final linkedDialogues = _collectDialogueIdsFromScenes(
     project: project,
-    scenarioIds: resolvedSceneIds,
+    sceneIds: resolvedSceneIds,
   );
   final scopedIssues = validationState.notEvaluated
       ? null
@@ -759,7 +725,7 @@ MainStoryOverviewSummary _buildMainStory({
       sourceStatus: resolvedSceneIds.isEmpty
           ? NarrativeOverviewSourceStatus.missing
           : NarrativeOverviewSourceStatus.explicit,
-      sourceLabel: 'ScenarioAsset legacy + Step Studio metadata',
+      sourceLabel: 'SceneAsset + Step Studio metadata',
     ),
     linkedDialogues: _metricWithCount(
       id: 'main_story_linked_dialogues',
@@ -1100,16 +1066,6 @@ NarrativeMetricSummary _metricWithCount({
   );
 }
 
-bool _hasCutsceneStudioMetadata(ScenarioAsset scenario) {
-  if (scenario.scope != ScenarioScope.localEventFlow) {
-    return false;
-  }
-  final schema = scenario.metadata[kCutsceneStudioSchemaMetadataKey]?.trim();
-  final flow = scenario.metadata[kCutsceneStudioFlowMetadataKey]?.trim();
-  return (schema != null && schema.isNotEmpty) ||
-      (flow != null && flow.isNotEmpty);
-}
-
 int _countNarrativeConditions(
   ProjectManifest project,
   List<StepStudioStep> steps,
@@ -1198,6 +1154,30 @@ Set<String> _collectDialogueIdsFromScenarios({
       final paramDialogueId = (node.payload.params['dialogueId'] ?? '').trim();
       if (knownDialogueIds.contains(paramDialogueId)) {
         out.add(paramDialogueId);
+      }
+    }
+  }
+  return out;
+}
+
+Set<String> _collectDialogueIdsFromScenes({
+  required ProjectManifest project,
+  required Set<String> sceneIds,
+}) {
+  final knownDialogueIds = project.dialogues.map((entry) => entry.id).toSet();
+  final out = <String>{};
+  for (final scene in project.scenes) {
+    if (!sceneIds.contains(scene.id)) {
+      continue;
+    }
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneYarnDialoguePayload) {
+        continue;
+      }
+      final dialogueId = payload.dialogueId.trim();
+      if (knownDialogueIds.contains(dialogueId)) {
+        out.add(dialogueId);
       }
     }
   }
@@ -1343,7 +1323,6 @@ NarrativeChapterEditorialStatus _chapterStatusFor(
 
 List<NarrativeModuleSummary> _buildModules(
   NarrativeOverviewMetrics metrics, {
-  required NarrativeMetricSummary cinematicBridges,
   required WorldRuleDiagnosticsReport worldRuleDiagnostics,
   required List<String> worldRulePreviewLabels,
   required List<String> factPreviewLabels,
@@ -1362,13 +1341,11 @@ List<NarrativeModuleSummary> _buildModules(
     NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.cutscenes,
       label: 'Cinématiques',
-      description:
-          'CinematicAsset canoniques et bridges legacy Cutscene Studio.',
+      description: 'CinematicAsset canoniques.',
       count: metrics.cutscenes.count,
       availability: metrics.cutscenes.availability,
       emptyStateMessage: metrics.cutscenes.emptyStateMessage,
       destination: 'cinematics_library',
-      secondaryStats: <NarrativeMetricSummary>[cinematicBridges],
       sourceLabel: metrics.cutscenes.sourceLabel,
     ),
     NarrativeModuleSummary(

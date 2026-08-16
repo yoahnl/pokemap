@@ -1954,7 +1954,7 @@ void main() {
     });
 
     testWidgets(
-      'bridge-only cinematic and branch stay disabled while money action is available',
+      'cinematic and branch stay disabled without canonical sources while money action remains available',
       (tester) async {
         await _pumpNarrativeShell(
           tester,
@@ -1979,7 +1979,10 @@ void main() {
         expect(cinematicButton.onPressed, isNull);
         expect(actionButton.onPressed, isNotNull);
         expect(branchButton.onPressed, isNull);
-        expect(find.textContaining('bridges legacy'), findsOneWidget);
+        expect(
+          find.textContaining('Créez d’abord une cinématique'),
+          findsOneWidget,
+        );
         expect(find.textContaining('aucun résultat source'), findsOneWidget);
         expect(find.text('CinematicAsset final'), findsNothing);
         expect(find.text('mael_intro'), findsNothing);
@@ -2157,7 +2160,7 @@ void main() {
       );
       expect(
         container.read(editorNotifierProvider).workspaceMode,
-        EditorWorkspaceMode.cutscene,
+        EditorWorkspaceMode.cinematics,
       );
       expect(
         navigation.location.childRoute,
@@ -5624,21 +5627,6 @@ ProjectManifest _projectWithPayloadPickerContracts() {
         name: 'Static Guardian',
         trainerClass: 'Encounter',
         tags: ['static-encounter'],
-      ),
-    ],
-    scenarios: const [
-      ScenarioAsset(
-        id: 'test_cinematic_bridge',
-        name: 'Test Cinematic Bridge',
-        entryNodeId: 'scenario_node_start',
-        nodes: [
-          ScenarioNode(
-            id: 'scenario_node_start',
-            type: ScenarioNodeType.start,
-            title: 'Start',
-          ),
-        ],
-        metadata: {'authoring.cutsceneSchema': 'test_bridge'},
       ),
     ],
     scenes: [

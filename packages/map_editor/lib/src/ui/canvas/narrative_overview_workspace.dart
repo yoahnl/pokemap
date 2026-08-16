@@ -233,7 +233,6 @@ class _OverviewMainColumn extends StatelessWidget {
             readModel.metrics.quests,
             readModel.metrics.dialogues,
             readModel.metrics.openIssues,
-            readModel.metrics.legacyRemaining,
           ],
           onOpenStorylines: onOpenStorylines,
           onOpenScenes: onOpenScenes,

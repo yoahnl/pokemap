@@ -22,7 +22,7 @@ void main() {
       initialState: EditorState(
         projectRootPath: fixture.root.path,
         project: fixture.before,
-        workspaceMode: EditorWorkspaceMode.cutscene,
+        workspaceMode: EditorWorkspaceMode.cinematics,
       ),
       surfaceSize: const Size(1672, 941),
       settleInitialFrame: false,
@@ -92,7 +92,7 @@ void main() {
     expect(find.text('Modifications Cinématiques en attente'), findsOneWidget);
     await tester.tap(find.text('Rester ici'));
     await _pumpUi(tester);
-    expect(notifier.state.workspaceMode, EditorWorkspaceMode.cutscene);
+    expect(notifier.state.workspaceMode, EditorWorkspaceMode.cinematics);
 
     await _invokeIconAction(
       tester,
@@ -121,7 +121,7 @@ void main() {
       initialState: EditorState(
         projectRootPath: fixture.root.path,
         project: fixture.before,
-        workspaceMode: EditorWorkspaceMode.cutscene,
+        workspaceMode: EditorWorkspaceMode.cinematics,
       ),
       surfaceSize: const Size(1672, 941),
       settleInitialFrame: false,

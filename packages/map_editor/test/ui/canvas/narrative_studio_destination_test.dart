@@ -14,7 +14,7 @@ void main() {
         EditorWorkspaceMode.step: NarrativeStudioDestination.storylines,
         EditorWorkspaceMode.scenes: NarrativeStudioDestination.scenes,
         EditorWorkspaceMode.events: NarrativeStudioDestination.events,
-        EditorWorkspaceMode.cutscene: NarrativeStudioDestination.cinematics,
+        EditorWorkspaceMode.cinematics: NarrativeStudioDestination.cinematics,
         EditorWorkspaceMode.dialogue: NarrativeStudioDestination.dialogues,
         EditorWorkspaceMode.facts: NarrativeStudioDestination.facts,
         EditorWorkspaceMode.shops: NarrativeStudioDestination.shops,
@@ -144,7 +144,7 @@ void main() {
         ),
       );
       expect(
-        narrativeStudioRouteLocationFor(EditorWorkspaceMode.cutscene),
+        narrativeStudioRouteLocationFor(EditorWorkspaceMode.cinematics),
         NarrativeStudioRouteLocation.cinematics(),
       );
       expect(

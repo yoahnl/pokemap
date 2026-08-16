@@ -306,7 +306,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.scenes => 'Scenes Workspace',
     EditorWorkspaceMode.events => 'Event Builder',
     EditorWorkspaceMode.step => 'Step Studio',
-    EditorWorkspaceMode.cutscene => 'Cutscene Studio',
+    EditorWorkspaceMode.cinematics => 'Cinematics Library',
     EditorWorkspaceMode.dialogue => 'Dialogue Studio',
     EditorWorkspaceMode.facts => 'Facts Manager',
     EditorWorkspaceMode.shops => 'Boutique Builder',
@@ -341,7 +341,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Liste read-only des événements de la map active, issue du read model Event Builder.',
     EditorWorkspaceMode.step =>
       'Espace logique des étapes : règles de progression, résultats attendus, cinématiques liées.',
-    EditorWorkspaceMode.cutscene =>
+    EditorWorkspaceMode.cinematics =>
       'Espace d’exécution de scène : dialogues, mouvements, attentes, embranchements locaux.',
     EditorWorkspaceMode.dialogue =>
       'Création de conversations : blocs visuels, prévisualisation, export Yarn — pas un IDE de script brut.',

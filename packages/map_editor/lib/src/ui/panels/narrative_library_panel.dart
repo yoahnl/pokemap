@@ -78,10 +78,8 @@ class NarrativeLibraryPanel extends ConsumerWidget {
             );
           },
           onCutscene: () {
-            notifier.selectCutsceneWorkspace();
-            narrativeController.openCutscene(
-              cutsceneScenarioId: narrative.selectedCutsceneId,
-            );
+            notifier.selectCinematicsWorkspace();
+            narrativeController.openCinematics();
           },
           onDialogue: notifier.selectDialogueWorkspace,
         ),
@@ -159,26 +157,15 @@ class NarrativeLibraryPanel extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const EditorSidebarSectionTitle('CINÉMATIQUES', leftInset: 2),
-        ...projection.localEventFlows.map(
-          (scenario) => EditorSidebarListRow(
-            selected: narrative.selectedCutsceneId == scenario.id &&
-                editor.workspaceMode == EditorWorkspaceMode.cutscene,
-            onTap: () {
-              narrativeController.selectCutscene(scenario.id);
-              narrativeController.openCutscene(
-                cutsceneScenarioId: scenario.id,
-              );
-              notifier.selectCutsceneWorkspace();
-            },
-            leading: const MacosIcon(CupertinoIcons.play_rectangle),
-            title: Text(scenario.name),
-            subtitle: Text(
-              '${scenario.nodeCount} nodes',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+        EditorSidebarListRow(
+          selected: editor.workspaceMode == EditorWorkspaceMode.cinematics,
+          onTap: () {
+            narrativeController.openCinematics();
+            notifier.selectCinematicsWorkspace();
+          },
+          leading: const MacosIcon(CupertinoIcons.play_rectangle),
+          title: const Text('Cinematics Library'),
+          subtitle: const Text('Cinématiques canoniques'),
         ),
         const SizedBox(height: 8),
         const EditorSidebarSectionTitle('RÉSULTATS', leftInset: 2),
@@ -296,7 +283,7 @@ class _WorkspaceQuickActions extends StatelessWidget {
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
                   isSelected:
-                      editor.workspaceMode == EditorWorkspaceMode.cutscene,
+                      editor.workspaceMode == EditorWorkspaceMode.cinematics,
                   onPressed: onCutscene,
                   child: const Text('Cinématique'),
                 ),

@@ -93,12 +93,13 @@ void main() {
       expect(next.encounterStudioTableId, 'route_1_grass');
     });
 
-    test('selectDialogueWorkspace keeps project session and only changes mode',
-        () {
-      const current = EditorState(
-        projectRootPath: '/tmp/demo',
-        workspaceMode: EditorWorkspaceMode.cutscene,
-      );
+    test(
+      'selectDialogueWorkspace keeps project session and only changes mode',
+      () {
+        const current = EditorState(
+          projectRootPath: '/tmp/demo',
+          workspaceMode: EditorWorkspaceMode.cinematics,
+        );
 
       final next = controller.selectDialogueWorkspace(current);
 

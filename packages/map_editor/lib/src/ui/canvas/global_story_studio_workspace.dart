@@ -15,7 +15,7 @@ import 'global_story_studio/global_story_studio_shell.dart';
 /// Rôle produit:
 /// - visualiser et éditer la structure macro du jeu (un seul Global Story);
 /// - garder Step Studio pour la logique locale des steps;
-/// - garder Cutscene Studio pour l'exécution de scène.
+/// - garder Cinematics Library pour l'exécution de scène.
 ///
 /// Rôle technique:
 /// - charger/éditer deux documents complémentaires:

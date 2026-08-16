@@ -27,16 +27,6 @@ class SceneCinematicPickerDialog extends StatelessWidget {
               const SizedBox(height: 8),
               for (final entry in library.canonicalEntries)
                 _CinematicPickerEntryButton(entry: entry),
-              if (library.bridgeEntries.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                const PokeMapBadge(
-                  label: 'Bridges legacy',
-                  variant: PokeMapBadgeVariant.warning,
-                ),
-                const SizedBox(height: 8),
-                for (final entry in library.bridgeEntries)
-                  _CinematicPickerBridgeCard(entry: entry),
-              ],
             ],
           ),
         ),
@@ -70,31 +60,6 @@ class _CinematicPickerEntryButton extends StatelessWidget {
           badge: const PokeMapBadge(
             label: 'CinematicAsset',
             variant: PokeMapBadgeVariant.success,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CinematicPickerBridgeCard extends StatelessWidget {
-  const _CinematicPickerBridgeCard({required this.entry});
-
-  final CinematicsLibraryEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: PokeMapCard(
-        key: ValueKey(
-            'scene-cinematic-picker-bridge-${_pickerKeyPart(entry.id)}'),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: _CinematicPickerEntryContent(
-          entry: entry,
-          badge: const PokeMapBadge(
-            label: 'Legacy',
-            variant: PokeMapBadgeVariant.warning,
           ),
         ),
       ),

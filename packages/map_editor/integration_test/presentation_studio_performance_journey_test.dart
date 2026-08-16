@@ -661,7 +661,7 @@ final class _EditorHarness {
     );
     container.read(editorNotifierProvider.notifier).state = EditorState(
       project: project,
-      workspaceMode: EditorWorkspaceMode.cutscene,
+      workspaceMode: EditorWorkspaceMode.cinematics,
     );
     await tester.pumpWidget(
       UncontrolledProviderScope(

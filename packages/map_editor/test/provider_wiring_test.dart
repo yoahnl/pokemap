@@ -110,16 +110,11 @@ void main() {
         stepId: 'step.professor_intro',
         globalScenarioId: 'global_intro',
       );
-      narrativeNotifier.openCutscene(cutsceneScenarioId: 'local_intro');
       narrativeNotifier.selectOutcome('story.started');
 
       expect(
         container.read(selectedGlobalStorySummaryProvider)?.id,
         'global_intro',
-      );
-      expect(
-        container.read(selectedCutsceneSummaryProvider)?.id,
-        'local_intro',
       );
       expect(
         container.read(selectedNarrativeStepSummaryProvider)?.id,

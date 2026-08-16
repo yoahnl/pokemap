@@ -1011,17 +1011,9 @@ class _CinematicPayloadAuthoringPanel extends StatelessWidget {
             value: 'Référence inconnue',
           ),
           const _InspectorNote(
-            label: 'Cette référence ne pointe vers aucun CinematicAsset '
-                'canonique ni bridge legacy public.',
-          ),
-        ] else if (currentEntry.kind ==
-            CinematicsLibraryEntryKind.scenarioBridge) ...[
-          const _InspectorRow(label: 'Statut', value: 'Bridge legacy'),
-          _InspectorRow(label: 'Titre', value: currentEntry.title),
-          const _InspectorNote(
-            label: 'Cette référence pointe vers un bridge Scenario/Cutscene '
-                'legacy. Elle reste lisible, mais le workflow canonique '
-                'utilise CinematicAsset.',
+            label:
+                'Cette référence ne pointe vers aucun CinematicAsset '
+                'canonique.',
           ),
         ] else ...[
           const _InspectorRow(label: 'Statut', value: 'CinematicAsset'),
@@ -1071,8 +1063,7 @@ class _CinematicPayloadAuthoringPanel extends StatelessWidget {
           size: PokeMapButtonSize.small,
           leading: const Icon(CupertinoIcons.film),
           child: Text(
-            currentEntry?.kind == CinematicsLibraryEntryKind.scenarioBridge ||
-                    currentEntry == null
+            currentEntry == null
                 ? 'Changer vers une cinématique canonique'
                 : 'Changer la cinématique',
           ),
@@ -1090,9 +1081,9 @@ class _CinematicPayloadAuthoringPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const _InspectorNote(
-          label: 'Cette édition modifie uniquement le payload du nœud Scene. '
-              'La timeline, le runtime et les bridges legacy ne sont pas '
-              'modifiés.',
+          label:
+              'Cette édition modifie uniquement le payload du nœud Scene. '
+              'La timeline et le runtime ne sont pas modifiés.',
         ),
       ],
     );

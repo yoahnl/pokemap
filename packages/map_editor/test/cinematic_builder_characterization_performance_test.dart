@@ -35,7 +35,7 @@ void main() {
       tester,
       initialState: EditorState(
         project: _characterizationProject(),
-        workspaceMode: EditorWorkspaceMode.cutscene,
+        workspaceMode: EditorWorkspaceMode.cinematics,
       ),
       surfaceSize: const Size(1672, 941),
     );

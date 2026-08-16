@@ -9,7 +9,6 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/narrative_activity_journal.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
-import 'package:map_editor/src/features/narrative/application/cutscene_studio/cutscene_studio_models.dart';
 import 'package:map_editor/src/features/narrative/application/global_story_studio_authoring.dart';
 import 'package:map_editor/src/features/narrative/application/overview/narrative_overview_read_model.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
@@ -76,7 +75,6 @@ void main() {
         'Quêtes annexes',
         'Dialogues',
         'Problèmes ouverts',
-        'Legacy restant',
       ]) {
         expect(find.text(label), findsWidgets);
       }
@@ -87,7 +85,6 @@ void main() {
         'quests',
         'dialogues',
         'open_issues',
-        'legacy_remaining',
       ]) {
         expect(
           find.byKey(ValueKey('narrative-overview-kpi-$metricId')),
@@ -714,6 +711,8 @@ void main() {
             NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
           ],
           worldRules: [_overviewWorldRule()],
+          cinematics: [_canonicalCinematic()],
+          scenes: [_canonicalScene(dialogueId: 'test_dialogue_1')],
         ),
       );
 
@@ -788,9 +787,6 @@ void main() {
               name: 'Test Cutscene',
               scope: ScenarioScope.localEventFlow,
               entryNodeId: 'start',
-              metadata: <String, String>{
-                kCutsceneStudioSchemaMetadataKey: kCutsceneStudioSchemaVersion,
-              },
             ),
           ],
         ),
@@ -932,6 +928,8 @@ void main() {
             NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
           ],
           worldRules: [_overviewWorldRule()],
+          cinematics: [_canonicalCinematic()],
+          scenes: [_canonicalScene(dialogueId: 'test_dialogue_1')],
         ),
       );
       final worldRulesModule = readModel.modules.singleWhere(
@@ -2096,6 +2094,31 @@ ProjectManifest _minimalProject(
   );
 }
 
+CinematicAsset _canonicalCinematic() => CinematicAsset(
+      id: 'test_cinematic_1',
+      title: 'Test Cinematic',
+      timeline: CinematicTimeline(),
+    );
+
+SceneAsset _canonicalScene({String? dialogueId}) => SceneAsset(
+      id: 'test_cutscene_1',
+      name: 'Test Scene',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          if (dialogueId != null)
+            SceneNode(
+              id: 'dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(dialogueId: dialogueId),
+            ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: const <SceneEdge>[],
+      ),
+    );
+
 WorldRuleDefinition _overviewWorldRule({
   String sourceId = 'fact_known',
   String label = 'Visible world rule',
@@ -2221,9 +2244,6 @@ ScenarioAsset _cutsceneScenario({
     name: 'Test Cutscene',
     scope: ScenarioScope.localEventFlow,
     entryNodeId: 'start',
-    metadata: const <String, String>{
-      kCutsceneStudioSchemaMetadataKey: kCutsceneStudioSchemaVersion,
-    },
     nodes: <ScenarioNode>[
       if (dialogueId != null)
         ScenarioNode(

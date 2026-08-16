@@ -75,6 +75,41 @@ void main() {
   });
 
   group('AuthoringResourceKindRegistry', () {
+    test('does not expose the removed legacy Scenario transport', () {
+      final registry = AuthoringResourceKindRegistry.canonical();
+      final actionIds = MapMutationDispatcher.canonical()
+          .descriptors
+          .map((descriptor) => descriptor.id)
+          .toSet();
+
+      expect(registry.find('scenario'), isNull);
+      expect(
+        actionIds.where((actionId) => actionId.startsWith('scenario.')),
+        isEmpty,
+      );
+    });
+
+    test('rejects removed Scenario commands with a stable capability code', () {
+      final dispatcher = MapMutationDispatcher.canonical();
+
+      expect(
+        () => dispatcher.descriptor('scenario.upsert'),
+        throwsA(
+          isA<MapAuthoringException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'cinematic.capability_removed',
+              )
+              .having(
+                (error) => error.details['actionId'],
+                'actionId',
+                'scenario.upsert',
+              ),
+        ),
+      );
+    });
+
     test('provides the canonical minimal resource kinds', () {
       final registry = AuthoringResourceKindRegistry.canonical();
 
@@ -124,7 +159,6 @@ void main() {
           'projectPresentationProfile',
           'region',
           'sandboxPlayerState',
-          'scenario',
           'scene',
           'script',
           'smartTileAnimation',

@@ -716,7 +716,6 @@ final Set<String> _approvedResourceKinds = {
   'dialogueFolder',
   'dialogue',
   'script',
-  'scenario',
   'narrativeEvent',
   'narrativeFact',
   'worldRule',

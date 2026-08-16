@@ -98,12 +98,11 @@ void main() {
       final validReport = diagnoseSceneAgainstProject(
         scene,
         _project(
-          scenarios: const [
-            ScenarioAsset(
+          cinematics: [
+            CinematicAsset(
               id: 'cinematic_test',
-              name: 'Cinematic Test',
-              entryNodeId: 'scenario_start',
-              metadata: {'authoring.cutsceneSchema': 'v0'},
+              title: 'Cinematic Test',
+              timeline: CinematicTimeline(),
             ),
           ],
         ),
@@ -146,10 +145,9 @@ void main() {
       );
 
       expect(report.byCode(SceneDiagnosticCode.cinematicRefUnknown), isEmpty);
-      expect(report.byCode(SceneDiagnosticCode.legacyScenarioLeak), isEmpty);
     });
 
-    test('keeps scenario bridge references explicit as legacy warnings', () {
+    test('rejects Scenario references as unknown cinematic assets', () {
       final scene = _sceneWithMiddleNode(
         SceneNode(
           id: 'node_cinematic',
@@ -173,10 +171,9 @@ void main() {
         ),
       );
 
-      expect(report.byCode(SceneDiagnosticCode.cinematicRefUnknown), isEmpty);
       final diagnostic =
-          report.byCode(SceneDiagnosticCode.legacyScenarioLeak).single;
-      expect(diagnostic.severity, SceneDiagnosticSeverity.warning);
+          report.byCode(SceneDiagnosticCode.cinematicRefUnknown).single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.error);
       expect(diagnostic.nodeId, 'node_cinematic');
     });
 

@@ -22,7 +22,7 @@ Objectif : libellés compréhensibles pour un créateur non développeur, sans c
 | Réf. projet | **Référence de la scène** | Lisible ; l’id reste affiché quand utile. |
 | Phrase sur le fil | **Texte affiché dans le parcours** | Évite le jargon « fil » interne ; garde le rôle (lecture centrale). |
 | Réglage enregistré | **Règle appliquée** | Vivant, sans prétendre autre chose que la donnée persistée. |
-| Cutscene (libellés surface Step) | **Scène** où pertinent | Distinction produit : Cutscene Studio pour l’outil ; « scène » pour le créateur dans Step. |
+| Cinématique (libellés surface Step) | **Scène** où pertinent | Distinction produit : Cinematics Library pour l’outil ; « scène » pour le créateur dans Step. |
 | Modes de fin (liste) | Formulations demandées (scène, interaction, état du monde, manuel) | Alignées sur l’intention jeu, pas sur les noms d’enum. |
 
 ## Fichiers touchés
@@ -37,4 +37,4 @@ Objectif : libellés compréhensibles pour un créateur non développeur, sans c
 
 - Pas de changement de schéma JSON ni de sémantique runtime.
 - Pas d’affichage de `flowUnlocksStepId` sur le canvas ; pas de wording de « déblocage auto ».
-- Pas d’élargissement Cutscene Studio / Global Story hors libellés Step Studio concernés.
+- Pas d’élargissement Cinematics Library / Global Story hors libellés Step Studio concernés.

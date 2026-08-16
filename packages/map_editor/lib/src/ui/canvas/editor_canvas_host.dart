@@ -32,7 +32,7 @@ class EditorCanvasHost extends ConsumerWidget {
       EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.events ||
       EditorWorkspaceMode.step ||
-      EditorWorkspaceMode.cutscene ||
+      EditorWorkspaceMode.cinematics ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
       EditorWorkspaceMode.shops ||

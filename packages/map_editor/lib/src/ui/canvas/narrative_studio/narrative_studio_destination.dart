@@ -31,7 +31,6 @@ enum NarrativeStudioChildRoute {
   mapEvents,
   cinematicLibrary,
   cinematicBuilder,
-  cinematicLegacy,
   dialogueEditor,
   factsManager,
   shopBuilder,
@@ -249,43 +248,41 @@ final class NarrativeStudioRouteLocation {
 
 Set<NarrativeStudioChildRoute> _childrenForDestination(
   NarrativeStudioDestination destination,
-) =>
-    switch (destination) {
-      NarrativeStudioDestination.overview => const {
-          NarrativeStudioChildRoute.overview,
-        },
-      NarrativeStudioDestination.storylines => const {
-          NarrativeStudioChildRoute.storylineLibrary,
-          NarrativeStudioChildRoute.storylineStep,
-        },
-      NarrativeStudioDestination.scenes => const {
-          NarrativeStudioChildRoute.sceneBuilder,
-        },
-      NarrativeStudioDestination.events => const {
-          NarrativeStudioChildRoute.eventBuilder,
-          NarrativeStudioChildRoute.mapEvents,
-        },
-      NarrativeStudioDestination.cinematics => const {
-          NarrativeStudioChildRoute.cinematicLibrary,
-          NarrativeStudioChildRoute.cinematicBuilder,
-          NarrativeStudioChildRoute.cinematicLegacy,
-        },
-      NarrativeStudioDestination.dialogues => const {
-          NarrativeStudioChildRoute.dialogueEditor,
-        },
-      NarrativeStudioDestination.facts => const {
-          NarrativeStudioChildRoute.factsManager,
-        },
-      NarrativeStudioDestination.shops => const {
-          NarrativeStudioChildRoute.shopBuilder,
-        },
-      NarrativeStudioDestination.worldRules => const {
-          NarrativeStudioChildRoute.worldRulesManager,
-        },
-      NarrativeStudioDestination.validator => const {
-          NarrativeStudioChildRoute.validatorDiagnostics,
-        },
-    };
+) => switch (destination) {
+  NarrativeStudioDestination.overview => const {
+    NarrativeStudioChildRoute.overview,
+  },
+  NarrativeStudioDestination.storylines => const {
+    NarrativeStudioChildRoute.storylineLibrary,
+    NarrativeStudioChildRoute.storylineStep,
+  },
+  NarrativeStudioDestination.scenes => const {
+    NarrativeStudioChildRoute.sceneBuilder,
+  },
+  NarrativeStudioDestination.events => const {
+    NarrativeStudioChildRoute.eventBuilder,
+    NarrativeStudioChildRoute.mapEvents,
+  },
+  NarrativeStudioDestination.cinematics => const {
+    NarrativeStudioChildRoute.cinematicLibrary,
+    NarrativeStudioChildRoute.cinematicBuilder,
+  },
+  NarrativeStudioDestination.dialogues => const {
+    NarrativeStudioChildRoute.dialogueEditor,
+  },
+  NarrativeStudioDestination.facts => const {
+    NarrativeStudioChildRoute.factsManager,
+  },
+  NarrativeStudioDestination.shops => const {
+    NarrativeStudioChildRoute.shopBuilder,
+  },
+  NarrativeStudioDestination.worldRules => const {
+    NarrativeStudioChildRoute.worldRulesManager,
+  },
+  NarrativeStudioDestination.validator => const {
+    NarrativeStudioChildRoute.validatorDiagnostics,
+  },
+};
 
 Set<NarrativeStudioAssetKind> _assetsForDestination(
   NarrativeStudioDestination destination,

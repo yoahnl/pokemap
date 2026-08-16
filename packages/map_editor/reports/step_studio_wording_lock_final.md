@@ -40,7 +40,7 @@ Titres canvas **imposés** et présents : **Cette étape**, **Quand ça commence
 - **« Note de transition » + mémo** : le titre et le dropdown dissocient clairement **lecture / mémo** de toute idée de chaînage automatique ; `flowUnlocksStepId` n’est jamais décrit comme activation ou déblocage.
 - **« Règle actuelle »** : décrit l’état enregistré sans la froideur de « réglage appliqué » ni l’ambiguïté de « validation » administrative.
 - **Types de résultat** : « Issue de cette étape » / « Résultat pour l’histoire » / « État du monde » mappent 1:1 sur des intentions créateur sans afficher Local / Progression / Monde comme libellés UI.
-- **Scène vs Cutscene Studio** : surface Step = « scène » ; l’outil de mise en scène reste nommé **Cutscene Studio** là où on renvoie l’édition dialogues / caméra.
+- **Scène vs Cinematics Library** : surface Step = « scène » ; les cinématiques canoniques se créent dans la **Cinematics Library** puis se lient depuis une Scène.
 
 ## 4. Laissé volontairement technique dans le code
 
