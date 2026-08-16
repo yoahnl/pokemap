@@ -24,6 +24,7 @@ class PokemonMoveCatalogEntryView {
   const PokemonMoveCatalogEntryView({
     required this.id,
     required this.name,
+    this.names = const <String, String>{},
     this.type,
     this.category,
     this.power,
@@ -41,6 +42,7 @@ class PokemonMoveCatalogEntryView {
 
   final String id;
   final String name;
+  final Map<String, String> names;
   final String? type;
   final String? category;
   final int? power;
@@ -64,6 +66,15 @@ class PokemonMoveCatalogEntryView {
     }
     return '-';
   }
+
+  String displayName(String locale) => resolveLocalizedName(
+        names: names,
+        locale: locale,
+        fallback: name,
+      );
+
+  bool hasLocalizedName(String locale) =>
+      displayName(locale) != name || names.containsKey(locale);
 }
 
 enum PokemonMovesCatalogLoadState {
@@ -269,6 +280,7 @@ class LoadPokemonMovesCatalogUseCase {
         return PokemonMoveCatalogEntryView(
           id: move.id,
           name: move.name,
+          names: move.names,
           type: move.type,
           category: move.category.name,
           power: move.usesStandardDamageFlow ? move.basePower : null,
@@ -339,6 +351,7 @@ class LoadPokemonMovesCatalogUseCase {
     return PokemonMoveCatalogEntryView(
       id: id,
       name: name,
+      names: localizedNames ?? const <String, String>{},
       type: type,
       category: category,
       power: _readOptionalInt(entry, 'power', id: id),

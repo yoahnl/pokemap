@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
@@ -173,6 +174,119 @@ void main() {
         find.text('Catalogue local des capacités du projet.'),
         findsOneWidget,
       );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('renders localized move names with a fallback badge in french',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonMovesCatalogView(
+              entries: <PokemonMoveCatalogEntryView>[
+                PokemonMoveCatalogEntryView(
+                  id: 'thunderbolt',
+                  name: 'Thunderbolt',
+                  names: <String, String>{
+                    'en': 'Thunderbolt',
+                    'fr': 'Tonnerre',
+                  },
+                  type: 'electric',
+                  category: 'special',
+                  power: 90,
+                  accuracy: 100,
+                  pp: 15,
+                ),
+                PokemonMoveCatalogEntryView(
+                  id: 'fangame_strike',
+                  name: 'Fangame Strike',
+                  names: <String, String>{'en': 'Fangame Strike'},
+                  type: 'normal',
+                  category: 'physical',
+                  power: 40,
+                  accuracy: 100,
+                  pp: 20,
+                ),
+              ],
+              isAvailable: true,
+              description: 'Catalogue local des capacités du projet.',
+            ),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const <PokemonDatabaseIndexEntry>[],
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.binding.setSurfaceSize(const Size(1440, 980));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      container.read(editorNotifierProvider.notifier).state =
+          const EditorState(
+        projectRootPath: '/tmp/pokemon_catalogs_moves_fr_test',
+        project: ProjectManifest(
+          name: 'Catalogs Localized Test Project',
+          maps: <ProjectMapEntry>[
+            ProjectMapEntry(
+              id: 'lab',
+              name: 'Lab',
+              relativePath: 'maps/lab.json',
+            ),
+          ],
+          tilesets: <ProjectTilesetEntry>[],
+        ),
+        workspaceMode: EditorWorkspaceMode.pokedex,
+        pokemonCatalogSection: PokemonCatalogSection.moves,
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosApp(
+            home: Builder(
+              builder: (context) => Localizations.override(
+                context: context,
+                locale: const Locale('fr'),
+                delegates: const [
+                  GlobalCupertinoLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                ],
+                child: MacosTheme(
+                  data: MacosThemeData.light(),
+                  child: const CupertinoPageScaffold(
+                    child: SizedBox.expand(
+                      child: PokemonCatalogsWorkspace(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle(const Duration(milliseconds: 50));
+
+      expect(find.text('Tonnerre'), findsWidgets);
+      expect(
+        find.byKey(
+          const Key('moves-catalog-entry-fangame_strike-fallback-language'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('moves-catalog-missing-translation-summary')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('moves-catalog-search-field')),
+        'thunderbolt',
+      );
+      await tester.pumpAndSettle(const Duration(milliseconds: 50));
+
+      expect(find.text('Tonnerre'), findsWidgets);
+      expect(find.text('Fangame Strike'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 

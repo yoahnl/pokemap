@@ -100,9 +100,15 @@ class _PokemonMovesCatalogWorkspaceState
     PokemonMovesCatalogView view,
     String? projectRootPath,
   ) {
+    final locale =
+        (Localizations.maybeLocaleOf(context) ?? const Locale('en'))
+            .toLanguageTag();
     final query = _searchController.text.trim();
-    final filteredEntries = _filterEntries(view.entries, query);
+    final filteredEntries = _filterEntries(view.entries, query, locale);
     final selectedEntry = _resolveSelectedEntry(filteredEntries);
+    final missingTranslationCount = view.entries
+        .where((entry) => !entry.hasLocalizedName(locale))
+        .length;
 
     if (view.loadState == PokemonMovesCatalogLoadState.noProject) {
       return const _MovesWorkspaceNotice(
@@ -141,6 +147,7 @@ class _PokemonMovesCatalogWorkspaceState
       entries: filteredEntries,
       selectedEntryId: selectedEntry?.id,
       diagnostics: view.diagnostics,
+      missingTranslationCount: missingTranslationCount,
       onEntrySelected: (entry) {
         setState(() {
           _selectedMoveId = entry.id;
@@ -368,6 +375,7 @@ class _PokemonMovesCatalogWorkspaceState
   List<PokemonMoveCatalogEntryView> _filterEntries(
     List<PokemonMoveCatalogEntryView> entries,
     String query,
+    String locale,
   ) {
     if (query.isEmpty) {
       return entries;
@@ -375,6 +383,7 @@ class _PokemonMovesCatalogWorkspaceState
     final normalizedQuery = query.toLowerCase();
     return entries.where((entry) {
       return entry.name.toLowerCase().contains(normalizedQuery) ||
+          entry.displayName(locale).toLowerCase().contains(normalizedQuery) ||
           entry.id.toLowerCase().contains(normalizedQuery) ||
           (entry.type?.toLowerCase().contains(normalizedQuery) ?? false) ||
           (entry.category?.toLowerCase().contains(normalizedQuery) ?? false);
@@ -587,6 +596,7 @@ class _MovesCatalogListPanel extends StatelessWidget {
     required this.entries,
     required this.selectedEntryId,
     required this.diagnostics,
+    required this.missingTranslationCount,
     required this.onEntrySelected,
   });
 
@@ -594,6 +604,7 @@ class _MovesCatalogListPanel extends StatelessWidget {
   final List<PokemonMoveCatalogEntryView> entries;
   final String? selectedEntryId;
   final List<PokemonMovesCatalogDiagnostic> diagnostics;
+  final int missingTranslationCount;
   final ValueChanged<PokemonMoveCatalogEntryView> onEntrySelected;
 
   @override
@@ -607,6 +618,20 @@ class _MovesCatalogListPanel extends StatelessWidget {
           controller: searchController,
           onChanged: () {},
         ),
+        if (missingTranslationCount > 0) ...[
+          const SizedBox(height: 12),
+          Text(
+            missingTranslationCount == 1
+                ? '1 move sans nom traduit — resynchronise le catalogue moves.'
+                : '$missingTranslationCount moves sans nom traduit — resynchronise le catalogue moves.',
+            key: const Key('moves-catalog-missing-translation-summary'),
+            style: TextStyle(
+              color: subtle,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
         if (diagnostics.isNotEmpty) ...[
           const SizedBox(height: 12),
           Text(
@@ -670,6 +695,9 @@ class _MovesCatalogListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale =
+        (Localizations.maybeLocaleOf(context) ?? const Locale('en'))
+            .toLanguageTag();
     final subtle = EditorChrome.subtleLabel(context);
     final label = EditorChrome.primaryLabel(context);
     final surface = selected
@@ -703,13 +731,33 @@ class _MovesCatalogListTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      entry.name,
-                      style: TextStyle(
-                        color: label,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            entry.displayName(locale),
+                            style: TextStyle(
+                              color: label,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (!entry.hasLocalizedName(locale)) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            'EN',
+                            key: Key(
+                              'moves-catalog-entry-${entry.id}-fallback-language',
+                            ),
+                            style: TextStyle(
+                              color: subtle,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -885,7 +933,10 @@ class _MovesCatalogDetailPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                entry!.name,
+                entry!.displayName(
+                  (Localizations.maybeLocaleOf(context) ?? const Locale('en'))
+                      .toLanguageTag(),
+                ),
                 style: TextStyle(
                   color: label,
                   fontSize: 20,

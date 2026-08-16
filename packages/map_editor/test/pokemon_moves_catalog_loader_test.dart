@@ -199,6 +199,57 @@ void main() {
     expect(result.diagnostics, isEmpty);
   });
 
+  test('a projected entry exposes its localized names', () async {
+    await _writeMovesCatalog(
+      tempProjectRoot,
+      entries: <Map<String, Object?>>[
+        PokemonMove(
+          id: 'thunderbolt',
+          name: 'Thunderbolt',
+          names: const <String, String>{
+            'en': 'Thunderbolt',
+            'fr': 'Tonnerre',
+          },
+          type: 'electric',
+          category: PokemonMoveCategory.special,
+          basePower: 90,
+          accuracy: const PokemonMoveAccuracy.percent(value: 100),
+          pp: 15,
+        ).toJson(),
+      ],
+    );
+
+    final result = await loadUseCase.execute(workspace);
+    final entry = result.entries.single;
+    expect(entry.names['fr'], 'Tonnerre');
+    expect(entry.displayName('fr'), 'Tonnerre');
+    expect(entry.displayName('en'), 'Thunderbolt');
+    expect(entry.hasLocalizedName('fr'), isTrue);
+  });
+
+  test('an entry without translation reports it', () async {
+    await _writeMovesCatalog(
+      tempProjectRoot,
+      entries: <Map<String, Object?>>[
+        PokemonMove(
+          id: 'fangame_strike',
+          name: 'Fangame Strike',
+          names: const <String, String>{'en': 'Fangame Strike'},
+          type: 'normal',
+          category: PokemonMoveCategory.physical,
+          basePower: 40,
+          accuracy: const PokemonMoveAccuracy.percent(value: 100),
+          pp: 20,
+        ).toJson(),
+      ],
+    );
+
+    final result = await loadUseCase.execute(workspace);
+    final entry = result.entries.single;
+    expect(entry.displayName('fr'), 'Fangame Strike');
+    expect(entry.hasLocalizedName('fr'), isFalse);
+  });
+
   test('returns a load error when moves catalog json is invalid', () async {
     final file = File(
       p.join(tempProjectRoot.path, 'data', 'pokemon', 'catalogs', 'moves.json'),
