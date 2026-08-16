@@ -192,11 +192,27 @@ doivent normaliser identiquement, sinon la table ne peut pas être indexée de f
 
 ### `map_runtime` — la présentation
 
-- `buildBattleCommandMenuModel` (`presentation/flame/battle_command_menu_model.dart:100`) reçoit un
-  paramètre `locale` et résout le libellé des entrées de type move.
-- `BattleOverlayComponent` reçoit la locale et la transmet depuis `_currentMenuModel()`
-  (`battle_overlay_component.dart:1945`).
-- La valeur vient de `PlayableMapGame.runtimeLocale`, qui existe déjà.
+Une locale seule ne suffit pas, et la raison est structurelle. `BattleMove`
+(`map_battle/lib/src/battle_move.dart:153`) porte `id` et `name`, mais **pas** la map `names` :
+`map_battle` est délibérément pur et indépendant du modèle projet. La couche présentation ne peut
+donc pas résoudre une traduction à partir du seul objet battle.
+
+La résolution passe par une fonction injectée, alimentée par le catalogue projet :
+
+- `RuntimeMoveCatalog` (`application/runtime_move_catalog_loader.dart:203`) expose déjà
+  `Map<String, PokemonMove> entriesById`, chargé avec cache au moment du setup battle. C'est la
+  table de résolution, elle existe.
+- `PlayableMapGame` conserve le catalogue résolu et construit un
+  `String Function(String moveId, String fallbackName)` combinant ce catalogue et `runtimeLocale`.
+- `BattleOverlayComponent` reçoit ce resolver. C'est déjà la convention du composant, qui accepte
+  `spriteResolver`, `genderResolver`, `bagItemIconResolver` et `itemCapabilityResolver`
+  (`playable_map_game.dart:7591`).
+- `buildBattleCommandMenuModel` (`presentation/flame/battle_command_menu_model.dart:100`) reçoit le
+  resolver et l'applique dans `_entryForChoice`, en résolvant par `move.id` avec `move.name` en
+  repli.
+
+Ce détour est le prix de la pureté du domaine battle, et il la confirme plutôt qu'il ne la remet en
+cause : aucune notion de langue n'entre dans `map_battle` ni dans les timelines sérialisées.
 
 ### `map_editor` — l'affichage
 
@@ -238,8 +254,9 @@ choisis : `U-turn`, `King's Shield`, `10,000,000 Volt Thunderbolt`, `Will-O-Wisp
 - **Merge de sync** : une entrée externe portant `fr` écrase bien le `fr` local, et un move
   purement local absent du snapshot conserve l'intégralité de sa map `names`. Ce test fige le
   comportement décidé ci-dessus plutôt que de le laisser implicite.
-- **`map_runtime`** : `buildBattleCommandMenuModel` en `fr` rend le nom français, en `en` le nom
-  anglais, et retombe sur l'anglais pour un move sans traduction.
+- **`map_runtime`** : `buildBattleCommandMenuModel` rend le nom français quand le resolver en
+  fournit un, et retombe sur `BattleMove.name` quand le resolver renvoie le fallback — y compris
+  lorsque le move est absent du catalogue.
 - **`map_editor`** : la recherche trouve un move par son nom anglais alors que l'affichage est en
   français.
 
