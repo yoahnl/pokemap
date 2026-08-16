@@ -1561,7 +1561,7 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
         parameters: {
           sceneId: "new_game_intro",
           nodeId: "opening",
-          targetNodeId: "end",
+          targetNodeId: "ask_name",
           presentationCinematicId: "opening",
         },
       },

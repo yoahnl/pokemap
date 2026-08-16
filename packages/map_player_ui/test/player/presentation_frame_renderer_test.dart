@@ -145,6 +145,8 @@ void main() {
     expect(text.style?.fontSize, 36);
     expect(text.style?.fontWeight, FontWeight.w700);
     expect(text.style?.color, const Color(0xFF33AAFF));
+    expect(text.style?.inherit, isFalse);
+    expect(text.style?.decoration, TextDecoration.none);
     expect(tester.takeException(), isNull);
   });
 

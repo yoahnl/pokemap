@@ -2205,7 +2205,7 @@ List<_Cin033EditorStep> _cin033EditorSteps() => <_Cin033EditorStep>[
     <String, Object?>{
       'sceneId': 'new_game_intro',
       'nodeId': 'opening',
-      'targetNodeId': 'end',
+      'targetNodeId': 'ask_name',
       'presentationCinematicId': 'opening',
     },
   ),

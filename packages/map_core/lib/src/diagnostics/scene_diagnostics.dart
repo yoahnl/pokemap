@@ -51,6 +51,7 @@ enum SceneDiagnosticCode {
   edgeKindUnsupportedForPort,
   duplicateOutgoingPortEdge,
   requiredOutputPortMissing,
+  presentationInteractionReachedBeforePresentation,
   unreachableNode,
   unreachableEndNode,
   cycleUnsupported,
@@ -283,6 +284,7 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
 
   _diagnosePorts(scene, nodeById, diagnostics);
   _diagnoseReachability(scene, nodeById, diagnostics);
+  _diagnosePresentationInteractionOrder(scene, nodeById, diagnostics);
   _diagnoseCycles(scene, nodeById, diagnostics);
 
   for (final node in scene.graph.nodes) {
@@ -1383,6 +1385,65 @@ void _diagnoseReachability(
         suggestedFixLabel: 'Créer au moins un chemin vers une fin.',
       ),
     );
+  }
+}
+
+void _diagnosePresentationInteractionOrder(
+  SceneAsset scene,
+  Map<String, SceneNode> nodeById,
+  List<SceneDiagnostic> diagnostics,
+) {
+  final startNode = nodeById[scene.graph.startNodeId];
+  if (startNode == null) return;
+
+  final outgoingByNode = <String, List<SceneEdge>>{};
+  for (final edge in scene.graph.edges) {
+    outgoingByNode.putIfAbsent(edge.fromNodeId, () => []).add(edge);
+  }
+
+  for (final presentationNode in scene.graph.nodes) {
+    final payload = presentationNode.payload;
+    if (payload is! ScenePresentationCinematicPayload) continue;
+
+    for (final binding in payload.interactionCueBindings) {
+      final queue = <(String, bool)>[(startNode.id, false)];
+      final visited = <(String, bool)>{};
+      var reachedBeforePresentation = false;
+      var queueIndex = 0;
+
+      while (queueIndex < queue.length && !reachedBeforePresentation) {
+        final state = queue[queueIndex++];
+        if (!visited.add(state)) continue;
+        final hasPlayedPresentation =
+            state.$2 || state.$1 == presentationNode.id;
+        if (state.$1 == binding.interactionNodeId && !hasPlayedPresentation) {
+          reachedBeforePresentation = true;
+          continue;
+        }
+        for (final edge in outgoingByNode[state.$1] ?? const <SceneEdge>[]) {
+          if (nodeById.containsKey(edge.toNodeId)) {
+            queue.add((edge.toNodeId, hasPlayedPresentation));
+          }
+        }
+      }
+
+      if (!reachedBeforePresentation) continue;
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode
+              .presentationInteractionReachedBeforePresentation,
+          severity: SceneDiagnosticSeverity.error,
+          message:
+              'Une interaction liée à une cinématique est atteignable avant '
+              'la lecture de cette cinématique.',
+          sceneId: scene.id,
+          nodeId: binding.interactionNodeId,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel:
+              'Placer la cinématique avant l’interaction dans le graphe.',
+        ),
+      );
+    }
   }
 }
 

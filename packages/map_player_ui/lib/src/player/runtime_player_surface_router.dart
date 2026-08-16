@@ -38,6 +38,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
     this.pausePresentation,
     this.onPreSessionResult,
+    this.showPreSessionInteraction = true,
   });
 
   final RuntimePlayerSnapshot snapshot;
@@ -54,6 +55,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final PlayerPauseMenuLabels pauseMenuLabels;
   final PlayerPausePresentation? pausePresentation;
   final ValueChanged<SceneInteractionResult>? onPreSessionResult;
+  final bool showPreSessionInteraction;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +114,9 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           ),
           onSelected: (action) => _dispatch(_titleAction(action)),
         ),
-      RuntimePlayerPhase.preSession when snapshot.preSessionRequest != null =>
+      RuntimePlayerPhase.preSession
+          when snapshot.preSessionRequest != null &&
+              showPreSessionInteraction =>
         PlayerSceneInteractionSurface(
           request: snapshot.preSessionRequest!,
           onResult: onPreSessionResult ?? (_) {},

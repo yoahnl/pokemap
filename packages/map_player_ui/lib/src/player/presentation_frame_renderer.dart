@@ -445,7 +445,9 @@ class _PresentationTextLayer extends StatelessWidget {
           PresentationTextAlignment.end => TextAlign.end,
         },
         style: TextStyle(
+          inherit: false,
           color: _colorFromHex(style.colorHex),
+          decoration: TextDecoration.none,
           fontFamily: style.fontFamily,
           fontSize: style.fontSize,
           fontWeight: switch (style.weight) {

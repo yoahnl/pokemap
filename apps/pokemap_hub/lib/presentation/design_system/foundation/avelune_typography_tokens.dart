@@ -95,13 +95,13 @@ final class AveluneTypographyTokens
       };
 
   TextTheme applyTo(TextTheme base) => base.copyWith(
-        displaySmall: display,
-        headlineSmall: title,
-        titleMedium: gameTitle,
-        bodyMedium: body,
-        bodySmall: metadata,
-        labelLarge: label,
-        labelMedium: caption,
+        displaySmall: base.displaySmall?.merge(display) ?? display,
+        headlineSmall: base.headlineSmall?.merge(title) ?? title,
+        titleMedium: base.titleMedium?.merge(gameTitle) ?? gameTitle,
+        bodyMedium: base.bodyMedium?.merge(body) ?? body,
+        bodySmall: base.bodySmall?.merge(metadata) ?? metadata,
+        labelLarge: base.labelLarge?.merge(label) ?? label,
+        labelMedium: base.labelMedium?.merge(caption) ?? caption,
       );
 
   @override

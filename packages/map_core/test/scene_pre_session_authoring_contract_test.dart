@@ -354,6 +354,84 @@ void main() {
       );
     });
 
+    test('rejects a bound interaction reached before its Presentation', () {
+      final interaction = ScenePreSessionInteractionSpec.text(
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'newGame.playerName.prompt',
+          fallbackText: 'Quel est ton prénom ?',
+        ),
+        resultBinding: const ScenePreSessionResultBinding(
+          field: ScenePreSessionDraftField.playerName,
+        ),
+      );
+      final scene = SceneAsset(
+        id: 'scene_pre_session',
+        name: 'Pré-session',
+        executionProfile: SceneExecutionProfile.preSession,
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'ask_name',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.preSessionInteraction(interaction),
+            ),
+            SceneNode(
+              id: 'opening',
+              kind: SceneNodeKind.presentationCinematic,
+              payload: ScenePresentationCinematicPayload(
+                presentationCinematicId: 'opening',
+                interactionCueBindings: const [
+                  ScenePresentationInteractionCueBinding(
+                    markerId: 'cue_player_name',
+                    interactionNodeId: 'ask_name',
+                  ),
+                ],
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'start_ask_name',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'ask_name',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'ask_name_opening',
+              fromNodeId: 'ask_name',
+              fromPortId: 'completed',
+              toNodeId: 'opening',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+            SceneEdge(
+              id: 'opening_end',
+              fromNodeId: 'opening',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.presentationCompleted,
+            ),
+          ],
+        ),
+      );
+
+      final diagnostics = diagnoseScene(scene).diagnostics
+          .where(
+            (diagnostic) =>
+                diagnostic.code.name ==
+                'presentationInteractionReachedBeforePresentation',
+          )
+          .toList(growable: false);
+
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.severity, SceneDiagnosticSeverity.error);
+      expect(diagnostics.single.nodeId, 'ask_name');
+      expect(buildSceneRuntimePlan(scene).canBuild, isFalse);
+    });
+
     test('rejects cue bindings to missing or non-interaction nodes', () {
       SceneAsset build(String interactionNodeId) => SceneAsset(
         id: 'scene_pre_session',

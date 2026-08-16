@@ -589,6 +589,66 @@ void main() {
     );
   });
 
+  testWidgets(
+    'keeps a Presentation cue interaction above the active frame',
+    (tester) async {
+      final request = SceneInteractionRequest.message(
+        requestId: 'presentation-cue',
+        revision: 4,
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'test.pre_session.cue',
+          fallbackText: 'Quel est ton prénom ?',
+        ),
+      );
+      final controller = _FakeRuntimePlayerCoordinator(
+        RuntimePlayerSnapshot(
+          revision: 18,
+          phase: RuntimePlayerPhase.preSession,
+          gameTitle: 'Aube',
+          preSessionRequest: request,
+          actions: const <RuntimePlayerActionAvailability>[
+            RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.resolvePreSessionInteraction,
+            ),
+          ],
+        ),
+      );
+      final presentation = ValueNotifier<RuntimePresentationFrameSnapshot?>(
+        RuntimePresentationFrameSnapshot(
+          assetRevision: 'opening-revision-8',
+          frame: _presentationFrame(),
+          orientation: PresentationFrameOrientation.portrait,
+        ),
+      );
+      addTearDown(controller.dispose);
+      addTearDown(presentation.dispose);
+
+      await tester.pumpWidget(
+        _app(
+          _view(
+            controller,
+            presentationFrame: presentation,
+            presentationContentPort: _PresentationContentPort(),
+          ),
+        ),
+      );
+
+      expect(find.text('Quel est ton prénom ?'), findsOneWidget);
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('scene-interaction-message-submit'),
+        ),
+      );
+
+      expect(controller.commands, hasLength(1));
+      expect(
+        controller.commands.single.action,
+        RuntimePlayerAction.resolvePreSessionInteraction,
+      );
+      expect(controller.commands.single.snapshotRevision, 18);
+    },
+  );
+
   testWidgets('keeps the game scene mounted only across live session phases',
       (tester) async {
     final lifecycle = _SceneLifecycle();

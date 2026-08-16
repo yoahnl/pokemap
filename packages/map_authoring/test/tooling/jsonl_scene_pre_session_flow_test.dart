@@ -237,7 +237,7 @@ final class _Harness {
     await apply(3, 'scene.preSession.presentation.insert', const {
       'sceneId': 'new_game_intro',
       'nodeId': 'opening',
-      'targetNodeId': 'end',
+      'targetNodeId': 'ask_name',
       'presentationCinematicId': 'presentation_opening',
     });
     await apply(4, 'scene.preSession.interaction.update', <String, Object?>{
