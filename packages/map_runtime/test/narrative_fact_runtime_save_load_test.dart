@@ -69,9 +69,9 @@ void main() {
         repository.load,
         throwsA(
           isA<GameSaveException>().having(
-            (error) => error.message,
-            'message',
-            contains('UnsupportedSaveSchema'),
+            (error) => error.diagnostic?.code,
+            'diagnostic.code',
+            SaveLoadFailureCode.unsupportedSchema,
           ),
         ),
       );
