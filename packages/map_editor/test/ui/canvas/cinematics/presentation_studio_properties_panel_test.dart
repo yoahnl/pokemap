@@ -217,6 +217,17 @@ void main() {
 
     final colored = commands.single.parameters['clip']! as Map;
     expect((colored['style']! as Map)['colorHex'], '#33669980');
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('presentation-property-text-color-picker'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('pokemap-color-recent-0')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('registry dispatches text audio caption and marker inspectors', (

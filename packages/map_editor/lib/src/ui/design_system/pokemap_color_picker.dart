@@ -16,7 +16,7 @@ const pokeMapColorPickerHexFieldKey = ValueKey<String>(
   'pokemap-color-picker-hex-field',
 );
 
-class PokeMapColorPicker extends StatelessWidget {
+class PokeMapColorPicker extends StatefulWidget {
   const PokeMapColorPicker({
     super.key,
     required this.label,
@@ -49,34 +49,50 @@ class PokeMapColorPicker extends StatelessWidget {
   final Key? buttonKey;
 
   @override
+  State<PokeMapColorPicker> createState() => _PokeMapColorPickerState();
+}
+
+class _PokeMapColorPickerState extends State<PokeMapColorPicker> {
+  final List<String> _recentColors = <String>[];
+
+  @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: <Widget>[
-      Text(label, style: const TextStyle(fontSize: 11)),
+      Text(widget.label, style: const TextStyle(fontSize: 11)),
       const SizedBox(height: 5),
       PokeMapButton(
-        key: buttonKey,
+        key: widget.buttonKey,
         variant: PokeMapButtonVariant.secondary,
         onPressed: () async {
           final selected = await showDialog<String>(
             context: context,
             builder: (context) => _PokeMapColorPickerDialog(
-              valueHex: valueHex,
-              title: dialogTitle,
-              cancelLabel: cancelLabel,
-              applyLabel: applyLabel,
-              hueLabel: hueLabel,
-              saturationLabel: saturationLabel,
-              brightnessLabel: brightnessLabel,
-              opacityLabel: opacityLabel,
-              hexLabel: hexLabel,
-              invalidHexLabel: invalidHexLabel,
+              valueHex: widget.valueHex,
+              recentColors: _recentColors,
+              title: widget.dialogTitle,
+              cancelLabel: widget.cancelLabel,
+              applyLabel: widget.applyLabel,
+              hueLabel: widget.hueLabel,
+              saturationLabel: widget.saturationLabel,
+              brightnessLabel: widget.brightnessLabel,
+              opacityLabel: widget.opacityLabel,
+              hexLabel: widget.hexLabel,
+              invalidHexLabel: widget.invalidHexLabel,
             ),
           );
-          if (selected != null && selected != valueHex) onChanged(selected);
+          if (selected != null && selected != widget.valueHex) {
+            setState(() {
+              _recentColors
+                ..remove(selected)
+                ..insert(0, selected);
+              if (_recentColors.length > 5) _recentColors.removeLast();
+            });
+            widget.onChanged(selected);
+          }
         },
-        leading: _ColorSwatch(color: _colorFromHex(valueHex), size: 22),
-        child: Text(valueHex.toUpperCase()),
+        leading: _ColorSwatch(color: _colorFromHex(widget.valueHex), size: 22),
+        child: Text(widget.valueHex.toUpperCase()),
       ),
     ],
   );
@@ -85,6 +101,7 @@ class PokeMapColorPicker extends StatelessWidget {
 class _PokeMapColorPickerDialog extends StatefulWidget {
   const _PokeMapColorPickerDialog({
     required this.valueHex,
+    required this.recentColors,
     required this.title,
     required this.cancelLabel,
     required this.applyLabel,
@@ -97,6 +114,7 @@ class _PokeMapColorPickerDialog extends StatefulWidget {
   });
 
   final String valueHex;
+  final List<String> recentColors;
   final String title;
   final String cancelLabel;
   final String applyLabel;
@@ -147,6 +165,7 @@ class _PokeMapColorPickerDialogState extends State<_PokeMapColorPickerDialog> {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final selectedHex = _hexFromColor(_color.toColor());
+    final palette = <String>{...widget.recentColors, ..._presets}.toList();
     return PokeMapDialog(
       key: pokeMapColorPickerDialogKey,
       title: widget.title,
@@ -207,17 +226,21 @@ class _PokeMapColorPickerDialogState extends State<_PokeMapColorPickerDialog> {
                 spacing: 8,
                 runSpacing: 8,
                 children: <Widget>[
-                  for (var index = 0; index < _presets.length; index++)
+                  for (var index = 0; index < palette.length; index++)
                     PokeMapButton(
-                      key: ValueKey<String>('pokemap-color-preset-$index'),
-                      semanticLabel: _presets[index],
+                      key: ValueKey<String>(
+                        index < widget.recentColors.length
+                            ? 'pokemap-color-recent-$index'
+                            : 'pokemap-color-preset-$index',
+                      ),
+                      semanticLabel: palette[index],
                       size: PokeMapButtonSize.small,
                       variant: PokeMapButtonVariant.ghost,
                       onPressed: () => _setColor(
-                        HSVColor.fromColor(_colorFromHex(_presets[index])),
+                        HSVColor.fromColor(_colorFromHex(palette[index])),
                       ),
                       child: _ColorSwatch(
-                        color: _colorFromHex(_presets[index]),
+                        color: _colorFromHex(palette[index]),
                         size: 24,
                       ),
                     ),
