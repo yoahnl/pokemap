@@ -234,6 +234,30 @@ void main() {
     );
   });
 
+  testWidgets('a destructive confirmation shows why the save is unusable',
+      (tester) async {
+    const reason = 'This save was written by a newer version of the game.';
+    await tester.pumpWidget(
+      _app(
+        request: SceneInteractionRequest.confirmation(
+          requestId: 'overwrite',
+          revision: 3,
+          prompt: SceneInteractionPrompt(
+            localizationKey: 'player.new_game.confirm_overwrite_unusable',
+            fallbackText:
+                'Cette sauvegarde ne peut pas être poursuivie : {reason} '
+                'La remplacer effacera définitivement sa progression.',
+            arguments: const <String, String>{'reason': reason},
+          ),
+        ),
+        results: <SceneInteractionResult>[],
+      ),
+    );
+
+    expect(find.textContaining(reason), findsOneWidget);
+    expect(find.textContaining('{reason}'), findsNothing);
+  });
+
   testWidgets('stale controls cannot publish into a newer request revision',
       (tester) async {
     final results = <SceneInteractionResult>[];
