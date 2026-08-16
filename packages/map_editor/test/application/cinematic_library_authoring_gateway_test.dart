@@ -130,6 +130,73 @@ void main() {
       isNot(contains(duplicate.cinematicId)),
     );
   });
+
+  test('canonical gateway deletes the final Presentation cinematic', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'cinematic_library_gateway_delete_',
+    );
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final project = ProjectManifest(
+      name: 'Final Presentation deletion',
+      version: ProjectVersion.v7,
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[],
+      presentationCinematics: <PresentationCinematicAsset>[
+        PresentationCinematicAsset(
+          id: 'presentation-only',
+          title: 'Presentation only',
+          durationUs: 1000000,
+        ),
+      ],
+      cinematicLibraryCatalog: CinematicLibraryCatalog(
+        entries: <CinematicLibraryEntry>[
+          CinematicLibraryEntry(
+            family: CinematicLibraryFamily.presentation,
+            cinematicId: 'presentation-only',
+            sortOrder: 0,
+          ),
+        ],
+      ),
+    );
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final projectJson = project.toJson()
+      ..['customExtension'] = <String, Object?>{'preserved': true};
+    await projectFile.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(projectJson),
+      flush: true,
+    );
+    const reader = EditorProjectFileReader();
+    final queries = AuthoringQueryAdapter(fileReader: reader);
+    final mutations = AuthoringMutationAdapter(
+      fileReader: reader,
+      queries: queries,
+      projectRoots: reader,
+    );
+    addTearDown(() async {
+      await mutations.closeAll();
+      await queries.closeAll();
+    });
+    final gateway = CanonicalCinematicLibraryAuthoringGateway(
+      mutations: mutations,
+      queries: queries,
+    );
+
+    final deleted = await gateway.delete(
+      root.path,
+      expectedProject: project,
+      family: CinematicLibraryFamily.presentation,
+      cinematicId: 'presentation-only',
+    );
+    final persisted = jsonDecode(await projectFile.readAsString()) as Map;
+
+    expect(deleted.presentationCinematics, isEmpty);
+    expect(deleted.cinematicLibraryCatalog.isEmpty, isTrue);
+    expect(persisted, isNot(contains('presentationCinematics')));
+    expect(persisted, isNot(contains('cinematicLibraryCatalog')));
+    expect(persisted['customExtension'], <String, Object?>{'preserved': true});
+  });
 }
 
 ProjectManifest _project() => ProjectManifest(

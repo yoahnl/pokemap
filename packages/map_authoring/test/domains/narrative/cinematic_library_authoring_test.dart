@@ -219,6 +219,80 @@ void main() {
     );
   });
 
+  test('deletes the final Presentation cinematic and its placement', () {
+    final manifest = ProjectManifest(
+      name: 'Presentation only',
+      version: ProjectVersion.v7,
+      maps: const [],
+      tilesets: const [],
+      presentationCinematics: [
+        PresentationCinematicAsset(
+          id: 'presentation-only',
+          title: 'Presentation only',
+          durationUs: 1000000,
+        ),
+      ],
+      cinematicLibraryCatalog: CinematicLibraryCatalog(
+        entries: [
+          CinematicLibraryEntry(
+            family: CinematicLibraryFamily.presentation,
+            cinematicId: 'presentation-only',
+            sortOrder: 0,
+          ),
+        ],
+      ),
+    );
+
+    final deleted = _apply(
+      manifest,
+      'cinematicLibraryAsset.delete',
+      const <String, Object?>{
+        'family': 'presentation',
+        'cinematicId': 'presentation-only',
+      },
+    );
+
+    expect(deleted.presentationCinematics, isEmpty);
+    expect(deleted.cinematicLibraryCatalog.isEmpty, isTrue);
+  });
+
+  test('deletes the final world cinematic without retaining its placement', () {
+    final manifest = ProjectManifest(
+      name: 'World only',
+      version: ProjectVersion.v7,
+      maps: const [],
+      tilesets: const [],
+      cinematics: [
+        CinematicAsset(
+          id: 'world-only',
+          title: 'World only',
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      cinematicLibraryCatalog: CinematicLibraryCatalog(
+        entries: [
+          CinematicLibraryEntry(
+            family: CinematicLibraryFamily.world,
+            cinematicId: 'world-only',
+            sortOrder: 0,
+          ),
+        ],
+      ),
+    );
+
+    final deleted = _apply(
+      manifest,
+      'cinematicLibraryAsset.delete',
+      const <String, Object?>{
+        'family': 'world',
+        'cinematicId': 'world-only',
+      },
+    );
+
+    expect(deleted.cinematics, isEmpty);
+    expect(deleted.cinematicLibraryCatalog.isEmpty, isTrue);
+  });
+
   test('applies canonical folder and placement mutations atomically', () {
     final source = _snapshot().manifest;
     final worldAssetBefore = source.cinematics.first.toJson();

@@ -554,8 +554,15 @@ List<int> encodeProjectAuthoringDocument(
       'The original project manifest cannot be preserved safely.',
     );
   }
-  final next = Map<String, Object?>.from(original)
-    ..addAll(Map<String, Object?>.from(manifest.toJson()));
+  final encoded = Map<String, Object?>.from(manifest.toJson());
+  final previousCanonical = snapshot.manifest.toJson();
+  final next = Map<String, Object?>.from(original);
+  for (final key in previousCanonical.keys) {
+    if (!encoded.containsKey(key)) {
+      next.remove(key);
+    }
+  }
+  next.addAll(encoded);
   return utf8.encode(const JsonEncoder.withIndent('  ').convert(next));
 }
 
