@@ -102,7 +102,8 @@ void main() {
     after.dispose();
   });
 
-  test('actor occlusion stays visible around cell-entry animation', () async {
+  test('cell-entry actor animation is hidden outside its active cycle',
+      () async {
     final image = await _runtimeImage();
     addTearDown(image.dispose);
     final map = _map(
@@ -128,9 +129,9 @@ void main() {
     collection.update(0.1);
     final completed = await _render(collection.rows[1]);
 
-    expect(await pixelAt(idle, 16, 48), rgba(255, 0, 0, 255));
+    expect(await pixelAt(idle, 16, 48), rgba(0, 0, 0, 0));
     expect(await pixelAt(active, 16, 48), rgba(0, 0, 255, 255));
-    expect(await pixelAt(completed, 16, 48), rgba(255, 0, 0, 255));
+    expect(await pixelAt(completed, 16, 48), rgba(0, 0, 0, 0));
     idle.dispose();
     active.dispose();
     completed.dispose();
@@ -157,6 +158,44 @@ void main() {
 
     expect(await pixelAt(idle, 16, 48), rgba(255, 0, 0, 255));
     idle.dispose();
+  });
+
+  test('static occlusion stays visible around a cell-entry animation',
+      () async {
+    final image = await _runtimeImage();
+    addTearDown(image.dispose);
+    final map = _map(
+      animationActivation: SmartTileAnimationActivation.onEnter,
+    );
+    final manifest = _manifest(
+      animated: true,
+      includeStaticActorOcclusion: true,
+    );
+    final controller = SmartTileAnimationActivationController(
+      map: map,
+      catalog: manifest.smartTileCatalog,
+    );
+    final collection = SmartTileActorOcclusionLayerCollection(
+      bundle: _bundle(manifest, map),
+      tileImagesByTilesetId: <String, RuntimeTilesetImage>{'smart': image},
+      smartTileAnimationController: controller,
+    )..setVisibleLocalRect(const Rect.fromLTWH(0, 0, 96, 96));
+
+    final idle = await _render(collection.rows[1]);
+    controller.onPlayerEnteredCell(const GridPos(x: 0, y: 1));
+    controller.update(0.11);
+    collection.update(0.11);
+    final active = await _render(collection.rows[1]);
+    controller.update(0.1);
+    collection.update(0.1);
+    final completed = await _render(collection.rows[1]);
+
+    expect(await pixelAt(idle, 16, 48), rgba(255, 0, 0, 255));
+    expect(await pixelAt(active, 16, 48), rgba(0, 0, 255, 255));
+    expect(await pixelAt(completed, 16, 48), rgba(255, 0, 0, 255));
+    idle.dispose();
+    active.dispose();
+    completed.dispose();
   });
 }
 
@@ -222,6 +261,7 @@ MapData _largeMap() {
 ProjectManifest _manifest({
   bool actorOcclusion = true,
   bool animated = false,
+  bool includeStaticActorOcclusion = false,
 }) {
   final source = animated
       ? const SmartTileVisualSource.animation(animationId: 'rustle')
@@ -321,6 +361,17 @@ ProjectManifest _manifest({
                         ),
                       ),
                     ),
+                    if (includeStaticActorOcclusion)
+                      const SmartTileVisualPart(
+                        source: SmartTileVisualSource.frame(
+                          frame: SmartTileFrameRef(
+                            atlasId: 'atlas',
+                            column: 1,
+                            row: 0,
+                          ),
+                        ),
+                        channel: SmartTileRenderChannel.actorOcclusion,
+                      ),
                     SmartTileVisualPart(
                       source: source,
                       channel: actorOcclusion

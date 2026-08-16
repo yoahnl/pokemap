@@ -2273,6 +2273,7 @@ void main() {
             BattleSceneLayout.forViewport(viewportSize: viewportSize);
         return BattleCommandOverlaySnapshot(
           mode: BattleCommandOverlayMode.root,
+          viewportSize: viewportSize,
           panelRect: layout.commandPanelRect,
           enemyHud: BattleCommandOverlayHudSnapshot(
             rect: layout.enemyHudRect,

@@ -31,6 +31,7 @@ BattleCommandOverlaySnapshot _snapshot({
   );
   return BattleCommandOverlaySnapshot(
     mode: mode,
+    viewportSize: viewportSize,
     panelRect: Rect.fromLTWH(
       12,
       viewportSize.height - panelHeight - 14,
@@ -173,6 +174,7 @@ BattleCommandOverlaySnapshot _layoutSnapshot({
   final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
   return BattleCommandOverlaySnapshot(
     mode: mode,
+    viewportSize: viewportSize,
     panelRect: layout.commandPanelRect,
     enemyHud: BattleCommandOverlayHudSnapshot(
       rect: layout.enemyHudRect,
@@ -835,6 +837,7 @@ void main() {
       );
       final snapshot = BattleCommandOverlaySnapshot(
         mode: BattleCommandOverlayMode.root,
+        viewportSize: const Size(844, 390),
         panelRect: layout.commandPanelRect,
         enemyHud: BattleCommandOverlayHudSnapshot(
           rect: layout.enemyHudRect,

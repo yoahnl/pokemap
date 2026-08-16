@@ -1329,6 +1329,7 @@ void main() {
       await overlay.waitForPendingVisualSync();
 
       final initialSnapshot = overlay.currentCommandOverlaySnapshot!;
+      expect(initialSnapshot.viewportSize, const ui.Size(960, 540));
       expect(initialSnapshot.panelRect.width, greaterThan(0));
 
       overlay.onGameResize(Vector2(390, 844));
@@ -1336,6 +1337,7 @@ void main() {
 
       final updatedSnapshot = overlay.currentCommandOverlaySnapshot!;
       expect(updatedSnapshot.mode, BattleCommandOverlayMode.root);
+      expect(updatedSnapshot.viewportSize, const ui.Size(390, 844));
       expect(updatedSnapshot.panelRect, isNot(initialSnapshot.panelRect));
       expect(
         updatedSnapshot.panelRect.height,

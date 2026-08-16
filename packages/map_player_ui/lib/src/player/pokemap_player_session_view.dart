@@ -494,6 +494,17 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         acceptsOverworldTouch;
     final touchControlsOpacity =
         snapshot.preferences?.touchControlsOpacity ?? 0.82;
+    final showInputHints = !showTouchControls &&
+        snapshot.phase != RuntimePlayerPhase.preSession &&
+        widget.presentationFrame?.value == null &&
+        (snapshot.preferences?.showInputHints ?? false) &&
+        snapshot.activeInputSource != PlayerInputSource.touch;
+    Widget inputHints() => const Positioned(
+          left: PlayerSpacing.sm,
+          right: PlayerSpacing.sm,
+          bottom: PlayerSpacing.sm,
+          child: _RuntimePlayerInputHints(),
+        );
     final stack = Stack(
       fit: StackFit.expand,
       children: <Widget>[
@@ -609,17 +620,15 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
             snapshot: service,
             onCommand: widget.controller.dispatchWorldService,
           ),
-        if (!showTouchControls &&
-            snapshot.phase != RuntimePlayerPhase.preSession &&
-            widget.presentationFrame?.value == null &&
-            (snapshot.preferences?.showInputHints ?? false) &&
-            snapshot.activeInputSource != PlayerInputSource.touch)
-          const Positioned(
-            left: PlayerSpacing.sm,
-            right: PlayerSpacing.sm,
-            bottom: PlayerSpacing.sm,
-            child: _RuntimePlayerInputHints(),
-          ),
+        if (showInputHints)
+          if (widget.battlePresentation case final battle?)
+            ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
+              valueListenable: battle,
+              builder: (context, presentation, _) =>
+                  presentation == null ? inputHints() : const SizedBox.shrink(),
+            )
+          else
+            inputHints(),
       ],
     );
     final preferences = snapshot.preferences;

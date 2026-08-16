@@ -84,6 +84,7 @@ BattleCommandOverlaySnapshot _snapshot() {
     phase: BattlePresentationPhase.forcedReplacement,
     forcedReplacement: true,
     mode: BattleCommandOverlayMode.pokemon,
+    viewportSize: const Size(320, 300),
     panelRect: const Rect.fromLTWH(8, 120, 304, 180),
     enemyHud: _hud(isPlayerSide: false),
     playerHud: _hud(isPlayerSide: true),

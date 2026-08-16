@@ -29,6 +29,12 @@ class PlayerBattleOverlay extends StatelessWidget {
         revision: snapshot.revision,
         enemy: _hud(snapshot.enemyHud),
         player: _hud(snapshot.playerHud),
+        viewportLayout: PlayerBattleViewportLayout(
+          viewportSize: snapshot.viewportSize,
+          panelRect: snapshot.panelRect,
+          enemyHudRect: snapshot.enemyHud.rect,
+          playerHudRect: snapshot.playerHud.rect,
+        ),
         battleLabel: snapshot.battleLabel,
         title: snapshot.title,
         prompt: snapshot.prompt,

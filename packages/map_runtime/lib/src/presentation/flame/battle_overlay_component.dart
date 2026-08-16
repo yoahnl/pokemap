@@ -1531,6 +1531,7 @@ class BattleOverlayComponent extends PositionComponent {
               : BattlePresentationPhase.presentingTurn,
       forcedReplacement: isForcedReplacement,
       mode: _overlayModeForMenuMode(menuModel.mode),
+      viewportSize: layout.viewportSize,
       panelRect: layout.commandPanelRect,
       enemyHud: _buildHudSnapshot(
         rect: layout.enemyHudRect,

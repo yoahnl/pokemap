@@ -1,4 +1,4 @@
-import 'dart:ui' show Rect;
+import 'dart:ui' show Rect, Size;
 
 import 'package:flutter/foundation.dart';
 
@@ -214,6 +214,7 @@ class BattleCommandOverlaySnapshot {
     this.phase = BattlePresentationPhase.choosingCommand,
     this.forcedReplacement = false,
     required this.mode,
+    required this.viewportSize,
     required this.panelRect,
     required this.enemyHud,
     required this.playerHud,
@@ -234,6 +235,7 @@ class BattleCommandOverlaySnapshot {
   final BattlePresentationPhase phase;
   final bool forcedReplacement;
   final BattleCommandOverlayMode mode;
+  final Size viewportSize;
   final Rect panelRect;
   final BattleCommandOverlayHudSnapshot enemyHud;
   final BattleCommandOverlayHudSnapshot playerHud;
@@ -255,6 +257,7 @@ class BattleCommandOverlaySnapshot {
         other.phase == phase &&
         other.forcedReplacement == forcedReplacement &&
         other.mode == mode &&
+        other.viewportSize == viewportSize &&
         other.panelRect == panelRect &&
         other.enemyHud == enemyHud &&
         other.playerHud == playerHud &&
@@ -273,6 +276,7 @@ class BattleCommandOverlaySnapshot {
         phase,
         forcedReplacement,
         mode,
+        viewportSize,
         panelRect,
         enemyHud,
         playerHud,

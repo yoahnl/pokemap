@@ -1220,6 +1220,7 @@ void main() {
       const BattleCommandOverlaySnapshot(
         revision: 12,
         mode: BattleCommandOverlayMode.root,
+        viewportSize: Size(800, 600),
         panelRect: Rect.fromLTWH(0, 300, 800, 300),
         enemyHud: BattleCommandOverlayHudSnapshot(
           rect: Rect.fromLTWH(20, 20, 240, 80),
@@ -1261,7 +1262,15 @@ void main() {
     addTearDown(battle.dispose);
     final commands = <BattlePresentationCommand>[];
     final controller = _FakeRuntimePlayerCoordinator(
-      _snapshot(revision: 27, phase: RuntimePlayerPhase.playing),
+      _snapshot(
+        revision: 27,
+        phase: RuntimePlayerPhase.playing,
+        preferences: const PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(),
+          showInputHints: true,
+        ),
+      ),
     );
     addTearDown(controller.dispose);
 
@@ -1276,6 +1285,10 @@ void main() {
     );
 
     expect(find.byType(PlayerBattleOverlay), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-input-hints')),
+      findsNothing,
+    );
     expect(find.text('Roucool'), findsOneWidget);
     await tester.tap(
       find.byKey(const ValueKey<String>('battle-entry-0')),
@@ -1285,6 +1298,13 @@ void main() {
       isA<BattleSelectEntryCommand>()
           .having((command) => command.snapshotRevision, 'revision', 12)
           .having((command) => command.entryIndex, 'entry', 0),
+    );
+
+    battle.value = null;
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-input-hints')),
+      findsOneWidget,
     );
   });
 
