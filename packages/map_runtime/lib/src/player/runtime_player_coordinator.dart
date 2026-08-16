@@ -820,11 +820,7 @@ final class RuntimePlayerCoordinator {
           SceneInteractionRequest.confirmation(
             requestId: '$runId:overwrite',
             revision: 0,
-            prompt: SceneInteractionPrompt(
-              localizationKey: 'player.new_game.confirm_overwrite',
-              fallbackText:
-                  'Cette sauvegarde existe déjà. Voulez-vous la remplacer ?',
-            ),
+            prompt: _overwritePrompt(existing),
           ),
         );
         if (generation != _launchGeneration) return _finishCancelledLaunch();
@@ -1665,6 +1661,26 @@ final class RuntimePlayerCoordinator {
       gameId: _gameSource.identity.gameId,
       profileId: slot.profileId,
       slotId: slot.slotId,
+    );
+  }
+
+  SceneInteractionPrompt _overwritePrompt(PlayerSaveSummary existing) {
+    final reason = existing.canContinue
+        ? null
+        : existing.safeUnavailableReason?.trim();
+    if (reason == null || reason.isEmpty) {
+      return SceneInteractionPrompt(
+        localizationKey: 'player.new_game.confirm_overwrite',
+        fallbackText:
+            'Cette sauvegarde existe déjà. Voulez-vous la remplacer ?',
+      );
+    }
+    return SceneInteractionPrompt(
+      localizationKey: 'player.new_game.confirm_overwrite_unusable',
+      fallbackText:
+          'Cette sauvegarde ne peut pas être poursuivie : {reason} '
+          'La remplacer effacera définitivement sa progression.',
+      arguments: <String, String>{'reason': reason},
     );
   }
 

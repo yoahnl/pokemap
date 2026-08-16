@@ -492,6 +492,24 @@ PlayerSaveSummary compatiblePlayerSave(GameIdentity identity) {
   );
 }
 
+PlayerSaveSummary unusablePlayerSave(
+  GameIdentity identity, {
+  String reason = 'This save was written by a newer version of the game.',
+}) {
+  return PlayerSaveSummary(
+    address: SaveSlotAddress(
+      gameId: identity.gameId,
+      profileId: 'player',
+      slotId: 'slot_1',
+    ),
+    updatedAt: DateTime.utc(2026, 7, 25, 12),
+    playTimeSeconds: 120,
+    status: SaveStatus.active,
+    canContinue: false,
+    safeUnavailableReason: reason,
+  );
+}
+
 Future<void> launchHarnessToPlaying(RuntimePlayerTestHarness harness) async {
   await harness.coordinator.initialize();
   final result = await harness.coordinator.dispatch(

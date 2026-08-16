@@ -83,6 +83,58 @@ void main() {
     expect(await harness.saves.readSummary(existing.address), same(existing));
   });
 
+  test('explains an unusable save instead of offering an ordinary overwrite',
+      () async {
+    final seed = RuntimePlayerTestHarness();
+    final existing = unusablePlayerSave(seed.source.identity);
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(latestSave: existing);
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final launch = harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    await _waitForInteraction(harness.coordinator);
+
+    final request = harness.coordinator.snapshot.preSessionRequest!;
+    expect(request.kind, SceneInteractionRequestKind.confirmation);
+    expect(
+      request.prompt.localizationKey,
+      isNot('player.new_game.confirm_overwrite'),
+      reason: 'an unusable save must not reuse the ordinary overwrite prompt',
+    );
+    expect(
+      request.prompt.arguments['reason'],
+      existing.safeUnavailableReason,
+      reason: 'the player must be told why the save cannot be continued',
+    );
+
+    final resolution = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.resolvePreSessionInteraction,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: SceneInteractionResult.confirmed(
+          requestId: request.requestId,
+          revision: request.revision,
+          value: false,
+        ),
+      ),
+    );
+
+    expect(resolution.status, RuntimePlayerCommandStatus.accepted);
+    expect((await launch).status, RuntimePlayerCommandStatus.cancelled);
+    expect(harness.saves.commits, isEmpty);
+    expect(await harness.saves.readSummary(existing.address), same(existing));
+  });
+
   test('confirmed overwrite keeps the old save until a checkpoint commits',
       () async {
     final seed = RuntimePlayerTestHarness();
