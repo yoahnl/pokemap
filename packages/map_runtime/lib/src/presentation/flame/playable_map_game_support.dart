@@ -8,7 +8,11 @@ final class _PlayableMapCinematicRuntimeHost
   TextComponent? _dialogueLineOverlay;
   RectangleComponent? _fadeOverlay;
   Paint? _fadePaint;
-  TextComponent? _emoteOverlay;
+  static const double _emoteOverlayLift = 22;
+
+  PositionComponent? _emoteOverlay;
+  final CinematicEmoteSpriteCache _emoteSprites = CinematicEmoteSpriteCache();
+  int _emoteRequestSerial = 0;
   final Map<String, RectangleComponent> _fxOverlays = {};
 
   String? get dialogueLine => _dialogueLineOverlay?.text;
@@ -191,10 +195,51 @@ final class _PlayableMapCinematicRuntimeHost
     FlameCinematicRuntimeActorHandle? actor,
     String? emoteId,
   ) {
+    final serial = ++_emoteRequestSerial;
     _emoteOverlay?.removeFromParent();
     _emoteOverlay = null;
     if (actor == null || emoteId == null) return;
-    final component = TextComponent(
+
+    // Le glyphe s'affiche tout de suite : l'atlas se décode en asynchrone et
+    // une emote ne doit jamais apparaître en retard sur l'action qu'elle
+    // commente. Le sprite le remplace dès qu'il est prêt.
+    _mountEmoteOverlay(_emoteGlyphComponent(emoteId), actor);
+
+    unawaited(() async {
+      final Sprite? sprite;
+      try {
+        sprite = await _emoteSprites.loadEmoteSprite(emoteId);
+      } catch (error) {
+        debugPrint('[emote] sprite load failed id=$emoteId error=$error');
+        return;
+      }
+      // Une emote plus récente, ou un masquage, a pu survenir pendant le
+      // décodage : ce sprite-là n'a plus rien à afficher.
+      if (sprite == null || serial != _emoteRequestSerial) return;
+      _mountEmoteOverlay(_emoteSpriteComponent(sprite), actor);
+    }());
+  }
+
+  void _mountEmoteOverlay(
+    PositionComponent component,
+    FlameCinematicRuntimeActorHandle actor,
+  ) {
+    _emoteOverlay?.removeFromParent();
+    component
+      ..position = actor.focusPoint - Vector2(0, _emoteOverlayLift)
+      ..priority = 200000;
+    _game.world.add(component);
+    _emoteOverlay = component;
+    component.add(
+      ScaleEffect.to(
+        Vector2.all(1),
+        EffectController(duration: 0.18, curve: Curves.easeOutBack),
+      ),
+    );
+  }
+
+  PositionComponent _emoteGlyphComponent(String emoteId) {
+    return TextComponent(
       text: _cinematicEmoteGlyph(emoteId),
       textRenderer: TextPaint(
         style: const TextStyle(
@@ -207,11 +252,15 @@ final class _PlayableMapCinematicRuntimeHost
         ),
       ),
       anchor: Anchor.bottomCenter,
-    )
-      ..position = actor.focusPoint - Vector2(0, 22)
-      ..priority = 200000;
-    _game.world.add(component);
-    _emoteOverlay = component;
+    )..scale = Vector2.all(0.6);
+  }
+
+  PositionComponent _emoteSpriteComponent(Sprite sprite) {
+    return SpriteComponent(
+      sprite: sprite,
+      size: sprite.srcSize.clone(),
+      anchor: Anchor.bottomCenter,
+    )..scale = Vector2.all(0.6);
   }
 
   @override

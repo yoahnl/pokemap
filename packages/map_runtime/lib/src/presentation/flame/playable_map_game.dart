@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
 import 'package:flame/input.dart';
 import 'package:flame/text.dart';
@@ -122,6 +123,7 @@ import 'runtime_input_key_bindings.dart';
 import 'battle_transition_overlay_component.dart';
 import 'dialogue_overlay_component.dart';
 import 'dialogue_text_speed.dart';
+import 'cinematic_emote_sprite_cache.dart';
 import 'flame_cinematic_fx_playback_adapter.dart';
 import 'flame_cinematic_media_playback_adapter.dart';
 import 'flame_cinematic_runtime_playback_sink.dart';
