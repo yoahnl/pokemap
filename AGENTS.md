@@ -452,3 +452,24 @@ Manual checks:
 - validation commands package-scoped;
 - Flame docs rule preserved;
 - file concise enough for agents to read.
+
+---
+
+## 14. Frozen Beta Backlog
+
+The Notion area `PokeMap — Bêta fonctionnelle` and its grand families 0–11 are a frozen release scope. This rule is the strict default for Codex and overrides the generic expectation to create a ticket when the work is new.
+
+- Never create a new ticket in any beta family.
+- Never move or reclassify a post-beta ticket into beta, set `Gate bêta` to true, or create a new beta grand family unless Yoahn explicitly requests that exact scope change.
+- Never broaden an existing beta ticket with newly discovered cleanup, hardening, performance work, platform parity, transport parity, polish, compatibility, or future mechanics. Keep the signed beta objective and acceptance criteria unchanged.
+- A discovered gap is not automatically a beta blocker. By default, create or update a separate ticket in the matching grand family under `Post Bêta`.
+- Never add a dependency from an existing beta ticket to new post-beta work when that would make the post-beta ticket a condition of beta release.
+- Existing beta tickets may still be implemented, tested, reviewed, have evidence and status synchronized, and be reduced to their already-signed scope. This freeze forbids scope growth, not completion.
+- Changing `Gate bêta`, beta family structure, beta views, beta exit criteria, or the beta dependency graph requires an explicit instruction from Yoahn.
+- When classification is uncertain, leave beta untouched, classify the work as post-beta, and report the assumption.
+
+Before creating or updating a Notion ticket:
+
+1. If the ticket already exists in beta, work only within its signed scope.
+2. If it is new work, place it in the matching grand family under `Post Bêta`.
+3. If no Post Beta family fits, stop and request approval before creating a new grand family.
