@@ -86,6 +86,87 @@ void main() {
       expect(opposite.rng.generic.seed, 1015568748);
     });
 
+    test('the same seed replays the identical order and RNG state', () {
+      // Le départage seedé n'a de valeur que s'il rejoue à l'identique : sans
+      // cette garantie, un replay de combat divergerait au premier tour où
+      // deux actions sont à égalité exacte.
+      List<Object> run() {
+        final result = PsdkBattleActionQueue(
+          actions: <PsdkBattleAction>[
+            _fight(user: psdkPlayerSlot, moveId: 'player_tackle', speed: 50),
+            _fight(user: psdkOpponentSlot, moveId: 'opponent_tackle', speed: 50),
+          ],
+        ).ordered(rng: _rng(genericSeed: 7), rules: _rules);
+        return <Object>[
+          result.actions.first.user,
+          result.actions.last.user,
+          result.rng.generic.seed,
+        ];
+      }
+
+      expect(run(), run());
+    });
+
+    test('an exact tie consumes exactly one generic draw', () {
+      // Le compte de tirages est l'invariant qui rend le replay possible. On le
+      // compare à un unique resolvePsdkSpeedTie depuis le même état : deux
+      // tirages, ou zéro, désynchroniseraient tout ce qui suit dans le tour.
+      final start = _rng(genericSeed: 7);
+      final singleDraw = _rules.resolvePsdkSpeedTie(start);
+
+      final ordered = PsdkBattleActionQueue(
+        actions: <PsdkBattleAction>[
+          _fight(user: psdkPlayerSlot, moveId: 'player_tackle', speed: 50),
+          _fight(user: psdkOpponentSlot, moveId: 'opponent_tackle', speed: 50),
+        ],
+      ).ordered(rng: start, rules: _rules);
+
+      expect(
+        ordered.rng.generic.seed,
+        singleDraw.nextRng.generic.seed,
+        reason: 'ordering must advance the generic stream by one draw, no more',
+      );
+    });
+
+    test('no tie consumes no generic draw at all', () {
+      // Deux cas où il n'y a pas d'égalité exacte : vitesses différentes, et
+      // vitesses égales mais priorités différentes. Consommer un tirage dans
+      // l'un ou l'autre ferait dériver le RNG à chaque tour d'un combat
+      // pourtant sans égalité.
+      final start = _rng(genericSeed: 7);
+
+      final differentSpeed = PsdkBattleActionQueue(
+        actions: <PsdkBattleAction>[
+          _fight(user: psdkPlayerSlot, moveId: 'fast', speed: 100),
+          _fight(user: psdkOpponentSlot, moveId: 'slow', speed: 20),
+        ],
+      ).ordered(rng: start, rules: _rules);
+
+      final differentPriority = PsdkBattleActionQueue(
+        actions: <PsdkBattleAction>[
+          _fight(
+            user: psdkPlayerSlot,
+            moveId: 'tackle',
+            priority: 0,
+            speed: 50,
+          ),
+          _fight(
+            user: psdkOpponentSlot,
+            moveId: 'quick_attack',
+            priority: 1,
+            speed: 50,
+          ),
+        ],
+      ).ordered(rng: start, rules: _rules);
+
+      expect(differentSpeed.rng.generic.seed, start.generic.seed);
+      expect(
+        differentPriority.rng.generic.seed,
+        start.generic.seed,
+        reason: 'equal speed with unequal priority is not a tie',
+      );
+    });
+
     test('inserts slower allied Round immediately after the first allied Round',
         () {
       const playerAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
