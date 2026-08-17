@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
@@ -679,7 +681,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             safeMessage: 'Cette machine ne peut pas être utilisée ici.',
           );
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[move_machine] use failed: $error\n$stackTrace');
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.failed,
         safeMessage: 'La capacité n’a pas pu être apprise ni sauvegardée.',

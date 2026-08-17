@@ -6,6 +6,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
+import 'support/project_manifest_test_support.dart';
 
 void main() {
   test('runtime resolves imported atlas bytes from the canonical asset store',
@@ -145,7 +146,9 @@ final class _RuntimeAssetStoreFixture {
         ),
       ],
     );
-    await projectFile.writeAsString(jsonEncode(manifest.toJson()));
+    await projectFile.writeAsString(
+      jsonEncode(withPokeMapBetaPokemonRuleset(manifest.toJson())),
+    );
     await mapFile.writeAsString(jsonEncode(map.toJson()));
     if (catalogIncludesAsset) {
       final catalog = AssetCatalog(

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:path/path.dart' as p;
+import 'support/project_manifest_test_support.dart';
 
 void main() {
   group('runtime manifest collision normalization', () {
@@ -14,7 +15,11 @@ void main() {
       );
       addTearDown(() => workspace.delete(recursive: true));
       final projectFile = File(p.join(workspace.path, 'project.json'));
-      await projectFile.writeAsString(jsonEncode(_legacyBuildingProjectJson()));
+      await projectFile.writeAsString(
+        jsonEncode(
+          withPokeMapBetaPokemonRuleset(_legacyBuildingProjectJson()),
+        ),
+      );
 
       final manifest = await loadProjectManifestFromFile(projectFile.path);
       final profile = manifest.elements.single.collisionProfile;

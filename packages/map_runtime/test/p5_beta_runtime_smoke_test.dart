@@ -348,6 +348,7 @@ Future<void> _writePokemonProjectData(Directory projectRoot) async {
     projectRoot,
     'data/pokemon/learnsets/$_playerSpeciesId.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'startingMoves': <String>[_playerMoveId],
       'relearnMoves': <String>[],
       'levelUp': <Map<String, Object>>[],
@@ -357,6 +358,7 @@ Future<void> _writePokemonProjectData(Directory projectRoot) async {
     projectRoot,
     'data/pokemon/learnsets/$_enemySpeciesId.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'startingMoves': <String>[_enemyMoveId],
       'relearnMoves': <String>[],
       'levelUp': <Map<String, Object>>[],
@@ -395,6 +397,7 @@ Map<String, Object> _speciesJson({
   required int nationalDex,
 }) {
   return <String, Object>{
+    'schemaVersion': 1,
     'id': id,
     'slug': id,
     'nationalDex': nationalDex,

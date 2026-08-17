@@ -7,6 +7,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/narrative_event_runtime_snapshot.dart';
 import 'package:path/path.dart' as p;
+import 'support/project_manifest_test_support.dart';
 
 const _mapId = 'map_roundtrip';
 const _entityId = 'npc_roundtrip';
@@ -32,7 +33,9 @@ void main() {
 
     // These are the exact JSON objects persisted by editor repositories. The
     // runtime reload below must consume the bytes, not the in-memory fixtures.
-    await File(projectPath).writeAsString(jsonEncode(fixture.project.toJson()));
+    await File(projectPath).writeAsString(
+      jsonEncode(withPokeMapBetaPokemonRuleset(fixture.project.toJson())),
+    );
     await File(mapPath).writeAsString(jsonEncode(fixture.map.toJson()));
 
     final bundle = await loadRuntimeMapBundle(

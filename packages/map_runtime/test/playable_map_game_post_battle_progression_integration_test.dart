@@ -999,6 +999,7 @@ Future<void> _writeTrainerBattleFixtures(Directory projectRoot) async {
       projectRoot,
       'data/pokemon/learnsets/$speciesId.json',
       <String, dynamic>{
+        'schemaVersion': 1,
         'startingMoves': <String>[],
         'relearnMoves': <String>[],
         'levelUp': <Map<String, Object>>[],
@@ -1014,6 +1015,7 @@ Map<String, dynamic> _trainerBattleSpecies({
   required String abilityId,
 }) {
   return <String, dynamic>{
+    'schemaVersion': 1,
     'id': id,
     'slug': id,
     'nationalDex': nationalDex,

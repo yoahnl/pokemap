@@ -518,6 +518,7 @@ Future<void> _writeEvolutionFixture(Directory root) async {
   await evolutionFile.parent.create(recursive: true);
   await evolutionFile.writeAsString(
     jsonEncode(<String, Object?>{
+      'schemaVersion': 1,
       'speciesId': 'sproutle',
       'evolutions': <Object?>[
         <String, Object?>{
@@ -533,6 +534,7 @@ Future<void> _writeEvolutionFixture(Directory root) async {
   await speciesFile.parent.create(recursive: true);
   await speciesFile.writeAsString(
     jsonEncode(<String, Object?>{
+      'schemaVersion': 1,
       'id': 'bloomon',
       'typing': <String, Object?>{
         'types': <String>['grass'],
@@ -578,6 +580,8 @@ Future<void> _writeMoveMachineFixture(Directory root) async {
   }
 
   await write('machine/catalogs/items.json', <String, Object?>{
+    'schemaVersion': 1,
+    'kind': 'pokemon_catalog',
     'catalog': 'items',
     'entries': <Object?>[
       <String, Object?>{
@@ -591,6 +595,8 @@ Future<void> _writeMoveMachineFixture(Directory root) async {
     ],
   });
   await write('machine/catalogs/moves.json', <String, Object?>{
+    'schemaVersion': 1,
+    'kind': 'pokemon_catalog',
     'catalog': 'moves',
     'entries': <Object?>[
       const PokemonMove(
@@ -607,6 +613,7 @@ Future<void> _writeMoveMachineFixture(Directory root) async {
     ],
   });
   await write('machine/learnsets/sproutle.json', <String, Object?>{
+    'schemaVersion': 1,
     'speciesId': 'sproutle',
     'startingMoves': <String>[],
     'relearnMoves': <String>[],
@@ -617,6 +624,7 @@ Future<void> _writeMoveMachineFixture(Directory root) async {
     'hm': <Object?>[],
   });
   await write('machine/species/sproutle.json', <String, Object?>{
+    'schemaVersion': 1,
     'id': 'sproutle',
     'typing': <String, Object?>{
       'types': <String>['grass'],

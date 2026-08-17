@@ -3128,6 +3128,7 @@ Map<String, dynamic> _runtimeMoveJson({
   required int basePower,
 }) {
   return <String, dynamic>{
+    'schemaVersion': 1,
     'id': id,
     'name': name,
     'type': type,
@@ -3152,6 +3153,7 @@ Map<String, dynamic> _runtimeSpeciesJson({
   required String abilityId,
 }) {
   return <String, dynamic>{
+    'schemaVersion': 1,
     'id': id,
     'typing': <String, dynamic>{
       'types': <String>[type],
@@ -3180,6 +3182,7 @@ Map<String, dynamic> _runtimeSpeciesJson({
 
 Map<String, dynamic> _runtimeLearnsetJson() {
   return <String, dynamic>{
+    'schemaVersion': 1,
     'startingMoves': const <String>['tackle'],
     'relearnMoves': const <String>[],
     'levelUp': const <Map<String, dynamic>>[],
