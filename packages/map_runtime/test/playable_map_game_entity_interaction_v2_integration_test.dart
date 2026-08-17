@@ -133,7 +133,7 @@ void main() {
       );
     });
 
-    test('an unclaimed entity tile still falls back to its map event',
+    test('an unclaimed generic entity still falls back to its map event',
         () async {
       const entity = MapEntity(
         id: 'custom_priority_fallback',
@@ -157,6 +157,33 @@ void main() {
       );
 
       expect(game.debugNotificationText, _tileEventMessage);
+    });
+
+    test('an unclaimed npc never falls back to the map event on its tile',
+        () async {
+      const npc = MapEntity(
+        id: 'npc_priority_fallback',
+        name: 'Unclaimed npc',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 1, y: 0),
+      );
+      final game = _TestPlayableMapGame(
+        bundle: _legacyOnlyBundle(
+          npc,
+          events: <MapEventDefinition>[_tileMessageEvent(npc.pos)],
+        ),
+        projectFilePath: '/tmp/event_v2_priority_npc/project.json',
+      );
+
+      await _load(game);
+      expect(_pressPrimary(game), isTrue);
+      await _pumpMicrotasks(game, ticks: 60);
+
+      expect(
+        game.debugNotificationText,
+        isNot(_tileEventMessage),
+        reason: 'only a generic entity yields the tile event, never an npc',
+      );
     });
 
     test('legacyOnly noMatch keeps native entity fallback', () async {

@@ -8859,42 +8859,33 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         debugPrint('[interact] Nothing to interact with');
         _showNotification('...');
       case NpcInteracted(:final entity):
-        debugPrint('[interact] NPC: ${entity.id}');
-        scenarioHandledEntityInteraction =
-            _tryDispatchScenarioEntityInteraction(
-          entity.id,
+        scenarioHandledEntityInteraction = _claimEntityInteraction(
+          entity,
+          label: 'NPC',
+          whenUnclaimed: () => _handleNpcInteraction(entity),
         );
-        if (!scenarioHandledEntityInteraction) {
-          _handleNpcInteraction(entity);
-        }
       case SignInteracted(:final entity):
-        debugPrint('[interact] Sign: ${entity.id}');
-        scenarioHandledEntityInteraction =
-            _tryDispatchScenarioEntityInteraction(
-          entity.id,
+        scenarioHandledEntityInteraction = _claimEntityInteraction(
+          entity,
+          label: 'Sign',
+          whenUnclaimed: () => _tryOpenDialogue(
+            entity.id,
+            entity.sign?.dialogue,
+            entity.inspectorHeadline,
+          ),
         );
-        if (!scenarioHandledEntityInteraction) {
-          _tryOpenDialogue(
-              entity.id, entity.sign?.dialogue, entity.inspectorHeadline);
-        }
       case ItemInteracted(:final entity):
-        debugPrint('[interact] Item: ${entity.id}');
-        scenarioHandledEntityInteraction =
-            _tryDispatchScenarioEntityInteraction(
-          entity.id,
+        scenarioHandledEntityInteraction = _claimEntityInteraction(
+          entity,
+          label: 'Item',
+          whenUnclaimed: () => _showNotification(entity.inspectorHeadline),
         );
-        if (!scenarioHandledEntityInteraction) {
-          _showNotification(entity.inspectorHeadline);
-        }
       case EntityInteracted(:final entity):
-        debugPrint('[interact] Entity: ${entity.id}');
-        scenarioHandledEntityInteraction =
-            _tryDispatchScenarioEntityInteraction(
-          entity.id,
+        scenarioHandledEntityInteraction = _claimEntityInteraction(
+          entity,
+          label: 'Entity',
+          whenUnclaimed: () => _showNotification(entity.inspectorHeadline),
         );
-        if (!scenarioHandledEntityInteraction) {
-          _showNotification(entity.inspectorHeadline);
-        }
       case PlacedElementInteracted(
           :final element,
           :final behavior,
@@ -8910,11 +8901,38 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         break;
     }
 
-    if (result is NothingToInteract ||
-        (result is EntityInteracted && !scenarioHandledEntityInteraction)) {
+    if (_tileEventMayAnswer(
+      result,
+      scenarioHandled: scenarioHandledEntityInteraction,
+    )) {
       _tryInteractWithMapEvent();
     }
   }
+
+  /// Un scénario a la priorité sur l'entité ; l'entité native ne répond que
+  /// s'il décline. Retourne `true` quand le scénario a pris la main.
+  bool _claimEntityInteraction(
+    MapEntity entity, {
+    required String label,
+    required void Function() whenUnclaimed,
+  }) {
+    debugPrint('[interact] $label: ${entity.id}');
+    if (_tryDispatchScenarioEntityInteraction(entity.id)) {
+      return true;
+    }
+    whenUnclaimed();
+    return false;
+  }
+
+  /// L'événement de la case ne répond qu'en dernier recours, et seulement
+  /// quand rien de typé ne l'a fait : soit la case est vide, soit une entité
+  /// générique — ni PNJ, ni panneau, ni objet — est restée non revendiquée.
+  static bool _tileEventMayAnswer(
+    GameplayStepResult result, {
+    required bool scenarioHandled,
+  }) =>
+      result is NothingToInteract ||
+      (result is EntityInteracted && !scenarioHandled);
 
   bool _tryDispatchScenarioEntityInteraction(String entityId) {
     final result = _dispatchScenarioRuntimeSource(
