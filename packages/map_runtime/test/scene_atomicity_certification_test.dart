@@ -219,21 +219,24 @@ void main() {
           reason: 'once settled, the whole Scenario must be visible',
         );
       },
-      skip: 'BETA-WLD-006 a trouvé ici un vrai trou, pas un test à ajuster. '
-          'Le chemin Scene V2 est atomique parce que ses écritures vivent dans '
-          '_NarrativeSceneWorkingSession jusqu\'au commit. Le chemin Scenario '
-          'legacy écrit directement dans _gameState via onGameStateUpdated, et '
-          'PlayableMapGameSessionRuntime.captureCheckpoint() sérialise '
-          'gameStateSnapshot sans consulter NarrativeRuntimeActivityGate. Un '
-          'autosave de suspension d\'app pendant un Scenario suspendu sur un '
-          'dialogue persiste donc durablement la moitié du flow. Deux fixes '
-          'candidats, tous deux hors périmètre S de ce ticket : (a) faire '
-          'respecter l\'interlock de saveGame() au chemin checkpoint, ce qui '
-          'demande une décision de politique par déclencheur (suspension, '
-          'sauvegarde manuelle, sortie de session) ; (b) faire passer les '
-          'écritures Scenario par une working session comme les Scenes V2, ce '
-          'qui rend l\'atomicité vraie par construction. Retirer ce skip quand '
-          'le ticket de suivi est fait.',
+      skip: 'BETA-WLD-011. Un vrai trou, pas un test à ajuster. Une Scene V2 '
+          'est atomique parce que ses écritures vivent dans '
+          '_NarrativeSceneWorkingSession jusqu\'au commit ; un Scenario legacy '
+          'écrit directement dans _gameState via onGameStateUpdated, et '
+          'captureCheckpoint() sérialise gameStateSnapshot sans consulter '
+          'NarrativeRuntimeActivityGate. Un autosave de suspension d\'app '
+          'pendant un Scenario suspendu persiste donc la moitié du flow. '
+          'ATTENTION avant de corriger : stager TOUTES les écritures Scenario '
+          'ne marche pas. Tenté le 2026-08-17, 17 tests de '
+          'playable_map_game_qualified_outcome_v2_integration_test tombent, '
+          'parce que deliveredNarrativeOutcomeDeliveryIds DOIT rester visible '
+          'pendant la suspension pour garantir la livraison exactly-once des '
+          'outcomes au rechargement. Le fix demande une partition : effets de '
+          'flow stagés, comptabilité de livraison publiée en '
+          'continu — comme le fait déjà le couple working '
+          'session / transaction store des Scenes V2. Voir '
+          'scenario_settled_flags_probe_test.dart, qui garde l\'invariant que '
+          'la tentative avait cassé.',
     );
   });
 }
