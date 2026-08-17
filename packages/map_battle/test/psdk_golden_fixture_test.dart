@@ -101,9 +101,11 @@ void main() {
 
       expect(result, isNotNull);
       expect(fixture.compare(result!), isEmpty);
+      // Valeur canonique sous mainline-gen9-critical : voir la note datée dans
+      // basic_damage_neutral.json pour la raison du passage de 7 à 5.
       expect(
         result.timeline.events.whereType<PsdkBattleDamageEvent>().single.damage,
-        7,
+        5,
       );
     });
 

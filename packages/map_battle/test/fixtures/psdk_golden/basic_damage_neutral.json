@@ -96,7 +96,7 @@
       "currentHp": 40
     },
     "opponent": {
-      "currentHp": 33
+      "currentHp": 35
     }
   },
   "expectedTimeline": {
@@ -113,8 +113,8 @@
     "damageEvents": [
       {
         "moveId": "tackle",
-        "damage": 7,
-        "remainingHp": 33
+        "damage": 5,
+        "remainingHp": 35
       }
     ]
   },
@@ -125,6 +125,7 @@
   },
   "notes": [
     "Minimal deterministic fixture for the golden format.",
-    "Opponent uses s_do_nothing so the fixture isolates one neutral s_basic damage event."
+    "Opponent uses s_do_nothing so the fixture isolates one neutral s_basic damage event.",
+    "2026-08-17: damage 7 -> 5 and remainingHp 33 -> 35. These vectors were captured with a stage-0 critical rate of 1/16, which is the Gen 2-5 value. The project ruleset declares mainline-gen9-critical, whose stage-0 rate is 1/24, so the seeded roll no longer crits and the 1.5x multiplier is gone. The engine matches its declared policy; the old vectors did not. Verified by temporarily restoring 1/16, which makes every golden pass again."
   ]
 }
