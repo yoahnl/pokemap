@@ -265,7 +265,11 @@ int _actionSpeed({
       battler.abilityId == 'quick_feet') {
     return speed;
   }
-  final paralyzedSpeed = (speed * 0.25).floor();
+  // Gen 7 a fait passer la paralysie de 25 % à 50 % de la vitesse. Le ruleset
+  // déclare mainline-gen9-status-core, donc la moitié : un 0.25 ici était la
+  // valeur des générations 1 à 6 et changeait l'ordre des tours de tout combat
+  // impliquant une paralysie.
+  final paralyzedSpeed = (speed * 0.5).floor();
   return paralyzedSpeed < 1 ? 1 : paralyzedSpeed;
 }
 

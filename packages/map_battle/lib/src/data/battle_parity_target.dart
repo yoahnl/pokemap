@@ -111,7 +111,10 @@ final class BattleParityTarget {
         ruleId: 'mainline-gen9-status-core',
         summary:
             'Major-status action gates, stat modifiers, residual damage, '
-            'immunities and cure lifecycle follow modern mainline rules.',
+            'immunities and cure lifecycle follow modern mainline rules. '
+            'Burn cuts physical attack with the Guts exception; paralysis '
+            'halves speed at the Gen 7+ rate with the Quick Feet exception, '
+            'and rolls 1/4 to skip the turn.',
         alignment: BattleParityAlignment.partial,
         evidence: <String>[
           'lib/src/battle_condition_engine.dart',
