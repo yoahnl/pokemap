@@ -119,7 +119,7 @@ final class BattleParityTarget {
         axis: BattleParityAxis.criticalHits,
         ruleId: 'mainline-gen9-critical',
         summary:
-            'Critical stages use 1/16, 1/8, 1/2 and guaranteed chances with a '
+            'Critical stages use 1/24, 1/8, 1/2 and guaranteed chances with a '
             '1.5 damage multiplier.',
         alignment: BattleParityAlignment.aligned,
         evidence: <String>[
