@@ -38,6 +38,8 @@ export 'src/player/player_shop_overlay.dart';
 export 'src/player/pokemap_player_session_view.dart';
 export 'src/player/player_save_recovery_strings.dart';
 export 'src/player/player_save_recovery_surface.dart';
+export 'src/player/player_pokemon_summary_sheet.dart';
+export 'src/player/player_pokemon_summary_strings.dart';
 export 'src/player/player_session_surfaces.dart';
 export 'src/player/player_title_screen.dart';
 export 'src/player/player_title_motion.dart';

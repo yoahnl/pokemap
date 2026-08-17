@@ -3,6 +3,8 @@ import 'dart:collection';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import 'runtime_pokemon_summary.dart';
+
 enum RuntimePlayerPauseSection {
   root,
   party,
@@ -125,6 +127,7 @@ final class RuntimePlayerDetailEntrySnapshot {
     this.progress,
     this.bagAction,
     this.heldItemAction,
+    this.pokemonSummary,
   }) {
     if (id.trim().isEmpty || title.trim().isEmpty) {
       throw ArgumentError('Detail entry id and title must not be empty.');
@@ -145,6 +148,10 @@ final class RuntimePlayerDetailEntrySnapshot {
   final double? progress;
   final RuntimePlayerBagItemActionSnapshot? bagAction;
   final RuntimePlayerHeldItemActionSnapshot? heldItemAction;
+
+  /// Présente uniquement sur une entrée d'équipe : la fiche canonique que le PC
+  /// affiche pour le même individu.
+  final RuntimePokemonSummarySnapshot? pokemonSummary;
 }
 
 /// Data-only presentation for one non-root pause section.

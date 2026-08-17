@@ -8,8 +8,10 @@ import 'package:path/path.dart' as p;
 import '../application/runtime_pokemon_evolution_loader.dart';
 import '../application/runtime_item_catalog_loader.dart';
 import '../application/runtime_battle_combatant_seed_builder.dart';
+import '../application/runtime_move_catalog_loader.dart';
 import '../application/runtime_move_machine_loader.dart';
 import 'runtime_player_pause_data.dart';
+import 'runtime_pokemon_summary.dart';
 
 /// Builds player-facing pause data from the runtime's live state.
 ///
@@ -40,6 +42,17 @@ final class RuntimePlayerPauseDataBuilder {
     final speciesById = <String, _RuntimeSpeciesPresentation>{
       for (final entry in species) entry.id: entry,
     };
+    // Un projet sans catalogue d'attaques doit dégrader la fiche, pas empêcher
+    // l'ouverture du menu pause : le chargeur lève quand la clé est absente.
+    RuntimeMoveCatalog? moveCatalog;
+    try {
+      moveCatalog = await RuntimeMoveCatalogLoader().load(
+        projectRootDirectory: projectRootDirectory,
+        pokemonConfig: pokemonConfig,
+      );
+    } on Object {
+      moveCatalog = null;
+    }
     final isFrench = locale.toLowerCase().startsWith('fr');
     final bagTargets = _buildBagTargets(
       gameState,
@@ -73,6 +86,7 @@ final class RuntimePlayerPauseDataBuilder {
           isFrench: isFrench,
           itemCatalog: resolvedItemCatalog,
           heldItemOptions: heldItemOptions,
+          moveCatalog: moveCatalog,
         ),
         RuntimePlayerPauseSection.bag: _buildBag(
           gameState,
@@ -158,7 +172,17 @@ final class RuntimePlayerPauseDataBuilder {
     required bool isFrench,
     required ItemCatalogSnapshot itemCatalog,
     required List<RuntimePlayerHeldItemOptionSnapshot> heldItemOptions,
+    RuntimeMoveCatalog? moveCatalog,
   }) {
+    final summaryBuilder = runtimePokemonSummaryBuilderFor(
+      locale: locale,
+      speciesLabelFor: (speciesId) =>
+          speciesById[speciesId]?.nameFor(locale) ?? _humanize(speciesId),
+      calculatedStatsFor: (pokemon) =>
+          speciesById[pokemon.speciesId]?.calculatedStatsFor(pokemon),
+      itemLabelFor: (itemId) => itemCatalog.definitionFor(itemId)?.displayName,
+      moveFor: moveCatalog?.lookup,
+    );
     final entries = <RuntimePlayerDetailEntrySnapshot>[];
     for (var index = 0; index < gameState.party.members.length; index++) {
       final pokemon = gameState.party.members[index];
@@ -224,6 +248,10 @@ final class RuntimePlayerPauseDataBuilder {
                       currentItemLabel: currentHeldItemLabel,
                       options: availableHeldItems,
                     ),
+          pokemonSummary: summaryBuilder.build(
+            pokemon,
+            targetId: _partyTargetId(pokemon, index),
+          ),
         ),
       );
     }
@@ -718,7 +746,9 @@ final class _RuntimeSpeciesPresentation {
         (names.isEmpty ? _humanize(id) : names.values.first);
   }
 
-  int? maxHpFor(PlayerPokemon pokemon) {
+  int? maxHpFor(PlayerPokemon pokemon) => calculatedStatsFor(pokemon)?.maxHp;
+
+  PokemonCalculatedStats? calculatedStatsFor(PlayerPokemon pokemon) {
     final stats = baseStats;
     if (stats == null) return null;
     final hp = stats['hp'];
@@ -751,8 +781,7 @@ final class _RuntimeSpeciesPresentation {
             level: pokemon.level,
             naturePolicy: PokemonNatureStatPolicy.canonical,
             natureId: pokemon.natureId,
-          )
-          .maxHp;
+          );
     } on Object {
       return null;
     }

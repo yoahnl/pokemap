@@ -4,6 +4,7 @@ import 'package:map_runtime/map_runtime.dart';
 import '../foundation/player_components.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_pc_strings.dart';
+import 'player_pokemon_summary_sheet.dart';
 
 /// Responsive PC surface driven by runtime-owned boxes and transfer targets.
 class PlayerPcOverlay extends StatelessWidget {
@@ -378,7 +379,40 @@ class _PcRoster extends StatelessWidget {
                 children: <Widget>[
                   Expanded(
                     child: SingleChildScrollView(
-                      child: Column(
+                      child: _summaryContent(context, entry, strings),
+                    ),
+                  ),
+                  const SizedBox(height: PlayerSpacing.md),
+                  PlayerActionButton(
+                    key: const ValueKey<String>('pc-summary-close'),
+                    label: strings.close,
+                    icon: Icons.close,
+                    autofocus: true,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Fiche canonique dès que le runtime a pu la résoudre.
+  ///
+  /// Le repli ci-dessous ne subsiste que pour un projet dont le catalogue
+  /// d'espèces est introuvable : il affiche des identifiants bruts, ce que la
+  /// fiche partagée ne fait jamais.
+  Widget _summaryContent(
+    BuildContext context,
+    RuntimePcPokemonSnapshot entry,
+    PlayerPcStrings strings,
+  ) {
+    if (entry.summary case final summary?) {
+      return PlayerPokemonSummarySheet(summary: summary);
+    }
+    return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
                           Text(
@@ -467,23 +501,6 @@ class _PcRoster extends StatelessWidget {
                               value: _humanize(entry.ballItemId),
                             ),
                         ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: PlayerSpacing.md),
-                  PlayerActionButton(
-                    key: const ValueKey<String>('pc-summary-close'),
-                    label: strings.close,
-                    icon: Icons.close,
-                    autofocus: true,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 

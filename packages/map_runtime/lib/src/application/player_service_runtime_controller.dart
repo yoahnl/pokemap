@@ -12,6 +12,7 @@ import 'runtime_item_catalog_loader.dart';
 import 'runtime_player_pokemon_progression_hydrator.dart';
 import 'runtime_pokemon_evolution_loader.dart';
 import 'runtime_pokemon_species_loader.dart';
+import '../player/runtime_pokemon_summary.dart';
 
 final class RuntimePlayerServiceRecoveryCaps {
   const RuntimePlayerServiceRecoveryCaps({
@@ -162,7 +163,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     ItemCatalogSnapshot? itemCatalog,
     RuntimeItemCatalogLoader itemCatalogLoader =
         const RuntimeItemCatalogLoader(),
-  })  : _currentGameState = currentGameState,
+    String locale = 'fr-FR',
+  })  : _locale = locale,
+        _currentGameState = currentGameState,
         _host = host,
         _commitAndSave = commitAndSave,
         _setInputLocked = setInputLocked,
@@ -193,7 +196,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     ItemCatalogSnapshot? itemCatalog,
     RuntimeItemCatalogLoader itemCatalogLoader =
         const RuntimeItemCatalogLoader(),
-  })  : _currentGameState = currentGameState,
+    String locale = 'fr-FR',
+  })  : _locale = locale,
+        _currentGameState = currentGameState,
         _host = null,
         _commitAndSave = commitAndSave,
         _setInputLocked = setInputLocked,
@@ -223,6 +228,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final RuntimePokemonEvolutionLoader _evolutionLoader;
   final RuntimeMoveMachineLoader _moveMachineLoader;
   final RuntimePokemonSpeciesLoader _pokemonSpeciesLoader;
+  final String _locale;
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   bool _active = false;
@@ -341,6 +347,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         request: request,
         gameState: state,
         selectedBoxId: selectedBoxId,
+        summaryBuilder: await _resolvePokemonSummaryBuilder(state),
       );
       _pcSession = session;
       _publishWorldService(_buildPcSnapshot(session));
@@ -1116,6 +1123,97 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
   }
 
+  /// Charge les catalogues nécessaires à la fiche canonique.
+  ///
+  /// Retourne `null` si le projet ne les expose pas : le PC retombe alors sur
+  /// ses champs bruts, ce qui reste préférable à un écran vide.
+  Future<RuntimePokemonSummaryBuilder?> _resolvePokemonSummaryBuilder(
+    GameState state,
+  ) async {
+    final projectRootDirectory = _projectRootDirectory;
+    final pokemonConfig = _pokemonConfig;
+    if (projectRootDirectory == null || pokemonConfig == null) {
+      return null;
+    }
+    final pokemon = <PlayerPokemon>[
+      ...state.party.members,
+      for (final box in state.pokemonStorage.normalized().boxes) ...box.pokemon,
+    ];
+    final speciesById = <String, RuntimePokemonSpecies>{};
+    for (final speciesId in pokemon.map((entry) => entry.speciesId).toSet()) {
+      try {
+        speciesById[speciesId] = await _pokemonSpeciesLoader.loadById(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemonConfig,
+          speciesId: speciesId,
+        );
+      } on Object {
+        continue;
+      }
+    }
+    RuntimeMoveCatalog? moveCatalog;
+    try {
+      moveCatalog = await RuntimeMoveCatalogLoader().load(
+        projectRootDirectory: projectRootDirectory,
+        pokemonConfig: pokemonConfig,
+      );
+    } on Object {
+      moveCatalog = null;
+    }
+    final itemCatalog = await _resolveItemCatalog();
+    return runtimePokemonSummaryBuilderFor(
+      locale: _locale,
+      speciesLabelFor: (speciesId) =>
+          _localizedSpeciesName(speciesById[speciesId], speciesId),
+      calculatedStatsFor: (entry) =>
+          _calculatedStatsFor(speciesById[entry.speciesId], entry),
+      itemLabelFor: (itemId) => itemCatalog.definitionFor(itemId)?.displayName,
+      moveFor: moveCatalog?.lookup,
+    );
+  }
+
+  String _localizedSpeciesName(
+    RuntimePokemonSpecies? species,
+    String speciesId,
+  ) {
+    if (species == null) {
+      return runtimePokemonHumanizeId(speciesId);
+    }
+    return resolveLocalizedName(
+      names: species.names,
+      locale: _locale,
+      fallback: runtimePokemonHumanizeId(speciesId),
+    );
+  }
+
+  PokemonCalculatedStats? _calculatedStatsFor(
+    RuntimePokemonSpecies? species,
+    PlayerPokemon pokemon,
+  ) {
+    if (species == null) {
+      return null;
+    }
+    try {
+      return const PokemonStatCalculator().calculate(
+        baseStats: PokemonBaseStats(
+          hp: species.baseHp,
+          attack: species.baseAttack,
+          defense: species.baseDefense,
+          specialAttack: species.baseSpecialAttack,
+          specialDefense: species.baseSpecialDefense,
+          speed: species.baseSpeed,
+        ),
+        ivs: pokemon.ivs,
+        evs: pokemon.evs,
+        level: pokemon.level,
+        naturePolicy: PokemonNatureStatPolicy.canonical,
+        natureId: pokemon.natureId,
+      );
+    } on Object {
+      return null;
+    }
+  }
+
   RuntimeWorldServiceSnapshot _buildPcSnapshot(
     _ContextualPcSession session, {
     RuntimeWorldServiceStage stage = RuntimeWorldServiceStage.active,
@@ -1173,6 +1271,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           canTransfer: result.isSuccess,
           unavailableReason:
               result.isSuccess ? null : _pcFailureMessage(result.failure!),
+          summary: session.summaryBuilder?.build(pokemon, targetId: targetId),
         ),
       );
     }
@@ -1219,6 +1318,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           canTransfer: result.isSuccess,
           unavailableReason:
               result.isSuccess ? null : _pcFailureMessage(result.failure!),
+          summary: session.summaryBuilder?.build(pokemon, targetId: targetId),
         ),
       );
     }
@@ -1892,7 +1992,12 @@ final class _ContextualPcSession {
     required this.request,
     required this.gameState,
     required this.selectedBoxId,
+    this.summaryBuilder,
   });
+
+  /// Résolu une fois à l'ouverture : `_buildPcSnapshot` est synchrone alors que
+  /// les catalogues se chargent en asynchrone.
+  final RuntimePokemonSummaryBuilder? summaryBuilder;
 
   final OpenPcService request;
   final result = Completer<PlayerServiceRuntimeResult>();

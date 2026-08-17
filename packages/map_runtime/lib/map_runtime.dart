@@ -600,6 +600,7 @@ export 'src/player/runtime_player_input.dart';
 export 'src/player/runtime_player_models.dart';
 export 'src/player/runtime_title_menu_policy.dart';
 export 'src/player/runtime_player_pause_data.dart';
+export 'src/player/runtime_pokemon_summary.dart';
 export 'src/player/runtime_player_pause_data_builder.dart'
     show RuntimePlayerPauseDataBuilder;
 export 'src/player/runtime_world_service_models.dart';

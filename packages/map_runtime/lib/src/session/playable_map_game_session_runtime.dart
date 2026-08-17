@@ -272,6 +272,7 @@ final class PlayableMapGameSessionRuntime
       grantedCapabilities: descriptor.grantedCapabilities,
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
+      locale: descriptor.locale,
     );
     _playerServices = playerServices;
     _worldServiceSnapshot = playerServices.worldServiceSnapshot;

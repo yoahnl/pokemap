@@ -2,6 +2,8 @@ import 'dart:collection';
 
 import 'package:map_core/map_core.dart';
 
+import 'runtime_pokemon_summary.dart';
+
 enum RuntimeWorldServiceKind { shop, heal, pc }
 
 /// Typed request emitted by an interaction in the running world.
@@ -227,6 +229,7 @@ final class RuntimePcPokemonSnapshot {
     List<String> knownMoveIds = const <String>[],
     required this.canTransfer,
     this.unavailableReason,
+    this.summary,
   })  : assert(targetId != ''),
         assert(label != ''),
         assert(speciesId != ''),
@@ -240,6 +243,13 @@ final class RuntimePcPokemonSnapshot {
           canTransfer || (unavailableReason != null && unavailableReason != ''),
         ),
         knownMoveIds = List<String>.unmodifiable(knownMoveIds);
+
+  /// Fiche canonique identique à celle de l'équipe.
+  ///
+  /// Absente quand le catalogue d'espèces n'a pas pu être résolu : la surface
+  /// retombe alors sur les champs bruts ci-dessous plutôt que de ne rien
+  /// afficher.
+  final RuntimePokemonSummarySnapshot? summary;
 
   /// Opaque target echoed by the player UI. Only the runtime interprets it.
   final String targetId;

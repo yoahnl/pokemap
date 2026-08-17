@@ -5,6 +5,8 @@ import 'package:map_runtime/map_runtime.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'player_pokemon_summary_sheet.dart';
+import 'player_pokemon_summary_strings.dart';
 import 'player_session_surfaces.dart';
 import 'player_bag_strings.dart';
 
@@ -173,6 +175,22 @@ class _RuntimePlayerParty extends StatelessWidget {
               entry: detail.entries[index],
               surfaceRole: ProjectPresentationSurfaceRole.party,
             ),
+            if (detail.entries[index].pokemonSummary
+                case final summary?) ...<Widget>[
+              const SizedBox(height: PlayerSpacing.xs),
+              PlayerActionButton(
+                key: ValueKey<String>(
+                  'runtime-player-party-summary-${summary.targetId}',
+                ),
+                label: PlayerPokemonSummaryStrings.of(context).viewSummary,
+                icon: Icons.info_outline,
+                secondary: true,
+                onPressed: () => showPlayerPokemonSummaryDialog(
+                  context,
+                  summary: summary,
+                ),
+              ),
+            ],
             if (detail.entries[index].heldItemAction
                 case final action?) ...<Widget>[
               const SizedBox(height: PlayerSpacing.xs),
