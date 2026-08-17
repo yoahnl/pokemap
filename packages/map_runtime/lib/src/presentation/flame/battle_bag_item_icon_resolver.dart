@@ -21,7 +21,7 @@ final class BattleBagItemIconSpec {
 ///
 /// Frontière volontaire :
 /// - la source de vérité visuelle reste le workspace projet ;
-/// - le runtime lit seulement `items.json` + `localSpritePath` ;
+/// - le runtime lit l'identité dans `items.json` puis le sprite canonique ;
 /// - ce seam reste purement présentational et best-effort ;
 /// - un sprite manquant ne doit jamais casser le flow de combat.
 final class BattleBagItemIconResolver {
@@ -47,11 +47,14 @@ final class BattleBagItemIconResolver {
       return BattleBagItemIconSpec(itemId: trimmedItemId);
     }
 
+    final absolutePath = _resolveProjectPath(relativePath);
+    if (!await File(absolutePath).exists()) {
+      return BattleBagItemIconSpec(itemId: trimmedItemId);
+    }
+
     return BattleBagItemIconSpec(
       itemId: trimmedItemId,
-      explicitImageAbsolutePath: p.normalize(
-        p.join(projectRootDirectory, relativePath),
-      ),
+      explicitImageAbsolutePath: absolutePath,
     );
   }
 
@@ -105,8 +108,9 @@ final class BattleBagItemIconResolver {
           continue;
         }
         pathsByItemId[itemId] = _normalizeProjectRelativePath(
-          (entry['localSpritePath'] as String?)?.trim(),
-        );
+              (entry['localSpritePath'] as String?)?.trim(),
+            ) ??
+            _canonicalItemSpritePath(itemId);
       }
       return Map<String, String?>.unmodifiable(pathsByItemId);
     } catch (_) {
@@ -131,5 +135,18 @@ final class BattleBagItemIconResolver {
       return null;
     }
     return normalized;
+  }
+
+  String? _canonicalItemSpritePath(String itemId) {
+    if (itemId.contains('/') || itemId.contains(r'\')) {
+      return null;
+    }
+    return p.posix.join(
+      'data',
+      'pokemon',
+      'assets',
+      'items',
+      '$itemId.png',
+    );
   }
 }

@@ -46,6 +46,7 @@ import '../../player/runtime_audio_mixer.dart';
 import '../../player/runtime_world_service_models.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
+import '../../application/runtime_battle_experience_progress.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
 import '../../application/runtime_battle_reward_resolver.dart';
 import '../../application/runtime_battle_bag_hp_heal_item_apply.dart';
@@ -7591,6 +7592,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       final battleSpeciesDisplayNames =
           await _loadBattleSpeciesDisplayNames(_battleSession!);
+      final playerExperienceProgressByLineupIndex = await _traceAsync(
+        'battle',
+        'experienceProgress',
+        () => buildRuntimeBattleExperienceProgressByLineupIndex(
+          gameState: _battleRuntimeGameState,
+          playerLineup: playerLineup,
+          loadGrowthRateId: (speciesId) async =>
+              (await _battleSpeciesLoader.loadById(
+            projectRootDirectory: _bundle.projectRootDirectory,
+            pokemonConfig: _bundle.manifest.pokemon,
+            speciesId: speciesId,
+          ))
+                  .growthRateId,
+        ),
+      );
 
       // Afficher l'overlay de combat avec la session
       final overlay = _traceSync(
@@ -7620,6 +7636,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           preferTouchListDragScroll: false,
           useFlutterCommandOverlay: _preferBattleFlutterCommandOverlay,
           allowMedicineReserveTargets: true,
+          playerExperienceProgressByLineupIndex:
+              playerExperienceProgressByLineupIndex,
         ),
       );
       camera.viewport.add(overlay);

@@ -456,6 +456,7 @@ class BattleOverlayComponent extends PositionComponent {
     bool preferTouchListDragScroll = false,
     bool useFlutterCommandOverlay = false,
     bool allowMedicineReserveTargets = true,
+    Map<int, double> playerExperienceProgressByLineupIndex = const {},
   })  : _session = session,
         _gameState = gameState,
         _itemCapabilityResolver = itemCapabilityResolver ??
@@ -466,6 +467,9 @@ class BattleOverlayComponent extends PositionComponent {
         _preferTouchListDragScroll = preferTouchListDragScroll,
         _useFlutterCommandOverlay = useFlutterCommandOverlay,
         _allowMedicineReserveTargets = allowMedicineReserveTargets,
+        _playerExperienceProgressByLineupIndex = Map<int, double>.unmodifiable(
+          playerExperienceProgressByLineupIndex,
+        ),
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
@@ -496,6 +500,7 @@ class BattleOverlayComponent extends PositionComponent {
   final RuntimeMoveCatalog _moveCatalog;
   late final BattleMoveVisualResolver _moveVisualResolver;
   final BattleFxBundleCache _fxBundleCache;
+  final Map<int, double> _playerExperienceProgressByLineupIndex;
 
   /// Le debug reste volontairement opt-in.
   ///
@@ -1631,6 +1636,9 @@ class BattleOverlayComponent extends PositionComponent {
         isPlayerSide: isPlayerSide,
       ),
       statusLabel: statusLabel?.trim().isEmpty ?? true ? null : statusLabel,
+      experienceProgress: isPlayerSide
+          ? _playerExperienceProgressByLineupIndex[combatant.lineupIndex]
+          : null,
     );
   }
 
@@ -1660,19 +1668,26 @@ class BattleOverlayComponent extends PositionComponent {
       BattleCommandMenuMode.fight ||
       BattleCommandMenuMode.continueOnly =>
         List<BattleCommandOverlayEntry>.unmodifiable(
-          menuModel.choiceEntries.asMap().entries.map(
-                (entry) => BattleCommandOverlayEntry(
-                  index: entry.key,
-                  kind: menuModel.mode == BattleCommandMenuMode.continueOnly
-                      ? BattleCommandOverlayEntryKind.continueAction
-                      : BattleCommandOverlayEntryKind.move,
-                  primaryLabel: entry.value.title,
-                  secondaryLabel: entry.value.subtitle,
-                  enabled: true,
-                  selected: entry.key == menuModel.selectedChoiceIndex,
-                  tone: _overlayEntryToneForChoiceTone(entry.value.tone),
-                ),
-              ),
+          menuModel.choiceEntries.asMap().entries.map((entry) {
+            final choice = entry.value.choice;
+            final move = choice is PlayerBattleChoiceFight
+                ? _session.state.player.moves[choice.moveIndex]
+                : null;
+            return BattleCommandOverlayEntry(
+              index: entry.key,
+              kind: menuModel.mode == BattleCommandMenuMode.continueOnly
+                  ? BattleCommandOverlayEntryKind.continueAction
+                  : BattleCommandOverlayEntryKind.move,
+              primaryLabel: entry.value.title,
+              secondaryLabel: move?.type ?? entry.value.subtitle,
+              tertiaryLabel: move == null ? null : entry.value.subtitle,
+              trailingLabel:
+                  move == null ? null : 'PP ${move.currentPp}/${move.pp}',
+              enabled: true,
+              selected: entry.key == menuModel.selectedChoiceIndex,
+              tone: _overlayEntryToneForChoiceTone(entry.value.tone),
+            );
+          }),
         ),
       BattleCommandMenuMode.bag => List<BattleCommandOverlayEntry>.unmodifiable(
           bagMenuModel.entries.asMap().entries.map(

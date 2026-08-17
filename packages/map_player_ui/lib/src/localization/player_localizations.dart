@@ -264,6 +264,7 @@ final class PokeMapPlayerLocalizations {
       _fr ? 'Remplacement obligatoire' : 'Replacement required';
   String get levelAbbreviation => _fr ? 'N.' : 'Lv.';
   String get hpAbbreviation => _fr ? 'PV' : 'HP';
+  String get experienceAbbreviation => 'XP';
   String get showFullText => _fr ? 'Afficher' : 'Show';
   String get next => _fr ? 'Suite' : 'Next';
   String get yourChoice => _fr ? 'Votre choix' : 'Your choice';
@@ -273,9 +274,53 @@ final class PokeMapPlayerLocalizations {
   String get battleCommands => _fr ? 'COMMANDES' : 'COMMANDS';
   String get battleMoves => _fr ? 'CAPACITÉS' : 'MOVES';
   String get battleBag => _fr ? 'SAC' : 'BAG';
+  String get battleBagMedicine => _fr ? 'SOIN' : 'HEALING';
+  String get battleBagCapture => _fr ? 'CAPTURE' : 'CAPTURE';
+  String get battleBagOther => _fr ? 'OBJET' : 'ITEM';
   String get battleTarget => _fr ? 'CIBLE' : 'TARGET';
   String get battlePokemon => _fr ? 'ÉQUIPE' : 'POKÉMON';
   String get battleContinue => _fr ? 'CONTINUER' : 'CONTINUE';
+  String battleMoveType(String typeId) {
+    final normalized = typeId.trim().toLowerCase();
+    if (!_fr) return normalized.toUpperCase();
+    return switch (normalized) {
+      'normal' => 'NORMAL',
+      'fire' => 'FEU',
+      'water' => 'EAU',
+      'electric' => 'ÉLECTRIK',
+      'grass' => 'PLANTE',
+      'ice' => 'GLACE',
+      'fighting' => 'COMBAT',
+      'poison' => 'POISON',
+      'ground' => 'SOL',
+      'flying' => 'VOL',
+      'psychic' => 'PSY',
+      'bug' => 'INSECTE',
+      'rock' => 'ROCHE',
+      'ghost' => 'SPECTRE',
+      'dragon' => 'DRAGON',
+      'dark' => 'TÉNÈBRES',
+      'steel' => 'ACIER',
+      'fairy' => 'FÉE',
+      _ => normalized.toUpperCase(),
+    };
+  }
+
+  String? battleMoveCategory(String? metadata) {
+    final normalized = metadata?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    if (normalized.contains('special') || normalized.contains('spécial')) {
+      return _fr ? 'SPÉCIAL' : 'SPECIAL';
+    }
+    if (normalized.contains('physical') || normalized.contains('physique')) {
+      return _fr ? 'PHYSIQUE' : 'PHYSICAL';
+    }
+    if (normalized.contains('status') || normalized.contains('statut')) {
+      return _fr ? 'STATUT' : 'STATUS';
+    }
+    return null;
+  }
+
   String get reward => _fr ? 'Récompense' : 'Reward';
   String get decision => _fr ? 'Décision' : 'Decision';
   String get shopItems => _fr ? 'Objets' : 'Items';
@@ -318,6 +363,12 @@ final class PokeMapPlayerLocalizations {
 
   String hpLabel(int current, int maximum) =>
       '$current / $maximum $hpAbbreviation';
+
+  String hpFraction(int current, int maximum) => '$current/$maximum';
+
+  String experienceProgressLabel(int percent) => _fr
+      ? 'Progression vers le prochain niveau : $percent %'
+      : 'Progress to the next level: $percent%';
 
   String postBattleProgress(int current, int total) => '$current / $total';
 }

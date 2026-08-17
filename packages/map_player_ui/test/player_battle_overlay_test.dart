@@ -58,27 +58,28 @@ void main() {
           _expectRectClose(panelRect, layout.commandPanelRect);
           final compactPortrait =
               viewport.width < 480 && viewport.height > viewport.width;
+          expect(
+            panelRect.inflate(0.5).contains(dialogueRect.topLeft) &&
+                panelRect.inflate(0.5).contains(dialogueRect.bottomRight),
+            isTrue,
+          );
+          expect(
+            panelRect.inflate(0.5).contains(actionsRect.topLeft) &&
+                panelRect.inflate(0.5).contains(actionsRect.bottomRight),
+            isTrue,
+          );
           if (compactPortrait) {
-            expect(dialogueRect.left, closeTo(panelRect.left, 0.5));
-            expect(dialogueRect.right, closeTo(panelRect.right, 0.5));
-            expect(dialogueRect.top, closeTo(panelRect.top, 0.5));
-            expect(actionsRect.left, closeTo(panelRect.left, 0.5));
-            expect(actionsRect.right, closeTo(panelRect.right, 0.5));
-            expect(actionsRect.bottom, closeTo(panelRect.bottom, 0.5));
-            expect(actionsRect.top - dialogueRect.bottom, closeTo(8, 0.5));
+            expect(dialogueRect.left, closeTo(actionsRect.left, 0.5));
+            expect(dialogueRect.right, closeTo(actionsRect.right, 0.5));
+            expect(
+                actionsRect.top - dialogueRect.bottom, inInclusiveRange(1, 16));
             expect(dialogueRect.bottom, lessThan(actionsRect.top));
           } else {
-            expect(dialogueRect.left, closeTo(panelRect.left, 0.5));
-            expect(dialogueRect.top, closeTo(panelRect.top, 0.5));
-            expect(dialogueRect.bottom, closeTo(panelRect.bottom, 0.5));
-            expect(actionsRect.right, closeTo(panelRect.right, 0.5));
-            expect(actionsRect.top, closeTo(panelRect.top, 0.5));
-            expect(actionsRect.bottom, closeTo(panelRect.bottom, 0.5));
-            expect(actionsRect.left - dialogueRect.right, closeTo(8, 0.5));
+            expect(dialogueRect.top, closeTo(actionsRect.top, 0.5));
+            expect(dialogueRect.bottom, closeTo(actionsRect.bottom, 0.5));
             expect(
-              dialogueRect.width / panelRect.width,
-              closeTo(0.47, 0.03),
-            );
+                actionsRect.left - dialogueRect.right, inInclusiveRange(1, 12));
+            expect(actionsRect.width, greaterThan(dialogueRect.width));
           }
           expect(
             dialogueRect.contains(
@@ -160,7 +161,7 @@ void main() {
   );
 
   testWidgets(
-    'fight submenu keeps its title and back action in the actions window',
+    'fight submenu keeps its prompt and back action in the dialogue strip',
     (tester) async {
       const viewport = Size(508, 379);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -176,9 +177,6 @@ void main() {
       final dialogueRect = tester.getRect(
         find.byKey(const ValueKey<String>('battle-dialogue-panel')),
       );
-      final actionsRect = tester.getRect(
-        find.byKey(const ValueKey<String>('battle-actions-panel')),
-      );
       expect(
         dialogueRect.contains(
           tester.getCenter(
@@ -187,18 +185,10 @@ void main() {
         ),
         isTrue,
       );
-      expect(
-        actionsRect.contains(
-          tester.getCenter(
-            find.byKey(const ValueKey<String>('battle-actions-title')),
-          ),
-        ),
-        isTrue,
-      );
-      expect(find.text('CAPACITÉS'), findsOneWidget);
+      expect(find.text('CAPACITÉS'), findsNothing);
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey<String>('battle-actions-panel')),
+          of: find.byKey(const ValueKey<String>('battle-dialogue-panel')),
           matching: find.byKey(const ValueKey<String>('battle-back')),
         ),
         findsOneWidget,
@@ -206,9 +196,383 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey<String>('battle-back')));
       expect(command, isA<BattleBackCommand>());
+      final exception = tester.takeException();
+      expect(
+        exception,
+        isNull,
+        reason: exception is FlutterError
+            ? exception.toStringDeep()
+            : exception?.toString(),
+      );
+    },
+  );
+
+  testWidgets(
+    'move cards show localized types, live PP and the combatant gender',
+    (tester) async {
+      const viewport = Size(436, 697);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(viewport);
+
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          enemyGender: '♀',
+          playerGender: '♂',
+          entries: _richMoveEntries,
+        ),
+        onCommand: (_) {},
+      );
+
+      Material entryMaterial(int index) {
+        final semantics = tester.widget<Semantics>(
+          find.byKey(ValueKey<String>('battle-entry-$index')),
+        );
+        return (semantics.child! as Tooltip).child! as Material;
+      }
+
+      final dockPanel = tester.widget<PlayerPanel>(
+        find.byKey(const ValueKey<String>('battle-command-panel')),
+      );
+      expect(find.text('NORMAL'), findsOneWidget);
+      expect(find.text('EAU · SPÉCIAL'), findsOneWidget);
+      expect(find.text('ÉLECTRIK'), findsOneWidget);
+      expect(find.text('FEU'), findsOneWidget);
+      expect(find.text('PP 35/35'), findsOneWidget);
+      expect(find.text('PP 17/25'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('battle-gender-enemy')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-gender-player')),
+        findsOneWidget,
+      );
+      expect(entryMaterial(0).shape, isA<BeveledRectangleBorder>());
+      expect(entryMaterial(0).color, isNot(entryMaterial(1).color));
+      expect(
+        entryMaterial(1).elevation,
+        greaterThan(entryMaterial(0).elevation),
+      );
+      expect(dockPanel.surfaceColorOverride, const Color(0xFF111916));
+      expect(dockPanel.textColorOverride, const Color(0xFFF3ECD9));
+      final exception = tester.takeException();
+      expect(
+        exception,
+        isNull,
+        reason: exception is FlutterError
+            ? exception.toStringDeep()
+            : exception?.toString(),
+      );
+    },
+  );
+
+  testWidgets(
+    'default battle HUDs keep exact HP player-only and use compact rails',
+    (tester) async {
+      const viewport = Size(436, 697);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(viewport);
+
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          playerExperienceProgress: 0.64,
+        ),
+        onCommand: (_) {},
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('battle-status-badge-enemy')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-exact-hp-enemy')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-exact-hp-player')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-xp-player')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-xp-enemy')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-hp-rounded-enemy')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-hp-rounded-player')),
+        findsOneWidget,
+      );
+      expect(find.text('XP'), findsOneWidget);
+      final playerHudPanel = tester.widget<PlayerPanel>(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey<String>('battle-hud-target-player'),
+          ),
+          matching: find.byType(PlayerPanel),
+        ),
+      );
+      expect(
+        playerHudPanel.windowStyleOverride?.shape,
+        ProjectWindowShape.cutCorner,
+      );
+      expect(tester.takeException(), isNull);
+
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          playerExperienceProgress: 0.64,
+        ),
+        onCommand: (_) {},
+        textScaler: const TextScaler.linear(2),
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('battle-xp-player')),
+        findsNothing,
+      );
+      expect(
+        tester
+            .getSemantics(
+              find.byKey(
+                const ValueKey<String>('battle-hud-semantics-player'),
+              ),
+            )
+            .label,
+        contains('64 %'),
+      );
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'selected dark field manual design uses one dock and contextual move data',
+    (tester) async {
+      const viewport = Size(436, 697);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(viewport);
+
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          enemyGender: '♀',
+          playerGender: '♂',
+          playerExperienceProgress: 0.64,
+          entries: _richMoveEntries,
+        ),
+        onCommand: (_) {},
+        theme: PokeMapPlayerTheme.light(reducedMotion: true),
+      );
+
+      final dock = tester.widget<PlayerPanel>(
+        find.byKey(const ValueKey<String>('battle-command-panel')),
+      );
+      expect(dock.surfaceColorOverride, const Color(0xFF111916));
+      expect(dock.textColorOverride, const Color(0xFFF3ECD9));
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('battle-command-panel')),
+          matching: find.byType(PlayerPanel),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-selection-cursor-1')),
+        findsOneWidget,
+      );
+      expect(find.text('EAU · SPÉCIAL'), findsOneWidget);
+      expect(find.text('XP'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('golden rich move dock matches the portrait direction', (
+    tester,
+  ) async {
+    const viewport = Size(436, 697);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(viewport);
+
+    await _pumpOverlay(
+      tester,
+      snapshot: _snapshot(
+        viewportSize: viewport,
+        enemyGender: '♀',
+        playerGender: '♂',
+        playerExperienceProgress: 0.64,
+        entries: _richMoveEntries,
+      ),
+      onCommand: (_) {},
+      theme: PokeMapPlayerTheme.light(reducedMotion: true),
+    );
+
+    await expectLater(
+      find.byType(PlayerBattleSurface),
+      matchesGoldenFile('goldens/battle/rich_move_surface_436x697.png'),
+    );
+  });
+
+  testWidgets(
+    'battle bag renders rich item cards with project thumbnails',
+    (tester) async {
+      const viewport = Size(436, 697);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(viewport);
+
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          mode: BattleCommandOverlayMode.bag,
+          title: 'SAC',
+          entries: _richBagEntries,
+        ),
+        onCommand: (_) {},
+        itemIconBuilder: (path) => ColoredBox(
+          key: ValueKey<String>('project-item-thumbnail-$path'),
+          color: Colors.transparent,
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('battle-panel-target-bag-grid')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('project-item-thumbnail-/items/potion.png'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'project-item-thumbnail-/items/poke-ball.png',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('SOIN'), findsWidgets);
+      expect(find.text('CAPTURE'), findsWidgets);
+      expect(find.text('x4'), findsOneWidget);
+      expect(find.text('OK'), findsNothing);
+      final firstItemMaterial = tester.widget<Material>(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('battle-entry-0')),
+          matching: find.byType(Material),
+        ),
+      );
+      expect(firstItemMaterial.shape, isA<BeveledRectangleBorder>());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('battle bag loads the resolved thumbnail by default', (
+    tester,
+  ) async {
+    await _pumpOverlay(
+      tester,
+      snapshot: _snapshot(
+        mode: BattleCommandOverlayMode.bag,
+        title: 'SAC',
+        entries: _richBagEntries.take(2).toList(growable: false),
+      ),
+      onCommand: (_) {},
+    );
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget.runtimeType.toString() == 'BattleMobileItemIcon',
+      ),
+      findsNWidgets(2),
+    );
+  });
+
+  testWidgets('battle bag remains usable across captured viewport classes', (
+    tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    for (final viewport in const <Size>[
+      Size(436, 697),
+      Size(508, 379),
+      Size(1069, 652),
+    ]) {
+      for (final textScaler in const <TextScaler>[
+        TextScaler.noScaling,
+        TextScaler.linear(2),
+      ]) {
+        await tester.binding.setSurfaceSize(viewport);
+        await _pumpOverlay(
+          tester,
+          snapshot: _snapshot(
+            viewportSize: viewport,
+            mode: BattleCommandOverlayMode.bag,
+            title: 'SAC',
+            entries: _richBagEntries,
+          ),
+          onCommand: (_) {},
+          textScaler: textScaler,
+          itemIconBuilder: (path) => const Icon(Icons.medication_rounded),
+        );
+
+        expect(
+          find.byKey(const ValueKey<String>('battle-bag-items')),
+          findsOneWidget,
+        );
+        expect(find.text('x4'), findsOneWidget);
+        final exception = tester.takeException();
+        expect(
+          exception,
+          isNull,
+          reason: exception is FlutterError
+              ? exception.toStringDeep()
+              : 'bag at $viewport with $textScaler: $exception',
+        );
+      }
+    }
+  });
+
+  testWidgets('golden rich battle bag matches the portrait direction', (
+    tester,
+  ) async {
+    const viewport = Size(436, 697);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(viewport);
+
+    await _pumpOverlay(
+      tester,
+      snapshot: _snapshot(
+        viewportSize: viewport,
+        mode: BattleCommandOverlayMode.bag,
+        title: 'SAC',
+        entries: _richBagEntries,
+      ),
+      onCommand: (_) {},
+      theme: PokeMapPlayerTheme.light(reducedMotion: true),
+      itemIconBuilder: (path) => Icon(
+        path.contains('ball')
+            ? Icons.catching_pokemon_rounded
+            : Icons.medication_rounded,
+      ),
+    );
+
+    await expectLater(
+      find.byType(PlayerBattleSurface),
+      matchesGoldenFile('goldens/battle/rich_bag_surface_436x697.png'),
+    );
+  });
 
   testWidgets('golden separated command dock matches the 508x379 reference', (
     tester,
@@ -304,7 +668,7 @@ void main() {
         find.byKey(const ValueKey<String>('battle-species-enemy')),
       );
       final exactHp = tester.widget<Text>(
-        find.byKey(const ValueKey<String>('battle-exact-hp-enemy')),
+        find.byKey(const ValueKey<String>('battle-exact-hp-player')),
       );
       expect(species.style?.color, semantic.textPrimary);
       expect(exactHp.style?.color, semantic.textPrimary);
@@ -330,23 +694,17 @@ void main() {
       );
       expect(
         enemyMaterial.color,
-        Color.alphaBlend(
-          semantic.danger.withValues(alpha: .10),
-          semantic.battleHudSurface,
-        ),
+        semantic.battleHudSurface,
       );
       expect(
         playerMaterial.color,
-        Color.alphaBlend(
-          theme.extension<PokeMapPlayerColors>()!.focus.withValues(alpha: .10),
-          semantic.battleHudSurface,
-        ),
+        semantic.battleHudSurface,
       );
     },
   );
 
   testWidgets(
-    'battle surface palette tints command backgrounds by semantic tone',
+    'battle surface keeps one dark field manual hierarchy across commands',
     (tester) async {
       const viewport = Size(508, 379);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -399,40 +757,15 @@ void main() {
         return tooltip.child! as Material;
       }
 
-      const surface = Color(0xFFF8F8F8);
-      expect(
-        entryMaterial(0).color,
-        Color.alphaBlend(
-          const Color(0xFFB83B54).withValues(alpha: .48),
-          surface,
-        ),
-      );
-      expect(
-        entryMaterial(1).color,
-        Color.alphaBlend(
-          semantic.warning.withValues(alpha: .34),
-          surface,
-        ),
-      );
-      expect(
-        entryMaterial(2).color,
-        Color.alphaBlend(
-          semantic.success.withValues(alpha: .34),
-          surface,
-        ),
-      );
-      expect(
-        entryMaterial(3).color,
-        Color.alphaBlend(
-          const Color(0xFF305FD9).withValues(alpha: .34),
-          surface,
-        ),
-      );
+      expect(entryMaterial(0).color, const Color(0xFF173229));
+      expect(entryMaterial(1).color, const Color(0xFF1E2A25));
+      expect(entryMaterial(2).color, const Color(0xFF1E2A25));
+      expect(entryMaterial(3).color, const Color(0xFF1E2A25));
     },
   );
 
   testWidgets(
-    'French battle chrome and move tones stay distinct on the project palette',
+    'French labels remain stable on the coherent dark battle chrome',
     (tester) async {
       const semantic = PokeMapPlayerSemanticTheme(
         primary: Color(0xFFB83B54),
@@ -465,7 +798,6 @@ void main() {
           ),
         ),
       );
-      final playerColors = theme.extension<PokeMapPlayerColors>()!;
       await _pumpOverlay(
         tester,
         snapshot: _snapshot(
@@ -511,29 +843,11 @@ void main() {
         return (semantics.child! as Tooltip).child! as Material;
       }
 
-      expect(find.text('CAPACITÉS'), findsOneWidget);
+      expect(find.text('CAPACITÉS'), findsNothing);
       expect(find.text('MOVES'), findsNothing);
-      expect(
-        entryMaterial(0).color,
-        Color.alphaBlend(
-          semantic.warning.withValues(alpha: .34),
-          semantic.surfaceElevated,
-        ),
-      );
-      expect(
-        entryMaterial(1).color,
-        Color.alphaBlend(
-          semantic.primary.withValues(alpha: .34),
-          semantic.surfaceElevated,
-        ),
-      );
-      expect(
-        entryMaterial(2).color,
-        Color.alphaBlend(
-          playerColors.focus.withValues(alpha: .34),
-          semantic.surfaceElevated,
-        ),
-      );
+      expect(entryMaterial(0).color, const Color(0xFF1E2A25));
+      expect(entryMaterial(1).color, const Color(0xFF1E2A25));
+      expect(entryMaterial(2).color, const Color(0xFF1E2A25));
     },
   );
 
@@ -767,14 +1081,15 @@ void main() {
 
     expect(find.text('Tonnerre'), findsOneWidget);
     expect(find.byType(PlayerBattleScene), findsOneWidget);
-    expect(find.text('ÉLECTRIK · PP 12/15'), findsNothing);
+    expect(find.text('ÉLECTRIK · SPÉCIAL'), findsOneWidget);
+    expect(find.text('PP 12/15'), findsOneWidget);
     expect(
       tester
           .getSemantics(
             find.byKey(const ValueKey<String>('battle-entry-1')),
           )
           .hint,
-      'ÉLECTRIK · PP 12/15',
+      'ÉLECTRIK, ÉLECTRIK · Spécial · Puissance 90, PP 12/15, Super efficace',
     );
     expect(find.text('PAR'), findsOneWidget);
 
@@ -887,13 +1202,19 @@ void main() {
     final material = tester.widget<Material>(
       find.descendant(of: panel, matching: find.byType(Material)).first,
     );
-    final shape = material.shape! as RoundedRectangleBorder;
-    final battleContext = tester.element(find.byType(PlayerBattleSurface));
-    expect(material.color, battleContext.playerSemanticTheme.battleHudSurface);
-    expect(shape.borderRadius, BorderRadius.circular(5));
-    expect(shape.side.width, 3);
-    expect(tester.widget<Text>(find.text('CAPACITÉS')).style?.fontFamily,
-        'Studio Combat');
+    final shape = material.shape! as BeveledRectangleBorder;
+    expect(material.color, const Color(0xFF111916));
+    expect(shape.borderRadius, BorderRadius.circular(12));
+    expect(shape.side.width, 2);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('battle-dialogue-prompt')),
+          )
+          .style
+          ?.fontFamily,
+      'Studio Combat',
+    );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -926,6 +1247,7 @@ Future<void> _pumpOverlay(
   WidgetTester tester, {
   required BattleCommandOverlaySnapshot snapshot,
   required ValueChanged<BattlePresentationCommand> onCommand,
+  Widget Function(String assetPath)? itemIconBuilder,
   TextScaler textScaler = TextScaler.noScaling,
   ThemeData? theme,
 }) async {
@@ -941,6 +1263,7 @@ Future<void> _pumpOverlay(
           body: PlayerBattleOverlay(
             snapshot: snapshot,
             onCommand: onCommand,
+            itemIconBuilder: itemIconBuilder,
           ),
         ),
       ),
@@ -948,6 +1271,128 @@ Future<void> _pumpOverlay(
   );
   expect(find.byType(PlayerBattleSurface), findsOneWidget);
 }
+
+const _richMoveEntries = <BattleCommandOverlayEntry>[
+  BattleCommandOverlayEntry(
+    index: 0,
+    kind: BattleCommandOverlayEntryKind.move,
+    primaryLabel: 'Écras’Face',
+    secondaryLabel: 'normal',
+    tertiaryLabel: 'NORMAL · Physical · Power 40',
+    trailingLabel: 'PP 35/35',
+    enabled: true,
+    selected: false,
+    tone: BattleCommandOverlayEntryTone.attack,
+  ),
+  BattleCommandOverlayEntry(
+    index: 1,
+    kind: BattleCommandOverlayEntryKind.move,
+    primaryLabel: 'Pistolet à O',
+    secondaryLabel: 'water',
+    tertiaryLabel: 'WATER · Special · Power 40',
+    trailingLabel: 'PP 17/25',
+    enabled: true,
+    selected: true,
+    tone: BattleCommandOverlayEntryTone.attack,
+  ),
+  BattleCommandOverlayEntry(
+    index: 2,
+    kind: BattleCommandOverlayEntryKind.move,
+    primaryLabel: 'Éclair',
+    secondaryLabel: 'electric',
+    tertiaryLabel: 'ELECTRIC · Special · Power 40',
+    trailingLabel: 'PP 24/30',
+    enabled: true,
+    selected: false,
+    tone: BattleCommandOverlayEntryTone.attack,
+  ),
+  BattleCommandOverlayEntry(
+    index: 3,
+    kind: BattleCommandOverlayEntryKind.move,
+    primaryLabel: 'Flammèche',
+    secondaryLabel: 'fire',
+    tertiaryLabel: 'FIRE · Special · Power 40',
+    trailingLabel: 'PP 22/25',
+    enabled: true,
+    selected: false,
+    tone: BattleCommandOverlayEntryTone.attack,
+  ),
+];
+
+const _richBagEntries = <BattleCommandOverlayEntry>[
+  BattleCommandOverlayEntry(
+    index: 0,
+    kind: BattleCommandOverlayEntryKind.bag,
+    primaryLabel: 'Potion',
+    secondaryLabel: 'Medicine',
+    trailingLabel: 'x4',
+    statusLabel: 'OK',
+    enabled: true,
+    selected: true,
+    tone: BattleCommandOverlayEntryTone.medicine,
+    iconAssetPath: '/items/potion.png',
+  ),
+  BattleCommandOverlayEntry(
+    index: 1,
+    kind: BattleCommandOverlayEntryKind.bag,
+    primaryLabel: 'Poké Ball',
+    secondaryLabel: 'Capture',
+    trailingLabel: 'x7',
+    statusLabel: 'OK',
+    enabled: true,
+    selected: false,
+    tone: BattleCommandOverlayEntryTone.capture,
+    iconAssetPath: '/items/poke-ball.png',
+  ),
+  BattleCommandOverlayEntry(
+    index: 2,
+    kind: BattleCommandOverlayEntryKind.bag,
+    primaryLabel: 'Super Potion',
+    secondaryLabel: 'Medicine',
+    trailingLabel: 'x2',
+    statusLabel: 'OK',
+    enabled: true,
+    selected: false,
+    tone: BattleCommandOverlayEntryTone.medicine,
+    iconAssetPath: '/items/super-potion.png',
+  ),
+  BattleCommandOverlayEntry(
+    index: 3,
+    kind: BattleCommandOverlayEntryKind.bag,
+    primaryLabel: 'Hyper Ball',
+    secondaryLabel: 'Capture',
+    trailingLabel: 'x3',
+    statusLabel: 'OK',
+    enabled: true,
+    selected: false,
+    tone: BattleCommandOverlayEntryTone.capture,
+    iconAssetPath: '/items/ultra-ball.png',
+  ),
+  BattleCommandOverlayEntry(
+    index: 4,
+    kind: BattleCommandOverlayEntryKind.bag,
+    primaryLabel: 'Rappel',
+    secondaryLabel: 'Medicine',
+    trailingLabel: 'x1',
+    statusLabel: 'Trainer only',
+    enabled: false,
+    selected: false,
+    tone: BattleCommandOverlayEntryTone.disabled,
+    iconAssetPath: '/items/revive.png',
+  ),
+  BattleCommandOverlayEntry(
+    index: 5,
+    kind: BattleCommandOverlayEntryKind.bag,
+    primaryLabel: 'Baie Oran',
+    secondaryLabel: 'Passive',
+    trailingLabel: 'x5',
+    statusLabel: 'Unsupported',
+    enabled: false,
+    selected: false,
+    tone: BattleCommandOverlayEntryTone.disabled,
+    iconAssetPath: '/items/oran-berry.png',
+  ),
+];
 
 BattleCommandOverlaySnapshot _snapshot({
   Size viewportSize = const Size(800, 600),
@@ -959,6 +1404,9 @@ BattleCommandOverlaySnapshot _snapshot({
   String? enemyStatus = 'PAR',
   String? title,
   List<BattleCommandOverlayEntry>? entries,
+  String? enemyGender,
+  String? playerGender,
+  double? playerExperienceProgress,
 }) {
   final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
   return BattleCommandOverlaySnapshot(
@@ -975,6 +1423,7 @@ BattleCommandOverlaySnapshot _snapshot({
       hp: enemyHp,
       maxHp: enemyMaxHp,
       status: enemyStatus,
+      gender: enemyGender,
     ),
     playerHud: _hud(
       rect: layout.playerHudRect,
@@ -982,6 +1431,8 @@ BattleCommandOverlaySnapshot _snapshot({
       species: 'Pikachu',
       hp: 61,
       maxHp: 72,
+      gender: playerGender,
+      experienceProgress: playerExperienceProgress,
     ),
     battleLabel: 'COMBAT DE DRESSEUR',
     title: title ??
@@ -996,7 +1447,9 @@ BattleCommandOverlaySnapshot _snapshot({
             index: 0,
             kind: BattleCommandOverlayEntryKind.move,
             primaryLabel: 'Vive-Attaque',
-            secondaryLabel: 'NORMAL · PP 0/30',
+            secondaryLabel: 'normal',
+            tertiaryLabel: 'NORMAL · Physique · Puissance 40',
+            trailingLabel: 'PP 0/30',
             enabled: false,
             selected: false,
             tone: BattleCommandOverlayEntryTone.disabled,
@@ -1005,7 +1458,9 @@ BattleCommandOverlaySnapshot _snapshot({
             index: 1,
             kind: BattleCommandOverlayEntryKind.move,
             primaryLabel: 'Tonnerre',
-            secondaryLabel: 'ÉLECTRIK · PP 12/15',
+            secondaryLabel: 'electric',
+            tertiaryLabel: 'ÉLECTRIK · Spécial · Puissance 90',
+            trailingLabel: 'PP 12/15',
             statusLabel: 'Super efficace',
             enabled: true,
             selected: true,
@@ -1098,6 +1553,8 @@ BattleCommandOverlayHudSnapshot _hud({
   required int hp,
   required int maxHp,
   String? status,
+  String? gender,
+  double? experienceProgress,
 }) {
   return BattleCommandOverlayHudSnapshot(
     rect: rect,
@@ -1107,6 +1564,8 @@ BattleCommandOverlayHudSnapshot _hud({
     currentHp: hp,
     maxHp: maxHp,
     statusLabel: status,
+    genderSymbol: gender,
+    experienceProgress: experienceProgress,
     isPlayerSide: owner == 'JOUEUR',
   );
 }

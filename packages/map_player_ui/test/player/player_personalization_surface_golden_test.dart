@@ -302,16 +302,20 @@ PlayerBattleViewData _battle(
       enemy: const PlayerBattleHudViewData(
         ownerLabel: 'SAUVAGE',
         speciesLabel: 'Roucool',
+        genderSymbol: '♀',
         level: 7,
         currentHp: 31,
         maxHp: 31,
+        statusLabel: 'PAR',
       ),
       player: const PlayerBattleHudViewData(
         ownerLabel: 'JOUEUR',
         speciesLabel: 'Brindibou',
+        genderSymbol: '♂',
         level: 8,
         currentHp: 24,
         maxHp: 24,
+        experienceProgress: 0.64,
       ),
       battleLabel: 'Herbes de Vermeil',
       title: switch (panelKind) {
@@ -361,8 +365,9 @@ List<PlayerBattleCommandViewData> _battleEntries(
           PlayerBattleCommandViewData(
             index: 0,
             primaryLabel: 'Feuillage',
-            secondaryLabel: 'Plante',
+            secondaryLabel: 'grass',
             trailingLabel: 'PP 40/40',
+            moveTypeId: 'grass',
             enabled: true,
             selected: true,
             tone: PlayerBattleEntryTone.attack,
@@ -370,8 +375,9 @@ List<PlayerBattleCommandViewData> _battleEntries(
           PlayerBattleCommandViewData(
             index: 1,
             primaryLabel: 'Picpic',
-            secondaryLabel: 'Vol',
+            secondaryLabel: 'flying',
             trailingLabel: 'PP 35/35',
+            moveTypeId: 'flying',
             enabled: true,
             selected: false,
             tone: PlayerBattleEntryTone.special,

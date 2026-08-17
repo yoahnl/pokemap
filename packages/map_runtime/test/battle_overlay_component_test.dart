@@ -1100,6 +1100,7 @@ void main() {
         viewportSize: Vector2(390, 844),
         onPlayerChoice: (_) {},
         useFlutterCommandOverlay: true,
+        playerExperienceProgressByLineupIndex: const <int, double>{0: 0.64},
       );
 
       await overlay.onLoad();
@@ -1125,6 +1126,58 @@ void main() {
         overlay.currentCommandOverlaySnapshot!.playerHud.speciesLabel,
         equals('squirtle'),
       );
+      expect(
+        overlay.currentCommandOverlaySnapshot!.playerHud.experienceProgress,
+        0.64,
+      );
+      expect(
+        overlay.currentCommandOverlaySnapshot!.enemyHud.experienceProgress,
+        isNull,
+      );
+    });
+
+    test('Flutter fight entries expose canonical type and live PP', () async {
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: _session(
+          player: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'water_gun',
+                name: 'Water Gun',
+                power: 40,
+                type: 'water',
+                category: BattleMoveCategory.special,
+                target: BattleMoveTarget.opponent,
+                pp: 25,
+                currentPp: 17,
+              ),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'caterpie',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(436, 697),
+        onPlayerChoice: (_) {},
+        useFlutterCommandOverlay: true,
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+      expect(overlay.selectRootEntry(0), isTrue);
+
+      final snapshot = overlay.currentCommandOverlaySnapshot!;
+      final move = snapshot.entries.single;
+      expect(snapshot.mode, BattleCommandOverlayMode.fight);
+      expect(move.kind, BattleCommandOverlayEntryKind.move);
+      expect(move.secondaryLabel, 'water');
+      expect(move.tertiaryLabel, 'WATER · Special · Power 40');
+      expect(move.trailingLabel, 'PP 17/25');
     });
 
     test(

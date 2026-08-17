@@ -346,7 +346,10 @@ export 'src/presentation/flutter/battle_command_overlay_snapshot.dart'
         BattlePresentationCommandValidation,
         validateBattlePresentationCommand;
 export 'src/presentation/flutter/battle_mobile_command_overlay.dart'
-    show BattleMobileCommandOverlay;
+    show
+        BattleMobileCommandOverlay,
+        BattleMobileItemIcon,
+        BattleMobileItemIconBytesLoader;
 export 'src/presentation/flutter/dialogue_presentation_snapshot.dart'
     show
         DialoguePresentationMode,

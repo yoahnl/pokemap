@@ -77,6 +77,43 @@ void main() {
       expect(spec.hasExplicitImage, isTrue);
     });
 
+    test('resolves the canonical item thumbnail without a serialized path',
+        () async {
+      final projectRoot = await Directory.systemTemp.createTemp(
+        'battle_bag_item_icon_resolver_canonical_',
+      );
+      addTearDown(() async {
+        if (await projectRoot.exists()) {
+          await projectRoot.delete(recursive: true);
+        }
+      });
+
+      final expectedPath = await _writeTinyItemSprite(projectRoot, 'potion');
+      await _writeProjectItemsCatalog(
+        projectRoot,
+        entries: <Map<String, Object?>>[
+          <String, Object?>{
+            'id': 'potion',
+            'name': 'Potion',
+          },
+        ],
+      );
+
+      final resolver = BattleBagItemIconResolver(
+        manifest: const ProjectManifest(
+          name: 'Icon Resolver Test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+        ),
+        projectRootDirectory: projectRoot.path,
+      );
+
+      final spec = await resolver.resolve('potion');
+
+      expect(spec.explicitImageAbsolutePath, equals(p.normalize(expectedPath)));
+      expect(spec.hasExplicitImage, isTrue);
+    });
+
     test('falls back cleanly when the item has no local sprite path', () async {
       final projectRoot = await Directory.systemTemp.createTemp(
         'battle_bag_item_icon_resolver_missing_',

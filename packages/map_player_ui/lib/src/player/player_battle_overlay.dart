@@ -60,7 +60,8 @@ class PlayerBattleOverlay extends StatelessWidget {
             ),
         },
       ),
-      itemIconBuilder: itemIconBuilder,
+      itemIconBuilder: itemIconBuilder ??
+          (assetPath) => BattleMobileItemIcon(imagePath: assetPath),
     );
   }
 }
@@ -93,6 +94,11 @@ List<PlayerBattleCommandViewData> _commands(
         tertiaryLabel: entry.tertiaryLabel,
         trailingLabel: entry.trailingLabel,
         statusLabel: entry.statusLabel,
+        moveTypeId: entry.kind == BattleCommandOverlayEntryKind.move &&
+                entry.secondaryLabel.trim().isNotEmpty
+            ? entry.secondaryLabel
+            : null,
+        isBagItem: entry.kind == BattleCommandOverlayEntryKind.bag,
         enabled: entry.enabled,
         selected: entry.selected,
         tone: _tone(entry.tone),
@@ -155,6 +161,8 @@ PlayerBattleHudViewData _hud(BattleCommandOverlayHudSnapshot snapshot) =>
       hpTweenDuration: snapshot.hpTweenDuration,
       hpTweenRevision: snapshot.hpTweenRevision,
       statusLabel: snapshot.statusLabel,
+      genderSymbol: snapshot.genderSymbol,
+      experienceProgress: snapshot.experienceProgress,
     );
 
 PlayerBattleEntryTone _tone(BattleCommandOverlayEntryTone tone) =>

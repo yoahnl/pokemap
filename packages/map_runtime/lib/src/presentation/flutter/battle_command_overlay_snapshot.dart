@@ -140,6 +140,7 @@ class BattleCommandOverlayHudSnapshot {
     this.hpTweenRevision = 0,
     this.genderSymbol,
     this.statusLabel,
+    this.experienceProgress,
   });
 
   final Rect rect;
@@ -155,6 +156,7 @@ class BattleCommandOverlayHudSnapshot {
   final int hpTweenRevision;
   final String? genderSymbol;
   final String? statusLabel;
+  final double? experienceProgress;
 
   int get effectiveDisplayedHp => displayedHp ?? currentHp;
 
@@ -187,7 +189,8 @@ class BattleCommandOverlayHudSnapshot {
         other.hpTweenDurationMs == hpTweenDurationMs &&
         other.hpTweenRevision == hpTweenRevision &&
         other.genderSymbol == genderSymbol &&
-        other.statusLabel == statusLabel;
+        other.statusLabel == statusLabel &&
+        other.experienceProgress == experienceProgress;
   }
 
   @override
@@ -205,6 +208,7 @@ class BattleCommandOverlayHudSnapshot {
         hpTweenRevision,
         genderSymbol,
         statusLabel,
+        experienceProgress,
       );
 }
 

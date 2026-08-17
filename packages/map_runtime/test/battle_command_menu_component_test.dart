@@ -1504,17 +1504,14 @@ void main() {
           <String, Object?>{
             'id': 'poke-ball',
             'name': 'Poké Ball',
-            'localSpritePath': 'data/pokemon/assets/items/poke-ball.png',
           },
           <String, Object?>{
             'id': 'hyper-potion',
             'name': 'Hyper Potion',
-            'localSpritePath': 'data/pokemon/assets/items/hyper-potion.png',
           },
           <String, Object?>{
             'id': 'potion',
             'name': 'Potion',
-            'localSpritePath': 'data/pokemon/assets/items/potion.png',
           },
         ],
       );

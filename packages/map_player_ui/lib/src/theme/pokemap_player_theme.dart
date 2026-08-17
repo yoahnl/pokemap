@@ -872,6 +872,7 @@ abstract final class PokeMapPlayerTheme {
                 slow: Duration(milliseconds: 420),
               ),
         const PokeMapPlayerTypography(),
+        PokeMapPlayerBattleChrome.darkFieldManual,
         PokeMapPlayerSemanticTheme.fromPlayerColors(colors),
       ],
       focusColor: colors.focus,
