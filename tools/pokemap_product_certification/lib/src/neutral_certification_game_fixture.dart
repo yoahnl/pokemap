@@ -15,10 +15,20 @@ import 'package:pub_semver/pub_semver.dart';
 /// It is written as an author workspace, exported through `map_editor`, then
 /// deleted before installation so the installed runtime cannot depend on it.
 final class NeutralCertificationGameFixture {
+  /// Writes two extra maps wired by warps when true. Off by default so the
+  /// release artifact and the existing certifications keep their exact shape.
+  const NeutralCertificationGameFixture({this.connectedMaps = false});
+
+  final bool connectedMaps;
+
   static const String fixedGameId = 'games.pokemap.certification.neutral';
   static const String fixedGameVersion = '1.0.0';
   static const String fixedMapId = 'neutral_harbor';
   static const String fixedSpawnId = 'neutral_spawn';
+  static const String secondMapId = 'neutral_causeway';
+  static const String thirdMapId = 'neutral_lighthouse';
+  static const String secondSpawnId = 'neutral_causeway_spawn';
+  static const String thirdSpawnId = 'neutral_lighthouse_spawn';
 
   String get gameId => fixedGameId;
   String get gameVersion => fixedGameVersion;
@@ -51,18 +61,60 @@ final class NeutralCertificationGameFixture {
         supportedSaveFormats: const <int>{1},
       );
 
+  static MapData _linkedMap({
+    required String id,
+    required String name,
+    required String spawnId,
+    MapWarp? warp,
+  }) =>
+      MapData(
+        id: id,
+        name: name,
+        version: ProjectVersion.v6,
+        size: const GridSize(width: 4, height: 4),
+        warps: warp == null ? const <MapWarp>[] : <MapWarp>[warp],
+        entities: <MapEntity>[
+          MapEntity(
+            id: spawnId,
+            name: '$name arrival',
+            kind: MapEntityKind.spawn,
+            pos: const GridPos(x: 1, y: 1),
+            blocksMovement: false,
+            spawn: const MapEntitySpawnData(
+              role: EntitySpawnRole.playerStart,
+              facing: EntityFacing.south,
+            ),
+          ),
+        ],
+        mapMetadata: MapMetadata(defaultSpawnId: spawnId),
+      );
+
   Future<void> writeAuthorWorkspace(Directory root) async {
     await root.create(recursive: true);
     final manifest = ProjectManifest(
       name: 'The Clockwork Harbor',
       version: ProjectVersion.v6,
-      maps: const <ProjectMapEntry>[
-        ProjectMapEntry(
+      maps: <ProjectMapEntry>[
+        const ProjectMapEntry(
           id: fixedMapId,
           name: 'Clockwork Harbor',
           relativePath: 'maps/clockwork_harbor.json',
           role: MapRole.exterior,
         ),
+        if (connectedMaps) ...const <ProjectMapEntry>[
+          ProjectMapEntry(
+            id: secondMapId,
+            name: 'Neutral Causeway',
+            relativePath: 'maps/neutral_causeway.json',
+            role: MapRole.exterior,
+          ),
+          ProjectMapEntry(
+            id: thirdMapId,
+            name: 'Neutral Lighthouse',
+            relativePath: 'maps/neutral_lighthouse.json',
+            role: MapRole.interior,
+          ),
+        ],
       ],
       tilesets: const <ProjectTilesetEntry>[],
       newGame: const ProjectNewGameConfig(
@@ -94,12 +146,22 @@ final class NeutralCertificationGameFixture {
     manifestJson['settings'] = settings;
     await _writeJson(File(p.join(root.path, 'project.json')), manifestJson);
 
-    const map = MapData(
+    final map = MapData(
       id: fixedMapId,
       name: 'Clockwork Harbor',
       version: ProjectVersion.v6,
-      size: GridSize(width: 4, height: 4),
-      entities: <MapEntity>[
+      size: const GridSize(width: 4, height: 4),
+      warps: connectedMaps
+          ? const <MapWarp>[
+              MapWarp(
+                id: 'warp_harbor_to_causeway',
+                pos: GridPos(x: 2, y: 1),
+                targetMapId: secondMapId,
+                targetPos: GridPos(x: 1, y: 1),
+              ),
+            ]
+          : const <MapWarp>[],
+      entities: const <MapEntity>[
         MapEntity(
           id: fixedSpawnId,
           name: 'Player arrival',
@@ -112,12 +174,36 @@ final class NeutralCertificationGameFixture {
           ),
         ),
       ],
-      mapMetadata: MapMetadata(defaultSpawnId: fixedSpawnId),
+      mapMetadata: const MapMetadata(defaultSpawnId: fixedSpawnId),
     );
     await _writeJson(
       File(p.join(root.path, 'maps', 'clockwork_harbor.json')),
       map.toJson(),
     );
+    if (connectedMaps) {
+      await _writeJson(
+        File(p.join(root.path, 'maps', 'neutral_causeway.json')),
+        _linkedMap(
+          id: secondMapId,
+          name: 'Neutral Causeway',
+          spawnId: secondSpawnId,
+          warp: const MapWarp(
+            id: 'warp_causeway_to_lighthouse',
+            pos: GridPos(x: 2, y: 1),
+            targetMapId: thirdMapId,
+            targetPos: GridPos(x: 1, y: 1),
+          ),
+        ).toJson(),
+      );
+      await _writeJson(
+        File(p.join(root.path, 'maps', 'neutral_lighthouse.json')),
+        _linkedMap(
+          id: thirdMapId,
+          name: 'Neutral Lighthouse',
+          spawnId: thirdSpawnId,
+        ).toJson(),
+      );
+    }
     await _writePokemonCatalogsWithMinimalMedia(root);
     await File(
       p.join(root.path, 'LICENSE.txt'),

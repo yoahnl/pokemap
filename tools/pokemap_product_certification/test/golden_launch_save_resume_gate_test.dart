@@ -16,6 +16,77 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
+    'the installed package keeps its three maps wired to each other',
+    () async => HttpOverrides.runZoned(
+      () async {
+        final root = await Directory.systemTemp.createTemp(
+          'pokemap-golden-maps-',
+        );
+        addTearDown(() async {
+          if (await root.exists()) await root.delete(recursive: true);
+        });
+        const fixture = NeutralCertificationGameFixture(connectedMaps: true);
+        final authorRoot = Directory(p.join(root.path, 'author'));
+        final supportRoot = Directory(p.join(root.path, 'support'));
+        final packageFile = File(p.join(root.path, 'neutral.avelunegame'));
+        await fixture.writeAuthorWorkspace(authorRoot);
+        await fixture.export(authorRoot, packageFile);
+        final installed = await _installer(
+          supportRoot: supportRoot,
+          fixture: fixture,
+        ).install(packageFile, source: GamePackageInstallSource.localExport);
+        await authorRoot.delete(recursive: true);
+        await packageFile.delete();
+
+        final launch = await InstalledGameLaunchResolver(
+          supportRoot: supportRoot,
+          hostCompatibility: fixture.hostCompatibility,
+        ).resolve(installed.game);
+        final projectFile =
+            await launch.assets.resolveReference(launch.project);
+
+        const expected = <String>[
+          NeutralCertificationGameFixture.fixedMapId,
+          NeutralCertificationGameFixture.secondMapId,
+          NeutralCertificationGameFixture.thirdMapId,
+        ];
+        final reachedTargets = <String>{};
+        for (final mapId in expected) {
+          final bundle = await loadRuntimeMapBundle(
+            projectFilePath: projectFile.path,
+            mapId: mapId,
+          );
+          expect(
+            bundle.map.id,
+            mapId,
+            reason: '$mapId must load from the installed version alone',
+          );
+          for (final warp in bundle.map.warps) {
+            expect(
+              expected,
+              contains(warp.targetMapId),
+              reason: 'warp ${warp.id} points outside the shipped maps',
+            );
+            reachedTargets.add(warp.targetMapId);
+          }
+        }
+
+        expect(
+          reachedTargets,
+          <String>{
+            NeutralCertificationGameFixture.secondMapId,
+            NeutralCertificationGameFixture.thirdMapId,
+          },
+          reason: 'every map beyond the first must be reachable by a warp',
+        );
+      },
+      createHttpClient: (_) {
+        throw StateError('Network access is disabled for the golden journey.');
+      },
+    ),
+  );
+
+  test(
     'golden journey: title, new game, checkpoint, title, continue',
     () async => HttpOverrides.runZoned(
       () async {
@@ -25,7 +96,7 @@ void main() {
         addTearDown(() async {
           if (await root.exists()) await root.delete(recursive: true);
         });
-        final fixture = NeutralCertificationGameFixture();
+        const fixture = NeutralCertificationGameFixture(connectedMaps: true);
         final authorRoot = Directory(p.join(root.path, 'author'));
         final supportRoot = Directory(p.join(root.path, 'support'));
         final packageFile = File(p.join(root.path, 'neutral.avelunegame'));
@@ -201,6 +272,7 @@ void main() {
     ),
   );
 }
+
 
 Future<void> _waitForPhase(
   RuntimePlayerCoordinator coordinator,
