@@ -5482,21 +5482,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
 
-    // Construire le runtimeSourceId pour la continuation post-combat.
-    // Format attendu : 'scenario:<scenarioId>:<sourceNodeId>:<stopNodeId>'
-    // Si l'un des composants est null, on ne peut pas construire le sourceId
-    // et donc pas programmer de continuation → abort proprement.
-    final scenarioId = result.scenarioId;
-    final sourceNodeId = result.sourceNodeId;
-    final stopNodeId = result.stopNodeId;
-    if (scenarioId == null || sourceNodeId == null || stopNodeId == null) {
+    // Le handoff doit retenir EXACTEMENT l'identifiant sous lequel le barrier
+    // de continuation sera enregistré : c'est par lui que l'annulation le
+    // retrouve si la préparation asynchrone du combat échoue. Un identifiant
+    // construit à la main a divergé du format canonique le jour où celui-ci a
+    // gagné son executionId, et l'annulation ne retrouvait alors plus rien :
+    // le bail sceneSuspended restait ouvert et bloquait toute sauvegarde
+    // ultérieure de la session. Un seul constructeur, donc.
+    final runtimeSourceId = _scenarioContinuationRuntimeSourceId(result);
+    if (runtimeSourceId == null) {
       debugPrint(
         '[scenario_runtime] battle effect: cannot build runtimeSourceId '
-        '(scenarioId=$scenarioId sourceNodeId=$sourceNodeId stopNodeId=$stopNodeId)',
+        '(scenarioId=${result.scenarioId} sourceNodeId=${result.sourceNodeId} '
+        'stopNodeId=${result.stopNodeId} '
+        'executionId=${result.effect.executionId})',
       );
       return false;
     }
-    final runtimeSourceId = 'scenario:$scenarioId:$sourceNodeId:$stopNodeId';
 
     // Chercher l'entité NPC sur la map courante.
     final entity = _world.map.entities
