@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -81,6 +83,29 @@ void main() {
         speedTies.alignment,
         isNot(BattleParityAlignment.gap),
         reason: 'the seeded tie break is reachable, so it is not a gap',
+      );
+    });
+
+    test('every declared evidence path exists on disk', () {
+      // L'axe majorStatuses citait lib/src/domain/status, un répertoire qui
+      // n'existe pas : un relecteur suivant la preuve ne trouvait rien et
+      // pouvait conclure que la mécanique était absente. Une preuve d'audit
+      // qui pointe dans le vide est pire qu'une preuve manquante, parce
+      // qu'elle a l'air d'en être une.
+      final missing = <String>[];
+      for (final axis in target.axes) {
+        for (final path in axis.evidence) {
+          final exists = File(path).existsSync() || Directory(path).existsSync();
+          if (!exists) {
+            missing.add('${axis.axis.name} -> $path');
+          }
+        }
+      }
+
+      expect(
+        missing,
+        isEmpty,
+        reason: 'declared evidence must be reachable from the package root',
       );
     });
 

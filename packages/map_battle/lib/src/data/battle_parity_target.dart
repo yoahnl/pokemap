@@ -114,7 +114,8 @@ final class BattleParityTarget {
             'immunities and cure lifecycle follow modern mainline rules.',
         alignment: BattleParityAlignment.partial,
         evidence: <String>[
-          'lib/src/domain/status',
+          'lib/src/battle_condition_engine.dart',
+          'lib/src/battle_status.dart',
           'test/psdk_status_lifecycle_test.dart',
         ],
       ),
