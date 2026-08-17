@@ -2488,6 +2488,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Vector2? get debugPlayerActorLocalPosition => _player.debugActorLocalPosition;
 
   @visibleForTesting
+  Map<String, GridPos> get debugRuntimeNpcPositions =>
+      Map<String, GridPos>.unmodifiable(_runtimeNpcPositions);
+
+  @visibleForTesting
   bool debugIsMapLoaded(String mapId) => _loadedMapsById.containsKey(mapId);
 
   @visibleForTesting
