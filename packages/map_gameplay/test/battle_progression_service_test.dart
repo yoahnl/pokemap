@@ -99,6 +99,45 @@ void main() {
       );
     });
 
+    test('discards the split remainder instead of favouring a slot', () {
+      // Le partage est une division entière et le reste est volontairement
+      // perdu, pour que le résultat soit stable quel que soit l'ordre des
+      // participants. Rien ne le tenait : quelqu'un pouvait « réparer » cette
+      // perte en distribuant le reste au premier slot, ce qui rendrait la
+      // progression dépendante de l'ordre et changerait le rythme du jeu.
+      // Adversaire par défaut niveau 14 base 70, donc 140 XP sauvages pour
+      // trois participants : 46 chacun, 2 perdus.
+      final state = _state(<PlayerPokemon>[
+        _pokemon(id: 'first', experience: 125, currentHp: 15),
+        _pokemon(id: 'second', experience: 125, currentHp: 15),
+        _pokemon(id: 'third', experience: 125, currentHp: 15),
+      ]);
+
+      final result = service.apply(
+        state: state,
+        context: _context(
+          participants: const <int>{0, 1, 2},
+          metadata: <BattleProgressionPartySlotMetadata>[
+            _metadata(slot: 0, oldMaxHp: 19),
+            _metadata(slot: 1, oldMaxHp: 19),
+            _metadata(slot: 2, oldMaxHp: 19),
+          ],
+        ),
+        reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+      );
+
+      final grants = result.appliedReward.experienceGrants;
+      expect(grants.map((grant) => grant.experience), <int>[46, 46, 46]);
+
+      final awarded = grants.fold<int>(0, (sum, grant) => sum + grant.experience);
+      expect(
+        awarded,
+        138,
+        reason: 'the 2 XP remainder of 140 split three ways is dropped',
+      );
+      expect(awarded, lessThan(140));
+    });
+
     test('can defer authored rewards while still applying XP and level-up', () {
       final state = _state(<PlayerPokemon>[
         _pokemon(id: 'participant', experience: 125, currentHp: 19),
