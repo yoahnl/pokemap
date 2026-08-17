@@ -627,7 +627,7 @@ void main() {
   });
 
   testWidgets(
-    'battle HUD falls back to the semantic foreground on a light project surface',
+    'field manual HUD stays dark when a legacy project only has a light battle palette',
     (tester) async {
       final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
         primary: '#2563EB',
@@ -670,8 +670,17 @@ void main() {
       final exactHp = tester.widget<Text>(
         find.byKey(const ValueKey<String>('battle-exact-hp-player')),
       );
-      expect(species.style?.color, semantic.textPrimary);
-      expect(exactHp.style?.color, semantic.textPrimary);
+      const chrome = PokeMapPlayerBattleChrome.darkFieldManual;
+      expect(species.style?.color, chrome.textPrimary);
+      expect(exactHp.style?.color, chrome.textPrimary);
+      expect(
+        find.byKey(const ValueKey<String>('battle-hud-divider-enemy')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-hud-divider-player')),
+        findsOneWidget,
+      );
       final enemyMaterial = tester.widget<Material>(
         find
             .descendant(
@@ -692,14 +701,78 @@ void main() {
             )
             .first,
       );
-      expect(
-        enemyMaterial.color,
-        semantic.battleHudSurface,
+      expect(enemyMaterial.color, chrome.surface);
+      expect(playerMaterial.color, chrome.surface);
+      final enemyShape = enemyMaterial.shape! as BeveledRectangleBorder;
+      final playerShape = playerMaterial.shape! as BeveledRectangleBorder;
+      expect(enemyShape.side.color, chrome.outline);
+      expect(enemyShape.side.width, 2);
+      expect(playerShape.side.color, chrome.outline);
+      expect(playerShape.side.width, 2);
+    },
+  );
+
+  testWidgets(
+    'field manual HUD remains dark when V10 includes a light shared battle palette',
+    (tester) async {
+      final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
+        primary: '#2563EB',
+        onPrimary: '#FFFFFF',
+        background: '#E9E6DA',
+        surface: '#E9E6DA',
+        surfaceElevated: '#E9E6DA',
+        textPrimary: '#1B242C',
+        textSecondary: '#4F5860',
+        outline: '#66717A',
+        success: '#16794B',
+        warning: '#8A5100',
+        danger: '#B4233C',
+        titleSurface: '#E9E6DA',
+        dialogueSurface: '#E9E6DA',
+        menuSurface: '#E9E6DA',
+        overworldHudSurface: '#E9E6DA',
+        battleHudSurface: '#E9E6DA',
+      )!;
+      final theme = PokeMapPlayerTheme.withBattleProfile(
+        PokeMapPlayerTheme.withSurfacePalettes(
+          PokeMapPlayerTheme.withSemanticTheme(
+            PokeMapPlayerTheme.dark(),
+            semantic,
+          ),
+          const ProjectPresentationSurfacePalettesProfile(
+            battle: ProjectSurfacePaletteProfile(
+              surface: '#E9E6DA',
+              border: '#66717A',
+              text: '#1B242C',
+            ),
+          ),
+        ),
+        const ProjectBattlePresentationProfile(),
       );
-      expect(
-        playerMaterial.color,
-        semantic.battleHudSurface,
+
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(),
+        onCommand: (_) {},
+        theme: theme,
       );
+
+      final species = tester.widget<Text>(
+        find.byKey(const ValueKey<String>('battle-species-enemy')),
+      );
+      final enemyMaterial = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byKey(
+                const ValueKey<String>('battle-hud-target-enemy'),
+              ),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      const chrome = PokeMapPlayerBattleChrome.darkFieldManual;
+      expect(species.style?.color, chrome.textPrimary);
+      expect(enemyMaterial.color, chrome.surface);
     },
   );
 

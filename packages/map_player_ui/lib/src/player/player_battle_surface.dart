@@ -9,7 +9,6 @@ import '../theme/pokemap_player_layout_theme.dart';
 import '../theme/pokemap_player_battle_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
-import '../theme/pokemap_player_window_theme.dart';
 
 enum PlayerBattleEntryTone {
   neutral,
@@ -451,23 +450,9 @@ class _BattleHud extends StatelessWidget {
     final chrome = context.playerBattleChrome;
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.4;
     const densePadding = PlayerSpacing.xs;
-    final battlePalette = context.playerSurfacePalette(
-      ProjectPresentationSurfaceRole.battleHud,
-    );
-    final paletteSurface = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-          battlePalette?.surface,
-        ) ??
-        chrome.surface;
-    final paletteText = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-          battlePalette?.text,
-        ) ??
-        (battlePalette?.surface == null
-            ? chrome.textPrimary
-            : _contrastingBattleText(paletteSurface, colors));
-    final paletteBorder = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-          battlePalette?.border,
-        ) ??
-        chrome.outline;
+    final paletteSurface = chrome.surface;
+    final paletteText = chrome.textPrimary;
+    final paletteBorder = chrome.outline;
     final hpRatio = data.maxHp <= 0
         ? 0.0
         : (data.effectiveTargetDisplayedHp / data.maxHp).clamp(0.0, 1.0);
@@ -492,19 +477,13 @@ class _BattleHud extends StatelessWidget {
     final experienceProgress = data.experienceProgress?.clamp(0.0, 1.0);
     final hpBarShape = profile?.hpBarShape ?? ProjectBattleHpBarShape.rounded;
     final showExactHp = profile?.showExactHp ?? sideId == 'player';
-    final inheritedHudStyle =
-        context.playerWindowTheme?.style(ProjectWindowRole.battle);
     final hudWindowStyle = profile == null
-        ? (inheritedHudStyle ??
-                _battleWindowStyle(
-                  id: 'battle-hud-$sideId',
-                  shape: ProjectWindowShape.cutCorner,
-                  padding: dense ? densePadding : 12,
-                ))
-            .copyWith(
+        ? _battleWindowStyle(
+            id: 'battle-hud-$sideId',
             shape: ProjectWindowShape.cutCorner,
+            padding: dense ? densePadding : 12,
+          ).copyWith(
             cornerRadius: 14,
-            contentPadding: dense ? densePadding.round() : 12,
           )
         : _battleWindowStyle(
             id: 'battle-hud-$sideId',
@@ -521,11 +500,7 @@ class _BattleHud extends StatelessWidget {
       windowStyleOverride: hudWindowStyle,
       surfaceColorOverride: paletteSurface,
       borderColorOverride: paletteBorder,
-      textColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-        context
-            .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
-            ?.text,
-      ),
+      textColorOverride: paletteText,
       child: Semantics(
         key: ValueKey<String>('battle-hud-semantics-$sideId'),
         container: true,
@@ -565,7 +540,7 @@ class _BattleHud extends StatelessWidget {
                       style: context.playerTypography
                           .combatStyle(
                             (dense
-                                    ? Theme.of(context).textTheme.labelSmall
+                                    ? Theme.of(context).textTheme.labelMedium
                                     : Theme.of(context)
                                         .textTheme
                                         .titleMedium) ??
@@ -606,12 +581,17 @@ class _BattleHud extends StatelessWidget {
                   ],
                 ],
               ),
-              SizedBox(
-                height: dense && largeText
-                    ? 0
-                    : dense
-                        ? 1
-                        : PlayerSpacing.xxs,
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: dense ? 2 : PlayerSpacing.xxs,
+                ),
+                child: SizedBox(
+                  key: ValueKey<String>('battle-hud-divider-$sideId'),
+                  height: 1,
+                  child: ColoredBox(
+                    color: paletteBorder.withValues(alpha: .48),
+                  ),
+                ),
               ),
               Row(
                 children: <Widget>[
@@ -625,7 +605,7 @@ class _BattleHud extends StatelessWidget {
                                 const TextStyle(),
                           )
                           .copyWith(
-                            color: paletteText,
+                            color: hpColor,
                             fontWeight: FontWeight.w900,
                             height: 1,
                           ),
@@ -2356,27 +2336,6 @@ String _battleBagCategoryLabel(
       PlayerBattleEntryTone.capture => localizations.battleBagCapture,
       _ => localizations.battleBagOther,
     };
-
-Color _contrastingBattleText(
-  Color surface,
-  PokeMapPlayerColors colors,
-) {
-  double contrast(Color candidate) {
-    final lighter = math.max(
-      surface.computeLuminance(),
-      candidate.computeLuminance(),
-    );
-    final darker = math.min(
-      surface.computeLuminance(),
-      candidate.computeLuminance(),
-    );
-    return (lighter + .05) / (darker + .05);
-  }
-
-  return contrast(colors.textPrimary) >= contrast(colors.surface)
-      ? colors.textPrimary
-      : colors.surface;
-}
 
 Color _toneColor(
   PokeMapPlayerColors colors,
