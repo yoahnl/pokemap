@@ -58,6 +58,32 @@ void main() {
       );
     });
 
+    test('no axis is declared a gap while the engine already resolves it', () {
+      final rules = PokemonBattleRules.fromProfile(profile);
+      final speedTies = target.axis(BattleParityAxis.speedTies);
+
+      // Cet axe était déclaré gap, donc non implémenté, alors que
+      // battle_action_ordering appelle déjà resolvePsdkSpeedTie sur une
+      // égalité exacte. Un audit de parité annonçait ainsi du travail restant
+      // qui était fait. On refuse désormais l'étiquette gap sur une mécanique
+      // que le ruleset résout sans lever.
+      final tie = rules.resolvePsdkSpeedTie(
+        BattleRngStreams.fromSeeds(
+          moveDamageSeed: 1,
+          moveCriticalSeed: 2,
+          moveAccuracySeed: 3,
+          genericSeed: 4,
+        ),
+      );
+
+      expect(tie.firstActsFirst, isA<bool>());
+      expect(
+        speedTies.alignment,
+        isNot(BattleParityAlignment.gap),
+        reason: 'the seeded tie break is reachable, so it is not a gap',
+      );
+    });
+
     test('an axis claiming alignment may not contradict the engine', () {
       final rules = PokemonBattleRules.fromProfile(profile);
       final critical = target.axis(BattleParityAxis.criticalHits);

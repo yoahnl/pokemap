@@ -96,8 +96,11 @@ final class BattleParityTarget {
         ruleId: 'mainline-gen9-seeded-random',
         summary:
             'Equal-priority and equal-speed actions use a reproducible seeded '
-            'random tie break.',
-        alignment: BattleParityAlignment.gap,
+            'random tie break. Wired for two fight actions in singles, which '
+            'is the whole beta surface since the ruleset disables double '
+            'battles. Exhaustive Gen 9 tie parity beyond that case is not '
+            'verified, hence partial rather than aligned.',
+        alignment: BattleParityAlignment.partial,
         evidence: <String>[
           'lib/src/domain/action/battle_action_ordering.dart',
           'test/psdk_action_queue_test.dart',

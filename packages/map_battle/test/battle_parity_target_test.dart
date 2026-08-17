@@ -24,7 +24,7 @@ void main() {
             .having(
               (axis) => axis.alignment,
               'alignment',
-              BattleParityAlignment.gap,
+              BattleParityAlignment.partial,
             ),
       );
       expect(
