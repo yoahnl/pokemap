@@ -99,79 +99,95 @@ final class BattleMoveSecondaryEffectResolver {
         continue;
       }
 
-      if (status.volatileStatus == PsdkBattleVolatileStatus.confusion &&
-          !_safeguardPreventsVolatileStatus(
-            state: nextState,
-            user: user,
-            target: target,
-          ) &&
-          !battleMentalAbilityBlocksEffect(
-            state: nextState,
-            user: user,
-            target: target,
-            effectId: PsdkBattleEffectIds.confusion,
-          ) &&
-          !nextState
-              .battlerAt(target)
-              .effects
-              .contains(PsdkBattleEffectIds.confusion)) {
-        final durationRoll = nextRng.generic.nextIntInclusive(min: 1, max: 4);
-        nextRng = nextRng.copyWith(generic: durationRoll.next);
-        nextState = nextState.updateBattler(
-          target,
-          (battler) => battler.copyWith(
-            effects: battler.effects.addEffect(
-              ConfusionEffect(
-                scope: BattlerBattleEffectScope(target),
-                remainingConfusionTurns: durationRoll.value + 1,
-              ),
-            ),
-          ),
-        );
-        final postVolatile = nextState
-            .battlerAt(target)
-            .effects
-            .dispatchPostVolatileStatusChange(
-              BattleEffectVolatileStatusChangeContext(
+      // GARDE D'EXHAUSTIVITÉ, ajoutée le 2026-08-18 pour BETA-BAT-005.
+      //
+      // Ce dispatch était une chaîne de `if` sur deux valeurs. Une troisième
+      // valeur de PsdkBattleVolatileStatus y serait passée entre les deux sans
+      // que rien ne le dise, ce qui est exactement le « move activé avec un
+      // effet silencieusement ignoré » que le ticket interdit. La garantie ne
+      // tenait qu'à un switch exhaustif situé ailleurs, dans
+      // status_stat_move_behavior : accidentelle, pas voulue.
+      //
+      // Ce switch n'a pas de `default` : ajouter une valeur à l'énumération
+      // casse la compilation ICI, à l'endroit qu'il faut compléter.
+      switch (status.volatileStatus) {
+        case null:
+          break;
+        case PsdkBattleVolatileStatus.confusion:
+          if (_safeguardPreventsVolatileStatus(
                 state: nextState,
-                rng: nextRng,
-                turn: turn,
-                owner: target,
+                user: user,
+                target: target,
+              ) ||
+              battleMentalAbilityBlocksEffect(
+                state: nextState,
                 user: user,
                 target: target,
                 effectId: PsdkBattleEffectIds.confusion,
-                cured: false,
-                moveId: move.id,
-                move: move,
+              ) ||
+              nextState
+                  .battlerAt(target)
+                  .effects
+                  .contains(PsdkBattleEffectIds.confusion)) {
+            break;
+          }
+          final durationRoll = nextRng.generic.nextIntInclusive(min: 1, max: 4);
+          nextRng = nextRng.copyWith(generic: durationRoll.next);
+          nextState = nextState.updateBattler(
+            target,
+            (battler) => battler.copyWith(
+              effects: battler.effects.addEffect(
+                ConfusionEffect(
+                  scope: BattlerBattleEffectScope(target),
+                  remainingConfusionTurns: durationRoll.value + 1,
+                ),
               ),
-            );
-        nextState = postVolatile.state;
-        nextRng = postVolatile.rng;
-        events.addAll(postVolatile.events);
-      }
-
-      if (status.volatileStatus == PsdkBattleVolatileStatus.flinch &&
-          !battleMentalAbilityBlocksEffect(
-            state: nextState,
-            user: user,
-            target: target,
-            effectId: PsdkBattleEffectIds.flinch,
-          ) &&
-          !nextState
+            ),
+          );
+          final postVolatile = nextState
               .battlerAt(target)
               .effects
-              .contains(PsdkBattleEffectIds.flinch)) {
-        final result = applyFlinchEffect(
-          state: nextState,
-          rng: nextRng,
-          turn: turn,
-          target: target,
-          reason: move.id,
-          move: move,
-        );
-        nextState = result.state;
-        nextRng = result.rng;
-        events.addAll(result.events);
+              .dispatchPostVolatileStatusChange(
+                BattleEffectVolatileStatusChangeContext(
+                  state: nextState,
+                  rng: nextRng,
+                  turn: turn,
+                  owner: target,
+                  user: user,
+                  target: target,
+                  effectId: PsdkBattleEffectIds.confusion,
+                  cured: false,
+                  moveId: move.id,
+                  move: move,
+                ),
+              );
+          nextState = postVolatile.state;
+          nextRng = postVolatile.rng;
+          events.addAll(postVolatile.events);
+        case PsdkBattleVolatileStatus.flinch:
+          if (battleMentalAbilityBlocksEffect(
+                state: nextState,
+                user: user,
+                target: target,
+                effectId: PsdkBattleEffectIds.flinch,
+              ) ||
+              nextState
+                  .battlerAt(target)
+                  .effects
+                  .contains(PsdkBattleEffectIds.flinch)) {
+            break;
+          }
+          final result = applyFlinchEffect(
+            state: nextState,
+            rng: nextRng,
+            turn: turn,
+            target: target,
+            reason: move.id,
+            move: move,
+          );
+          nextState = result.state;
+          nextRng = result.rng;
+          events.addAll(result.events);
       }
     }
 

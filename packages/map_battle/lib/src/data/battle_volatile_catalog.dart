@@ -23,10 +23,21 @@
 /// rider de capacité passe par `battle_move_secondary_effect_resolver`, après
 /// les dégâts et après l'application d'un éventuel statut majeur. Une volatile
 /// posée par une méthode de combat (`s_protect` et sa famille) est posée par le
-/// comportement lui-même, avant la résolution des dégâts du tour. Le nettoyage
-/// suit trois chemins distincts : fin de tour pour les protections, sortie de
-/// terrain pour tout ce que `_switchOutSnapshot` emporte avec la pile d'effets,
-/// et fin de combat pour le write-back, qui ne persiste aucun volatile.
+/// comportement lui-même, avant la résolution des dégâts du tour. Une punition
+/// de protection part de `onMovePrevented`, après que la prévention a été
+/// décidée et sur le seul effet qui l'a décidée.
+///
+/// LE NETTOYAGE SUIT TROIS CHEMINS, et le KO n'en est pas un :
+///  - fin de tour, pour les volatiles de portée tour comme les protections ;
+///  - sortie de terrain, où `_switchOutSnapshot` vide la pile entière ;
+///  - fin de combat, où le write-back ne persiste aucun volatile.
+///
+/// Au moment du KO, RIEN N'EST RETIRÉ : les volatiles restent attachés au
+/// combattant tombé jusqu'à son remplacement. Ce n'est pas une fuite parce
+/// qu'ils y sont inertes, et doublement : `tickEndTurnEffects` ne dispatche à un
+/// porteur KO que les effets de portée terrain, et treize des vingt-deux effets
+/// de fin de tour se gardent en plus eux-mêmes sur `isFainted`. Les deux
+/// maillons sont figés par `psdk_volatile_ko_cleanup_test`.
 library;
 
 /// Niveau de support d'une famille de volatile.
