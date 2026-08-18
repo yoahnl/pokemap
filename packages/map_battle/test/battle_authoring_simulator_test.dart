@@ -179,7 +179,80 @@ void main() {
       expect(
           result.trace.single.choice.kind, BattleAuthoringChoiceKind.capture);
     });
+    test('the write-back carries the persistent status and nothing volatile',
+        () {
+      // Critère d'acceptation de BETA-BAT-004 : 'le write-back sauvegarde
+      // uniquement l'état persistant'. Le statut majeur doit ressortir du
+      // combat, l'état volatile ne doit jamais y apparaître.
+      final result = const BattleAuthoringSimulator().simulate(
+        BattleAuthoringSimulationRequest(
+          setup: _statusedSetup(),
+          seed: 42,
+          choices: const <BattleAuthoringChoice>[
+            BattleAuthoringChoice.fight(moveIndex: 0),
+          ],
+        ),
+      );
+
+      final written = result.writeBack.playerLineup.single;
+      expect(written.statusId, 'brn');
+
+      final json = written.toJson();
+      expect(json.keys, containsAll(<String>['currentHp', 'statusId']));
+      // Le tri se lit sur la forme elle-même : rien de volatile n'a de place
+      // où se glisser, même si le combat s'est terminé avec un protect actif
+      // et une charge en attente.
+      for (final volatileKey in <String>[
+        'volatileState',
+        'statStages',
+        'toxicCounter',
+        'protectActive',
+        'pendingCharge',
+        'effects',
+      ]) {
+        expect(
+          json.containsKey(volatileKey),
+          isFalse,
+          reason: '$volatileKey is battle-only state',
+        );
+      }
+    });
+
+    test('a battler that ends without a status writes none', () {
+      final result = const BattleAuthoringSimulator().simulate(
+        BattleAuthoringSimulationRequest(
+          setup: _oneHitSetup(),
+          seed: 42,
+          choices: const <BattleAuthoringChoice>[
+            BattleAuthoringChoice.fight(moveIndex: 0),
+          ],
+        ),
+      );
+
+      final written = result.writeBack.playerLineup.single;
+      expect(written.statusId, isNull);
+      expect(written.toJson().containsKey('statusId'), isFalse);
+    });
+
   });
+}
+
+BattleSetup _statusedSetup() {
+  final base = _oneHitSetup();
+  return BattleSetup.pokeMapBetaV1ForTest(
+    playerPokemon: BattleCombatantData(
+      speciesId: base.playerPokemon.speciesId,
+      level: base.playerPokemon.level,
+      maxHp: base.playerPokemon.maxHp,
+      stats: base.playerPokemon.stats,
+      moves: base.playerPokemon.moves,
+      majorStatus: const BattleMajorStatusState.brn(),
+      volatileState: const BattleVolatileState(protectActive: true),
+    ),
+    enemyPokemon: base.enemyPokemon,
+    isTrainerBattle: false,
+    trainerId: null,
+  );
 }
 
 BattleSetup _oneHitSetup() {
