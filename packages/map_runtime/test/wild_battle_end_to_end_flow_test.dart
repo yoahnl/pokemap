@@ -8,7 +8,11 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
+// applyRuntimeDefeatRecoveryToGameState n'est volontairement pas exporte : c'est
+// un helper interne que PlayableMapGame appelle. Import cible plutot que
+// elargissement de la surface publique pour les besoins d'un test.
+import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart'
+    show applyRuntimeDefeatRecoveryToGameState;
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
@@ -101,6 +105,8 @@ void main() {
         turnCount++;
       }
       expect(session.state.outcome, isNotNull);
+      // ignore: avoid_print
+      print('XOUT type=${session.state.outcome!.type} turns=$turnCount hp=${session.state.outcome!.finalState.player.currentHp}');
       expect(session.state.outcome!.isVictory, isTrue);
 
       final updatedState = applyRuntimeBattleOutcomeToGameState(
@@ -140,6 +146,183 @@ void main() {
         isNot(contains('sparkitten')),
       );
       expect(updatedState.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('victory writes back hp and pp, not only hp', () async {
+      // Critère d'acceptation de BETA-BAT-008 : « write-back PV/PP/statut ».
+      // Le write-back porte bien les trois depuis toujours, mais seul le PV
+      // était vérifié : un round-trip qui perdrait les PP passait inaperçu.
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      // Pas de poison ici : mesuré, un sproutle empoisonné perd ce combat même
+      // à PV pleins (6 tours, 29 PV). Le statut est donc couvert par le scénario
+      // de défaite juste en dessous, qui est son terrain naturel.
+      final incoming = _playerState(vineWhipPp: 35, currentHp: 29);
+
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: const GameplayEncounter(
+          mapId: 'field_map',
+          zoneId: 'encounter_grass',
+          tableId: 'field_grass',
+          encounterKind: EncounterKind.walk,
+          speciesId: 'sparkitten',
+          level: 6,
+          minLevel: 6,
+          maxLevel: 6,
+          weight: 1,
+          playerPos: GridPos(x: 1, y: 0),
+        ),
+        world: GameplayWorldState.fromMap(
+          map,
+          project: manifest,
+          tileWidth: 16,
+          tileHeight: 16,
+        ),
+        createdAtEpochMs: 1,
+      );
+
+      final setup = await mapper.map(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        gameState: incoming,
+        request: request,
+      );
+
+      var session = createBattleSession(setup);
+      var turnCount = 0;
+      while (!session.state.isFinished && turnCount < 10) {
+        session = session.applyChoice(const PlayerBattleChoiceFight(0));
+        turnCount++;
+      }
+      expect(session.state.outcome, isNotNull);
+      expect(session.state.outcome!.isVictory, isTrue);
+
+      final kernelPlayer = session.state.outcome!.finalState.player;
+      final updated = applyRuntimeBattleOutcomeToGameState(
+        gameState: incoming,
+        context: RuntimeActiveBattleContext(
+          request: request,
+          playerPartyIndex: 0,
+        ),
+        outcome: session.state.outcome!,
+      );
+      final written = updated.party.members.first;
+
+      expect(written.currentHp, kernelPlayer.currentHp, reason: 'hp');
+      expect(
+        written.currentPpByMoveId?['vine_whip'],
+        lessThan(35),
+        reason: 'the moves used during the battle must cost PP',
+      );
+      expect(
+        written.currentPpByMoveId?['vine_whip'],
+        kernelPlayer.moves
+            .firstWhere((move) => move.id == 'vine_whip')
+            .currentPp,
+        reason: 'pp must equal what the kernel ended with',
+      );
+      expect(
+        written.statusId,
+        '',
+        reason: 'a healthy winner must not come back with an invented status',
+      );
+    });
+
+    test('a move with no PP left is refused instead of being spent', () async {
+      // Scénario « move sans PP ou action indisponible » du ticket. Trouvé en
+      // écrivant le test précédent : avec 8 PP le combat s'arrêtait sur un
+      // StateError plutôt que sur une issue, ce qui est le comportement voulu
+      // mais que rien ne vérifiait.
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final setup = await mapper.map(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        gameState: _playerState(vineWhipPp: 1, currentHp: 29),
+        request: _wildRequest(manifest, map),
+      );
+
+      var session = createBattleSession(setup);
+      session = session.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(session.state.isFinished, isFalse,
+          reason: 'the vector needs a battle still running');
+
+      // Le dernier PP est consommé : le moteur doit refuser, pas dépenser un PP
+      // négatif ni laisser passer un tour fantôme.
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceFight(0)),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        session.decisionRequest.allowedChoices,
+        isNot(contains(const PlayerBattleChoiceFight(0))),
+        reason: 'an unusable move must not be offered either',
+      );
+    });
+
+    test('a total party defeat writes back the run and its status', () async {
+      // Scénario « défaite de toute la Party » du ticket, et terrain naturel du
+      // write-back de statut : un sproutle empoisonné à 20 PV sur 29 perd ce
+      // combat en quatre tours, mesuré.
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final incoming = _playerState(statusId: 'psn', vineWhipPp: 6);
+      final request = _wildRequest(manifest, map);
+      final setup = await mapper.map(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        gameState: incoming,
+        request: request,
+      );
+
+      // Le statut doit d'abord ENTRER, sinon l'aller-retour serait vide et le
+      // test se féliciterait de rien.
+      expect(setup.playerPokemon.majorStatus?.id, BattleMajorStatusId.psn);
+
+      var session = createBattleSession(setup);
+      var turnCount = 0;
+      while (!session.state.isFinished && turnCount < 10) {
+        session = session.applyChoice(const PlayerBattleChoiceFight(0));
+        turnCount++;
+      }
+
+      expect(session.state.outcome!.isDefeat, isTrue);
+      expect(session.state.outcome!.finalState.player.currentHp, 0);
+
+      final updated = applyRuntimeBattleOutcomeToGameState(
+        gameState: incoming,
+        context: RuntimeActiveBattleContext(
+          request: request,
+          playerPartyIndex: 0,
+        ),
+        outcome: session.state.outcome!,
+      );
+      final written = updated.party.members.first;
+
+      // PREMIÈRE ÉTAPE : le write-back enregistre la défaite FIDÈLEMENT, zéro PV
+      // compris. J'avais d'abord supposé qu'il relevait lui-même le Pokémon ;
+      // il ne le fait pas, et c'est le bon comportement — inventer un soin ici
+      // effacerait la mémoire du combat.
+      expect(written.currentHp, 0);
+      expect(
+        written.currentPpByMoveId?['vine_whip'],
+        lessThan(6),
+        reason: 'the moves spent before falling still cost PP',
+      );
+      expect(written.statusId, 'psn', reason: 'the poison is written back too');
+
+      // SECONDE ÉTAPE, helper distinct et contrat explicite : puisque TOUTE la
+      // party est K.O., le slot qui a servi au combat est relevé à 1 PV. Sans
+      // cela le joueur reviendrait en overworld sans aucun combattant utilisable
+      // et le prochain handoff runtime vers battle serait impossible.
+      final recovered = applyRuntimeDefeatRecoveryToGameState(
+        gameState: updated,
+        playerPartyIndex: 0,
+      );
+
+      expect(recovered.party.members.first.currentHp, 1);
+      expect(
+        recovered.party.members.first.currentPpByMoveId?['vine_whip'],
+        written.currentPpByMoveId?['vine_whip'],
+        reason: 'reviving must not refill anything else',
+      );
     });
 
     test('run choice produces a real runaway outcome without trainer flags',
@@ -1575,26 +1758,54 @@ Future<void> _acknowledgePostBattleAndWaitForOverworld(
   );
 }
 
+WildBattleStartRequest _wildRequest(ProjectManifest manifest, MapData map) {
+  return buildBattleStartRequestFromEncounter(
+    encounter: const GameplayEncounter(
+      mapId: 'field_map',
+      zoneId: 'encounter_grass',
+      tableId: 'field_grass',
+      encounterKind: EncounterKind.walk,
+      speciesId: 'sparkitten',
+      level: 6,
+      minLevel: 6,
+      maxLevel: 6,
+      weight: 1,
+      playerPos: GridPos(x: 1, y: 0),
+    ),
+    world: GameplayWorldState.fromMap(
+      map,
+      project: manifest,
+      tileWidth: 16,
+      tileHeight: 16,
+    ),
+    createdAtEpochMs: 1,
+  );
+}
+
 GameState _playerState({
   Bag bag = const Bag(
     entries: <BagEntry>[
       BagEntry(itemId: 'poke-ball', quantity: 2),
     ],
   ),
+  String statusId = '',
+  int vineWhipPp = 35,
+  int currentHp = 20,
 }) {
   return GameState(
     saveId: 'wild-flow-save',
     bag: bag,
-    party: const PlayerParty(
+    party: PlayerParty(
       members: <PlayerPokemon>[
         PlayerPokemon(
           speciesId: 'sproutle',
           natureId: 'bold',
           abilityId: 'overgrow',
           level: 10,
-          knownMoveIds: <String>['vine_whip'],
-          currentPpByMoveId: <String, int>{'vine_whip': 35},
-          currentHp: 20,
+          knownMoveIds: const <String>['vine_whip'],
+          currentPpByMoveId: <String, int>{'vine_whip': vineWhipPp},
+          currentHp: currentHp,
+          statusId: statusId,
         ),
       ],
     ),
