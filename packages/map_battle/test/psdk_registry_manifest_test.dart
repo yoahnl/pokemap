@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:map_battle/src/data/generated/psdk_ability_effect_manifest.dart';
-import 'package:map_battle/src/data/generated/psdk_item_effect_manifest.dart';
 import 'package:map_battle/src/data/generated/psdk_move_registry_manifest.dart';
+import 'package:map_battle/src/data/generated/psdk_item_effect_manifest.dart';
 import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
-import 'package:map_battle/src/data/psdk_source_locator.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -92,7 +92,11 @@ void main() {
           reason: entry.battleEngineMethod,
         );
       }
-    });
+    },
+      skip: psdkSourcesAvailable()
+          ? null
+          : 'Sources PSDK absentes : ce cas lit un checkout hors depot.',
+    );
 
     test('effect manifests can distinguish ported from partial entries', () {
       expect(

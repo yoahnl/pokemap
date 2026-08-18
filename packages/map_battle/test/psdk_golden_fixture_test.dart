@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:map_battle/map_battle.dart';
 import 'package:map_battle/src/data/psdk_golden_fixture.dart';
-import 'package:map_battle/src/data/psdk_source_locator.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -57,26 +56,47 @@ void main() {
       expect(corpus.summary.auditDeltas.portedEffects, 1);
     });
 
-    test('keeps the corpus index-backed with real PSDK source paths', () async {
+    test('every fixture is listed in the committed index', () async {
+      // Moitié HERMÉTIQUE de l'ancienne vérification : l'index appartient au
+      // dépôt, donc ce cas doit tourner partout, CI comprise.
       final corpus = await PsdkGoldenFixtureCorpus.load(
         Directory('test/fixtures/psdk_golden'),
       );
       final index =
           File('test/fixtures/psdk_golden/_index.md').readAsStringSync();
-      final psdkBattleRoot = _psdkBattleRoot();
 
       for (final fixture in corpus.fixtures) {
-        final filename = '${fixture.scenarioId}.json';
-        expect(index, contains('`$filename`'), reason: filename);
-        for (final sourcePath in fixture.psdkSourcePaths) {
-          expect(
-            File.fromUri(psdkBattleRoot.uri.resolve(sourcePath)).existsSync(),
-            isTrue,
-            reason: '${fixture.scenarioId} -> $sourcePath',
-          );
-        }
+        expect(index, contains('`${fixture.scenarioId}.json`'),
+            reason: fixture.scenarioId);
       }
     });
+
+    test(
+      'every declared PSDK source path exists in the Ruby tree',
+      () async {
+        // Moitié NON HERMÉTIQUE : elle lit l'arborescence Ruby de PSDK, qui vit
+        // hors du dépôt. Précieuse en local — une preuve qui pointe dans le vide
+        // est pire qu'une preuve absente — mais elle ne peut pas conditionner la
+        // gate de BETA-BAT-008, dont l'exigence interdit tout checkout externe.
+        final corpus = await PsdkGoldenFixtureCorpus.load(
+          Directory('test/fixtures/psdk_golden'),
+        );
+        final psdkBattleRoot = _psdkBattleRoot();
+
+        for (final fixture in corpus.fixtures) {
+          for (final sourcePath in fixture.psdkSourcePaths) {
+            expect(
+              File.fromUri(psdkBattleRoot.uri.resolve(sourcePath)).existsSync(),
+              isTrue,
+              reason: '${fixture.scenarioId} -> $sourcePath',
+            );
+          }
+        }
+      },
+      skip: psdkSourcesAvailable()
+          ? null
+          : 'Sources PSDK absentes : cette vérification lit un checkout hors dépôt.',
+    );
 
     test('rejects a corpus fixture whose id does not match its filename',
         () async {

@@ -1,10 +1,9 @@
 import 'dart:io';
 
-import 'package:map_battle/src/data/generated/psdk_move_registry_manifest.dart';
 import 'package:map_battle/src/data/psdk_attack_coverage_report.dart';
 import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
 import 'package:map_battle/src/data/psdk_parity_gate.dart';
-import 'package:map_battle/src/data/psdk_source_locator.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -24,7 +23,11 @@ void main() {
       expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 330);
       expect(audit.effectMetrics.byStatus[PsdkPortStatus.ported], 482);
       expect(audit.effectMetrics.byStatus[PsdkPortStatus.partial] ?? 0, 0);
-    });
+    },
+      skip: psdkSourcesAvailable()
+          ? null
+          : 'Sources PSDK absentes : ce cas lit un checkout hors depot.',
+    );
 
     test('reports every threshold regression with actionable messages', () {
       final audit = PsdkFightParityAudit.fromEntries(

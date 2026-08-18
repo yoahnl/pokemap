@@ -215,6 +215,7 @@ export 'src/data/static_basic_move_registry.dart'
 export 'src/data/battle_parity_target.dart';
 export 'src/data/battle_volatile_catalog.dart';
 export 'src/data/psdk_damage_reference.dart';
+export 'src/data/psdk_source_locator.dart';
 export 'src/data/generated/psdk_move_registry_manifest.dart'
     show
         psdkMoveRegistryManifest,
