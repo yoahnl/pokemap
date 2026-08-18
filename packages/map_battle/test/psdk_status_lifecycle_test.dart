@@ -37,6 +37,81 @@ void main() {
       );
     });
 
+    test('a battler already carrying a major status refuses a second one', () {
+      // Premier critère d'acceptation de BETA-BAT-004 : un seul statut majeur
+      // à la fois. La règle existait dans le handler sans qu'aucun test ne la
+      // tienne, si bien qu'un empilement aurait pu passer inaperçu.
+      final context = BattleHandlerContext(
+        state: PsdkBattleState.fromSetup(_setup()),
+        rng: _rng(),
+        turn: 1,
+        user: psdkPlayerSlot,
+      );
+
+      final first = const BattleStatusChangeHandler().applyMajorStatus(
+        context: context,
+        target: psdkOpponentSlot,
+        moveId: 'thunder_wave',
+        status: PsdkBattleMajorStatus.paralysis,
+      );
+      expect(first.applied, isTrue);
+
+      final second = const BattleStatusChangeHandler().applyMajorStatus(
+        context: BattleHandlerContext(
+          state: first.state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: 'will_o_wisp',
+        status: PsdkBattleMajorStatus.burn,
+      );
+
+      expect(second.applied, isFalse);
+      expect(second.reason, 'already_statused');
+      expect(
+        second.state.battlerAt(psdkOpponentSlot).majorStatus,
+        PsdkBattleMajorStatus.paralysis,
+        reason: 'the refused status must not overwrite the one in place',
+      );
+      expect(
+        second.state.battlerAt(psdkOpponentSlot).effects.values,
+        isNot(contains('burn')),
+      );
+    });
+
+    test('the same status applied twice is refused too', () {
+      final context = BattleHandlerContext(
+        state: PsdkBattleState.fromSetup(_setup()),
+        rng: _rng(),
+        turn: 1,
+        user: psdkPlayerSlot,
+      );
+      final first = const BattleStatusChangeHandler().applyMajorStatus(
+        context: context,
+        target: psdkOpponentSlot,
+        moveId: 'toxic',
+        status: PsdkBattleMajorStatus.toxic,
+      );
+      final again = const BattleStatusChangeHandler().applyMajorStatus(
+        context: BattleHandlerContext(
+          state: first.state,
+          rng: _rng(),
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: 'toxic',
+        status: PsdkBattleMajorStatus.toxic,
+      );
+
+      // Réappliquer un poison grave ne doit pas relancer son compteur : c'est
+      // la porte d'entrée d'une boucle de dégâts qui s'aggrave sans fin.
+      expect(again.applied, isFalse);
+      expect(again.reason, 'already_statused');
+    });
+
     for (final terrainId in <PsdkBattleTerrainId>[
       PsdkBattleTerrainId.electricTerrain,
       PsdkBattleTerrainId.mistyTerrain,
