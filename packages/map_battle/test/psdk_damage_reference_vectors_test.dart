@@ -329,6 +329,68 @@ void main() {
       );
     });
 
+
+    test('an ability that boosts base power feeds the chain a bigger power',
+        () {
+      // Technician multiplie par 1.5 la puissance d'une capacite a 60 ou moins.
+      // Le talent agit sur la PUISSANCE DE BASE, en amont de la chaine : le
+      // vecteur de reference recoit donc 60 au lieu de 40, pas un multiplicateur
+      // supplementaire en fin de calcul.
+      final boosted = _run(
+        move: _move(id: 'tackle', type: 'normal', power: 40),
+        playerTypes: const PsdkBattleTypes(primary: 'water'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerAbilityId: 'technician',
+      );
+
+      expect(
+        boosted,
+        referenceDamage(
+          roll: _seededRoll,
+          level: 20,
+          power: 60,
+          offensiveStat: 50,
+          defensiveStat: 50,
+        ),
+      );
+      expect(boosted, isNot(_reference()));
+    });
+
+    test('a held item that boosts its type feeds the chain a bigger power', () {
+      // Charcoal multiplie par 1.2 la puissance des capacites Feu :
+      // floor(40 x 1.2) = 48.
+      final boosted = _run(
+        move: _move(id: 'ember', type: 'fire', power: 40),
+        playerTypes: const PsdkBattleTypes(primary: 'water'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerHeldItemId: 'charcoal',
+      );
+
+      expect(
+        boosted,
+        referenceDamage(
+          roll: _seededRoll,
+          level: 20,
+          power: 48,
+          offensiveStat: 50,
+          defensiveStat: 50,
+        ),
+      );
+      expect(boosted, isNot(_reference()));
+    });
+
+    test('a held item leaves a move of another type alone', () {
+      expect(
+        _run(
+          move: _move(id: 'tackle', type: 'normal', power: 40),
+          playerTypes: const PsdkBattleTypes(primary: 'water'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          playerHeldItemId: 'charcoal',
+        ),
+        _reference(),
+      );
+    });
+
     test('the roll band is 85..100 and both ends change the result', () {
       // Rolls minimum et maximum, deux critères du ticket. Les vérifier sur la
       // référence les rend lisibles sans dépendre d'une graine.
@@ -469,6 +531,8 @@ int _run({
   PsdkBattleStats? opponentStats,
   PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleWeatherId? weather,
+  String? playerAbilityId,
+  String? playerHeldItemId,
   int level = 20,
   BattleRngSeeds seeds = const BattleRngSeeds(
     moveDamage: 1,
@@ -484,6 +548,8 @@ int _run({
       speed: 100,
       stats: playerStats,
       majorStatus: playerMajorStatus,
+      abilityId: playerAbilityId,
+      heldItemId: playerHeldItemId,
       level: level,
       moves: <PsdkBattleMoveData>[move],
     ),
@@ -515,6 +581,8 @@ PsdkBattleCombatantSetup _combatant({
   required int speed,
   PsdkBattleStats? stats,
   PsdkBattleMajorStatus? majorStatus,
+  String? abilityId,
+  String? heldItemId,
   int level = 20,
   required List<PsdkBattleMoveData> moves,
 }) {
@@ -535,6 +603,8 @@ PsdkBattleCombatantSetup _combatant({
           speed: speed,
         ),
     majorStatus: majorStatus,
+    abilityId: abilityId,
+    heldItemId: heldItemId,
     moves: moves,
   );
 }
