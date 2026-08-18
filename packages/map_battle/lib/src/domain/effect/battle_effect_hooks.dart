@@ -123,6 +123,45 @@ final class BattleEffectDamagePreventionContext {
   final int damage;
 }
 
+/// Contexte de la punition d'un effet qui vient d'empêcher une capacité.
+///
+/// Hook dédié, ajouté le 2026-08-18 pour BETA-BAT-005. Les protections de PSDK
+/// jouent leur punition depuis `on_move_prevention_target`
+/// (`06 Effects/02 Move Effects/001 Protect.rb`, `play_protect_effect`). Côté
+/// Dart, `onMovePreventionTarget` ne renvoie qu'une raison d'échec et ne peut
+/// donc rien muter, si bien que la punition avait été greffée sur
+/// `onDamagePrevention` — un chemin jamais atteint, puisque la prévention
+/// arrête la capacité avant. Six variantes de protection étaient de ce fait
+/// fonctionnellement identiques à `protect`.
+///
+/// Plutôt que de changer le contrat de `onMovePreventionTarget`, que dix
+/// fichiers implémentent ou dispatchent (immunités de type, Soundproof, Safety
+/// Goggles, gardes de doubles), la prévention reste une décision pure et la
+/// mutation vit dans ce hook séparé, appelé sur l'effet qui a prévenu, et sur
+/// lui seul.
+final class BattleEffectMovePreventedContext {
+  const BattleEffectMovePreventedContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.user,
+    required this.target,
+    required this.move,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+
+  /// Auteur de la capacité empêchée, c'est-à-dire la cible de la punition.
+  final PsdkBattleSlotRef user;
+
+  /// Porteur de l'effet, protégé par lui.
+  final PsdkBattleSlotRef target;
+
+  final BattleMoveDefinition move;
+}
+
 final class BattleEffectDamagePreventionResult {
   const BattleEffectDamagePreventionResult({
     required this.state,

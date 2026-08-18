@@ -1,4 +1,7 @@
 import '../../move/battle_move_prevention.dart';
+import '../../rng/battle_rng_streams.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
@@ -59,6 +62,23 @@ final class ProtectEffect extends BattleEffect {
   }
 
   @override
+  BattleEffectPostDamageResult? onMovePrevented(
+    BattleEffectMovePreventedContext context,
+  ) {
+    // La prévention a déjà été décidée par onMovePreventionTarget ; ce hook
+    // n'est appelé que sur l'effet qui l'a décidée. Inutile de retester
+    // _blocks, mais le contact, lui, conditionne toujours la punition.
+    return _applyContactPunishment(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      attacker: context.user,
+      protector: context.target,
+      move: context.move,
+    );
+  }
+
+  @override
   BattleEffectDamagePreventionResult? onDamagePrevention(
     BattleEffectDamagePreventionContext context,
   ) {
@@ -72,7 +92,24 @@ final class ProtectEffect extends BattleEffect {
       return null;
     }
 
-    final punishment = _applyContactPunishment(context);
+    // DEUX ENTRÉES, JAMAIS LES DEUX POUR UNE MÊME CAPACITÉ.
+    //
+    // Ce chemin-ci sert aux dégâts appliqués directement à un combattant
+    // protégé, sans passer par l'étape de prévention du flux de capacité — ce
+    // que fait BattleDamageHandler.applyDamage. Le flux normal, lui, est arrêté
+    // en amont et punit désormais par onMovePrevented.
+    //
+    // Les deux ne peuvent pas se cumuler sur un même coup : si la prévention a
+    // arrêté la capacité, aucun dégât n'est appliqué et ce hook n'est pas
+    // appelé ; s'il est appelé, c'est que l'étape de prévention n'a pas eu lieu.
+    final punishment = _applyContactPunishment(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      attacker: context.user,
+      protector: context.target,
+      move: context.move,
+    );
 
     return BattleEffectDamagePreventionResult(
       state: punishment.state,
@@ -115,35 +152,37 @@ final class ProtectEffect extends BattleEffect {
     return true;
   }
 
-  BattleEffectPostDamageResult _applyContactPunishment(
-    BattleEffectDamagePreventionContext context,
-  ) {
-    if (!context.move.flags.contact ||
+  BattleEffectPostDamageResult _applyContactPunishment({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef attacker,
+    required PsdkBattleSlotRef protector,
+    required BattleMoveDefinition move,
+  }) {
+    if (!move.flags.contact ||
         _contactPunishment == _ProtectContactPunishment.none) {
-      return BattleEffectPostDamageResult(
-        state: context.state,
-        rng: context.rng,
-      );
+      return BattleEffectPostDamageResult(state: state, rng: rng);
     }
 
     final handlerContext = BattleHandlerContext(
-      state: context.state,
-      rng: context.rng,
-      turn: context.turn,
-      user: context.target,
+      state: state,
+      rng: rng,
+      turn: turn,
+      user: protector,
     );
     switch (_contactPunishment) {
       case _ProtectContactPunishment.none:
         return BattleEffectPostDamageResult(
-          state: context.state,
-          rng: context.rng,
+          state: state,
+          rng: rng,
         );
       case _ProtectContactPunishment.spikyDamage:
-        final user = context.state.battlerAt(context.user);
+        final user = state.battlerAt(attacker);
         final damage = (user.maxHp / 8).floor().clamp(1, user.maxHp).toInt();
         final result = const BattleDamageHandler().applyDamage(
           context: handlerContext,
-          target: context.user,
+          target: attacker,
           moveId: 'effect:$id',
           rawDamage: damage,
         );
@@ -155,10 +194,10 @@ final class ProtectEffect extends BattleEffect {
       case _ProtectContactPunishment.attackDown:
         final result = const BattleStatChangeHandler().applyStatChange(
           context: handlerContext,
-          target: context.user,
+          target: attacker,
           stat: 'attack',
           stages: -1,
-          move: context.move,
+          move: move,
         );
         return BattleEffectPostDamageResult(
           state: result.state,
@@ -168,10 +207,10 @@ final class ProtectEffect extends BattleEffect {
       case _ProtectContactPunishment.defenseDown:
         final result = const BattleStatChangeHandler().applyStatChange(
           context: handlerContext,
-          target: context.user,
+          target: attacker,
           stat: 'defense',
           stages: -2,
-          move: context.move,
+          move: move,
         );
         return BattleEffectPostDamageResult(
           state: result.state,
@@ -181,10 +220,10 @@ final class ProtectEffect extends BattleEffect {
       case _ProtectContactPunishment.speedDown:
         final result = const BattleStatChangeHandler().applyStatChange(
           context: handlerContext,
-          target: context.user,
+          target: attacker,
           stat: 'speed',
           stages: -1,
-          move: context.move,
+          move: move,
         );
         return BattleEffectPostDamageResult(
           state: result.state,
@@ -194,10 +233,10 @@ final class ProtectEffect extends BattleEffect {
       case _ProtectContactPunishment.poison:
         final result = const BattleStatusChangeHandler().applyMajorStatus(
           context: handlerContext,
-          target: context.user,
+          target: attacker,
           moveId: 'effect:$id',
           status: PsdkBattleMajorStatus.poison,
-          move: context.move,
+          move: move,
         );
         return BattleEffectPostDamageResult(
           state: result.state,
@@ -208,10 +247,10 @@ final class ProtectEffect extends BattleEffect {
       case _ProtectContactPunishment.burn:
         final result = const BattleStatusChangeHandler().applyMajorStatus(
           context: handlerContext,
-          target: context.user,
+          target: attacker,
           moveId: 'effect:$id',
           status: PsdkBattleMajorStatus.burn,
-          move: context.move,
+          move: move,
         );
         return BattleEffectPostDamageResult(
           state: result.state,

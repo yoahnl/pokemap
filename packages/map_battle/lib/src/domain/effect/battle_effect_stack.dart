@@ -441,6 +441,27 @@ final class BattleEffectObjectStack {
     return null;
   }
 
+  /// Effet dont [BattleEffect.onMovePreventionTarget] a prévenu la capacité.
+  ///
+  /// Jumeau de [targetMovePreventionReason], qui ne rend que la raison. Le
+  /// dispatch de [BattleEffect.onMovePrevented] a besoin de savoir QUEL effet a
+  /// prévenu, pour ne punir que par celui-là. Deux méthodes plutôt qu'une
+  /// signature changée : les appelants existants ne bougent pas.
+  BattleEffect? targetMovePreventingEffect(
+    BattleEffectMoveContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    for (final effect in _effects) {
+      if (where != null && !where(effect)) {
+        continue;
+      }
+      if (effect.onMovePreventionTarget(context) != null) {
+        return effect;
+      }
+    }
+    return null;
+  }
+
   BattleEffectUserMovePreventionResult? userMovePrevention(
     BattleEffectUserMovePreventionContext context, {
     bool Function(BattleEffect effect)? where,

@@ -54,6 +54,20 @@ abstract class BattleEffect {
     return null;
   }
 
+  /// Punition à appliquer quand CET effet vient d'empêcher une capacité.
+  ///
+  /// Appelé sur le seul effet dont [onMovePreventionTarget] a renvoyé une
+  /// raison, juste après que la capacité a été marquée en échec. C'est ici, et
+  /// nulle part ailleurs, que la famille protection punit le contact : la
+  /// décision de prévenir reste pure, la mutation est séparée.
+  ///
+  /// Voir [BattleEffectMovePreventedContext] pour l'historique de ce hook.
+  BattleEffectPostDamageResult? onMovePrevented(
+    BattleEffectMovePreventedContext context,
+  ) {
+    return null;
+  }
+
   BattleEffectDamagePreventionResult? onDamagePrevention(
     BattleEffectDamagePreventionContext context,
   ) {

@@ -199,19 +199,28 @@ final class BattleMoveProcedure {
     execution.timeline.addPsdkAll(remapped.events);
 
     _trace(execution, BattleMoveProcedureStage.immunity);
+    // Flux aléatoire courant : le précheck peut désormais le faire avancer,
+    // via la punition d'une prévention. Tout ce qui suit doit repartir de
+    // celui-là, sans quoi un tirage consommé serait rejoué.
+    var currentRng = accuracy.rng;
     final targetPrecheck = _targetPrecheck;
     if (targetPrecheck != null) {
       final precheck = targetPrecheck(execution, actualTargets);
       actualTargets = precheck.targets;
+      currentRng = precheck.rng ?? currentRng;
       if (actualTargets.isEmpty) {
         _notifyFailure(
           execution: execution,
-          rng: accuracy.rng,
+          rng: currentRng,
           reason: precheck.reason,
           targets: accuracy.hitTargets,
         );
         return BattleMoveProcedureResult.failed(
-          rng: accuracy.rng,
+          // L'état n'est transmis que si le précheck a réellement muté, ce que
+          // signale son flux aléatoire. Le passer systématiquement changerait
+          // le contrat des autres échecs, qui ne touchent à rien.
+          state: precheck.rng == null ? null : execution.actualState,
+          rng: currentRng,
           reason: precheck.reason,
         );
       }
@@ -222,7 +231,7 @@ final class BattleMoveProcedure {
     _hooks.notifyPostAccuracy(
       BattleMoveAccuracyHookContext(
         state: execution.actualState,
-        rng: accuracy.rng,
+        rng: currentRng,
         turn: execution.turn,
         user: execution.actualUser,
         requestedTarget: execution.requestedTarget,
@@ -234,7 +243,7 @@ final class BattleMoveProcedure {
     _hooks.notifyPostAccuracyMove(
       BattleMoveAccuracyHookContext(
         state: execution.actualState,
-        rng: accuracy.rng,
+        rng: currentRng,
         turn: execution.turn,
         user: execution.actualUser,
         requestedTarget: execution.requestedTarget,
@@ -255,7 +264,7 @@ final class BattleMoveProcedure {
 
     return BattleMoveProcedureResult.ready(
       state: execution.actualState,
-      rng: accuracy.rng,
+      rng: currentRng,
       targets: actualTargets,
     );
   }
@@ -306,10 +315,18 @@ final class BattleMoveTargetPrecheckResult {
   BattleMoveTargetPrecheckResult({
     required List<BattlePositionRef> targets,
     required this.reason,
+    this.rng,
   }) : targets = List<BattlePositionRef>.unmodifiable(targets);
 
   final List<BattlePositionRef> targets;
   final BattleMoveFailureReason reason;
+
+  /// Flux aléatoire après un précheck qui a muté l'état.
+  ///
+  /// Nul quand le précheck n'a rien consommé, ce qui est le cas de tous les
+  /// prechecks sauf celui des préventions punitives. Sans ce retour, un tirage
+  /// consommé par une punition serait perdu et décalerait tout le combat.
+  final BattleRngStreams? rng;
 }
 
 final class BattleMoveProcedureResult {

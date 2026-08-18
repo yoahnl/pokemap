@@ -1,83 +1,128 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:test/test.dart';
 
-/// Cycle de vie des variantes de protection, et l'écart qu'il a révélé.
+/// Cycle de vie des variantes de protection et de leur punition de contact.
 ///
-/// L'inventaire de BETA-BAT-005 a mesuré que trois membres de la famille
-/// protection étaient atteignables depuis `static_basic_move_registry` sans
-/// qu'aucun test ne les nomme : `obstruct`, `silk_trap` et `burning_bulwark`.
-/// En écrivant leur cycle de vie, un écart plus large est apparu.
+/// HISTORIQUE, parce qu'il explique la forme de ces tests. L'inventaire de
+/// BETA-BAT-005 a mesuré que trois membres de la famille protection étaient
+/// atteignables sans qu'aucun test ne les nomme. En écrivant leur cycle de vie,
+/// un écart est apparu : AUCUNE variante ne punissait le contact DANS LE FLUX
+/// RÉEL D'UNE CAPACITÉ. Six variantes s'y comportaient comme un simple
+/// `protect`.
 ///
-/// ÉCART CONSIGNÉ, 2026-08-18 : AUCUNE variante n'applique sa punition de
-/// contact, y compris les trois qui avaient déjà des tests. Six variantes sont
-/// donc fonctionnellement identiques à `protect`.
+/// La nuance compte, et un premier diagnostic de ma part était trop large. La
+/// punition FONCTIONNAIT déjà pour des dégâts appliqués directement à un
+/// combattant protégé, ce que `protection_redirection_effects_test` couvre en
+/// passant par `BattleDamageHandler.applyDamage`. Ce qui manquait, c'était la
+/// seule entrée que le jeu emprunte vraiment.
 ///
-///   spiky_shield     devrait infliger des dégâts     -> rien
-///   king_s_shield    devrait baisser l'Attaque       -> rien
-///   baneful_bunker   devrait empoisonner             -> rien
-///   obstruct         devrait baisser la Défense      -> rien
-///   silk_trap        devrait baisser la Vitesse      -> rien
-///   burning_bulwark  devrait brûler                  -> rien
+/// La cause, diagnostiquée avec le Ruby pour oracle : PSDK joue la punition
+/// depuis `on_move_prevention_target` (`001 Protect.rb`, `play_protect_effect`),
+/// alors que `_applyContactPunishment` n'était accrochée qu'à
+/// `onDamagePrevention` — jamais atteint quand la prévention arrête la capacité
+/// en amont.
 ///
-/// DIAGNOSTIC, avec le Ruby pour oracle. Dans PSDK
-/// (`06 Effects/02 Move Effects/001 Protect.rb`), la punition est jouée par
-/// `play_protect_effect`, appelée depuis `on_move_prevention_target`. Côté Dart,
-/// `_applyContactPunishment` est accrochée à `onDamagePrevention`, un chemin
-/// jamais atteint : `onMovePreventionTarget` renvoie `protected` et la capacité
-/// s'arrête là. Le timeline le montre, `move_declared` puis `move_failed`, sans
-/// aucun événement de dégât ni de statut.
+/// Corrigé par un hook mutateur dédié, `BattleEffect.onMovePrevented`, appelé
+/// sur le seul effet qui a prévenu. Le contrat de `onMovePreventionTarget` n'a
+/// pas bougé — dix fichiers l'implémentent ou le dispatchent — et la décision de
+/// prévenir reste pure. Les deux entrées coexistent sans se cumuler : voir le
+/// commentaire de `onDamagePrevention` dans `protect_effect.dart`.
 ///
-/// POURQUOI CE N'EST PAS CORRIGÉ ICI : `onMovePreventionTarget` ne renvoie
-/// qu'une `BattleMoveFailureReason?` et ne peut donc pas muter l'état. Déplacer
-/// la punition demande soit de changer le contrat de ce hook, soit d'en ajouter
-/// un nouveau — et dix fichiers l'implémentent ou le dispatchent, dont les
-/// immunités de type, Soundproof, Safety Goggles et les gardes de doubles.
-/// C'est un choix de conception, pas une ligne à déplacer.
-///
-/// Ces tests figent donc le comportement RÉEL. Le jour où la punition sera
-/// branchée, ils échoueront, et c'est exactement ce qu'on veut d'eux.
+/// Punitions de référence, lues dans le Ruby :
+///   spiky_shield     -> dégâts de maxHp / 8
+///   king_s_shield    -> Attaque -1
+///   baneful_bunker   -> poison
+///   obstruct         -> Défense -2
+///   silk_trap        -> Vitesse -1
+///   burning_bulwark  -> brûlure
+
+const int _maxHp = 400;
 
 void main() {
-  group('BETA-BAT-005 protection variants block but never punish', () {
-    for (final variant in <String>[
-      'obstruct',
-      'silk_trap',
-      'burning_bulwark',
-      'spiky_shield',
-      'king_s_shield',
-      'baneful_bunker',
-    ]) {
-      test('$variant blocks a contact hit', () {
+  group('BETA-BAT-005 protection variants block and punish contact', () {
+    test('spiky_shield deals a fraction of the attacker maximum HP', () {
+      final result = _protectThenContact(protectMoveId: 'spiky_shield');
+
+      expect(_damageToDefender(result), 0);
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).currentHp,
+        _maxHp - (_maxHp / 8).floor(),
+      );
+    });
+
+    test('king_s_shield drops the attacker Attack by one stage', () {
+      final attacker = _punished('king_s_shield');
+
+      expect(attacker.statStages.valueOf('attack'), -1);
+      expect(attacker.currentHp, _maxHp, reason: 'no damage, only a drop');
+    });
+
+    test('obstruct drops the attacker Defense by two stages', () {
+      // Deux crans, pas un : c'est ce qui distingue Obstruct de King's Shield.
+      final attacker = _punished('obstruct');
+
+      expect(attacker.statStages.valueOf('defense'), -2);
+      expect(attacker.statStages.valueOf('attack'), 0);
+      expect(attacker.statStages.valueOf('speed'), 0);
+    });
+
+    test('silk_trap drops the attacker Speed by one stage', () {
+      final attacker = _punished('silk_trap');
+
+      expect(attacker.statStages.valueOf('speed'), -1);
+      expect(attacker.statStages.valueOf('defense'), 0);
+    });
+
+    test('baneful_bunker poisons the attacker', () {
+      expect(
+        _punished('baneful_bunker').majorStatus,
+        PsdkBattleMajorStatus.poison,
+      );
+    });
+
+    test('burning_bulwark burns the attacker', () {
+      expect(
+        _punished('burning_bulwark').majorStatus,
+        PsdkBattleMajorStatus.burn,
+      );
+    });
+
+    test('every variant blocks the hit it punishes', () {
+      for (final variant in <String>[
+        'obstruct',
+        'silk_trap',
+        'burning_bulwark',
+        'spiky_shield',
+        'king_s_shield',
+        'baneful_bunker',
+      ]) {
         final result = _protectThenContact(protectMoveId: variant);
 
-        expect(
-          _damageToDefender(result),
-          0,
-          reason: 'the block is the half that works',
-        );
+        expect(_damageToDefender(result), 0, reason: variant);
         expect(
           result.timeline.psdkTimeline.events.map((event) => event.kind),
           contains('move_failed'),
+          reason: variant,
         );
-      });
+      }
+    });
 
-      test('$variant does not punish the contact it blocked', () {
-        // Écart consigné, voir l'en-tête. Le jour où la punition sera branchée,
-        // ce cas échouera : c'est sa raison d'être.
-        final result = _protectThenContact(protectMoveId: variant);
-        final attacker = result.state.battlerAt(psdkPlayerSlot);
+    test('plain protect blocks without punishing anything', () {
+      // Contre-exemple : sans lui, une punition appliquée à toute la famille
+      // passerait pour correcte.
+      final attacker = _punished('protect');
 
-        expect(attacker.currentHp, 400, reason: 'no spiky damage');
-        expect(attacker.majorStatus, isNull, reason: 'no burn, no poison');
-        expect(attacker.statStages.valueOf('attack'), 0);
-        expect(attacker.statStages.valueOf('defense'), 0);
-        expect(attacker.statStages.valueOf('speed'), 0);
-      });
-    }
+      expect(attacker.currentHp, _maxHp);
+      expect(attacker.majorStatus, isNull);
+      expect(attacker.statStages.valueOf('attack'), 0);
+      expect(attacker.statStages.valueOf('defense'), 0);
+      expect(attacker.statStages.valueOf('speed'), 0);
+    });
 
     test('a non-contact hit is blocked without any punishment', () {
-      // La punition est conditionnée au contact. Sans ce cas, un effet qui
-      // punirait tout le monde passerait pour correct.
+      // La punition est conditionnée au contact, comme le `made_contact?` du
+      // Ruby. Sans ce cas, un effet qui punirait tout le monde passerait pour
+      // correct.
       final result = _protectThenContact(
         protectMoveId: 'obstruct',
         contact: false,
@@ -107,7 +152,14 @@ void main() {
 }
 
 int _damageToDefender(BattleEngineTurnResult result) {
-  return 400 - result.state.battlerAt(psdkOpponentSlot).currentHp;
+  return _maxHp - result.state.battlerAt(psdkOpponentSlot).currentHp;
+}
+
+/// Attaquant après avoir frappé la protection : c'est lui qui encaisse.
+PsdkBattleCombatant _punished(String protectMoveId) {
+  return _protectThenContact(protectMoveId: protectMoveId)
+      .state
+      .battlerAt(psdkPlayerSlot);
 }
 
 BattleEngine _engine({required String protectMoveId, bool contact = true}) {
@@ -141,8 +193,8 @@ PsdkBattleCombatantSetup _attacker({required bool contact}) {
     speciesId: 'attacker',
     displayName: 'Attacker',
     level: 20,
-    maxHp: 400,
-    currentHp: 400,
+    maxHp: _maxHp,
+    currentHp: _maxHp,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: const PsdkBattleStats(
       attack: 80,
@@ -178,8 +230,8 @@ PsdkBattleCombatantSetup _protector(String protectMoveId) {
     speciesId: 'protector',
     displayName: 'Protector',
     level: 20,
-    maxHp: 400,
-    currentHp: 400,
+    maxHp: _maxHp,
+    currentHp: _maxHp,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: const PsdkBattleStats(
       attack: 50,

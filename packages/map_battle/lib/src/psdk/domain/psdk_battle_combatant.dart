@@ -491,6 +491,19 @@ class PsdkBattleEffectStack {
     return _stack.targetMovePreventionReason(context, where: where);
   }
 
+  /// Voir [BattleEffectStack.targetMovePreventingEffect].
+  BattleEffect? targetMovePreventingEffect({
+    required BattlePositionRef user,
+    required BattlePositionRef target,
+    required BattleMoveDefinition move,
+    bool Function(BattleEffect effect)? where,
+  }) {
+    return _stack.targetMovePreventingEffect(
+      BattleEffectMoveContext(user: user, target: target, move: move),
+      where: where,
+    );
+  }
+
   BattleEffectUserMovePreventionResult? userMovePrevention(
     BattleEffectUserMovePreventionContext context, {
     bool Function(BattleEffect effect)? where,

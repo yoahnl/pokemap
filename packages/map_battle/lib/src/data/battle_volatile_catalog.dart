@@ -36,11 +36,11 @@ enum BattleVolatileSupport {
 
   /// Exercée par un test qui CONSIGNE UN ÉCART connu.
   ///
-  /// Ce niveau existe pour ne pas avoir à choisir entre mentir et ne rien dire.
-  /// Les variantes de protection en sont l'exemple : elles bloquent bien le
-  /// coup, mais leur punition de contact ne se déclenche jamais. Les appeler
-  /// `certified` aurait promis un comportement absent, les laisser
-  /// `implemented` aurait effacé la mesure.
+  /// Ce niveau existe pour ne pas avoir à choisir entre mentir et ne rien dire
+  /// quand une famille marche à moitié. Il n'a aucun membre aujourd'hui : les
+  /// six variantes de protection l'ont porté le temps qu'un hook mutateur
+  /// dédié soit ajouté pour leur punition de contact, puis sont passées en
+  /// `certified`. Le garder documente la distinction pour la prochaine fois.
   partial,
 
   /// Atteignable, mais aucun test ne la nomme.
@@ -87,9 +87,8 @@ const battleVolatileCatalog = <BattleVolatileFamily>[
   ),
   BattleVolatileFamily(
     id: 'baneful_bunker',
-    support: BattleVolatileSupport.partial,
-    note:
-        'Famille protection. Meme ecart : le poison au contact ne se declenche pas.',
+    support: BattleVolatileSupport.certified,
+    note: 'Famille protection. Punition de contact verifiee : poison.',
   ),
   BattleVolatileFamily(
     id: 'baton_pass',
@@ -115,9 +114,8 @@ const battleVolatileCatalog = <BattleVolatileFamily>[
   ),
   BattleVolatileFamily(
     id: 'burning_bulwark',
-    support: BattleVolatileSupport.partial,
-    note:
-        'Famille protection, atteignable depuis static_basic_move_registry, sans aucune preuve de cycle de vie.',
+    support: BattleVolatileSupport.certified,
+    note: 'Famille protection. Punition de contact verifiee : brulure.',
   ),
   BattleVolatileFamily(
     id: 'cant_switch',
@@ -213,9 +211,8 @@ const battleVolatileCatalog = <BattleVolatileFamily>[
   ),
   BattleVolatileFamily(
     id: 'king_s_shield',
-    support: BattleVolatileSupport.partial,
-    note:
-        'Famille protection. Meme ecart : la baisse d Attaque au contact ne se declenche pas.',
+    support: BattleVolatileSupport.certified,
+    note: 'Famille protection. Punition de contact verifiee : Attaque -1.',
   ),
   BattleVolatileFamily(
     id: 'leech_seed',
@@ -240,9 +237,8 @@ const battleVolatileCatalog = <BattleVolatileFamily>[
   ),
   BattleVolatileFamily(
     id: 'obstruct',
-    support: BattleVolatileSupport.partial,
-    note:
-        'Famille protection, atteignable depuis static_basic_move_registry, sans aucune preuve de cycle de vie.',
+    support: BattleVolatileSupport.certified,
+    note: 'Famille protection. Punition de contact verifiee : Defense -2.',
   ),
   BattleVolatileFamily(
     id: 'octolock',
@@ -266,7 +262,7 @@ const battleVolatileCatalog = <BattleVolatileFamily>[
     id: 'protect',
     support: BattleVolatileSupport.certified,
     note:
-        'Famille protection, minimum exige par le ticket. Identifiant declare en parametre par defaut.',
+        'Famille protection, minimum exige par le ticket. Bloque sans punir, contrairement a ses variantes.',
   ),
   BattleVolatileFamily(
     id: 'rollout',
@@ -290,9 +286,8 @@ const battleVolatileCatalog = <BattleVolatileFamily>[
   ),
   BattleVolatileFamily(
     id: 'silk_trap',
-    support: BattleVolatileSupport.partial,
-    note:
-        'Famille protection, atteignable depuis static_basic_move_registry, sans aucune preuve de cycle de vie.',
+    support: BattleVolatileSupport.certified,
+    note: 'Famille protection. Punition de contact verifiee : Vitesse -1.',
   ),
   BattleVolatileFamily(
     id: 'smack_down',
@@ -308,9 +303,9 @@ const battleVolatileCatalog = <BattleVolatileFamily>[
   ),
   BattleVolatileFamily(
     id: 'spiky_shield',
-    support: BattleVolatileSupport.partial,
+    support: BattleVolatileSupport.certified,
     note:
-        'Famille protection. Meme ecart que ses variantes : la punition de contact ne se declenche pas.',
+        'Famille protection. Punition de contact verifiee : degats de maxHp / 8.',
   ),
   BattleVolatileFamily(
     id: 'stockpile',

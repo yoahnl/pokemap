@@ -1,3 +1,4 @@
+import '../rng/battle_rng_streams.dart';
 import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
@@ -38,6 +39,7 @@ final class BattleMoveImmunityResolver {
       {bool ignoreProtect = false}) {
     final unblockedTargets = <BattlePositionRef>[];
     var failureReason = BattleMoveFailureReason.immunity;
+    BattleRngStreams? punishedRng;
     final shouldCheckTypeImmunity =
         execution.move.category != PsdkBattleMoveCategory.status &&
             execution.move.power > 0;
@@ -101,6 +103,18 @@ final class BattleMoveImmunityResolver {
             reason: effectPrevention.jsonName,
           ),
         );
+        // La prévention est décidée ; l'effet qui l'a décidée peut maintenant
+        // punir. C'est l'ordre de PSDK, où play_protect_effect est joué depuis
+        // on_move_prevention_target.
+        final preventingEffect = _targetPreventingEffect(execution, targetRef);
+        if (preventingEffect != null) {
+          punishedRng = _punishPrevention(
+            execution: execution,
+            effect: preventingEffect,
+            targetRef: targetRef,
+            rng: punishedRng ?? execution.context.rng,
+          );
+        }
         continue;
       }
 
@@ -110,6 +124,7 @@ final class BattleMoveImmunityResolver {
     return BattleMoveTargetPrecheckResult(
       targets: unblockedTargets,
       reason: failureReason,
+      rng: punishedRng,
     );
   }
 
@@ -208,6 +223,87 @@ final class BattleMoveImmunityResolver {
           state: state,
           slot: targetSlot,
         );
+  }
+
+  /// Applique la punition de l'effet qui vient de prévenir, s'il en a une.
+  ///
+  /// L'état muté est écrit dans `execution.actualState`, les événements partent
+  /// au timeline, et le flux aléatoire est RENDU À L'APPELANT plutôt que jeté :
+  /// une punition qui consommerait un tirage sans que la procédure le reprenne
+  /// désynchroniserait tout le reste du combat.
+  BattleRngStreams _punishPrevention({
+    required BattleMoveProcedureExecution execution,
+    required BattleEffect effect,
+    required BattlePositionRef targetRef,
+    required BattleRngStreams rng,
+  }) {
+    final punishment = effect.onMovePrevented(
+      BattleEffectMovePreventedContext(
+        state: execution.actualState,
+        rng: rng,
+        turn: execution.turn,
+        user: execution.psdkActualUser,
+        target: _psdkSlotFromBattlePosition(targetRef),
+        move: execution.move,
+      ),
+    );
+    if (punishment == null) {
+      return rng;
+    }
+    execution.actualState = punishment.state;
+    execution.timeline.addPsdkAll(punishment.events);
+    return punishment.rng;
+  }
+
+  BattleEffect? _targetPreventingEffect(
+    BattleMoveProcedureExecution execution,
+    BattlePositionRef targetRef,
+  ) {
+    final targetSlot = _psdkSlotFromBattlePosition(targetRef);
+    final target = execution.actualState.battlerAt(targetSlot);
+    final abilityBypassed = _userBypassesAbilityPrevention(execution);
+    final local = target.effects.targetMovePreventingEffect(
+      user: execution.actualUser,
+      target: targetRef,
+      move: execution.move,
+      where: (effect) => _targetPreventionHookIsActive(
+        state: execution.actualState,
+        ownerSlot: targetSlot,
+        owner: target,
+        effect: effect,
+        abilityBypassed: abilityBypassed,
+      ),
+    );
+    if (local != null) {
+      return local;
+    }
+    final context = BattleEffectMoveContext(
+      user: execution.actualUser,
+      target: targetRef,
+      move: execution.move,
+    );
+    for (final entry in execution.actualState.combatants.entries) {
+      final owner = entry.value;
+      for (final effect in owner.effects.effects) {
+        final scope = effect.scope;
+        if (scope is! BankBattleEffectScope || scope.bank != targetRef.bank) {
+          continue;
+        }
+        if (!_targetPreventionHookIsActive(
+          state: execution.actualState,
+          ownerSlot: entry.key,
+          owner: owner,
+          effect: effect,
+          abilityBypassed: abilityBypassed,
+        )) {
+          continue;
+        }
+        if (effect.onMovePreventionTarget(context) != null) {
+          return effect;
+        }
+      }
+    }
+    return null;
   }
 
   BattleMoveFailureReason? _targetEffectPreventionReason(
