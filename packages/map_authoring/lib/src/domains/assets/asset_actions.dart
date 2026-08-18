@@ -248,7 +248,14 @@ final class AssetActions {
     required ContentArtifactRef artifact,
   }) {
     final before = catalog.require(assetId);
-    final after = before.copyWith(artifact: artifact);
+    final contentAddressedLogicalPath =
+        before.logicalPath == assetBlobStorageKey(before.artifact);
+    final after = before.copyWith(
+      artifact: artifact,
+      logicalPath: contentAddressedLogicalPath
+          ? assetBlobStorageKey(artifact)
+          : before.logicalPath,
+    );
     if (before.artifact == artifact) {
       throw AssetActionException(
         'asset.no_change',
@@ -378,6 +385,71 @@ AuthoringMutationDraft _draft(
       after: result.after?.toJson(),
     ),
   );
+  final beforeRecord = result.before;
+  final afterRecord = result.after;
+  final beforeLogicalBytes = beforeRecord == null
+      ? null
+      : snapshot.findResourceBytes(
+          assetBlobResourceIdentity(beforeRecord.artifact.digest),
+        );
+  switch (result.operation) {
+    case 'import':
+      _addLogicalAssetChange(
+        changes: changes,
+        diff: diff,
+        record: afterRecord!,
+        beforeBytes: null,
+        afterBytes: addedBytes!,
+        beforeArtifact: null,
+        afterArtifact: afterRecord.artifact,
+        operation: AuthoringDiffOperation.add,
+      );
+    case 'replace':
+      _addLogicalAssetChange(
+        changes: changes,
+        diff: diff,
+        record: afterRecord!,
+        beforeBytes: beforeLogicalBytes,
+        afterBytes: addedBytes!,
+        beforeArtifact: beforeRecord!.artifact,
+        afterArtifact: afterRecord.artifact,
+        operation: AuthoringDiffOperation.replace,
+      );
+    case 'move':
+      _addLogicalAssetChange(
+        changes: changes,
+        diff: diff,
+        record: beforeRecord!,
+        resourceId: '${beforeRecord.id}:source',
+        beforeBytes: beforeLogicalBytes,
+        afterBytes: null,
+        beforeArtifact: beforeRecord.artifact,
+        afterArtifact: null,
+        operation: AuthoringDiffOperation.remove,
+      );
+      _addLogicalAssetChange(
+        changes: changes,
+        diff: diff,
+        record: afterRecord!,
+        resourceId: '${afterRecord.id}:target',
+        beforeBytes: null,
+        afterBytes: beforeLogicalBytes,
+        beforeArtifact: null,
+        afterArtifact: afterRecord.artifact,
+        operation: AuthoringDiffOperation.add,
+      );
+    case 'delete':
+      _addLogicalAssetChange(
+        changes: changes,
+        diff: diff,
+        record: beforeRecord!,
+        beforeBytes: beforeLogicalBytes,
+        afterBytes: null,
+        beforeArtifact: beforeRecord.artifact,
+        afterArtifact: null,
+        operation: AuthoringDiffOperation.remove,
+      );
+  }
   if (addedArtifact != null &&
       !state.catalog.records.any(
         (record) => record.artifact.digest == addedArtifact.digest,
@@ -452,6 +524,41 @@ AuthoringMutationDraft _draft(
               sha256: addedArtifact.digest,
             ),
           ],
+  );
+}
+
+void _addLogicalAssetChange({
+  required List<AuthoringResourceChange> changes,
+  required List<AuthoringDiffEntry> diff,
+  required AssetRecord record,
+  required List<int>? beforeBytes,
+  required List<int>? afterBytes,
+  required ContentArtifactRef? beforeArtifact,
+  required ContentArtifactRef? afterArtifact,
+  required AuthoringDiffOperation operation,
+  String? resourceId,
+}) {
+  if (record.logicalPath == assetBlobStorageKey(record.artifact)) return;
+  final resource = AuthoringResourceRef(
+    kind: 'asset',
+    id: resourceId ?? record.id,
+  );
+  changes.add(
+    AuthoringResourceChange(
+      resource: resource,
+      storageKey: record.logicalPath,
+      beforeBytes: beforeBytes,
+      afterBytes: afterBytes,
+    ),
+  );
+  diff.add(
+    AuthoringDiffEntry(
+      operation: operation,
+      resource: resource,
+      path: '/',
+      before: beforeArtifact?.toJson(),
+      after: afterArtifact?.toJson(),
+    ),
   );
 }
 
@@ -577,7 +684,7 @@ AuthoringActionDescriptor _descriptor(
   String id,
   String summary,
   AuthoringRiskLevel riskLevel, {
-  List<String> resourceKinds = const ['assetCatalog', 'assetBlob'],
+  List<String> resourceKinds = const ['assetCatalog', 'assetBlob', 'asset'],
 }) {
   return AuthoringActionDescriptor(
     id: id,

@@ -98,8 +98,15 @@ void main() {
       final blob = File(
         '${directory.path}/${assetBlobStorageKey(staged.reference)}',
       );
+      final logicalAsset = File(
+        '${directory.path}/images/dialogue/portrait.txt',
+      );
       expect(
           await blob.readAsBytes(), utf8.encode('transactional asset bytes'));
+      expect(
+        await logicalAsset.readAsBytes(),
+        utf8.encode('transactional asset bytes'),
+      );
       final assetPage = const ProjectQueryService().query(
         await snapshotLoader.load(opened.projectHandle),
         AuthoringQueryRequest(
@@ -116,6 +123,101 @@ void main() {
         staged.reference.handle,
       );
 
+      final replacement = await artifacts.put(
+        utf8.encode('replacement asset bytes'),
+        declaredMediaType: 'text/plain',
+      );
+      final replacePlan = await api.plan(
+        opened.projectHandle,
+        AuthoringRequest(
+          requestId: 'req-asset-replace',
+          actionId: 'asset.replace',
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: {
+            'artifactHandle': replacement.reference.handle,
+            'assetId': 'dialogue-portrait',
+          },
+          expectedRevision: importedRevision,
+          idempotencyKey: 'idem-asset-replace',
+        ),
+      );
+      final replaceResult = await api.apply(
+        opened.projectHandle,
+        planId: replacePlan['planId']! as String,
+        operationId: 'op-asset-replace',
+      );
+      expect(
+        await logicalAsset.readAsBytes(),
+        utf8.encode('replacement asset bytes'),
+      );
+      final replacementBlob = File(
+        '${directory.path}/${assetBlobStorageKey(replacement.reference)}',
+      );
+      expect(
+        await replacementBlob.readAsBytes(),
+        utf8.encode('replacement asset bytes'),
+      );
+      final replaceReceipt = Map<String, Object?>.from(
+        replaceResult['receipt']! as Map,
+      );
+      await api.undo(
+        opened.projectHandle,
+        entryId: replaceReceipt['receiptId']! as String,
+        idempotencyKey: 'idem-asset-replace-undo',
+      );
+      expect(
+        await logicalAsset.readAsBytes(),
+        utf8.encode('transactional asset bytes'),
+      );
+      expect(await replacementBlob.exists(), isFalse);
+      final replacementUndoneRevision =
+          (await snapshotLoader.load(opened.projectHandle)).revision;
+
+      final movedLogicalAsset = File(
+        '${directory.path}/images/dialogue/portrait-moved.txt',
+      );
+      final movePlan = await api.plan(
+        opened.projectHandle,
+        AuthoringRequest(
+          requestId: 'req-asset-move',
+          actionId: 'asset.move',
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: const {
+            'assetId': 'dialogue-portrait',
+            'logicalPath': 'images/dialogue/portrait-moved.txt',
+          },
+          expectedRevision: replacementUndoneRevision,
+          idempotencyKey: 'idem-asset-move',
+        ),
+      );
+      final moveResult = await api.apply(
+        opened.projectHandle,
+        planId: movePlan['planId']! as String,
+        operationId: 'op-asset-move',
+      );
+      expect(await logicalAsset.exists(), isFalse);
+      expect(
+        await movedLogicalAsset.readAsBytes(),
+        utf8.encode('transactional asset bytes'),
+      );
+      final moveReceipt = Map<String, Object?>.from(
+        moveResult['receipt']! as Map,
+      );
+      await api.undo(
+        opened.projectHandle,
+        entryId: moveReceipt['receiptId']! as String,
+        idempotencyKey: 'idem-asset-move-undo',
+      );
+      expect(
+        await logicalAsset.readAsBytes(),
+        utf8.encode('transactional asset bytes'),
+      );
+      expect(await movedLogicalAsset.exists(), isFalse);
+      final restoredRevision =
+          (await snapshotLoader.load(opened.projectHandle)).revision;
+
       final deletePlan = await api.plan(
         opened.projectHandle,
         AuthoringRequest(
@@ -127,7 +229,7 @@ void main() {
             'assetId': 'dialogue-portrait',
             'acknowledgedUsages': ['legacy-import'],
           },
-          expectedRevision: importedRevision,
+          expectedRevision: restoredRevision,
           idempotencyKey: 'idem-asset-delete',
         ),
       );
@@ -142,6 +244,7 @@ void main() {
         confirmationToken: confirmation['confirmationToken']! as String,
       );
       expect(await blob.exists(), isFalse);
+      expect(await logicalAsset.exists(), isFalse);
       final receipt = Map<String, Object?>.from(
         deleteResult['receipt']! as Map,
       );
@@ -153,6 +256,10 @@ void main() {
       );
       expect(
           await blob.readAsBytes(), utf8.encode('transactional asset bytes'));
+      expect(
+        await logicalAsset.readAsBytes(),
+        utf8.encode('transactional asset bytes'),
+      );
     });
 
     test('canonical raw replacement is revision-safe and undoable', () async {
@@ -264,6 +371,30 @@ void main() {
       expect(catalog.findByLogicalPath('images/hero.png'), same(expected));
       expect(catalog.findByLogicalPath('images/HERO.png'), isNull);
       expect(catalog.findByLogicalPath('images/missing.png'), isNull);
+    });
+
+    test('replacement advances a content-addressed logical path', () {
+      final before = ContentArtifactRef.fromBytes(
+        utf8.encode('before'),
+        mediaType: 'image/png',
+      );
+      final after = ContentArtifactRef.fromBytes(
+        utf8.encode('after'),
+        mediaType: 'image/png',
+      );
+      final record = AssetRecord(
+        id: 'smart-tile-source',
+        logicalPath: assetBlobStorageKey(before),
+        artifact: before,
+      );
+
+      final result = const AssetActions().replace(
+        AssetCatalog(records: [record]),
+        assetId: record.id,
+        artifact: after,
+      );
+
+      expect(result.after!.logicalPath, assetBlobStorageKey(after));
     });
 
     test('delete planning refuses references and exposes their impact', () {

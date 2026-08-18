@@ -349,7 +349,11 @@ void main() {
       );
 
       expect(draft.preview['deduplicated'], isTrue);
-      expect(draft.changeSet.changes, hasLength(1));
+      expect(draft.changeSet.changes, hasLength(2));
+      expect(
+        draft.changeSet.changes.map((change) => change.resource.kind).toSet(),
+        <String>{'assetCatalog', 'asset'},
+      );
     });
 
     test('replacement deletes an orphaned previous blob transactionally',
@@ -391,7 +395,7 @@ void main() {
       expect(draft.preview['width'], 128);
       expect(draft.preview['height'], 96);
       expect(draft.preview['orphanedBlobDeleted'], isTrue);
-      expect(draft.changeSet.changes, hasLength(3));
+      expect(draft.changeSet.changes, hasLength(4));
       final deleted = draft.changeSet.changes.singleWhere(
         (change) => change.afterBytes == null,
       );
@@ -439,7 +443,7 @@ void main() {
       );
 
       expect(draft.preview['orphanedBlobDeleted'], isFalse);
-      expect(draft.changeSet.changes, hasLength(2));
+      expect(draft.changeSet.changes, hasLength(3));
       expect(
           draft.changeSet.changes.every((change) => change.afterBytes != null),
           isTrue);

@@ -5304,10 +5304,10 @@ test("MCP completes a cold-start 34-element visual import", async () => {
   const fixture = await mutationFixture({ withLegacyAtlasGap: true });
   try {
     const sourcePath = join(fixture.root, "source.png");
-    await writeFile(
-      sourcePath,
-      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]),
-    );
+    const sourceBytes = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00,
+    ]);
+    await writeFile(sourcePath, sourceBytes);
     const staged = await toolData(fixture.client, "pokemap_artifact_stage", {
       sourcePath,
       declaredMediaType: "image/png",
@@ -5365,6 +5365,10 @@ test("MCP completes a cold-start 34-element visual import", async () => {
       },
       sequence: "asset",
     });
+    assert.deepEqual(
+      await readFile(join(fixture.root, "images/m02.png")),
+      sourceBytes,
+    );
     revision = await applyMutation(fixture.client, {
       projectHandle,
       workspaceHandle,
