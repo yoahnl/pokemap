@@ -650,6 +650,11 @@ String? _switchPreventionReason({
 PsdkBattleCombatant _switchOutSnapshot(PsdkBattleCombatant active) {
   return active.copyWith(
     statStages: PsdkBattleStatStages.neutral(),
+    // Le compteur de poison grave meurt avec le passage sur le banc. PSDK le
+    // loge dans l'effet de statut, que cette pile vide emporte ; ici il vit sur
+    // le combattant, donc il faut le remettre à zéro explicitement. Sans cela,
+    // un Pokémon qui sortait à 4/16 revenait à 4/16.
+    toxicCounter: 0,
     effects: const PsdkBattleEffectStack.empty(),
     switching: false,
     hasJustShifted: false,

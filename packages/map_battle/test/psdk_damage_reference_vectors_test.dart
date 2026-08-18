@@ -429,10 +429,11 @@ void main() {
       // le roll. PSDK : floor(11 x 0.5) = 5, puis 5 x 2 = 10. Le moteur :
       // floor(11 x 1) = 11.
       //
-      // Le test n'arbitre pas, il chiffre. La convention combinée est celle du
-      // chaînage de la série principale Gen 5+, et la cible de parité est
-      // déclarée hybride ; ce qui serait fautif, c'est que l'écart dérive sans
-      // que personne ne le voie.
+      // ARBITRÉ PAR YOAHN LE 2026-08-18 : on garde la convention combinée,
+      // celle du chaînage de la série principale Gen 5+. L'écart est déclaré
+      // dans le résumé de l'axe damage de BattleParityTarget, qui cite ce
+      // fichier en preuve. Le test ne juge donc plus, il empêche la variante
+      // de dériver en silence.
       const level = 20;
       const power = 40;
       const offensiveStat = 50;

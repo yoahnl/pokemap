@@ -84,11 +84,21 @@ final class BattleParityTarget {
         ruleId: 'mainline-gen9-damage',
         summary:
             'Modern level/power/stat damage pipeline with 85–100 roll, STAB, '
-            'type effectiveness, burn, weather, terrain, items and abilities.',
+            'type effectiveness, burn, weather, terrain, items and abilities. '
+            'Every truncation of the chain is pinned to an exact value by '
+            'reference vectors transcribed from the PSDK Ruby formula. One '
+            'deliberate departure from PSDK, decided rather than inherited: '
+            'the two type multipliers are combined and truncated once, the '
+            'mainline Gen 5+ chaining, where PSDK truncates after each type. '
+            'They differ whenever the pre-type value is odd — on a Water/Grass '
+            'target hit by Fire, PSDK yields 10 where this engine yields 11. '
+            'Partial rather than intentionalVariant because this axis covers '
+            'the whole pipeline and only this one step is a chosen variance.',
         alignment: BattleParityAlignment.partial,
         evidence: <String>[
           'lib/src/domain/move/battle_move_damage_calculator.dart',
           'test/psdk_damage_formula_parity_test.dart',
+          'test/psdk_damage_reference_vectors_test.dart',
         ],
       ),
       BattleParityAxisTarget(
