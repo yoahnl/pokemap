@@ -253,9 +253,25 @@ class PsdkGoldenCombatant {
     required this.types,
     required this.stats,
     required List<PsdkBattleMoveData> moves,
+    this.abilityId,
+    this.heldItemId,
+    this.majorStatus,
+    this.statStages,
   }) : moves = List<PsdkBattleMoveData>.unmodifiable(moves);
 
   factory PsdkGoldenCombatant.fromJson(Map<String, Object?> json) {
+    final statStages = json['statStages'] == null
+        ? null
+        : PsdkBattleStatStages(
+            values: _asMap(json['statStages'], 'statStages').map(
+              (stat, value) => MapEntry(
+                stat,
+                value is int
+                    ? value
+                    : throw FormatException('statStages.$stat must be an int'),
+              ),
+            ),
+          );
     return PsdkGoldenCombatant(
       id: _requiredString(json, 'id'),
       speciesId: _requiredString(json, 'speciesId'),
@@ -268,6 +284,16 @@ class PsdkGoldenCombatant {
       moves: _requiredList(json, 'moves')
           .map((value) => _moveFromJson(_asMap(value, 'moves[]')))
           .toList(growable: false),
+      abilityId: _optionalString(json, 'ability'),
+      heldItemId: _optionalString(json, 'heldItem'),
+      majorStatus: json['majorStatus'] == null
+          ? null
+          : _requiredEnum(
+              PsdkBattleMajorStatus.values,
+              _requiredString(json, 'majorStatus'),
+              'majorStatus',
+            ),
+      statStages: statStages,
     );
   }
 
@@ -281,6 +307,16 @@ class PsdkGoldenCombatant {
   final PsdkBattleStats stats;
   final List<PsdkBattleMoveData> moves;
 
+  /// Talent, objet tenu, statut et paliers de départ du combattant.
+  ///
+  /// Le moteur accepte ces quatre entrées depuis toujours ; le format golden ne
+  /// savait pas les exprimer, si bien qu'aucun vecteur ne pouvait couvrir les
+  /// axes `ability` et `item` que les tags de gate déclarent pourtant.
+  final String? abilityId;
+  final String? heldItemId;
+  final PsdkBattleMajorStatus? majorStatus;
+  final PsdkBattleStatStages? statStages;
+
   PsdkBattleCombatantSetup toSetup() {
     return PsdkBattleCombatantSetup(
       id: id,
@@ -292,6 +328,10 @@ class PsdkGoldenCombatant {
       types: types,
       stats: stats,
       moves: moves,
+      abilityId: abilityId,
+      heldItemId: heldItemId,
+      majorStatus: majorStatus,
+      statStages: statStages,
     );
   }
 }
