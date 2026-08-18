@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 
+import 'support/battle_gate_diagnostics.dart';
+
 /// Le résultat montré au joueur est-il celui que le kernel a décidé ?
 ///
 /// Critère d'acceptation de BETA-BAT-008 : « résultat UI égal au résultat
@@ -103,6 +105,14 @@ void main() {
   });
 }
 
+/// Graines de départ partagées : le diagnostic en a besoin pour être rejouable.
+const _seeds = PsdkBattleRngSeeds(
+  moveDamage: 1,
+  moveCritical: 99999,
+  moveAccuracy: 1,
+  generic: 1,
+);
+
 void _expectAgreement(
   RuntimePsdkBattleSessionAdapter session,
   BattleEngineOutcomeKind expectedKernelKind,
@@ -123,9 +133,16 @@ void _expectAgreement(
     allowCapture: allowCapture,
   );
 
-  expect(display.state.outcome, isNotNull);
-  expect(display.state.outcome!.type, expectedDisplayType);
-  expect(display.state.isFinished, isTrue);
+  // Diagnostic attaché à l'assertion qui compte : un échec de gate doit livrer
+  // graines, issue, PV et timeline, sans qu'on ait à relancer quoi que ce soit.
+  final diagnostic = describeBattleFailure(
+    session: session,
+    initialSeeds: _seeds,
+    note: 'displayed outcome disagrees with the kernel',
+  );
+  expect(display.state.outcome, isNotNull, reason: diagnostic);
+  expect(display.state.outcome!.type, expectedDisplayType, reason: diagnostic);
+  expect(display.state.isFinished, isTrue, reason: diagnostic);
 }
 
 RuntimePsdkBattleSessionAdapter _playUntilFinished(PsdkBattleSetup setup) {
@@ -167,9 +184,9 @@ PsdkBattleSetup _setup({
       majorStatus: enemyAsleep ? PsdkBattleMajorStatus.sleep : null,
     ),
     rngSeeds: PsdkBattleRngSeeds(
-      moveDamage: 1,
-      moveCritical: 99999,
-      moveAccuracy: 1,
+      moveDamage: _seeds.moveDamage,
+      moveCritical: _seeds.moveCritical,
+      moveAccuracy: _seeds.moveAccuracy,
       generic: genericSeed,
     ),
     canFlee: canFlee,
