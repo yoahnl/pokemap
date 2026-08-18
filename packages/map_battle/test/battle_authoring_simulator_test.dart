@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 const _stats = BattleStatsSnapshot(
@@ -179,6 +180,64 @@ void main() {
       expect(
           result.trace.single.choice.kind, BattleAuthoringChoiceKind.capture);
     });
+    test('the receipt records the ruleset alongside the seed', () {
+      // Critère d'acceptation de BETA-BAT-008 : « seed ET ruleset enregistrés
+      // dans le receipt ». Le seed y était, le ruleset non, si bien que deux
+      // runs conduits sous des profils de règles différents produisaient des
+      // reçus indiscernables — alors que c'est exactement ce qui change le
+      // résultat.
+      final result = const BattleAuthoringSimulator().simulate(
+        BattleAuthoringSimulationRequest(
+          setup: _oneHitSetup(),
+          seed: 42,
+          choices: const <BattleAuthoringChoice>[
+            BattleAuthoringChoice.fight(moveIndex: 0),
+          ],
+        ),
+      );
+
+      expect(result.receipt.seed, 42);
+      expect(
+        result.receipt.rulesetProfileId,
+        PokemonRulesetProfile.pokeMapBetaV1.profileId,
+      );
+      expect(
+        result.receipt.rulesetSchemaVersion,
+        PokemonRulesetProfile.pokeMapBetaV1.schemaVersion,
+      );
+
+      final json = result.receipt.toJson();
+      expect(json['rulesetProfileId'], isNotNull);
+      expect(json['rulesetSchemaVersion'], isNotNull);
+    });
+
+    test('a foreign ruleset cannot reach a simulation at all', () {
+      // POURQUOI L'EFFET DU RULESET SUR L'IDENTIFIANT N'EST PAS TESTÉ ICI, et
+      // c'est une limite assumée plutôt qu'un oubli.
+      //
+      // Le ruleset entre bien dans le payload haché du reçu, mais le prouver
+      // demanderait deux runs ne différant que par le profil — impossible : un
+      // seul profil est publié, son constructeur est privé, et
+      // `requireSupported` refuse tout autre profileId. C'est un durcissement
+      // voulu de BETA-BAT-001, « version inconnue refusée avant le premier
+      // tour », pas un manque.
+      //
+      // Une première version de ce cas prétendait le prouver en reconstruisant
+      // le hash elle-même : elle comparait deux de ses propres calculs sans
+      // jamais toucher au reçu de production, et le sabotage l'a démasquée.
+      // Retirer le ruleset du payload ne la faisait pas broncher.
+      //
+      // Ce cas fige donc la raison. Le jour où un second profil sera publié, il
+      // faudra revenir écrire la vraie comparaison de deux reçus.
+      expect(
+        () => PokemonRulesetProfile.fromJson(<String, Object?>{
+          ...PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+          'profileId': 'someone-elses-rules',
+        }),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
     test('the write-back carries the persistent status and nothing volatile',
         () {
       // Critère d'acceptation de BETA-BAT-004 : 'le write-back sauvegarde
@@ -291,3 +350,4 @@ BattleSetup _oneHitSetup() {
     trainerId: null,
   );
 }
+

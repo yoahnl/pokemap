@@ -495,22 +495,37 @@ final class BattleAuthoringSimulationResult {
       };
 }
 
+/// Reçu d'une simulation, destiné à rendre un run rejouable et auditable.
+///
+/// BETA-BAT-008 exige que « seed ET ruleset » y figurent. Le seed y était,
+/// le ruleset non : deux simulations conduites sous des profils de règles
+/// différents produisaient des reçus indiscernables, alors que c'est
+/// précisément ce qui change le résultat.
 final class BattleAuthoringSimulationReceipt {
   const BattleAuthoringSimulationReceipt({
     required this.id,
     required this.seed,
+    required this.rulesetProfileId,
+    required this.rulesetSchemaVersion,
     required this.stepCount,
     required this.outcomeKind,
   });
 
   final String id;
   final int seed;
+
+  /// Profil de règles sous lequel ce run a été résolu.
+  final String rulesetProfileId;
+  final int rulesetSchemaVersion;
+
   final int stepCount;
   final BattleOutcomeType outcomeKind;
 
   Map<String, Object?> toJson() => {
         'id': id,
         'seed': seed,
+        'rulesetProfileId': rulesetProfileId,
+        'rulesetSchemaVersion': rulesetSchemaVersion,
         'stepCount': stepCount,
         'outcomeKind': outcomeKind.name,
       };
@@ -590,6 +605,7 @@ final class BattleAuthoringSimulator {
     final writeBack = BattleAuthoringWriteBack.fromOutcome(outcome);
     final receipt = _buildReceipt(
       seed: request.seed,
+      ruleset: request.setup.ruleset,
       outcome: outcome,
       trace: trace,
       writeBack: writeBack,
@@ -606,13 +622,18 @@ final class BattleAuthoringSimulator {
 
 BattleAuthoringSimulationReceipt _buildReceipt({
   required int seed,
+  required PokemonRulesetProfile ruleset,
   required BattleOutcome outcome,
   required List<BattleAuthoringTraceEntry> trace,
   required BattleAuthoringWriteBack writeBack,
 }) {
+  // Le ruleset entre dans le PAYLOAD, donc dans le hash de l'identifiant. Le
+  // porter seulement en champ lisible aurait laissé deux runs sous des règles
+  // différentes partager un même identifiant de reçu.
   final payload = jsonEncode({
     'formatVersion': 1,
     'seed': seed,
+    'ruleset': ruleset.toJson(),
     'outcome': outcome.type.name,
     'trace': [for (final entry in trace) entry.toJson()],
     'writeBack': writeBack.toJson(),
@@ -625,6 +646,8 @@ BattleAuthoringSimulationReceipt _buildReceipt({
   return BattleAuthoringSimulationReceipt(
     id: 'battle-sim-v1-${hash.toRadixString(16).padLeft(16, '0')}',
     seed: seed,
+    rulesetProfileId: ruleset.profileId,
+    rulesetSchemaVersion: ruleset.schemaVersion,
     stepCount: trace.length,
     outcomeKind: outcome.type,
   );
