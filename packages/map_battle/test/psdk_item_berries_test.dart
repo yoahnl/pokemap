@@ -410,6 +410,39 @@ void main() {
       }
     });
 
+    test('no major status is left without a cure in the item catalog', () {
+      // Le critère de BETA-BAT-004 sur les identifiants canoniques ne vaut que
+      // si les deux vocabulaires ne peuvent pas diverger. Le test des cinq
+      // baies au-dessus énumère une liste écrite à la main : ajouter une
+      // valeur à PsdkBattleMajorStatus ne le ferait pas broncher, et le statut
+      // neuf serait incurable sans que rien ne le dise.
+      //
+      // La Baie Prine soigne tout, donc la parcourir avec l'énumération
+      // elle-même ferme la porte.
+      for (final status in PsdkBattleMajorStatus.values) {
+        final result = _applyStatus(
+          playerHeldItemId: 'lum_berry',
+          status: status,
+        );
+        final player = result.state.battlerAt(psdkPlayerSlot);
+
+        expect(player.majorStatus, isNull, reason: status.name);
+        expect(player.consumedItemId, 'lum_berry', reason: status.name);
+      }
+    });
+
+    test('a status berry ignores the statuses it is not for', () {
+      // Sans ce cas, une baie qui soignerait tout passerait pour correcte.
+      final result = _applyStatus(
+        playerHeldItemId: 'rawst_berry',
+        status: PsdkBattleMajorStatus.paralysis,
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.majorStatus, PsdkBattleMajorStatus.paralysis);
+      expect(player.consumedItemId, isNull);
+    });
+
     test('Berry Juice heals a fixed amount at the half HP threshold', () {
       final result = _damagePlayer(
         playerHeldItemId: 'berry_juice',
