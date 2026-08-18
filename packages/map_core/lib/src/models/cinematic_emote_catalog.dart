@@ -61,6 +61,7 @@ final class CinematicEmoteCatalogEntry {
     required this.description,
     required this.atlasId,
     required this.frame,
+    this.secondFrame,
   });
 
   final String id;
@@ -68,6 +69,23 @@ final class CinematicEmoteCatalogEntry {
   final String description;
   final String atlasId;
   final CinematicEmoteFrameRect frame;
+
+  /// Seconde image de l'emote, quand l'atlas en fournit une.
+  ///
+  /// Les atlas livrés dessinent chaque concept sur deux cases voisines qui ne
+  /// diffèrent que de quelques dizaines de pixels : ce sont les deux images
+  /// d'une animation, pas deux emotes distinctes. Le catalogue ne modélisait
+  /// qu'une case, si bien que la moitié du dessin était inatteignable et que
+  /// plusieurs identifiants pointaient sur l'image 2 du concept voisin.
+  final CinematicEmoteFrameRect? secondFrame;
+
+  /// Images à jouer dans l'ordre, la première toujours présente.
+  List<CinematicEmoteFrameRect> get frames => <CinematicEmoteFrameRect>[
+        frame,
+        ?secondFrame,
+      ];
+
+  bool get isAnimated => secondFrame != null;
 }
 
 const cinematicEmoteAtlases = <CinematicEmoteAtlas>[
@@ -98,34 +116,44 @@ const cinematicEmoteCatalog = <CinematicEmoteCatalogEntry>[
     description: 'Réaction forte ou découverte soudaine.',
     atlasId: cinematicEmoteDefaultReactionsAtlasId,
     frame: CinematicEmoteFrameRect(x: 0, y: 0, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 16, y: 0, width: 16, height: 16),
   ),
   CinematicEmoteCatalogEntry(
-    id: 'alert',
-    label: 'Alerte',
-    description: 'Attention immédiate.',
+    id: 'idea',
+    label: 'Idée',
+    description: 'Compréhension ou idée soudaine.',
     atlasId: cinematicEmoteDefaultReactionsAtlasId,
-    frame: CinematicEmoteFrameRect(x: 16, y: 0, width: 16, height: 16),
+    frame: CinematicEmoteFrameRect(x: 32, y: 0, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 48, y: 0, width: 16, height: 16),
+  ),
+  CinematicEmoteCatalogEntry(
+    id: 'talk',
+    label: 'Parole',
+    description: 'Le personnage prend la parole.',
+    atlasId: cinematicEmoteDefaultReactionsAtlasId,
+    frame: CinematicEmoteFrameRect(x: 64, y: 0, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 80, y: 0, width: 16, height: 16),
   ),
   CinematicEmoteCatalogEntry(
     id: 'anger',
     label: 'Colère',
     description: 'Agacement ou colère courte.',
     atlasId: cinematicEmoteDefaultReactionsAtlasId,
-    frame: CinematicEmoteFrameRect(x: 32, y: 0, width: 16, height: 16),
+    frame: CinematicEmoteFrameRect(x: 96, y: 0, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 112, y: 0, width: 16, height: 16),
   ),
   CinematicEmoteCatalogEntry(
-    id: 'thought',
-    label: 'Pensée',
-    description: 'Pensée ou réflexion.',
+    id: 'alert',
+    label: 'Alerte',
+    description: 'Attention immédiate.',
     atlasId: cinematicEmoteDefaultReactionsAtlasId,
-    frame: CinematicEmoteFrameRect(x: 64, y: 0, width: 16, height: 16),
-  ),
-  CinematicEmoteCatalogEntry(
-    id: 'question',
-    label: 'Question',
-    description: 'Interrogation courte.',
-    atlasId: cinematicEmoteDefaultReactionsAtlasId,
-    frame: CinematicEmoteFrameRect(x: 64, y: 16, width: 16, height: 16),
+    frame: CinematicEmoteFrameRect(x: 0, y: 16, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 16, y: 16, width: 16, height: 16),
   ),
   CinematicEmoteCatalogEntry(
     id: 'music',
@@ -133,13 +161,35 @@ const cinematicEmoteCatalog = <CinematicEmoteCatalogEntry>[
     description: 'Chant, joie ou note musicale.',
     atlasId: cinematicEmoteDefaultReactionsAtlasId,
     frame: CinematicEmoteFrameRect(x: 32, y: 16, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 48, y: 16, width: 16, height: 16),
   ),
   CinematicEmoteCatalogEntry(
-    id: 'idea',
-    label: 'Idée',
-    description: 'Compréhension ou idée soudaine.',
+    id: 'sad',
+    label: 'Tristesse',
+    description: 'Abattement ou déception.',
     atlasId: cinematicEmoteDefaultReactionsAtlasId,
-    frame: CinematicEmoteFrameRect(x: 48, y: 16, width: 16, height: 16),
+    frame: CinematicEmoteFrameRect(x: 64, y: 16, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 80, y: 16, width: 16, height: 16),
+  ),
+  CinematicEmoteCatalogEntry(
+    id: 'sweat',
+    label: 'Gêne',
+    description: 'Malaise, peur légère ou embarras.',
+    atlasId: cinematicEmoteDefaultReactionsAtlasId,
+    frame: CinematicEmoteFrameRect(x: 96, y: 16, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 112, y: 16, width: 16, height: 16),
+  ),
+  CinematicEmoteCatalogEntry(
+    id: 'question',
+    label: 'Question',
+    description: 'Interrogation courte.',
+    atlasId: cinematicEmoteDefaultReactionsAtlasId,
+    frame: CinematicEmoteFrameRect(x: 0, y: 32, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 16, y: 32, width: 16, height: 16),
   ),
   CinematicEmoteCatalogEntry(
     id: 'heart',
@@ -147,13 +197,17 @@ const cinematicEmoteCatalog = <CinematicEmoteCatalogEntry>[
     description: 'Affection ou joie douce.',
     atlasId: cinematicEmoteDefaultReactionsAtlasId,
     frame: CinematicEmoteFrameRect(x: 32, y: 32, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 48, y: 32, width: 16, height: 16),
   ),
   CinematicEmoteCatalogEntry(
-    id: 'sweat',
-    label: 'Gêne',
-    description: 'Malaise, peur légère ou embarras.',
+    id: 'happy',
+    label: 'Joie',
+    description: 'Sourire franc ou amusement.',
     atlasId: cinematicEmoteDefaultReactionsAtlasId,
     frame: CinematicEmoteFrameRect(x: 64, y: 32, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 80, y: 32, width: 16, height: 16),
   ),
   CinematicEmoteCatalogEntry(
     id: 'silence',
@@ -161,6 +215,8 @@ const cinematicEmoteCatalog = <CinematicEmoteCatalogEntry>[
     description: 'Hésitation ou silence.',
     atlasId: cinematicEmoteDefaultReactionsAtlasId,
     frame: CinematicEmoteFrameRect(x: 96, y: 32, width: 16, height: 16),
+    secondFrame:
+        CinematicEmoteFrameRect(x: 112, y: 32, width: 16, height: 16),
   ),
   CinematicEmoteCatalogEntry(
     id: 'neutral',
@@ -168,6 +224,20 @@ const cinematicEmoteCatalog = <CinematicEmoteCatalogEntry>[
     description: 'Bulle neutre ou fallback.',
     atlasId: cinematicEmoteNeutralBubblesAtlasId,
     frame: CinematicEmoteFrameRect(x: 0, y: 0, width: 16, height: 16),
+  ),
+  CinematicEmoteCatalogEntry(
+    id: 'pause',
+    label: 'Pause',
+    description: 'Temps mort ou attente courte.',
+    atlasId: cinematicEmoteNeutralBubblesAtlasId,
+    frame: CinematicEmoteFrameRect(x: 16, y: 0, width: 16, height: 16),
+  ),
+  CinematicEmoteCatalogEntry(
+    id: 'thought',
+    label: 'Pensée',
+    description: 'Pensée ou réflexion.',
+    atlasId: cinematicEmoteNeutralBubblesAtlasId,
+    frame: CinematicEmoteFrameRect(x: 32, y: 0, width: 16, height: 16),
   ),
 ];
 

@@ -9,6 +9,7 @@ final class _PlayableMapCinematicRuntimeHost
   RectangleComponent? _fadeOverlay;
   Paint? _fadePaint;
   static const double _emoteOverlayLift = 22;
+  static const double _emoteFrameStepSeconds = 0.28;
 
   PositionComponent? _emoteOverlay;
   final CinematicEmoteSpriteCache _emoteSprites = CinematicEmoteSpriteCache();
@@ -206,17 +207,17 @@ final class _PlayableMapCinematicRuntimeHost
     _mountEmoteOverlay(_emoteGlyphComponent(emoteId), actor);
 
     unawaited(() async {
-      final Sprite? sprite;
+      final List<Sprite> frames;
       try {
-        sprite = await _emoteSprites.loadEmoteSprite(emoteId);
+        frames = await _emoteSprites.loadEmoteFrames(emoteId);
       } catch (error) {
         debugPrint('[emote] sprite load failed id=$emoteId error=$error');
         return;
       }
       // Une emote plus récente, ou un masquage, a pu survenir pendant le
-      // décodage : ce sprite-là n'a plus rien à afficher.
-      if (sprite == null || serial != _emoteRequestSerial) return;
-      _mountEmoteOverlay(_emoteSpriteComponent(sprite), actor);
+      // décodage : ces images-là n'ont plus rien à afficher.
+      if (frames.isEmpty || serial != _emoteRequestSerial) return;
+      _mountEmoteOverlay(_emoteSpriteComponent(frames), actor);
     }());
   }
 
@@ -230,12 +231,18 @@ final class _PlayableMapCinematicRuntimeHost
       ..priority = 200000;
     _game.world.add(component);
     _emoteOverlay = component;
-    component.add(
-      ScaleEffect.to(
-        Vector2.all(1),
-        EffectController(duration: 0.18, curve: Curves.easeOutBack),
-      ),
-    );
+    // L'effet n'est attaché qu'une fois le composant réellement monté : un
+    // effet greffé sur un composant encore en file d'attente peut se mettre à
+    // jour avant d'avoir résolu sa cible, et Flame lève sur un `target` nul.
+    unawaited(component.mounted.then((_) {
+      if (!component.isMounted) return;
+      component.add(
+        ScaleEffect.to(
+          Vector2.all(1),
+          EffectController(duration: 0.18, curve: Curves.easeOutBack),
+        ),
+      );
+    }));
   }
 
   PositionComponent _emoteGlyphComponent(String emoteId) {
@@ -255,10 +262,24 @@ final class _PlayableMapCinematicRuntimeHost
     )..scale = Vector2.all(0.6);
   }
 
-  PositionComponent _emoteSpriteComponent(Sprite sprite) {
-    return SpriteComponent(
-      sprite: sprite,
-      size: sprite.srcSize.clone(),
+  PositionComponent _emoteSpriteComponent(List<Sprite> frames) {
+    final size = frames.first.srcSize.clone();
+    if (frames.length == 1) {
+      return SpriteComponent(
+        sprite: frames.first,
+        size: size,
+        anchor: Anchor.bottomCenter,
+      )..scale = Vector2.all(0.6);
+    }
+    // Les atlas dessinent chaque emote sur deux images : les alterner est
+    // l'animation voulue par l'auteur, là où le runtime n'affichait qu'un
+    // caractère fixe.
+    return SpriteAnimationComponent(
+      animation: SpriteAnimation.spriteList(
+        frames,
+        stepTime: _emoteFrameStepSeconds,
+      ),
+      size: size,
       anchor: Anchor.bottomCenter,
     )..scale = Vector2.all(0.6);
   }
@@ -391,12 +412,15 @@ String _cinematicEmoteGlyph(String emoteId) {
   return switch (emoteId) {
     'exclamation' || 'alert' => '!',
     'anger' => '#',
-    'thought' || 'silence' => '…',
+    'thought' || 'silence' || 'pause' => '…',
     'question' => '?',
     'music' => '♪',
     'idea' => '*',
     'heart' => '♥',
     'sweat' => '◢',
+    'talk' => '"',
+    'sad' => '︵',
+    'happy' => '︶',
     _ => '•',
   };
 }

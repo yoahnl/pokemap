@@ -23,8 +23,8 @@ final class CinematicEmoteSpriteCache {
   final CinematicEmoteImageLoader _imageLoader;
   final Map<String, Future<ui.Image>> _imageFutureByAtlasId =
       <String, Future<ui.Image>>{};
-  final Map<String, Future<Sprite>> _spriteFutureByEmoteId =
-      <String, Future<Sprite>>{};
+  final Map<String, Future<List<Sprite>>> _spriteFutureByEmoteId =
+      <String, Future<List<Sprite>>>{};
 
   /// Clé de bundle du runtime pour un atlas du catalogue.
   ///
@@ -33,16 +33,20 @@ final class CinematicEmoteSpriteCache {
   static String runtimeAssetKeyFor(CinematicEmoteAtlas atlas) =>
       '$_assetKeyPrefix${atlas.assetKey}';
 
-  /// Retourne `null` quand l'emote est inconnue ou que son cadre déborde de
-  /// l'atlas : un emote mal authoré ne doit pas faire tomber la carte.
-  Future<Sprite?> loadEmoteSprite(String? emoteId) async {
+  /// Images de l'emote, dans l'ordre de lecture.
+  ///
+  /// Retourne une liste vide quand l'emote est inconnue ou qu'un de ses cadres
+  /// déborde de l'atlas : un emote mal authoré ne doit pas faire tomber la
+  /// carte. La liste compte deux images pour les emotes animées, une sinon.
+  Future<List<Sprite>> loadEmoteFrames(String? emoteId) async {
     final entry = cinematicEmoteCatalogEntryById(emoteId);
     if (entry == null) {
-      return null;
+      return const <Sprite>[];
     }
     final atlas = cinematicEmoteAtlasById(entry.atlasId);
-    if (atlas == null || !entry.frame.fitsInside(atlas)) {
-      return null;
+    if (atlas == null ||
+        entry.frames.any((frame) => !frame.fitsInside(atlas))) {
+      return const <Sprite>[];
     }
 
     final cached = _spriteFutureByEmoteId[entry.id];
@@ -52,17 +56,14 @@ final class CinematicEmoteSpriteCache {
 
     final future = () async {
       final image = await _loadAtlasImage(atlas);
-      return Sprite(
-        image,
-        srcPosition: Vector2(
-          entry.frame.x.toDouble(),
-          entry.frame.y.toDouble(),
-        ),
-        srcSize: Vector2(
-          entry.frame.width.toDouble(),
-          entry.frame.height.toDouble(),
-        ),
-      );
+      return <Sprite>[
+        for (final frame in entry.frames)
+          Sprite(
+            image,
+            srcPosition: Vector2(frame.x.toDouble(), frame.y.toDouble()),
+            srcSize: Vector2(frame.width.toDouble(), frame.height.toDouble()),
+          ),
+      ];
     }();
     _spriteFutureByEmoteId[entry.id] = future;
     try {

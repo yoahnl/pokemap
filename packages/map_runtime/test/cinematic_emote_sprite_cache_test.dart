@@ -21,15 +21,17 @@ void main() {
         },
       );
 
-      final sprite = await cache.loadEmoteSprite(cinematicDefaultActorEmoteId);
+      final frames = await cache.loadEmoteFrames(cinematicDefaultActorEmoteId);
 
       final entry =
           cinematicEmoteCatalogEntryById(cinematicDefaultActorEmoteId)!;
-      expect(sprite, isNotNull);
-      expect(sprite!.srcPosition.x, entry.frame.x.toDouble());
-      expect(sprite.srcPosition.y, entry.frame.y.toDouble());
-      expect(sprite.srcSize.x, entry.frame.width.toDouble());
-      expect(sprite.srcSize.y, entry.frame.height.toDouble());
+      expect(frames, hasLength(entry.frames.length));
+      for (var index = 0; index < frames.length; index += 1) {
+        expect(frames[index].srcPosition.x, entry.frames[index].x.toDouble());
+        expect(frames[index].srcPosition.y, entry.frames[index].y.toDouble());
+        expect(frames[index].srcSize.x, entry.frames[index].width.toDouble());
+        expect(frames[index].srcSize.y, entry.frames[index].height.toDouble());
+      }
       expect(requested.single, startsWith('packages/map_runtime/'));
     });
 
@@ -40,9 +42,9 @@ void main() {
 
       // Un emote mal authoré ne doit pas faire tomber la carte : la surface
       // appelante retombe sur son rendu de repli.
-      expect(await cache.loadEmoteSprite('not_an_emote'), isNull);
-      expect(await cache.loadEmoteSprite(''), isNull);
-      expect(await cache.loadEmoteSprite(null), isNull);
+      expect(await cache.loadEmoteFrames('not_an_emote'), isEmpty);
+      expect(await cache.loadEmoteFrames(''), isEmpty);
+      expect(await cache.loadEmoteFrames(null), isEmpty);
     });
 
     test('an atlas is decoded once for every emote it carries', () async {
@@ -54,9 +56,9 @@ void main() {
         },
       );
 
-      await cache.loadEmoteSprite('exclamation');
-      await cache.loadEmoteSprite('anger');
-      await cache.loadEmoteSprite('exclamation');
+      await cache.loadEmoteFrames('exclamation');
+      await cache.loadEmoteFrames('anger');
+      await cache.loadEmoteFrames('exclamation');
 
       expect(
         decodes,
@@ -78,11 +80,44 @@ void main() {
       );
 
       await expectLater(
-        cache.loadEmoteSprite('exclamation'),
+        cache.loadEmoteFrames('exclamation'),
         throwsA(isA<Exception>()),
       );
-      expect(await cache.loadEmoteSprite('exclamation'), isNotNull);
+      expect(await cache.loadEmoteFrames('exclamation'), isNotEmpty);
       expect(attempts, 2);
+    });
+
+    test('every drawn atlas cell is reachable through some emote', () async {
+      // Les atlas dessinent 27 cases. Le catalogue n'en exposait que 11, si
+      // bien que deux tiers du dessin étaient inatteignables et que cinq
+      // identifiants pointaient sur l'image 2 du concept voisin.
+      final claimed = <String, Set<String>>{};
+      for (final entry in cinematicEmoteCatalog) {
+        for (final frame in entry.frames) {
+          claimed
+              .putIfAbsent(entry.atlasId, () => <String>{})
+              .add('${frame.x ~/ 16},${frame.y ~/ 16}');
+        }
+      }
+
+      expect(claimed[cinematicEmoteDefaultReactionsAtlasId], hasLength(24));
+      expect(claimed[cinematicEmoteNeutralBubblesAtlasId], hasLength(3));
+    });
+
+    test('an animated emote pairs two neighbouring cells of one row', () {
+      // Les paires ne diffèrent que de quelques dizaines de pixels : ce sont
+      // les deux images d'une animation. Une seconde image lointaine
+      // signalerait un mauvais découpage plutôt qu'une animation.
+      for (final entry in cinematicEmoteCatalog.where((e) => e.isAnimated)) {
+        final first = entry.frame;
+        final second = entry.secondFrame!;
+        expect(second.y, first.y, reason: '${entry.id} spans two rows');
+        expect(
+          second.x - first.x,
+          first.width,
+          reason: '${entry.id} frames are not adjacent',
+        );
+      }
     });
 
     test('every catalog atlas is really shipped inside this package', () async {
