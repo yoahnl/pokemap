@@ -714,6 +714,19 @@ class _PendingScenarioNpcWarpEntry {
   final GridPos approachPos;
 }
 
+enum _TrainerSpotStage { exclamation, approaching }
+
+class _PendingTrainerSpot {
+  _PendingTrainerSpot({
+    required this.entityId,
+    required this.remainingSeconds,
+  });
+
+  final String entityId;
+  _TrainerSpotStage stage = _TrainerSpotStage.exclamation;
+  double remainingSeconds;
+}
+
 class _PendingScenarioLeaderWarpHandoff {
   const _PendingScenarioLeaderWarpHandoff({
     required this.leaderEntityId,

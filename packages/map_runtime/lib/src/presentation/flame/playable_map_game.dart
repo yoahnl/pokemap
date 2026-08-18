@@ -1662,6 +1662,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   // Line of Sight (LoS) trainer detection
   final Set<String> _triggeredTrainerBattles = {}; // Anti-retrigger lock
 
+  _PendingTrainerSpot? _pendingTrainerSpot;
+
   bool get showCollisionOverlay => _showCollisionOverlay;
 
   void setCollisionOverlayVisible(bool visible) {
@@ -2223,6 +2225,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       RuntimeInputSurface.blocked,
       _suppressOverworldInputForScriptedPlayerMovement(),
     );
+    _setDerivedInputLock(
+      RuntimeInputLockOwner.trainerEncounter,
+      RuntimeInputSurface.blocked,
+      _pendingTrainerSpot != null,
+    );
   }
 
   void _setDerivedInputLock(
@@ -2339,6 +2346,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @visibleForTesting
   BattleStartRequest? get debugPendingBattleRequest => _pendingBattleRequest;
+
+  GridPos? debugMapEntityPosition(String entityId) {
+    for (final entity in _world.map.entities) {
+      if (entity.id == entityId) return entity.pos;
+    }
+    return null;
+  }
 
   @visibleForTesting
   bool debugTryEnqueueBattleRequestForTest(BattleStartRequest request) {
@@ -3994,6 +4008,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _processPendingSceneNpcMoves();
       _processPendingScenarioNpcWarpEntries();
       _processPendingScenarioMoveContinuations();
+      _processPendingTrainerSpot(dt);
       _processPendingScenarioFollowRequest();
       _processPendingScenarioTransitionMapRequest();
       _processPendingScenarioReachedEndCompletions();
@@ -10591,6 +10606,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_flowPhase != _RuntimeFlowPhase.overworld) return;
     if (_dialogueOverlay != null) return;
     if (_pendingBattleRequest != null) return;
+    if (_pendingTrainerSpot != null) return;
 
     for (final entity in _world.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
@@ -10647,9 +10663,128 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       if (inLoS) {
-        _triggerTrainerBattle(entity);
+        _beginTrainerSpotSequence(entity);
+        return;
       }
     }
+  }
+
+  /// Repérage par un dresseur : exclamation, approche, puis passage de témoin.
+  ///
+  /// La séquence est pilotée depuis `update()` comme les autres attentes de
+  /// mouvement du runtime. Aucun `await` ici : `_checkTrainerLineOfSight` est
+  /// appelé depuis la boucle de jeu, et une séquence asynchrone y ouvrirait la
+  /// même fenêtre de ré-entrance que les continuations de scénario.
+  ///
+  /// Le joueur est immobilisé par un verrou *dérivé* de `_pendingTrainerSpot` :
+  /// il ne peut pas survivre à la séquence, contrairement à un jeton acquis et
+  /// relâché à la main.
+  static const double _trainerSpotExclamationSeconds = 0.9;
+
+  void _beginTrainerSpotSequence(MapEntity entity) {
+    _pendingTrainerSpot = _PendingTrainerSpot(
+      entityId: entity.id,
+      remainingSeconds: _trainerSpotExclamationSeconds,
+    );
+    _clearPressedMovementControls();
+    _cinematicRuntimeHost.showCinematicActorEmote(
+      _cinematicRuntimeHost.mapEntityActor(entity.id),
+      cinematicDefaultActorEmoteId,
+    );
+    _publishInputAuthoritySnapshot();
+    debugPrint('[trainer] spotted entity=${entity.id} stage=exclamation');
+  }
+
+  void _processPendingTrainerSpot(double dt) {
+    final pending = _pendingTrainerSpot;
+    if (pending == null) {
+      return;
+    }
+
+    final entity = _world.map.entities
+        .cast<MapEntity?>()
+        .firstWhere((candidate) => candidate?.id == pending.entityId,
+            orElse: () => null);
+    if (entity == null) {
+      _abandonTrainerSpot(pending, reason: 'entity left the map');
+      return;
+    }
+
+    switch (pending.stage) {
+      case _TrainerSpotStage.exclamation:
+        pending.remainingSeconds -= dt;
+        if (pending.remainingSeconds > 0) {
+          return;
+        }
+        _cinematicRuntimeHost.showCinematicActorEmote(null, null);
+        _startTrainerSpotApproach(pending, entity);
+      case _TrainerSpotStage.approaching:
+        final status = scriptedNpcMovementStatus(pending.entityId);
+        switch (status.state) {
+          case ScriptedEntityMovementState.moving:
+            return;
+          case ScriptedEntityMovementState.failed:
+            _abandonTrainerSpot(
+              pending,
+              reason: status.failureReason ?? 'approach failed',
+            );
+          case ScriptedEntityMovementState.completed:
+          case ScriptedEntityMovementState.idle:
+            _completeTrainerSpot(pending, entity);
+        }
+    }
+  }
+
+  void _startTrainerSpotApproach(_PendingTrainerSpot pending, MapEntity entity) {
+    final destinations = _resolveScenarioEntityApproachCandidates(
+      moverEntityId: pending.entityId,
+      targetEntityId: 'player',
+      primaryDestination: _world.player.pos,
+    );
+    if (destinations.isEmpty) {
+      _abandonTrainerSpot(pending, reason: 'no reachable cell next to player');
+      return;
+    }
+
+    for (final destination in destinations) {
+      final started = startScriptedNpcMove(
+        entityId: pending.entityId,
+        destination: destination,
+      );
+      if (started.state != ScriptedEntityMovementState.failed) {
+        pending.stage = _TrainerSpotStage.approaching;
+        debugPrint(
+          '[trainer] approaching entity=${pending.entityId} '
+          'destination=(${destination.x},${destination.y})',
+        );
+        return;
+      }
+    }
+    _abandonTrainerSpot(pending, reason: 'no accepted approach path');
+  }
+
+  void _completeTrainerSpot(_PendingTrainerSpot pending, MapEntity entity) {
+    _pendingTrainerSpot = null;
+    _publishInputAuthoritySnapshot();
+    debugPrint('[trainer] approach done entity=${pending.entityId}');
+    _triggerTrainerBattle(entity);
+  }
+
+  /// Le dresseur qui ne peut pas rejoindre le joueur reste inerte.
+  ///
+  /// Il garde son verrou anti-retrigger pour ne pas relancer la séquence à
+  /// chaque image ; sortir de sa ligne de vue le réarme comme d'habitude.
+  void _abandonTrainerSpot(
+    _PendingTrainerSpot pending, {
+    required String reason,
+  }) {
+    _pendingTrainerSpot = null;
+    _cinematicRuntimeHost.showCinematicActorEmote(null, null);
+    _triggeredTrainerBattles.add(pending.entityId);
+    _publishInputAuthoritySnapshot();
+    debugPrint(
+      '[trainer] spot abandoned entity=${pending.entityId} reason="$reason"',
+    );
   }
 
   /// Déclenche un battle trainer (appelé par interaction manuelle OU LoS auto).

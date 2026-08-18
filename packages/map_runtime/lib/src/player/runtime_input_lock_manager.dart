@@ -38,6 +38,7 @@ enum RuntimeInputLockOwner {
   narrativeDispatch,
   checkpoint,
   scriptedMovement,
+  trainerEncounter,
   gameCompletion,
 }
 
