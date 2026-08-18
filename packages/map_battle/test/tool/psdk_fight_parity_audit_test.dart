@@ -471,10 +471,13 @@ void main() {
 
       expect(result.exitCode, 0, reason: '${result.stderr}');
       expect(result.stdout, contains('PSDK parity gate passed.'));
-      expect(result.stdout, contains('Golden fixtures: 3'));
+      // 3 fixtures historiques + les 18 vecteurs de dégâts générés pour
+      // BETA-BAT-002. Les deltas d'audit ne bougent pas : ces vecteurs mesurent
+      // l'arithmétique d'un `s_basic` déjà porté.
+      expect(result.stdout, contains('Golden fixtures: 21'));
       expect(
         result.stdout,
-        contains('tags: damage, field, move_method, status'),
+        contains('tags: ability, damage, field, item, move_method, status'),
       );
       expect(
         result.stdout,

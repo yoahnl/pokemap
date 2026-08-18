@@ -1,31 +1,14 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:test/test.dart';
 
-/// Chaîne de dégâts PSDK, transcrite depuis la source Ruby.
+/// Roll de la graine `moveDamage: 1` utilisée par tous les vecteurs.
+const int _seededRoll = 87;
+
+/// Alias local vers l'oracle partagé de `lib/src/data/psdk_damage_reference`.
 ///
-/// Source : `scripts/5 Battle/10 Move/101 Damage_Calc.rb`, méthode `damages`,
-/// qui déclare suivre la formule de 4e génération. Ce qui compte ici n'est pas
-/// la liste des multiplicateurs mais **la position de chaque troncature** : ce
-/// sont elles qui rendent le résultat sensible à l'ordre, et c'est exactement ce
-/// que le ticket demande de documenter.
-///
-///     damage = level * 2 / 5 + 2
-///     damage = (damage * base_power).floor
-///     damage = (damage * sp_atk).floor / 50
-///     damage = (damage / sp_def).floor
-///     damage = (damage * mod1).floor + 2      <- brûlure, météo, terrain
-///     damage = (damage * ch).floor            <- critique
-///     damage = (damage * mod2).floor
-///     damage = damage * rand(85..100) / 100
-///     damage = (damage * stab).floor
-///     damage = (damage * type1).floor         <- une troncature PAR type
-///     damage = (damage * type2).floor
-///     damage = (damage * mod3).floor          <- objet tenu, talent final
-///     damage = damage.clamp(1, target_hp)
-///
-/// Cette fonction est écrite depuis le Ruby, pas depuis le calculateur Dart.
-/// C'est ce qui lui donne sa valeur d'oracle : une erreur d'arithmétique dans le
-/// moteur ne peut pas se recopier ici.
+/// La transcription vivait ici ; elle a déménagé dans le paquet pour que le
+/// générateur de fixtures golden et ces vecteurs lisent la MÊME formule. Deux
+/// transcriptions auraient fini par diverger.
 int referenceDamage({
   required int roll,
   required int level,
@@ -39,37 +22,23 @@ int referenceDamage({
   List<double> sequentialTypeMultipliers = const <double>[],
   double combinedTypeMultiplier = 1,
   double mod3 = 1,
-}) {
-  var damage = (2 * level) ~/ 5 + 2;
-  damage = (damage * power).floor();
-  damage = (damage * offensiveStat).floor() ~/ 50;
-  damage = damage ~/ defensiveStat;
-  damage = (damage * mod1).floor() + 2;
-  damage = (damage * criticalMultiplier).floor();
-  damage = (damage * mod2).floor();
-  damage = (damage * roll) ~/ 100;
-  damage = (damage * stab).floor();
-  for (final multiplier in sequentialTypeMultipliers) {
-    damage = (damage * multiplier).floor();
-  }
-  damage = (damage * combinedTypeMultiplier).floor();
-  damage = (damage * mod3).floor();
-  return damage < 1 ? 1 : damage;
-}
+}) =>
+    psdkReferenceDamage(
+      roll: roll,
+      level: level,
+      power: power,
+      offensiveStat: offensiveStat,
+      defensiveStat: defensiveStat,
+      mod1: mod1,
+      criticalMultiplier: criticalMultiplier,
+      mod2: mod2,
+      stab: stab,
+      sequentialTypeMultipliers: sequentialTypeMultipliers,
+      combinedTypeMultiplier: combinedTypeMultiplier,
+      mod3: mod3,
+    );
 
-/// Roll de dégâts produit par une graine, transcrit depuis `BattleRngStream`.
-///
-///     nextPercent       -> (seed.abs() % 100) + 1
-///     nextDamagePercent -> 85 + (value % 16)
-///
-/// Le connaître change la nature de la preuve. Une première version de ce
-/// fichier comparait les dégâts à la bande des seize rolls possibles ; deux
-/// sabotages du moteur — STAB déplacé avant le roll, et diviseur 50 changé en
-/// 49 — la traversaient sans être vus. Une valeur exacte ne pardonne rien.
-int damageRollForSeed(int seed) => 85 + (((seed.abs() % 100) + 1) % 16);
-
-/// Roll de la graine `moveDamage: 1` utilisée par tous les vecteurs.
-const int _seededRoll = 87;
+int damageRollForSeed(int seed) => psdkDamageRollForSeed(seed);
 
 void main() {
   group('BETA-BAT-002 damage reference vectors', () {

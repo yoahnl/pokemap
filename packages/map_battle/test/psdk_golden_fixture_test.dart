@@ -16,14 +16,42 @@ void main() {
 
       expect(corpus.fixtures.map((fixture) => fixture.scenarioId), <String>[
         'basic_damage_neutral',
+        'damage_ability_boosts_base_power',
+        'damage_awkward_truncations',
+        'damage_burn_halves_physical',
+        'damage_burn_spares_special',
+        'damage_combined_type_multiplier_variance',
+        'damage_critical_hit',
+        'damage_held_item_boosts_its_type',
+        'damage_held_item_ignores_other_types',
+        'damage_physical_neutral',
+        'damage_rain_boosts_water',
+        'damage_rain_weakens_fire',
+        'damage_special_reads_special_stats',
+        'damage_stab_primary_type',
+        'damage_stab_secondary_type',
+        'damage_sun_boosts_fire',
+        'damage_sun_weakens_water',
+        'damage_type_resistance',
+        'damage_type_weakness',
         'status_stat_non_damage',
         'weather_rain_mod1_damage',
       ]);
-      expect(corpus.summary.count, 3);
+      expect(corpus.summary.count, 21);
       expect(
         corpus.summary.tags,
-        containsAll(<String>['move_method', 'damage', 'status', 'field']),
+        containsAll(<String>[
+          'move_method',
+          'damage',
+          'status',
+          'field',
+          'ability',
+          'item',
+        ]),
       );
+      // Les 18 vecteurs de dégâts ne portent aucune méthode ni aucun effet
+      // nouveau : ils mesurent l'arithmétique d'un `s_basic` déjà porté. Leurs
+      // deltas d'audit sont donc nuls, et ces sommes ne doivent pas bouger.
       expect(corpus.summary.auditDeltas.strictAttacks, 2);
       expect(corpus.summary.auditDeltas.portedMethods, 2);
       expect(corpus.summary.auditDeltas.portedEffects, 1);
