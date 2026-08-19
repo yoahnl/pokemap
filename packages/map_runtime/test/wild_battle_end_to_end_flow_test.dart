@@ -1737,16 +1737,48 @@ void main() {
   });
 }
 
+/// Acquitte la progression post-combat et attend le retour en overworld.
+///
+/// Ce helper porte aussi un critère d'acceptation de BETA-BAT-007 :
+/// « l'overlay se ferme uniquement après résultat appliqué ». Tant que la
+/// progression attend un acquittement, le runtime ne doit PAS être déjà revenu
+/// en overworld — sinon le joueur reprend la main pendant qu'un écran de fin
+/// flotte encore, ou pire, l'écran disparaît avant que le résultat soit écrit.
+///
+/// L'ordre des vérifications compte : l'overlay est regardé AVANT la sortie sur
+/// overworld, faute de quoi un état où les deux sont vrais en même temps —
+/// exactement le défaut cherché — sortirait de la boucle sans être vu.
+///
+/// [expectPostBattleOverlay] verrouille le fait que le vecteur passe vraiment
+/// par cet écran. Sans ce compteur, un flux qui ne l'afficherait jamais rendrait
+/// l'invariant muet tout en gardant le test vert.
 Future<void> _acknowledgePostBattleAndWaitForOverworld(
-  PlayableMapGame game,
-) async {
+  PlayableMapGame game, {
+  bool expectPostBattleOverlay = true,
+}) async {
+  var sawPostBattleOverlay = false;
   for (var tick = 0; tick < 240; tick++) {
+    if (game.debugPostBattleOverlayMounted) {
+      sawPostBattleOverlay = true;
+      expect(
+        game.debugFlowPhaseName,
+        isNot('overworld'),
+        reason: 'the overworld resumed while post-battle progression was '
+            'still waiting to be acknowledged',
+      );
+      expect(game.debugValidatePostBattleChoice(), isTrue);
+    }
     if (game.debugFlowPhaseName == 'overworld') {
       await game.debugWaitForPostBattleCompletion();
+      if (expectPostBattleOverlay) {
+        expect(
+          sawPostBattleOverlay,
+          isTrue,
+          reason: 'this flow never showed the post-battle overlay, so the '
+              'invariant above never ran',
+        );
+      }
       return;
-    }
-    if (game.debugPostBattleOverlayMounted) {
-      expect(game.debugValidatePostBattleChoice(), isTrue);
     }
     game.update(0.25);
     await Future<void>.delayed(Duration.zero);
