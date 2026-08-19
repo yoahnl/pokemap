@@ -8,6 +8,7 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 // applyRuntimeDefeatRecoveryToGameState n'est volontairement pas exporte : c'est
 // un helper interne que PlayableMapGame appelle. Import cible plutot que
 // elargissement de la surface publique pour les besoins d'un test.
@@ -15,7 +16,6 @@ import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart'
     show applyRuntimeDefeatRecoveryToGameState;
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
-import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:path/path.dart' as p;
@@ -436,6 +436,94 @@ void main() {
         ),
         equals(<String>['vine_whip']),
       );
+    });
+
+    test('the battle surface is driven by controller inputs alone', () async {
+      // « Clavier, manette et tactile » de BETA-BAT-007. La surface de combat est
+      // pilotée par le vocabulaire AGNOSTIQUE `RuntimeInputControl` : croix
+      // directionnelle, primary, secondary. Une manette qui se mappe dessus
+      // pilote donc tout, à condition qu'aucune commande n'exige un autre chemin.
+      //
+      // Ce cas ne touche JAMAIS les méthodes de l'overlay : tout passe par
+      // handleRuntimeInputEvent, exactement comme un pad. Appeler
+      // moveSelectionDown() directement testerait l'overlay, pas le routage.
+      //
+      // L'observable est le MODE de menu et non l'index de sélection : dans ce
+      // harnais headless le panneau visuel n'est pas monté, et lire son index
+      // rendrait une valeur par défaut plutôt qu'une mesure. Les transitions de
+      // mode suffisent à prouver que chaque touche arrive à destination.
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      // `_LoadedGame` et pas `PlayableMapGame` : handleRuntimeInputEvent
+      // commence par `if (!isLoaded) return false`, et hors d'une vraie boucle
+      // Flame `isLoaded` reste faux. Sans cette surcharge, TOUTES les touches
+      // sont ignorées et le test verdit en ne mesurant rien. C'est d'ailleurs
+      // pour cela que les autres cas de ce fichier pilotent l'overlay en direct :
+      // le routage des entrées n'y avait jamais été exercé.
+      final game = _LoadedGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(_playerState()),
+      );
+      game.onGameResize(Vector2(960, 540));
+      await game.onLoad();
+      await game.debugOpenBattleForTest(_wildRequest(manifest, map));
+      await game.debugWaitForBattleOverlaySync();
+
+      final overlay = game.debugBattleOverlayComponent!;
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+        reason: 'an unhandled press means the whole vector measures nothing',
+      );
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.release(RuntimeInputControl.primary),
+      );
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.fight);
+      _press(game, RuntimeInputControl.secondary);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
+
+      // La croix atteint une AUTRE commande racine, prouvée par le sous-menu
+      // différent qu'elle ouvre. Sans ce pas, une croix inerte passerait pour
+      // fonctionnelle — et un sabotage du routage de `right` resterait muet,
+      // ce qui est exactement arrivé à une version précédente de ce test.
+      _press(game, RuntimeInputControl.right);
+      _press(game, RuntimeInputControl.primary);
+      expect(
+        overlay.currentMenuMode,
+        isNot(BattleCommandMenuMode.fight),
+        reason: 'the d-pad must reach a command other than FIGHT',
+      );
+      expect(overlay.currentMenuMode, isNot(BattleCommandMenuMode.root));
+      _press(game, RuntimeInputControl.secondary);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
+
+      // Start reste hors de Flame : il appartient au shell joueur, donc une
+      // manette ne doit pas ouvrir d'UI produit depuis l'intérieur du jeu.
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.menu),
+        ),
+        isFalse,
+      );
+
+      // La croix atteint une AUTRE commande racine, prouvée par le sous-menu
+      // différent qu'elle ouvre. Sans ce pas, une croix inerte passerait pour
+      // fonctionnelle.
+      _press(game, RuntimeInputControl.right);
+      _press(game, RuntimeInputControl.primary);
+      expect(
+        overlay.currentMenuMode,
+        isNot(BattleCommandMenuMode.fight),
+        reason: 'the d-pad must reach a command other than FIGHT',
+      );
+      expect(overlay.currentMenuMode, isNot(BattleCommandMenuMode.root));
+
+      _press(game, RuntimeInputControl.secondary);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
     });
 
     test('PlayableMapGame opens PSDK battle for legacy-filtered PSDK moves',
@@ -1788,6 +1876,32 @@ Future<void> _acknowledgePostBattleAndWaitForOverworld(
     '(phase=${game.debugFlowPhaseName}, '
     'postBattle=${game.debugPostBattleOverlayMounted}).',
   );
+}
+
+/// Jeu qui se déclare chargé, pour que le routage des entrées s'exécute.
+final class _LoadedGame extends PlayableMapGame {
+  _LoadedGame({
+    required super.bundle,
+    required super.projectFilePath,
+    super.saveData,
+  });
+
+  bool _loaded = false;
+
+  @override
+  bool get isLoaded => _loaded;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    _loaded = true;
+  }
+}
+
+/// Presse puis relâche un contrôle, comme le ferait un pad.
+void _press(PlayableMapGame game, RuntimeInputControl control) {
+  game.handleRuntimeInputEvent(RuntimeInputEvent.press(control));
+  game.handleRuntimeInputEvent(RuntimeInputEvent.release(control));
 }
 
 WildBattleStartRequest _wildRequest(ProjectManifest manifest, MapData map) {
