@@ -223,6 +223,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameSaveRepository? saveRepository,
     this.bundleTransformer,
     this.reducedMotion = false,
+    this.textScale = 1.0,
     RuntimeDialogueSessionLoader? dialogueSessionLoader,
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
@@ -415,6 +416,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// chaque étape du plan est encore jouée, chaque dégât encore appliqué, seule
   /// la durée change. Voir `battleReducedMotionSpeedFactor`.
   final bool reducedMotion;
+
+  /// Échelle de texte demandée par le joueur, transmise à la scène de combat.
+  ///
+  /// Même histoire que [reducedMotion] : portée par
+  /// GameSessionAccessibilityOptions côté shell, elle n atteignait pas le
+  /// runtime. Bornée dans la scène plutôt qu ici, pour que la borne vive avec le
+  /// rendu qui la subit.
+  final double textScale;
   final MapActivationReason initialMapActivationReason;
   final String runtimeLocale;
 
@@ -7650,6 +7659,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'overlay',
         () => BattleOverlayComponent(
           motionScale: reducedMotion ? battleReducedMotionSpeedFactor : 1.0,
+          textScale: textScale,
           session: _battleSession!,
           gameState: _battleRuntimeGameState,
           viewportSize: camera.viewport.size,

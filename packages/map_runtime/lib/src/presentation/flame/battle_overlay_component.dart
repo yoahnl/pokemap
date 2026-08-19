@@ -446,6 +446,7 @@ String _defaultBattleMoveDisplayName(String moveId, String fallbackName) =>
 /// visible et non oublié.
 const double battleReducedMotionSpeedFactor = 2.5;
 
+
 class BattleOverlayComponent extends PositionComponent {
   BattleOverlayComponent({
     required BattleSession session,
@@ -464,6 +465,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.resolveSpeciesDisplayName = _battleDisplayName,
     this.showDebugPanel = false,
     this.motionScale = 1.0,
+    this.textScale = 1.0,
     RuntimeMoveCatalog? moveCatalog,
     BattleMoveVisualResolver? moveVisualResolver,
     BattleFxBundleCache? fxBundleCache,
@@ -541,6 +543,9 @@ class BattleOverlayComponent extends PositionComponent {
   /// `1.0` laisse le rythme d'origine, ce qui garde ce paramètre sans effet
   /// partout où personne ne le passe.
   final double motionScale;
+
+  /// Échelle de texte demandée par le joueur, transmise au panneau de commande.
+  final double textScale;
   bool _preferTouchListDragScroll;
   bool _useFlutterCommandOverlay;
   final bool _allowMedicineReserveTargets;
@@ -945,6 +950,7 @@ class BattleOverlayComponent extends PositionComponent {
       bagItemIconResolver: bagItemIconResolver,
       visualAssetCache: visualAssetCache,
       layoutModeOverride: layout.commandPanelLayoutMode,
+      textScale: textScale,
       preferTouchListDragScroll: _preferTouchListDragScroll,
     );
     _commandPanel = commandPanel;

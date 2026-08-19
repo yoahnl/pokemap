@@ -2,6 +2,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/painting.dart';
 
+/// Bornes de l'échelle de texte de combat.
+///
+/// En dessous, les libellés deviennent illisibles ; au-dessus, l'ellipse du
+/// cache de peinture les tronque, ce qui échoue proprement mais n'aide personne.
+/// Borner vaut mieux que laisser une valeur absurde traverser tout le rendu.
+///
+/// Déclarées ici parce que le panneau de commande ET la scène les lisent, et que
+/// ce fichier est le contrat de composition que les deux importent déjà.
+const double battleMinimumTextScale = 0.8;
+const double battleMaximumTextScale = 1.6;
+
 enum BattleCommandPanelLayoutMode {
   split,
   stacked,

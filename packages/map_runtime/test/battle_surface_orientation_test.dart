@@ -101,6 +101,64 @@ void main() {
       }
     });
 
+    test('the text scale grows the command labels', () async {
+      // « Accessibilité texte » de BETA-BAT-007. `textScale` de
+      // GameSessionAccessibilityOptions n'atteignait pas le runtime : rien sous
+      // `presentation/` ne le lisait. Il traverse maintenant jusqu'aux tailles de
+      // police décidées par la disposition du panneau.
+      final normal = await _mountedPanel(Vector2(776, 304));
+      final larger = await _mountedPanel(Vector2(776, 304), textScale: 1.5);
+
+      expect(
+        larger.currentPromptFontSize,
+        greaterThan(normal.currentPromptFontSize),
+      );
+      expect(
+        larger.currentCommandLabelFontSize,
+        greaterThan(normal.currentCommandLabelFontSize),
+      );
+    });
+
+    test('an absurd text scale is clamped instead of ruining the panel',
+        () async {
+      // Au-delà de la borne, l'ellipse du cache de peinture tronque les
+      // libellés : ça échoue proprement mais n'aide personne. Borner vaut mieux
+      // que laisser passer.
+      final clamped = await _mountedPanel(Vector2(776, 304), textScale: 12);
+      final atMax = await _mountedPanel(
+        Vector2(776, 304),
+        textScale: battleMaximumTextScale,
+      );
+
+      expect(clamped.currentPromptFontSize, atMax.currentPromptFontSize);
+    });
+
+    test('the overlay hands the text scale down to its panel', () async {
+      // La transmission, distincte de l'application : construire le panneau en
+      // direct ne prouve pas que l'overlay lui passe l'échelle. Sans ce cas,
+      // retirer le passage laissait la suite verte.
+      final normal = await _mountedOverlayPanel(const Size(1280, 720));
+      final larger = await _mountedOverlayPanel(
+        const Size(1280, 720),
+        textScale: 1.5,
+      );
+
+      expect(
+        larger.currentPromptFontSize,
+        greaterThan(normal.currentPromptFontSize),
+      );
+    });
+
+    test('a text scale below the floor is clamped too', () async {
+      final tiny = await _mountedPanel(Vector2(776, 304), textScale: 0.05);
+      final atMin = await _mountedPanel(
+        Vector2(776, 304),
+        textScale: battleMinimumTextScale,
+      );
+
+      expect(tiny.currentPromptFontSize, atMin.currentPromptFontSize);
+    });
+
     test('the panel mode follows the scene on every certified viewport', () {
       // Invariant plutôt que cas particuliers : quelle que soit la taille, le
       // mode que l'overlay transmet est celui du modèle de scène.
@@ -160,8 +218,12 @@ bool _panelOwnRuleWouldSplit(Vector2 panelSize) {
 /// Le `onGameResize` est indispensable et c'est ce qui m'a manqué longtemps :
 /// sans taille de jeu, l'overlay ne construit pas son panneau du tout et la
 /// recherche rend une liste vide.
-Future<BattleCommandPanelComponent> _mountedOverlayPanel(Size viewport) async {
+Future<BattleCommandPanelComponent> _mountedOverlayPanel(
+  Size viewport, {
+  double textScale = 1.0,
+}) async {
   final overlay = BattleOverlayComponent(
+    textScale: textScale,
     session: createBattleSession(
       BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: _combatant('charmander', 0),
@@ -222,6 +284,7 @@ BattleSceneLayout _sceneLayoutFor(Size viewport) {
 Future<BattleCommandPanelComponent> _mountedPanel(
   Vector2 panelSize, {
   BattleCommandPanelLayoutMode? override,
+  double textScale = 1.0,
 }) async {
   final panel = BattleCommandPanelComponent(
     position: Vector2.zero(),
@@ -230,6 +293,7 @@ Future<BattleCommandPanelComponent> _mountedPanel(
     onRootActionSelected: (_) {},
     onPartyEntrySelected: (_) {},
     layoutModeOverride: override,
+    textScale: textScale,
   );
   final game = FlameGame();
   // Sans taille de jeu, le composant ne charge JAMAIS : onLoad ne tourne pas, la

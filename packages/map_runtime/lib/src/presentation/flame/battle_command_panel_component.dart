@@ -125,6 +125,7 @@ class BattleCommandPanelComponent extends PositionComponent with DragCallbacks {
     this.bagItemIconResolver,
     this.visualAssetCache,
     this.layoutModeOverride,
+    this.textScale = 1.0,
     bool preferTouchListDragScroll = false,
   })  : _preferTouchListDragScroll = preferTouchListDragScroll,
         super(
@@ -146,6 +147,18 @@ class BattleCommandPanelComponent extends PositionComponent with DragCallbacks {
   final BattleBagItemIconResolver? bagItemIconResolver;
   final BattleVisualAssetCache? visualAssetCache;
   final BattleCommandPanelLayoutMode? layoutModeOverride;
+
+  /// Échelle de texte demandée par le joueur.
+  ///
+  /// `textScale` de `GameSessionAccessibilityOptions` n'atteignait pas le
+  /// runtime : rien sous `presentation/` ne le lisait, donc le panneau gardait
+  /// ses tailles quoi qu'il arrive. Il arrive ici pour que les libellés d'action
+  /// et les noms de capacités suivent.
+  ///
+  /// Bornée par [battleMinimumTextScale] et [battleMaximumTextScale] : au-delà,
+  /// l'ellipse du cache de peinture tronque les libellés, ce qui échoue
+  /// proprement mais n'aide personne.
+  final double textScale;
 
   PositionComponent? _promptPanel;
   PositionComponent? _commandsPanel;
@@ -370,6 +383,14 @@ class BattleCommandPanelComponent extends PositionComponent with DragCallbacks {
   BattleCommandPanelLayoutMode get currentLayoutMode =>
       _layout?.mode ?? BattleCommandPanelLayoutMode.split;
 
+  /// Tailles de police réellement appliquées, pour que l'échelle de texte soit
+  /// mesurable plutôt que supposée.
+  @visibleForTesting
+  double get currentPromptFontSize => _layout?.promptFontSize ?? 0;
+
+  @visibleForTesting
+  double get currentCommandLabelFontSize => _layout?.commandLabelFontSize ?? 0;
+
   @visibleForTesting
   Vector2 get promptPanelPosition => _promptPanel?.position ?? Vector2.zero();
 
@@ -528,6 +549,7 @@ class BattleCommandPanelComponent extends PositionComponent with DragCallbacks {
     final layout = _BattleCommandPanelLayout.forSize(
       size,
       modeOverride: layoutModeOverride,
+      textScale: textScale,
     );
     _layout = layout;
 
@@ -699,6 +721,7 @@ class BattleCommandPanelComponent extends PositionComponent with DragCallbacks {
     final layout = _BattleCommandPanelLayout.forSize(
       size,
       modeOverride: modeOverride ?? layoutModeOverride,
+      textScale: textScale,
     );
     _layout = layout;
 
@@ -2525,7 +2548,19 @@ class _BattleCommandPanelLayout {
   factory _BattleCommandPanelLayout.forSize(
     Vector2 panelSize, {
     BattleCommandPanelLayoutMode? modeOverride,
+    double textScale = 1.0,
   }) {
+    // Les tailles de police du panneau sont décidées ICI, donc c'est le seul
+    // endroit à mettre à l'échelle pour que tout le texte de commande suive.
+    // Le cache de peinture ne convient pas : il est instancié au niveau module
+    // et ne peut pas porter une valeur par session.
+    //
+    // L'échelle est bornée : au-delà, les libellés se font tronquer par
+    // l'ellipse du cache plutôt que de déborder, ce qui est sûr mais illisible.
+    final scale = textScale.clamp(
+      battleMinimumTextScale,
+      battleMaximumTextScale,
+    );
     final useStacked = modeOverride == null
         ? panelSize.x < 700 ||
             (panelSize.x / (panelSize.y <= 0 ? 1 : panelSize.y)) < 2.45
@@ -2543,13 +2578,13 @@ class _BattleCommandPanelLayout {
         commandsPosition: Vector2(0, promptHeight + spacing),
         commandsSize: Vector2(panelSize.x, commandsHeight),
         battleLabelPosition: Vector2(16, 12),
-        battleLabelFontSize: 9,
+        battleLabelFontSize: 9 * scale,
         promptTextPosition: Vector2(16, 28),
-        promptFontSize: 16,
+        promptFontSize: 16 * scale,
         narrationPosition: Vector2(16, 58),
-        narrationFontSize: 11,
+        narrationFontSize: 11 * scale,
         commandTitlePosition: Vector2(10, 2),
-        commandLabelFontSize: 9,
+        commandLabelFontSize: 9 * scale,
       );
     }
 
@@ -2563,13 +2598,13 @@ class _BattleCommandPanelLayout {
       commandsPosition: Vector2(promptWidth + spacing, 0),
       commandsSize: Vector2(commandsWidth, panelSize.y),
       battleLabelPosition: Vector2(20, 16),
-      battleLabelFontSize: 10,
+      battleLabelFontSize: 10 * scale,
       promptTextPosition: Vector2(20, 36),
-      promptFontSize: 20,
+      promptFontSize: 20 * scale,
       narrationPosition: Vector2(20, 82),
-      narrationFontSize: 13,
+      narrationFontSize: 13 * scale,
       commandTitlePosition: Vector2(10, 2),
-      commandLabelFontSize: 10,
+      commandLabelFontSize: 10 * scale,
     );
   }
 }
