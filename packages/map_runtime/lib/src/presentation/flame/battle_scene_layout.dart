@@ -82,6 +82,7 @@ final class BattleSceneLayout {
   factory BattleSceneLayout.forViewport({
     required Size viewportSize,
     EdgeInsets safePadding = EdgeInsets.zero,
+    double textScale = 1.0,
   }) {
     final viewportClass = classifyViewport(
       viewportSize: viewportSize,
@@ -286,6 +287,40 @@ final class BattleSceneLayout {
       BattleViewportClass.wideDesktop => mapRect(668, 232, 244, 74),
     };
 
+    // BETA-BAT-007. La hauteur du rectangle est ce qui plafonnait vraiment
+    // l'accessibilité texte du HUD : sur 54 à 74 px, une demande de 1.6
+    // n'obtenait que 1.03 à 1.29 quel que soit le soin apporté aux polices.
+    // Autorisé par Yoahn le 2026-08-20, donc les rectangles grandissent — mais
+    // seulement quand le texte le demande, pour que la géométrie certifiée à
+    // l'échelle 1.0 ne bouge pas d'un pixel.
+    //
+    // Aucune nouvelle constante : l'agrandissement s'arrête sur les voisins
+    // réels. Le HUD est en priorité 20, donc il RECOUVRE les sprites — et
+    // BETA-BAT-009 s'appelle « non occultante ». Grandir dans le décor n'est
+    // donc pas gratuit, c'est la contrainte principale.
+    final grownEnemyHudRect = _growHudRect(
+      base: enemyHudRect,
+      textScale: textScale,
+      bounds: sceneRect,
+      obstacles: <Rect>[
+        playerSpriteRect,
+        enemySpriteRect,
+        commandPanelRect,
+        playerHudRect,
+      ],
+    );
+    final grownPlayerHudRect = _growHudRect(
+      base: playerHudRect,
+      textScale: textScale,
+      bounds: sceneRect,
+      obstacles: <Rect>[
+        playerSpriteRect,
+        enemySpriteRect,
+        commandPanelRect,
+        enemyHudRect,
+      ],
+    );
+
     return BattleSceneLayout._(
       viewportSize: viewportSize,
       safePadding: safePadding,
@@ -295,8 +330,8 @@ final class BattleSceneLayout {
       sceneRect: sceneRect,
       stageRect: stageRect,
       commandPanelRect: commandPanelRect,
-      enemyHudRect: enemyHudRect,
-      playerHudRect: playerHudRect,
+      enemyHudRect: grownEnemyHudRect,
+      playerHudRect: grownPlayerHudRect,
       enemySpriteRect: enemySpriteRect,
       playerSpriteRect: playerSpriteRect,
       enemyPlatformRect: enemyPlatformRect,
@@ -331,4 +366,90 @@ final class BattleSceneLayout {
         ? BattleCommandPanelLayoutMode.stacked
         : BattleCommandPanelLayoutMode.split;
   }
+}
+
+/// Agrandit un rectangle de HUD à la demande de l'échelle de texte, en
+/// s'arrêtant sur ses voisins réels.
+///
+/// Les deux axes sont traités séparément, et dans cet ordre : la largeur
+/// d'abord, puis la hauteur bornée par les obstacles que la NOUVELLE bande
+/// horizontale rencontre. Un seul facteur commun aux deux axes serait plus
+/// simple et strictement moins bon : sur un portrait compact, la largeur bute
+/// sur le sprite ennemi bien avant que la hauteur ne manque, et c'est la
+/// hauteur qui commande la taille de police.
+///
+/// Un obstacle qui chevauche DÉJÀ la base est ignoré par construction — les
+/// conditions ne retiennent que ce qui est entièrement d'un côté. Sans ça, le
+/// HUD joueur en portrait, qui recouvre déjà 8 px du sprite ennemi, produirait
+/// des bornes absurdes.
+Rect _growHudRect({
+  required Rect base,
+  required double textScale,
+  required Rect bounds,
+  required List<Rect> obstacles,
+}) {
+  final scale = textScale.clamp(
+    battleMinimumTextScale,
+    battleMaximumTextScale,
+  );
+  if (scale <= 1.0 || base.isEmpty) {
+    return base;
+  }
+
+  double limit(
+    Iterable<double> candidates,
+    double fallback, {
+    required bool lower,
+  }) {
+    var result = fallback;
+    for (final candidate in candidates) {
+      result = lower
+          ? math.max(result, candidate)
+          : math.min(result, candidate);
+    }
+    return result;
+  }
+
+  final verticalNeighbours = obstacles.where(
+    (obstacle) =>
+        obstacle.top < base.bottom && obstacle.bottom > base.top,
+  );
+  final leftLimit = limit(
+    verticalNeighbours
+        .where((obstacle) => obstacle.right <= base.left)
+        .map((obstacle) => obstacle.right),
+    bounds.left,
+    lower: true,
+  );
+  final rightLimit = limit(
+    verticalNeighbours
+        .where((obstacle) => obstacle.left >= base.right)
+        .map((obstacle) => obstacle.left),
+    bounds.right,
+    lower: false,
+  );
+  final width = math.min(base.width * scale, rightLimit - leftLimit);
+  final left = math.max(leftLimit, math.min(base.left, rightLimit - width));
+
+  final horizontalNeighbours = obstacles.where(
+    (obstacle) => obstacle.left < left + width && obstacle.right > left,
+  );
+  final topLimit = limit(
+    horizontalNeighbours
+        .where((obstacle) => obstacle.bottom <= base.top)
+        .map((obstacle) => obstacle.bottom),
+    bounds.top,
+    lower: true,
+  );
+  final bottomLimit = limit(
+    horizontalNeighbours
+        .where((obstacle) => obstacle.top >= base.bottom)
+        .map((obstacle) => obstacle.top),
+    bounds.bottom,
+    lower: false,
+  );
+  final height = math.min(base.height * scale, bottomLimit - topLimit);
+  final top = math.max(topLimit, math.min(base.top, bottomLimit - height));
+
+  return Rect.fromLTWH(left, top, width, height);
 }

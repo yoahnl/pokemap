@@ -234,6 +234,8 @@ final class PlayableMapGameSessionRuntime
         gameCompletionEmitter: emitCompletion,
         defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
         runtimeLocale: descriptor.locale,
+        reducedMotion: descriptor.accessibility.reducedMotion,
+        textScale: descriptor.accessibility.textScale,
         initialMapActivationReason:
             descriptor.launchMode == GameSessionLaunchMode.newGame
                 ? MapActivationReason.initialBoot

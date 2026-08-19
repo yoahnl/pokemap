@@ -752,6 +752,7 @@ class BattleOverlayComponent extends PositionComponent {
       _sceneLayout ??
       BattleSceneLayout.forViewport(
         viewportSize: Size(size.x, size.y),
+        textScale: textScale,
       );
 
   @visibleForTesting
@@ -766,6 +767,7 @@ class BattleOverlayComponent extends PositionComponent {
     await BattleSdkRmxpAnimationCatalog.ensureLoaded();
     final layout = BattleSceneLayout.forViewport(
       viewportSize: Size(size.x, size.y),
+      textScale: textScale,
     );
     _sceneLayout = layout;
 
@@ -1062,6 +1064,7 @@ class BattleOverlayComponent extends PositionComponent {
     size = viewportSize.clone();
     final layout = BattleSceneLayout.forViewport(
       viewportSize: Size(size.x, size.y),
+      textScale: textScale,
     );
     _sceneLayout = layout;
 

@@ -87,7 +87,14 @@ void main() {
       runtimeApiVersion: '1.0.0',
       grantedCapabilities: const <String>{'map.v1'},
       locale: 'fr-FR',
-      accessibility: const GameSessionAccessibilityOptions(),
+      // Valeurs NON par défaut exprès : le descripteur porte déjà ces options
+      // depuis toujours, mais rien ne les transmettait au jeu. Toute
+      // l'accessibilité de BETA-BAT-007 était donc injoignable en production —
+      // le moteur l'honorait, personne ne la lui donnait.
+      accessibility: const GameSessionAccessibilityOptions(
+        reducedMotion: true,
+        textScale: 1.5,
+      ),
     );
     final createdAt = DateTime.utc(2026, 7, 24);
     final now = DateTime.utc(2026, 7, 25);
@@ -147,6 +154,8 @@ void main() {
     expect(mounted, isNotNull);
     expect(mounted!.enableActorContactShadows, isFalse);
     expect(mounted!.enableStaticPlacedElementShadows, isFalse);
+    expect(mounted!.reducedMotion, isTrue);
+    expect(mounted!.textScale, 1.5);
     expect(progress.last.stage, 'ready');
     await runtime.pause();
     final pauseDetails = await runtime.loadPauseDetails();

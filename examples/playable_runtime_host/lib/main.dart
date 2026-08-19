@@ -708,6 +708,11 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       final initialTilesetImageCache = reusesPreloadedInitialMap
           ? preloadedInitialMap?.takeTilesetImageCache()
           : null;
+      // Le host standalone construit le jeu en direct, sans passer par
+      // PlayableMapGameSessionRuntime : il lui faut donc son propre passage des
+      // options d'accessibilité, sinon la préférence n'existe que dans le thème.
+      final accessibility =
+          _startupSnapshot?.playerSnapshot?.preferences?.accessibility;
       late final PlayableMapGame nextGame;
       try {
         nextGame = PlayableMapGame(
@@ -719,6 +724,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
           enableActorContactShadows: false,
           enableStaticPlacedElementShadows: false,
           audioMixer: _startupHost?.audioMixer,
+          reducedMotion: accessibility?.reducedMotion ?? false,
+          textScale: accessibility?.textScale ?? 1.0,
         );
       } catch (_) {
         initialTilesetImageCache?.dispose();

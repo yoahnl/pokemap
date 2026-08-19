@@ -183,6 +183,27 @@ void main() {
       );
     });
 
+    test('the overlay hands the text scale to the scene, not only to the HUD',
+        () async {
+      // Encore la distinction application / transmission, et elle a un troisième
+      // étage ici : les tailles de police, le composant HUD, et le RECTANGLE que
+      // la scène lui donne. `forViewport` est appelé à TROIS endroits de
+      // l'overlay (accesseur de test, onLoad, redimensionnement) ; en oublier un
+      // laisserait le HUD à sa taille d'origine selon le chemin emprunté.
+      final normal = await _mountedOverlayPlayerHud(const Size(1280, 720));
+      final larger = await _mountedOverlayPlayerHud(
+        const Size(1280, 720),
+        textScale: 1.5,
+      );
+
+      expect(larger.size.y, greaterThan(normal.size.y));
+      expect(larger.size.x, greaterThan(normal.size.x));
+      expect(
+        larger.currentLayout.nameFontSize,
+        greaterThan(normal.currentLayout.nameFontSize),
+      );
+    });
+
     test('a text scale below the floor is clamped too', () async {
       final tiny = await _mountedPanel(Vector2(776, 304), textScale: 0.05);
       final atMin = await _mountedPanel(
