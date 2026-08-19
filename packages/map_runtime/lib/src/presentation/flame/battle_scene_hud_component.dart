@@ -22,6 +22,7 @@ class BattleSceneHudComponent extends PositionComponent {
     required BattleCombatant combatant,
     required this.isPlayerSide,
     this.initialGenderSymbol,
+    this.textScale = 1.0,
   })  : _combatant = combatant,
         _displayedHp = combatant.currentHp.toDouble(),
         super(
@@ -34,6 +35,7 @@ class BattleSceneHudComponent extends PositionComponent {
   final String ownerLabel;
   final bool isPlayerSide;
   final String? initialGenderSymbol;
+  final double textScale;
   BattleCombatant _combatant;
   String? _genderSymbol;
   double _displayedHp;
@@ -89,6 +91,7 @@ class BattleSceneHudComponent extends PositionComponent {
         levelText: 'Lv.${_combatant.level}',
         hpValueText: _hpValueText,
         statusText: _statusLabel(_combatant),
+        textScale: textScale,
       );
 
   @visibleForTesting
@@ -382,6 +385,7 @@ class BattleSceneHudComponent extends PositionComponent {
       levelText: 'Lv.${_combatant.level}',
       hpValueText: _hpValueText,
       statusText: _statusLabel(_combatant),
+      textScale: textScale,
     );
   }
 

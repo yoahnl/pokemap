@@ -861,6 +861,7 @@ class BattleOverlayComponent extends PositionComponent {
           combatant: _session.state.enemy,
           isPlayerSide: false,
         ),
+        textScale: textScale,
       );
       await add(_enemyHud!);
       enemyHudStopwatch.stop();
@@ -879,6 +880,7 @@ class BattleOverlayComponent extends PositionComponent {
           combatant: _session.state.player,
           isPlayerSide: true,
         ),
+        textScale: textScale,
       );
       await add(_playerHud!);
       playerHudStopwatch.stop();
@@ -975,6 +977,7 @@ class BattleOverlayComponent extends PositionComponent {
           combatant: _session.state.enemy,
           isPlayerSide: false,
         ),
+        textScale: textScale,
       );
       _enemyHud = enemyHud;
       await add(enemyHud);
@@ -990,6 +993,7 @@ class BattleOverlayComponent extends PositionComponent {
           combatant: _session.state.player,
           isPlayerSide: true,
         ),
+        textScale: textScale,
       );
       _playerHud = playerHud;
       await add(playerHud);

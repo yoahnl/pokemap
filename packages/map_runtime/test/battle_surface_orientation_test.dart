@@ -6,6 +6,7 @@ import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_hud_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 
 /// Portrait et paysage : les deux couches sont-elles d'accord ?
@@ -149,6 +150,39 @@ void main() {
       );
     });
 
+    test('the overlay hands the text scale down to its HUDs', () async {
+      // Même distinction que pour le panneau, et le HUD a quatre points de
+      // construction dans l'overlay au lieu d'un : en oublier un laisserait un
+      // HUD sur deux au texte d'origine. Le viewport 1280x720 donne au HUD
+      // joueur 244x74, une boîte qui accorde environ 1.21 sur les 1.5 demandés.
+      final normal = await _mountedOverlayPlayerHud(const Size(1280, 720));
+      final larger = await _mountedOverlayPlayerHud(
+        const Size(1280, 720),
+        textScale: 1.5,
+      );
+
+      expect(
+        larger.currentLayout.nameFontSize,
+        greaterThan(normal.currentLayout.nameFontSize),
+      );
+      expect(larger.currentLayout.effectiveTextScale, greaterThan(1.0));
+    });
+
+    test('the overlay hands it to the enemy HUD too, not only the player one',
+        () async {
+      // Le HUD ennemi se construit à deux endroits distincts du HUD joueur.
+      final normal = await _mountedOverlayEnemyHud(const Size(1280, 720));
+      final larger = await _mountedOverlayEnemyHud(
+        const Size(1280, 720),
+        textScale: 1.5,
+      );
+
+      expect(
+        larger.currentLayout.nameFontSize,
+        greaterThan(normal.currentLayout.nameFontSize),
+      );
+    });
+
     test('a text scale below the floor is clamped too', () async {
       final tiny = await _mountedPanel(Vector2(776, 304), textScale: 0.05);
       final atMin = await _mountedPanel(
@@ -240,6 +274,46 @@ Future<BattleCommandPanelComponent> _mountedOverlayPanel(
   await game.add(overlay);
   await game.ready();
   return overlay.children.whereType<BattleCommandPanelComponent>().single;
+}
+
+Future<BattleSceneHudComponent> _mountedOverlayPlayerHud(
+  Size viewport, {
+  double textScale = 1.0,
+}) async {
+  return _mountedOverlayHuds(viewport, textScale: textScale)
+      .then((huds) => huds.singleWhere((hud) => hud.isPlayerSide));
+}
+
+Future<BattleSceneHudComponent> _mountedOverlayEnemyHud(
+  Size viewport, {
+  double textScale = 1.0,
+}) async {
+  return _mountedOverlayHuds(viewport, textScale: textScale)
+      .then((huds) => huds.singleWhere((hud) => !hud.isPlayerSide));
+}
+
+Future<List<BattleSceneHudComponent>> _mountedOverlayHuds(
+  Size viewport, {
+  double textScale = 1.0,
+}) async {
+  final overlay = BattleOverlayComponent(
+    textScale: textScale,
+    session: createBattleSession(
+      BattleSetup.pokeMapBetaV1ForTest(
+        playerPokemon: _combatant('charmander', 0),
+        enemyPokemon: _combatant('squirtle', 0),
+        isTrainerBattle: false,
+        trainerId: null,
+      ),
+    ),
+    viewportSize: Vector2(viewport.width, viewport.height),
+    onPlayerChoice: (_) {},
+  );
+  final game = FlameGame();
+  game.onGameResize(Vector2(viewport.width, viewport.height));
+  await game.add(overlay);
+  await game.ready();
+  return overlay.children.whereType<BattleSceneHudComponent>().toList();
 }
 
 BattleCombatantData _combatant(String speciesId, int lineupIndex) {
