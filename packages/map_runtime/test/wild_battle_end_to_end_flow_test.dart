@@ -526,6 +526,57 @@ void main() {
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
     });
 
+    test('reduced motion shortens the turn presentation without skipping it',
+        () async {
+      // DÉCISION PRODUIT (Yoahn, 2026-08-20) : raccourcir, pas sauter. La mesure
+      // est donc le NOMBRE D'IMAGES qu'il faut pour que la présentation du tour
+      // se termine — pas la présence d'un champ, qui ne prouverait rien.
+      //
+      // Le tour est déclenché par le chemin manette certifié juste au-dessus :
+      // primary ouvre FIGHT, primary confirme la capacité.
+      //
+      // RÉSERVE SUR CE QUE CE CAS PROUVE, mesurée par sabotage. L'observable est
+      // `isTurnPresentationActive`, qui lit l'horloge du RUNNER. Il distingue
+      // donc « la scène avance plus vite » de « elle n'avance pas », mais PAS
+      // « phases raccourcies » de « phases ET visuels raccourcis » : scaler le
+      // seul runner laisse ce cas vert alors que les effets seraient coupés en
+      // cours de route, c'est-à-dire sautés en apparence. C'est pour ça que
+      // l'implémentation met `super.update` à l'échelle aussi — voir le
+      // commentaire de `motionScale` — mais cette moitié-là n'est pas prouvée
+      // ici, faute d'observable sur la durée de vie des effets visuels.
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+
+      final normalFrames = await _framesToFinishTurnPresentation(
+        projectRoot: tempProjectRoot,
+        manifest: manifest,
+        map: map,
+        reducedMotion: false,
+      );
+      final reducedFrames = await _framesToFinishTurnPresentation(
+        projectRoot: tempProjectRoot,
+        manifest: manifest,
+        map: map,
+        reducedMotion: true,
+      );
+
+      expect(
+        normalFrames,
+        greaterThan(1),
+        reason: 'a presentation that never runs would make this vacuous',
+      );
+      expect(
+        reducedFrames,
+        lessThan(normalFrames),
+        reason: 'reduced motion must shorten the presentation',
+      );
+      expect(
+        reducedFrames,
+        greaterThan(0),
+        reason: 'shortened, not skipped: the presentation still happens',
+      );
+    });
+
     test('PlayableMapGame opens PSDK battle for legacy-filtered PSDK moves',
         () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
@@ -1878,12 +1929,49 @@ Future<void> _acknowledgePostBattleAndWaitForOverworld(
   );
 }
 
+/// Nombre d'images nécessaires pour épuiser la présentation d'un tour.
+///
+/// Le tour est lancé par le chemin manette : primary ouvre FIGHT, primary
+/// confirme. On compte ensuite les images jusqu'à ce que la présentation rende
+/// la main.
+Future<int> _framesToFinishTurnPresentation({
+  required Directory projectRoot,
+  required ProjectManifest manifest,
+  required MapData map,
+  required bool reducedMotion,
+}) async {
+  final game = _LoadedGame(
+    bundle: _buildBundle(projectRoot.path, manifest, map),
+    projectFilePath: p.join(projectRoot.path, 'project.json'),
+    saveData: saveDataFromGameState(_playerState()),
+    reducedMotion: reducedMotion,
+  );
+  game.onGameResize(Vector2(960, 540));
+  await game.onLoad();
+  await game.debugOpenBattleForTest(_wildRequest(manifest, map));
+  await game.debugWaitForBattleOverlaySync();
+
+  final overlay = game.debugBattleOverlayComponent!;
+  _press(game, RuntimeInputControl.primary);
+  _press(game, RuntimeInputControl.primary);
+  await game.debugWaitForBattleOverlaySync();
+
+  var frames = 0;
+  while (overlay.isTurnPresentationActive && frames < 4000) {
+    game.update(0.016);
+    await Future<void>.delayed(Duration.zero);
+    frames += 1;
+  }
+  return frames;
+}
+
 /// Jeu qui se déclare chargé, pour que le routage des entrées s'exécute.
 final class _LoadedGame extends PlayableMapGame {
   _LoadedGame({
     required super.bundle,
     required super.projectFilePath,
     super.saveData,
+    super.reducedMotion,
   });
 
   bool _loaded = false;

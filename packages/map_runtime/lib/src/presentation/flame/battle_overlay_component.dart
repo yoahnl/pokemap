@@ -433,6 +433,19 @@ String _battleDisplayName(String speciesId) => speciesId;
 String _defaultBattleMoveDisplayName(String moveId, String fallbackName) =>
     fallbackName;
 
+/// Vitesse de la scène de combat quand le joueur demande un mouvement réduit.
+///
+/// Calé sur le « combat rapide » des jeux de la série : environ deux fois et
+/// demie plus court, assez pour que la lecture reste possible. Nommé plutôt
+/// qu'écrit en dur pour rester discutable sans relire la scène.
+///
+/// RÉSERVE HONNÊTE : « reduced motion » signifie d'ordinaire MOINS de mouvement,
+/// pas du mouvement plus rapide, et accélérer peut gêner une sensibilité au
+/// mouvement plutôt que la soulager. Raccourcir plutôt que sauter est un choix
+/// produit assumé (Yoahn, 2026-08-20) ; ce commentaire existe pour qu'il reste
+/// visible et non oublié.
+const double battleReducedMotionSpeedFactor = 2.5;
+
 class BattleOverlayComponent extends PositionComponent {
   BattleOverlayComponent({
     required BattleSession session,
@@ -450,6 +463,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.resolveMoveDisplayName = _defaultBattleMoveDisplayName,
     this.resolveSpeciesDisplayName = _battleDisplayName,
     this.showDebugPanel = false,
+    this.motionScale = 1.0,
     RuntimeMoveCatalog? moveCatalog,
     BattleMoveVisualResolver? moveVisualResolver,
     BattleFxBundleCache? fxBundleCache,
@@ -508,6 +522,25 @@ class BattleOverlayComponent extends PositionComponent {
   /// interrupteur explicite au lieu de laisser le debug redéfinir l'apparence
   /// par défaut du combat.
   final bool showDebugPanel;
+
+  /// Facteur de vitesse appliqué au temps de la scène de combat.
+  ///
+  /// BETA-BAT-007 demande que le reduced motion RACCOURCISSE les animations
+  /// plutôt que de les sauter — décision de Yoahn du 2026-08-20. Mettre `dt` à
+  /// l'échelle ici est le seul endroit qui obtienne ça sans rien supprimer :
+  /// `update` pilote le runner d'animation, le rig caméra ET tous les enfants
+  /// visuels, donc phases et effets se raccourcissent ENSEMBLE. Chaque étape du
+  /// plan est encore jouée, chaque callback encore appelé, chaque dégât encore
+  /// appliqué : seule la durée change.
+  ///
+  /// L'alternative envisagée puis écartée était de mettre les durées à l'échelle
+  /// dans le plan : 29 types d'étapes, aucun `copyWith`, donc un mapper à
+  /// reconstruire à la main où un champ oublié se perdrait en silence. Et
+  /// certaines durées sont dérivées d'un catalogue et ne sont pas dans l'étape.
+  ///
+  /// `1.0` laisse le rythme d'origine, ce qui garde ce paramètre sans effet
+  /// partout où personne ne le passe.
+  final double motionScale;
   bool _preferTouchListDragScroll;
   bool _useFlutterCommandOverlay;
   final bool _allowMedicineReserveTargets;
@@ -1300,12 +1333,17 @@ class BattleOverlayComponent extends PositionComponent {
 
   @override
   void update(double dt) {
-    _animationRunner?.update(dt);
+    // Une seule mise à l'échelle pour toute la scène : le runner, la caméra et
+    // les enfants visuels avancent sur la même horloge, donc rien ne se
+    // désynchronise. Scaler la seule durée de phase du runner couperait les
+    // effets en cours, ce qui reviendrait à les sauter.
+    final scaledDt = dt * (motionScale <= 0 ? 1.0 : motionScale);
+    _animationRunner?.update(scaledDt);
     if (isBattleCameraActive) {
-      _battleCameraRig.update(dt);
+      _battleCameraRig.update(scaledDt);
       _applyBattleCameraTransform();
     }
-    super.update(dt);
+    super.update(scaledDt);
   }
 
   Future<void> _syncVisualState({

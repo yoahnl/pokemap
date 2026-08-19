@@ -222,6 +222,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameState? initialGameState,
     GameSaveRepository? saveRepository,
     this.bundleTransformer,
+    this.reducedMotion = false,
     RuntimeDialogueSessionLoader? dialogueSessionLoader,
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
@@ -402,6 +403,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   final String projectFilePath;
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
+
+  /// Le joueur a-t-il demandé un mouvement réduit ?
+  ///
+  /// Portée par `GameSessionAccessibilityOptions` côté shell joueur, cette
+  /// option n'atteignait pas le runtime : rien sous `presentation/` ne la lisait,
+  /// donc la scène de combat jouait ses animations à pleine longueur quoi qu'il
+  /// arrive.
+  ///
+  /// La décision produit (Yoahn, 2026-08-20) est de RACCOURCIR, pas de sauter :
+  /// chaque étape du plan est encore jouée, chaque dégât encore appliqué, seule
+  /// la durée change. Voir `battleReducedMotionSpeedFactor`.
+  final bool reducedMotion;
   final MapActivationReason initialMapActivationReason;
   final String runtimeLocale;
 
@@ -7636,6 +7649,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'battle',
         'overlay',
         () => BattleOverlayComponent(
+          motionScale: reducedMotion ? battleReducedMotionSpeedFactor : 1.0,
           session: _battleSession!,
           gameState: _battleRuntimeGameState,
           viewportSize: camera.viewport.size,
