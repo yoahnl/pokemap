@@ -35,6 +35,16 @@ final class SaveOrigin {
   int get hashCode => Object.hash(kind, importedAt);
 }
 
+/// Décision d'intégrité des sauvegardes — BETA-ITM-002, figée.
+///
+/// Le checksum vit dans l'ENVELOPPE de transport, jamais dans [SaveData] :
+/// l'intégrité est une préoccupation du stockage, pas du modèle de jeu. Le
+/// codec le calcule en SHA-256 du JSON canonique non signé et REFUSE tout
+/// autre algorithme à la lecture — le champ [algorithm] versionne la
+/// décision, il n'ouvre pas une négociation. Le store du hub le vérifie à
+/// chaque écriture (writeVerified), avant toute migration (le snapshot
+/// pré-migration doit correspondre à la source) et à la restauration d'un
+/// backup ; un mismatch met le fichier en quarantaine au lieu de le lire.
 final class SaveChecksum {
   const SaveChecksum({required this.algorithm, required this.value});
 
