@@ -211,11 +211,18 @@ final class GoldenGateHost {
   }
 
   Future<void> waitForWorldService() async {
+    // Attendre un service ACTIF : après la fermeture d'un service précédent,
+    // son snapshot terminal peut rester publié — s'en contenter enverrait les
+    // commandes suivantes avant l'ouverture réelle du service attendu.
     for (var attempt = 0; attempt < 2000; attempt++) {
-      if (sessions.worldServiceSnapshot != null) return;
+      final snapshot = sessions.worldServiceSnapshot;
+      if (snapshot != null &&
+          snapshot.stage == RuntimeWorldServiceStage.active) {
+        return;
+      }
       await Future<void>.delayed(const Duration(milliseconds: 1));
     }
-    fail('No world service snapshot was ever published.');
+    fail('No active world service snapshot was ever published.');
   }
 
   Future<void> waitForPhase(RuntimePlayerPhase phase) async {

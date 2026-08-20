@@ -22,6 +22,7 @@ final class NeutralCertificationGameFixture {
     this.partySize = 1,
     this.encounterField = false,
     this.trainerArena = false,
+    this.economyTown = false,
   }) : assert(partySize == 1 || partySize == 2 || partySize == 6);
 
   final bool connectedMaps;
@@ -48,6 +49,23 @@ final class NeutralCertificationGameFixture {
   /// victoire au retour, après l'XP du rival, débloque badge, flag et Surf.
   /// Off par défaut : les gates existantes gardent leur forme exacte.
   final bool trainerArena;
+
+  /// BETA-ITM-008 : la gate économie a besoin d'une ville — l'arène du rival
+  /// (la récompense de victoire porte des objets), une boutique à stock
+  /// authoré, un ramassage d'objet par événement V2 (le canal production en
+  /// mode v2Only), une CT compatible et un objet tenu porté au sac de départ.
+  /// Implique l'arène. Off par défaut : les gates existantes gardent leur
+  /// forme exacte.
+  final bool economyTown;
+
+  bool get _arenaEnabled => trainerArena || economyTown;
+
+  static const String shopId = 'certification_shop';
+  static const String machineItemId = 'certification-tm-growl';
+  static const String heldItemId = 'certification-leftovers';
+  static const String pickupItemId = 'super-potion';
+  static const GridPos pickupCell = GridPos(x: 2, y: 3);
+  static const String pickupTriggerId = 'certification_pickup_trigger';
 
   static const String rivalTrainerId = 'certification_rival';
   static const String bossTrainerId = 'certification_boss';
@@ -158,7 +176,7 @@ final class NeutralCertificationGameFixture {
           ),
         ],
       ],
-      tilesets: trainerArena
+      tilesets: _arenaEnabled
           ? const <ProjectTilesetEntry>[
               ProjectTilesetEntry(
                 id: 'certification_actor_tileset',
@@ -167,7 +185,7 @@ final class NeutralCertificationGameFixture {
               ),
             ]
           : const <ProjectTilesetEntry>[],
-      characters: trainerArena
+      characters: _arenaEnabled
           ? const <ProjectCharacterEntry>[
               ProjectCharacterEntry(
                 id: 'certification_actor',
@@ -176,7 +194,7 @@ final class NeutralCertificationGameFixture {
               ),
             ]
           : const <ProjectCharacterEntry>[],
-      dialogues: trainerArena
+      dialogues: _arenaEnabled
           ? const <ProjectDialogueEntry>[
               ProjectDialogueEntry(
                 id: 'dlg_certification_rival_pre',
@@ -195,7 +213,7 @@ final class NeutralCertificationGameFixture {
               ),
             ]
           : const <ProjectDialogueEntry>[],
-      badges: trainerArena
+      badges: _arenaEnabled
           ? const <BadgeDefinition>[
               BadgeDefinition(
                 id: bossBadgeId,
@@ -204,7 +222,7 @@ final class NeutralCertificationGameFixture {
               ),
             ]
           : const <BadgeDefinition>[],
-      trainers: trainerArena
+      trainers: _arenaEnabled
           ? const <ProjectTrainerEntry>[
               ProjectTrainerEntry(
                 id: rivalTrainerId,
@@ -217,6 +235,9 @@ final class NeutralCertificationGameFixture {
                 preBattleDialogueId: 'dlg_certification_rival_pre',
                 victoryDialogueId: 'dlg_certification_rival_victory',
                 rewardFlagIds: <String>['story:certification_rival_beaten'],
+                rewardItemGrants: <ProjectTrainerItemGrant>[
+                  ProjectTrainerItemGrant(itemId: 'antidote', quantity: 1),
+                ],
                 team: <ProjectTrainerPokemonEntry>[
                   ProjectTrainerPokemonEntry(
                     speciesId: 'bulbasaur',
@@ -246,6 +267,26 @@ final class NeutralCertificationGameFixture {
               ),
             ]
           : const <ProjectTrainerEntry>[],
+      shops: economyTown
+          ? const <ShopDefinition>[
+              ShopDefinition(
+                id: shopId,
+                label: 'Échoppe du port',
+                entries: <ShopEntryDefinition>[
+                  ShopEntryDefinition(
+                    itemId: 'potion',
+                    price: 100,
+                    sellPrice: 50,
+                  ),
+                  ShopEntryDefinition(
+                    itemId: 'super-potion',
+                    price: 250,
+                    sellPrice: 125,
+                  ),
+                ],
+              ),
+            ]
+          : const <ShopDefinition>[],
       encounterTables: encounterField
           ? <ProjectEncounterTable>[
               const ProjectEncounterTable(
@@ -279,12 +320,16 @@ final class NeutralCertificationGameFixture {
         playerName: 'Ari',
         startingMoney: 300,
         initialParty: <PlayerPokemon>[
-          const PlayerPokemon(
+          PlayerPokemon(
             speciesId: 'bulbasaur',
             natureId: 'hardy',
             abilityId: 'overgrow',
             level: 5,
             currentHp: 20,
+            // BETA-ITM-008 : growl est libre pour l'apprentissage par CT.
+            knownMoveIds: economyTown
+                ? const <String>['tackle']
+                : const <String>[],
           ),
           if (partySize > 1)
             const PlayerPokemon(
@@ -310,20 +355,32 @@ final class NeutralCertificationGameFixture {
                 BagEntry(itemId: weakBallItemId, quantity: 1),
                 BagEntry(itemId: guaranteedBallItemId, quantity: 1),
               ]
-            : trainerArena
+            : economyTown
                 ? const <BagEntry>[
                     BagEntry(itemId: 'potion', quantity: 4),
+                    BagEntry(itemId: machineItemId, quantity: 1),
+                    BagEntry(itemId: heldItemId, quantity: 1),
                   ]
-                : const <BagEntry>[],
+                : trainerArena
+                    ? const <BagEntry>[
+                        BagEntry(itemId: 'potion', quantity: 4),
+                      ]
+                    : const <BagEntry>[],
       ),
-      scenes: <SceneAsset>[_completionScene],
+      scenes: <SceneAsset>[
+        _completionScene,
+        if (economyTown) _pickupScene,
+      ],
       // BETA-ENC-006 : le déclencheur mapEnter de la scène de complétion finit
       // le jeu AU BOOT (surface completion, autorité bloquée) — la gate de
       // démarrage certifie exactement cela, mais un journey overworld doit y
       // échapper. L'export exige une fin ATTEIGNABLE : la scène migre alors
       // sur un trigger d'entrée de case que le journey ne visite jamais.
-      eventRegistry:
-          encounterField || trainerArena ? _cornerEventRegistry : _eventRegistry,
+      eventRegistry: economyTown
+          ? _economyEventRegistry
+          : encounterField || trainerArena
+              ? _cornerEventRegistry
+              : _eventRegistry,
       globalProperties: <String, Object?>{
         'certificationFixture': true,
         'apiKey': authorSecret,
@@ -340,19 +397,28 @@ final class NeutralCertificationGameFixture {
       name: 'Clockwork Harbor',
       version: ProjectVersion.v6,
       size: const GridSize(width: 4, height: 4),
-      triggers: encounterField || trainerArena
-          ? const <MapTrigger>[
-              MapTrigger(
-                id: completionTriggerId,
-                name: 'Certification corner',
-                type: TriggerType.event,
-                area: MapRect(
-                  pos: GridPos(x: 3, y: 3),
-                  size: GridSize(width: 1, height: 1),
-                ),
-              ),
-            ]
-          : const <MapTrigger>[],
+      triggers: <MapTrigger>[
+        if (encounterField || _arenaEnabled)
+          const MapTrigger(
+            id: completionTriggerId,
+            name: 'Certification corner',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: 3, y: 3),
+              size: GridSize(width: 1, height: 1),
+            ),
+          ),
+        if (economyTown)
+          const MapTrigger(
+            id: pickupTriggerId,
+            name: 'Certification pickup',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: pickupCell,
+              size: GridSize(width: 1, height: 1),
+            ),
+          ),
+      ],
       gameplayZones: encounterField
           ? const <MapGameplayZone>[
               MapGameplayZone(
@@ -392,7 +458,7 @@ final class NeutralCertificationGameFixture {
             facing: EntityFacing.south,
           ),
         ),
-        if (trainerArena) ...const <MapEntity>[
+        if (_arenaEnabled) ...const <MapEntity>[
           MapEntity(
             id: 'npc_certification_rival',
             name: 'Rival Nao',
@@ -460,9 +526,12 @@ final class NeutralCertificationGameFixture {
     if (encounterField) {
       await _appendGuaranteedBallToItemCatalog(root);
     }
-    if (trainerArena) {
+    if (_arenaEnabled) {
       await _writeArenaDialogues(root);
       await _writeArenaActorTileset(root);
+    }
+    if (economyTown) {
+      await _appendEconomyItemsToCatalog(root);
     }
     await File(
       p.join(root.path, 'LICENSE.txt'),
@@ -550,6 +619,36 @@ final class NeutralCertificationGameFixture {
     await _writeJson(itemsFile, catalog);
   }
 
+  /// La CT growl (compatible learnset) et l'objet tenu à effet porté
+  /// (leftovers) du parcours économie, déclarés DANS le catalogue projet.
+  Future<void> _appendEconomyItemsToCatalog(Directory root) async {
+    final itemsFile = File(
+      p.join(root.path, 'data', 'pokemon', 'catalogs', 'items.json'),
+    );
+    final catalog =
+        jsonDecode(await itemsFile.readAsString()) as Map<String, dynamic>;
+    final entries = (catalog['entries'] as List).cast<Map<String, dynamic>>();
+    entries.add(<String, Object?>{
+      'id': machineItemId,
+      'displayName': 'CT Grondement',
+      'pocketId': 'machines',
+      'tags': <String>['machine'],
+      'machine': <String, Object?>{
+        'moveId': 'growl',
+        'kind': 'tm',
+        'consumable': true,
+      },
+    });
+    entries.add(<String, Object?>{
+      'id': heldItemId,
+      'displayName': 'Restes certifiés',
+      'pocketId': 'held',
+      'tags': <String>['held'],
+      'heldEffectId': 'leftovers',
+    });
+    await _writeJson(itemsFile, catalog);
+  }
+
   Future<void> _writeArenaActorTileset(Directory root) async {
     final file = File(
       p.join(root.path, 'assets', 'tilesets', 'certification_actors.png'),
@@ -614,6 +713,88 @@ final class NeutralCertificationGameFixture {
     }
   }
 }
+
+final NarrativeEventRegistry _economyEventRegistry = NarrativeEventRegistry(
+  schemaVersion: 1,
+  mode: EventSystemMode.v2Only,
+  records: <NarrativeEventRecord>[
+    NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(
+        id: 'evt_019abcde-7000-7000-8000-000000000002',
+        name: 'Corner completion',
+        source: NarrativeEventSourceRef.triggerEnter(
+          NeutralCertificationGameFixture.fixedMapId,
+          NeutralCertificationGameFixture.completionTriggerId,
+        ),
+        conditions: const [],
+        sceneId: 'scene.certification.complete',
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+        priority: 0,
+        order: 0,
+      ),
+      enabled: true,
+    ),
+    NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(
+        id: 'evt_019abcde-7000-7000-8000-000000000003',
+        name: 'Harbor pickup',
+        source: NarrativeEventSourceRef.triggerEnter(
+          NeutralCertificationGameFixture.fixedMapId,
+          NeutralCertificationGameFixture.pickupTriggerId,
+        ),
+        conditions: const [],
+        sceneId: 'scene.certification.pickup',
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+        priority: 0,
+        order: 1,
+      ),
+      enabled: true,
+    ),
+  ],
+  legacyClaims: const [],
+);
+
+final SceneAsset _pickupScene = SceneAsset(
+  id: 'scene.certification.pickup',
+  name: 'Harbor pickup',
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: <SceneNode>[
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'grant',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.consequence(
+          SceneConsequence.giveItem(
+            itemId: NeutralCertificationGameFixture.pickupItemId,
+            quantity: 1,
+          ),
+        ),
+      ),
+      SceneNode(
+        id: 'end',
+        kind: SceneNodeKind.end,
+        payload: SceneEndPayload(outcomePolicy: SceneOutcomePolicy.progression),
+      ),
+    ],
+    edges: <SceneEdge>[
+      SceneEdge(
+        id: 'start-grant',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'grant',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'grant-end',
+        fromNodeId: 'grant',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
+  ),
+);
 
 final NarrativeEventRegistry _cornerEventRegistry = NarrativeEventRegistry(
   schemaVersion: 1,

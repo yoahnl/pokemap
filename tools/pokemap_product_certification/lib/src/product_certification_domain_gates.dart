@@ -109,16 +109,21 @@ const List<ProductCertificationDomainGate> productCertificationDomainGates =
   ),
   ProductCertificationDomainGate(
     domain: 'itemsEconomy',
-    coverage: DomainGateCoverage.partial,
+    coverage: DomainGateCoverage.gated,
     gateTestPaths: <String>[
       'tools/pokemap_product_certification/test/item_system_certification_test.dart',
       'tools/pokemap_product_certification/test/item_system_transport_evidence_collector_test.dart',
+      'tools/pokemap_product_certification/test/golden_economy_town_gate_test.dart',
     ],
-    rationale: 'La certification L0–L6 exécutable est réelle (36 paires '
-        'action × transport, fixture golden réparée sous BETA-ITM-007). Manque '
-        'le parcours économie complet depuis un package : boutique, vente, '
-        'soin, machine, objet tenu.',
-    pendingTicket: 'BETA-ITM-008',
+    rationale: 'BETA-ITM-008. Depuis un package installé seul : ramassage par '
+        'événement V2 oneShot (non rejouable après reload), récompense de '
+        'victoire portant argent ET objet, soin au centre par le service '
+        'monde réel, achat et revente aux montants exacts, CT compatible '
+        'apprise et objet tenu à effet porté équipé par le canal pause — le '
+        'tout rechargé à l’identique. Un export refusant un article de '
+        'boutique inconnu ferme la gate du catalogue invalide. La '
+        'certification L0–L6 exécutable (36 paires action × transport, '
+        'BETA-ITM-007) reste la preuve de parité des transports.',
   ),
   ProductCertificationDomainGate(
     domain: 'partyStorage',
@@ -209,7 +214,7 @@ const List<ProductCertificationDomainGate> productCertificationDomainGates =
 /// Verdict d'assemblage : GO seulement quand plus aucune dette ne subsiste.
 ///
 /// Calculé, pas déclaré — c'est ce qui empêche de prononcer la certification
-/// produit tant que ITM-008, PRG-006 et TRN-005 n'ont pas livré leur gate.
+/// produit tant que PRG-006 n'a pas livré sa gate.
 bool get productCertificationDomainGatesComplete =>
     productCertificationDomainGates.every(
       (gate) => gate.coverage == DomainGateCoverage.gated,

@@ -2111,6 +2111,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  /// Opens the production heal-center overlay for typed evaluation.
+  ///
+  /// Même contrat que [debugOpenPlayerServicePc] : le service est interactif,
+  /// le futur ne se résout qu'à la fermeture — ne pas l'attendre avant.
+  @visibleForTesting
+  Future<PlayerServiceRuntimeResult> debugOpenPlayerServiceHeal() {
+    final controller = _playerServiceRuntimeController;
+    if (controller == null) {
+      throw StateError('The player-service controller is unavailable.');
+    }
+    return controller.openHealCenter(
+      request: const OpenHealService(interactionId: 'certification.heal'),
+    );
+  }
+
   /// Opens the production Shop overlay for typed interactive evaluation.
   ///
   /// This stays on the real player-service controller: pricing, conditions,

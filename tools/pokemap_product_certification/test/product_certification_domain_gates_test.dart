@@ -58,7 +58,7 @@ void main() {
       }
     });
 
-    test('the recorded debt is exactly these two tickets', () {
+    test('the recorded debt is exactly this one ticket', () {
       // Figé à l'identique : livrer une golden gate de domaine sans reclasser
       // son entrée fait échouer la suite, donc l'assemblage ne peut ni se
       // dégrader ni se compléter en silence.
@@ -68,7 +68,6 @@ void main() {
       };
 
       expect(pending, <String>{
-        'BETA-ITM-008',
         'BETA-PRG-006',
       });
     });
