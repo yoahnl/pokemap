@@ -167,6 +167,7 @@ final class RuntimeTextPreSessionSceneRunner
           runId: runId,
           dialogueSerial: dialogueSerial++,
           interactions: interactions,
+          currentScope: () => _interpolationScopeFor(currentDraft),
         ),
         startBattle: unsupported,
         playCinematic: unsupported,
@@ -250,7 +251,11 @@ final class RuntimeTextPreSessionSceneRunner
     if (spec == null) {
       throw StateError('The preSession interaction specification is missing.');
     }
-    final request = spec.buildRequest(requestId: requestId, revision: 0);
+    final scope = _interpolationScopeFor(draft);
+    final request = interpolateSceneInteractionRequest(
+      spec.buildRequest(requestId: requestId, revision: scope.revision),
+      scope,
+    );
     final response = await interactions.request(request);
     _rejectCancellation(response);
     final outputPortId = switch (response) {
@@ -302,11 +307,34 @@ final class RuntimeTextPreSessionSceneRunner
     return (draft: result.draft, outputPortId: outputPortId);
   }
 
+  PresentationInterpolationScope _interpolationScopeFor(NewGameDraft draft) {
+    final avatarName = project.characters
+        .where((character) => character.id == draft.avatarCharacterId)
+        .map((character) => character.name)
+        .firstOrNull;
+    final starterName = project.newGame.starterOptions
+        .where((option) => option.id == draft.starterOptionId)
+        .map((option) => option.label)
+        .firstOrNull;
+    return PresentationInterpolationScope(
+      revision: draft.revision,
+      draftValues: {
+        if (draft.playerName.trim().isNotEmpty)
+          PresentationDraftInterpolationField.playerName: draft.playerName,
+        if (avatarName != null)
+          PresentationDraftInterpolationField.avatarName: avatarName,
+        if (starterName != null)
+          PresentationDraftInterpolationField.starterName: starterName,
+      },
+    );
+  }
+
   Future<String> _runDialogue({
     required SceneRuntimePlanIntent intent,
     required String runId,
     required int dialogueSerial,
     required SceneStructuredInteractionPort interactions,
+    required PresentationInterpolationScope Function() currentScope,
   }) async {
     final dialogueId = intent.dialogueId?.trim();
     if (dialogueId == null || dialogueId.isEmpty) {
@@ -340,13 +368,14 @@ final class RuntimeTextPreSessionSceneRunner
           '$runId:dialogue:$dialogueSerial:${interactionSerial++}';
       switch (session.state) {
         case DialogueShowingLine(:final text):
+          final scope = currentScope();
           final response = await interactions.request(
             SceneInteractionRequest.message(
               requestId: requestId,
-              revision: 0,
+              revision: scope.revision,
               prompt: SceneInteractionPrompt(
                 localizationKey: 'scene.pre_session.dialogue.line',
-                fallbackText: text,
+                fallbackText: interpolatePresentationText(text, scope).text,
               ),
             ),
           );
@@ -354,10 +383,11 @@ final class RuntimeTextPreSessionSceneRunner
           selectedOutcomeId = session.selectedOutcomeId ?? selectedOutcomeId;
           session = session.advance();
         case DialogueWaitingForChoice(:final choices, :final selectedIndex):
+          final scope = currentScope();
           final response = await interactions.request(
             SceneInteractionRequest.choice(
               requestId: requestId,
-              revision: 0,
+              revision: scope.revision,
               prompt: SceneInteractionPrompt(
                 localizationKey: 'scene.pre_session.dialogue.choice',
                 fallbackText: 'Choisissez une réponse.',
@@ -369,7 +399,10 @@ final class RuntimeTextPreSessionSceneRunner
                     label: SceneInteractionPrompt(
                       localizationKey:
                           'scene.pre_session.dialogue.choice.$index',
-                      fallbackText: choices[index].text,
+                      fallbackText: interpolatePresentationText(
+                        choices[index].text,
+                        scope,
+                      ).text,
                     ),
                   ),
               ],

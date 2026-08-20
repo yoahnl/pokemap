@@ -331,7 +331,177 @@ Bienvenue à Avelune.
     expect(requestCount, 1);
     expect(player.requests.single.interactionCueMarkerIds, {'ask_avatar'});
   });
+  test('interpolates the draft into texts after each validated response',
+      () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'pokemap-pre-session-interpolation-',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    await File('${directory.path}/intro.yarn').writeAsString('''
+title: Before
+---
+Bonjour {{draft.playerName}}, ton avatar {{draft.avatarName}} t'attend !
+===
+title: After
+---
+Enchanté {{draft.playerName}} !
+===
+''');
+    final project = ProjectManifest(
+      name: 'Interpolated preSession',
+      version: ProjectVersion.v7,
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[],
+      dialogues: const <ProjectDialogueEntry>[
+        ProjectDialogueEntry(
+          id: 'intro',
+          name: 'Intro',
+          relativePath: 'intro.yarn',
+          defaultStartNode: 'Before',
+        ),
+      ],
+      scenes: <SceneAsset>[_interpolationScene()],
+      newGame: const ProjectNewGameConfig(
+        enabled: true,
+        startMapId: 'start_map',
+        preSessionSceneId: 'scene_intro',
+      ),
+    );
+    final interactions = HeadlessSceneInteractionPort();
+    addTearDown(interactions.close);
+    final requests = <SceneInteractionRequest>[];
+    final subscription = interactions.requests.listen((request) {
+      requests.add(request);
+      interactions.resolve(
+        request.kind == SceneInteractionRequestKind.text
+            ? SceneInteractionResult.textSubmitted(
+                requestId: request.requestId,
+                revision: request.revision,
+                value: 'Yoahn 🐉',
+              )
+            : SceneInteractionResult.acknowledged(
+                requestId: request.requestId,
+                revision: request.revision,
+              ),
+      );
+    });
+    addTearDown(subscription.cancel);
+
+    final result = await RuntimeTextPreSessionSceneRunner(
+      project: project,
+      projectRootDirectory: directory.path,
+      sceneId: 'scene_intro',
+    ).run(
+      runId: 'run-interpolation',
+      draft: NewGameDraft.start(
+        draftId: 'draft-interpolation',
+        projectRevision: 'sha256:test',
+        slotId: 'slot_1',
+        config: project.newGame,
+      ),
+      interactions: interactions,
+    );
+
+    expect(result.playerName, 'Yoahn 🐉');
+    expect(requests, hasLength(3));
+    expect(
+      requests[0].prompt.fallbackText,
+      "Bonjour Player, ton avatar {{draft.avatarName}} t'attend !",
+      reason: 'the line renders the CURRENT draft: the config-provided '
+          'default name resolves, and the unanswered avatar keeps its '
+          'placeholder visible instead of going silently blank',
+    );
+    expect(requests[0].revision, 0);
+    expect(requests[1].kind, SceneInteractionRequestKind.text);
+    expect(requests[1].revision, 0);
+    expect(
+      requests[2].prompt.fallbackText,
+      'Enchanté Yoahn 🐉 !',
+      reason: 'texts re-evaluate the draft AFTER the validated response',
+    );
+    expect(
+      requests[2].revision,
+      1,
+      reason: 'the request carries the draft revision so stale renderings '
+          'are identifiable',
+    );
+  });
+
 }
+
+SceneAsset _interpolationScene() => SceneAsset(
+      id: 'scene_intro',
+      name: 'Interpolated intro',
+      executionProfile: SceneExecutionProfile.preSession,
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'before',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(
+              dialogueId: 'intro',
+              yarnNodeName: 'Before',
+            ),
+          ),
+          SceneNode(
+            id: 'name',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.preSessionInteraction(
+              ScenePreSessionInteractionSpec.text(
+                prompt: SceneInteractionPrompt(
+                  localizationKey: 'new_game.name',
+                  fallbackText: 'Votre nom ?',
+                ),
+                resultBinding: ScenePreSessionResultBinding(
+                  field: ScenePreSessionDraftField.playerName,
+                ),
+              ),
+            ),
+          ),
+          SceneNode(
+            id: 'after',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(
+              dialogueId: 'intro',
+              yarnNodeName: 'After',
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: <SceneEdge>[
+          SceneEdge(
+            id: 'start_before',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'before',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'before_name',
+            fromNodeId: 'before',
+            fromPortId: 'completed',
+            toNodeId: 'name',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'name_after',
+            fromNodeId: 'name',
+            fromPortId: 'completed',
+            toNodeId: 'after',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+          SceneEdge(
+            id: 'after_end',
+            fromNodeId: 'after',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      ),
+    );
 
 SceneAsset _scene() {
   return SceneAsset(

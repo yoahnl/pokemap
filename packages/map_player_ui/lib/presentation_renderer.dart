@@ -1,6 +1,7 @@
 library;
 
 export 'src/player/presentation_frame_renderer.dart';
+export 'src/player/presentation_interpolating_content_port.dart';
 export 'src/player/runtime_presentation_frame_surface.dart';
 export 'src/player/runtime_presentation_surface_controller.dart';
 export 'src/player/presentation_video_playback_driver.dart';
