@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_core/map_core.dart';
 
 import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
+import 'runtime_presentation_audio_controller.dart';
 import 'runtime_presentation_execution_controller.dart';
 import 'runtime_presentation_media_playback_controller.dart';
 
@@ -25,6 +26,7 @@ final class RuntimePresentationScenePlaybackController
   RuntimePresentationScenePlaybackController({
     required this.executionController,
     required this.onFrame,
+    this.audioController,
     RuntimePresentationFrameDeltas? frameDeltas,
     RuntimePresentationVisualMediaResolver? resolveVisualMediaId,
     RuntimePresentationBeforeTerminal? beforeTerminal,
@@ -34,6 +36,7 @@ final class RuntimePresentationScenePlaybackController
         _beforeTerminal = beforeTerminal ?? _noTerminalBarrier;
 
   final RuntimePresentationExecutionController executionController;
+  final RuntimePresentationAudioController? audioController;
   final RuntimePresentationFrameSink onFrame;
   final RuntimePresentationFrameDeltas _frameDeltas;
   final RuntimePresentationVisualMediaResolver _resolveVisualMediaId;
@@ -130,10 +133,31 @@ final class RuntimePresentationScenePlaybackController
       timeUs: active.clock.playheadUs,
     );
     if (!await _synchronizeVideo(active, frame)) return false;
+    if (!await _synchronizeAudio(active, frame)) return false;
     if (!_isCurrent(active)) return false;
     onFrame(active.request, frame);
     if (!await _runInteractionCues(active)) return false;
     return true;
+  }
+
+  Future<bool> _synchronizeAudio(
+    _RuntimePresentationActiveRun active,
+    PresentationFrame frame,
+  ) async {
+    final audio = audioController;
+    if (audio == null) return _isCurrent(active);
+    try {
+      await audio.synchronize(active.request.asset, frame);
+    } on RuntimePresentationAudioFailure catch (failure) {
+      if (!_isCurrent(active)) return false;
+      await _prepareTerminal(active);
+      await executionController.fail(
+        active.token,
+        diagnosticCode: failure.diagnosticCode,
+      );
+      return false;
+    }
+    return _isCurrent(active);
   }
 
   Future<bool> _runInteractionCues(
@@ -173,7 +197,13 @@ final class RuntimePresentationScenePlaybackController
         cueExecutionId:
             '${active.request.requestId}:cue:${marker.$2}#${active.nextCueSequence++}',
       );
-      final outcome = await handler(cue);
+      await audioController?.pauseForHold();
+      final PresentationInteractionOutcome outcome;
+      try {
+        outcome = await handler(cue);
+      } finally {
+        await audioController?.resumeFromHold();
+      }
       if (!_isCurrent(active)) return false;
       if (!active.cueOutcomeGate.admit(cue.cueExecutionId)) continue;
       if (!await _applyCueOutcome(active, outcome)) return false;
@@ -287,6 +317,7 @@ final class RuntimePresentationScenePlaybackController
     final active = _active;
     if (active == null) return;
     active.clock.pause();
+    await audioController?.pauseForLifecycle();
     await executionController.pauseForLifecycle(active.token);
   }
 
@@ -295,6 +326,7 @@ final class RuntimePresentationScenePlaybackController
     if (active == null) return;
     final token = active.clock.resume();
     if (token != null) active.clockToken = token;
+    await audioController?.resumeAfterLifecycle();
     await executionController.resumeAfterLifecycle(active.token);
   }
 
@@ -302,6 +334,7 @@ final class RuntimePresentationScenePlaybackController
     if (!_isCurrent(active)) return;
     _generation += 1;
     onFrame(active.request, null);
+    await audioController?.releaseAll();
     await _beforeTerminal();
   }
 
@@ -309,6 +342,7 @@ final class RuntimePresentationScenePlaybackController
     if (_disposed) return;
     await cancelActive(reason: RuntimePresentationCancellationReason.disposed);
     _disposed = true;
+    await audioController?.dispose();
     await executionController.dispose();
   }
 

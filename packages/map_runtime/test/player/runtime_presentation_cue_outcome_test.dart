@@ -227,6 +227,220 @@ void main() {
       reason: 'no frame may be published by the stale response',
     );
   });
+
+  test('the looping music survives the hold and dies with the run', () async {
+    final audioDriver = _RecordingCueAudioDriver();
+    final audioController = RuntimePresentationAudioController(
+      catalog: ProjectMediaCatalog(
+        entries: [
+          ProjectMediaAsset(
+            id: 'media_theme',
+            label: 'Theme',
+            kind: ProjectMediaKind.audio,
+            sourceAssetId: 'asset_theme',
+          ),
+        ],
+      ),
+      resolveUri: (media) => Uri.file('/media/theme.ogg'),
+      driver: audioDriver,
+      mixer: RuntimeAudioMixer(),
+    );
+    final execution = RuntimePresentationExecutionController(
+      mediaController: RuntimePresentationMediaPlaybackController(
+        catalog: ProjectMediaCatalog(),
+        targetPlatform: PresentationMediaTargetPlatform.macos,
+        resolveUri: (_) => Uri(),
+        videoDriver: _UnusedVideoDriver(),
+      ),
+    );
+    final cueReached = Completer<void>();
+    final releaseCue = Completer<void>();
+    final player = RuntimePresentationScenePlaybackController(
+      executionController: execution,
+      audioController: audioController,
+      onFrame: (_, __) {},
+      frameDeltas: (_) => Stream<int>.fromIterable(const [600000, 400000]),
+    );
+    addTearDown(player.dispose);
+
+    final musicalAsset = PresentationCinematicAsset(
+      id: 'opening',
+      title: 'Opening',
+      durationUs: 1000000,
+      tracks: [
+        PresentationTrack(
+          id: 'audio',
+          label: 'Audio',
+          kind: PresentationTrackKind.audio,
+          clips: [
+            PresentationAudioClip(
+              id: 'theme',
+              startUs: 0,
+              durationUs: 1000000,
+              resourceId: 'media_theme',
+              audioKind: PresentationAudioKind.music,
+              loop: true,
+            ),
+          ],
+        ),
+        PresentationTrack(
+          id: 'markers',
+          label: 'Repères',
+          kind: PresentationTrackKind.marker,
+          clips: [
+            PresentationMarkerClip(
+              id: 'ask_name',
+              startUs: 500000,
+              label: 'Demander le nom',
+              markerKind: PresentationMarkerKind.interactionCue,
+            ),
+          ],
+        ),
+      ],
+    );
+    final terminal = player.playPresentationCinematic(
+      ScenePresentationCinematicRuntimeRequest(
+        requestId: 'runtime:opening:audio',
+        createdAtEpochMs: 1,
+        projectRevision:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        contentHash:
+            'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        presentationCinematicId: 'opening',
+        interactionCueMarkerIds: const <String>{'ask_name'},
+        onInteractionCue: (_) async {
+          cueReached.complete();
+          await releaseCue.future;
+          return const PresentationInteractionOutcome.continueTimeline();
+        },
+        asset: musicalAsset,
+      ),
+    );
+
+    await cueReached.future;
+    final handle = audioDriver.handles.single;
+    expect(handle.loop, isTrue);
+    expect(
+      handle.paused,
+      isTrue,
+      reason: 'the interaction hold suspends the music position-preserving',
+    );
+    expect(audioDriver.playCalls, 1);
+
+    releaseCue.complete();
+    expect(
+      (await terminal).result,
+      RuntimePresentationExecutionResult.completed,
+    );
+    expect(
+      audioDriver.playCalls,
+      1,
+      reason: 'resuming after the hold must never restart the loop audibly',
+    );
+    expect(
+      handle.stopped,
+      isTrue,
+      reason: 'after the run ends, zero audio handle stays active',
+    );
+    expect(audioController.activeChannelCount, 0);
+  });
+
+  test('an early exit releases the audio the last frame never stopped',
+      () async {
+    final audioDriver = _RecordingCueAudioDriver();
+    final audioController = RuntimePresentationAudioController(
+      catalog: ProjectMediaCatalog(
+        entries: [
+          ProjectMediaAsset(
+            id: 'media_theme',
+            label: 'Theme',
+            kind: ProjectMediaKind.audio,
+            sourceAssetId: 'asset_theme',
+          ),
+        ],
+      ),
+      resolveUri: (media) => Uri.file('/media/theme.ogg'),
+      driver: audioDriver,
+      mixer: RuntimeAudioMixer(),
+    );
+    final execution = RuntimePresentationExecutionController(
+      mediaController: RuntimePresentationMediaPlaybackController(
+        catalog: ProjectMediaCatalog(),
+        targetPlatform: PresentationMediaTargetPlatform.macos,
+        resolveUri: (_) => Uri(),
+        videoDriver: _UnusedVideoDriver(),
+      ),
+    );
+    final player = RuntimePresentationScenePlaybackController(
+      executionController: execution,
+      audioController: audioController,
+      onFrame: (_, __) {},
+      frameDeltas: (_) => Stream<int>.fromIterable(const [600000, 400000]),
+    );
+    addTearDown(player.dispose);
+
+    final terminal = player.playPresentationCinematic(
+      ScenePresentationCinematicRuntimeRequest(
+        requestId: 'runtime:opening:early-exit',
+        createdAtEpochMs: 1,
+        projectRevision:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        contentHash:
+            'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        presentationCinematicId: 'opening',
+        interactionCueMarkerIds: const <String>{'ask_name'},
+        onInteractionCue: (_) async =>
+            const PresentationInteractionOutcome.stop(),
+        asset: PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 1000000,
+          tracks: [
+            PresentationTrack(
+              id: 'audio',
+              label: 'Audio',
+              kind: PresentationTrackKind.audio,
+              clips: [
+                PresentationAudioClip(
+                  id: 'theme',
+                  startUs: 0,
+                  durationUs: 1000000,
+                  resourceId: 'media_theme',
+                  audioKind: PresentationAudioKind.music,
+                  loop: true,
+                ),
+              ],
+            ),
+            PresentationTrack(
+              id: 'markers',
+              label: 'Repères',
+              kind: PresentationTrackKind.marker,
+              clips: [
+                PresentationMarkerClip(
+                  id: 'ask_name',
+                  startUs: 500000,
+                  label: 'Demander le nom',
+                  markerKind: PresentationMarkerKind.interactionCue,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(
+      (await terminal).result,
+      RuntimePresentationExecutionResult.completed,
+    );
+    expect(
+      audioDriver.handles.single.stopped,
+      isTrue,
+      reason: 'the last frame never ran: only the terminal release can stop '
+          'this loop — leaving it playing would be the exact handle leak',
+    );
+    expect(audioController.activeChannelCount, 0);
+  });
 }
 
 final class _UnusedVideoDriver
@@ -246,4 +460,49 @@ final class _UnusedVideoDriver
 
   @override
   Future<void> dispose(Object handle) async {}
+}
+
+final class _CueFakeAudioHandle {
+  _CueFakeAudioHandle({required this.loop});
+
+  final bool loop;
+  bool paused = false;
+  bool stopped = false;
+}
+
+final class _RecordingCueAudioDriver
+    implements RuntimePresentationAudioDriver {
+  final handles = <_CueFakeAudioHandle>[];
+  var playCalls = 0;
+
+  @override
+  Future<Object> play(
+    Uri source, {
+    required double volume,
+    required bool loop,
+    required Duration position,
+  }) async {
+    playCalls += 1;
+    final handle = _CueFakeAudioHandle(loop: loop);
+    handles.add(handle);
+    return handle;
+  }
+
+  @override
+  Future<void> pause(Object handle) async {
+    (handle as _CueFakeAudioHandle).paused = true;
+  }
+
+  @override
+  Future<void> resume(Object handle) async {
+    (handle as _CueFakeAudioHandle).paused = false;
+  }
+
+  @override
+  Future<void> setVolume(Object handle, double volume) async {}
+
+  @override
+  Future<void> stop(Object handle) async {
+    (handle as _CueFakeAudioHandle).stopped = true;
+  }
 }

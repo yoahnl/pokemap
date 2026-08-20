@@ -50,6 +50,12 @@ export 'src/player/runtime_audio_mixer.dart'
         RuntimeAudioRoute,
         RuntimeAudioRouteBus,
         RuntimeAudioVolumeSetter;
+export 'src/player/runtime_presentation_audio_controller.dart'
+    show
+        FlameRuntimePresentationAudioDriver,
+        RuntimePresentationAudioController,
+        RuntimePresentationAudioDriver,
+        RuntimePresentationAudioFailure;
 export 'src/player/runtime_presentation_media_playback_controller.dart'
     show
         RuntimePresentationMediaPlaybackController,
