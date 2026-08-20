@@ -614,6 +614,60 @@ void main() {
       );
     });
 
+    test('an abandon at the evolution step also replays identically',
+        () async {
+      // BETA-PRG-004 : le même contrat d'atomicité couvre la file ENTIÈRE.
+      // Résoudre l'apprentissage, atteindre l'évolution pendante, abandonner
+      // là — rien n'est commité, et le rejeu déroule la même file jusqu'à la
+      // même évolution.
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _trainerResolutionWithPendingMoveAndEvolution,
+      );
+      final base = _state(knownMoves: const <String>[
+        'tackle',
+        'growl',
+        'tail_whip',
+        'focus_energy',
+      ]);
+      final outcome = _outcome();
+
+      Future<PendingBattleEvolution> reachEvolution() async {
+        final started = await coordinator.begin(
+          transactionBaseState: base,
+          bundle: _bundle(),
+          runtimeContext: _context(_trainerRequest()),
+          outcome: outcome,
+          itemCatalog: _itemCatalog(),
+        );
+        var transaction = started.transaction!;
+        transaction = coordinator
+            .resolveMoveLearning(
+              transaction: transaction,
+              decision: BattleMoveLearningDecision.decline(
+                opportunityId:
+                    transaction.pendingMoveLearning!.opportunityId,
+                partySlot: transaction.pendingMoveLearning!.partySlot,
+                moveId:
+                    transaction.pendingMoveLearning!.candidate.moveId,
+              ),
+            )
+            .transaction!;
+        expect(transaction.pendingEvolution, isNotNull);
+        expect(transaction.finalState, isNull,
+            reason: 'a pending evolution must never be committable');
+        return transaction.pendingEvolution!;
+      }
+
+      final first = await reachEvolution();
+      // Abandon au niveau de l'évolution : transaction oubliée.
+      expect(base.completedBattleRequestIds, isEmpty);
+
+      final second = await reachEvolution();
+      expect(second.opportunityId, first.opportunityId);
+      expect(second.occurrenceId, first.occurrenceId);
+      expect(second.partySlot, first.partySlot);
+    });
+
     test('trainer victory is exactly once before and after save reload',
         () async {
       final coordinator = RuntimePostBattleDecisionCoordinator(
