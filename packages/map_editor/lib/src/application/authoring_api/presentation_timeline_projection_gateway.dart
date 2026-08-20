@@ -644,77 +644,12 @@ Uint8List _normalizeThumbnail(Uint8List bytes, int targetWidth) {
   return Uint8List.fromList(image.encodePng(resized, level: 6));
 }
 
-List<PresentationTimelineCaptionSegment> _decodeWebVtt(Uint8List bytes) {
-  final source = utf8
-      .decode(bytes, allowMalformed: false)
-      .replaceFirst('\ufeff', '')
-      .replaceAll('\r\n', '\n');
-  final lines = source.split('\n');
-  if (lines.isEmpty || !lines.first.trimLeft().startsWith('WEBVTT')) {
-    throw const FormatException('Fichier captions WEBVTT invalide.');
-  }
-  final segments = <PresentationTimelineCaptionSegment>[];
-  var index = 1;
-  while (index < lines.length) {
-    while (index < lines.length && lines[index].trim().isEmpty) {
-      index += 1;
-    }
-    if (index >= lines.length) break;
-    if (!lines[index].contains('-->')) index += 1;
-    if (index >= lines.length || !lines[index].contains('-->')) {
-      while (index < lines.length && lines[index].trim().isNotEmpty) {
-        index += 1;
-      }
-      continue;
-    }
-    final timing = lines[index].split('-->');
-    if (timing.length != 2) {
-      throw const FormatException('Timing WEBVTT invalide.');
-    }
-    final startUs = _webVttTimeUs(timing.first.trim());
-    final endToken = timing.last.trim().split(RegExp(r'\s+')).first;
-    final endUs = _webVttTimeUs(endToken);
-    if (endUs <= startUs) {
-      throw const FormatException('Segment WEBVTT de durée invalide.');
-    }
-    index += 1;
-    final text = <String>[];
-    while (index < lines.length && lines[index].trim().isNotEmpty) {
-      text.add(lines[index].trim());
-      index += 1;
-    }
-    if (text.isNotEmpty) {
-      segments.add(
+List<PresentationTimelineCaptionSegment> _decodeWebVtt(Uint8List bytes) =>
+    List<PresentationTimelineCaptionSegment>.unmodifiable([
+      for (final segment in decodePresentationCaptionWebVtt(bytes))
         PresentationTimelineCaptionSegment(
-          startUs: startUs,
-          endUs: endUs,
-          text: text.join(' '),
+          startUs: segment.startUs,
+          endUs: segment.endUs,
+          text: segment.text,
         ),
-      );
-    }
-  }
-  if (segments.isEmpty) {
-    throw const FormatException('Aucun segment WEBVTT lisible.');
-  }
-  return List<PresentationTimelineCaptionSegment>.unmodifiable(segments);
-}
-
-int _webVttTimeUs(String value) {
-  final match = RegExp(
-    r'^(?:(\d{2,}):)?(\d{2}):(\d{2})[.,](\d{3})$',
-  ).firstMatch(value);
-  if (match == null) throw const FormatException('Horodatage WEBVTT invalide.');
-  final hours = int.tryParse(match.group(1) ?? '0')!;
-  final minutes = int.parse(match.group(2)!);
-  final seconds = int.parse(match.group(3)!);
-  final milliseconds = int.parse(match.group(4)!);
-  if (minutes >= 60 || seconds >= 60) {
-    throw const FormatException('Horodatage WEBVTT invalide.');
-  }
-  return Duration(
-    hours: hours,
-    minutes: minutes,
-    seconds: seconds,
-    milliseconds: milliseconds,
-  ).inMicroseconds;
-}
+    ]);

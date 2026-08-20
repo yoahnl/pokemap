@@ -92,7 +92,53 @@ final class RuntimePresentationSurfaceController
   Future<RuntimePresentationExecutionTerminal> playPresentationCinematic(
     ScenePresentationCinematicRuntimeRequest request,
   ) {
+    unawaited(_preloadCaptions(request.asset));
     return _playbackController.playPresentationCinematic(request);
+  }
+
+  final _captionSegmentsByMediaId =
+      <String, List<PresentationCaptionSegment>>{};
+  final _captionFailuresByMediaId =
+      <String, PresentationCaptionUnavailable>{};
+
+  /// Loads and decodes the WebVTT captions referenced by the asset's caption
+  /// clips through the SAME shared decoder the Studio preview uses —
+  /// BETA-CIN-078. Failures are kept as explicit per-media diagnostics.
+  Future<void> _preloadCaptions(PresentationCinematicAsset asset) async {
+    for (final track in asset.tracks) {
+      for (final clip in track.clips) {
+        if (clip is! PresentationCaptionClip) continue;
+        final mediaId = clip.captionId;
+        if (_captionSegmentsByMediaId.containsKey(mediaId) ||
+            _captionFailuresByMediaId.containsKey(mediaId)) {
+          continue;
+        }
+        final media = catalog.find(mediaId);
+        if (media == null || media.kind != ProjectMediaKind.captions) {
+          _captionFailuresByMediaId[mediaId] = PresentationCaptionUnavailable(
+            reason: PresentationContentUnavailableReason.missing,
+            message: 'Sous-titre $mediaId introuvable dans le catalogue',
+          );
+          continue;
+        }
+        try {
+          final bytes =
+              await File.fromUri(_resolveMediaUri(media)).readAsBytes();
+          _captionSegmentsByMediaId[mediaId] =
+              decodePresentationCaptionWebVtt(bytes);
+        } on FormatException catch (error) {
+          _captionFailuresByMediaId[mediaId] = PresentationCaptionUnavailable(
+            reason: PresentationContentUnavailableReason.unsupported,
+            message: error.message,
+          );
+        } on Object {
+          _captionFailuresByMediaId[mediaId] = PresentationCaptionUnavailable(
+            reason: PresentationContentUnavailableReason.missing,
+            message: 'Sous-titre $mediaId illisible',
+          );
+        }
+      }
+    }
   }
 
   Future<RuntimePresentationExecutionTerminal?> skipActive() =>
@@ -237,11 +283,22 @@ final class RuntimePresentationSurfaceController
   PresentationCaptionResolution resolveCaption({
     required PresentationCaptionFrameClip clip,
     required Locale locale,
-  }) =>
-      const PresentationCaptionUnavailable(
-        reason: PresentationContentUnavailableReason.unsupported,
-        message: 'Runtime captions are not loaded for this media.',
+  }) {
+    final failure = _captionFailuresByMediaId[clip.captionId];
+    if (failure != null) return failure;
+    final segments = _captionSegmentsByMediaId[clip.captionId];
+    if (segments == null) {
+      return PresentationCaptionUnavailable(
+        reason: PresentationContentUnavailableReason.missing,
+        message: 'Sous-titre ${clip.captionId} en cours de chargement',
       );
+    }
+    final active = activePresentationCaptionSegment(
+      segments,
+      elapsedUs: clip.elapsedUs,
+    );
+    return PresentationCaptionReady(text: active?.text ?? '');
+  }
 
   Future<void> _detachBeforeTerminal() async {
     if (value == null) return;
