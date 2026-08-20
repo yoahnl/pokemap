@@ -213,7 +213,7 @@ final class RuntimeStartupBootstrapCoordinator<T> {
     if (command.snapshotRevision != _snapshot.revision) {
       return const RuntimeStartupCommandResult(
         status: RuntimeStartupCommandStatus.stale,
-        safeMessage: 'The startup screen changed before this action arrived.',
+        safeMessage: 'L’écran de démarrage a changé avant l’arrivée de cette action.',
       );
     }
     final delegate = _delegate;
@@ -287,7 +287,7 @@ final class RuntimeStartupBootstrapCoordinator<T> {
       return Future<RuntimePlayerCommandResult>.value(
         const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.stale,
-          safeMessage: 'The title menu changed before this action arrived.',
+          safeMessage: 'Le menu titre a changé avant l’arrivée de cette action.',
         ),
       );
     }
@@ -449,7 +449,7 @@ final class RuntimeStartupBootstrapCoordinator<T> {
         const RuntimeStartupBootstrapException(
           RuntimeStartupFailure(
             code: 'runtimeGraphActivationFailed',
-            safeMessage: 'The game runtime could not be prepared.',
+            safeMessage: 'Le runtime du jeu n’a pas pu être préparé.',
           ),
         ),
       );
@@ -462,7 +462,7 @@ final class RuntimeStartupBootstrapCoordinator<T> {
         ? error.failure
         : const RuntimeStartupFailure(
             code: 'runtimeBootstrapFailed',
-            safeMessage: 'The game could not begin preparing.',
+            safeMessage: 'La préparation du jeu n’a pas pu commencer.',
           );
     _publishPhase(RuntimeStartupPhase.recoverableError, failure: failure);
   }

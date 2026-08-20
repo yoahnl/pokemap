@@ -9240,7 +9240,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       if (!result.success && result.handled) {
-        _showNotification(result.message ?? 'Scene V1 impossible.');
+        // BETA-SYS-006 : result.message porte des détails techniques anglais
+        // (« Scene branch intent is missing sourceNodeId ») déjà tracés en
+        // debugPrint juste au-dessus. Le joueur reçoit un message stable.
+        _showNotification('La scène ne peut pas continuer.');
       } else if (result.success) {
         session.gameState = await _hydrateOwnedPlayerPokemonProgression(
           result.updatedGameState ?? session.gameState,
@@ -9793,7 +9796,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         source: request.requestId,
         reason: 'sceneDialogueLoadFailed',
       );
-      _showNotification('Dialogue introuvable: ${request.dialogueId}');
+      // BETA-SYS-006 : l'identifiant d'authoring reste en debug, le joueur
+      // reçoit un message stable. Le canal joueur ne porte jamais d'identifiant
+      // technique — c'est le garde de non-fuite qui le tient.
+      debugPrint('[scene] dialogue introuvable id=${request.dialogueId}');
+      _showNotification('Le dialogue est introuvable.');
       if (identical(_pendingSceneDialogueCompleter, completer)) {
         _completePendingSceneDialogue(
           result,
@@ -10408,7 +10415,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[placed_behavior] setAnimationEnabled failed instance=$instanceId enabled=$enabled error=$e\n$st',
       );
-      _showNotification('Animation update failed');
+      _showNotification('L’animation n’a pas pu être mise à jour.');
     }
   }
 
@@ -11710,7 +11717,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[warp] transition completed');
     } catch (e, st) {
       debugPrint('[warp] transition failed: $e\n$st');
-      _showNotification('Warp failed');
+      _showNotification('La téléportation a échoué.');
       if (!swapCompleted) {
         await _recoverFromWarpFailure(
           sourceBundle: sourceBundle,
@@ -11964,7 +11971,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         debugPrint(
             '[connection] source map visuals missing for id=$_activeMapId');
         _player.syncState(_world.player, snapToGrid: true);
-        _showNotification('Connection failed');
+        _showNotification('Le passage vers la carte voisine a échoué.');
         return;
       }
       final target = await _ensureConnectionTargetLoaded(
@@ -11973,7 +11980,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       if (target == null) {
         _player.syncState(_world.player, snapToGrid: true);
-        _showNotification('Connection failed');
+        _showNotification('Le passage vers la carte voisine a échoué.');
         return;
       }
       debugPrint('[connection] resolved target map=${target.bundle.map.id}');
@@ -12072,7 +12079,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     } catch (e, st) {
       debugPrint('[connection] transition failed: $e\n$st');
       _player.syncState(_world.player, snapToGrid: true);
-      _showNotification('Connection failed');
+      _showNotification('Le passage vers la carte voisine a échoué.');
     } finally {
       if (!transitionCompleted) {
         _setFlowPhase(_RuntimeFlowPhase.overworld);

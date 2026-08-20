@@ -83,7 +83,7 @@ final class InProcessGameSessionAdapter
             const GameSessionFailure(
               code: GameSessionFailureCode.runtime,
               recoverability: GameSessionFailureRecoverability.titleOrHub,
-              safeMessage: 'The in-process runtime event stream failed.',
+              safeMessage: 'Le flux d’évènements du runtime a échoué.',
             ),
           ),
         );
@@ -121,7 +121,7 @@ final class InProcessGameSessionAdapter
       return Future<RuntimeWorldServiceCommandResult>.value(
         const RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
-          safeMessage: 'The active runtime exposes no contextual service.',
+          safeMessage: 'Aucun service contextuel n’est actif.',
         ),
       );
     }
@@ -158,7 +158,7 @@ final class InProcessGameSessionAdapter
       return Future.value(
         const RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'The active runtime exposes no bag actions.',
+          safeMessage: 'Le runtime actif n’expose aucune action de sac.',
         ),
       );
     }

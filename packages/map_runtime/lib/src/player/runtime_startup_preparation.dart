@@ -293,7 +293,7 @@ final class RuntimeStartupPreparation {
           RuntimeStartupPreparationStepResult.blockingFailure(
             RuntimeStartupFailure(
               code: '${stage.name}Failed',
-              safeMessage: 'The game could not finish preparing.',
+              safeMessage: 'La préparation du jeu n’a pas pu aboutir.',
             ),
           ),
         ),

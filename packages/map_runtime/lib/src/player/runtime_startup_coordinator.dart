@@ -173,7 +173,7 @@ final class RuntimeStartupCoordinator {
     if (command.snapshotRevision != _snapshot.revision) {
       return const RuntimeStartupCommandResult(
         status: RuntimeStartupCommandStatus.stale,
-        safeMessage: 'The startup screen changed before this action arrived.',
+        safeMessage: 'L’écran de démarrage a changé avant l’arrivée de cette action.',
       );
     }
     if (!_snapshot.isLifecycleActive || _snapshot.isTransitioning) {
@@ -281,7 +281,7 @@ final class RuntimeStartupCoordinator {
         !_snapshot.isLifecycleActive) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
-        safeMessage: 'The title menu changed before this action arrived.',
+        safeMessage: 'Le menu titre a changé avant l’arrivée de cette action.',
       );
     }
     final launchesSession = command.action == RuntimePlayerAction.newGame ||
@@ -507,7 +507,7 @@ final class RuntimeStartupCoordinator {
             return const RuntimeStartupPreparationStepResult.blockingFailure(
               RuntimeStartupFailure(
                 code: 'manifestPreparationFailed',
-                safeMessage: 'The game identity could not be prepared.',
+                safeMessage: 'L’identité du jeu n’a pas pu être préparée.',
               ),
             );
           }
@@ -522,7 +522,7 @@ final class RuntimeStartupCoordinator {
             return const RuntimeStartupPreparationStepResult.blockingFailure(
               RuntimeStartupFailure(
                 code: 'initialMapPreparationFailed',
-                safeMessage: 'The first map could not be prepared.',
+                safeMessage: 'La première carte n’a pas pu être préparée.',
               ),
             );
           }
@@ -546,7 +546,7 @@ final class RuntimeStartupCoordinator {
             return const RuntimeStartupPreparationStepResult.blockingFailure(
               RuntimeStartupFailure(
                 code: 'initialMapPreparationFailed',
-                safeMessage: 'The first map could not be prepared.',
+                safeMessage: 'La première carte n’a pas pu être préparée.',
               ),
             );
           }
@@ -557,7 +557,7 @@ final class RuntimeStartupCoordinator {
             return const RuntimeStartupPreparationStepResult.nonBlockingFailure(
               RuntimeStartupDiagnostic(
                 code: 'presentationProfileUnavailable',
-                safeMessage: 'The game presentation could not be loaded.',
+                safeMessage: 'La présentation du jeu n’a pas pu être chargée.',
               ),
             );
           }
@@ -669,7 +669,7 @@ final class RuntimeStartupCoordinator {
           ? const RuntimeStartupPreparationStepResult.nonBlockingFailure(
               RuntimeStartupDiagnostic(
                 code: 'splashLogoUnavailable',
-                safeMessage: 'The startup logo could not be displayed.',
+                safeMessage: 'Le logo de démarrage n’a pas pu être affiché.',
               ),
             )
           : const RuntimeStartupPreparationStepResult.completed();
@@ -677,7 +677,7 @@ final class RuntimeStartupCoordinator {
       return const RuntimeStartupPreparationStepResult.nonBlockingFailure(
         RuntimeStartupDiagnostic(
           code: 'splashLogoUnavailable',
-          safeMessage: 'The startup logo could not be displayed.',
+          safeMessage: 'Le logo de démarrage n’a pas pu être affiché.',
         ),
       );
     }
@@ -708,7 +708,7 @@ final class RuntimeStartupCoordinator {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'introVideoUnavailable',
-          safeMessage: 'The introduction video is unavailable.',
+          safeMessage: 'La vidéo d’introduction est indisponible.',
         ),
       );
     }
@@ -716,7 +716,7 @@ final class RuntimeStartupCoordinator {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'introPosterUnavailable',
-          safeMessage: 'The introduction poster is unavailable.',
+          safeMessage: 'L’affiche d’introduction est indisponible.',
         ),
       );
     }
@@ -787,7 +787,7 @@ final class RuntimeStartupCoordinator {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'titleMusicUnavailable',
-          safeMessage: 'The title music is unavailable.',
+          safeMessage: 'La musique du titre est indisponible.',
         ),
       );
     }
@@ -795,7 +795,7 @@ final class RuntimeStartupCoordinator {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'titleHeroUnavailable',
-          safeMessage: 'The title artwork is unavailable.',
+          safeMessage: 'L’illustration du titre est indisponible.',
         ),
       );
     }
@@ -803,7 +803,7 @@ final class RuntimeStartupCoordinator {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'titleLogoUnavailable',
-          safeMessage: 'The title logo is unavailable.',
+          safeMessage: 'Le logo du titre est indisponible.',
         ),
       );
     }
@@ -811,7 +811,7 @@ final class RuntimeStartupCoordinator {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'titlePromptVideoUnavailable',
-          safeMessage: 'The title animation is unavailable.',
+          safeMessage: 'L’animation du titre est indisponible.',
         ),
       );
     }
@@ -819,7 +819,7 @@ final class RuntimeStartupCoordinator {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'titlePromptPosterUnavailable',
-          safeMessage: 'The title poster is unavailable.',
+          safeMessage: 'L’affiche du titre est indisponible.',
         ),
       );
     }
@@ -827,7 +827,7 @@ final class RuntimeStartupCoordinator {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'titleMenuVideoUnavailable',
-          safeMessage: 'The menu animation is unavailable.',
+          safeMessage: 'L’animation du menu est indisponible.',
         ),
       );
     }
@@ -835,7 +835,7 @@ final class RuntimeStartupCoordinator {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'titleMenuPosterUnavailable',
-          safeMessage: 'The menu poster is unavailable.',
+          safeMessage: 'L’affiche du menu est indisponible.',
         ),
       );
     }
@@ -892,7 +892,7 @@ final class RuntimeStartupCoordinator {
         for (final role in unavailable)
           RuntimeStartupDiagnostic(
             code: 'typography${_capitalized(role.name)}Unavailable',
-            safeMessage: 'A project font is unavailable.',
+            safeMessage: 'Une police du projet est indisponible.',
           ),
       ],
     );
@@ -1102,7 +1102,7 @@ final class RuntimeStartupCoordinator {
       if (_titleMusic.lastFailure != null)
         const RuntimeStartupDiagnostic(
           code: 'titleMusicPlaybackFailed',
-          safeMessage: 'The title music could not be played.',
+          safeMessage: 'La musique du titre n’a pas pu être jouée.',
         ),
     ];
     _publishDesiredPhase(

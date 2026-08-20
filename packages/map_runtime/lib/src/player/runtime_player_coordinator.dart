@@ -110,7 +110,7 @@ final class RuntimePlayerCoordinator {
           return Future<RuntimePlayerCommandResult>.value(
             const RuntimePlayerCommandResult(
               status: RuntimePlayerCommandStatus.unavailable,
-              safeMessage: 'A checkpoint is already in progress.',
+              safeMessage: 'Une sauvegarde est déjà en cours.',
             ),
           );
         case RuntimePlayerAction.returnToTitle:
@@ -249,7 +249,7 @@ final class RuntimePlayerCoordinator {
     if (command.snapshotRevision != _snapshot.revision) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
-        safeMessage: 'The player surface changed before this action arrived.',
+        safeMessage: 'La surface joueur a changé avant l’arrivée de cette action.',
       );
     }
     if (!_snapshot.isActionEnabled(command.action)) {
@@ -271,7 +271,7 @@ final class RuntimePlayerCoordinator {
         if (slot == null) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'A profile and slot are required for a new game.',
+            safeMessage: 'Un profil et un emplacement sont requis pour une nouvelle partie.',
           );
         }
         return _launchNewGame(
@@ -290,7 +290,7 @@ final class RuntimePlayerCoordinator {
         if (save == null || !save.canContinue) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'No compatible save is available to continue.',
+            safeMessage: 'Aucune sauvegarde compatible n’est disponible pour continuer.',
           );
         }
         return _launchSave(save, GameSessionLaunchMode.continueGame);
@@ -302,7 +302,7 @@ final class RuntimePlayerCoordinator {
         if (slot == null) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'A profile and slot are required to load a save.',
+            safeMessage: 'Un profil et un emplacement sont requis pour charger une sauvegarde.',
           );
         }
         final address = _address(slot);
@@ -336,7 +336,7 @@ final class RuntimePlayerCoordinator {
           return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.failed,
             safeMessage: _sessions.snapshot.failure?.safeMessage ??
-                'The final checkpoint could not be saved.',
+                'La sauvegarde finale n’a pas pu être enregistrée.',
           );
         }
         final retry = _retryLaunch;
@@ -396,7 +396,7 @@ final class RuntimePlayerCoordinator {
             _snapshot.pauseSection != RuntimePlayerPauseSection.bag) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'A valid bag item and target are required.',
+            safeMessage: 'Un objet du sac et une cible valides sont requis.',
           );
         }
         final result = await _sessions.dispatchPauseCommand(pauseCommand);
@@ -467,7 +467,7 @@ final class RuntimePlayerCoordinator {
         if (preferences is! PlayerPreferencesSnapshot) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'Valid player preferences are required.',
+            safeMessage: 'Des préférences joueur valides sont requises.',
           );
         }
         try {
@@ -475,7 +475,7 @@ final class RuntimePlayerCoordinator {
         } on Object {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.failed,
-            safeMessage: 'Player preferences could not be saved.',
+            safeMessage: 'Les préférences du joueur n’ont pas pu être sauvegardées.',
           );
         }
         _preferences = preferences;
@@ -527,7 +527,7 @@ final class RuntimePlayerCoordinator {
             safeMessage: saved
                 ? null
                 : _sessions.snapshot.failure?.safeMessage ??
-                    'The checkpoint could not be saved.',
+                    'La sauvegarde n’a pas pu être enregistrée.',
           );
         } catch (error, stackTrace) {
           boundary.complete(false);
@@ -543,7 +543,7 @@ final class RuntimePlayerCoordinator {
         if (completion == null && !openedFromTitle) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'No completed game credits are available.',
+            safeMessage: 'Aucun générique de fin n’est disponible.',
           );
         }
         _creditsOpenedFromTitle = openedFromTitle;
@@ -604,7 +604,7 @@ final class RuntimePlayerCoordinator {
     if (snapshotRevision != _snapshot.revision) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
-        safeMessage: 'The player surface changed before Back arrived.',
+        safeMessage: 'La surface joueur a changé avant l’arrivée du retour.',
       );
     }
     final worldService = _snapshot.worldService;
@@ -702,7 +702,7 @@ final class RuntimePlayerCoordinator {
     } catch (_) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
-        safeMessage: 'The player could not return to its host.',
+        safeMessage: 'Le joueur n’a pas pu revenir à son hôte.',
       );
     }
   }
@@ -729,7 +729,7 @@ final class RuntimePlayerCoordinator {
         if (!loaded) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.failed,
-            safeMessage: 'Player data could not be refreshed.',
+            safeMessage: 'Les données du joueur n’ont pas pu être actualisées.',
           );
         }
       }
@@ -743,7 +743,7 @@ final class RuntimePlayerCoordinator {
             const GameSessionFailure(
               code: GameSessionFailureCode.storage,
               recoverability: GameSessionFailureRecoverability.retry,
-              safeMessage: 'The checkpoint could not be saved.',
+              safeMessage: 'La sauvegarde n’a pas pu être enregistrée.',
             );
         _publishPause(
           pauseSection,
@@ -759,13 +759,13 @@ final class RuntimePlayerCoordinator {
         const GameSessionFailure(
           code: GameSessionFailureCode.runtime,
           recoverability: GameSessionFailureRecoverability.titleOrHub,
-          safeMessage: 'The game session could not be closed safely.',
+          safeMessage: 'La session de jeu n’a pas pu être fermée proprement.',
         ),
         allowRetry: false,
       );
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
-        safeMessage: 'The game session could not be closed safely.',
+        safeMessage: 'La session de jeu n’a pas pu être fermée proprement.',
       );
     }
   }
@@ -778,7 +778,7 @@ final class RuntimePlayerCoordinator {
       return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
         safeMessage: _sessions.snapshot.failure?.safeMessage ??
-            'The checkpoint could not be saved.',
+            'La sauvegarde n’a pas pu être enregistrée.',
       );
     }
     return _returnToTitle(checkpoint: false);
@@ -1072,7 +1072,7 @@ final class RuntimePlayerCoordinator {
     if (handle == null || handle.trim().isEmpty) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.unavailable,
-        safeMessage: 'The selected save could not be opened safely.',
+        safeMessage: 'La sauvegarde sélectionnée n’a pas pu être ouverte en sécurité.',
       );
     }
     return _launch(
@@ -1137,13 +1137,13 @@ final class RuntimePlayerCoordinator {
         const GameSessionFailure(
           code: GameSessionFailureCode.runtime,
           recoverability: GameSessionFailureRecoverability.retry,
-          safeMessage: 'The game session could not be launched.',
+          safeMessage: 'La session de jeu n’a pas pu être lancée.',
         ),
         allowRetry: true,
       );
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
-        safeMessage: 'The game session could not be launched.',
+        safeMessage: 'La session de jeu n’a pas pu être lancée.',
       );
     }
   }
@@ -1221,7 +1221,7 @@ final class RuntimePlayerCoordinator {
         const GameSessionFailure(
           code: GameSessionFailureCode.storage,
           recoverability: GameSessionFailureRecoverability.retry,
-          safeMessage: 'Player data could not be loaded.',
+          safeMessage: 'Les données du joueur n’ont pas pu être chargées.',
         ),
         allowRetry: true,
       );
@@ -1318,7 +1318,7 @@ final class RuntimePlayerCoordinator {
               const GameSessionFailure(
                 code: GameSessionFailureCode.runtime,
                 recoverability: GameSessionFailureRecoverability.titleOrHub,
-                safeMessage: 'The player session failed.',
+                safeMessage: 'La session joueur a échoué.',
               ),
           allowRetry: true,
         );
@@ -1694,7 +1694,7 @@ final class RuntimePlayerCoordinator {
     if (address == null) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.unavailable,
-        safeMessage: 'No unusable save is selected.',
+        safeMessage: 'Aucune sauvegarde à réparer n’est sélectionnée.',
       );
     }
     await _saveGateway.deleteSave(address);

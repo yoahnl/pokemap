@@ -1176,7 +1176,7 @@ void main() {
       await _pumpUntil(
         game,
         () =>
-            game.debugNotificationText == 'Warp failed' &&
+            game.debugNotificationText == 'La téléportation a échoué.' &&
             !game.debugHasPendingMapTransition,
       );
 
@@ -1184,7 +1184,7 @@ void main() {
         game.gameStateSnapshot.currentMapId,
         'warp_out_of_bounds_source',
       );
-      expect(game.debugNotificationText, 'Warp failed');
+      expect(game.debugNotificationText, 'La téléportation a échoué.');
       expect(game.debugCompletedMapActivationDispatchCount, 1);
       expect(
         game.debugLastCompletedMapActivation?.reason,

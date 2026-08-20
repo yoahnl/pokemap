@@ -227,6 +227,7 @@ export 'src/application/runtime_battle_authoring_capability_truth.dart'
         RuntimeBattleAuthoringCapability,
         RuntimeBattleAuthoringCapabilityTruth;
 export 'src/application/runtime_playtest_port.dart';
+export 'src/application/runtime_failure_taxonomy.dart';
 export 'src/application/runtime_battle_progression_context_mapper.dart'
     show RuntimeBattleProgressionContextMapper;
 export 'src/application/runtime_battle_reward_resolver.dart'

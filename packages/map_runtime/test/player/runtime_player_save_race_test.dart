@@ -39,7 +39,7 @@ void main() {
 
     expect(results.first.status, RuntimePlayerCommandStatus.accepted);
     expect(results.last.status, RuntimePlayerCommandStatus.unavailable);
-    expect(results.last.safeMessage, contains('already in progress'));
+    expect(results.last.safeMessage, contains('déjà en cours'));
     expect(harness.saves.commitAttempts, hasLength(1));
     expect(harness.saves.maxConcurrentCommits, 1);
     expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.paused);

@@ -80,7 +80,7 @@ final class GameSessionController
       return Future<RuntimeWorldServiceCommandResult>.value(
         const RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
-          safeMessage: 'The active session exposes no contextual service.',
+          safeMessage: 'Aucun service contextuel n’est actif.',
         ),
       );
     }
@@ -123,7 +123,7 @@ final class GameSessionController
       return Future.value(
         const RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Bag actions are unavailable outside the pause menu.',
+          safeMessage: 'Le sac n’est disponible que depuis le menu pause.',
         ),
       );
     }
@@ -139,7 +139,7 @@ final class GameSessionController
       if (!saved) {
         return const RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.failed,
-          safeMessage: 'The item was applied but the checkpoint failed.',
+          safeMessage: 'L’objet a été utilisé mais la sauvegarde a échoué.',
         );
       }
       return result;
@@ -183,7 +183,7 @@ final class GameSessionController
                   const GameSessionFailure(
                     code: GameSessionFailureCode.runtime,
                     recoverability: GameSessionFailureRecoverability.titleOrHub,
-                    safeMessage: 'The runtime event channel failed.',
+                    safeMessage: 'Le canal d’évènements du runtime a échoué.',
                   ),
                 ),
               ),
@@ -210,7 +210,7 @@ final class GameSessionController
           const GameSessionFailure(
             code: GameSessionFailureCode.timeout,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'The player session did not prepare in time.',
+            safeMessage: 'La session joueur ne s’est pas préparée à temps.',
           ),
           cause: error,
         );
@@ -220,7 +220,7 @@ final class GameSessionController
           const GameSessionFailure(
             code: GameSessionFailureCode.runtime,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'The player session could not be prepared.',
+            safeMessage: 'La session joueur n’a pas pu être préparée.',
           ),
           cause: error,
         );
@@ -240,7 +240,7 @@ final class GameSessionController
           const GameSessionFailure(
             code: GameSessionFailureCode.timeout,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'The player session did not start in time.',
+            safeMessage: 'La session joueur n’a pas démarré à temps.',
           ),
         );
         throw GameSessionException(
@@ -253,7 +253,7 @@ final class GameSessionController
           const GameSessionFailure(
             code: GameSessionFailureCode.runtime,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'The player session could not be started.',
+            safeMessage: 'La session joueur n’a pas pu démarrer.',
           ),
         );
         throw GameSessionException(
@@ -593,7 +593,7 @@ final class GameSessionController
             const GameSessionFailure(
               code: GameSessionFailureCode.protocol,
               recoverability: GameSessionFailureRecoverability.hubOnly,
-              safeMessage: 'The session heartbeat was invalid.',
+              safeMessage: 'Le signal de session était invalide.',
             ),
           );
         }
@@ -617,7 +617,7 @@ final class GameSessionController
         const GameSessionFailure(
           code: GameSessionFailureCode.contractViolation,
           recoverability: GameSessionFailureRecoverability.hubOnly,
-          safeMessage: 'The completion event did not match this session.',
+          safeMessage: 'L’évènement de fin ne correspond pas à cette session.',
         ),
       );
       return;
@@ -628,7 +628,7 @@ final class GameSessionController
         const GameSessionFailure(
           code: GameSessionFailureCode.contractViolation,
           recoverability: GameSessionFailureRecoverability.hubOnly,
-          safeMessage: 'The completion event arrived in an invalid state.',
+          safeMessage: 'L’évènement de fin est arrivé dans un état invalide.',
         ),
       );
       return;
@@ -680,7 +680,7 @@ final class GameSessionController
           failure: const GameSessionFailure(
             code: GameSessionFailureCode.storage,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'The final checkpoint could not be saved.',
+            safeMessage: 'La sauvegarde finale n’a pas pu être enregistrée.',
           ),
         ),
       );
@@ -709,7 +709,7 @@ final class GameSessionController
           failure: const GameSessionFailure(
             code: GameSessionFailureCode.storage,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'The checkpoint could not be saved.',
+            safeMessage: 'La sauvegarde n’a pas pu être enregistrée.',
           ),
         ),
       );
@@ -788,7 +788,7 @@ final class GameSessionController
     const teardownFailure = GameSessionFailure(
       code: GameSessionFailureCode.runtime,
       recoverability: GameSessionFailureRecoverability.titleOrHub,
-      safeMessage: 'The previous game session did not close cleanly.',
+      safeMessage: 'La session précédente ne s’est pas fermée proprement.',
     );
     _publish(
       _snapshot.copyWith(
