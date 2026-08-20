@@ -181,11 +181,11 @@ SceneRuntimePlanIntent _runtimeIntentForNode(
             (node.payload as ScenePresentationCinematicPayload)
                 .presentationCinematicId,
         sourceNodeId: node.id,
-        interactionNodeIdsByMarkerId: {
+        awaitableNodeIdsByMarkerId: {
           for (final binding
               in (node.payload as ScenePresentationCinematicPayload)
                   .interactionCueBindings)
-            binding.markerId: binding.interactionNodeId,
+            binding.markerId: binding.awaitableNodeId,
         },
       ),
     SceneNodeKind.action => _actionIntent(node),

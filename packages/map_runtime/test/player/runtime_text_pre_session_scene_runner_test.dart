@@ -597,7 +597,7 @@ SceneAsset _presentationInteractionScene() => SceneAsset(
               interactionCueBindings: const [
                 ScenePresentationInteractionCueBinding(
                   markerId: 'ask_avatar',
-                  interactionNodeId: 'avatar',
+                  awaitableNodeId: 'avatar',
                 ),
               ],
             ),

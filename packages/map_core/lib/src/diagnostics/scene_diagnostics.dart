@@ -1416,7 +1416,7 @@ void _diagnosePresentationInteractionOrder(
         if (!visited.add(state)) continue;
         final hasPlayedPresentation =
             state.$2 || state.$1 == presentationNode.id;
-        if (state.$1 == binding.interactionNodeId && !hasPlayedPresentation) {
+        if (state.$1 == binding.awaitableNodeId && !hasPlayedPresentation) {
           reachedBeforePresentation = true;
           continue;
         }
@@ -1437,7 +1437,7 @@ void _diagnosePresentationInteractionOrder(
               'Une interaction liée à une cinématique est atteignable avant '
               'la lecture de cette cinématique.',
           sceneId: scene.id,
-          nodeId: binding.interactionNodeId,
+          nodeId: binding.awaitableNodeId,
           target: SceneDiagnosticTarget.node,
           suggestedFixLabel:
               'Placer la cinématique avant l’interaction dans le graphe.',

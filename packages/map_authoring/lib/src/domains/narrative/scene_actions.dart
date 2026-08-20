@@ -593,7 +593,7 @@ final class SceneActions {
         updated,
         presentationNodeId: cueBinding.presentationNodeId,
         markerId: cueBinding.markerId,
-        interactionNodeId: nodeId,
+        awaitableNodeId: nodeId,
       ).updatedScene;
     }
     return upsert(project, maps: maps, scene: updated);
@@ -623,7 +623,7 @@ final class SceneActions {
     if (replaceCueBinding) {
       updated = _withoutInteractionCueBindings(
         updated,
-        interactionNodeId: nodeId,
+        awaitableNodeId: nodeId,
       );
       if (cueBinding != null) {
         _validateInteractionCueBinding(
@@ -635,7 +635,7 @@ final class SceneActions {
           updated,
           presentationNodeId: cueBinding.presentationNodeId,
           markerId: cueBinding.markerId,
-          interactionNodeId: nodeId,
+          awaitableNodeId: nodeId,
         ).updatedScene;
       }
     }
@@ -1084,14 +1084,14 @@ void _validateInteractionCueBinding(
 
 SceneAsset _withoutInteractionCueBindings(
   SceneAsset scene, {
-  required String interactionNodeId,
+  required String awaitableNodeId,
 }) {
   var updated = scene;
   final bindings = <(String, String)>[
     for (final node in scene.graph.nodes)
       if (node.payload case final ScenePresentationCinematicPayload payload)
         for (final binding in payload.interactionCueBindings)
-          if (binding.interactionNodeId == interactionNodeId)
+          if (binding.awaitableNodeId == awaitableNodeId)
             (node.id, binding.markerId),
   ];
   for (final binding in bindings) {
@@ -1099,7 +1099,7 @@ SceneAsset _withoutInteractionCueBindings(
       updated,
       presentationNodeId: binding.$1,
       markerId: binding.$2,
-      interactionNodeId: null,
+      awaitableNodeId: null,
     ).updatedScene;
   }
   return updated;

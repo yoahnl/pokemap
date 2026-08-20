@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart' show immutable;
+
 import '../models/project_manifest.dart';
 import '../models/cinematic_asset.dart';
 import '../models/narrative_event_definition.dart';
@@ -617,7 +619,60 @@ String? sceneNodeDraftRemovalBlocker(SceneGraph graph, SceneNode node) {
       return 'Une scène doit garder au moins une fin.';
     }
   }
+  final cueUsages = presentationCueUsagesOfSceneNode(graph, node.id);
+  if (cueUsages.isNotEmpty) {
+    final usages = cueUsages
+        .map(
+          (usage) =>
+              'repère « ${usage.markerId} » du nœud Presentation '
+              '« ${usage.presentationNodeId} »',
+        )
+        .join(', ');
+    return 'Ce nœud est la cible de ${cueUsages.length} liaison(s) de repère '
+        'd’interaction : $usages. Déliez ces repères avant la suppression.';
+  }
   return null;
+}
+
+/// Every Presentation interaction cue binding of [graph] whose awaitable
+/// target is [awaitableNodeId] — the usage list surfaced before a blocked
+/// deletion so authors can unbind instead of discovering a dangling
+/// reference (BETA-CIN-069).
+List<ScenePresentationCueUsage> presentationCueUsagesOfSceneNode(
+  SceneGraph graph,
+  String awaitableNodeId,
+) {
+  return List<ScenePresentationCueUsage>.unmodifiable([
+    for (final node in graph.nodes)
+      if (node.payload case final ScenePresentationCinematicPayload payload)
+        for (final binding in payload.interactionCueBindings)
+          if (binding.awaitableNodeId == awaitableNodeId)
+            ScenePresentationCueUsage(
+              presentationNodeId: node.id,
+              markerId: binding.markerId,
+            ),
+  ]);
+}
+
+@immutable
+final class ScenePresentationCueUsage {
+  const ScenePresentationCueUsage({
+    required this.presentationNodeId,
+    required this.markerId,
+  });
+
+  final String presentationNodeId;
+  final String markerId;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScenePresentationCueUsage &&
+          other.presentationNodeId == presentationNodeId &&
+          other.markerId == markerId;
+
+  @override
+  int get hashCode => Object.hash(presentationNodeId, markerId);
 }
 
 bool canRemoveSceneNodeDraft(SceneGraph graph, SceneNode node) {
@@ -1180,7 +1235,7 @@ updateScenePresentationInteractionCueBinding(
   SceneAsset scene, {
   required String presentationNodeId,
   required String markerId,
-  String? interactionNodeId,
+  String? awaitableNodeId,
 }) {
   final node = _findNodeOrThrow(
     scene,
@@ -1202,16 +1257,16 @@ updateScenePresentationInteractionCueBinding(
     'markerId',
     'An interaction cue marker id is required.',
   );
-  final normalizedInteractionNodeId = _trimOptional(interactionNodeId);
+  final normalizedAwaitableNodeId = _trimOptional(awaitableNodeId);
   final updatedBindings = <ScenePresentationInteractionCueBinding>[
     for (final binding in payload.interactionCueBindings)
       if (binding.markerId != normalizedMarkerId &&
-          binding.interactionNodeId != normalizedInteractionNodeId)
+          binding.awaitableNodeId != normalizedAwaitableNodeId)
         binding,
-    if (normalizedInteractionNodeId != null)
+    if (normalizedAwaitableNodeId != null)
       ScenePresentationInteractionCueBinding(
         markerId: normalizedMarkerId,
-        interactionNodeId: normalizedInteractionNodeId,
+        awaitableNodeId: normalizedAwaitableNodeId,
       ),
   ];
   final updatedPayload = ScenePresentationCinematicPayload(

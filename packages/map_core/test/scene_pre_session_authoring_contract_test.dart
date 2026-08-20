@@ -142,7 +142,7 @@ void main() {
         interactionCueBindings: const [
           ScenePresentationInteractionCueBinding(
             markerId: 'ask_name',
-            interactionNodeId: 'input_name',
+            awaitableNodeId: 'input_name',
           ),
         ],
       );
@@ -155,11 +155,11 @@ void main() {
           interactionCueBindings: const [
             ScenePresentationInteractionCueBinding(
               markerId: 'ask_name',
-              interactionNodeId: 'input_name',
+              awaitableNodeId: 'input_name',
             ),
             ScenePresentationInteractionCueBinding(
               markerId: 'ask_name',
-              interactionNodeId: 'input_other',
+              awaitableNodeId: 'input_other',
             ),
           ],
         ),
@@ -304,7 +304,7 @@ void main() {
                 interactionCueBindings: const [
                   ScenePresentationInteractionCueBinding(
                     markerId: 'welcome',
-                    interactionNodeId: 'message',
+                    awaitableNodeId: 'message',
                   ),
                 ],
               ),
@@ -349,7 +349,7 @@ void main() {
 
       expect(presentationIntent.sourceNodeId, 'presentation');
       expect(
-        presentationIntent.presentationInteractionNodeIdsByMarkerId,
+        presentationIntent.presentationAwaitableNodeIdsByMarkerId,
         const {'welcome': 'message'},
       );
     });
@@ -385,7 +385,7 @@ void main() {
                 interactionCueBindings: const [
                   ScenePresentationInteractionCueBinding(
                     markerId: 'cue_player_name',
-                    interactionNodeId: 'ask_name',
+                    awaitableNodeId: 'ask_name',
                   ),
                 ],
               ),
@@ -432,8 +432,8 @@ void main() {
       expect(buildSceneRuntimePlan(scene).canBuild, isFalse);
     });
 
-    test('rejects cue bindings to missing or non-interaction nodes', () {
-      SceneAsset build(String interactionNodeId) => SceneAsset(
+    test('rejects cue bindings to missing or non-awaitable nodes', () {
+      SceneAsset build(String awaitableNodeId) => SceneAsset(
         id: 'scene_pre_session',
         name: 'Pré-session',
         executionProfile: SceneExecutionProfile.preSession,
@@ -449,7 +449,7 @@ void main() {
                 interactionCueBindings: [
                   ScenePresentationInteractionCueBinding(
                     markerId: 'ask_name',
-                    interactionNodeId: interactionNodeId,
+                    awaitableNodeId: awaitableNodeId,
                   ),
                 ],
               ),

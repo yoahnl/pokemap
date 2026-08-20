@@ -149,7 +149,7 @@ final class ScenePresentationCinematicRuntimeAwaitableAdapter {
       asset: asset,
       onInteractionCue: onInteractionCue,
       interactionCueMarkerIds:
-          intent.presentationInteractionNodeIdsByMarkerId.keys.toSet(),
+          intent.presentationAwaitableNodeIdsByMarkerId.keys.toSet(),
     );
     RuntimePresentationExecutionTerminal terminal;
     try {

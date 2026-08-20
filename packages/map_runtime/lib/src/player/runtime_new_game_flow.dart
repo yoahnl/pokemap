@@ -176,13 +176,13 @@ final class RuntimeTextPreSessionSceneRunner
           final result = await adapter.playPresentationCinematic(
             intent,
             onInteractionCue: (markerId) async {
-              final interactionNodeId =
-                  intent.presentationInteractionNodeIdsByMarkerId[markerId];
+              final awaitableNodeId =
+                  intent.presentationAwaitableNodeIdsByMarkerId[markerId];
               final interactionNode = activeScene.graph.nodes
-                  .where((node) => node.id == interactionNodeId)
+                  .where((node) => node.id == awaitableNodeId)
                   .firstOrNull;
               final interactionPayload = interactionNode?.payload;
-              if (interactionNodeId == null ||
+              if (awaitableNodeId == null ||
                   interactionPayload is! SceneActionPayload ||
                   interactionPayload.preSessionInteraction == null) {
                 throw StateError(
@@ -193,14 +193,14 @@ final class RuntimeTextPreSessionSceneRunner
               final interactionResult = await _runStructuredInteraction(
                 intent: SceneRuntimePlanIntent.requestStructuredInteraction(
                   interaction: interactionPayload.preSessionInteraction!,
-                  sourceNodeId: interactionNodeId,
+                  sourceNodeId: awaitableNodeId,
                 ),
                 requestId: '$runId:scene:${interactionSerial++}',
                 draft: currentDraft,
                 interactions: interactions,
               );
               currentDraft = interactionResult.draft;
-              handledInteractionOutputsByNodeId[interactionNodeId] =
+              handledInteractionOutputsByNodeId[awaitableNodeId] =
                   interactionResult.outputPortId;
             },
           );

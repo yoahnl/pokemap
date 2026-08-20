@@ -195,7 +195,7 @@ void main() {
         const [
           ScenePresentationInteractionCueBinding(
             markerId: 'cue_welcome',
-            interactionNodeId: 'welcome',
+            awaitableNodeId: 'welcome',
           ),
         ],
       );

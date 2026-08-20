@@ -132,7 +132,7 @@ final class SceneRuntimePlanIntent {
     this.cinematicId,
     this.presentationCinematicId,
     this.sourceNodeId,
-    Map<String, String> presentationInteractionNodeIdsByMarkerId = const {},
+    Map<String, String> presentationAwaitableNodeIdsByMarkerId = const {},
     this.consequence,
     this.interactiveCommand,
     this.preSessionInteraction,
@@ -141,9 +141,9 @@ final class SceneRuntimePlanIntent {
        battleDeclaredOutcomes = List<String>.unmodifiable(
          battleDeclaredOutcomes,
        ),
-       presentationInteractionNodeIdsByMarkerId =
+       presentationAwaitableNodeIdsByMarkerId =
            Map<String, String>.unmodifiable(
-             presentationInteractionNodeIdsByMarkerId,
+             presentationAwaitableNodeIdsByMarkerId,
            );
 
   factory SceneRuntimePlanIntent.start() {
@@ -227,13 +227,13 @@ final class SceneRuntimePlanIntent {
   factory SceneRuntimePlanIntent.playPresentationCinematic({
     required String presentationCinematicId,
     String? sourceNodeId,
-    Map<String, String> interactionNodeIdsByMarkerId = const {},
+    Map<String, String> awaitableNodeIdsByMarkerId = const {},
   }) {
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.playPresentationCinematic,
       presentationCinematicId: presentationCinematicId,
       sourceNodeId: sourceNodeId,
-      presentationInteractionNodeIdsByMarkerId: interactionNodeIdsByMarkerId,
+      presentationAwaitableNodeIdsByMarkerId: awaitableNodeIdsByMarkerId,
     );
   }
 
@@ -284,7 +284,7 @@ final class SceneRuntimePlanIntent {
   final String? cinematicId;
   final String? presentationCinematicId;
   final String? sourceNodeId;
-  final Map<String, String> presentationInteractionNodeIdsByMarkerId;
+  final Map<String, String> presentationAwaitableNodeIdsByMarkerId;
   final SceneConsequence? consequence;
   final SceneInteractiveCommand? interactiveCommand;
   final ScenePreSessionInteractionSpec? preSessionInteraction;
@@ -345,8 +345,8 @@ final class SceneRuntimePlanIntent {
           other.presentationCinematicId == presentationCinematicId &&
           other.sourceNodeId == sourceNodeId &&
           _mapEquals(
-            other.presentationInteractionNodeIdsByMarkerId,
-            presentationInteractionNodeIdsByMarkerId,
+            other.presentationAwaitableNodeIdsByMarkerId,
+            presentationAwaitableNodeIdsByMarkerId,
           ) &&
           other.consequence == consequence &&
           other.interactiveCommand == interactiveCommand &&
@@ -374,7 +374,7 @@ final class SceneRuntimePlanIntent {
           presentationCinematicId,
           sourceNodeId,
           Object.hashAllUnordered(
-            presentationInteractionNodeIdsByMarkerId.entries.map(
+            presentationAwaitableNodeIdsByMarkerId.entries.map(
               (entry) => Object.hash(entry.key, entry.value),
             ),
           ),

@@ -377,30 +377,56 @@ final class SceneAsset {
   String toString() => 'SceneAsset(id: $id, name: $name)';
 }
 
+/// The canonical awaitability predicate of BETA-CIN-069.
+///
+/// A Presentation interaction cue may only reference a Scene node able to
+/// suspend the timeline and produce an outcome: a Yarn dialogue or a
+/// structured preSession interaction. Every consumer (schema validation,
+/// authoring operations, editors) must share this predicate instead of
+/// re-deriving its own, so the accepted set can never diverge.
+bool sceneNodeIsPresentationAwaitable(SceneNode node) {
+  if (node.kind == SceneNodeKind.yarnDialogue) return true;
+  final payload = node.payload;
+  return node.kind == SceneNodeKind.action &&
+      payload is SceneActionPayload &&
+      payload.preSessionInteraction != null;
+}
+
 void _validatePresentationInteractionCueBindings(SceneGraph graph) {
   final nodesById = <String, SceneNode>{
     for (final node in graph.nodes) node.id: node,
   };
-  final boundInteractionNodeIds = <String>{};
+  final boundAwaitableNodeIds = <String>{};
   for (final node in graph.nodes) {
     final payload = node.payload;
     if (payload is! ScenePresentationCinematicPayload) continue;
     for (final binding in payload.interactionCueBindings) {
-      final target = nodesById[binding.interactionNodeId];
-      final targetPayload = target?.payload;
-      if (target?.kind != SceneNodeKind.action ||
-          targetPayload is! SceneActionPayload ||
-          targetPayload.preSessionInteraction == null) {
+      if (binding.awaitableNodeId == node.id) {
         throw ValidationException(
-          'Scene Presentation interaction cue "${binding.markerId}" must '
-          'reference a structured preSession interaction node: '
-          '${binding.interactionNodeId}',
+          'Scene Presentation interaction cue "${binding.markerId}" may not '
+          'reference its own Presentation node — the reference would be '
+          'cyclic: ${binding.awaitableNodeId}',
         );
       }
-      if (!boundInteractionNodeIds.add(binding.interactionNodeId)) {
+      final target = nodesById[binding.awaitableNodeId];
+      if (target == null) {
         throw ValidationException(
-          'A structured preSession interaction node can be bound to only one '
-          'Presentation interaction cue: ${binding.interactionNodeId}',
+          'Scene Presentation interaction cue "${binding.markerId}" '
+          'references an unknown Scene node: ${binding.awaitableNodeId}',
+        );
+      }
+      if (!sceneNodeIsPresentationAwaitable(target)) {
+        throw ValidationException(
+          'Scene Presentation interaction cue "${binding.markerId}" must '
+          'reference an awaitable Scene node (a Yarn dialogue or a '
+          'structured preSession interaction), not the '
+          '${target.kind.name} node: ${binding.awaitableNodeId}',
+        );
+      }
+      if (!boundAwaitableNodeIds.add(binding.awaitableNodeId)) {
+        throw ValidationException(
+          'An awaitable Scene node can be bound to only one Presentation '
+          'interaction cue: ${binding.awaitableNodeId}',
         );
       }
     }
@@ -1246,22 +1272,32 @@ final class SceneCinematicPayload extends SceneNodePayload {
 final class ScenePresentationInteractionCueBinding {
   const ScenePresentationInteractionCueBinding({
     required this.markerId,
-    required this.interactionNodeId,
+    required this.awaitableNodeId,
   });
 
   factory ScenePresentationInteractionCueBinding.fromJson(
     Map<String, dynamic> json,
-  ) => ScenePresentationInteractionCueBinding(
-    markerId: _readRequiredString(json, 'markerId'),
-    interactionNodeId: _readRequiredString(json, 'interactionNodeId'),
-  );
+  ) {
+    if (json.containsKey('interactionNodeId')) {
+      throw const ValidationException(
+        'ScenePresentationInteractionCueBinding no longer reads '
+        '"interactionNodeId": the canonical schema carries "awaitableNodeId" '
+        'and legacy forms are rejected without migration (BETA-CIN-069). '
+        'Re-author the cue binding.',
+      );
+    }
+    return ScenePresentationInteractionCueBinding(
+      markerId: _readRequiredString(json, 'markerId'),
+      awaitableNodeId: _readRequiredString(json, 'awaitableNodeId'),
+    );
+  }
 
   final String markerId;
-  final String interactionNodeId;
+  final String awaitableNodeId;
 
   Map<String, dynamic> toJson() => {
     'markerId': markerId,
-    'interactionNodeId': interactionNodeId,
+    'awaitableNodeId': awaitableNodeId,
   };
 
   @override
@@ -1269,10 +1305,10 @@ final class ScenePresentationInteractionCueBinding {
       identical(this, other) ||
       other is ScenePresentationInteractionCueBinding &&
           other.markerId == markerId &&
-          other.interactionNodeId == interactionNodeId;
+          other.awaitableNodeId == awaitableNodeId;
 
   @override
-  int get hashCode => Object.hash(markerId, interactionNodeId);
+  int get hashCode => Object.hash(markerId, awaitableNodeId);
 }
 
 @immutable
@@ -1294,8 +1330,8 @@ final class ScenePresentationCinematicPayload extends SceneNodePayload {
       'ScenePresentationCinematicPayload.interactionCueBindings.markerId',
     );
     _validateUniqueIds(
-      this.interactionCueBindings.map((binding) => binding.interactionNodeId),
-      'ScenePresentationCinematicPayload.interactionCueBindings.interactionNodeId',
+      this.interactionCueBindings.map((binding) => binding.awaitableNodeId),
+      'ScenePresentationCinematicPayload.interactionCueBindings.awaitableNodeId',
     );
   }
 

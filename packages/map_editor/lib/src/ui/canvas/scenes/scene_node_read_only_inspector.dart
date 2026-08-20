@@ -1212,7 +1212,7 @@ class _PreSessionInteractionAuthoringPanel extends StatelessWidget {
         if (candidate.payload
             case final ScenePresentationCinematicPayload payload)
           for (final binding in payload.interactionCueBindings)
-            if (binding.interactionNodeId != node.id) binding.markerId,
+            if (binding.awaitableNodeId != node.id) binding.markerId,
     };
     final options = buildScenePreSessionInteractionCueOptions(
       graph: scene.graph,
@@ -1238,7 +1238,7 @@ class _PreSessionInteractionAuthoringPanel extends StatelessWidget {
       final payload = candidate.payload;
       if (payload is! ScenePresentationCinematicPayload) continue;
       for (final binding in payload.interactionCueBindings) {
-        if (binding.interactionNodeId != node.id) continue;
+        if (binding.awaitableNodeId != node.id) continue;
         presentationNodeId = candidate.id;
         markerId = binding.markerId;
       }
