@@ -102,6 +102,71 @@ void main() {
     );
   });
 
+  test('replaying the same bag command heals again or refuses, never doubles',
+      () async {
+    // BETA-ITM-004 « fermeture/rebuild ne rejoue pas la commande » : un
+    // double dispatch (double-clic, rebuild de dialogue) est soit un
+    // DEUXIÈME soin légitime sur une cible encore blessée — consommant un
+    // DEUXIÈME objet, jamais le même — soit un refus sans effet quand la
+    // cible est au maximum. Aucun chemin ne consomme sans soigner.
+    var state = const GameState(
+      saveId: 'bag-replay',
+      party: PlayerParty(
+        members: <PlayerPokemon>[
+          PlayerPokemon(
+            speciesId: 'lead',
+            natureId: 'hardy',
+            abilityId: 'steadfast',
+            currentHp: 5,
+          ),
+        ],
+      ),
+      bag: Bag(
+        entries: <BagEntry>[
+          BagEntry(itemId: 'potion', quantity: 3),
+        ],
+      ),
+    );
+    final commits = <GameState>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        commits.add(next);
+        state = next;
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{0: 30},
+      ),
+      itemCatalog: _catalogWith(const <ProjectItemDefinition>[]),
+    );
+    addTearDown(controller.dispose);
+
+    const command = RuntimePlayerPauseCommand.useBagItem(
+      itemTargetId: 'potion',
+      partyTargetId: 'party.0',
+    );
+
+    final first = await controller.useBagItemOutsideBattle(command);
+    expect(first.status, RuntimePlayerPauseCommandStatus.accepted);
+    expect(state.party.members.single.currentHp, 25);
+
+    final second = await controller.useBagItemOutsideBattle(command);
+    expect(second.status, RuntimePlayerPauseCommandStatus.accepted);
+    expect(state.party.members.single.currentHp, 30,
+        reason: 'the second heal caps at max HP');
+    expect(commits, hasLength(2));
+    expect(state.bag.entries.single.quantity, 1,
+        reason: 'each accepted heal consumes exactly one potion');
+
+    final third = await controller.useBagItemOutsideBattle(command);
+    expect(third.status, RuntimePlayerPauseCommandStatus.unavailable,
+        reason: 'a full-HP target refuses the heal');
+    expect(commits, hasLength(2));
+    expect(state.bag.entries.single.quantity, 1,
+        reason: 'a refused replay never consumes');
+  });
+
   test('pause bag command resolves its individual after a party reorder',
       () async {
     var state = const GameState(
