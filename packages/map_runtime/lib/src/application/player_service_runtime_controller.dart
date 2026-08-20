@@ -386,6 +386,86 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     );
   }
 
+  /// Réordonnancement et changement de lead — BETA-PTY-002.
+  ///
+  /// Les opérations pures existaient (swapPartyMembers, setLead, et leurs
+  /// variantes par individualId) sans aucun appelant : le joueur ne pouvait ni
+  /// réordonner ni changer de lead. Même contrat que le sac : validation des
+  /// cibles, opération par INDIVIDUALID quand l'équipe en porte (la sélection
+  /// suit l'individu, pas la position), commit-et-sauvegarde, message sûr.
+  Future<RuntimePlayerPauseCommandResult> reorderPartyOutsideBattle(
+    RuntimePlayerPauseCommand command,
+  ) async {
+    if (_disposed || _active) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'L’équipe est occupée pour le moment.',
+      );
+    }
+    final state = _currentGameState();
+    final firstIndex = _partyIndexFromTarget(state, command.partyTargetId);
+    if (firstIndex == null) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Cette cible n’est plus disponible.',
+      );
+    }
+    const operations = PlayerStorageOperations();
+    final PlayerStorageOperationResult result;
+    final String successMessage;
+    switch (command.kind) {
+      case RuntimePlayerPauseCommandKind.setPartyLead:
+        // Le ciblage stable vient de la RÉSOLUTION des cibles : _partyIndexFromTarget
+        // traduit `pokemon.<individualId>` en index frais sur l'état courant.
+        // Opérer ensuite par variante ByIndividualId re-résoudrait le même id
+        // dans le même état — mesuré par sabotage, strictement équivalent.
+        result = operations.setLead(state: state, partyIndex: firstIndex);
+        successMessage = 'Nouveau Pokémon de tête enregistré.';
+      case RuntimePlayerPauseCommandKind.reorderPartyMember:
+        final secondTarget = command.secondPartyTargetId;
+        final secondIndex = secondTarget == null
+            ? null
+            : _partyIndexFromTarget(state, secondTarget);
+        if (secondIndex == null) {
+          return const RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage: 'Cette cible n’est plus disponible.',
+          );
+        }
+        result = operations.swapPartyMembers(
+          state: state,
+          firstIndex: firstIndex,
+          secondIndex: secondIndex,
+        );
+        successMessage = 'Équipe réordonnée et progression sauvegardée.';
+      case RuntimePlayerPauseCommandKind.useBagItem:
+      case RuntimePlayerPauseCommandKind.equipHeldItem:
+      case RuntimePlayerPauseCommandKind.unequipHeldItem:
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Cette commande ne concerne pas l’équipe.',
+        );
+    }
+    if (!result.isSuccess) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Cette cible n’est plus disponible.',
+      );
+    }
+    try {
+      await _commitAndSave(result.state);
+      return RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.accepted,
+        safeMessage: successMessage,
+      );
+    } catch (_) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.failed,
+        safeMessage: 'L’équipe n’a pas pu être réordonnée ni sauvegardée.',
+      );
+    }
+  }
+
   Future<RuntimePlayerPauseCommandResult> useBagItemOutsideBattle(
     RuntimePlayerPauseCommand command,
   ) async {

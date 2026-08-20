@@ -346,7 +346,12 @@ final class PlayableMapGameSessionRuntime
         ),
       );
     }
-    return services.useBagItemOutsideBattle(command);
+    return switch (command.kind) {
+      RuntimePlayerPauseCommandKind.reorderPartyMember ||
+      RuntimePlayerPauseCommandKind.setPartyLead =>
+        services.reorderPartyOutsideBattle(command),
+      _ => services.useBagItemOutsideBattle(command),
+    };
   }
 
   @override

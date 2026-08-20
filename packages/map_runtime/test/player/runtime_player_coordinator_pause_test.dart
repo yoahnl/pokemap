@@ -50,6 +50,7 @@ void main() {
       <RuntimePlayerAction>{
         RuntimePlayerAction.resume,
         RuntimePlayerAction.openParty,
+        RuntimePlayerAction.reorderParty,
         RuntimePlayerAction.openBag,
         RuntimePlayerAction.useBagItem,
         RuntimePlayerAction.openPokedex,
@@ -345,6 +346,88 @@ void main() {
           ?.message,
       'Objet utilisé.',
     );
+  });
+
+  test('reorders the party from the pause party section', () async {
+    // BETA-PTY-002, le canal UI. La commande arrive du routeur d'actions
+    // joueur — le même quel que soit le périphérique (clavier, manette,
+    // tactile), c'est le contrat device-agnostic des actions runtime.
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseDetails =
+        <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
+      RuntimePlayerPauseSection.party: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.party,
+        title: 'Équipe',
+        entries: <RuntimePlayerDetailEntrySnapshot>[
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'pokemon.pkm_lead',
+            title: 'Lead',
+          ),
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'pokemon.pkm_second',
+            title: 'Second',
+          ),
+        ],
+      ),
+    };
+    await _openMenu(harness);
+    await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.openParty,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+
+    const command = RuntimePlayerPauseCommand.reorderPartyMember(
+      partyTargetId: 'pokemon.pkm_lead',
+      secondPartyTargetId: 'pokemon.pkm_second',
+    );
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.reorderParty,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: command,
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.adapter.pauseCommands, <RuntimePlayerPauseCommand>[command]);
+    expect(
+      harness.coordinator.snapshot.pauseSection,
+      RuntimePlayerPauseSection.party,
+      reason: 'the player stays on the party section after the reorder',
+    );
+    expect(
+      harness.coordinator.snapshot
+          .pauseDetailFor(RuntimePlayerPauseSection.party)
+          ?.message,
+      harness.adapter.pauseCommandResult.safeMessage,
+      reason: 'the party detail carries the outcome message',
+    );
+  });
+
+  test('refuses a reorder outside the party section', () async {
+    // Même garde que le sac : la commande n'a de sens que sur sa section. Un
+    // payload rejoué depuis un autre écran est refusé sans dispatch.
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await _openMenu(harness);
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.reorderParty,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerPauseCommand.setPartyLead(
+          partyTargetId: 'pokemon.pkm_lead',
+        ),
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.unavailable);
+    expect(harness.adapter.pauseCommands, isEmpty);
   });
 
   test('refuses an unavailable section without changing pause state', () async {

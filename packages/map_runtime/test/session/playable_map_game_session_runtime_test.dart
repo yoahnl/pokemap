@@ -66,6 +66,97 @@ void main() {
     );
   });
 
+  test('routes party reorder pause commands to the party service', () async {
+    // BETA-PTY-002, le maillon de ROUTAGE — mesuré manquant par sabotage :
+    // renvoyer les genres équipe vers le service du sac laissait tout vert,
+    // parce qu'aucun test ne traversait dispatchPauseCommand de la session
+    // avec un genre équipe. Celui-ci le fait sur le vrai runtime chargé.
+    final identity = GameIdentity(
+      gameId: 'org.example.runtime-fixture',
+      gameVersion: '1.0.0',
+      projectFormat: ProjectFormat.v1,
+      saveFormat: 1,
+      compatibilityId: 'fixture-v1',
+    );
+    final descriptor = GameSessionDescriptor(
+      sessionId: 'session-party',
+      sessionToken: 'secret',
+      identity: identity,
+      profileId: 'player-1',
+      slotId: 'slot-1',
+      launchMode: GameSessionLaunchMode.continueGame,
+      installedVersionHandle: 'verified-fixture',
+      saveReadHandle: 'opaque-save',
+      runtimeApiVersion: '1.0.0',
+      grantedCapabilities: const <String>{'map.v1'},
+      locale: 'fr-FR',
+      accessibility: const GameSessionAccessibilityOptions(),
+    );
+    final createdAt = DateTime.utc(2026, 8, 19);
+    final save = const GameStateSaveEnvelopeMapper().create(
+      identity: identity,
+      profileId: 'player-1',
+      slotId: 'slot-1',
+      saveId: '123e4567-e89b-42d3-a456-426614174001',
+      createdAt: createdAt,
+      updatedAt: createdAt,
+      status: SaveStatus.active,
+      playTimeSeconds: 10,
+      gameState: const GameState(
+        saveId: '123e4567-e89b-42d3-a456-426614174001',
+        currentMapId: 'p3_test_map',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              individualId: 'pkm_first',
+              speciesId: 'sproutle',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              level: 7,
+              currentHp: 20,
+            ),
+            PlayerPokemon(
+              individualId: 'pkm_second',
+              speciesId: 'sparkitten',
+              natureId: 'hardy',
+              abilityId: 'blaze',
+              level: 7,
+              currentHp: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+    PlayableMapGame? mounted;
+    final runtime = PlayableMapGameSessionRuntime(
+      descriptor: descriptor,
+      projectFilePath: () async => File(
+        'test/fixtures/p3_scenario_runtime_golden_path/project.json',
+      ).absolute.path,
+      initialSave: () async => save,
+      mountGame: (game) async => mounted = game,
+      unmountGame: (_) async {},
+      now: () => DateTime.utc(2026, 8, 20),
+    );
+    addTearDown(runtime.dispose);
+    await runtime.load((_) {});
+    expect(mounted, isNotNull);
+
+    final result = await runtime.dispatchPauseCommand(
+      const RuntimePlayerPauseCommand.setPartyLead(
+        partyTargetId: 'pokemon.pkm_second',
+      ),
+    );
+
+    expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+    expect(
+      mounted!.gameStateSnapshot.party.members
+          .map((member) => member.individualId),
+      <String>['pkm_second', 'pkm_first'],
+      reason: 'the session routed the party kind to the party service',
+    );
+  });
+
   test('loads a scoped save without filesystem persistence and completes once',
       () async {
     final identity = GameIdentity(

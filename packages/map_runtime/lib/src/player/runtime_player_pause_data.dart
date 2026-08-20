@@ -203,30 +203,59 @@ final class RuntimePlayerPauseCommand {
     required this.itemTargetId,
     required this.partyTargetId,
     this.moveTargetId,
-  }) : kind = RuntimePlayerPauseCommandKind.useBagItem;
+  })  : kind = RuntimePlayerPauseCommandKind.useBagItem,
+        secondPartyTargetId = null;
 
   const RuntimePlayerPauseCommand.equipHeldItem({
     required this.itemTargetId,
     required this.partyTargetId,
   })  : kind = RuntimePlayerPauseCommandKind.equipHeldItem,
-        moveTargetId = null;
+        moveTargetId = null,
+        secondPartyTargetId = null;
 
   const RuntimePlayerPauseCommand.unequipHeldItem({
     required this.partyTargetId,
   })  : kind = RuntimePlayerPauseCommandKind.unequipHeldItem,
         itemTargetId = '',
+        moveTargetId = null,
+        secondPartyTargetId = null;
+
+  /// BETA-PTY-002. Échange deux membres de l'équipe.
+  ///
+  /// Les cibles sont des identifiants de cible pause (`pokemon.<individualId>`
+  /// pour le ciblage stable, `party.<index>` en repli) : la sélection suit
+  /// l'individu, pas sa position, donc un réordonnancement antérieur ne peut
+  /// pas faire échanger le mauvais Pokémon.
+  const RuntimePlayerPauseCommand.reorderPartyMember({
+    required this.partyTargetId,
+    required String this.secondPartyTargetId,
+  })  : kind = RuntimePlayerPauseCommandKind.reorderPartyMember,
+        itemTargetId = '',
         moveTargetId = null;
+
+  /// BETA-PTY-002. Place un membre en tête d'équipe.
+  const RuntimePlayerPauseCommand.setPartyLead({
+    required this.partyTargetId,
+  })  : kind = RuntimePlayerPauseCommandKind.setPartyLead,
+        itemTargetId = '',
+        moveTargetId = null,
+        secondPartyTargetId = null;
 
   final RuntimePlayerPauseCommandKind kind;
   final String itemTargetId;
   final String partyTargetId;
   final String? moveTargetId;
+
+  /// Seconde cible d'un échange, nulle pour les autres commandes.
+  final String? secondPartyTargetId;
 }
 
 enum RuntimePlayerPauseCommandKind {
   useBagItem,
   equipHeldItem,
-  unequipHeldItem
+  unequipHeldItem,
+  reorderPartyMember,
+  setPartyLead,
 }
 
 enum RuntimePlayerPauseCommandStatus { accepted, unavailable, failed }

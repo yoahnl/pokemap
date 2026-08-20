@@ -127,6 +127,7 @@ final class RuntimePlayerCoordinator {
         case RuntimePlayerAction.openParty:
         case RuntimePlayerAction.openBag:
         case RuntimePlayerAction.useBagItem:
+        case RuntimePlayerAction.reorderParty:
         case RuntimePlayerAction.openPokedex:
         case RuntimePlayerAction.openMap:
         case RuntimePlayerAction.openOptions:
@@ -389,6 +390,47 @@ final class RuntimePlayerCoordinator {
         );
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
+        );
+      case RuntimePlayerAction.reorderParty:
+        final reorderCommand = command.payload;
+        final isReorderKind = reorderCommand is RuntimePlayerPauseCommand &&
+            (reorderCommand.kind ==
+                    RuntimePlayerPauseCommandKind.reorderPartyMember ||
+                reorderCommand.kind ==
+                    RuntimePlayerPauseCommandKind.setPartyLead);
+        if (!isReorderKind ||
+            _snapshot.pauseSection != RuntimePlayerPauseSection.party) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.unavailable,
+            safeMessage: 'Deux membres de l’équipe valides sont requis.',
+          );
+        }
+        final reorderResult =
+            await _sessions.dispatchPauseCommand(reorderCommand);
+        final reorderDetails = Map<RuntimePlayerPauseSection,
+            RuntimePlayerPauseDetailSnapshot>.from(
+          await _sessions.loadPauseDetails(),
+        );
+        final party = reorderDetails[RuntimePlayerPauseSection.party];
+        if (party != null) {
+          reorderDetails[RuntimePlayerPauseSection.party] =
+              party.withMessage(reorderResult.safeMessage);
+        }
+        _publishPause(
+          RuntimePlayerPauseSection.party,
+          logicalSelectionId: _snapshot.logicalSelectionId,
+          pauseDetails: reorderDetails,
+        );
+        return RuntimePlayerCommandResult(
+          status: switch (reorderResult.status) {
+            RuntimePlayerPauseCommandStatus.accepted =>
+              RuntimePlayerCommandStatus.accepted,
+            RuntimePlayerPauseCommandStatus.unavailable =>
+              RuntimePlayerCommandStatus.unavailable,
+            RuntimePlayerPauseCommandStatus.failed =>
+              RuntimePlayerCommandStatus.failed,
+          },
+          safeMessage: reorderResult.safeMessage,
         );
       case RuntimePlayerAction.useBagItem:
         final pauseCommand = command.payload;
@@ -1546,10 +1588,14 @@ final class RuntimePlayerCoordinator {
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.resume,
       ),
-      if (_isPauseActionVisible(ProjectPauseActionId.party, pauseMenuState))
+      if (_isPauseActionVisible(ProjectPauseActionId.party, pauseMenuState)) ...[
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.openParty,
         ),
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.reorderParty,
+        ),
+      ],
       if (_isPauseActionVisible(ProjectPauseActionId.bag, pauseMenuState)) ...[
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.openBag,

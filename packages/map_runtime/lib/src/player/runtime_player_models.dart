@@ -35,6 +35,10 @@ enum RuntimePlayerAction {
   openParty,
   openBag,
   useBagItem,
+
+  /// BETA-PTY-002 : réordonner l'équipe ou changer de Pokémon de tête, avec un
+  /// RuntimePlayerPauseCommand (reorderPartyMember ou setPartyLead) en payload.
+  reorderParty,
   openPokedex,
   openMap,
   save,
