@@ -234,6 +234,10 @@ NarrativeProjectValidationReport validateNarrativeProject(
   /// BETA-SYS-005 : `null` laisse la gate dire qu'elle n'a pas pu se prononcer,
   /// au lieu de conclure que tout va bien.
   int? pokemonCatalogErrorCount,
+
+  /// Identifiants d'objets du projet, pour vérifier les références des
+  /// boutiques. `null` laisse la gate dire qu'elle ne les a pas contrôlées.
+  Set<String>? knownItemIds,
   Set<String>? knownSpeciesIds,
   Set<String>? knownMoveIds,
   bool requirePokemonCatalogs = false,
@@ -265,6 +269,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
     mapsById,
     diagnostics,
     pokemonCatalogErrorCount: pokemonCatalogErrorCount,
+    knownItemIds: knownItemIds,
     knownSpeciesIds: normalizedKnownSpeciesIds,
     knownMoveIds: normalizedKnownMoveIds,
     requirePokemonCatalogs: requirePokemonCatalogs,
@@ -694,6 +699,7 @@ void _appendRuntimeReadinessDiagnostics(
   required Set<String>? knownMoveIds,
   required bool requirePokemonCatalogs,
   required int? pokemonCatalogErrorCount,
+  required Set<String>? knownItemIds,
 }) {
   final newGame = project.newGame;
   _appendConfiguredNewGameSpawnDiagnostics(project, mapsById, target);
@@ -708,6 +714,7 @@ void _appendRuntimeReadinessDiagnostics(
     project,
     context: BetaPlayabilityValidationContext(
       pokemonCatalogErrorCount: pokemonCatalogErrorCount,
+      knownItemIds: knownItemIds,
       mapsById: mapsById,
       startMapId: newGame.enabled ? newGame.startMapId : null,
       knownSpeciesIds: knownSpeciesIds ?? const <String>{},

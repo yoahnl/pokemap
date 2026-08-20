@@ -2,6 +2,7 @@ import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
+import 'shop_state_validator.dart';
 
 enum BetaPlayabilityDiagnosticSeverity {
   error,
@@ -46,6 +47,21 @@ enum BetaPlayabilityDiagnosticKind {
   /// l'absence de composition restait indétectable — c'est exactement ce qui a
   /// laissé cinq validateurs de domaine hors de la gate.
   pokemonCatalogCoherenceNotEvaluated,
+
+  /// Une boutique du projet porte un défaut qui bloque le parcours.
+  ///
+  /// BETA-SYS-005. ShopStateValidator existait et n'était appelé que par le
+  /// contrôleur de simulation de l'éditeur : une boutique incohérente passait
+  /// l'export sans un mot, alors qu'elle bloque le parcours si le joueur y
+  /// achète une Poké Ball obligatoire.
+  shopStateIssue,
+
+  /// Les références d'objets des boutiques n'ont pas été vérifiées.
+  ///
+  /// La gate ne reçoit pas toujours le catalogue d'objets. Deux des huit
+  /// contrôles de boutique en dépendent ; les six autres sont structurels et
+  /// tournent quand même. Le manque est nommé plutôt que masqué.
+  shopItemReferencesNotEvaluated,
 }
 
 class BetaPlayabilityDiagnostic {
@@ -91,6 +107,7 @@ class BetaPlayabilityValidationContext {
     this.requiresSaveLoad = true,
     this.hasSaveLoadSupport = true,
     this.pokemonCatalogErrorCount,
+    this.knownItemIds,
   });
 
   final Map<String, MapData> mapsById;
@@ -113,6 +130,12 @@ class BetaPlayabilityValidationContext {
   /// `null` signifie « non évalué », ce qui n'est PAS « aucune erreur » : la
   /// gate le dit alors explicitement au lieu de conclure que tout va bien.
   final int? pokemonCatalogErrorCount;
+
+  /// Identifiants d'objets du projet, ou `null` quand ils n'ont pas été chargés.
+  ///
+  /// `null` n'est PAS l'ensemble vide : un ensemble vide déclarerait toute
+  /// référence d'objet inconnue et produirait de faux diagnostics.
+  final Set<String>? knownItemIds;
 }
 
 class BetaPlayabilityValidationResult {
@@ -232,6 +255,7 @@ BetaPlayabilityValidationResult validateBetaPlayability(
 
   _appendFieldAbilityPrerequisiteDiagnostics(context, diagnostics);
   _appendPokemonCatalogCoherenceDiagnostics(manifest, context, diagnostics);
+  _appendShopStateDiagnostics(manifest, context, diagnostics);
 
   if (context.requiresSaveLoad && !context.hasSaveLoadSupport) {
     diagnostics.add(
@@ -247,6 +271,83 @@ BetaPlayabilityValidationResult validateBetaPlayability(
   }
 
   return BetaPlayabilityValidationResult(diagnostics);
+}
+
+/// Codes de boutique qui ne dépendent pas du catalogue d'objets.
+///
+/// Six des huit contrôles de ShopStateValidator sont purement structurels. Les
+/// deux autres — référence d'objet inconnue, et condition « quantité d'objet »
+/// — ont besoin des identifiants réels ; sans eux, ils produiraient un faux
+/// diagnostic sur chaque entrée de boutique.
+///
+/// Conséquence assumée : quand le catalogue manque, la gate perd aussi les
+/// références de condition NON liées aux objets (badge, carte, étape), parce que
+/// le validateur les regroupe sous un seul code. C'est une perte conservatrice —
+/// aucun faux positif — et elle disparaît dès qu'un appelant fournit le
+/// catalogue.
+const Set<String> _itemAgnosticShopDiagnosticCodes = <String>{
+  'SHOP_STATE_CLOSED_WITHOUT_MESSAGE',
+  'SHOP_STATE_DUPLICATE_ID',
+  'SHOP_STATE_EQUAL_PRIORITY_IDENTICAL_CONDITION',
+  'SHOP_STATE_INVALID_PRICE',
+  'SHOP_STATE_INVALID_STOCK',
+  'SHOP_STATE_OPEN_EMPTY_CATALOGUE',
+};
+
+/// État des boutiques, composé directement.
+///
+/// Contrairement à la cohérence Pokémon, dont la gate reçoit un verdict digéré,
+/// ShopStateValidator est pur sur le manifeste : la gate l'APPELLE. C'est une
+/// composition plus forte, parce qu'aucun appelant ne peut oublier de la
+/// déclencher.
+void _appendShopStateDiagnostics(
+  ProjectManifest project,
+  BetaPlayabilityValidationContext context,
+  List<BetaPlayabilityDiagnostic> diagnostics,
+) {
+  if (project.shops.isEmpty) {
+    return;
+  }
+  final knownItemIds = context.knownItemIds;
+  final shopDiagnostics = ShopStateValidator(
+    project: project,
+    knownItemIds: knownItemIds ?? const <String>{},
+  ).validate();
+  if (knownItemIds == null) {
+    diagnostics.add(
+      const BetaPlayabilityDiagnostic(
+        kind: BetaPlayabilityDiagnosticKind.shopItemReferencesNotEvaluated,
+        severity: BetaPlayabilityDiagnosticSeverity.warning,
+        message: 'Shop item references were not checked because the project '
+            'item catalog was not provided to the beta verdict.',
+        actionHint: 'Pass the project item ids into the beta playability '
+            'context to check shop entries and item conditions.',
+        path: 'beta.shops.itemReferences',
+      ),
+    );
+  }
+  for (final shopDiagnostic in shopDiagnostics) {
+    if (knownItemIds == null &&
+        !_itemAgnosticShopDiagnosticCodes.contains(shopDiagnostic.code)) {
+      continue;
+    }
+    diagnostics.add(
+      BetaPlayabilityDiagnostic(
+        kind: BetaPlayabilityDiagnosticKind.shopStateIssue,
+        severity: switch (shopDiagnostic.severity) {
+          ShopStateDiagnosticSeverity.error =>
+            BetaPlayabilityDiagnosticSeverity.error,
+          ShopStateDiagnosticSeverity.warning =>
+            BetaPlayabilityDiagnosticSeverity.warning,
+          ShopStateDiagnosticSeverity.info =>
+            BetaPlayabilityDiagnosticSeverity.info,
+        },
+        message: '${shopDiagnostic.code}: ${shopDiagnostic.message}',
+        actionHint: 'Fix the shop definition before shipping the beta slice.',
+        path: shopDiagnostic.path,
+      ),
+    );
+  }
 }
 
 /// Cohérence des catalogues Pokémon, telle qu'on la lui a donnée.

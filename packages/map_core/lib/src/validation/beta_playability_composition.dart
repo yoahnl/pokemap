@@ -117,11 +117,15 @@ const List<BetaPlayabilityCompositionEntry> betaPlayabilityComposition =
   ),
   BetaPlayabilityCompositionEntry(
     sourceFileName: 'shop_state_validator.dart',
-    role: BetaPlayabilityCompositionRole.pendingComposition,
-    rationale: 'DETTE. Utilisé seulement par le contrôleur de simulation de '
-        'l\'éditeur ; vérifié absent du chemin d\'export. Une boutique '
-        'incohérente est un blocage de parcours si le joueur y achète une Poké '
-        'Ball obligatoire.',
+    role: BetaPlayabilityCompositionRole.composed,
+    rationale: 'COMPOSÉ sous BETA-SYS-005, et par APPEL DIRECT : le validateur '
+        'est pur sur le manifeste, donc la gate l\'invoque elle-même au lieu de '
+        'recevoir un verdict digéré — aucun appelant ne peut oublier de le '
+        'déclencher. Il n\'était appelé que par le contrôleur de simulation de '
+        'l\'éditeur, donc une boutique incohérente passait l\'export sans un '
+        'mot. Réserve assumée : deux de ses huit contrôles ont besoin du '
+        'catalogue d\'objets ; sans lui ils sont supprimés et la gate le dit, '
+        'plutôt que de déclarer inconnue chaque référence.',
   ),
   BetaPlayabilityCompositionEntry(
     sourceFileName: 'validators.dart',

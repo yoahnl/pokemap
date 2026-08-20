@@ -38,6 +38,91 @@ void main() {
       expect(result.diagnostics, isEmpty);
     });
 
+    test('refuses a project whose shop carries a blocking issue', () {
+      // BETA-SYS-005. ShopStateValidator existait et n'était appelé que par le
+      // contrôleur de simulation de l'éditeur : une boutique incohérente
+      // passait l'export sans un mot, alors qu'elle bloque le parcours si le
+      // joueur y achète une Poké Ball obligatoire.
+      final diagnostics = _shopDiagnostics(
+        _validateWithShops(
+          shops: <ShopDefinition>[_shop(price: -5)],
+          knownItemIds: const <String>{'poke-ball'},
+        ),
+      );
+
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.message, contains('SHOP_STATE_INVALID_PRICE'));
+      expect(
+        diagnostics.single.severity,
+        BetaPlayabilityDiagnosticSeverity.error,
+      );
+      expect(diagnostics.single.path, contains('shops.beta_shop'));
+    });
+
+    test('checks shop item references when the item catalog is provided', () {
+      final diagnostics = _shopDiagnostics(
+        _validateWithShops(
+          shops: <ShopDefinition>[_shop(itemId: 'ghost-item')],
+          knownItemIds: const <String>{'poke-ball'},
+        ),
+      );
+
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.message, contains('SHOP_STATE_UNKNOWN_ITEM'));
+    });
+
+    test('suppresses item reference checks when the catalog is absent', () {
+      // Le point délicat du lot. Sans catalogue, l'ensemble vide déclarerait
+      // TOUTE référence d'objet inconnue : la gate perdrait sa crédibilité sur
+      // un faux diagnostic par entrée de boutique. Les six contrôles
+      // structurels tournent quand même, et le manque est nommé.
+      final result = _validateWithShops(
+        shops: <ShopDefinition>[_shop(itemId: 'ghost-item')],
+        knownItemIds: null,
+      );
+
+      expect(_shopDiagnostics(result), isEmpty);
+      expect(
+        result.diagnostics.where(
+          (diagnostic) =>
+              diagnostic.kind ==
+              BetaPlayabilityDiagnosticKind.shopItemReferencesNotEvaluated,
+        ),
+        hasLength(1),
+      );
+    });
+
+    test('still catches a structural shop issue without the item catalog', () {
+      // Le pendant du cas précédent : la suppression doit être chirurgicale, pas
+      // un abandon. Un prix négatif ne dépend d'aucun catalogue.
+      final diagnostics = _shopDiagnostics(
+        _validateWithShops(
+          shops: <ShopDefinition>[_shop(price: -5)],
+          knownItemIds: null,
+        ),
+      );
+
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.message, contains('SHOP_STATE_INVALID_PRICE'));
+    });
+
+    test('a project without shops is never asked about them', () {
+      final result = _validateWithShops(
+        shops: const <ShopDefinition>[],
+        knownItemIds: null,
+      );
+
+      expect(_shopDiagnostics(result), isEmpty);
+      expect(
+        result.diagnostics.where(
+          (diagnostic) =>
+              diagnostic.kind ==
+              BetaPlayabilityDiagnosticKind.shopItemReferencesNotEvaluated,
+        ),
+        isEmpty,
+      );
+    });
+
     test('refuses a project whose pokemon catalogs carry blocking errors', () {
       // BETA-SYS-005. Le validateur de cohérence existait et le chemin d'EXPORT
       // le consommait, mais le verdict de jouabilité lui-même l'ignorait : un
@@ -103,6 +188,29 @@ void main() {
       );
 
       expect(diagnostics, isEmpty);
+    });
+
+    test('validateNarrativeProject hands the item ids to the shop checks', () {
+      // TRANSMISSION, distincte de l'application. Sans ce cas, le champ
+      // knownItemIds du contexte serait inatteignable depuis l'entrée publique,
+      // donc mort-né : aucun appelant de production ne pourrait jamais fournir
+      // le catalogue, et la gate resterait bloquée sur « non vérifié » pour
+      // toujours.
+      final report = validateNarrativeProject(
+        _manifest(shops: <ShopDefinition>[_shop(itemId: 'ghost-item')]),
+        maps: <MapData>[_map()],
+        knownSpeciesIds: const <String>{_starterSpeciesId, _enemySpeciesId},
+        knownMoveIds: const <String>{_starterMoveId, _enemyMoveId},
+        knownItemIds: const <String>{'poke-ball'},
+      );
+
+      expect(
+        report.diagnostics.where(
+          (diagnostic) =>
+              diagnostic.message.contains('SHOP_STATE_UNKNOWN_ITEM'),
+        ),
+        hasLength(1),
+      );
     });
 
     test('validateNarrativeProject hands the coherence count to the gate', () {
@@ -470,6 +578,7 @@ Set<BetaPlayabilityDiagnosticKind> _kinds(
 ProjectManifest _manifest({
   List<ProjectTrainerEntry>? trainers,
   bool pokemonEnabled = true,
+  List<ShopDefinition> shops = const <ShopDefinition>[],
 }) {
   return ProjectManifest(
     name: 'P5 Beta Validator Project',
@@ -486,6 +595,7 @@ ProjectManifest _manifest({
     ],
     tilesets: const <ProjectTilesetEntry>[],
     trainers: trainers ?? <ProjectTrainerEntry>[_trainer()],
+    shops: shops,
   );
 }
 
@@ -507,6 +617,45 @@ MapData _mapWithSurfZone({String id = _mapId}) {
       ),
     ],
   );
+}
+
+ShopDefinition _shop({String itemId = 'poke-ball', int price = 200}) {
+  return ShopDefinition(
+    id: 'beta_shop',
+    label: 'Beta Shop',
+    entries: <ShopEntryDefinition>[
+      ShopEntryDefinition(itemId: itemId, price: price),
+    ],
+  );
+}
+
+BetaPlayabilityValidationResult _validateWithShops({
+  required List<ShopDefinition> shops,
+  required Set<String>? knownItemIds,
+}) {
+  return validateBetaPlayability(
+    _manifest(shops: shops),
+    context: BetaPlayabilityValidationContext(
+      pokemonCatalogErrorCount: 0,
+      knownItemIds: knownItemIds,
+      mapsById: <String, MapData>{_mapId: _map()},
+      knownSpeciesIds: const <String>{_starterSpeciesId, _enemySpeciesId},
+      knownMoveIds: const <String>{_starterMoveId, _enemyMoveId},
+      initialPartySpeciesIds: const <String>{_starterSpeciesId},
+      initialPartyMoveIds: const <String>{_starterMoveId},
+    ),
+  );
+}
+
+List<BetaPlayabilityDiagnostic> _shopDiagnostics(
+  BetaPlayabilityValidationResult result,
+) {
+  return result.diagnostics
+      .where(
+        (diagnostic) =>
+            diagnostic.kind == BetaPlayabilityDiagnosticKind.shopStateIssue,
+      )
+      .toList(growable: false);
 }
 
 BetaPlayabilityValidationResult _validateWithCoherence({

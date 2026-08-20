@@ -72,7 +72,7 @@ void main() {
       }
     });
 
-    test('the recorded debt is exactly these three validators', () {
+    test('the recorded debt is exactly these two validators', () {
       // Figé à l'identique, pas par un compteur : en composer un fait échouer
       // ce cas, ce qui force à mettre le catalogue à jour au lieu de payer la
       // dette en silence. En laisser un nouveau de côté le fait échouer aussi.
@@ -88,7 +88,6 @@ void main() {
       expect(pending, <String>{
         'player_roster_validation.dart',
         'project_item_catalog_validator.dart',
-        'shop_state_validator.dart',
       });
     });
 
@@ -106,7 +105,10 @@ void main() {
           .map((entry) => entry.sourceFileName)
           .toSet();
 
-      expect(composed, <String>{'pokemon_catalog_coherence_validator.dart'});
+      expect(composed, <String>{
+        'pokemon_catalog_coherence_validator.dart',
+        'shop_state_validator.dart',
+      });
     });
   });
 }
