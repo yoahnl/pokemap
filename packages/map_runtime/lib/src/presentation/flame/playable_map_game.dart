@@ -8694,6 +8694,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           activeBattleContext,
           activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
         );
+        // BETA-TRN-005 : la publication d'outcome transige sur _gameState en
+        // parallèle du whiteout — elle capturait l'équipe K.O. d'avant les
+        // soins et l'écrivait PAR-DESSUS l'état soigné. Après une défaite,
+        // elle attend la fin de la récupération.
+        unawaited(
+          _defeatRecoveryFuture.whenComplete(
+            () => _scheduleRootNarrativeOutcomePublication(
+              qualifiedStandaloneOutcome,
+            ),
+          ),
+        );
+        return;
       }
       _scheduleRootNarrativeOutcomePublication(qualifiedStandaloneOutcome);
     }

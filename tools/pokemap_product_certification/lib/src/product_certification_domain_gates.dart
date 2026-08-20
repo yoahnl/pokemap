@@ -165,14 +165,19 @@ const List<ProductCertificationDomainGate> productCertificationDomainGates =
   ),
   ProductCertificationDomainGate(
     domain: 'trainers',
-    coverage: DomainGateCoverage.partial,
+    coverage: DomainGateCoverage.gated,
     gateTestPaths: <String>[
       'packages/map_runtime/test/trainer_spot_sequence_test.dart',
+      'tools/pokemap_product_certification/test/golden_trainer_arena_gate_test.dart',
     ],
-    rationale: 'Le cycle ligne de vue → exclamation → approche → dialogue → '
-        'combat est certifié sur le vrai runtime (BETA-TRN-001). Manquent '
-        'l’hydratation durcie des équipes et le boss/rival E2E.',
-    pendingTicket: 'BETA-TRN-005',
+    rationale: 'BETA-TRN-005. Depuis un package installé seul : la ligne de '
+        'vue du boss déclenche, la défaite du premier assaut est déterminée '
+        'par les données, le whiteout complet récupère (respawn, soins, '
+        'pénalité d’argent), le rival récurrent se rebat deux fois — '
+        'dialogues pré/victoire des templates, réarmement par sortie de '
+        'ligne de vue, potions par le canal pause — et la victoire du boss '
+        'applique badge, flag, Surf et argent exactement une fois, le tout '
+        'rechargé identique. L’hydratation durcie des équipes est BETA-TRN-003.',
   ),
   ProductCertificationDomainGate(
     domain: 'transverseSystems',

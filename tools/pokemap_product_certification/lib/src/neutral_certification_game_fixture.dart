@@ -21,6 +21,7 @@ final class NeutralCertificationGameFixture {
     this.connectedMaps = false,
     this.partySize = 1,
     this.encounterField = false,
+    this.trainerArena = false,
   }) : assert(partySize == 1 || partySize == 2 || partySize == 6);
 
   final bool connectedMaps;
@@ -40,6 +41,20 @@ final class NeutralCertificationGameFixture {
   /// (17 × 45 = 765, le plafond exact du dénominateur à PV pleins).
   /// Off par défaut : les gates existantes gardent leur forme exacte.
   final bool encounterField;
+
+  /// BETA-TRN-005 : la gate boss/rival a besoin d'une arène déterminée par
+  /// les données — un rival récurrent battable au niveau de départ, un boss
+  /// trop fort pour lui (la défaite du premier assaut est certaine) dont la
+  /// victoire au retour, après l'XP du rival, débloque badge, flag et Surf.
+  /// Off par défaut : les gates existantes gardent leur forme exacte.
+  final bool trainerArena;
+
+  static const String rivalTrainerId = 'certification_rival';
+  static const String bossTrainerId = 'certification_boss';
+  static const String bossBadgeId = 'certification_tide_badge';
+  static const String bossVictoryFlagId = 'story:certification_boss_beaten';
+  static const GridPos rivalCell = GridPos(x: 0, y: 3);
+  static const GridPos bossCell = GridPos(x: 3, y: 1);
 
   static const String encounterTableId = 'certification_grass_table';
   static const String encounterZoneId = 'certification_grass_zone';
@@ -143,7 +158,94 @@ final class NeutralCertificationGameFixture {
           ),
         ],
       ],
-      tilesets: const <ProjectTilesetEntry>[],
+      tilesets: trainerArena
+          ? const <ProjectTilesetEntry>[
+              ProjectTilesetEntry(
+                id: 'certification_actor_tileset',
+                name: 'Certification actors',
+                relativePath: 'assets/tilesets/certification_actors.png',
+              ),
+            ]
+          : const <ProjectTilesetEntry>[],
+      characters: trainerArena
+          ? const <ProjectCharacterEntry>[
+              ProjectCharacterEntry(
+                id: 'certification_actor',
+                name: 'Certification actor',
+                tilesetId: 'certification_actor_tileset',
+              ),
+            ]
+          : const <ProjectCharacterEntry>[],
+      dialogues: trainerArena
+          ? const <ProjectDialogueEntry>[
+              ProjectDialogueEntry(
+                id: 'dlg_certification_rival_pre',
+                name: 'Rival pre-battle',
+                relativePath: 'dialogues/certification_rival_pre.yarn',
+              ),
+              ProjectDialogueEntry(
+                id: 'dlg_certification_rival_victory',
+                name: 'Rival victory',
+                relativePath: 'dialogues/certification_rival_victory.yarn',
+              ),
+              ProjectDialogueEntry(
+                id: 'dlg_certification_boss_victory',
+                name: 'Boss victory',
+                relativePath: 'dialogues/certification_boss_victory.yarn',
+              ),
+            ]
+          : const <ProjectDialogueEntry>[],
+      badges: trainerArena
+          ? const <BadgeDefinition>[
+              BadgeDefinition(
+                id: bossBadgeId,
+                label: 'Tide Badge',
+                fieldAbilityUnlock: FieldAbility.surf,
+              ),
+            ]
+          : const <BadgeDefinition>[],
+      trainers: trainerArena
+          ? const <ProjectTrainerEntry>[
+              ProjectTrainerEntry(
+                id: rivalTrainerId,
+                name: 'Rival Nao',
+                trainerClass: 'Rival',
+                templateKind: ProjectTrainerTemplateKind.rival,
+                rematchPolicy: ProjectTrainerRematchPolicy.allowed,
+                battleDifficulty: 1,
+                moneyReward: 120,
+                preBattleDialogueId: 'dlg_certification_rival_pre',
+                victoryDialogueId: 'dlg_certification_rival_victory',
+                rewardFlagIds: <String>['story:certification_rival_beaten'],
+                team: <ProjectTrainerPokemonEntry>[
+                  ProjectTrainerPokemonEntry(
+                    speciesId: 'bulbasaur',
+                    level: 4,
+                    moves: <String>['tackle'],
+                  ),
+                ],
+              ),
+              ProjectTrainerEntry(
+                id: bossTrainerId,
+                name: 'Harbormaster Sel',
+                trainerClass: 'Gym Leader',
+                templateKind: ProjectTrainerTemplateKind.gymLeader,
+                battleDifficulty: 8,
+                moneyReward: 600,
+                victoryDialogueId: 'dlg_certification_boss_victory',
+                rewardBadgeId: bossBadgeId,
+                rewardFlagIds: <String>[bossVictoryFlagId],
+                rewardFieldAbilityUnlock: FieldAbility.surf,
+                team: <ProjectTrainerPokemonEntry>[
+                  ProjectTrainerPokemonEntry(
+                    speciesId: 'bulbasaur',
+                    level: 6,
+                    moves: <String>['tackle'],
+                  ),
+                ],
+              ),
+            ]
+          : const <ProjectTrainerEntry>[],
       encounterTables: encounterField
           ? <ProjectEncounterTable>[
               const ProjectEncounterTable(
@@ -208,7 +310,11 @@ final class NeutralCertificationGameFixture {
                 BagEntry(itemId: weakBallItemId, quantity: 1),
                 BagEntry(itemId: guaranteedBallItemId, quantity: 1),
               ]
-            : const <BagEntry>[],
+            : trainerArena
+                ? const <BagEntry>[
+                    BagEntry(itemId: 'potion', quantity: 4),
+                  ]
+                : const <BagEntry>[],
       ),
       scenes: <SceneAsset>[_completionScene],
       // BETA-ENC-006 : le déclencheur mapEnter de la scène de complétion finit
@@ -216,7 +322,8 @@ final class NeutralCertificationGameFixture {
       // démarrage certifie exactement cela, mais un journey overworld doit y
       // échapper. L'export exige une fin ATTEIGNABLE : la scène migre alors
       // sur un trigger d'entrée de case que le journey ne visite jamais.
-      eventRegistry: encounterField ? _cornerEventRegistry : _eventRegistry,
+      eventRegistry:
+          encounterField || trainerArena ? _cornerEventRegistry : _eventRegistry,
       globalProperties: <String, Object?>{
         'certificationFixture': true,
         'apiKey': authorSecret,
@@ -233,7 +340,7 @@ final class NeutralCertificationGameFixture {
       name: 'Clockwork Harbor',
       version: ProjectVersion.v6,
       size: const GridSize(width: 4, height: 4),
-      triggers: encounterField
+      triggers: encounterField || trainerArena
           ? const <MapTrigger>[
               MapTrigger(
                 id: completionTriggerId,
@@ -273,8 +380,8 @@ final class NeutralCertificationGameFixture {
               ),
             ]
           : const <MapWarp>[],
-      entities: const <MapEntity>[
-        MapEntity(
+      entities: <MapEntity>[
+        const MapEntity(
           id: fixedSpawnId,
           name: 'Player arrival',
           kind: MapEntityKind.spawn,
@@ -285,6 +392,39 @@ final class NeutralCertificationGameFixture {
             facing: EntityFacing.south,
           ),
         ),
+        if (trainerArena) ...const <MapEntity>[
+          MapEntity(
+            id: 'npc_certification_rival',
+            name: 'Rival Nao',
+            kind: MapEntityKind.npc,
+            pos: rivalCell,
+            blocksMovement: true,
+            npc: MapEntityNpcData(
+              displayName: 'Rival Nao',
+              facing: EntityFacing.east,
+              trainerId: rivalTrainerId,
+              characterId: 'certification_actor',
+              // En mode événementiel v2Only, l'interaction manuelle ne
+              // retombe jamais sur le canal legacy : les dresseurs se
+              // déclenchent par ligne de vue, comme en production.
+              lineOfSightRange: 1,
+            ),
+          ),
+          MapEntity(
+            id: 'npc_certification_boss',
+            name: 'Harbormaster Sel',
+            kind: MapEntityKind.npc,
+            pos: bossCell,
+            blocksMovement: true,
+            npc: MapEntityNpcData(
+              displayName: 'Harbormaster Sel',
+              facing: EntityFacing.west,
+              trainerId: bossTrainerId,
+              characterId: 'certification_actor',
+              lineOfSightRange: 1,
+            ),
+          ),
+        ],
       ],
       mapMetadata: const MapMetadata(defaultSpawnId: fixedSpawnId),
     );
@@ -319,6 +459,10 @@ final class NeutralCertificationGameFixture {
     await _writePokemonCatalogsWithMinimalMedia(root);
     if (encounterField) {
       await _appendGuaranteedBallToItemCatalog(root);
+    }
+    if (trainerArena) {
+      await _writeArenaDialogues(root);
+      await _writeArenaActorTileset(root);
     }
     await File(
       p.join(root.path, 'LICENSE.txt'),
@@ -404,6 +548,37 @@ final class NeutralCertificationGameFixture {
       ..['rateDenominator'] = 1;
     entries.add(guaranteedBall);
     await _writeJson(itemsFile, catalog);
+  }
+
+  Future<void> _writeArenaActorTileset(Directory root) async {
+    final file = File(
+      p.join(root.path, 'assets', 'tilesets', 'certification_actors.png'),
+    );
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(
+      base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk'
+        '+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      ),
+      flush: true,
+    );
+  }
+
+  Future<void> _writeArenaDialogues(Directory root) async {
+    final dialogues = Directory(p.join(root.path, 'dialogues'));
+    await dialogues.create(recursive: true);
+    const lines = <String, String>{
+      'certification_rival_pre.yarn': 'On se mesure encore une fois ?',
+      'certification_rival_victory.yarn': 'Bien joué… pour cette fois.',
+      'certification_boss_victory.yarn':
+          'Le port te reconnaît. Prends ce badge.',
+    };
+    for (final entry in lines.entries) {
+      await File(p.join(dialogues.path, entry.key)).writeAsString(
+        'title: Start\n---\n${entry.value}\n===\n',
+        flush: true,
+      );
+    }
   }
 
   Future<void> _writePokemonCatalogsWithMinimalMedia(Directory root) async {
