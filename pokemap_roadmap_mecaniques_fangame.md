@@ -1861,7 +1861,7 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 | FG-181 | Golden Slice Fangame Fixture V0 | `✅ DONE` | `reports/gameplay/fg_181_golden_slice_fangame_fixture_v0.md` |
 | FG-182 | Golden Slice End-to-End Smoke V0 | `✅ DONE` | `reports/gameplay/fg_182_golden_slice_end_to_end_smoke_v0.md` |
 | FG-183 | Regression Matrix V0 | `✅ DONE` | `reports/gameplay/fg_183_regression_matrix_v0.md` |
-| FG-184 | Roadmap Status Dashboard Generator V0 | `✅ DONE` | `reports/gameplay/fg_184_roadmap_status_dashboard_generator_v0.md` |
+| FG-184 | Roadmap Status Dashboard Generator V0 | `✅ DONE` | `documentation/reports/gameplay/fg_184_roadmap_status_dashboard_generator_v0_2026-08-20.md` |
 | FG-185 | MVP Release Gate V0 | `🟡 PARTIAL` | `reports/gameplay/fg_185_mvp_release_gate_v0.md` — RM-069/RM-070/RM-072 verts ; RM-073 produit avec verdict NO-GO ; RM-071 et walkthrough humain bloquants |
 
 ## FG-180 — Project Gameplay Readiness Report V0

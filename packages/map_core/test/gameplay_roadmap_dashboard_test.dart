@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import 'support/dart_executable.dart';
+
 void main() {
   group('GameplayRoadmapDashboard', () {
     const roadmap = '''
@@ -599,7 +601,7 @@ void main() {
 
     test('CLI rejects unknown options with a usage error', () async {
       final result = await Process.run(
-        Platform.resolvedExecutable,
+        resolveDartExecutable(),
         <String>[
           'run',
           'tool/generate_gameplay_roadmap_dashboard.dart',
@@ -639,7 +641,7 @@ void main() {
 ''');
 
       final result = await Process.run(
-        Platform.resolvedExecutable,
+        resolveDartExecutable(),
         <String>[
           'run',
           'tool/generate_gameplay_roadmap_dashboard.dart',
@@ -691,7 +693,7 @@ void main() {
 ''');
 
       final result = await Process.run(
-        Platform.resolvedExecutable,
+        resolveDartExecutable(),
         <String>[
           'run',
           'tool/generate_gameplay_roadmap_dashboard.dart',
@@ -757,7 +759,7 @@ void main() {
 ''');
 
       final result = await Process.run(
-        Platform.resolvedExecutable,
+        resolveDartExecutable(),
         <String>[
           'run',
           'tool/generate_gameplay_roadmap_dashboard.dart',
@@ -804,7 +806,7 @@ void main() {
       ).writeAsString('Proposed status: **DONE**\n');
 
       final result = await Process.run(
-        Platform.resolvedExecutable,
+        resolveDartExecutable(),
         <String>[
           'run',
           'tool/generate_gameplay_roadmap_dashboard.dart',
