@@ -168,10 +168,66 @@ final class RuntimePresentationScenePlaybackController
     active.publishedPlayheadUs = currentPlayheadUs;
     for (final marker in dueMarkerIds) {
       active.triggeredMarkerIds.add(marker.$2);
-      await handler(marker.$2);
+      final cue = ScenePresentationInteractionCue(
+        markerId: marker.$2,
+        cueExecutionId:
+            '${active.request.requestId}:cue:${marker.$2}#${active.nextCueSequence++}',
+      );
+      final outcome = await handler(cue);
       if (!_isCurrent(active)) return false;
+      if (!active.cueOutcomeGate.admit(cue.cueExecutionId)) continue;
+      if (!await _applyCueOutcome(active, outcome)) return false;
     }
     return true;
+  }
+
+  /// Applies exactly one terminal cue outcome (BETA-CIN-070).
+  ///
+  /// Seek and repeat destinations are resolved by marker identity against
+  /// the playing asset; an unknown destination fails with a stable code and
+  /// never moves the playhead. Resolved destinations also fail closed for
+  /// now: the actual routing is BETA-CIN-072, and half a seek would be worse
+  /// than none.
+  Future<bool> _applyCueOutcome(
+    _RuntimePresentationActiveRun active,
+    PresentationInteractionOutcome outcome,
+  ) async {
+    switch (outcome) {
+      case PresentationContinueTimelineOutcome():
+        return true;
+      case PresentationStopOutcome():
+        await _prepareTerminal(active);
+        await executionController.complete(active.token);
+        return false;
+      case PresentationCancelledOutcome():
+        await _prepareTerminal(active);
+        await executionController.skip(active.token);
+        return false;
+      case PresentationFailedOutcome(diagnosticCode: final diagnosticCode):
+        await _prepareTerminal(active);
+        await executionController.fail(
+          active.token,
+          diagnosticCode:
+              diagnosticCode ?? PresentationDiagnosticCodes.playbackFailed,
+        );
+        return false;
+      case PresentationSeekMarkerOutcome() ||
+            PresentationRepeatFromMarkerOutcome():
+        final resolution = resolvePresentationOutcomeDestination(
+          active.request.asset,
+          outcome,
+        );
+        await _prepareTerminal(active);
+        await executionController.fail(
+          active.token,
+          diagnosticCode: switch (resolution) {
+            PresentationOutcomeDestinationUnknown() =>
+              PresentationCueOutcomeCodes.unknownSeekDestination,
+            _ => PresentationCueOutcomeCodes.seekRoutingUnavailable,
+          },
+        );
+        return false;
+    }
   }
 
   Future<bool> _synchronizeVideo(
@@ -278,7 +334,11 @@ final class _RuntimePresentationActiveRun {
   final int generation;
   String? videoMediaId;
   int publishedPlayheadUs = -1;
+  int nextCueSequence = 1;
   final Set<String> triggeredMarkerIds = <String>{};
+  final PresentationCueOutcomeGate cueOutcomeGate = PresentationCueOutcomeGate();
+  final PresentationTransitionBudget transitionBudget =
+      PresentationTransitionBudget();
 }
 
 PresentationExecutionCorrelation _correlation(

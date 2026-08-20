@@ -119,10 +119,12 @@ void main() {
             'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
         presentationCinematicId: 'opening',
         interactionCueMarkerIds: const <String>{'ask_name'},
-        onInteractionCue: (markerId) async {
-          expect(markerId, 'ask_name');
+        onInteractionCue: (cue) async {
+          expect(cue.markerId, 'ask_name');
+          expect(cue.cueExecutionId, 'runtime:opening:cue:cue:ask_name#1');
           cueReached.complete();
           await releaseCue.future;
+          return const PresentationInteractionOutcome.continueTimeline();
         },
         asset: PresentationCinematicAsset(
           id: 'opening',

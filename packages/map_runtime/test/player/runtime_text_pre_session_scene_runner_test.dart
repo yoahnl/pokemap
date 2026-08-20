@@ -668,7 +668,15 @@ final class _CompletingPresentationPlayer
     requests.add(request);
     final markerId = triggerMarkerId;
     if (markerId != null) {
-      await request.onInteractionCue?.call(markerId);
+      final outcome = await request.onInteractionCue?.call(
+        ScenePresentationInteractionCue(
+          markerId: markerId,
+          cueExecutionId: '${request.requestId}:cue:$markerId#1',
+        ),
+      );
+      if (outcome != null) {
+        expect(outcome, const PresentationInteractionOutcome.continueTimeline());
+      }
     }
     return const RuntimePresentationExecutionTerminal(
       runToken: RuntimePresentationRunToken(1),

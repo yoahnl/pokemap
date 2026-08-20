@@ -463,6 +463,8 @@ export 'src/application/scene_runtime/scene_presentation_cinematic_runtime_await
         RuntimePresentationScenePlayer,
         ScenePresentationCinematicRuntimeAwaitableAdapter,
         ScenePresentationCinematicRuntimeDiagnosticCodes,
+        ScenePresentationInteractionCue,
+        ScenePresentationInteractionCueHandler,
         ScenePresentationCinematicRuntimePlayer,
         ScenePresentationCinematicRuntimeRequest;
 export 'src/application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_result.dart'

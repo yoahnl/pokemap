@@ -175,9 +175,9 @@ final class RuntimeTextPreSessionSceneRunner
           if (adapter == null) return unsupported(intent);
           final result = await adapter.playPresentationCinematic(
             intent,
-            onInteractionCue: (markerId) async {
-              final awaitableNodeId =
-                  intent.presentationAwaitableNodeIdsByMarkerId[markerId];
+            onInteractionCue: (cue) async {
+              final awaitableNodeId = intent
+                  .presentationAwaitableNodeIdsByMarkerId[cue.markerId];
               final interactionNode = activeScene.graph.nodes
                   .where((node) => node.id == awaitableNodeId)
                   .firstOrNull;
@@ -186,8 +186,8 @@ final class RuntimeTextPreSessionSceneRunner
                   interactionPayload is! SceneActionPayload ||
                   interactionPayload.preSessionInteraction == null) {
                 throw StateError(
-                  'Presentation interaction cue "$markerId" is not linked '
-                  'to a structured Scene interaction.',
+                  'Presentation interaction cue "${cue.markerId}" is not '
+                  'linked to a structured Scene interaction.',
                 );
               }
               final interactionResult = await _runStructuredInteraction(
@@ -202,6 +202,7 @@ final class RuntimeTextPreSessionSceneRunner
               currentDraft = interactionResult.draft;
               handledInteractionOutputsByNodeId[awaitableNodeId] =
                   interactionResult.outputPortId;
+              return const PresentationInteractionOutcome.continueTimeline();
             },
           );
           if (result.success) return result.scenePortId!;

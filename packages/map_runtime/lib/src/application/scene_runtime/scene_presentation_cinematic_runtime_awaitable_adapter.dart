@@ -15,8 +15,25 @@ abstract interface class ScenePresentationCinematicRuntimePlayer {
   );
 }
 
-typedef ScenePresentationInteractionCueHandler = Future<void> Function(
-  String markerId,
+/// One triggered interaction cue, correlated to its exact execution.
+///
+/// The [cueExecutionId] identifies this very triggering of the marker within
+/// one playback request: outcome application is exact-once per cue execution
+/// (BETA-CIN-070), so stale or duplicated responses can be recognized and
+/// ignored instead of resuming the timeline twice.
+final class ScenePresentationInteractionCue {
+  const ScenePresentationInteractionCue({
+    required this.markerId,
+    required this.cueExecutionId,
+  });
+
+  final String markerId;
+  final String cueExecutionId;
+}
+
+typedef ScenePresentationInteractionCueHandler =
+    Future<PresentationInteractionOutcome> Function(
+  ScenePresentationInteractionCue cue,
 );
 
 final class ScenePresentationCinematicRuntimeRequest {
