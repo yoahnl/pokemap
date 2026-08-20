@@ -657,7 +657,7 @@ as PlayerPokemonProvenance?,
 @override
 @pragma('vm:prefer-inline')
 $PokemonStatSpreadCopyWith<$Res> get ivs {
-
+  
   return $PokemonStatSpreadCopyWith<$Res>(_self.ivs, (value) {
     return _then(_self.copyWith(ivs: value));
   });
@@ -666,7 +666,7 @@ $PokemonStatSpreadCopyWith<$Res> get ivs {
 @override
 @pragma('vm:prefer-inline')
 $PokemonStatSpreadCopyWith<$Res> get evs {
-
+  
   return $PokemonStatSpreadCopyWith<$Res>(_self.evs, (value) {
     return _then(_self.copyWith(evs: value));
   });
@@ -952,7 +952,7 @@ as PlayerPokemonProvenance?,
 @override
 @pragma('vm:prefer-inline')
 $PokemonStatSpreadCopyWith<$Res> get ivs {
-
+  
   return $PokemonStatSpreadCopyWith<$Res>(_self.ivs, (value) {
     return _then(_self.copyWith(ivs: value));
   });
@@ -961,7 +961,7 @@ $PokemonStatSpreadCopyWith<$Res> get ivs {
 @override
 @pragma('vm:prefer-inline')
 $PokemonStatSpreadCopyWith<$Res> get evs {
-
+  
   return $PokemonStatSpreadCopyWith<$Res>(_self.evs, (value) {
     return _then(_self.copyWith(evs: value));
   });
@@ -2673,7 +2673,14 @@ as List<BagEntry>,
 /// @nodoc
 mixin _$SaveData {
 
- String get saveId; int get itemSystemSchemaVersion; String get currentMapId; GridPos get playerPosition; EntityFacing get playerFacing; PlayerParty get party; PokemonStorage get pokemonStorage; TrainerProfile get trainerProfile; Bag get bag; PlayerProgression get progression;@JsonKey(readValue: readNarrativeFactRuntimeStateJson) NarrativeFactRuntimeState get narrativeFactRuntimeState;@JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson) NarrativeEventProgress get narrativeEventProgress; PlayerPauseMenuState get pauseMenuState; Set<String> get completedBattleRequestIds; Set<String> get appliedPokemonGrantOperationIds; Map<String, String> get properties;
+ String get saveId; int get itemSystemSchemaVersion; String get currentMapId; GridPos get playerPosition; EntityFacing get playerFacing;/// Mode de déplacement du joueur au moment de la sauvegarde.
+///
+/// BETA-SYS-002 : il manquait, et un joueur qui sauvegardait en surfant
+/// rechargeait DEBOUT SUR L'EAU en mode marche. Le mode vivait bien dans
+/// GameState, mais la conversion vers l'enveloppe de sauvegarde le
+/// perdait — les deux fonctions de `game_state_persistence` ne le
+/// mentionnaient nulle part.
+ MovementMode get playerMovementMode; PlayerParty get party; PokemonStorage get pokemonStorage; TrainerProfile get trainerProfile; Bag get bag; PlayerProgression get progression;@JsonKey(readValue: readNarrativeFactRuntimeStateJson) NarrativeFactRuntimeState get narrativeFactRuntimeState;@JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson) NarrativeEventProgress get narrativeEventProgress; PlayerPauseMenuState get pauseMenuState; Set<String> get completedBattleRequestIds; Set<String> get appliedPokemonGrantOperationIds; Map<String, String> get properties;
 /// Create a copy of SaveData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2686,16 +2693,16 @@ $SaveDataCopyWith<SaveData> get copyWith => _$SaveDataCopyWithImpl<SaveData>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SaveData&&(identical(other.saveId, saveId) || other.saveId == saveId)&&(identical(other.itemSystemSchemaVersion, itemSystemSchemaVersion) || other.itemSystemSchemaVersion == itemSystemSchemaVersion)&&(identical(other.currentMapId, currentMapId) || other.currentMapId == currentMapId)&&(identical(other.playerPosition, playerPosition) || other.playerPosition == playerPosition)&&(identical(other.playerFacing, playerFacing) || other.playerFacing == playerFacing)&&(identical(other.party, party) || other.party == party)&&(identical(other.pokemonStorage, pokemonStorage) || other.pokemonStorage == pokemonStorage)&&(identical(other.trainerProfile, trainerProfile) || other.trainerProfile == trainerProfile)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.progression, progression) || other.progression == progression)&&(identical(other.narrativeFactRuntimeState, narrativeFactRuntimeState) || other.narrativeFactRuntimeState == narrativeFactRuntimeState)&&(identical(other.narrativeEventProgress, narrativeEventProgress) || other.narrativeEventProgress == narrativeEventProgress)&&(identical(other.pauseMenuState, pauseMenuState) || other.pauseMenuState == pauseMenuState)&&const DeepCollectionEquality().equals(other.completedBattleRequestIds, completedBattleRequestIds)&&const DeepCollectionEquality().equals(other.appliedPokemonGrantOperationIds, appliedPokemonGrantOperationIds)&&const DeepCollectionEquality().equals(other.properties, properties));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SaveData&&(identical(other.saveId, saveId) || other.saveId == saveId)&&(identical(other.itemSystemSchemaVersion, itemSystemSchemaVersion) || other.itemSystemSchemaVersion == itemSystemSchemaVersion)&&(identical(other.currentMapId, currentMapId) || other.currentMapId == currentMapId)&&(identical(other.playerPosition, playerPosition) || other.playerPosition == playerPosition)&&(identical(other.playerFacing, playerFacing) || other.playerFacing == playerFacing)&&(identical(other.playerMovementMode, playerMovementMode) || other.playerMovementMode == playerMovementMode)&&(identical(other.party, party) || other.party == party)&&(identical(other.pokemonStorage, pokemonStorage) || other.pokemonStorage == pokemonStorage)&&(identical(other.trainerProfile, trainerProfile) || other.trainerProfile == trainerProfile)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.progression, progression) || other.progression == progression)&&(identical(other.narrativeFactRuntimeState, narrativeFactRuntimeState) || other.narrativeFactRuntimeState == narrativeFactRuntimeState)&&(identical(other.narrativeEventProgress, narrativeEventProgress) || other.narrativeEventProgress == narrativeEventProgress)&&(identical(other.pauseMenuState, pauseMenuState) || other.pauseMenuState == pauseMenuState)&&const DeepCollectionEquality().equals(other.completedBattleRequestIds, completedBattleRequestIds)&&const DeepCollectionEquality().equals(other.appliedPokemonGrantOperationIds, appliedPokemonGrantOperationIds)&&const DeepCollectionEquality().equals(other.properties, properties));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,saveId,itemSystemSchemaVersion,currentMapId,playerPosition,playerFacing,party,pokemonStorage,trainerProfile,bag,progression,narrativeFactRuntimeState,narrativeEventProgress,pauseMenuState,const DeepCollectionEquality().hash(completedBattleRequestIds),const DeepCollectionEquality().hash(appliedPokemonGrantOperationIds),const DeepCollectionEquality().hash(properties));
+int get hashCode => Object.hash(runtimeType,saveId,itemSystemSchemaVersion,currentMapId,playerPosition,playerFacing,playerMovementMode,party,pokemonStorage,trainerProfile,bag,progression,narrativeFactRuntimeState,narrativeEventProgress,pauseMenuState,const DeepCollectionEquality().hash(completedBattleRequestIds),const DeepCollectionEquality().hash(appliedPokemonGrantOperationIds),const DeepCollectionEquality().hash(properties));
 
 @override
 String toString() {
-  return 'SaveData(saveId: $saveId, itemSystemSchemaVersion: $itemSystemSchemaVersion, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, narrativeFactRuntimeState: $narrativeFactRuntimeState, narrativeEventProgress: $narrativeEventProgress, pauseMenuState: $pauseMenuState, completedBattleRequestIds: $completedBattleRequestIds, appliedPokemonGrantOperationIds: $appliedPokemonGrantOperationIds, properties: $properties)';
+  return 'SaveData(saveId: $saveId, itemSystemSchemaVersion: $itemSystemSchemaVersion, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, playerMovementMode: $playerMovementMode, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, narrativeFactRuntimeState: $narrativeFactRuntimeState, narrativeEventProgress: $narrativeEventProgress, pauseMenuState: $pauseMenuState, completedBattleRequestIds: $completedBattleRequestIds, appliedPokemonGrantOperationIds: $appliedPokemonGrantOperationIds, properties: $properties)';
 }
 
 
@@ -2706,7 +2713,7 @@ abstract mixin class $SaveDataCopyWith<$Res>  {
   factory $SaveDataCopyWith(SaveData value, $Res Function(SaveData) _then) = _$SaveDataCopyWithImpl;
 @useResult
 $Res call({
- String saveId, int itemSystemSchemaVersion, String currentMapId, GridPos playerPosition, EntityFacing playerFacing, PlayerParty party, PokemonStorage pokemonStorage, TrainerProfile trainerProfile, Bag bag, PlayerProgression progression,@JsonKey(readValue: readNarrativeFactRuntimeStateJson) NarrativeFactRuntimeState narrativeFactRuntimeState,@JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson) NarrativeEventProgress narrativeEventProgress, PlayerPauseMenuState pauseMenuState, Set<String> completedBattleRequestIds, Set<String> appliedPokemonGrantOperationIds, Map<String, String> properties
+ String saveId, int itemSystemSchemaVersion, String currentMapId, GridPos playerPosition, EntityFacing playerFacing, MovementMode playerMovementMode, PlayerParty party, PokemonStorage pokemonStorage, TrainerProfile trainerProfile, Bag bag, PlayerProgression progression,@JsonKey(readValue: readNarrativeFactRuntimeStateJson) NarrativeFactRuntimeState narrativeFactRuntimeState,@JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson) NarrativeEventProgress narrativeEventProgress, PlayerPauseMenuState pauseMenuState, Set<String> completedBattleRequestIds, Set<String> appliedPokemonGrantOperationIds, Map<String, String> properties
 });
 
 
@@ -2723,14 +2730,15 @@ class _$SaveDataCopyWithImpl<$Res>
 
 /// Create a copy of SaveData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? saveId = null,Object? itemSystemSchemaVersion = null,Object? currentMapId = null,Object? playerPosition = null,Object? playerFacing = null,Object? party = null,Object? pokemonStorage = null,Object? trainerProfile = null,Object? bag = null,Object? progression = null,Object? narrativeFactRuntimeState = null,Object? narrativeEventProgress = null,Object? pauseMenuState = null,Object? completedBattleRequestIds = null,Object? appliedPokemonGrantOperationIds = null,Object? properties = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? saveId = null,Object? itemSystemSchemaVersion = null,Object? currentMapId = null,Object? playerPosition = null,Object? playerFacing = null,Object? playerMovementMode = null,Object? party = null,Object? pokemonStorage = null,Object? trainerProfile = null,Object? bag = null,Object? progression = null,Object? narrativeFactRuntimeState = null,Object? narrativeEventProgress = null,Object? pauseMenuState = null,Object? completedBattleRequestIds = null,Object? appliedPokemonGrantOperationIds = null,Object? properties = null,}) {
   return _then(_self.copyWith(
 saveId: null == saveId ? _self.saveId : saveId // ignore: cast_nullable_to_non_nullable
 as String,itemSystemSchemaVersion: null == itemSystemSchemaVersion ? _self.itemSystemSchemaVersion : itemSystemSchemaVersion // ignore: cast_nullable_to_non_nullable
 as int,currentMapId: null == currentMapId ? _self.currentMapId : currentMapId // ignore: cast_nullable_to_non_nullable
 as String,playerPosition: null == playerPosition ? _self.playerPosition : playerPosition // ignore: cast_nullable_to_non_nullable
 as GridPos,playerFacing: null == playerFacing ? _self.playerFacing : playerFacing // ignore: cast_nullable_to_non_nullable
-as EntityFacing,party: null == party ? _self.party : party // ignore: cast_nullable_to_non_nullable
+as EntityFacing,playerMovementMode: null == playerMovementMode ? _self.playerMovementMode : playerMovementMode // ignore: cast_nullable_to_non_nullable
+as MovementMode,party: null == party ? _self.party : party // ignore: cast_nullable_to_non_nullable
 as PlayerParty,pokemonStorage: null == pokemonStorage ? _self.pokemonStorage : pokemonStorage // ignore: cast_nullable_to_non_nullable
 as PokemonStorage,trainerProfile: null == trainerProfile ? _self.trainerProfile : trainerProfile // ignore: cast_nullable_to_non_nullable
 as TrainerProfile,bag: null == bag ? _self.bag : bag // ignore: cast_nullable_to_non_nullable
@@ -2749,7 +2757,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get playerPosition {
-
+  
   return $GridPosCopyWith<$Res>(_self.playerPosition, (value) {
     return _then(_self.copyWith(playerPosition: value));
   });
@@ -2758,7 +2766,7 @@ $GridPosCopyWith<$Res> get playerPosition {
 @override
 @pragma('vm:prefer-inline')
 $PlayerPartyCopyWith<$Res> get party {
-
+  
   return $PlayerPartyCopyWith<$Res>(_self.party, (value) {
     return _then(_self.copyWith(party: value));
   });
@@ -2767,7 +2775,7 @@ $PlayerPartyCopyWith<$Res> get party {
 @override
 @pragma('vm:prefer-inline')
 $TrainerProfileCopyWith<$Res> get trainerProfile {
-
+  
   return $TrainerProfileCopyWith<$Res>(_self.trainerProfile, (value) {
     return _then(_self.copyWith(trainerProfile: value));
   });
@@ -2776,7 +2784,7 @@ $TrainerProfileCopyWith<$Res> get trainerProfile {
 @override
 @pragma('vm:prefer-inline')
 $BagCopyWith<$Res> get bag {
-
+  
   return $BagCopyWith<$Res>(_self.bag, (value) {
     return _then(_self.copyWith(bag: value));
   });
@@ -2785,7 +2793,7 @@ $BagCopyWith<$Res> get bag {
 @override
 @pragma('vm:prefer-inline')
 $PlayerProgressionCopyWith<$Res> get progression {
-
+  
   return $PlayerProgressionCopyWith<$Res>(_self.progression, (value) {
     return _then(_self.copyWith(progression: value));
   });
@@ -2871,10 +2879,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String saveId,  int itemSystemSchemaVersion,  String currentMapId,  GridPos playerPosition,  EntityFacing playerFacing,  PlayerParty party,  PokemonStorage pokemonStorage,  TrainerProfile trainerProfile,  Bag bag,  PlayerProgression progression, @JsonKey(readValue: readNarrativeFactRuntimeStateJson)  NarrativeFactRuntimeState narrativeFactRuntimeState, @JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson)  NarrativeEventProgress narrativeEventProgress,  PlayerPauseMenuState pauseMenuState,  Set<String> completedBattleRequestIds,  Set<String> appliedPokemonGrantOperationIds,  Map<String, String> properties)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String saveId,  int itemSystemSchemaVersion,  String currentMapId,  GridPos playerPosition,  EntityFacing playerFacing,  MovementMode playerMovementMode,  PlayerParty party,  PokemonStorage pokemonStorage,  TrainerProfile trainerProfile,  Bag bag,  PlayerProgression progression, @JsonKey(readValue: readNarrativeFactRuntimeStateJson)  NarrativeFactRuntimeState narrativeFactRuntimeState, @JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson)  NarrativeEventProgress narrativeEventProgress,  PlayerPauseMenuState pauseMenuState,  Set<String> completedBattleRequestIds,  Set<String> appliedPokemonGrantOperationIds,  Map<String, String> properties)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SaveData() when $default != null:
-return $default(_that.saveId,_that.itemSystemSchemaVersion,_that.currentMapId,_that.playerPosition,_that.playerFacing,_that.party,_that.pokemonStorage,_that.trainerProfile,_that.bag,_that.progression,_that.narrativeFactRuntimeState,_that.narrativeEventProgress,_that.pauseMenuState,_that.completedBattleRequestIds,_that.appliedPokemonGrantOperationIds,_that.properties);case _:
+return $default(_that.saveId,_that.itemSystemSchemaVersion,_that.currentMapId,_that.playerPosition,_that.playerFacing,_that.playerMovementMode,_that.party,_that.pokemonStorage,_that.trainerProfile,_that.bag,_that.progression,_that.narrativeFactRuntimeState,_that.narrativeEventProgress,_that.pauseMenuState,_that.completedBattleRequestIds,_that.appliedPokemonGrantOperationIds,_that.properties);case _:
   return orElse();
 
 }
@@ -2892,10 +2900,10 @@ return $default(_that.saveId,_that.itemSystemSchemaVersion,_that.currentMapId,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String saveId,  int itemSystemSchemaVersion,  String currentMapId,  GridPos playerPosition,  EntityFacing playerFacing,  PlayerParty party,  PokemonStorage pokemonStorage,  TrainerProfile trainerProfile,  Bag bag,  PlayerProgression progression, @JsonKey(readValue: readNarrativeFactRuntimeStateJson)  NarrativeFactRuntimeState narrativeFactRuntimeState, @JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson)  NarrativeEventProgress narrativeEventProgress,  PlayerPauseMenuState pauseMenuState,  Set<String> completedBattleRequestIds,  Set<String> appliedPokemonGrantOperationIds,  Map<String, String> properties)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String saveId,  int itemSystemSchemaVersion,  String currentMapId,  GridPos playerPosition,  EntityFacing playerFacing,  MovementMode playerMovementMode,  PlayerParty party,  PokemonStorage pokemonStorage,  TrainerProfile trainerProfile,  Bag bag,  PlayerProgression progression, @JsonKey(readValue: readNarrativeFactRuntimeStateJson)  NarrativeFactRuntimeState narrativeFactRuntimeState, @JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson)  NarrativeEventProgress narrativeEventProgress,  PlayerPauseMenuState pauseMenuState,  Set<String> completedBattleRequestIds,  Set<String> appliedPokemonGrantOperationIds,  Map<String, String> properties)  $default,) {final _that = this;
 switch (_that) {
 case _SaveData():
-return $default(_that.saveId,_that.itemSystemSchemaVersion,_that.currentMapId,_that.playerPosition,_that.playerFacing,_that.party,_that.pokemonStorage,_that.trainerProfile,_that.bag,_that.progression,_that.narrativeFactRuntimeState,_that.narrativeEventProgress,_that.pauseMenuState,_that.completedBattleRequestIds,_that.appliedPokemonGrantOperationIds,_that.properties);case _:
+return $default(_that.saveId,_that.itemSystemSchemaVersion,_that.currentMapId,_that.playerPosition,_that.playerFacing,_that.playerMovementMode,_that.party,_that.pokemonStorage,_that.trainerProfile,_that.bag,_that.progression,_that.narrativeFactRuntimeState,_that.narrativeEventProgress,_that.pauseMenuState,_that.completedBattleRequestIds,_that.appliedPokemonGrantOperationIds,_that.properties);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2912,10 +2920,10 @@ return $default(_that.saveId,_that.itemSystemSchemaVersion,_that.currentMapId,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String saveId,  int itemSystemSchemaVersion,  String currentMapId,  GridPos playerPosition,  EntityFacing playerFacing,  PlayerParty party,  PokemonStorage pokemonStorage,  TrainerProfile trainerProfile,  Bag bag,  PlayerProgression progression, @JsonKey(readValue: readNarrativeFactRuntimeStateJson)  NarrativeFactRuntimeState narrativeFactRuntimeState, @JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson)  NarrativeEventProgress narrativeEventProgress,  PlayerPauseMenuState pauseMenuState,  Set<String> completedBattleRequestIds,  Set<String> appliedPokemonGrantOperationIds,  Map<String, String> properties)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String saveId,  int itemSystemSchemaVersion,  String currentMapId,  GridPos playerPosition,  EntityFacing playerFacing,  MovementMode playerMovementMode,  PlayerParty party,  PokemonStorage pokemonStorage,  TrainerProfile trainerProfile,  Bag bag,  PlayerProgression progression, @JsonKey(readValue: readNarrativeFactRuntimeStateJson)  NarrativeFactRuntimeState narrativeFactRuntimeState, @JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson)  NarrativeEventProgress narrativeEventProgress,  PlayerPauseMenuState pauseMenuState,  Set<String> completedBattleRequestIds,  Set<String> appliedPokemonGrantOperationIds,  Map<String, String> properties)?  $default,) {final _that = this;
 switch (_that) {
 case _SaveData() when $default != null:
-return $default(_that.saveId,_that.itemSystemSchemaVersion,_that.currentMapId,_that.playerPosition,_that.playerFacing,_that.party,_that.pokemonStorage,_that.trainerProfile,_that.bag,_that.progression,_that.narrativeFactRuntimeState,_that.narrativeEventProgress,_that.pauseMenuState,_that.completedBattleRequestIds,_that.appliedPokemonGrantOperationIds,_that.properties);case _:
+return $default(_that.saveId,_that.itemSystemSchemaVersion,_that.currentMapId,_that.playerPosition,_that.playerFacing,_that.playerMovementMode,_that.party,_that.pokemonStorage,_that.trainerProfile,_that.bag,_that.progression,_that.narrativeFactRuntimeState,_that.narrativeEventProgress,_that.pauseMenuState,_that.completedBattleRequestIds,_that.appliedPokemonGrantOperationIds,_that.properties);case _:
   return null;
 
 }
@@ -2927,7 +2935,7 @@ return $default(_that.saveId,_that.itemSystemSchemaVersion,_that.currentMapId,_t
 
 @JsonSerializable(explicitToJson: true)
 class _SaveData extends SaveData {
-  const _SaveData({required this.saveId, this.itemSystemSchemaVersion = currentItemSystemSaveSchemaVersion, this.currentMapId = '', this.playerPosition = const GridPos(x: 0, y: 0), this.playerFacing = EntityFacing.south, this.party = const PlayerParty(), this.pokemonStorage = const PokemonStorage(), this.trainerProfile = const TrainerProfile(name: 'Player'), this.bag = const Bag(), this.progression = const PlayerProgression(), @JsonKey(readValue: readNarrativeFactRuntimeStateJson) this.narrativeFactRuntimeState = const NarrativeFactRuntimeState.empty(), @JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson) this.narrativeEventProgress = const NarrativeEventProgress.empty(), this.pauseMenuState = const PlayerPauseMenuState.empty(), final  Set<String> completedBattleRequestIds = const {}, final  Set<String> appliedPokemonGrantOperationIds = const {}, final  Map<String, String> properties = const {}}): _completedBattleRequestIds = completedBattleRequestIds,_appliedPokemonGrantOperationIds = appliedPokemonGrantOperationIds,_properties = properties,super._();
+  const _SaveData({required this.saveId, this.itemSystemSchemaVersion = currentItemSystemSaveSchemaVersion, this.currentMapId = '', this.playerPosition = const GridPos(x: 0, y: 0), this.playerFacing = EntityFacing.south, this.playerMovementMode = MovementMode.walk, this.party = const PlayerParty(), this.pokemonStorage = const PokemonStorage(), this.trainerProfile = const TrainerProfile(name: 'Player'), this.bag = const Bag(), this.progression = const PlayerProgression(), @JsonKey(readValue: readNarrativeFactRuntimeStateJson) this.narrativeFactRuntimeState = const NarrativeFactRuntimeState.empty(), @JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson) this.narrativeEventProgress = const NarrativeEventProgress.empty(), this.pauseMenuState = const PlayerPauseMenuState.empty(), final  Set<String> completedBattleRequestIds = const {}, final  Set<String> appliedPokemonGrantOperationIds = const {}, final  Map<String, String> properties = const {}}): _completedBattleRequestIds = completedBattleRequestIds,_appliedPokemonGrantOperationIds = appliedPokemonGrantOperationIds,_properties = properties,super._();
   factory _SaveData.fromJson(Map<String, dynamic> json) => _$SaveDataFromJson(json);
 
 @override final  String saveId;
@@ -2935,6 +2943,14 @@ class _SaveData extends SaveData {
 @override@JsonKey() final  String currentMapId;
 @override@JsonKey() final  GridPos playerPosition;
 @override@JsonKey() final  EntityFacing playerFacing;
+/// Mode de déplacement du joueur au moment de la sauvegarde.
+///
+/// BETA-SYS-002 : il manquait, et un joueur qui sauvegardait en surfant
+/// rechargeait DEBOUT SUR L'EAU en mode marche. Le mode vivait bien dans
+/// GameState, mais la conversion vers l'enveloppe de sauvegarde le
+/// perdait — les deux fonctions de `game_state_persistence` ne le
+/// mentionnaient nulle part.
+@override@JsonKey() final  MovementMode playerMovementMode;
 @override@JsonKey() final  PlayerParty party;
 @override@JsonKey() final  PokemonStorage pokemonStorage;
 @override@JsonKey() final  TrainerProfile trainerProfile;
@@ -2978,16 +2994,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SaveData&&(identical(other.saveId, saveId) || other.saveId == saveId)&&(identical(other.itemSystemSchemaVersion, itemSystemSchemaVersion) || other.itemSystemSchemaVersion == itemSystemSchemaVersion)&&(identical(other.currentMapId, currentMapId) || other.currentMapId == currentMapId)&&(identical(other.playerPosition, playerPosition) || other.playerPosition == playerPosition)&&(identical(other.playerFacing, playerFacing) || other.playerFacing == playerFacing)&&(identical(other.party, party) || other.party == party)&&(identical(other.pokemonStorage, pokemonStorage) || other.pokemonStorage == pokemonStorage)&&(identical(other.trainerProfile, trainerProfile) || other.trainerProfile == trainerProfile)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.progression, progression) || other.progression == progression)&&(identical(other.narrativeFactRuntimeState, narrativeFactRuntimeState) || other.narrativeFactRuntimeState == narrativeFactRuntimeState)&&(identical(other.narrativeEventProgress, narrativeEventProgress) || other.narrativeEventProgress == narrativeEventProgress)&&(identical(other.pauseMenuState, pauseMenuState) || other.pauseMenuState == pauseMenuState)&&const DeepCollectionEquality().equals(other._completedBattleRequestIds, _completedBattleRequestIds)&&const DeepCollectionEquality().equals(other._appliedPokemonGrantOperationIds, _appliedPokemonGrantOperationIds)&&const DeepCollectionEquality().equals(other._properties, _properties));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SaveData&&(identical(other.saveId, saveId) || other.saveId == saveId)&&(identical(other.itemSystemSchemaVersion, itemSystemSchemaVersion) || other.itemSystemSchemaVersion == itemSystemSchemaVersion)&&(identical(other.currentMapId, currentMapId) || other.currentMapId == currentMapId)&&(identical(other.playerPosition, playerPosition) || other.playerPosition == playerPosition)&&(identical(other.playerFacing, playerFacing) || other.playerFacing == playerFacing)&&(identical(other.playerMovementMode, playerMovementMode) || other.playerMovementMode == playerMovementMode)&&(identical(other.party, party) || other.party == party)&&(identical(other.pokemonStorage, pokemonStorage) || other.pokemonStorage == pokemonStorage)&&(identical(other.trainerProfile, trainerProfile) || other.trainerProfile == trainerProfile)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.progression, progression) || other.progression == progression)&&(identical(other.narrativeFactRuntimeState, narrativeFactRuntimeState) || other.narrativeFactRuntimeState == narrativeFactRuntimeState)&&(identical(other.narrativeEventProgress, narrativeEventProgress) || other.narrativeEventProgress == narrativeEventProgress)&&(identical(other.pauseMenuState, pauseMenuState) || other.pauseMenuState == pauseMenuState)&&const DeepCollectionEquality().equals(other._completedBattleRequestIds, _completedBattleRequestIds)&&const DeepCollectionEquality().equals(other._appliedPokemonGrantOperationIds, _appliedPokemonGrantOperationIds)&&const DeepCollectionEquality().equals(other._properties, _properties));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,saveId,itemSystemSchemaVersion,currentMapId,playerPosition,playerFacing,party,pokemonStorage,trainerProfile,bag,progression,narrativeFactRuntimeState,narrativeEventProgress,pauseMenuState,const DeepCollectionEquality().hash(_completedBattleRequestIds),const DeepCollectionEquality().hash(_appliedPokemonGrantOperationIds),const DeepCollectionEquality().hash(_properties));
+int get hashCode => Object.hash(runtimeType,saveId,itemSystemSchemaVersion,currentMapId,playerPosition,playerFacing,playerMovementMode,party,pokemonStorage,trainerProfile,bag,progression,narrativeFactRuntimeState,narrativeEventProgress,pauseMenuState,const DeepCollectionEquality().hash(_completedBattleRequestIds),const DeepCollectionEquality().hash(_appliedPokemonGrantOperationIds),const DeepCollectionEquality().hash(_properties));
 
 @override
 String toString() {
-  return 'SaveData(saveId: $saveId, itemSystemSchemaVersion: $itemSystemSchemaVersion, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, narrativeFactRuntimeState: $narrativeFactRuntimeState, narrativeEventProgress: $narrativeEventProgress, pauseMenuState: $pauseMenuState, completedBattleRequestIds: $completedBattleRequestIds, appliedPokemonGrantOperationIds: $appliedPokemonGrantOperationIds, properties: $properties)';
+  return 'SaveData(saveId: $saveId, itemSystemSchemaVersion: $itemSystemSchemaVersion, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, playerMovementMode: $playerMovementMode, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, narrativeFactRuntimeState: $narrativeFactRuntimeState, narrativeEventProgress: $narrativeEventProgress, pauseMenuState: $pauseMenuState, completedBattleRequestIds: $completedBattleRequestIds, appliedPokemonGrantOperationIds: $appliedPokemonGrantOperationIds, properties: $properties)';
 }
 
 
@@ -2998,7 +3014,7 @@ abstract mixin class _$SaveDataCopyWith<$Res> implements $SaveDataCopyWith<$Res>
   factory _$SaveDataCopyWith(_SaveData value, $Res Function(_SaveData) _then) = __$SaveDataCopyWithImpl;
 @override @useResult
 $Res call({
- String saveId, int itemSystemSchemaVersion, String currentMapId, GridPos playerPosition, EntityFacing playerFacing, PlayerParty party, PokemonStorage pokemonStorage, TrainerProfile trainerProfile, Bag bag, PlayerProgression progression,@JsonKey(readValue: readNarrativeFactRuntimeStateJson) NarrativeFactRuntimeState narrativeFactRuntimeState,@JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson) NarrativeEventProgress narrativeEventProgress, PlayerPauseMenuState pauseMenuState, Set<String> completedBattleRequestIds, Set<String> appliedPokemonGrantOperationIds, Map<String, String> properties
+ String saveId, int itemSystemSchemaVersion, String currentMapId, GridPos playerPosition, EntityFacing playerFacing, MovementMode playerMovementMode, PlayerParty party, PokemonStorage pokemonStorage, TrainerProfile trainerProfile, Bag bag, PlayerProgression progression,@JsonKey(readValue: readNarrativeFactRuntimeStateJson) NarrativeFactRuntimeState narrativeFactRuntimeState,@JsonKey(readValue: readNarrativeEventProgressJson, toJson: narrativeEventProgressToJson) NarrativeEventProgress narrativeEventProgress, PlayerPauseMenuState pauseMenuState, Set<String> completedBattleRequestIds, Set<String> appliedPokemonGrantOperationIds, Map<String, String> properties
 });
 
 
@@ -3015,14 +3031,15 @@ class __$SaveDataCopyWithImpl<$Res>
 
 /// Create a copy of SaveData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? saveId = null,Object? itemSystemSchemaVersion = null,Object? currentMapId = null,Object? playerPosition = null,Object? playerFacing = null,Object? party = null,Object? pokemonStorage = null,Object? trainerProfile = null,Object? bag = null,Object? progression = null,Object? narrativeFactRuntimeState = null,Object? narrativeEventProgress = null,Object? pauseMenuState = null,Object? completedBattleRequestIds = null,Object? appliedPokemonGrantOperationIds = null,Object? properties = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? saveId = null,Object? itemSystemSchemaVersion = null,Object? currentMapId = null,Object? playerPosition = null,Object? playerFacing = null,Object? playerMovementMode = null,Object? party = null,Object? pokemonStorage = null,Object? trainerProfile = null,Object? bag = null,Object? progression = null,Object? narrativeFactRuntimeState = null,Object? narrativeEventProgress = null,Object? pauseMenuState = null,Object? completedBattleRequestIds = null,Object? appliedPokemonGrantOperationIds = null,Object? properties = null,}) {
   return _then(_SaveData(
 saveId: null == saveId ? _self.saveId : saveId // ignore: cast_nullable_to_non_nullable
 as String,itemSystemSchemaVersion: null == itemSystemSchemaVersion ? _self.itemSystemSchemaVersion : itemSystemSchemaVersion // ignore: cast_nullable_to_non_nullable
 as int,currentMapId: null == currentMapId ? _self.currentMapId : currentMapId // ignore: cast_nullable_to_non_nullable
 as String,playerPosition: null == playerPosition ? _self.playerPosition : playerPosition // ignore: cast_nullable_to_non_nullable
 as GridPos,playerFacing: null == playerFacing ? _self.playerFacing : playerFacing // ignore: cast_nullable_to_non_nullable
-as EntityFacing,party: null == party ? _self.party : party // ignore: cast_nullable_to_non_nullable
+as EntityFacing,playerMovementMode: null == playerMovementMode ? _self.playerMovementMode : playerMovementMode // ignore: cast_nullable_to_non_nullable
+as MovementMode,party: null == party ? _self.party : party // ignore: cast_nullable_to_non_nullable
 as PlayerParty,pokemonStorage: null == pokemonStorage ? _self.pokemonStorage : pokemonStorage // ignore: cast_nullable_to_non_nullable
 as PokemonStorage,trainerProfile: null == trainerProfile ? _self.trainerProfile : trainerProfile // ignore: cast_nullable_to_non_nullable
 as TrainerProfile,bag: null == bag ? _self.bag : bag // ignore: cast_nullable_to_non_nullable
@@ -3042,7 +3059,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get playerPosition {
-
+  
   return $GridPosCopyWith<$Res>(_self.playerPosition, (value) {
     return _then(_self.copyWith(playerPosition: value));
   });
@@ -3051,7 +3068,7 @@ $GridPosCopyWith<$Res> get playerPosition {
 @override
 @pragma('vm:prefer-inline')
 $PlayerPartyCopyWith<$Res> get party {
-
+  
   return $PlayerPartyCopyWith<$Res>(_self.party, (value) {
     return _then(_self.copyWith(party: value));
   });
@@ -3060,7 +3077,7 @@ $PlayerPartyCopyWith<$Res> get party {
 @override
 @pragma('vm:prefer-inline')
 $TrainerProfileCopyWith<$Res> get trainerProfile {
-
+  
   return $TrainerProfileCopyWith<$Res>(_self.trainerProfile, (value) {
     return _then(_self.copyWith(trainerProfile: value));
   });
@@ -3069,7 +3086,7 @@ $TrainerProfileCopyWith<$Res> get trainerProfile {
 @override
 @pragma('vm:prefer-inline')
 $BagCopyWith<$Res> get bag {
-
+  
   return $BagCopyWith<$Res>(_self.bag, (value) {
     return _then(_self.copyWith(bag: value));
   });
@@ -3078,7 +3095,7 @@ $BagCopyWith<$Res> get bag {
 @override
 @pragma('vm:prefer-inline')
 $PlayerProgressionCopyWith<$Res> get progression {
-
+  
   return $PlayerProgressionCopyWith<$Res>(_self.progression, (value) {
     return _then(_self.copyWith(progression: value));
   });

@@ -1567,7 +1567,29 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Le requestId lie causalement la continuation au combat effectivement
   /// consommé. Ne jamais conserver ou modifier ces trois valeurs séparément.
   _PendingScenarioBattleHandoff? _pendingScenarioBattleHandoff;
-  bool _awaitingSurfConfirmation = false;
+  /// Autorisation en attente pour une action terrain, ou null.
+  ///
+  /// BETA-SYS-002 remplace un booléen « une confirmation Surf est en attente »
+  /// par un jeton daté. Le booléen ne pouvait rien vérifier : tout ce qui se
+  /// passait entre l'invitation et le « oui » du joueur était invisible au
+  /// moment de muter.
+  ///
+  /// PAS DE VERROU DÉDIÉ, et c'est mesuré. J'en ai d'abord ajouté un
+  /// (`RuntimeInputLockOwner.fieldAction`, surface `blocked`) : le contexte
+  /// d'autorité dérivant du DERNIER jeton acquis, il masquait la surface
+  /// `dialogue` et plus aucune touche n'atteignait la boîte de dialogue. Le
+  /// dialogue de l'invitation est déjà le verrou ; ce qui manquait n'était pas
+  /// un second verrou mais une autorisation vérifiable.
+  FieldActionTicket? _pendingFieldActionTicket;
+
+  /// Dernière décision de commit d'action terrain, pour l'observer en test.
+  ///
+  /// Sans elle, un refus et une absence d'effet sont indistinguables depuis
+  /// l'extérieur : dans les deux cas le mode ne change pas.
+  FieldActionCommit? _lastFieldActionCommit;
+
+  /// Compteur de mutations de l'état de jeu, source du jeton de fraîcheur.
+  int _gameStateRevision = 0;
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
@@ -2369,6 +2391,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   BattleStartRequest? get debugPendingBattleRequest => _pendingBattleRequest;
 
+  @visibleForTesting
+  FieldActionTicket? get debugPendingFieldActionTicket =>
+      _pendingFieldActionTicket;
+
+  @visibleForTesting
+  int get debugGameStateRevision => _gameStateRevision;
+
+  @visibleForTesting
+  FieldActionCommit? get debugLastFieldActionCommit => _lastFieldActionCommit;
+
   /// Requête du combat EN COURS, après hydratation.
   ///
   /// Distincte de [debugPendingBattleRequest], qui est la requête telle
@@ -2807,6 +2839,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _syncGameStateFromWorld({String? mapIdOverride}) {
+    _gameStateRevision += 1;
     final mapId = mapIdOverride ?? _activeMapId;
     _gameState = _gameState.copyWith(
       currentMapId: mapId,
@@ -3309,6 +3342,60 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void setSurfingEnabled(bool enabled) {
     setPlayerMovementMode(enabled ? MovementMode.surf : MovementMode.walk);
+  }
+
+  /// Étape « mutation » du contrat d'action terrain.
+  ///
+  /// Le verdict est recalculé sur l'état COURANT, pas sur celui de
+  /// l'invitation. C'est ce qui couvre d'un seul geste la commande périmée et le
+  /// Pokémon tombé K.O. entre les deux : deux situations que l'ancien booléen
+  /// laissait passer parce qu'il n'avait rien à comparer.
+  void _commitPendingFieldAction(FieldActionTicket ticket) {
+    final decision = commitFieldAction(
+      ticket: ticket,
+      gameState: _gameState,
+      currentStateRevision: _gameStateRevision,
+      confirmedTargetCell: ticket.targetCell,
+      isTargetWater: _world.isWaterCell(
+        ticket.targetCell.x,
+        ticket.targetCell.y,
+      ),
+    );
+    _lastFieldActionCommit = decision;
+    switch (decision) {
+      case FieldActionApplied(:final movementMode):
+        setPlayerMovementMode(movementMode);
+        debugPrint(
+          '[field_action] applied ability=${ticket.ability.name} '
+          'mode=${movementMode.name}',
+        );
+      case FieldActionRefused(:final refusal, :final evaluation):
+        debugPrint(
+          '[field_action] refused ability=${ticket.ability.name} '
+          'reason=${refusal.name} evaluation=${evaluation?.runtimeType}',
+        );
+        _showNotification(waterRequiresSurfFeedbackMessage);
+    }
+  }
+
+  /// Sortie de l'action terrain après un pas effectivement commis.
+  ///
+  /// Sans elle, un joueur ayant surfé une fois surfait sur la terre ferme pour
+  /// le reste de la partie : la règle de mouvement ne bloque que l'ENTRÉE dans
+  /// l'eau sans Surf, et rien n'appelait le retour à la marche en production.
+  void _applyFieldActionExitAfterStep() {
+    final pos = _world.player.pos;
+    final nextMode = resolveMovementModeAfterStep(
+      currentMode: _world.player.movementMode,
+      isWaterCell: _world.isWaterCell(pos.x, pos.y),
+    );
+    if (nextMode == _world.player.movementMode) {
+      return;
+    }
+    debugPrint(
+      '[field_action] exit mode=${nextMode.name} at x=${pos.x} y=${pos.y}',
+    );
+    setPlayerMovementMode(nextMode);
   }
 
   /// Lance un déplacement scripté ponctuel pour un PNJ.
@@ -4365,8 +4452,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _syncGameStateFromWorld();
 
     if (result is Blocked) {
-      if (result.reason == GameplayMovementBlockReason.waterRequiresSurf) {
-        _handleWaterBlocked();
+      if (result.reason == GameplayMovementBlockReason.waterRequiresSurf &&
+          attemptedX != null &&
+          attemptedY != null) {
+        _handleWaterBlocked(
+          targetCell: GridPos(x: attemptedX, y: attemptedY),
+        );
       }
       if (attemptedOutOfBounds && attemptedDirection != null) {
         final direction = switch (attemptedDirection) {
@@ -4384,6 +4475,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (result is Moved) {
+      // Sortie de l'action terrain, avant tout le reste : la vérification de
+      // rencontre et la ligne de vue doivent voir le mode d'arrivée, pas celui
+      // de départ.
+      _applyFieldActionExitAfterStep();
       _player.startStep(
         _world.player,
         durationSeconds: PlayerComponent.kDefaultStepSeconds,
@@ -10439,7 +10534,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _dialogueOverlay = null;
         _setDialoguePresentationSnapshot(null);
         _setFlowPhase(_RuntimeFlowPhase.overworld);
-        _awaitingSurfConfirmation = false;
+        _pendingFieldActionTicket = null;
         final action = _pendingPostDialogueAction;
         _pendingPostDialogueAction = null;
         try {
@@ -10501,14 +10596,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final idx = state.selectedIndex;
       debugPrint(
           '[dialogue] choice confirmed index=$idx text="${state.choices[idx].text}"');
-      if (_awaitingSurfConfirmation) {
+      final ticket = _pendingFieldActionTicket;
+      if (ticket != null) {
         if (idx == 0) {
-          _pendingPostDialogueAction = () {
-            setSurfingEnabled(true);
-            debugPrint('[surf] mode activated via dialogue choice');
-          };
+          _pendingPostDialogueAction = () => _commitPendingFieldAction(ticket);
         }
-        _awaitingSurfConfirmation = false;
+        _pendingFieldActionTicket = null;
       }
     }
     final prevNode = overlay.currentSession.currentNodeTitle;
@@ -10972,7 +11065,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     });
   }
 
-  void _handleWaterBlocked() {
+  void _handleWaterBlocked({required GridPos targetCell}) {
     final delta = _runtimeClockMs - _lastWaterRequiresSurfMessageAtMs;
     if (delta < _kWaterRequiresSurfMessageCooldownMs) {
       return;
@@ -10999,7 +11092,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '[surf] evaluation=${evaluation.runtimeType} -> dialogue=$yarnNode');
 
     if (evaluation is CanPromptSurf) {
-      _awaitingSurfConfirmation = true;
+      // L'invitation délivre une autorisation datée sur la cellule proposée.
+      // C'est ce qui rend la confirmation vérifiable : sans jeton, le commit
+      // n'aurait rien à comparer.
+      _pendingFieldActionTicket = FieldActionTicket(
+        ability: FieldAbility.surf,
+        targetCell: targetCell,
+        issuedAtStateRevision: _gameStateRevision,
+      );
     }
     _openDialogue(session);
   }
@@ -12032,7 +12132,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pendingConnection = null;
     _pendingConnectionEntryAnimation = null;
     _pendingPostDialogueAction = null;
-    _awaitingSurfConfirmation = false;
+    _pendingFieldActionTicket = null;
     _clearBlockingInteractionWithoutUnlock(reason: 'clearTransientUiState');
     // CRITICAL: Do NOT clear _pendingBattleRequest if a battle is active!
     // This would cancel a pending wild encounter battle.

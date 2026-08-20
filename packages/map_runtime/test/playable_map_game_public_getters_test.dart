@@ -21,7 +21,22 @@ void main() {
       expect(game.isBattleUiActive, isFalse);
     });
 
-    test('getters use normalized saveData movement mode before onLoad', () {
+    test('getters keep the saved movement mode before onLoad', () {
+      // CHANGEMENT DE COMPORTEMENT ASSUMÉ, BETA-SYS-002, critère « save/reload ».
+      //
+      // Ce cas exigeait l'inverse : une sauvegarde faite en surfant se
+      // rechargeait en mode MARCHE. Ce n'était pas un oubli — `SaveData` n'avait
+      // pas de champ pour le mode, et `gameStateFromSaveData` écrivait
+      // `MovementMode.walk` en dur.
+      //
+      // Conséquence côté joueur : sauvegarder au milieu d'un lac et recharger
+      // faisait marcher le joueur sur l'eau. Ce n'était pas non plus une
+      // protection utile, puisque la règle de mouvement n'interdit que d'ENTRER
+      // dans l'eau : le joueur ressortait à pied.
+      //
+      // Le mode traverse désormais l'enveloppe de sauvegarde. Ce qui rend le
+      // basculement sûr, c'est la sortie livrée par le même lot : recharger en
+      // surf sur une case qui n'est plus de l'eau se corrige au premier pas.
       const state = GameState(
         saveId: 'save-1',
         currentMapId: 'map_a',
@@ -33,9 +48,9 @@ void main() {
         saveData: saveDataFromGameState(state),
       );
 
-      expect(game.playerMovementMode, MovementMode.walk);
-      expect(game.isSurfing, isFalse);
-      expect(game.saveLoadInfo.movementMode, MovementMode.walk.name);
+      expect(game.playerMovementMode, MovementMode.surf);
+      expect(game.isSurfing, isTrue);
+      expect(game.saveLoadInfo.movementMode, MovementMode.surf.name);
     });
   });
 }

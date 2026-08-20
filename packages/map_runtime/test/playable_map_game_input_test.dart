@@ -2464,6 +2464,190 @@ void main() {
       );
     });
   });
+
+  group('BETA-SYS-002 the runtime borrows the field action contract', () {
+    Future<_TestPlayableMapGame> loadSurfGame({
+      bool swimmerFainted = false,
+    }) async {
+      final root = await Directory.systemTemp.createTemp('surf_field_action_');
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final pokemonConfig = await _writeSurfPokemonData(root);
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[_surfWaterMap()],
+        pokemonConfig: pokemonConfig,
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'surf_water_map',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        saveData: saveDataFromGameState(
+          _surfReadySaveState(swimmerFainted: swimmerFainted),
+        ),
+      );
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await _pumpUntil(
+        game,
+        () => !game.inputAuthoritySnapshot.isGameplayLocked,
+      );
+      return game;
+    }
+
+    Future<void> promptSurf(_TestPlayableMapGame game) async {
+      await _runSingleMove(game, RuntimeInputControl.right);
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'dialogue');
+    }
+
+    Future<void> answerDialogue(_TestPlayableMapGame game) async {
+      for (var i = 0; i < 12; i++) {
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        );
+        game.update(0.016);
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.primary),
+        );
+        await Future<void>.delayed(Duration.zero);
+        if (game.debugFlowPhaseName == 'overworld') return;
+      }
+      fail('The surf dialogue never closed.');
+    }
+
+    /// La mutation est différée à la fermeture du dialogue : lire l'état sans
+    /// l'attendre donnait un mode encore `walk` selon le timing.
+    Future<void> awaitCommitDecision(_TestPlayableMapGame game) async {
+      await _pumpUntil(game, () => game.debugLastFieldActionCommit != null);
+    }
+
+    test('bumping into water issues a dated ticket and locks the world',
+        () async {
+      // Le critère « lock », et il s'est révélé DÉJÀ tenu — par le dialogue de
+      // l'invitation, qui possède la surface d'entrée. J'avais commencé par
+      // ajouter un verrou dédié : il masquait la surface `dialogue` et plus
+      // aucune touche n'atteignait la boîte de dialogue. Ce cas vérifie donc le
+      // verrou réel, et que l'`autorisation` datée l'accompagne.
+      final game = await loadSurfGame();
+      expect(game.debugPendingFieldActionTicket, isNull);
+
+      await promptSurf(game);
+
+      final ticket = game.debugPendingFieldActionTicket;
+      expect(ticket, isNotNull);
+      expect(ticket!.ability, FieldAbility.surf);
+      expect(ticket.targetCell, const GridPos(x: 2, y: 1));
+      expect(
+        ticket.issuedAtStateRevision,
+        game.debugGameStateRevision,
+        reason: 'the invitation must be dated with the revision it saw',
+      );
+      expect(game.inputAuthoritySnapshot.isGameplayLocked, isTrue);
+      expect(
+        game.inputAuthoritySnapshot.context,
+        RuntimeInputContext.dialogue,
+        reason: 'the invitation owns the input surface, and nothing shadows it',
+      );
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 1));
+    });
+
+    test('confirming a fresh invitation applies the surf mode', () async {
+      final game = await loadSurfGame();
+      await promptSurf(game);
+
+      await answerDialogue(game);
+      await awaitCommitDecision(game);
+
+      expect(game.debugLastFieldActionCommit, isA<FieldActionApplied>());
+      expect(game.gameStateSnapshot.playerMovementMode, MovementMode.surf);
+      expect(game.debugPendingFieldActionTicket, isNull);
+    });
+
+    test('a state change between the invitation and the yes refuses it',
+        () async {
+      // Le critère « commande stale », prouvé À TRAVERS le runtime : ce qui se
+      // joue ici est que le runtime passe la révision COURANTE au commit et non
+      // celle du jeton.
+      final game = await loadSurfGame();
+      await promptSurf(game);
+      final issuedAt =
+          game.debugPendingFieldActionTicket!.issuedAtStateRevision;
+
+      game.setPlayerMovementMode(MovementMode.surf);
+      expect(game.debugGameStateRevision, greaterThan(issuedAt));
+
+      await answerDialogue(game);
+      await awaitCommitDecision(game);
+
+      final decision = game.debugLastFieldActionCommit;
+      expect(decision, isA<FieldActionRefused>());
+      expect(
+        (decision! as FieldActionRefused).refusal,
+        FieldActionRefusal.staleStateRevision,
+      );
+    });
+
+    test('a fainted swimmer is never even invited', () async {
+      // Le critère « Pokémon KO » côté runtime : aucune autorisation ne doit
+      // être délivrée. Le refus au commit, lui, est prouvé dans le contrat.
+      final game = await loadSurfGame(swimmerFainted: true);
+
+      await promptSurf(game);
+
+      expect(game.debugPendingFieldActionTicket, isNull);
+      expect(game.gameStateSnapshot.playerMovementMode, MovementMode.walk);
+    });
+
+    test('stepping back onto land ends the surf without asking', () async {
+      // Le critère « sortie », qui n'existait pas : rien n'appelait le retour à
+      // la marche en production, donc un joueur ayant surfé une fois surfait
+      // sur la terre ferme pour le reste de la partie.
+      final game = await loadSurfGame();
+      await promptSurf(game);
+      await answerDialogue(game);
+      await awaitCommitDecision(game);
+      expect(game.gameStateSnapshot.playerMovementMode, MovementMode.surf);
+
+      await _runSingleMove(game, RuntimeInputControl.right);
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 2, y: 1));
+      expect(
+        game.gameStateSnapshot.playerMovementMode,
+        MovementMode.surf,
+        reason: 'still on the water cell',
+      );
+
+      await _runSingleMove(game, RuntimeInputControl.left);
+
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 1));
+      expect(
+        game.gameStateSnapshot.playerMovementMode,
+        MovementMode.walk,
+        reason: 'back on land, and no dialogue was needed to get out',
+      );
+    });
+
+    test('the surf mode survives a save and reload round trip', () async {
+      // Le critère « save/reload », vérifié plutôt que supposé depuis la
+      // présence du champ dans GameState.
+      final game = await loadSurfGame();
+      await promptSurf(game);
+      await answerDialogue(game);
+      await awaitCommitDecision(game);
+
+      final saved = game.gameStateSnapshot;
+      final reloaded = gameStateFromSaveData(saveDataFromGameState(saved));
+
+      expect(saved.playerMovementMode, MovementMode.surf);
+      expect(reloaded.playerMovementMode, MovementMode.surf);
+      expect(reloaded.playerPosition, saved.playerPosition);
+    });
+  });
 }
 
 class _RecordingPlayableMapGame extends PlayableMapGame {
@@ -2767,6 +2951,138 @@ Future<String> _writeRuntimeProject(
     );
   }
   return projectFile.path;
+}
+
+/// Carte à eau pour le contrat d'action terrain — BETA-SYS-002.
+///
+/// Le joueur démarre en (1,1), l'eau est en (2,1) : buter à droite est le seul
+/// chemin qui atteint `waterRequiresSurf`, et donc tout le pipeline Surf.
+MapData _surfWaterMap() {
+  return const MapData(
+    id: 'surf_water_map',
+    name: 'Surf Water Map',
+    size: GridSize(width: 5, height: 3),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_surf',
+        name: 'Spawn Surf',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 1, y: 1),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    gameplayZones: <MapGameplayZone>[
+      MapGameplayZone(
+        id: 'water',
+        name: 'Water',
+        kind: GameplayZoneKind.movement,
+        area: MapRect(
+          pos: GridPos(x: 2, y: 1),
+          size: GridSize(width: 1, height: 1),
+        ),
+        movement: MovementZonePayload(requiredMode: MovementMode.surf),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_surf'),
+  );
+}
+
+/// Données Pokémon dédiées à Surf, dans leur propre racine.
+///
+/// Volontairement séparées de `_writeBattleRuntimePokemonData` : ajouter la
+/// capacité Surf au catalogue partagé changerait les données de tous les tests
+/// de combat de ce fichier pour un besoin qui n'est pas le leur.
+Future<ProjectPokemonConfig> _writeSurfPokemonData(Directory root) async {
+  const dataRoot = 'data/pokemon_surf';
+  await _writeProjectRelativeJson(
+    root,
+    '$dataRoot/catalogs/moves.json',
+    <String, dynamic>{
+      'schemaVersion': 1,
+      'kind': 'pokemon_catalog',
+      'catalog': 'moves',
+      'meta': <String, Object>{'description': 'Surf field action fixture'},
+      'entries': <Map<String, Object?>>[
+        PokemonMove(
+          id: 'surf',
+          name: 'Surf',
+          names: const <String, String>{'en': 'Surf'},
+          generation: 1,
+          source: 'surf_field_action_fixture',
+          type: 'water',
+          category: PokemonMoveCategory.special,
+          target: PokemonMoveTarget.normal,
+          basePower: 90,
+          accuracy: const PokemonMoveAccuracy.percent(value: 100),
+          pp: 15,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+        ).toJson(),
+      ],
+    },
+  );
+  await _writeProjectRelativeJson(
+    root,
+    '$dataRoot/catalogs/items.json',
+    mvpItemCatalog.toJson(),
+  );
+  await _writeProjectRelativeJson(
+    root,
+    '$dataRoot/species/lapras.json',
+    _runtimeSpeciesJson(id: 'lapras', type: 'water', abilityId: 'torrent'),
+  );
+  await _writeProjectRelativeJson(
+    root,
+    '$dataRoot/learnsets/lapras.json',
+    <String, dynamic>{
+      'schemaVersion': 1,
+      'id': 'lapras',
+      'startingMoves': <String>['surf'],
+      'levelUp': <Map<String, Object?>>[
+        <String, Object?>{'level': 1, 'moveId': 'surf'},
+      ],
+    },
+  );
+  return const ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    dataRoot: dataRoot,
+    speciesDir: '$dataRoot/species',
+    learnsetsDir: '$dataRoot/learnsets',
+    evolutionsDir: '$dataRoot/evolutions',
+    mediaDir: '$dataRoot/media',
+    catalogFiles: <String, String>{
+      'moves': '$dataRoot/catalogs/moves.json',
+      'items': '$dataRoot/catalogs/items.json',
+    },
+  );
+}
+
+GameState _surfReadySaveState({bool swimmerFainted = false}) {
+  return GameState(
+    saveId: 'surf-field-action',
+    currentMapId: 'surf_water_map',
+    playerPosition: const GridPos(x: 1, y: 1),
+    party: PlayerParty(members: <PlayerPokemon>[
+      PlayerPokemon(
+        speciesId: 'lapras',
+        natureId: 'modest',
+        abilityId: 'torrent',
+        level: 30,
+        currentHp: swimmerFainted ? 0 : 90,
+        knownMoveIds: const <String>['surf'],
+        currentPpByMoveId: const <String, int>{'surf': 15},
+      ),
+    ]),
+    progression: const PlayerProgression(
+      unlockedFieldAbilities: <FieldAbility>[FieldAbility.surf],
+    ),
+  );
 }
 
 MapData _npcDialogueMap() {

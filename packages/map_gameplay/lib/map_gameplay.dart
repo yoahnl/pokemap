@@ -138,12 +138,29 @@ export 'src/gameplay_world_state.dart'
 export 'src/surf_evaluation.dart'
     show
         SurfAttemptEvaluation,
+        evaluateSurfAttempt;
+
+// Field action contract
+export 'src/field_action.dart'
+    show
+        FieldActionEvaluation,
+        FieldActionUnsupported,
         NotWater,
         AlreadySurfing,
         MissingSurfCapablePokemon,
         SurfNotUnlocked,
         CanPromptSurf,
-        evaluateSurfAttempt,
+        FieldActionTicket,
+        FieldActionRefusal,
+        FieldActionCommit,
+        FieldActionApplied,
+        FieldActionRefused,
+        betaSignedFieldAbilities,
+        evaluateFieldAction,
+        fieldActionMovementMode,
+        commitFieldAction,
+        resolveMovementModeAfterStep,
+        optimisticPreviewMovementMode,
         partyHasUsableFieldMove;
 
 // Line of Sight detection

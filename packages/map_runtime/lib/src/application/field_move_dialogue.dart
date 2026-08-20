@@ -43,6 +43,11 @@ String? surfEvaluationToYarnNode(SurfAttemptEvaluation evaluation) {
     CanPromptSurf() => 'Yes_Surf',
     NotWater() => null,
     AlreadySurfing() => null,
+    // Une capacité terrain non signée pour la bêta n'a pas de dialogue : elle
+    // ne doit surtout pas emprunter celui de Surf. Le switch est exhaustif
+    // exprès — signer une capacité de FG-121 à FG-128 casse la compilation ici,
+    // à l'endroit exact qu'il faut compléter.
+    FieldActionUnsupported() => null,
   };
 }
 

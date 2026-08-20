@@ -811,6 +811,15 @@ abstract class SaveData with _$SaveData {
     @Default('') String currentMapId,
     @Default(GridPos(x: 0, y: 0)) GridPos playerPosition,
     @Default(EntityFacing.south) EntityFacing playerFacing,
+
+    /// Mode de déplacement du joueur au moment de la sauvegarde.
+    ///
+    /// BETA-SYS-002 : il manquait, et un joueur qui sauvegardait en surfant
+    /// rechargeait DEBOUT SUR L'EAU en mode marche. Le mode vivait bien dans
+    /// GameState, mais la conversion vers l'enveloppe de sauvegarde le
+    /// perdait — les deux fonctions de `game_state_persistence` ne le
+    /// mentionnaient nulle part.
+    @Default(MovementMode.walk) MovementMode playerMovementMode,
     @Default(PlayerParty()) PlayerParty party,
     @Default(PokemonStorage()) PokemonStorage pokemonStorage,
     @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,

@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:map_core/map_core.dart';
 
 import '../direction.dart';
+import '../field_action.dart';
 import '../gameplay_connection.dart';
 import '../gameplay_world_state.dart';
 import '../player_spawn_resolver.dart';
@@ -376,10 +377,11 @@ _StateExploration _exploreSymbolicState({
   required NarrativeSymbolicState symbolicState,
   required _ExplorationBudget budget,
 }) {
-  final movementMode =
-      symbolicState.unlockedFieldAbilities.contains(FieldAbility.surf)
-          ? MovementMode.surf
-          : MovementMode.walk;
+  // BETA-SYS-002 : la supposition de mode passe par le contrat d'action
+  // terrain, avec son optimisme documenté, au lieu d'être réécrite ici.
+  final movementMode = optimisticPreviewMovementMode(
+    unlockedFieldAbilities: symbolicState.unlockedFieldAbilities,
+  );
   final gameState = GameState(
     saveId: 'narrative_physical_validation',
     currentMapId: startMapId,
@@ -699,10 +701,19 @@ Map<GridPos, int> _walkableComponentIndex(GameplayWorldState world) {
   return componentByCell;
 }
 
+/// Franchissabilité projetée d'une cellule pour la preview d'authoring.
+///
+/// BETA-SYS-002 : cette fonction RÉÉCRIVAIT mot pour mot la règle du runtime
+/// — eau interdite hors surf, centre de cellule solide interdit. Deux copies de
+/// la même règle de part et d'autre de la frontière preview/runtime, donc deux
+/// occasions de dériver sans que rien ne le signale. Elle délègue désormais.
 bool _isProjectedWalkable(GameplayWorldState world, GridPos cell) =>
-    !world.isCellCenterBlockedLegacyForGridIndexedSystems(cell.x, cell.y) &&
-    (!world.isWaterCell(cell.x, cell.y) ||
-        world.player.movementMode == MovementMode.surf);
+    world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+      cellX: cell.x,
+      cellY: cell.y,
+      movementMode: world.player.movementMode,
+    ) ==
+    null;
 
 _PathSearch _findPathToWarp({
   required GameplayWorldState world,

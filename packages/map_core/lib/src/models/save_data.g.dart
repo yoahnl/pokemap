@@ -276,6 +276,9 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
   playerFacing:
       $enumDecodeNullable(_$EntityFacingEnumMap, json['playerFacing']) ??
       EntityFacing.south,
+  playerMovementMode:
+      $enumDecodeNullable(_$MovementModeEnumMap, json['playerMovementMode']) ??
+      MovementMode.walk,
   party: json['party'] == null
       ? const PlayerParty()
       : PlayerParty.fromJson(json['party'] as Map<String, dynamic>),
@@ -333,6 +336,7 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'currentMapId': instance.currentMapId,
   'playerPosition': instance.playerPosition.toJson(),
   'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,
+  'playerMovementMode': _$MovementModeEnumMap[instance.playerMovementMode]!,
   'party': instance.party.toJson(),
   'pokemonStorage': instance.pokemonStorage.toJson(),
   'trainerProfile': instance.trainerProfile.toJson(),
@@ -354,4 +358,13 @@ const _$EntityFacingEnumMap = {
   EntityFacing.south: 'south',
   EntityFacing.east: 'east',
   EntityFacing.west: 'west',
+};
+
+const _$MovementModeEnumMap = {
+  MovementMode.walk: 'walk',
+  MovementMode.surf: 'surf',
+  MovementMode.fly: 'fly',
+  MovementMode.cut: 'cut',
+  MovementMode.strength: 'strength',
+  MovementMode.rockSmash: 'rock_smash',
 };

@@ -1,67 +1,23 @@
 import 'package:map_core/map_core.dart';
 
-/// Résultat de l'évaluation d'une tentative d'utilisation de Surf.
+import 'field_action.dart';
+
+/// Spécialisation Surf du contrat d'action terrain.
 ///
-/// Chaque cas correspond à une décision métier distincte que le runtime
-/// peut mapper vers une action (dialogue, notification, changement de mode).
-sealed class SurfAttemptEvaluation {
-  const SurfAttemptEvaluation();
-}
-
-/// La cellule cible n'est pas de l'eau — ce n'est pas un cas Surf.
-class NotWater extends SurfAttemptEvaluation {
-  const NotWater();
-}
-
-/// Le joueur est déjà en mode surf — pas de re-déclenchement.
-class AlreadySurfing extends SurfAttemptEvaluation {
-  const AlreadySurfing();
-}
-
-/// Aucun Pokémon de l'équipe ne connaît Surf ou n'est en état de l'utiliser.
-class MissingSurfCapablePokemon extends SurfAttemptEvaluation {
-  const MissingSurfCapablePokemon();
-}
-
-/// Un Pokémon connaît Surf, mais la capacité n'est pas débloquée
-/// côté progression (badge, scénario, etc.).
-class SurfNotUnlocked extends SurfAttemptEvaluation {
-  const SurfNotUnlocked();
-}
-
-/// Toutes les conditions sont réunies — proposer Surf au joueur.
-class CanPromptSurf extends SurfAttemptEvaluation {
-  const CanPromptSurf();
-}
+/// BETA-SYS-002 a extrait le contrat commun dans `field_action.dart`. Ce fichier
+/// reste l'entrée nommée pour Surf, seule capacité signée pour la bêta, et
+/// délègue : il n'y a donc qu'UN endroit où le verdict se décide, ce qui est ce
+/// qui rend la parité preview/runtime structurelle plutôt que vérifiée.
+typedef SurfAttemptEvaluation = FieldActionEvaluation;
 
 /// Évalue si le joueur peut utiliser Surf sur une cellule cible.
-///
-/// Logique pure : ne dépend ni de Flame, ni de Flutter, ni de Yarn.
-/// Le résultat est un [SurfAttemptEvaluation] que le runtime mappera
-/// vers l'action UX appropriée.
-SurfAttemptEvaluation evaluateSurfAttempt({
+FieldActionEvaluation evaluateSurfAttempt({
   required GameState gameState,
   required bool isTargetWater,
 }) {
-  if (!isTargetWater) {
-    return const NotWater();
-  }
-  if (gameState.playerMovementMode == MovementMode.surf) {
-    return const AlreadySurfing();
-  }
-  if (!partyHasUsableFieldMove(gameState.party, FieldAbility.surf)) {
-    return const MissingSurfCapablePokemon();
-  }
-  if (!gameState.progression.unlockedFieldAbilities
-      .contains(FieldAbility.surf)) {
-    return const SurfNotUnlocked();
-  }
-  return const CanPromptSurf();
-}
-
-/// Vérifie si au moins un Pokémon de l'équipe connaît [ability]
-/// et est en état de l'utiliser (non K.O.).
-bool partyHasUsableFieldMove(PlayerParty party, FieldAbility ability) {
-  return party.members.any((pokemon) =>
-      !pokemon.isFainted && pokemon.knownMoveIds.contains(ability.moveId));
+  return evaluateFieldAction(
+    ability: FieldAbility.surf,
+    gameState: gameState,
+    isTargetWater: isTargetWater,
+  );
 }
