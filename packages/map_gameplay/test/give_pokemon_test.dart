@@ -318,6 +318,73 @@ void main() {
       expect(result.party.members, hasLength(2));
     });
 
+    test('overflows a full party into the first available box', () {
+      // BETA-PTY-004. Avant le service unique d'acquisition, un cadeau reçu à
+      // party pleine glissait un SEPTIÈME membre dans l'état — et la sauvegarde
+      // plantait ensuite, saveDataFromGameState normalisant la party au moment
+      // d'écrire. Le joueur perdait sa capacité à sauvegarder sur un cadeau
+      // scénarisé.
+      var state = emptyState();
+      for (var index = 0; index < 6; index++) {
+        state = mutations.givePokemon(
+          state,
+          pokemon: testPokemon(speciesId: 'member_$index'),
+        );
+      }
+
+      final gifted = mutations.givePokemon(
+        state,
+        pokemon: testPokemon(speciesId: 'overflow_gift'),
+      );
+
+      expect(gifted.party.members, hasLength(6));
+      expect(
+        gifted.pokemonStorage.boxes.first.pokemon.single.speciesId,
+        'overflow_gift',
+        reason: 'the gift lands in the first box, like a capture would',
+      );
+      // Et la sauvegarde passe — c'était le crash d'avant.
+      final reloaded = gameStateFromSaveData(saveDataFromGameState(gifted));
+      expect(
+        reloaded.pokemonStorage.boxes.first.pokemon.single.speciesId,
+        'overflow_gift',
+      );
+    });
+
+    test('a gift with storage full leaves the state untouched', () {
+      var state = emptyState();
+      for (var index = 0; index < 6; index++) {
+        state = mutations.givePokemon(
+          state,
+          pokemon: testPokemon(speciesId: 'member_$index'),
+        );
+      }
+      state = state.copyWith(
+        pokemonStorage: PokemonStorage(
+          boxes: <PokemonBox>[
+            PokemonBox(
+              id: 'tiny',
+              label: 'Tiny',
+              capacity: 1,
+              pokemon: <PlayerPokemon>[
+                testPokemon(
+                  individualId: 'pkm_occupant',
+                  speciesId: 'occupant',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final unchanged = mutations.givePokemon(
+        state,
+        pokemon: testPokemon(speciesId: 'lost_gift'),
+      );
+
+      expect(unchanged, same(state));
+    });
+
     test('does not hardcode any Selbrume ids', () {
       // Mechanics-first: the mutation accepts any speciesId, never injects one.
       final state = emptyState();
@@ -409,6 +476,101 @@ void main() {
         hasLength(2),
       );
       expect(second.appliedPokemonGrantOperationIds, hasLength(2));
+    });
+
+    test('a failed grant does not consume its operation id', () {
+      // Le critère « duplicate retry », et il protège d'une PERTE DÉFINITIVE :
+      // avant ce ticket, givePokemonOnce marquait l'opération appliquée même
+      // quand rien ne s'était passé. Un cadeau tombé sur un stockage plein
+      // était perdu à jamais, même après libération de place.
+      var state = emptyState();
+      for (var index = 0; index < 6; index++) {
+        state = mutations.givePokemon(
+          state,
+          pokemon: testPokemon(speciesId: 'member_$index'),
+        );
+      }
+      state = state.copyWith(
+        pokemonStorage: PokemonStorage(
+          boxes: <PokemonBox>[
+            PokemonBox(
+              id: 'tiny',
+              label: 'Tiny',
+              capacity: 1,
+              pokemon: <PlayerPokemon>[
+                testPokemon(
+                  individualId: 'pkm_occupant',
+                  speciesId: 'occupant',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final failed = mutations.givePokemonOnce(
+        state,
+        grantOperationId: 'gift.retryable',
+        pokemon: testPokemon(speciesId: 'retryable_gift'),
+      );
+
+      expect(failed, same(state));
+      expect(
+        failed.appliedPokemonGrantOperationIds,
+        isNot(contains('gift.retryable')),
+        reason: 'a failed acquisition must stay retryable',
+      );
+
+      // De la place se libère : LE MÊME identifiant d'opération réussit.
+      final withRoom = failed.copyWith(
+        pokemonStorage: PokemonStorage(
+          boxes: <PokemonBox>[
+            PokemonBox(
+              id: 'tiny',
+              label: 'Tiny',
+              capacity: 2,
+              pokemon: failed.pokemonStorage.boxes.single.pokemon,
+            ),
+          ],
+        ),
+      );
+      final retried = mutations.givePokemonOnce(
+        withRoom,
+        grantOperationId: 'gift.retryable',
+        pokemon: testPokemon(speciesId: 'retryable_gift'),
+      );
+
+      expect(
+        retried.pokemonStorage.boxes.single.pokemon.last.speciesId,
+        'retryable_gift',
+      );
+      expect(
+        retried.appliedPokemonGrantOperationIds,
+        contains('gift.retryable'),
+      );
+    });
+
+    test('an intentional duplicate no-op still consumes the operation id', () {
+      // Le pendant : un doublon VOULU comme no-op est une opération FAITE.
+      // Un scénario rejoué ne doit pas retenter le cadeau à chaque passage.
+      var state = emptyState();
+      state = mutations.givePokemon(
+        state,
+        pokemon: testPokemon(speciesId: 'already_owned'),
+      );
+
+      final applied = mutations.givePokemonOnce(
+        state,
+        grantOperationId: 'gift.duplicate',
+        pokemon: testPokemon(speciesId: 'already_owned'),
+        preventDuplicateSpecies: true,
+      );
+
+      expect(applied.party.members, hasLength(1));
+      expect(
+        applied.appliedPokemonGrantOperationIds,
+        contains('gift.duplicate'),
+      );
     });
 
     test('rejects an empty operation id before changing state', () {

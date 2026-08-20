@@ -972,7 +972,19 @@ class GameStateMutations {
   /// Le storage est un simple état persistant de Pokémon capturés hors party :
   /// aucune UI PC, aucun nom de box et aucune règle de gestion avancée ne sont
   /// ouverts ici.
-  CaptureDestinationResult applyCapturedPokemon(
+  /// LE service unique d'acquisition — BETA-PTY-004.
+  ///
+  /// Toute entrée d'un Pokémon dans la possession du joueur passe ici :
+  /// capture, cadeau scénarisé, starter scénarisé. Party tant qu'il y a de la
+  /// place, sinon première box disponible (dans l'ordre des boxes), sinon
+  /// refus typé `storageFull` SANS mutation.
+  ///
+  /// Avant ce ticket, seul le chemin de capture avait cette transaction : le
+  /// cadeau ajoutait un membre à la party sans borne ni normalisation, donc un
+  /// cadeau reçu à party pleine glissait un septième membre dans l'état — et
+  /// la SAUVEGARDE plantait ensuite, `saveDataFromGameState` normalisant la
+  /// party au moment d'écrire.
+  CaptureDestinationResult acquirePokemon(
     GameState state, {
     required PlayerPokemon pokemon,
     int maxPartySize = 6,
@@ -991,11 +1003,24 @@ class GameStateMutations {
       );
     }
 
-    final normalizedPokemon = _preparePokemonForOwnership(
-      state,
-      pokemon: pokemon,
-      allocationLocation: 'give:party:${state.party.members.length}',
-    );
+    final PlayerPokemon normalizedPokemon;
+    try {
+      normalizedPokemon = _preparePokemonForOwnership(
+        state,
+        pokemon: pokemon,
+        allocationLocation: 'give:party:${state.party.members.length}',
+      )
+          // Les invariants du modèle (niveau 1-100, capacités non blanches…)
+          // jettent à la normalisation. Un Pokémon authoré invalide doit être
+          // un REFUS typé à l'acquisition, pas un crash au moment de
+          // sauvegarder — le runtime scénario consomme ce refus proprement.
+          .normalized();
+    } on StateError {
+      return CaptureDestinationResult.none(
+        state,
+        failure: CaptureDestinationFailure.invalidPokemon,
+      );
+    }
 
     if (state.party.members.length < maxPartySize) {
       final partyIndex = state.party.members.length;
@@ -1046,6 +1071,19 @@ class GameStateMutations {
     );
   }
 
+  /// Destination d'une capture — délègue au service unique d'acquisition.
+  CaptureDestinationResult applyCapturedPokemon(
+    GameState state, {
+    required PlayerPokemon pokemon,
+    int maxPartySize = 6,
+  }) {
+    return acquirePokemon(
+      state,
+      pokemon: pokemon,
+      maxPartySize: maxPartySize,
+    );
+  }
+
   /// Donne un Pokémon au joueur.
   ///
   /// Le [PlayerPokemon] doit être construit par l'appelant (authoring, script,
@@ -1083,11 +1121,14 @@ class GameStateMutations {
       }
     }
 
-    final newMembers = [...state.party.members, normalizedPokemon];
-
-    return state.copyWith(
-      party: state.party.copyWith(members: newMembers),
-    );
+    // BETA-PTY-004 : le cadeau passe par le service unique d'acquisition.
+    // Party tant qu'il y a de la place, sinon première box, sinon refus — un
+    // cadeau à stockage plein rend l'état INCHANGÉ plutôt qu'un septième
+    // membre qui fera planter la sauvegarde.
+    final acquisition = acquirePokemon(state, pokemon: pokemon);
+    return acquisition.destination == CaptureDestinationKind.none
+        ? state
+        : acquisition.state;
   }
 
   GameState givePokemonOnce(
@@ -1107,17 +1148,36 @@ class GameStateMutations {
     if (state.appliedPokemonGrantOperationIds.contains(normalizedOperationId)) {
       return state;
     }
-    final nextState = givePokemon(
-      state,
-      pokemon: pokemon,
-      preventDuplicateSpecies: preventDuplicateSpecies,
-    );
     if (pokemon.speciesId.trim().isEmpty) {
       return state;
     }
-    return nextState.copyWith(
+    if (preventDuplicateSpecies) {
+      final normalizedSpeciesId = pokemon.speciesId.trim();
+      final alreadyOwned = state.party.members.any(
+        (member) => member.speciesId.trim() == normalizedSpeciesId,
+      );
+      if (alreadyOwned) {
+        // Doublon VOULU comme no-op : l'opération est faite, l'idempotence est
+        // consommée pour qu'un rejeu du scénario ne redemande rien.
+        return state.copyWith(
+          appliedPokemonGrantOperationIds: <String>{
+            ...state.appliedPokemonGrantOperationIds,
+            normalizedOperationId,
+          },
+        );
+      }
+    }
+    final acquisition = acquirePokemon(state, pokemon: pokemon);
+    if (acquisition.destination == CaptureDestinationKind.none) {
+      // BETA-PTY-004, critère « duplicate retry » : un ÉCHEC (stockage plein,
+      // Pokémon invalide) ne consomme PAS l'identifiant d'opération. Avant ce
+      // ticket, il aurait été marqué appliqué sur un no-op — le cadeau perdu à
+      // jamais même après libération de place.
+      return state;
+    }
+    return acquisition.state.copyWith(
       appliedPokemonGrantOperationIds: <String>{
-        ...nextState.appliedPokemonGrantOperationIds,
+        ...acquisition.state.appliedPokemonGrantOperationIds,
         normalizedOperationId,
       },
     );

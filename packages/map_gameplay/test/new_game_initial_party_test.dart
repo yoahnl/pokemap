@@ -158,28 +158,30 @@ void main() {
       expect(result.party.members.single.level, 5);
     });
 
-    test('persistence validation rejects invalid starter level', () {
-      final stateWithInvalidStarter = mutations.givePokemon(
+    test('an invalid starter level is refused at acquisition', () {
+      // COMPORTEMENT DÉPLACÉ, BETA-PTY-004 : ces deux cas vérifiaient que la
+      // PERSISTANCE jette sur un starter invalide — l'état invalide vivait donc
+      // jusqu'à la sauvegarde, et c'est elle qui plantait. Le cadeau passe
+      // désormais par le service unique d'acquisition, qui normalise l'entrée :
+      // l'invalidité est un refus typé AU DON, l'état ne devient jamais
+      // invalide, et la sauvegarde n'a plus rien à rejeter.
+      final unchanged = mutations.givePokemon(
         initialState(),
         pokemon: starterPokemon(level: 0),
       );
 
-      expect(
-        () => saveDataFromGameState(stateWithInvalidStarter),
-        throwsStateError,
-      );
+      expect(unchanged.party.members, isEmpty);
+      expect(() => saveDataFromGameState(unchanged), returnsNormally);
     });
 
-    test('persistence validation rejects blank starter move ids', () {
-      final stateWithInvalidStarter = mutations.givePokemon(
+    test('blank starter move ids are refused at acquisition', () {
+      final unchanged = mutations.givePokemon(
         initialState(),
         pokemon: starterPokemon(knownMoveIds: const ['p5_valid_move', '  ']),
       );
 
-      expect(
-        () => saveDataFromGameState(stateWithInvalidStarter),
-        throwsStateError,
-      );
+      expect(unchanged.party.members, isEmpty);
+      expect(() => saveDataFromGameState(unchanged), returnsNormally);
     });
 
     test('does not hardcode Selbrume-specific ids', () {
