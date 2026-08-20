@@ -13,9 +13,16 @@ const _enemyMoveId = 'p5_beta_validator_enemy_move';
 void main() {
   group('validateBetaPlayability', () {
     test('accepts a minimal beta-ready project without blocking errors', () {
+      // RESSERREMENT ASSUMÉ, BETA-SYS-005. Ce cas passait sans fournir de
+      // verdict de cohérence des catalogues Pokémon, et obtenait pourtant un
+      // rapport vide — un blanc-seing sur une question jamais posée. La gate
+      // exige désormais qu'on la lui pose : `pokemonCatalogErrorCount: 0` veut
+      // dire « évaluée, aucune erreur », ce qui n'est pas la même chose que
+      // `null`, « pas évaluée ».
       final result = validateBetaPlayability(
         _manifest(),
         context: BetaPlayabilityValidationContext(
+          pokemonCatalogErrorCount: 0,
           mapsById: <String, MapData>{_mapId: _map()},
           knownSpeciesIds: const <String>{_starterSpeciesId, _enemySpeciesId},
           knownMoveIds: const <String>{_starterMoveId, _enemyMoveId},
@@ -29,6 +36,93 @@ void main() {
       expect(result.hasErrors, isFalse);
       expect(result.isPlayable, isTrue);
       expect(result.diagnostics, isEmpty);
+    });
+
+    test('refuses a project whose pokemon catalogs carry blocking errors', () {
+      // BETA-SYS-005. Le validateur de cohérence existait et le chemin d'EXPORT
+      // le consommait, mais le verdict de jouabilité lui-même l'ignorait : un
+      // appelant de la gate pure obtenait un blanc-seing sur les catalogues.
+      final result = _validateWithCoherence(errorCount: 3);
+      final diagnostics = _coherenceDiagnostics(result);
+
+      expect(diagnostics, hasLength(1));
+      expect(
+        diagnostics.single.kind,
+        BetaPlayabilityDiagnosticKind.pokemonCatalogHasBlockingErrors,
+      );
+      expect(
+        diagnostics.single.severity,
+        BetaPlayabilityDiagnosticSeverity.error,
+      );
+      expect(diagnostics.single.message, contains('3'));
+      expect(result.hasErrors, isTrue);
+    });
+
+    test('says so when the pokemon coherence was never evaluated', () {
+      // Ne pas savoir n'est pas « tout va bien », et c'est ce silence qui a
+      // laissé cinq validateurs de domaine hors de la gate sans que rien ne le
+      // signale. Un avertissement plutôt qu'une erreur : l'appelant n'a pas
+      // forcément accès au rapport, mais il doit lire que la question n'a pas
+      // été posée.
+      final diagnostics = _coherenceDiagnostics(
+        _validateWithCoherence(errorCount: null),
+      );
+
+      expect(diagnostics, hasLength(1));
+      expect(
+        diagnostics.single.kind,
+        BetaPlayabilityDiagnosticKind.pokemonCatalogCoherenceNotEvaluated,
+      );
+      expect(
+        diagnostics.single.severity,
+        BetaPlayabilityDiagnosticSeverity.warning,
+      );
+    });
+
+    test('an evaluated catalog with zero errors says nothing', () {
+      // Le contre-exemple : sans lui, un diagnostic permanent passerait pour
+      // correct.
+      expect(_coherenceDiagnostics(_validateWithCoherence(errorCount: 0)),
+          isEmpty);
+    });
+
+    test('a project without pokemon is not asked about its catalogs', () {
+      // Un projet qui n'active pas les Pokémon n'a pas de catalogues à valider :
+      // l'avertissement « non évalué » y serait du bruit pur.
+      final diagnostics = _coherenceDiagnostics(
+        validateBetaPlayability(
+          _manifest(pokemonEnabled: false),
+          context: BetaPlayabilityValidationContext(
+            mapsById: <String, MapData>{_mapId: _map()},
+            knownSpeciesIds: const <String>{_starterSpeciesId},
+            knownMoveIds: const <String>{_starterMoveId},
+            initialPartySpeciesIds: const <String>{_starterSpeciesId},
+            initialPartyMoveIds: const <String>{_starterMoveId},
+          ),
+        ),
+      );
+
+      expect(diagnostics, isEmpty);
+    });
+
+    test('validateNarrativeProject hands the coherence count to the gate', () {
+      // La TRANSMISSION, distincte de l'application : la gate peut savoir
+      // refuser sans que personne ne lui donne le compte. Sans ce cas, couper le
+      // passage dans narrative_project_validator laissait tout vert — mesuré.
+      final report = validateNarrativeProject(
+        _manifest(),
+        maps: <MapData>[_map()],
+        knownSpeciesIds: const <String>{_starterSpeciesId, _enemySpeciesId},
+        knownMoveIds: const <String>{_starterMoveId, _enemyMoveId},
+        pokemonCatalogErrorCount: 7,
+      );
+
+      expect(
+        report.diagnostics.where(
+          (diagnostic) => diagnostic.message.contains('7 blocking coherence'),
+        ),
+        hasLength(1),
+      );
     });
 
     test('diagnoses a surf zone the move catalog cannot ever satisfy', () {
@@ -375,9 +469,14 @@ Set<BetaPlayabilityDiagnosticKind> _kinds(
 
 ProjectManifest _manifest({
   List<ProjectTrainerEntry>? trainers,
+  bool pokemonEnabled = true,
 }) {
   return ProjectManifest(
     name: 'P5 Beta Validator Project',
+    pokemon: ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      enabled: pokemonEnabled,
+    ),
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: _mapId,
@@ -408,6 +507,34 @@ MapData _mapWithSurfZone({String id = _mapId}) {
       ),
     ],
   );
+}
+
+BetaPlayabilityValidationResult _validateWithCoherence({
+  required int? errorCount,
+}) {
+  return validateBetaPlayability(
+    _manifest(),
+    context: BetaPlayabilityValidationContext(
+      pokemonCatalogErrorCount: errorCount,
+      mapsById: <String, MapData>{_mapId: _map()},
+      knownSpeciesIds: const <String>{_starterSpeciesId, _enemySpeciesId},
+      knownMoveIds: const <String>{_starterMoveId, _enemyMoveId},
+      initialPartySpeciesIds: const <String>{_starterSpeciesId},
+      initialPartyMoveIds: const <String>{_starterMoveId},
+    ),
+  );
+}
+
+List<BetaPlayabilityDiagnostic> _coherenceDiagnostics(
+  BetaPlayabilityValidationResult result,
+) {
+  const kinds = <BetaPlayabilityDiagnosticKind>{
+    BetaPlayabilityDiagnosticKind.pokemonCatalogHasBlockingErrors,
+    BetaPlayabilityDiagnosticKind.pokemonCatalogCoherenceNotEvaluated,
+  };
+  return result.diagnostics
+      .where((diagnostic) => kinds.contains(diagnostic.kind))
+      .toList(growable: false);
 }
 
 BetaPlayabilityValidationResult _validateWithSurfMaps(

@@ -72,7 +72,7 @@ void main() {
       }
     });
 
-    test('the recorded debt is exactly these four validators', () {
+    test('the recorded debt is exactly these three validators', () {
       // Figé à l'identique, pas par un compteur : en composer un fait échouer
       // ce cas, ce qui force à mettre le catalogue à jour au lieu de payer la
       // dette en silence. En laisser un nouveau de côté le fait échouer aussi.
@@ -87,29 +87,26 @@ void main() {
 
       expect(pending, <String>{
         'player_roster_validation.dart',
-        'pokemon_catalog_coherence_validator.dart',
         'project_item_catalog_validator.dart',
         'shop_state_validator.dart',
       });
     });
 
-    test('nothing claims to be composed while the gate ignores it', () {
-      // BETA-SYS-005 ne compose encore aucun validateur externe : la gate a
-      // gagné sa propre règle de capacité terrain, pas un appel vers un
-      // validateur voisin. Déclarer `composed` aujourd'hui serait une promesse
-      // fausse, et ce cas l'interdit jusqu'à ce que ce soit vrai.
+    test('what claims to be composed is exactly what the gate reads', () {
+      // Un cas précédent interdisait toute entrée `composed`, parce qu'aucun
+      // validateur ne l'était : une promesse ne devait pas précéder le code.
+      // La cohérence Pokémon l'est désormais, et la liste est figée à
+      // l'identique — en composer un autre sans le reclasser fait échouer ce
+      // cas, et se déclarer composé sans câblage aussi.
       final composed = betaPlayabilityComposition
           .where(
             (entry) =>
                 entry.role == BetaPlayabilityCompositionRole.composed,
           )
-          .toList();
+          .map((entry) => entry.sourceFileName)
+          .toSet();
 
-      expect(
-        composed,
-        isEmpty,
-        reason: 'composing one means also proving it from the gate',
-      );
+      expect(composed, <String>{'pokemon_catalog_coherence_validator.dart'});
     });
   });
 }

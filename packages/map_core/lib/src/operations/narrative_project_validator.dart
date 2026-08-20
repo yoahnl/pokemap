@@ -229,6 +229,11 @@ final class NarrativeProjectValidationReport {
 NarrativeProjectValidationReport validateNarrativeProject(
   ProjectManifest project, {
   required List<MapData> maps,
+  /// Nombre d'erreurs du rapport de cohérence des catalogues Pokémon.
+  ///
+  /// BETA-SYS-005 : `null` laisse la gate dire qu'elle n'a pas pu se prononcer,
+  /// au lieu de conclure que tout va bien.
+  int? pokemonCatalogErrorCount,
   Set<String>? knownSpeciesIds,
   Set<String>? knownMoveIds,
   bool requirePokemonCatalogs = false,
@@ -259,6 +264,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
     project,
     mapsById,
     diagnostics,
+    pokemonCatalogErrorCount: pokemonCatalogErrorCount,
     knownSpeciesIds: normalizedKnownSpeciesIds,
     knownMoveIds: normalizedKnownMoveIds,
     requirePokemonCatalogs: requirePokemonCatalogs,
@@ -687,6 +693,7 @@ void _appendRuntimeReadinessDiagnostics(
   required Set<String>? knownSpeciesIds,
   required Set<String>? knownMoveIds,
   required bool requirePokemonCatalogs,
+  required int? pokemonCatalogErrorCount,
 }) {
   final newGame = project.newGame;
   _appendConfiguredNewGameSpawnDiagnostics(project, mapsById, target);
@@ -700,6 +707,7 @@ void _appendRuntimeReadinessDiagnostics(
   final report = validateBetaPlayability(
     project,
     context: BetaPlayabilityValidationContext(
+      pokemonCatalogErrorCount: pokemonCatalogErrorCount,
       mapsById: mapsById,
       startMapId: newGame.enabled ? newGame.startMapId : null,
       knownSpeciesIds: knownSpeciesIds ?? const <String>{},

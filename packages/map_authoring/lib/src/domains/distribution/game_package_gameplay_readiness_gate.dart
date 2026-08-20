@@ -123,6 +123,11 @@ final class GamePackageGameplayReadinessGate {
         knownSpeciesIds: speciesIds,
         knownMoveIds: moveIds,
         requirePokemonCatalogs: project.pokemon.enabled,
+        // BETA-SYS-005 : la gate consommait déjà les diagnostics de cohérence
+        // Pokémon à côté du verdict de jouabilité, mais le verdict lui-même les
+        // ignorait. Il les reçoit maintenant, donc « jouable » veut dire
+        // « jouable catalogues compris ».
+        pokemonCatalogErrorCount: pokemonValidationReport?.errorCount,
       );
       diagnostics.addAll(narrativeReport.diagnostics);
     } on Object catch (error) {

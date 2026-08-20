@@ -32,6 +32,20 @@ enum BetaPlayabilityDiagnosticKind {
   /// zone d'eau exigeant Surf dans un projet dont le catalogue n'a pas la
   /// capacité est infranchissable pour toujours, sans un mot.
   missingFieldAbilityPrerequisite,
+
+  /// Les catalogues Pokémon du projet portent des erreurs bloquantes.
+  ///
+  /// BETA-SYS-005. Le validateur de cohérence existait et était consommé par le
+  /// chemin d'EXPORT, mais pas par cette gate : un appelant qui invoquait la
+  /// gate pure sans injecter le rapport obtenait un verdict optimiste.
+  pokemonCatalogHasBlockingErrors,
+
+  /// La cohérence des catalogues Pokémon n'a pas été évaluée.
+  ///
+  /// Distinct de « tout va bien ». Ne pas savoir devait être visible, sinon
+  /// l'absence de composition restait indétectable — c'est exactement ce qui a
+  /// laissé cinq validateurs de domaine hors de la gate.
+  pokemonCatalogCoherenceNotEvaluated,
 }
 
 class BetaPlayabilityDiagnostic {
@@ -76,6 +90,7 @@ class BetaPlayabilityValidationContext {
     this.hasCaptureItemSource = false,
     this.requiresSaveLoad = true,
     this.hasSaveLoadSupport = true,
+    this.pokemonCatalogErrorCount,
   });
 
   final Map<String, MapData> mapsById;
@@ -92,6 +107,12 @@ class BetaPlayabilityValidationContext {
   final bool hasCaptureItemSource;
   final bool requiresSaveLoad;
   final bool hasSaveLoadSupport;
+
+  /// Nombre d'erreurs du rapport de cohérence des catalogues Pokémon.
+  ///
+  /// `null` signifie « non évalué », ce qui n'est PAS « aucune erreur » : la
+  /// gate le dit alors explicitement au lieu de conclure que tout va bien.
+  final int? pokemonCatalogErrorCount;
 }
 
 class BetaPlayabilityValidationResult {
@@ -210,6 +231,7 @@ BetaPlayabilityValidationResult validateBetaPlayability(
   }
 
   _appendFieldAbilityPrerequisiteDiagnostics(context, diagnostics);
+  _appendPokemonCatalogCoherenceDiagnostics(manifest, context, diagnostics);
 
   if (context.requiresSaveLoad && !context.hasSaveLoadSupport) {
     diagnostics.add(
@@ -225,6 +247,52 @@ BetaPlayabilityValidationResult validateBetaPlayability(
   }
 
   return BetaPlayabilityValidationResult(diagnostics);
+}
+
+/// Cohérence des catalogues Pokémon, telle qu'on la lui a donnée.
+///
+/// La gate ne charge pas les documents Pokémon et n'a pas à le faire : elle
+/// reçoit le verdict du validateur de domaine. Ce qui change avec BETA-SYS-005,
+/// c'est qu'elle DIT quand on ne lui a rien donné, au lieu de laisser croire
+/// que la question a été posée.
+void _appendPokemonCatalogCoherenceDiagnostics(
+  ProjectManifest project,
+  BetaPlayabilityValidationContext context,
+  List<BetaPlayabilityDiagnostic> diagnostics,
+) {
+  if (!project.pokemon.enabled) {
+    return;
+  }
+  final errorCount = context.pokemonCatalogErrorCount;
+  if (errorCount == null) {
+    diagnostics.add(
+      const BetaPlayabilityDiagnostic(
+        kind:
+            BetaPlayabilityDiagnosticKind.pokemonCatalogCoherenceNotEvaluated,
+        severity: BetaPlayabilityDiagnosticSeverity.warning,
+        message: 'Pokemon catalog coherence was not evaluated for this beta '
+            'verdict, so the verdict cannot speak for the catalogs.',
+        actionHint: 'Pass the PokemonCatalogCoherenceReport error count into '
+            'the beta playability context.',
+        path: 'beta.pokemonCatalog.coherence',
+      ),
+    );
+    return;
+  }
+  if (errorCount <= 0) {
+    return;
+  }
+  diagnostics.add(
+    BetaPlayabilityDiagnostic(
+      kind: BetaPlayabilityDiagnosticKind.pokemonCatalogHasBlockingErrors,
+      severity: BetaPlayabilityDiagnosticSeverity.error,
+      message: 'The Pokemon catalogs carry $errorCount blocking coherence '
+          'error(s), so the project cannot be exported or played.',
+      actionHint: 'Fix the Pokemon catalog diagnostics before shipping the '
+          'beta slice.',
+      path: 'beta.pokemonCatalog.coherence',
+    ),
+  );
 }
 
 /// Capacités terrain exigées par les cartes, confrontées au catalogue.

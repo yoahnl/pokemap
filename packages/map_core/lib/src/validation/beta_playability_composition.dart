@@ -99,25 +99,29 @@ const List<BetaPlayabilityCompositionEntry> betaPlayabilityComposition =
   ),
   BetaPlayabilityCompositionEntry(
     sourceFileName: 'pokemon_catalog_coherence_validator.dart',
-    role: BetaPlayabilityCompositionRole.pendingComposition,
-    rationale: 'DETTE. Utilisé par l\'authoring et un sanitizer de l\'éditeur, '
-        'jamais par la gate. Or c\'est lui qui a bloqué la certification des '
-        'objets en refusant la fixture golden sous BETA-ITM-007 : ses 19 '
-        'diagnostics sont exactement le genre de chose qui rend un projet '
-        'inexportable, et la gate n\'en sait rien.',
+    role: BetaPlayabilityCompositionRole.composed,
+    rationale: 'COMPOSÉ sous BETA-SYS-005. La gate reçoit le nombre d\'erreurs '
+        'du PokemonCatalogCoherenceReport et refuse le projet quand il est non '
+        'nul ; quand le compte est absent, elle DIT qu\'elle ne s\'est pas '
+        'prononcée au lieu de conclure que tout va bien. Le chemin d\'export le '
+        'transmet, donc « jouable » veut désormais dire « jouable catalogues '
+        'compris ». C\'est ce validateur qui avait bloqué la certification des '
+        'objets sous BETA-ITM-007 en refusant la fixture golden.',
   ),
   BetaPlayabilityCompositionEntry(
     sourceFileName: 'project_item_catalog_validator.dart',
     role: BetaPlayabilityCompositionRole.pendingComposition,
     rationale: 'DETTE. Utilisé par l\'authoring, l\'éditeur et la certification '
-        'objets, jamais par la gate. À composer avec BETA-ITM-008.',
+        'objets. Vérifié : ni la gate ni le chemin d\'export ne l\'appellent, '
+        'contrairement à la cohérence Pokémon. À composer avec BETA-ITM-008.',
   ),
   BetaPlayabilityCompositionEntry(
     sourceFileName: 'shop_state_validator.dart',
     role: BetaPlayabilityCompositionRole.pendingComposition,
     rationale: 'DETTE. Utilisé seulement par le contrôleur de simulation de '
-        'l\'éditeur. Une boutique incohérente est un blocage de parcours si le '
-        'joueur y achète une Poké Ball obligatoire.',
+        'l\'éditeur ; vérifié absent du chemin d\'export. Une boutique '
+        'incohérente est un blocage de parcours si le joueur y achète une Poké '
+        'Ball obligatoire.',
   ),
   BetaPlayabilityCompositionEntry(
     sourceFileName: 'validators.dart',
