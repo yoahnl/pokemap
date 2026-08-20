@@ -1668,6 +1668,7 @@ String _bagEntryStatusLabel(BattleBagMenuEntry entry) {
   return switch (entry.disabledReason) {
     BattleBagMenuDisabledReason.trainerBattle => 'Trainer battle',
     BattleBagMenuDisabledReason.partyFull => 'Party full',
+    BattleBagMenuDisabledReason.storageFull => 'Stockage plein',
     BattleBagMenuDisabledReason.captureUnavailable => 'Indisponible',
     BattleBagMenuDisabledReason.currentRequestDisallowsBag => 'Indisponible',
     BattleBagMenuDisabledReason.medicineNotImplemented => 'Not implemented',

@@ -3075,6 +3075,7 @@ String _overlayBagEntryStatusLabel(BattleBagMenuEntry entry) {
   return switch (entry.disabledReason) {
     BattleBagMenuDisabledReason.trainerBattle => 'Trainer only',
     BattleBagMenuDisabledReason.partyFull => 'Party full',
+    BattleBagMenuDisabledReason.storageFull => 'Stockage plein',
     BattleBagMenuDisabledReason.captureUnavailable => 'Unavailable',
     BattleBagMenuDisabledReason.currentRequestDisallowsBag => 'Unavailable',
     BattleBagMenuDisabledReason.medicineNotImplemented => 'Not implemented',

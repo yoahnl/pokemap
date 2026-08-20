@@ -95,15 +95,17 @@ const List<ProductCertificationDomainGate> productCertificationDomainGates =
   ),
   ProductCertificationDomainGate(
     domain: 'encounterCapture',
-    coverage: DomainGateCoverage.partial,
+    coverage: DomainGateCoverage.gated,
     gateTestPaths: <String>[
       'packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart',
+      'tools/pokemap_product_certification/test/golden_encounter_capture_gate_test.dart',
     ],
-    rationale: 'Le pas dans l’herbe → rencontre → capture → identité conservée '
-        'est fermé au niveau runtime. Manque la golden gate produit : Pokédex '
-        'et stockage après capture, party pleine, reload depuis un package '
-        'installé.',
-    pendingTicket: 'BETA-ENC-006',
+    rationale: 'BETA-ENC-006. Depuis un package installé seul : un pas dans '
+        'l’herbe déclenche la rencontre déterminée par les données, la Poké '
+        'Ball 1/1 échoue (deux secousses ENC-005), la fuite ramène à '
+        'l’overworld, la Ball 17/1 capture en garantie mathématique — vers la '
+        'party quand il reste une place, vers le PC quand elle est pleine — '
+        'et l’individu, le Pokédex et la position rechargent à l’identique.',
   ),
   ProductCertificationDomainGate(
     domain: 'itemsEconomy',
@@ -202,8 +204,7 @@ const List<ProductCertificationDomainGate> productCertificationDomainGates =
 /// Verdict d'assemblage : GO seulement quand plus aucune dette ne subsiste.
 ///
 /// Calculé, pas déclaré — c'est ce qui empêche de prononcer la certification
-/// produit tant que ENC-006, ITM-008, PRG-006 et PTY-005 n'ont pas livré leur
-/// gate.
+/// produit tant que ITM-008, PRG-006 et TRN-005 n'ont pas livré leur gate.
 bool get productCertificationDomainGatesComplete =>
     productCertificationDomainGates.every(
       (gate) => gate.coverage == DomainGateCoverage.gated,

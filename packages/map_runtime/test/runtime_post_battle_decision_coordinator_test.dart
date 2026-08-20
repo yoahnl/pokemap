@@ -408,6 +408,71 @@ void main() {
           storageResult.transaction!.messages.last.text, contains('stockage'));
     });
 
+
+    test('party and storage both full keeps an explicit lossless outcome',
+        () async {
+      // BETA-ENC-006, branche « stockage plein » : la destination est
+      // explicitement indisponible — un message le dit — et RIEN n'est muté :
+      // ni la party, ni les boxes, ni une perte silencieuse d'un individu.
+      final coordinator = RuntimePostBattleDecisionCoordinator();
+      final base = normalizeLoadedGameState(_captureState(partySize: 6));
+      final fullState = base.copyWith(
+        pokemonStorage: PokemonStorage(
+          boxes: <PokemonBox>[
+            for (final box in base.pokemonStorage.boxes)
+              box.copyWith(
+                pokemon: <PlayerPokemon>[
+                  for (var slot = 0; slot < box.capacity; slot++)
+                    PlayerPokemon(
+                      individualId: 'filler_${box.id}_$slot',
+                      speciesId: 'filler',
+                      natureId: 'hardy',
+                      abilityId: 'steady',
+                      level: 3,
+                      currentHp: 10,
+                    ),
+                ],
+              ),
+          ],
+        ).normalized(),
+      );
+      final storedBefore = fullState.pokemonStorage.storedPokemon.length;
+      expect(storedBefore, greaterThan(0));
+
+      // La soumission amont refuse un stockage plein (gardé par ailleurs) ;
+      // ce cas certifie le FILET aval : l'application post-combat reçoit un
+      // état devenu plein entre-temps et doit rester explicite et sans perte.
+      final capture = _successfulCaptureSubmission(
+        state: _captureState(partySize: 6),
+      );
+      final fullBase = fullState.copyWith(bag: capture.updatedGameState.bag);
+      final result = await coordinator.begin(
+        transactionBaseState: fullBase,
+        bundle: _bundle(),
+        runtimeContext: _captureContext(),
+        outcome: capture.engineResult.state.outcome!,
+        captureAttemptReceipt: capture.receipt,
+        itemCatalog: _itemCatalog(),
+      );
+
+      expect(result.isSuccess, isTrue);
+      final destination = result.transaction!.captureDestination!;
+      expect(destination.destination, CaptureDestinationKind.none);
+      expect(destination.failure, CaptureDestinationFailure.storageFull);
+      expect(
+        result.transaction!.messages.last.text,
+        contains('indisponible'),
+        reason: 'the player must be told, never silently lose the capture',
+      );
+      final finalState = result.transaction!.finalState!;
+      expect(finalState.party.members, hasLength(6));
+      expect(
+        finalState.pokemonStorage.storedPokemon.length,
+        storedBefore,
+        reason: 'a full storage must gain nothing and lose nothing',
+      );
+    });
+
     test('hydrates a captured Pokemon before exposing the commit state',
         () async {
       var hydrationCount = 0;

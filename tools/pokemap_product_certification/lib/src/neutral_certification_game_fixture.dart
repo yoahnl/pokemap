@@ -20,7 +20,8 @@ final class NeutralCertificationGameFixture {
   const NeutralCertificationGameFixture({
     this.connectedMaps = false,
     this.partySize = 1,
-  }) : assert(partySize == 1 || partySize == 2);
+    this.encounterField = false,
+  }) : assert(partySize == 1 || partySize == 2 || partySize == 6);
 
   final bool connectedMaps;
 
@@ -28,6 +29,24 @@ final class NeutralCertificationGameFixture {
   /// Pokémon utilisable est refusé par la garde lastUsable. Un pour les autres
   /// gates, qui gardent leur forme exacte.
   final int partySize;
+
+  /// BETA-ENC-006 : la gate rencontre → capture → Pokédex → stockage a besoin
+  /// d'un terrain de rencontre entièrement déterministe PAR LES DONNÉES :
+  /// une case d'herbe à 100 % de déclenchement, une seule espèce mono-niveau
+  /// aux IVs figés (le maxHp du sauvage décide de l'issue du tirage de
+  /// capture), et un sac de départ portant les deux Balls du scénario —
+  /// la Poké Ball 1/1 dont l'échec est certain au seed générique du runtime,
+  /// et une Ball 17/1 dont la réussite est une garantie mathématique
+  /// (17 × 45 = 765, le plafond exact du dénominateur à PV pleins).
+  /// Off par défaut : les gates existantes gardent leur forme exacte.
+  final bool encounterField;
+
+  static const String encounterTableId = 'certification_grass_table';
+  static const String encounterZoneId = 'certification_grass_zone';
+  static const String weakBallItemId = 'poke-ball';
+  static const String guaranteedBallItemId = 'certification-ball';
+  static const GridPos encounterCell = GridPos(x: 1, y: 2);
+  static const String completionTriggerId = 'certification_corner_trigger';
 
   static const String fixedGameId = 'games.pokemap.certification.neutral';
   static const String fixedGameVersion = '1.0.0';
@@ -125,6 +144,32 @@ final class NeutralCertificationGameFixture {
         ],
       ],
       tilesets: const <ProjectTilesetEntry>[],
+      encounterTables: encounterField
+          ? <ProjectEncounterTable>[
+              const ProjectEncounterTable(
+                id: encounterTableId,
+                name: 'Certification grass',
+                encounterKind: EncounterKind.walk,
+                chancePerStep: 1,
+                entries: <ProjectEncounterEntry>[
+                  // Ivysaur, PAS l'espèce du starter : le Pokédex de la gate
+                  // doit discriminer « vu au combat fui » puis « capturé » —
+                  // une espèce déjà possédée au départ ne prouverait rien.
+                  ProjectEncounterEntry(
+                    speciesId: 'ivysaur',
+                    minLevel: 5,
+                    maxLevel: 5,
+                    pokemonOverrides: ProjectEncounterPokemonOverrides(
+                      natureId: 'hardy',
+                      abilityId: 'overgrow',
+                      ivs: PokemonStatSpread(),
+                      shinyPolicy: ProjectEncounterShinyPolicy.never,
+                    ),
+                  ),
+                ],
+              ),
+            ]
+          : const <ProjectEncounterTable>[],
       newGame: ProjectNewGameConfig(
         enabled: true,
         startMapId: fixedMapId,
@@ -147,10 +192,31 @@ final class NeutralCertificationGameFixture {
               level: 7,
               currentHp: 22,
             ),
+          // BETA-ENC-006 : la branche « party pleine -> PC » part d'une équipe
+          // de six, en alternant les deux espèces du seed.
+          for (var member = 2; member < partySize; member++)
+            PlayerPokemon(
+              speciesId: member.isEven ? 'bulbasaur' : 'ivysaur',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              level: 5 + member,
+              currentHp: 18 + member,
+            ),
         ],
+        initialBag: encounterField
+            ? const <BagEntry>[
+                BagEntry(itemId: weakBallItemId, quantity: 1),
+                BagEntry(itemId: guaranteedBallItemId, quantity: 1),
+              ]
+            : const <BagEntry>[],
       ),
       scenes: <SceneAsset>[_completionScene],
-      eventRegistry: _eventRegistry,
+      // BETA-ENC-006 : le déclencheur mapEnter de la scène de complétion finit
+      // le jeu AU BOOT (surface completion, autorité bloquée) — la gate de
+      // démarrage certifie exactement cela, mais un journey overworld doit y
+      // échapper. L'export exige une fin ATTEIGNABLE : la scène migre alors
+      // sur un trigger d'entrée de case que le journey ne visite jamais.
+      eventRegistry: encounterField ? _cornerEventRegistry : _eventRegistry,
       globalProperties: <String, Object?>{
         'certificationFixture': true,
         'apiKey': authorSecret,
@@ -167,6 +233,36 @@ final class NeutralCertificationGameFixture {
       name: 'Clockwork Harbor',
       version: ProjectVersion.v6,
       size: const GridSize(width: 4, height: 4),
+      triggers: encounterField
+          ? const <MapTrigger>[
+              MapTrigger(
+                id: completionTriggerId,
+                name: 'Certification corner',
+                type: TriggerType.event,
+                area: MapRect(
+                  pos: GridPos(x: 3, y: 3),
+                  size: GridSize(width: 1, height: 1),
+                ),
+              ),
+            ]
+          : const <MapTrigger>[],
+      gameplayZones: encounterField
+          ? const <MapGameplayZone>[
+              MapGameplayZone(
+                id: encounterZoneId,
+                name: 'Certification grass',
+                kind: GameplayZoneKind.encounter,
+                area: MapRect(
+                  pos: encounterCell,
+                  size: GridSize(width: 1, height: 1),
+                ),
+                encounter: EncounterZonePayload(
+                  encounterTableId: encounterTableId,
+                  encounterKind: EncounterKind.walk,
+                ),
+              ),
+            ]
+          : const <MapGameplayZone>[],
       warps: connectedMaps
           ? const <MapWarp>[
               MapWarp(
@@ -221,6 +317,9 @@ final class NeutralCertificationGameFixture {
       );
     }
     await _writePokemonCatalogsWithMinimalMedia(root);
+    if (encounterField) {
+      await _appendGuaranteedBallToItemCatalog(root);
+    }
     await File(
       p.join(root.path, 'LICENSE.txt'),
     ).writeAsString('PokeMap neutral certification fixture.', flush: true);
@@ -284,6 +383,29 @@ final class NeutralCertificationGameFixture {
     outputFile: outputFile,
   );
 
+  /// La Ball 17/1 du scénario de capture garantie, déclarée DANS le catalogue
+  /// projet seedé pour rester connue de la validation d'export et du runtime.
+  Future<void> _appendGuaranteedBallToItemCatalog(Directory root) async {
+    final itemsFile = File(
+      p.join(root.path, 'data', 'pokemon', 'catalogs', 'items.json'),
+    );
+    final catalog =
+        jsonDecode(await itemsFile.readAsString()) as Map<String, dynamic>;
+    final entries = (catalog['entries'] as List).cast<Map<String, dynamic>>();
+    final template = entries.singleWhere(
+      (entry) => entry['id'] == weakBallItemId,
+    );
+    final guaranteedBall =
+        jsonDecode(jsonEncode(template)) as Map<String, dynamic>;
+    guaranteedBall['id'] = guaranteedBallItemId;
+    guaranteedBall['displayName'] = 'Certification Ball';
+    (guaranteedBall['capture'] as Map<String, dynamic>)
+      ..['rateNumerator'] = 17
+      ..['rateDenominator'] = 1;
+    entries.add(guaranteedBall);
+    await _writeJson(itemsFile, catalog);
+  }
+
   Future<void> _writePokemonCatalogsWithMinimalMedia(Directory root) async {
     await SeedPokemonDemoDataUseCase(
       snapshotController: FilePokemonReadRepository(),
@@ -317,6 +439,30 @@ final class NeutralCertificationGameFixture {
     }
   }
 }
+
+final NarrativeEventRegistry _cornerEventRegistry = NarrativeEventRegistry(
+  schemaVersion: 1,
+  mode: EventSystemMode.v2Only,
+  records: <NarrativeEventRecord>[
+    NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(
+        id: 'evt_019abcde-7000-7000-8000-000000000002',
+        name: 'Corner completion',
+        source: NarrativeEventSourceRef.triggerEnter(
+          NeutralCertificationGameFixture.fixedMapId,
+          NeutralCertificationGameFixture.completionTriggerId,
+        ),
+        conditions: const [],
+        sceneId: 'scene.certification.complete',
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+        priority: 0,
+        order: 0,
+      ),
+      enabled: true,
+    ),
+  ],
+  legacyClaims: const [],
+);
 
 final NarrativeEventRegistry _eventRegistry = NarrativeEventRegistry(
   schemaVersion: 1,

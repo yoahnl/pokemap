@@ -17,6 +17,7 @@ enum BattleBagItemKind {
 enum BattleBagMenuDisabledReason {
   trainerBattle,
   partyFull,
+  storageFull,
   captureUnavailable,
   currentRequestDisallowsBag,
   medicineNotImplemented,
@@ -217,7 +218,14 @@ BattleBagMenuEntry _buildCaptureEntry({
   required PlayerBattleChoiceCapture? captureChoice,
   required ProjectItemDefinition definition,
 }) {
-  final isSelectable = captureChoice != null;
+  // BETA-ENC-006 : party pleine ET stockage plein — la soumission amont
+  // refuserait le lancer (StateError), donc l'entrée doit être désactivée
+  // avec une raison lisible plutôt que de laisser partir un geste sans issue.
+  final storageIsFull = gameState.party.members.length >= 6 &&
+      const PlayerStorageOperations()
+              .findFirstAvailableSlot(gameState.pokemonStorage) ==
+          null;
+  final isSelectable = captureChoice != null && !storageIsFull;
   return BattleBagMenuEntry(
     visualIndex: visualIndex,
     itemId: bagEntry.itemId,
@@ -231,10 +239,12 @@ BattleBagMenuEntry _buildCaptureEntry({
     isSelectable: isSelectable,
     disabledReason: isSelectable
         ? null
-        : _captureDisabledReason(
-            gameState: gameState,
-            session: session,
-          ),
+        : storageIsFull
+            ? BattleBagMenuDisabledReason.storageFull
+            : _captureDisabledReason(
+                gameState: gameState,
+                session: session,
+              ),
     action: isSelectable
         ? BattleBagMenuActionCapture(
             PlayerBattleChoiceCapture(

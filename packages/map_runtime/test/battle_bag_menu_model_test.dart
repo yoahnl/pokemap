@@ -223,6 +223,72 @@ void main() {
       expect(action.playerChoice.rateDenominator, 2);
     });
 
+
+    test('full party AND full storage disables the ball with its own reason',
+        () {
+      // BETA-ENC-006 : la soumission amont refuse ce lancer (StateError avant
+      // toute charge) — l'entrée doit donc être désactivée AVANT le geste,
+      // avec une raison lisible, plutôt que de laisser partir un lancer qui
+      // n'a aucune issue.
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+        ),
+        enemy: _combatant(
+          speciesId: 'wildmon',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+        ),
+        allowCapture: true,
+      );
+      final fullState = _gameState(
+        bag: Bag(
+          entries: <BagEntry>[
+            _entry(itemId: 'poke-ball', quantity: 1),
+          ],
+        ),
+        partyMembers: <PlayerPokemon>[
+          for (var index = 0; index < 6; index++)
+            _partyMember(speciesId: 'bench_$index'),
+        ],
+      ).copyWith(
+        pokemonStorage: const PokemonStorage(
+          boxes: <PokemonBox>[
+            PokemonBox(
+              id: 'only-box',
+              label: 'Only box',
+              capacity: 1,
+              pokemon: <PlayerPokemon>[
+                PlayerPokemon(
+                  speciesId: 'stored',
+                  natureId: 'hardy',
+                  abilityId: 'steady',
+                  level: 3,
+                  currentHp: 10,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final model = buildBattleBagMenuModel(
+        gameState: fullState,
+        session: session,
+        resolver: ItemCapabilityResolver(
+          ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+        ),
+      );
+
+      final entry = model.entries.single;
+      expect(entry.kind, BattleBagItemKind.captureBall);
+      expect(entry.isSelectable, isFalse);
+      expect(entry.disabledReason, BattleBagMenuDisabledReason.storageFull);
+      expect(entry.action, isNull);
+    });
+
     test('trainer battle keeps poke-ball visible but disabled', () {
       final session = _session(
         player: _combatant(
