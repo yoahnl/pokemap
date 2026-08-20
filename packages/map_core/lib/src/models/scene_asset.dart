@@ -2,6 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
 import 'narrative_value.dart';
+import 'presentation_interaction_outcome.dart';
 import 'scene_consequence.dart';
 import 'scene_interactive_command.dart';
 import 'scene_pre_session_interaction.dart';
@@ -1268,12 +1269,86 @@ final class SceneCinematicPayload extends SceneNodePayload {
   int get hashCode => cinematicId.hashCode;
 }
 
+/// One authored branch of a cue: when the awaitable node terminates on
+/// [outputPortId], the Presentation applies [outcome] — continue, seek or
+/// repeat by marker identity, stop, cancel or fail (BETA-CIN-073).
+///
+/// Routes reference ports and markers by id only: no dialogue text, prompt
+/// or branch content is ever copied into the cue.
+@immutable
+final class ScenePresentationCueOutcomeRoute {
+  ScenePresentationCueOutcomeRoute({
+    required this.outputPortId,
+    required this.outcome,
+  }) {
+    _requireNotBlank(
+      outputPortId,
+      'ScenePresentationCueOutcomeRoute.outputPortId',
+    );
+  }
+
+  factory ScenePresentationCueOutcomeRoute.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return ScenePresentationCueOutcomeRoute(
+      outputPortId: _readRequiredString(json, 'outputPortId'),
+      outcome: PresentationInteractionOutcome.fromJson(
+        json['outcome'] is Map<String, dynamic>
+            ? json['outcome'] as Map<String, dynamic>
+            : throw const ValidationException(
+                'ScenePresentationCueOutcomeRoute.outcome must be an object',
+              ),
+      ),
+    );
+  }
+
+  final String outputPortId;
+  final PresentationInteractionOutcome outcome;
+
+  Map<String, dynamic> toJson() => {
+    'outputPortId': outputPortId,
+    'outcome': outcome.toJson(),
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScenePresentationCueOutcomeRoute &&
+          other.outputPortId == outputPortId &&
+          other.outcome == outcome;
+
+  @override
+  int get hashCode => Object.hash(outputPortId, outcome);
+}
+
+/// Resolves the Presentation outcome of a terminated awaitable node: the
+/// route matching its output port wins, and an unrouted port continues the
+/// timeline — the explicit default that keeps plain dialogues flowing.
+PresentationInteractionOutcome resolvePresentationCueOutcomeForPort(
+  String outputPortId, {
+  required List<ScenePresentationCueOutcomeRoute> routes,
+}) {
+  for (final route in routes) {
+    if (route.outputPortId == outputPortId) return route.outcome;
+  }
+  return const PresentationInteractionOutcome.continueTimeline();
+}
+
 @immutable
 final class ScenePresentationInteractionCueBinding {
-  const ScenePresentationInteractionCueBinding({
+  ScenePresentationInteractionCueBinding({
     required this.markerId,
     required this.awaitableNodeId,
-  });
+    List<ScenePresentationCueOutcomeRoute> outcomeRoutes =
+        const <ScenePresentationCueOutcomeRoute>[],
+  }) : outcomeRoutes = List<ScenePresentationCueOutcomeRoute>.unmodifiable(
+         outcomeRoutes,
+       ) {
+    _validateUniqueIds(
+      this.outcomeRoutes.map((route) => route.outputPortId),
+      'ScenePresentationInteractionCueBinding.outcomeRoutes.outputPortId',
+    );
+  }
 
   factory ScenePresentationInteractionCueBinding.fromJson(
     Map<String, dynamic> json,
@@ -1289,15 +1364,25 @@ final class ScenePresentationInteractionCueBinding {
     return ScenePresentationInteractionCueBinding(
       markerId: _readRequiredString(json, 'markerId'),
       awaitableNodeId: _readRequiredString(json, 'awaitableNodeId'),
+      outcomeRoutes: _readObjectList(
+        json,
+        'outcomeRoutes',
+        ScenePresentationCueOutcomeRoute.fromJson,
+      ),
     );
   }
 
   final String markerId;
   final String awaitableNodeId;
+  final List<ScenePresentationCueOutcomeRoute> outcomeRoutes;
 
   Map<String, dynamic> toJson() => {
     'markerId': markerId,
     'awaitableNodeId': awaitableNodeId,
+    if (outcomeRoutes.isNotEmpty)
+      'outcomeRoutes': outcomeRoutes
+          .map((route) => route.toJson())
+          .toList(growable: false),
   };
 
   @override
@@ -1305,10 +1390,12 @@ final class ScenePresentationInteractionCueBinding {
       identical(this, other) ||
       other is ScenePresentationInteractionCueBinding &&
           other.markerId == markerId &&
-          other.awaitableNodeId == awaitableNodeId;
+          other.awaitableNodeId == awaitableNodeId &&
+          _listEquals(other.outcomeRoutes, outcomeRoutes);
 
   @override
-  int get hashCode => Object.hash(markerId, awaitableNodeId);
+  int get hashCode =>
+      Object.hash(markerId, awaitableNodeId, Object.hashAll(outcomeRoutes));
 }
 
 @immutable

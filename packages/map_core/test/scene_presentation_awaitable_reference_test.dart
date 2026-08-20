@@ -86,7 +86,7 @@ void main() {
   group('BETA-CIN-069 the canonical reference round-trips', () {
     test('a cue may target a Yarn dialogue or a structured interaction', () {
       final asset = scene(
-        bindings: const [
+        bindings: [
           ScenePresentationInteractionCueBinding(
             markerId: 'cue_dialogue',
             awaitableNodeId: 'intro_dialogue',
@@ -114,7 +114,7 @@ void main() {
 
     test('the runtime plan transports the awaitable ids per marker', () {
       final asset = scene(
-        bindings: const [
+        bindings: [
           ScenePresentationInteractionCueBinding(
             markerId: 'cue_dialogue',
             awaitableNodeId: 'intro_dialogue',
@@ -136,15 +136,43 @@ void main() {
     });
 
     test('a cue carries no copy of the dialogue, prompt or branches', () {
-      const binding = ScenePresentationInteractionCueBinding(
+      final binding = ScenePresentationInteractionCueBinding(
         markerId: 'cue_name',
         awaitableNodeId: 'ask_name',
       );
       expect(
         binding.toJson().keys.toSet(),
         {'markerId', 'awaitableNodeId'},
-        reason: 'the reference is the whole payload — any extra key would be '
-            'a duplicated narrative source of truth',
+        reason: 'the plain reference is the whole payload — any extra key '
+            'would be a duplicated narrative source of truth',
+      );
+      final routed = ScenePresentationInteractionCueBinding(
+        markerId: 'cue_confirm',
+        awaitableNodeId: 'confirm_name',
+        outcomeRoutes: [
+          ScenePresentationCueOutcomeRoute(
+            outputPortId: 'declined',
+            outcome: PresentationInteractionOutcome.repeatFromMarker(
+              markerId: 'cue_name',
+            ),
+          ),
+        ],
+      );
+      final json = routed.toJson();
+      expect(
+        json.keys.toSet(),
+        {'markerId', 'awaitableNodeId', 'outcomeRoutes'},
+      );
+      final route = (json['outcomeRoutes'] as List).single as Map;
+      expect(
+        route.keys.toSet(),
+        {'outputPortId', 'outcome'},
+        reason: 'routes reference ports and markers by id only — no '
+            'dialogue text, prompt or branch content is ever copied',
+      );
+      expect(
+        (route['outcome'] as Map).keys.toSet(),
+        {'kind', 'markerId'},
       );
     });
   });
@@ -168,7 +196,7 @@ void main() {
 
     test('a whole Scene document in the obsolete shape refuses to load', () {
       final json = scene(
-        bindings: const [
+        bindings: [
           ScenePresentationInteractionCueBinding(
             markerId: 'cue_name',
             awaitableNodeId: 'ask_name',
@@ -197,7 +225,7 @@ void main() {
     test('an absent target refuses the whole Scene', () {
       expect(
         () => scene(
-          bindings: const [
+          bindings: [
             ScenePresentationInteractionCueBinding(
               markerId: 'cue_ghost',
               awaitableNodeId: 'ghost',
@@ -218,7 +246,7 @@ void main() {
         () {
       expect(
         () => scene(
-          bindings: const [
+          bindings: [
             ScenePresentationInteractionCueBinding(
               markerId: 'cue_merge',
               awaitableNodeId: 'join',
@@ -245,7 +273,7 @@ void main() {
     test('an action without a structured interaction is not awaitable', () {
       expect(
         () => scene(
-          bindings: const [
+          bindings: [
             ScenePresentationInteractionCueBinding(
               markerId: 'cue_reward',
               awaitableNodeId: 'give_potion',
@@ -268,7 +296,7 @@ void main() {
     test('a self-reference is rejected as cyclic', () {
       expect(
         () => scene(
-          bindings: const [
+          bindings: [
             ScenePresentationInteractionCueBinding(
               markerId: 'cue_self',
               awaitableNodeId: 'presentation',
@@ -288,7 +316,7 @@ void main() {
     test('one awaitable node cannot serve two cues of the same node', () {
       expect(
         () => scene(
-          bindings: const [
+          bindings: [
             ScenePresentationInteractionCueBinding(
               markerId: 'cue_one',
               awaitableNodeId: 'ask_name',
@@ -312,7 +340,7 @@ void main() {
     test('one awaitable node cannot serve cues of two Presentations', () {
       expect(
         () => scene(
-          bindings: const [
+          bindings: [
             ScenePresentationInteractionCueBinding(
               markerId: 'cue_one',
               awaitableNodeId: 'ask_name',
@@ -324,7 +352,7 @@ void main() {
               kind: SceneNodeKind.presentationCinematic,
               payload: ScenePresentationCinematicPayload(
                 presentationCinematicId: 'closing',
-                interactionCueBindings: const [
+                interactionCueBindings: [
                   ScenePresentationInteractionCueBinding(
                     markerId: 'cue_two',
                     awaitableNodeId: 'ask_name',
@@ -411,7 +439,7 @@ void main() {
   });
 
   group('BETA-CIN-069 rename keeps identity, deletion is assisted', () {
-    const bindings = [
+    final bindings = [
       ScenePresentationInteractionCueBinding(
         markerId: 'cue_name',
         awaitableNodeId: 'ask_name',

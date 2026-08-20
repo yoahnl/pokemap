@@ -518,6 +518,399 @@ Il ajuste ses lunettes.
     );
   });
 
+  test('Non routes back to the name entry, Oui hands off to the graph',
+      () async {
+    final project = ProjectManifest(
+      name: 'Confirmation branch preSession',
+      version: ProjectVersion.v7,
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[],
+      presentationCinematics: <PresentationCinematicAsset>[
+        PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 1000000,
+        ),
+      ],
+      scenes: <SceneAsset>[_confirmationBranchScene()],
+      newGame: const ProjectNewGameConfig(
+        enabled: true,
+        startMapId: 'start_map',
+        preSessionSceneId: 'scene_intro',
+      ),
+    );
+    final player = _RoutingPresentationPlayer(
+      orderedMarkerIds: const ['cue_name', 'cue_confirm'],
+    );
+    final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
+      runtimeSourceId: 'installed-game',
+      projectRevision:
+          'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      assets: project.presentationCinematics,
+      player: player,
+      createdAtEpochMs: () => 42,
+    );
+    final interactions = HeadlessSceneInteractionPort();
+    addTearDown(interactions.close);
+    final names = ['Yoahn', 'Yoahn Le Vrai'];
+    final confirmations = [false, true];
+    var nameIndex = 0;
+    var confirmationIndex = 0;
+    final requests = <SceneInteractionRequest>[];
+    final subscription = interactions.requests.listen((request) {
+      requests.add(request);
+      interactions.resolve(switch (request.kind) {
+        SceneInteractionRequestKind.text => SceneInteractionResult.textSubmitted(
+            requestId: request.requestId,
+            revision: request.revision,
+            value: names[nameIndex++],
+          ),
+        SceneInteractionRequestKind.confirmation =>
+          SceneInteractionResult.confirmed(
+            requestId: request.requestId,
+            revision: request.revision,
+            value: confirmations[confirmationIndex++],
+          ),
+        _ => throw StateError('Unexpected request ${request.kind.name}.'),
+      });
+    });
+    addTearDown(subscription.cancel);
+
+    final result = await RuntimeTextPreSessionSceneRunner(
+      project: project,
+      projectRootDirectory: Directory.systemTemp.path,
+      sceneId: 'scene_intro',
+      presentationCinematic: adapter,
+    ).run(
+      runId: 'run-branch',
+      draft: NewGameDraft.start(
+        draftId: 'draft-branch',
+        projectRevision: adapter.projectRevision,
+        slotId: 'slot_1',
+        config: project.newGame,
+      ),
+      interactions: interactions,
+    );
+
+    expect(
+      result.playerName,
+      'Yoahn Le Vrai',
+      reason: 'Non replayed the name entry: the second validated answer is '
+          'the one that survives — no partial draft mutation',
+    );
+    expect(
+      requests.map((request) => request.kind.name),
+      ['text', 'confirmation', 'text', 'confirmation'],
+      reason: 'Non → back to the entry → new name → Oui, deterministically',
+    );
+    expect(
+      requests.map((request) => request.revision),
+      [0, 1, 1, 2],
+      reason: 'every request carries the draft revision current at its '
+          'evaluation',
+    );
+  });
+
+  test('an authored infinite loop fails closed without partial draft writes',
+      () async {
+    final project = ProjectManifest(
+      name: 'Loop preSession',
+      version: ProjectVersion.v7,
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[],
+      presentationCinematics: <PresentationCinematicAsset>[
+        PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 1000000,
+        ),
+      ],
+      scenes: <SceneAsset>[_loopingScene()],
+      newGame: const ProjectNewGameConfig(
+        enabled: true,
+        startMapId: 'start_map',
+        preSessionSceneId: 'scene_intro',
+      ),
+    );
+    final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
+      runtimeSourceId: 'installed-game',
+      projectRevision:
+          'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      assets: project.presentationCinematics,
+      player: _RoutingPresentationPlayer(orderedMarkerIds: const ['cue_name']),
+      createdAtEpochMs: () => 42,
+    );
+    final interactions = HeadlessSceneInteractionPort();
+    addTearDown(interactions.close);
+    var serial = 0;
+    final subscription = interactions.requests.listen((request) {
+      serial += 1;
+      interactions.resolve(
+        SceneInteractionResult.textSubmitted(
+          requestId: request.requestId,
+          revision: request.revision,
+          value: 'Essai $serial',
+        ),
+      );
+    });
+    addTearDown(subscription.cancel);
+
+    await expectLater(
+      RuntimeTextPreSessionSceneRunner(
+        project: project,
+        projectRootDirectory: Directory.systemTemp.path,
+        sceneId: 'scene_intro',
+        presentationCinematic: adapter,
+      ).run(
+        runId: 'run-loop',
+        draft: NewGameDraft.start(
+          draftId: 'draft-loop',
+          projectRevision: adapter.projectRevision,
+          slotId: 'slot_1',
+          config: project.newGame,
+        ),
+        interactions: interactions,
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains(PresentationCueOutcomeCodes.transitionBudgetExhausted),
+        ),
+      ),
+    );
+    expect(
+      serial,
+      defaultPresentationTransitionBudgetPerExecution + 1,
+      reason: 'each loop turn completed one whole validated answer before '
+          'the budget cut it — the failure never interrupts a half-applied '
+          'draft command',
+    );
+  });
+
+}
+
+SceneAsset _loopingScene() => SceneAsset(
+      id: 'scene_intro',
+      name: 'Looping intro',
+      executionProfile: SceneExecutionProfile.preSession,
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'presentation',
+            kind: SceneNodeKind.presentationCinematic,
+            payload: ScenePresentationCinematicPayload(
+              presentationCinematicId: 'opening',
+              interactionCueBindings: [
+                ScenePresentationInteractionCueBinding(
+                  markerId: 'cue_name',
+                  awaitableNodeId: 'ask_name',
+                  outcomeRoutes: [
+                    ScenePresentationCueOutcomeRoute(
+                      outputPortId: 'completed',
+                      outcome: PresentationInteractionOutcome.repeatFromMarker(
+                        markerId: 'cue_name',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SceneNode(
+            id: 'ask_name',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.preSessionInteraction(
+              ScenePreSessionInteractionSpec.text(
+                prompt: SceneInteractionPrompt(
+                  localizationKey: 'new_game.name',
+                  fallbackText: 'Votre nom ?',
+                ),
+                resultBinding: const ScenePreSessionResultBinding(
+                  field: ScenePreSessionDraftField.playerName,
+                ),
+              ),
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: <SceneEdge>[
+          SceneEdge(
+            id: 'start_presentation',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'presentation',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'presentation_end',
+            fromNodeId: 'presentation',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.presentationCompleted,
+          ),
+        ],
+      ),
+    );
+
+SceneAsset _confirmationBranchScene() => SceneAsset(
+      id: 'scene_intro',
+      name: 'Confirmation branch intro',
+      executionProfile: SceneExecutionProfile.preSession,
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'presentation',
+            kind: SceneNodeKind.presentationCinematic,
+            payload: ScenePresentationCinematicPayload(
+              presentationCinematicId: 'opening',
+              interactionCueBindings: [
+                ScenePresentationInteractionCueBinding(
+                  markerId: 'cue_name',
+                  awaitableNodeId: 'ask_name',
+                ),
+                ScenePresentationInteractionCueBinding(
+                  markerId: 'cue_confirm',
+                  awaitableNodeId: 'confirm_name',
+                  outcomeRoutes: [
+                    ScenePresentationCueOutcomeRoute(
+                      outputPortId: 'declined',
+                      outcome: PresentationInteractionOutcome.repeatFromMarker(
+                        markerId: 'cue_name',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SceneNode(
+            id: 'ask_name',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.preSessionInteraction(
+              ScenePreSessionInteractionSpec.text(
+                prompt: SceneInteractionPrompt(
+                  localizationKey: 'new_game.name',
+                  fallbackText: 'Votre nom ?',
+                ),
+                resultBinding: const ScenePreSessionResultBinding(
+                  field: ScenePreSessionDraftField.playerName,
+                ),
+              ),
+            ),
+          ),
+          SceneNode(
+            id: 'confirm_name',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.preSessionInteraction(
+              ScenePreSessionInteractionSpec.confirmation(
+                prompt: SceneInteractionPrompt(
+                  localizationKey: 'new_game.confirm',
+                  fallbackText: 'On garde {{draft.playerName}} ?',
+                ),
+              ),
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: <SceneEdge>[
+          SceneEdge(
+            id: 'start_presentation',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'presentation',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'presentation_end',
+            fromNodeId: 'presentation',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.presentationCompleted,
+          ),
+        ],
+      ),
+    );
+
+final class _RoutingPresentationPlayer
+    implements ScenePresentationCinematicRuntimePlayer {
+  _RoutingPresentationPlayer({required this.orderedMarkerIds});
+
+  final List<String> orderedMarkerIds;
+  var _cueSequence = 0;
+
+  @override
+  Future<RuntimePresentationExecutionTerminal> playPresentationCinematic(
+    ScenePresentationCinematicRuntimeRequest request,
+  ) async {
+    var index = 0;
+    var transitions = 0;
+    while (index < orderedMarkerIds.length) {
+      final markerId = orderedMarkerIds[index];
+      if (!request.interactionCueMarkerIds.contains(markerId)) {
+        index += 1;
+        continue;
+      }
+      final outcome = await request.onInteractionCue!(
+        ScenePresentationInteractionCue(
+          markerId: markerId,
+          cueExecutionId:
+              '${request.requestId}:cue:$markerId#${++_cueSequence}',
+        ),
+      );
+      switch (outcome) {
+        case PresentationContinueTimelineOutcome():
+          index += 1;
+        case PresentationSeekMarkerOutcome(markerId: final destination) ||
+              PresentationRepeatFromMarkerOutcome(
+                markerId: final destination,
+              ):
+          transitions += 1;
+          if (transitions > defaultPresentationTransitionBudgetPerExecution) {
+            return const RuntimePresentationExecutionTerminal(
+              runToken: RuntimePresentationRunToken(1),
+              result: RuntimePresentationExecutionResult.failed,
+              diagnosticCode:
+                  PresentationCueOutcomeCodes.transitionBudgetExhausted,
+            );
+          }
+          final target = orderedMarkerIds.indexOf(destination);
+          if (target < 0) {
+            return const RuntimePresentationExecutionTerminal(
+              runToken: RuntimePresentationRunToken(1),
+              result: RuntimePresentationExecutionResult.failed,
+              diagnosticCode:
+                  PresentationCueOutcomeCodes.unknownSeekDestination,
+            );
+          }
+          index = target;
+        case PresentationStopOutcome():
+          return const RuntimePresentationExecutionTerminal(
+            runToken: RuntimePresentationRunToken(1),
+            result: RuntimePresentationExecutionResult.completed,
+          );
+        case PresentationCancelledOutcome():
+          return const RuntimePresentationExecutionTerminal(
+            runToken: RuntimePresentationRunToken(1),
+            result: RuntimePresentationExecutionResult.skipped,
+          );
+        case PresentationFailedOutcome(:final diagnosticCode):
+          return RuntimePresentationExecutionTerminal(
+            runToken: const RuntimePresentationRunToken(1),
+            result: RuntimePresentationExecutionResult.failed,
+            diagnosticCode: diagnosticCode,
+          );
+      }
+    }
+    return const RuntimePresentationExecutionTerminal(
+      runToken: RuntimePresentationRunToken(1),
+      result: RuntimePresentationExecutionResult.completed,
+    );
+  }
 }
 
 SceneAsset _yarnCueScene() => SceneAsset(
@@ -533,7 +926,7 @@ SceneAsset _yarnCueScene() => SceneAsset(
             kind: SceneNodeKind.presentationCinematic,
             payload: ScenePresentationCinematicPayload(
               presentationCinematicId: 'opening',
-              interactionCueBindings: const [
+              interactionCueBindings: [
                 ScenePresentationInteractionCueBinding(
                   markerId: 'cue_talk',
                   awaitableNodeId: 'talk',
@@ -912,7 +1305,7 @@ SceneAsset _presentationInteractionScene() => SceneAsset(
             kind: SceneNodeKind.presentationCinematic,
             payload: ScenePresentationCinematicPayload(
               presentationCinematicId: 'opening',
-              interactionCueBindings: const [
+              interactionCueBindings: [
                 ScenePresentationInteractionCueBinding(
                   markerId: 'ask_avatar',
                   awaitableNodeId: 'avatar',

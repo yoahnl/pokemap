@@ -254,6 +254,23 @@ void main() {
       ]);
     });
 
+    test('a one-shot consumed before the destination never replays', () {
+      // Seek back to 2s: the whoosh (1.0s-1.5s) sits OUTSIDE the replayed
+      // window and must stay silent — only clips alive in the evaluated
+      // frame may start.
+      final plan = planPresentationAudioCommands(
+        asset: asset(),
+        frame: frameAt(2000000),
+        activeChannels: [playingTheme()],
+      );
+      expect(
+        plan.commands.whereType<PresentationAudioStartCommand>(),
+        isEmpty,
+        reason: 'seek/repeat replays only what the destination frame '
+            'contains: already-consumed one-shots stay consumed',
+      );
+    });
+
     test('a frame entry unknown to the asset is a fail-closed issue', () {
       final plan = planPresentationAudioCommands(
         asset: asset(),

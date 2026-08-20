@@ -195,6 +195,16 @@ final class RuntimeTextPreSessionSceneRunner
                   'linked to an awaitable Scene node.',
                 );
               }
+              final sourcePayload = activeScene.graph.nodes
+                  .where((node) => node.id == intent.sourceNodeId)
+                  .map((node) => node.payload)
+                  .whereType<ScenePresentationCinematicPayload>()
+                  .firstOrNull;
+              final outcomeRoutes = sourcePayload?.interactionCueBindings
+                      .where((binding) => binding.markerId == cue.markerId)
+                      .map((binding) => binding.outcomeRoutes)
+                      .firstOrNull ??
+                  const <ScenePresentationCueOutcomeRoute>[];
               if (awaitablePayload is SceneYarnDialoguePayload) {
                 final outcomeId = await _runDialogue(
                   intent: SceneRuntimePlanIntent.showDialogue(
@@ -209,8 +219,10 @@ final class RuntimeTextPreSessionSceneRunner
                   currentScope: () => _interpolationScopeFor(currentDraft),
                 );
                 handledDialogueOutcomesByNodeId[awaitableNodeId] = outcomeId;
-                return const PresentationInteractionOutcome
-                    .continueTimeline();
+                return resolvePresentationCueOutcomeForPort(
+                  outcomeId,
+                  routes: outcomeRoutes,
+                );
               }
               if (awaitablePayload is! SceneActionPayload ||
                   awaitablePayload.preSessionInteraction == null) {
@@ -231,7 +243,10 @@ final class RuntimeTextPreSessionSceneRunner
               currentDraft = interactionResult.draft;
               handledInteractionOutputsByNodeId[awaitableNodeId] =
                   interactionResult.outputPortId;
-              return const PresentationInteractionOutcome.continueTimeline();
+              return resolvePresentationCueOutcomeForPort(
+                interactionResult.outputPortId,
+                routes: outcomeRoutes,
+              );
             },
           );
           if (result.success) return result.scenePortId!;

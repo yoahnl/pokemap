@@ -139,7 +139,7 @@ void main() {
     test('round-trips Presentation cue bindings to interaction nodes', () {
       final payload = ScenePresentationCinematicPayload(
         presentationCinematicId: 'opening',
-        interactionCueBindings: const [
+        interactionCueBindings: [
           ScenePresentationInteractionCueBinding(
             markerId: 'ask_name',
             awaitableNodeId: 'input_name',
@@ -152,7 +152,7 @@ void main() {
       expect(
         () => ScenePresentationCinematicPayload(
           presentationCinematicId: 'opening',
-          interactionCueBindings: const [
+          interactionCueBindings: [
             ScenePresentationInteractionCueBinding(
               markerId: 'ask_name',
               awaitableNodeId: 'input_name',
@@ -301,7 +301,7 @@ void main() {
               kind: SceneNodeKind.presentationCinematic,
               payload: ScenePresentationCinematicPayload(
                 presentationCinematicId: 'opening',
-                interactionCueBindings: const [
+                interactionCueBindings: [
                   ScenePresentationInteractionCueBinding(
                     markerId: 'welcome',
                     awaitableNodeId: 'message',
@@ -382,7 +382,7 @@ void main() {
               kind: SceneNodeKind.presentationCinematic,
               payload: ScenePresentationCinematicPayload(
                 presentationCinematicId: 'opening',
-                interactionCueBindings: const [
+                interactionCueBindings: [
                   ScenePresentationInteractionCueBinding(
                     markerId: 'cue_player_name',
                     awaitableNodeId: 'ask_name',
