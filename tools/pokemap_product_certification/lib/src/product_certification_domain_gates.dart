@@ -120,11 +120,14 @@ const List<ProductCertificationDomainGate> productCertificationDomainGates =
   ),
   ProductCertificationDomainGate(
     domain: 'partyStorage',
-    coverage: DomainGateCoverage.pendingGate,
-    gateTestPaths: <String>[],
-    rationale: 'Aucune golden gate Party/PC : le parcours réordonner → déposer '
-        '→ retirer → recharger sans perte n’est pas fermé de bout en bout.',
-    pendingTicket: 'BETA-PTY-005',
+    coverage: DomainGateCoverage.gated,
+    gateTestPaths: <String>[
+      'tools/pokemap_product_certification/test/golden_party_storage_gate_test.dart',
+    ],
+    rationale: 'BETA-PTY-005. Depuis un package installé seul : nouvelle '
+        'partie à deux membres, réordonnancement pause, dépôt, retrait, fiche '
+        'PC consultée, sauvegarde, reprise — et le roster recharge '
+        'structurellement identique, party et box, identités comprises.',
   ),
   ProductCertificationDomainGate(
     domain: 'pokemonData',

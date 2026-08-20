@@ -71,7 +71,6 @@ void main() {
         'BETA-ENC-006',
         'BETA-ITM-008',
         'BETA-PRG-006',
-        'BETA-PTY-005',
         'BETA-TRN-005',
       });
     });
@@ -81,6 +80,39 @@ void main() {
       // livrent, ce cas s'inverse volontairement : il faudra alors l'assumer en
       // le retournant, ce qui est exactement le moment de prononcer le GO.
       expect(productCertificationDomainGatesComplete, isFalse);
+    });
+
+    test('every golden gate file in this package is declared in the registry',
+        () {
+      // Trou découvert en livrant la gate Party/PC : le registre figeait la
+      // DÉCLARATION, mais une gate qui NAÎT sans être déclarée ne cassait
+      // rien — elle couvrait son domaine en silence, invisible du verdict
+      // d'assemblage. Les golden gates de ce paquet suivent une convention de
+      // nom : le répertoire fait donc autorité, comme pour la composition de
+      // la gate de jouabilité.
+      final gateFiles = Directory('test')
+          .listSync()
+          .whereType<File>()
+          .map((file) => p.basename(file.path))
+          .where(
+            (name) =>
+                name.startsWith('golden_') && name.endsWith('_gate_test.dart'),
+          )
+          .toSet();
+      final declared = <String>{
+        for (final gate in productCertificationDomainGates)
+          for (final path in gate.gateTestPaths)
+            if (path.startsWith('tools/pokemap_product_certification/test/'))
+              p.basename(path),
+      };
+
+      expect(gateFiles, isNotEmpty);
+      expect(
+        gateFiles.difference(declared),
+        isEmpty,
+        reason: 'une golden gate née sans être déclarée couvre son domaine en '
+            'silence, hors du verdict d’assemblage',
+      );
     });
 
     test('every package gate the registry declares is executed by the CI', () {

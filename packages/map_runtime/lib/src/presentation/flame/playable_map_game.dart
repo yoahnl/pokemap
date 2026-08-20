@@ -2084,6 +2084,33 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _playerServiceRuntimeController = controller;
   }
 
+  /// Opens the production PC service for typed interactive certification.
+  ///
+  /// BETA-PTY-005. Même justification que le Shop ci-dessous : la golden gate
+  /// pilote le VRAI contrôleur de services — transferts, commits, sauvegardes
+  /// et verrous d'entrée ne sont pas dupliqués. La fixture de certification n'a
+  /// pas de terminal PC sur sa carte, l'ouverture d'interaction est donc le
+  /// seul maillon remplacé ; les commandes passent ensuite par le canal session
+  /// (dispatchWorldService), comme en production.
+  ///
+  /// Le futur rendu N'EST PAS attendu ici : le PC est interactif, le résultat
+  /// n'arrive qu'à la commande close.
+  @visibleForTesting
+  Future<PlayerServiceRuntimeResult> debugOpenPlayerServicePc({
+    String? storageId,
+  }) {
+    final controller = _playerServiceRuntimeController;
+    if (controller == null) {
+      throw StateError('The player-service controller is unavailable.');
+    }
+    return controller.openPc(
+      request: OpenPcService(
+        interactionId: 'certification.pc',
+        storageId: storageId,
+      ),
+    );
+  }
+
   /// Opens the production Shop overlay for typed interactive evaluation.
   ///
   /// This stays on the real player-service controller: pricing, conditions,

@@ -17,9 +17,17 @@ import 'package:pub_semver/pub_semver.dart';
 final class NeutralCertificationGameFixture {
   /// Writes two extra maps wired by warps when true. Off by default so the
   /// release artifact and the existing certifications keep their exact shape.
-  const NeutralCertificationGameFixture({this.connectedMaps = false});
+  const NeutralCertificationGameFixture({
+    this.connectedMaps = false,
+    this.partySize = 1,
+  }) : assert(partySize == 1 || partySize == 2);
 
   final bool connectedMaps;
+
+  /// BETA-PTY-005 : la gate Party/PC exige deux membres — déposer l'unique
+  /// Pokémon utilisable est refusé par la garde lastUsable. Un pour les autres
+  /// gates, qui gardent leur forme exacte.
+  final int partySize;
 
   static const String fixedGameId = 'games.pokemap.certification.neutral';
   static const String fixedGameVersion = '1.0.0';
@@ -117,20 +125,28 @@ final class NeutralCertificationGameFixture {
         ],
       ],
       tilesets: const <ProjectTilesetEntry>[],
-      newGame: const ProjectNewGameConfig(
+      newGame: ProjectNewGameConfig(
         enabled: true,
         startMapId: fixedMapId,
         startSpawnId: fixedSpawnId,
         playerName: 'Ari',
         startingMoney: 300,
         initialParty: <PlayerPokemon>[
-          PlayerPokemon(
+          const PlayerPokemon(
             speciesId: 'bulbasaur',
             natureId: 'hardy',
             abilityId: 'overgrow',
             level: 5,
             currentHp: 20,
           ),
+          if (partySize > 1)
+            const PlayerPokemon(
+              speciesId: 'ivysaur',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              level: 7,
+              currentHp: 22,
+            ),
         ],
       ),
       scenes: <SceneAsset>[_completionScene],
