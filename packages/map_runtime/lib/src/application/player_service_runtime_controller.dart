@@ -1068,6 +1068,38 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           action: command.action,
           target: target,
         );
+      case RuntimeWorldServiceAction.move:
+        // BETA-PTY-003. moveWithinBox et moveBetweenBoxes existaient, testés
+        // unitairement, SANS AUCUN APPELANT : le joueur ne pouvait pas ranger
+        // ses boxes. Même motif que le réordonnancement d'équipe (PTY-002).
+        final moveTargetId = command.targetId;
+        final moveTarget =
+            moveTargetId == null ? null : session.targets[moveTargetId];
+        final destinationBoxId = command.secondaryTargetId;
+        if (moveTarget == null ||
+            moveTarget.action != RuntimeWorldServiceAction.withdraw ||
+            moveTarget.boxId == null) {
+          return const RuntimeWorldServiceCommandResult(
+            status: RuntimeWorldServiceCommandStatus.unavailable,
+            safeMessage: 'Ce Pokémon n’est plus disponible.',
+          );
+        }
+        // Le null-check est nécessaire au `!` du transfert ; l'EXISTENCE de la
+        // box, elle, est déjà typée par l'opération pure (invalidBoxId → « Box
+        // inconnue. »). La re-vérifier ici était redondant — mesuré par
+        // sabotage : la retirer ne changeait aucun comportement observable.
+        if (destinationBoxId == null) {
+          return const RuntimeWorldServiceCommandResult(
+            status: RuntimeWorldServiceCommandStatus.unavailable,
+            safeMessage: 'Cette box n’est plus disponible.',
+          );
+        }
+        return _applyPcTransfer(
+          session,
+          action: RuntimeWorldServiceAction.move,
+          target: moveTarget,
+          destinationBoxId: destinationBoxId,
+        );
       case RuntimeWorldServiceAction.swap:
         final boxTargetId = command.targetId;
         final partyTargetId = command.secondaryTargetId;
@@ -1118,6 +1150,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required RuntimeWorldServiceAction action,
     required _PcTransferTarget target,
     _PcTransferTarget? secondaryTarget,
+    String? destinationBoxId,
   }) async {
     const operations = PlayerStorageOperations();
     final result = switch (action) {
@@ -1142,6 +1175,12 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               state: session.gameState,
               individualId: target.individualId,
             ),
+      RuntimeWorldServiceAction.move => operations.moveBetweenBoxes(
+          state: session.gameState,
+          sourceBoxId: target.boxId!,
+          sourceIndex: target.index,
+          targetBoxId: destinationBoxId!,
+        ),
       RuntimeWorldServiceAction.swap =>
         target.individualId.isEmpty || secondaryTarget!.individualId.isEmpty
             ? operations.swapPartyWithBox(
@@ -1187,6 +1226,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             RuntimeWorldServiceAction.deposit => 'Pokémon déposé dans la box.',
             RuntimeWorldServiceAction.withdraw => 'Pokémon ajouté à l’équipe.',
             RuntimeWorldServiceAction.swap => 'Échange effectué.',
+            RuntimeWorldServiceAction.move => 'Pokémon déplacé de box.',
             _ => throw StateError('Unsupported PC transfer action.'),
           },
         ),
@@ -1478,6 +1518,17 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                   RuntimeWorldServiceAction.swap,
                   reason: 'Aucun échange valide n’est disponible.',
                 ),
+              if (stored.isNotEmpty && boxes.length > 1)
+                const RuntimeWorldServiceActionAvailability.enabled(
+                  RuntimeWorldServiceAction.move,
+                )
+              else
+                RuntimeWorldServiceActionAvailability.disabled(
+                  RuntimeWorldServiceAction.move,
+                  reason: stored.isEmpty
+                      ? 'Aucun Pokémon à déplacer dans cette box.'
+                      : 'Aucune autre box de destination.',
+                ),
               const RuntimeWorldServiceActionAvailability.enabled(
                 RuntimeWorldServiceAction.close,
               ),
@@ -1555,6 +1606,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       case RuntimeWorldServiceAction.deposit:
       case RuntimeWorldServiceAction.withdraw:
       case RuntimeWorldServiceAction.swap:
+      case RuntimeWorldServiceAction.move:
         return const RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
           safeMessage: 'Cette commande ne concerne pas le soin.',
@@ -1714,6 +1766,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       case RuntimeWorldServiceAction.deposit:
       case RuntimeWorldServiceAction.withdraw:
       case RuntimeWorldServiceAction.swap:
+      case RuntimeWorldServiceAction.move:
         return const RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
           safeMessage: 'Cette commande ne concerne pas la Boutique.',

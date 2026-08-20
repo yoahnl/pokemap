@@ -90,6 +90,10 @@ enum RuntimeWorldServiceAction {
   deposit,
   withdraw,
   swap,
+
+  /// BETA-PTY-003 : déplacer un Pokémon de la box affichée vers une autre box
+  /// (`targetId` = le Pokémon, `secondaryTargetId` = la box de destination).
+  move,
 }
 
 enum RuntimeShopMode {

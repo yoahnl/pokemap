@@ -224,7 +224,270 @@ void main() {
     );
     expect((await open).status, PlayerServiceRuntimeStatus.completed);
   });
+  test('moves a stored Pokemon to another box and survives a reload',
+      () async {
+    // BETA-PTY-003. moveWithinBox et moveBetweenBoxes existaient, testés
+    // unitairement, SANS AUCUN APPELANT — le motif PTY-002 exactement : le
+    // joueur ne pouvait pas ranger ses boxes. Ce cas certifie le déplacement
+    // depuis le service réel, jusqu'à l'aller-retour d'enveloppe de sauvegarde.
+    var state = _stateWithTwoBoxes();
+    final commits = <GameState>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        commits.add(next);
+        state = next;
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    final open = controller.openPc(
+      request: const OpenPcService(
+        interactionId: 'terminal.harbor',
+        storageId: 'box-a',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    final snapshot = controller.worldServiceSnapshot!;
+    expect(
+      snapshot.actions.any(
+        (action) =>
+            action.action == RuntimeWorldServiceAction.move && action.isEnabled,
+      ),
+      isTrue,
+      reason: 'two boxes and one stored Pokemon make the move available',
+    );
+
+    final moved = await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.move,
+        snapshotRevision: snapshot.revision,
+        targetId: 'pokemon.pkm_stored',
+        secondaryTargetId: 'box-b',
+      ),
+    );
+
+    expect(moved.status, RuntimeWorldServiceCommandStatus.accepted);
+    expect(commits, hasLength(1));
+    expect(
+      state.pokemonStorage.boxes.first.pokemon,
+      isEmpty,
+      reason: 'the source box no longer holds the Pokemon',
+    );
+    expect(
+      state.pokemonStorage.boxes.last.pokemon.single.individualId,
+      'pkm_stored',
+    );
+
+    final reloaded = gameStateFromSaveData(saveDataFromGameState(state));
+    expect(
+      reloaded.pokemonStorage.boxes.last.pokemon.single.individualId,
+      'pkm_stored',
+      reason: 'the move survives the save envelope round trip',
+    );
+
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.close,
+        snapshotRevision: controller.worldServiceSnapshot!.revision,
+      ),
+    );
+    await open;
+  });
+
+  test('a stale target is refused cleanly, then found again by identity',
+      () async {
+    // Les critères « stable selection » ensemble : après un déplacement vers
+    // une autre box, l'ancien targetId ne résout plus dans la box affichée —
+    // refus propre SANS mutation (stale). Puis, une fois la bonne box
+    // sélectionnée, LE MÊME targetId retrouve l'individu : la clé est
+    // l'identité, pas la position (stable).
+    var state = _stateWithTwoBoxes();
+    final commits = <GameState>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        commits.add(next);
+        state = next;
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    final open = controller.openPc(
+      request: const OpenPcService(
+        interactionId: 'terminal.harbor',
+        storageId: 'box-a',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    final before = controller.worldServiceSnapshot!;
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.move,
+        snapshotRevision: before.revision,
+        targetId: 'pokemon.pkm_stored',
+        secondaryTargetId: 'box-b',
+      ),
+    );
+    expect(commits, hasLength(1));
+
+    final stale = await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.withdraw,
+        snapshotRevision: controller.worldServiceSnapshot!.revision,
+        targetId: 'pokemon.pkm_stored',
+      ),
+    );
+    expect(stale.status, RuntimeWorldServiceCommandStatus.unavailable);
+    expect(commits, hasLength(1), reason: 'a stale target must not mutate');
+
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.select,
+        snapshotRevision: controller.worldServiceSnapshot!.revision,
+        targetId: 'box-b',
+      ),
+    );
+    final found = await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.withdraw,
+        snapshotRevision: controller.worldServiceSnapshot!.revision,
+        targetId: 'pokemon.pkm_stored',
+      ),
+    );
+    expect(found.status, RuntimeWorldServiceCommandStatus.accepted);
+    expect(
+      state.party.members.last.individualId,
+      'pkm_stored',
+      reason: 'the same identity-keyed target resolves in its new box',
+    );
+
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.close,
+        snapshotRevision: controller.worldServiceSnapshot!.revision,
+      ),
+    );
+    await open;
+  });
+
+  test('refuses to move into a full box without mutating anything', () async {
+    // Le critère « box full » au niveau SERVICE : l'opération pure était déjà
+    // typée, mais le joueur doit recevoir le refus en message stable, sans
+    // commit fantôme.
+    var state = _stateWithTwoBoxes(secondBoxCapacity: 1, fillSecondBox: true);
+    final commits = <GameState>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        commits.add(next);
+        state = next;
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    final open = controller.openPc(
+      request: const OpenPcService(
+        interactionId: 'terminal.harbor',
+        storageId: 'box-a',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    final snapshot = controller.worldServiceSnapshot!;
+
+    final refused = await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.move,
+        snapshotRevision: snapshot.revision,
+        targetId: 'pokemon.pkm_stored',
+        secondaryTargetId: 'box-b',
+      ),
+    );
+
+    expect(refused.status, RuntimeWorldServiceCommandStatus.unavailable);
+    expect(commits, isEmpty);
+    expect(state.pokemonStorage.boxes.first.pokemon, hasLength(1));
+
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.close,
+        snapshotRevision: controller.worldServiceSnapshot!.revision,
+      ),
+    );
+    await open;
+  });
+
+  test('refuses to deposit the last usable Pokemon at the service level',
+      () async {
+    // Le critère « last usable » traversé depuis le service : la garde vit dans
+    // l'opération pure, ce cas prouve qu'elle atteint le joueur avec un refus
+    // typé — et qu'aucun commit ne part.
+    var state = _stateWithFaintedReserve();
+    final commits = <GameState>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        commits.add(next);
+        state = next;
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    final open = controller.openPc(
+      request: const OpenPcService(
+        interactionId: 'terminal.harbor',
+        storageId: 'box-a',
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    final snapshot = controller.worldServiceSnapshot!;
+    final content = snapshot.content! as RuntimePcServiceContent;
+    final lead = content.party.first;
+
+    expect(
+      lead.canTransfer,
+      isFalse,
+      reason: 'depositing the only usable Pokemon must be pre-announced',
+    );
+
+    final refused = await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.deposit,
+        snapshotRevision: snapshot.revision,
+        targetId: lead.targetId,
+      ),
+    );
+
+    expect(refused.status, RuntimeWorldServiceCommandStatus.unavailable);
+    expect(commits, isEmpty);
+    expect(state.party.members, hasLength(2));
+
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.close,
+        snapshotRevision: controller.worldServiceSnapshot!.revision,
+      ),
+    );
+    await open;
+  });
 }
+
 
 GameState _state() => GameState(
       saveId: 'pc-service',
@@ -264,4 +527,51 @@ PlayerPokemon _pokemon(String speciesId) => PlayerPokemon(
               metLevel: 4,
             )
           : null,
+    );
+
+GameState _stateWithTwoBoxes({
+  int secondBoxCapacity = 30,
+  bool fillSecondBox = false,
+}) =>
+    GameState(
+      saveId: 'pc-service-move',
+      party: PlayerParty(
+        members: <PlayerPokemon>[_pokemon('lead'), _pokemon('reserve')],
+      ),
+      pokemonStorage: PokemonStorage(
+        boxes: <PokemonBox>[
+          PokemonBox(
+            id: 'box-a',
+            label: 'Box A',
+            pokemon: <PlayerPokemon>[_pokemon('stored')],
+          ),
+          PokemonBox(
+            id: 'box-b',
+            label: 'Box B',
+            capacity: secondBoxCapacity,
+            pokemon: fillSecondBox
+                ? <PlayerPokemon>[_pokemon('occupant')]
+                : const <PlayerPokemon>[],
+          ),
+        ],
+      ),
+    );
+
+GameState _stateWithFaintedReserve() => GameState(
+      saveId: 'pc-service-last-usable',
+      party: PlayerParty(
+        members: <PlayerPokemon>[
+          _pokemon('lead'),
+          _pokemon('reserve').copyWith(currentHp: 0),
+        ],
+      ),
+      pokemonStorage: PokemonStorage(
+        boxes: <PokemonBox>[
+          PokemonBox(
+            id: 'box-a',
+            label: 'Box A',
+            pokemon: <PlayerPokemon>[_pokemon('stored')],
+          ),
+        ],
+      ),
     );
