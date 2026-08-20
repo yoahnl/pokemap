@@ -285,3 +285,10 @@ export 'src/validation/narrative_physical_reachability_validator.dart'
         NarrativePhysicalSourceResult,
         NarrativePhysicalReachabilityReport,
         validateNarrativePhysicalReachability;
+
+// Item effect runtime support
+export 'src/project_item_effect_support.dart'
+    show
+        ProjectItemEffectRuntimeSupport,
+        projectItemEffectRuntimeSupport,
+        projectItemEffectUnsupportedReason;

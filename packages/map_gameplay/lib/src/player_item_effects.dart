@@ -2,6 +2,8 @@ import 'package:map_core/map_core.dart';
 
 import 'items/bag_operation_result.dart';
 
+import 'project_item_effect_support.dart';
+
 enum PlayerItemUseFailure {
   invalidRequest,
   unknownDefinition,
@@ -71,6 +73,16 @@ PlayerItemEffectApplication applyPlayerItemEffect(
   required String? moveId,
   required Map<String, int> maxPpByMoveId,
 }) {
+  // BETA-ITM-007 : le support vient de la source unique, pour que l'Item Studio
+  // et le runtime ne puissent pas se contredire. Refuser ICI plutôt que dans une
+  // branche du switch rend le prédicat porteur : s'il déclare un effet
+  // inexécutable, aucun chemin ne peut plus l'appliquer.
+  if (projectItemEffectRuntimeSupport(use.effect) ==
+      ProjectItemEffectRuntimeSupport.unsupported) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.unsupportedCapability,
+    );
+  }
   return switch (use.effect) {
     ProjectItemHealHpEffectDefinition(:final mode, :final amount) =>
       _applyHpHealing(target, mode: mode, amount: amount, maxHp: maxHp),
@@ -98,11 +110,8 @@ PlayerItemEffectApplication applyPlayerItemEffect(
         moveId: moveId,
         maxPpByMoveId: maxPpByMoveId,
       ),
-    ProjectItemRepelEffectDefinition() ||
-    ProjectItemSemanticActionEffectDefinition() =>
-      const PlayerItemEffectApplication.failed(
-        PlayerItemUseFailure.unsupportedCapability,
-      ),
+    // BETA-ITM-007 : le verdict de support vient de la source unique, pour que
+    // l'Item Studio et le runtime ne puissent pas se contredire.
     _ => const PlayerItemEffectApplication.failed(
         PlayerItemUseFailure.unsupportedCapability,
       ),

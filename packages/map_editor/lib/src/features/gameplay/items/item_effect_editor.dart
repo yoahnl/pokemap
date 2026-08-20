@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../../ui/design_system/design_system.dart';
 import 'item_studio_gateway.dart';
@@ -307,6 +308,16 @@ final class _UseEditor extends StatelessWidget {
               use.copyWith(effect: _decodeEffect(value)).normalized(),
             ),
           ),
+          if (projectItemEffectUnsupportedReason(use.effect)
+              case final reason?) ...[
+            const SizedBox(height: 8),
+            PokeMapDiagnosticCallout(
+              key: Key('item-effect-${context.name}-unsupported-notice'),
+              severity: PokeMapDiagnosticSeverity.warning,
+              title: 'Effet non exécutable par le moteur',
+              message: reason,
+            ),
+          ],
         ],
       ),
     );
@@ -467,7 +478,16 @@ List<(String, String)> _effectOptions(
       );
   final currentIdentity = _effectIdentity(current);
   if (!values.any((option) => _effectIdentity(option.$1) == currentIdentity)) {
-    values.insert(0, (current, 'Effet actuel'));
+    // BETA-ITM-007 : un effet hors presets s'affichait « Effet actuel », ce qui
+    // ne disait rien. Un effet que le moteur ne sait pas exécuter doit se
+    // reconnaître dans la liste, pas seulement dans le bandeau au-dessous.
+    values.insert(0, (
+      current,
+      projectItemEffectRuntimeSupport(current) ==
+              ProjectItemEffectRuntimeSupport.unsupported
+          ? 'Effet actuel — hors périmètre bêta'
+          : 'Effet actuel',
+    ));
   }
   return <(String, String)>[
     for (final option in values) (_effectIdentity(option.$1), option.$2),
