@@ -2369,6 +2369,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   BattleStartRequest? get debugPendingBattleRequest => _pendingBattleRequest;
 
+  /// Requête du combat EN COURS, après hydratation.
+  ///
+  /// Distincte de [debugPendingBattleRequest], qui est la requête telle
+  /// qu'enfilée par la rencontre — donc AVANT que le générateur canonique n'y
+  /// pose son individu. C'est cette version-ci qui porte generatedPokemon, et
+  /// donc la seule qui permette de vérifier que le Pokémon capturé est bien
+  /// celui qu'on a rencontré.
+  @visibleForTesting
+  BattleStartRequest? get debugActiveBattleRequest =>
+      _activeBattleContext?.request;
+
   GridPos? debugMapEntityPosition(String entityId) {
     for (final entity in _world.map.entities) {
       if (entity.id == entityId) return entity.pos;

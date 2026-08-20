@@ -9,7 +9,7 @@
 /// ```
 ///
 /// Voir SEL-A2 §4.5 et SEL-B2 pour la spécification.
-library scenario_battle_outcome_flags;
+library;
 
 /// Préfixe commun à tous les flags d'outcome de combat scénario.
 const String kBattleOutcomeFlagPrefix = 'battle:';

@@ -744,6 +744,14 @@ void main() {
       );
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      // BETA-ENC-002. L'individu que le RUNTIME a généré pour ce combat, lu
+      // avant la capture parce que le contexte de combat est libéré à la
+      // fermeture. C'est le seul point d'observation possible : la requête
+      // enfilée par la rencontre ne porte pas encore d'individu, le générateur
+      // canonique ne tourne que dans hydrateWildRequest.
+      final fought =
+          (game.debugActiveBattleRequest! as WildBattleStartRequest)
+              .generatedPokemon!;
       expect(game.selectBattleBagEntry(0), isTrue);
       await game.debugWaitForBattleOverlaySync();
 
@@ -759,6 +767,43 @@ void main() {
       expect(canonicalPokemonNatureIds, contains(capturedPokemon.natureId));
       expect(capturedPokemon.gender, anyOf('male', 'female'));
       expect(capturedPokemon.ivs, isNot(const PokemonStatSpread()));
+
+      // BETA-ENC-002, le critère « encounter-to-battle identity » et
+      // « captured identity equality » dans le VRAI parcours.
+      //
+      // Les quatre assertions ci-dessus ne mesuraient que la PLAUSIBILITÉ :
+      // une nature du catalogue, un genre valide, des IV non nuls. Mesuré par
+      // sabotage le 2026-08-20 — en faisant capturer un AUTRE individu, avec un
+      // individualId inventé et des IV substitués mais tout aussi plausibles,
+      // les 22 cas de ce fichier restaient VERTS. L'égalité d'identité n'était
+      // couverte qu'au niveau unitaire, sur un generatedPokemon posé à la main
+      // dans runtime_battle_outcome_apply_test, donc jamais sur celui que le
+      // runtime fabrique lui-même.
+      //
+      // Les champs comparés ici sont ceux qu'un combat ne doit PAS pouvoir
+      // changer. Les PV, le statut et les PP en sont exclus exprès : eux
+      // changent légitimement, et c'est le write-back qui en répond ailleurs.
+      // Seuls les champs que cette fixture sait DISCRIMINER sont ici. Mesuré :
+      // l'individu généré vaut form='', shiny=false, heldItem='' et des EV
+      // nuls, qui sont exactement les valeurs de repli — les asserter ne
+      // pourrait donc pas échouer. Sabotage à l'appui : forcer isShiny à false
+      // laissait les 22 cas verts. Ces champs exotiques sont couverts par
+      // runtime_battle_outcome_apply_test, qui les pose à la main
+      // (formId 'midnight', isShiny true) et peut donc les mesurer.
+      //
+      // `experience` est exclu pour une autre raison, et elle est plus vicieuse :
+      // PlayerPokemonHydrator fait `experience ??= totalExperienceForLevel`, donc
+      // perdre la valeur générée la fait recalculer depuis le niveau et retomber
+      // sur la même. Les deux côtés dérivent du niveau : l'assertion ne pouvait
+      // pas échouer. Vérifié en la sabotant.
+      expect(capturedPokemon.individualId, fought.individualId);
+      expect(capturedPokemon.individualId, isNotEmpty);
+      expect(capturedPokemon.speciesId, fought.speciesId);
+      expect(capturedPokemon.natureId, fought.natureId);
+      expect(capturedPokemon.abilityId, fought.abilityId);
+      expect(capturedPokemon.gender, fought.gender);
+      expect(capturedPokemon.ivs, fought.ivs);
+      expect(capturedPokemon.level, fought.level);
       expect(capturedPokemon.friendship, 50);
       expect(capturedPokemon.provenance?.mapId, 'field_map');
       expect(capturedPokemon.provenance?.sourceId, 'field_grass');

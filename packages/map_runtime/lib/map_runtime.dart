@@ -1,4 +1,4 @@
-library map_runtime;
+library;
 
 export 'package:map_core/map_core.dart'
     show

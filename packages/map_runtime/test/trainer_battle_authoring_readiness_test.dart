@@ -10,7 +10,7 @@ import 'package:map_runtime/map_runtime.dart';
 /// → ScenarioRuntimeEffectType.battle (battleId, trainerId, npcEntityId)
 /// → graph suspended
 /// → battle outcome applied
-/// → scenarioBattleOutcomeFlagName sets battle:<battleId>:victory or defeat
+/// → scenarioBattleOutcomeFlagName sets `battle:<battleId>:victory` or defeat
 /// → dispatchContinuation resumes after battle node
 /// → victory/defeat branch executes setFlag / completeStep
 /// → save/load preserves all flags

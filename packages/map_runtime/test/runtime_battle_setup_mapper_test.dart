@@ -111,6 +111,49 @@ void main() {
       expect(first.generationSchemaVersion, 1);
     });
 
+    test('a different generation seed yields a different individual', () async {
+      // BETA-ENC-002, critère « seed replay », direction manquante.
+      //
+      // Le cas ci-dessus hydrate DEUX FOIS LA MÊME requête et exige le même
+      // individu. Il prouve que la génération est déterministe, pas que la
+      // GRAINE en est la cause : un générateur qui l'ignorerait et rendrait
+      // toujours le même individu le passerait tout aussi bien. Sans ce cas, un
+      // rejeu de combat serait « reproductible » par accident.
+      //
+      // Les overrides de l'autre cas sont volontairement absents ici : figer la
+      // nature et le chromatique masquerait précisément ce que la graine pilote.
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final first = await mapper.hydrateWildRequest(
+        bundle: bundle,
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+          generationSeed: 0x12345678,
+        ),
+      );
+      final other = await mapper.hydrateWildRequest(
+        bundle: bundle,
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+          generationSeed: 0x87654321,
+        ),
+      );
+
+      expect(first.generatedPokemon, isNotNull);
+      expect(other.generatedPokemon, isNotNull);
+      expect(
+        other.generatedPokemon!.ivs,
+        isNot(first.generatedPokemon!.ivs),
+        reason: 'the seed must drive the individual, not merely be carried',
+      );
+    });
+
     test('maps a PSDK setup and executes a legacy-filtered PSDK move',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
