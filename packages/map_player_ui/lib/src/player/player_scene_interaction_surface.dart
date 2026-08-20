@@ -8,6 +8,7 @@ import 'package:map_runtime/map_runtime.dart'
 
 import 'player_dialogue_surface.dart';
 import '../foundation/player_components.dart';
+import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_scene_interaction_strings.dart';
 import 'runtime_player_actions.dart';
@@ -90,20 +91,26 @@ class _PlayerSceneInteractionSurfaceState
         bindings: <ShortcutActivator, VoidCallback>{
           const SingleActivator(LogicalKeyboardKey.escape): _cancel,
         },
-        child: ColoredBox(
-          color: context.playerColors.scrim,
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 120),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.maybeOf(context)?.viewInsets.bottom ?? 0,
+          ),
           child: SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) => Align(
-                alignment: Alignment.center,
+                alignment: Alignment.bottomCenter,
                 child: SingleChildScrollView(
+                  reverse: true,
                   padding: const EdgeInsets.all(PlayerSpacing.md),
                   child: ConstrainedBox(
                     key: const ValueKey<String>('scene-interaction-panel'),
                     constraints: BoxConstraints(
                       maxWidth: constraints.maxWidth < 600 ? 520 : 680,
                     ),
-                    child: PlayerPanel(
+                    child: PlayerSurfacePaletteScope(
+                      role: ProjectPresentationSurfaceRole.dialogue,
+                      child: PlayerPanel(
                       role: PlayerPanelRole.dialogue,
                       elevated: true,
                       child: Semantics(
@@ -158,6 +165,7 @@ class _PlayerSceneInteractionSurfaceState
                             ],
                           ),
                         ),
+                      ),
                       ),
                     ),
                   ),
