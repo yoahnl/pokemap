@@ -16,3 +16,4 @@ export 'src/neutral_certification_game_fixture.dart';
 export 'src/platform_certification_aggregate_receipt.dart';
 export 'src/product_certification_receipt.dart';
 export 'src/presentation_runtime_performance_receipt.dart';
+export 'src/product_certification_domain_gates.dart';

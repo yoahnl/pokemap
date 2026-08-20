@@ -76,6 +76,59 @@ jobs:
             --candidate-sha "$GITHUB_SHA" \
             ../..
 
+  domain-golden-gates:
+    # BETA-SYS-007. Les Golden Gates de domaine vivent dans packages/, et
+    # AUCUNE lane ne les exécutait : le combat, le plus gros domaine de la
+    # bêta, ne tournait jamais en CI. Cette lane exécute exactement les
+    # fichiers déclarés par product_certification_domain_gates.dart — un test
+    # du registre échoue si l'un d'eux manque ici, donc la CI et le registre
+    # ne peuvent pas diverger.
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Battle domain gates (map_battle)
+        working-directory: packages/map_battle
+        run: |
+          dart pub get
+          dart test \
+            test/battle_terminal_invariants_test.dart
+      - name: Runtime domain gates (map_runtime)
+        working-directory: packages/map_runtime
+        run: |
+          flutter pub get
+          flutter test --timeout 4m \
+            test/wild_battle_end_to_end_flow_test.dart \
+            test/runtime_battle_ui_matches_kernel_test.dart \
+            test/trainer_spot_sequence_test.dart \
+            test/p3_scenario_runtime_golden_path_test.dart \
+            test/p5_beta_runtime_smoke_test.dart \
+            test/p5_gameplay_save_load_beta_roundtrip_test.dart \
+            test/runtime_failure_taxonomy_test.dart
+      - name: Core domain gates (map_core)
+        working-directory: packages/map_core
+        run: |
+          dart pub get
+          dart test \
+            test/beta_playability_composition_test.dart \
+            test/gameplay_roadmap_dashboard_cli_test.dart \
+            test/pokemon_catalog_coherence_validator_test.dart
+      - name: Editor domain gates (map_editor)
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter test --timeout 4m \
+            test/import_pokemon_catalog_json_use_case_test.dart
+
   map-editor-functional-quality:
     runs-on: macos-15
     timeout-minutes: 60
