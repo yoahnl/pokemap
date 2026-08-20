@@ -593,6 +593,241 @@ void main() {
       expect(diagnostic.moveId, _enemyMoveId);
     });
 
+
+    group('BETA-TRN-003 the team is validated exhaustively', () {
+      BetaPlayabilityValidationContext teamContext({
+        Set<String>? knownItemIds,
+        Set<String>? knownAbilityIds,
+      }) =>
+          BetaPlayabilityValidationContext(
+            mapsById: <String, MapData>{_mapId: _map()},
+            knownSpeciesIds: const <String>{_starterSpeciesId, _enemySpeciesId},
+            knownMoveIds: const <String>{_starterMoveId, _enemyMoveId},
+            initialPartySpeciesIds: const <String>{_starterSpeciesId},
+            knownItemIds: knownItemIds,
+            knownAbilityIds: knownAbilityIds,
+          );
+
+      ProjectTrainerEntry trainerWithTeam(
+        List<ProjectTrainerPokemonEntry> team,
+      ) =>
+          ProjectTrainerEntry(
+            id: _trainerId,
+            name: 'P5 Beta Trainer',
+            trainerClass: 'Runtime Tester',
+            team: team,
+          );
+
+      ProjectTrainerPokemonEntry member({
+        int level = 4,
+        String? heldItemId,
+        String? abilityId,
+        String? formId,
+      }) =>
+          ProjectTrainerPokemonEntry(
+            speciesId: _enemySpeciesId,
+            level: level,
+            moves: const <String>[_enemyMoveId],
+            heldItemId: heldItemId,
+            abilityId: abilityId,
+            formId: formId,
+          );
+
+      Iterable<BetaPlayabilityDiagnosticKind> kindsOf(
+        BetaPlayabilityValidationResult result,
+      ) =>
+          result.diagnostics.map((diagnostic) => diagnostic.kind);
+
+      test('diagnoses a duplicated trainer id', () {
+        final result = validateBetaPlayability(
+          _manifest(
+            trainers: <ProjectTrainerEntry>[
+              trainerWithTeam(<ProjectTrainerPokemonEntry>[member()]),
+              trainerWithTeam(<ProjectTrainerPokemonEntry>[member()]),
+            ],
+          ),
+          context: teamContext(),
+        );
+
+        expect(
+          kindsOf(result),
+          contains(BetaPlayabilityDiagnosticKind.duplicateTrainerId),
+        );
+      });
+
+      test('diagnoses a team larger than six members', () {
+        final result = validateBetaPlayability(
+          _manifest(
+            trainers: <ProjectTrainerEntry>[
+              trainerWithTeam(
+                List<ProjectTrainerPokemonEntry>.generate(
+                  7,
+                  (_) => member(),
+                ),
+              ),
+            ],
+          ),
+          context: teamContext(),
+        );
+
+        expect(
+          kindsOf(result),
+          contains(BetaPlayabilityDiagnosticKind.trainerTeamTooLarge),
+        );
+      });
+
+      test('diagnoses levels outside the ruleset bounds, in both directions',
+          () {
+        final result = validateBetaPlayability(
+          _manifest(
+            trainers: <ProjectTrainerEntry>[
+              trainerWithTeam(<ProjectTrainerPokemonEntry>[
+                member(level: 0),
+                member(level: 101),
+                member(level: 100),
+              ]),
+            ],
+          ),
+          context: teamContext(),
+        );
+
+        final outOfBounds = result.diagnostics.where(
+          (diagnostic) =>
+              diagnostic.kind ==
+              BetaPlayabilityDiagnosticKind.trainerPokemonLevelOutOfBounds,
+        );
+        expect(outOfBounds, hasLength(2),
+            reason: 'level 100 is the ruleset maximum, not a violation');
+      });
+
+      test('diagnoses an unknown held item when the catalog is provided', () {
+        final result = validateBetaPlayability(
+          _manifest(
+            trainers: <ProjectTrainerEntry>[
+              trainerWithTeam(<ProjectTrainerPokemonEntry>[
+                member(heldItemId: 'phantom-orb'),
+              ]),
+            ],
+          ),
+          context: teamContext(knownItemIds: const <String>{'oran-berry'}),
+        );
+
+        final diagnostic = result.diagnostics.firstWhere(
+          (diagnostic) =>
+              diagnostic.kind ==
+              BetaPlayabilityDiagnosticKind.trainerPokemonUnknownHeldItem,
+        );
+        expect(diagnostic.trainerId, _trainerId);
+        expect(diagnostic.message, contains('phantom-orb'));
+      });
+
+      test('diagnoses an unknown ability override when the catalog is there',
+          () {
+        final result = validateBetaPlayability(
+          _manifest(
+            trainers: <ProjectTrainerEntry>[
+              trainerWithTeam(<ProjectTrainerPokemonEntry>[
+                member(abilityId: 'phantom-power'),
+              ]),
+            ],
+          ),
+          context: teamContext(
+            knownItemIds: const <String>{},
+            knownAbilityIds: const <String>{'overgrow'},
+          ),
+        );
+
+        expect(
+          kindsOf(result),
+          contains(BetaPlayabilityDiagnosticKind.trainerPokemonUnknownAbility),
+        );
+      });
+
+      test('a known held item and ability pass without team diagnostics', () {
+        final result = validateBetaPlayability(
+          _manifest(
+            trainers: <ProjectTrainerEntry>[
+              trainerWithTeam(<ProjectTrainerPokemonEntry>[
+                member(heldItemId: 'oran-berry', abilityId: 'overgrow'),
+              ]),
+            ],
+          ),
+          context: teamContext(
+            knownItemIds: const <String>{'oran-berry'},
+            knownAbilityIds: const <String>{'overgrow'},
+          ),
+        );
+
+        expect(
+          kindsOf(result),
+          isNot(
+            anyOf(
+              contains(
+                BetaPlayabilityDiagnosticKind.trainerPokemonUnknownHeldItem,
+              ),
+              contains(
+                BetaPlayabilityDiagnosticKind.trainerPokemonUnknownAbility,
+              ),
+              contains(
+                BetaPlayabilityDiagnosticKind.trainerReferencesNotEvaluated,
+              ),
+            ),
+          ),
+        );
+      });
+
+      test('an authored form is refused: the beta runtime drops forms', () {
+        final result = validateBetaPlayability(
+          _manifest(
+            trainers: <ProjectTrainerEntry>[
+              trainerWithTeam(<ProjectTrainerPokemonEntry>[
+                member(formId: 'mega'),
+              ]),
+            ],
+          ),
+          context: teamContext(),
+        );
+
+        expect(
+          kindsOf(result),
+          contains(
+            BetaPlayabilityDiagnosticKind.trainerPokemonFormNotSupported,
+          ),
+        );
+      });
+
+      test('missing catalogs are said out loud, never silently skipped', () {
+        // Le tri-état : un membre référence un objet tenu et une ability,
+        // mais aucun catalogue n'a été fourni — « pas évalué » doit se dire.
+        final result = validateBetaPlayability(
+          _manifest(
+            trainers: <ProjectTrainerEntry>[
+              trainerWithTeam(<ProjectTrainerPokemonEntry>[
+                member(heldItemId: 'oran-berry', abilityId: 'overgrow'),
+              ]),
+            ],
+          ),
+          context: teamContext(),
+        );
+
+        expect(
+          kindsOf(result),
+          contains(
+            BetaPlayabilityDiagnosticKind.trainerReferencesNotEvaluated,
+          ),
+        );
+        expect(
+          kindsOf(result),
+          isNot(
+            contains(
+              BetaPlayabilityDiagnosticKind.trainerPokemonUnknownHeldItem,
+            ),
+          ),
+          reason: 'no catalog means no verdict, not a false positive',
+        );
+      });
+    });
+
     test('treats an explicitly empty Pokemon catalog as authoritative', () {
       final result = validateBetaPlayability(
         _manifest(),

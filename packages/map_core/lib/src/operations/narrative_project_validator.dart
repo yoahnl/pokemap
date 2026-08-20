@@ -237,8 +237,13 @@ NarrativeProjectValidationReport validateNarrativeProject(
   int? pokemonCatalogErrorCount,
 
   /// Identifiants d'objets du projet, pour vérifier les références des
-  /// boutiques. `null` laisse la gate dire qu'elle ne les a pas contrôlées.
+  /// boutiques et des objets tenus des dresseurs. `null` laisse la gate dire
+  /// qu'elle ne les a pas contrôlées.
   Set<String>? knownItemIds,
+
+  /// Identifiants d'abilities du projet, pour vérifier les overrides des
+  /// équipes de dresseurs — BETA-TRN-003. Même sémantique tri-état.
+  Set<String>? knownAbilityIds,
   Set<String>? knownSpeciesIds,
   Set<String>? knownMoveIds,
   bool requirePokemonCatalogs = false,
@@ -271,6 +276,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
     diagnostics,
     pokemonCatalogErrorCount: pokemonCatalogErrorCount,
     knownItemIds: knownItemIds,
+    knownAbilityIds: knownAbilityIds,
     knownSpeciesIds: normalizedKnownSpeciesIds,
     knownMoveIds: normalizedKnownMoveIds,
     requirePokemonCatalogs: requirePokemonCatalogs,
@@ -701,6 +707,7 @@ void _appendRuntimeReadinessDiagnostics(
   required bool requirePokemonCatalogs,
   required int? pokemonCatalogErrorCount,
   required Set<String>? knownItemIds,
+  required Set<String>? knownAbilityIds,
 }) {
   final newGame = project.newGame;
   _appendConfiguredNewGameSpawnDiagnostics(project, mapsById, target);
@@ -716,6 +723,7 @@ void _appendRuntimeReadinessDiagnostics(
     context: BetaPlayabilityValidationContext(
       pokemonCatalogErrorCount: pokemonCatalogErrorCount,
       knownItemIds: knownItemIds,
+      knownAbilityIds: knownAbilityIds,
       initialParty: newGame.enabled
           ? newGame.initialParty
           : const <PlayerPokemon>[],

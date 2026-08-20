@@ -88,6 +88,13 @@ abstract class ProjectTrainerPokemonEntry with _$ProjectTrainerPokemonEntry {
     /// IDs de capacités (ordre libre, max 4 recommandé — non enforced).
     @Default([]) List<String> moves,
     String? heldItemId,
+
+    /// Override d'ability authoré — BETA-TRN-003.
+    ///
+    /// Absent, le runtime retombe sur l'ability primaire de l'espèce, le
+    /// comportement historique. Renseigné, il doit exister dans le catalogue
+    /// d'abilities du projet : la validation de jouabilité le bloque sinon.
+    String? abilityId,
     String? formId,
 
     /// Genre libre : "male", "female", "any", ou null = non spécifié.

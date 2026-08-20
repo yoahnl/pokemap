@@ -678,6 +678,42 @@ void main() {
       expect(request.generatedPokemon?.knownMoveIds, isEmpty);
     });
 
+    test('an authored ability override wins over the species primary ability',
+        () async {
+      // BETA-TRN-003 : sans override, torrent (l'ability primaire d'aquafi)
+      // — avec, l'ability authorée, dans les DEUX moteurs.
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+      const overridden = ProjectTrainerPokemonEntry(
+        speciesId: 'aquafi',
+        level: 18,
+        moves: <String>['water_gun'],
+        abilityId: 'swift-swim',
+      );
+
+      final legacySeed = await builder.buildTrainerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        teamMember: overridden,
+        trainerName: 'Ace Jules',
+      );
+      expect(legacySeed.abilityId, equals('swift-swim'));
+
+      final psdkSeed = await builder.buildTrainerPsdkCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        itemCatalog: _heldItemCatalog,
+        teamMember: overridden,
+        trainerName: 'Ace Jules',
+      );
+      expect(psdkSeed.abilityId, equals('swift-swim'));
+    });
+
     test('builds a trainer combatant seed from explicit trainer moves',
         () async {
       await _writePokemonFixtures(tempProjectRoot);

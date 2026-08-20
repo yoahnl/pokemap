@@ -114,7 +114,7 @@ as ProjectBuildingShadowPresetCatalog,
 @override
 @pragma('vm:prefer-inline')
 $ProjectCharacterStudioCatalogCopyWith<$Res> get characterStudioCatalog {
-
+  
   return $ProjectCharacterStudioCatalogCopyWith<$Res>(_self.characterStudioCatalog, (value) {
     return _then(_self.copyWith(characterStudioCatalog: value));
   });
@@ -123,7 +123,7 @@ $ProjectCharacterStudioCatalogCopyWith<$Res> get characterStudioCatalog {
 @override
 @pragma('vm:prefer-inline')
 $ProjectSettingsCopyWith<$Res> get settings {
-
+  
   return $ProjectSettingsCopyWith<$Res>(_self.settings, (value) {
     return _then(_self.copyWith(settings: value));
   });
@@ -132,7 +132,7 @@ $ProjectSettingsCopyWith<$Res> get settings {
 @override
 @pragma('vm:prefer-inline')
 $ProjectPokemonConfigCopyWith<$Res> get pokemon {
-
+  
   return $ProjectPokemonConfigCopyWith<$Res>(_self.pokemon, (value) {
     return _then(_self.copyWith(pokemon: value));
   });
@@ -585,7 +585,7 @@ as ProjectBuildingShadowPresetCatalog,
 @override
 @pragma('vm:prefer-inline')
 $ProjectCharacterStudioCatalogCopyWith<$Res> get characterStudioCatalog {
-
+  
   return $ProjectCharacterStudioCatalogCopyWith<$Res>(_self.characterStudioCatalog, (value) {
     return _then(_self.copyWith(characterStudioCatalog: value));
   });
@@ -594,7 +594,7 @@ $ProjectCharacterStudioCatalogCopyWith<$Res> get characterStudioCatalog {
 @override
 @pragma('vm:prefer-inline')
 $ProjectSettingsCopyWith<$Res> get settings {
-
+  
   return $ProjectSettingsCopyWith<$Res>(_self.settings, (value) {
     return _then(_self.copyWith(settings: value));
   });
@@ -603,7 +603,7 @@ $ProjectSettingsCopyWith<$Res> get settings {
 @override
 @pragma('vm:prefer-inline')
 $ProjectPokemonConfigCopyWith<$Res> get pokemon {
-
+  
   return $ProjectPokemonConfigCopyWith<$Res>(_self.pokemon, (value) {
     return _then(_self.copyWith(pokemon: value));
   });
@@ -3821,7 +3821,7 @@ as int?,
 @override
 @pragma('vm:prefer-inline')
 $TilesetSourceRectCopyWith<$Res> get source {
-
+  
   return $TilesetSourceRectCopyWith<$Res>(_self.source, (value) {
     return _then(_self.copyWith(source: value));
   });
@@ -4035,7 +4035,7 @@ as int?,
 @override
 @pragma('vm:prefer-inline')
 $TilesetSourceRectCopyWith<$Res> get source {
-
+  
   return $TilesetSourceRectCopyWith<$Res>(_self.source, (value) {
     return _then(_self.copyWith(source: value));
   });
@@ -5921,7 +5921,7 @@ as List<String>,
 @override
 @pragma('vm:prefer-inline')
 $ScriptAssetCopyWith<$Res> get asset {
-
+  
   return $ScriptAssetCopyWith<$Res>(_self.asset, (value) {
     return _then(_self.copyWith(asset: value));
   });
@@ -6142,7 +6142,7 @@ as List<String>,
 @override
 @pragma('vm:prefer-inline')
 $ScriptAssetCopyWith<$Res> get asset {
-
+  
   return $ScriptAssetCopyWith<$Res>(_self.asset, (value) {
     return _then(_self.copyWith(asset: value));
   });
@@ -8179,7 +8179,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $TilesetSourceRectCopyWith<$Res> get source {
-
+  
   return $TilesetSourceRectCopyWith<$Res>(_self.source, (value) {
     return _then(_self.copyWith(source: value));
   });
@@ -8390,7 +8390,7 @@ as int,
 @override
 @pragma('vm:prefer-inline')
 $TilesetSourceRectCopyWith<$Res> get source {
-
+  
   return $TilesetSourceRectCopyWith<$Res>(_self.source, (value) {
     return _then(_self.copyWith(source: value));
   });

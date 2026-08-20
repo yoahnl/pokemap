@@ -109,6 +109,16 @@ final class GamePackageGameplayReadinessGate {
         project.pokemon.enabled ? _projectedSpeciesIds(projection) : null;
     final moveIds =
         project.pokemon.enabled ? _projectedMoveIds(projection) : null;
+    // BETA-TRN-003 : le validateur savait vérifier objets tenus, boutiques et
+    // overrides d'abilities, mais l'export ne lui fournissait pas les
+    // catalogues — il concluait « pas évalué » au lieu de bloquer les
+    // références cassées avant le playtest.
+    final itemIds = project.pokemon.enabled
+        ? _projectedCatalogEntryIds(projection, catalogKey: 'items')
+        : null;
+    final abilityIds = project.pokemon.enabled
+        ? _projectedCatalogEntryIds(projection, catalogKey: 'abilities')
+        : null;
     _appendPokemonValidationDiagnostics(
       project: project,
       report: pokemonValidationReport,
@@ -122,6 +132,8 @@ final class GamePackageGameplayReadinessGate {
         maps: maps,
         knownSpeciesIds: speciesIds,
         knownMoveIds: moveIds,
+        knownItemIds: itemIds,
+        knownAbilityIds: abilityIds,
         requirePokemonCatalogs: project.pokemon.enabled,
         // BETA-SYS-005 : la gate consommait déjà les diagnostics de cohérence
         // Pokémon à côté du verdict de jouabilité, mais le verdict lui-même les
@@ -458,8 +470,15 @@ Set<String>? _projectedSpeciesIds(RuntimeProjectProjection projection) {
   }
 }
 
-Set<String>? _projectedMoveIds(RuntimeProjectProjection projection) {
-  final relativePath = projection.project.pokemon.catalogFiles['moves']?.trim();
+Set<String>? _projectedMoveIds(RuntimeProjectProjection projection) =>
+    _projectedCatalogEntryIds(projection, catalogKey: 'moves');
+
+Set<String>? _projectedCatalogEntryIds(
+  RuntimeProjectProjection projection, {
+  required String catalogKey,
+}) {
+  final relativePath =
+      projection.project.pokemon.catalogFiles[catalogKey]?.trim();
   if (relativePath == null || relativePath.isEmpty) return null;
   final bytes = projection.payloadFiles[_projectPayloadPath(relativePath)];
   if (bytes == null) return null;

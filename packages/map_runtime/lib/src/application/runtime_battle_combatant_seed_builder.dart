@@ -816,12 +816,25 @@ class RuntimeBattleCombatantSeedBuilder {
       catchRate: species.catchRate,
       stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
-      abilityId: species.primaryAbilityId.isEmpty
-          ? 'unknown'
-          : species.primaryAbilityId,
+      abilityId: _trainerMemberAbilityId(teamMember, species),
       moves: moveProjection.moves,
       moveDiagnostics: moveProjection.diagnostics,
     );
+  }
+
+  /// Override d'ability authoré (BETA-TRN-003), sinon l'ability primaire de
+  /// l'espèce — le comportement historique.
+  String _trainerMemberAbilityId(
+    ProjectTrainerPokemonEntry teamMember,
+    RuntimePokemonSpecies species,
+  ) {
+    final override = teamMember.abilityId?.trim();
+    if (override != null && override.isNotEmpty) {
+      return override;
+    }
+    return species.primaryAbilityId.isEmpty
+        ? 'unknown'
+        : species.primaryAbilityId;
   }
 
   Future<RuntimePsdkBattleCombatantSeed> buildTrainerPsdkCombatantSeed({
@@ -869,9 +882,7 @@ class RuntimeBattleCombatantSeedBuilder {
       catchRate: species.catchRate,
       stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
-      abilityId: species.primaryAbilityId.isEmpty
-          ? 'unknown'
-          : species.primaryAbilityId,
+      abilityId: _trainerMemberAbilityId(teamMember, species),
       heldItemId: _resolvePsdkHeldItemId(
         teamMember.heldItemId,
         itemCatalog: itemCatalog,

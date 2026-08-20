@@ -21,6 +21,32 @@ enum BetaPlayabilityDiagnosticKind {
   trainerHasEmptyTeam,
   trainerPokemonMissingSpecies,
   trainerPokemonMissingMoves,
+
+  /// Deux dresseurs du manifest portent le même identifiant — le second
+  /// écraserait silencieusement le premier à la résolution.
+  duplicateTrainerId,
+
+  /// L'équipe d'un dresseur dépasse les six membres du roster de combat.
+  trainerTeamTooLarge,
+
+  /// Le niveau d'un membre d'équipe sort des bornes du ruleset (1..maxLevel).
+  trainerPokemonLevelOutOfBounds,
+
+  /// L'objet tenu d'un membre n'existe pas dans le catalogue du projet — le
+  /// runtime refuserait le lancement du combat, donc on bloque avant.
+  trainerPokemonUnknownHeldItem,
+
+  /// L'ability overridée d'un membre n'existe pas dans le catalogue.
+  trainerPokemonUnknownAbility,
+
+  /// Un membre référence une forme : la bêta ne les hydrate pas — la promesse
+  /// authorée serait silencieusement ignorée en combat.
+  trainerPokemonFormNotSupported,
+
+  /// Des équipes référencent objets ou abilities mais les catalogues n'ont
+  /// pas été fournis : la gate n'a pas pu se prononcer, ce qui n'est pas un
+  /// blanc-seing.
+  trainerReferencesNotEvaluated,
   missingPokemonSpecies,
   missingPokemonMove,
   missingStarterOrInitialPartySource,
@@ -128,6 +154,7 @@ class BetaPlayabilityValidationContext {
     this.hasSaveLoadSupport = true,
     this.pokemonCatalogErrorCount,
     this.knownItemIds,
+    this.knownAbilityIds,
     this.initialParty = const <PlayerPokemon>[],
     this.starterOptionCount = 0,
   });
@@ -158,6 +185,10 @@ class BetaPlayabilityValidationContext {
   /// `null` n'est PAS l'ensemble vide : un ensemble vide déclarerait toute
   /// référence d'objet inconnue et produirait de faux diagnostics.
   final Set<String>? knownItemIds;
+
+  /// Identifiants d'abilities du projet, même sémantique tri-état que
+  /// [knownItemIds] — BETA-TRN-003.
+  final Set<String>? knownAbilityIds;
 
   /// Roster initial du projet, tel que la nouvelle partie le construira.
   ///
@@ -270,6 +301,8 @@ BetaPlayabilityValidationResult validateBetaPlayability(
     speciesCatalogIsAuthoritative: context.speciesCatalogIsAuthoritative,
     moveCatalogIsAuthoritative: context.moveCatalogIsAuthoritative,
     requiresTrainerBattle: context.requiresTrainerBattle,
+    knownItemIds: context.knownItemIds,
+    knownAbilityIds: context.knownAbilityIds,
     diagnostics: diagnostics,
   );
 
@@ -666,6 +699,8 @@ void _validateTrainers(
   required bool speciesCatalogIsAuthoritative,
   required bool moveCatalogIsAuthoritative,
   required bool requiresTrainerBattle,
+  required Set<String>? knownItemIds,
+  required Set<String>? knownAbilityIds,
   required List<BetaPlayabilityDiagnostic> diagnostics,
 }) {
   if (!requiresTrainerBattle) {
@@ -675,9 +710,23 @@ void _validateTrainers(
   final trainersById = <String, ProjectTrainerEntry>{};
   for (final trainer in manifest.trainers) {
     final trainerId = trainer.id.trim();
-    if (trainerId.isNotEmpty) {
-      trainersById[trainerId] = trainer;
+    if (trainerId.isEmpty) {
+      continue;
     }
+    if (trainersById.containsKey(trainerId)) {
+      diagnostics.add(
+        BetaPlayabilityDiagnostic(
+          kind: BetaPlayabilityDiagnosticKind.duplicateTrainerId,
+          severity: BetaPlayabilityDiagnosticSeverity.error,
+          message: 'Trainer id "$trainerId" is declared more than once.',
+          actionHint: 'Give every trainer a unique id.',
+          path: 'manifest.trainers.$trainerId',
+          trainerId: trainerId,
+        ),
+      );
+      continue;
+    }
+    trainersById[trainerId] = trainer;
   }
 
   final validatedTrainerIds = <String>{};
@@ -712,12 +761,15 @@ void _validateTrainers(
       if (validatedTrainerIds.add(trainerId)) {
         _validateTrainerTeam(
           trainer,
+          manifest: manifest,
           mapId: map.id,
           entityId: entity.id,
           knownSpeciesIds: knownSpeciesIds,
           knownMoveIds: knownMoveIds,
           speciesCatalogIsAuthoritative: speciesCatalogIsAuthoritative,
           moveCatalogIsAuthoritative: moveCatalogIsAuthoritative,
+          knownItemIds: knownItemIds,
+          knownAbilityIds: knownAbilityIds,
           diagnostics: diagnostics,
         );
       }
@@ -727,12 +779,15 @@ void _validateTrainers(
 
 void _validateTrainerTeam(
   ProjectTrainerEntry trainer, {
+  required ProjectManifest manifest,
   required String mapId,
   required String entityId,
   required Set<String> knownSpeciesIds,
   required Set<String> knownMoveIds,
   required bool speciesCatalogIsAuthoritative,
   required bool moveCatalogIsAuthoritative,
+  required Set<String>? knownItemIds,
+  required Set<String>? knownAbilityIds,
   required List<BetaPlayabilityDiagnostic> diagnostics,
 }) {
   final trainerId = trainer.id.trim();
@@ -752,10 +807,109 @@ void _validateTrainerTeam(
     return;
   }
 
+  if (trainer.team.length > 6) {
+    diagnostics.add(
+      BetaPlayabilityDiagnostic(
+        kind: BetaPlayabilityDiagnosticKind.trainerTeamTooLarge,
+        severity: BetaPlayabilityDiagnosticSeverity.error,
+        message: 'Trainer "$trainerId" has ${trainer.team.length} Pokemon; '
+            'a battle roster holds at most 6.',
+        actionHint: 'Reduce the trainer team to at most six Pokemon.',
+        path: 'manifest.trainers.$trainerId.team',
+        mapId: mapId,
+        entityId: entityId,
+        trainerId: trainerId,
+      ),
+    );
+  }
+
+  final maxLevel = manifest.pokemon.ruleset.maxLevel;
+  var referencesUnevaluatedCatalog = false;
+
   for (var index = 0; index < trainer.team.length; index += 1) {
     final pokemon = trainer.team[index];
     final speciesId = pokemon.speciesId.trim();
     final pokemonPath = 'manifest.trainers.$trainerId.team.$index';
+
+    if (pokemon.level < 1 || pokemon.level > maxLevel) {
+      diagnostics.add(
+        BetaPlayabilityDiagnostic(
+          kind: BetaPlayabilityDiagnosticKind.trainerPokemonLevelOutOfBounds,
+          severity: BetaPlayabilityDiagnosticSeverity.error,
+          message: 'Trainer "$trainerId" has a Pokemon at level '
+              '${pokemon.level}; the ruleset allows 1..$maxLevel.',
+          actionHint: 'Set the level within the ruleset bounds.',
+          path: '$pokemonPath.level',
+          mapId: mapId,
+          entityId: entityId,
+          trainerId: trainerId,
+          speciesId: speciesId.isEmpty ? null : speciesId,
+        ),
+      );
+    }
+
+    final heldItemId = pokemon.heldItemId?.trim();
+    if (heldItemId != null && heldItemId.isNotEmpty) {
+      if (knownItemIds == null) {
+        referencesUnevaluatedCatalog = true;
+      } else if (!knownItemIds.contains(heldItemId)) {
+        diagnostics.add(
+          BetaPlayabilityDiagnostic(
+            kind: BetaPlayabilityDiagnosticKind.trainerPokemonUnknownHeldItem,
+            severity: BetaPlayabilityDiagnosticSeverity.error,
+            message: 'Trainer "$trainerId" holds unknown item "$heldItemId"; '
+                'the runtime would refuse to start this battle.',
+            actionHint: 'Add the item to the project item catalog.',
+            path: '$pokemonPath.heldItemId',
+            mapId: mapId,
+            entityId: entityId,
+            trainerId: trainerId,
+            speciesId: speciesId.isEmpty ? null : speciesId,
+          ),
+        );
+      }
+    }
+
+    final abilityId = pokemon.abilityId?.trim();
+    if (abilityId != null && abilityId.isNotEmpty) {
+      if (knownAbilityIds == null) {
+        referencesUnevaluatedCatalog = true;
+      } else if (!knownAbilityIds.contains(abilityId)) {
+        diagnostics.add(
+          BetaPlayabilityDiagnostic(
+            kind: BetaPlayabilityDiagnosticKind.trainerPokemonUnknownAbility,
+            severity: BetaPlayabilityDiagnosticSeverity.error,
+            message:
+                'Trainer "$trainerId" overrides unknown ability "$abilityId".',
+            actionHint: 'Add the ability to the project ability catalog.',
+            path: '$pokemonPath.abilityId',
+            mapId: mapId,
+            entityId: entityId,
+            trainerId: trainerId,
+            speciesId: speciesId.isEmpty ? null : speciesId,
+          ),
+        );
+      }
+    }
+
+    final formId = pokemon.formId?.trim();
+    if (formId != null && formId.isNotEmpty) {
+      diagnostics.add(
+        BetaPlayabilityDiagnostic(
+          kind: BetaPlayabilityDiagnosticKind.trainerPokemonFormNotSupported,
+          severity: BetaPlayabilityDiagnosticSeverity.error,
+          message: 'Trainer "$trainerId" authors form "$formId"; the beta '
+              'runtime does not hydrate forms, so the promise would be '
+              'silently dropped in battle.',
+          actionHint: 'Remove the formId until forms are supported.',
+          path: '$pokemonPath.formId',
+          mapId: mapId,
+          entityId: entityId,
+          trainerId: trainerId,
+          speciesId: speciesId.isEmpty ? null : speciesId,
+        ),
+      );
+    }
 
     if (speciesId.isEmpty) {
       diagnostics.add(
@@ -830,6 +984,26 @@ void _validateTrainerTeam(
         );
       }
     }
+  }
+
+  if (referencesUnevaluatedCatalog) {
+    // « Pas évalué » n'est pas « aucune erreur » : des membres référencent des
+    // objets ou des abilities mais le catalogue correspondant n'a pas été
+    // fourni — la gate le dit au lieu de laisser croire que tout va bien.
+    diagnostics.add(
+      BetaPlayabilityDiagnostic(
+        kind: BetaPlayabilityDiagnosticKind.trainerReferencesNotEvaluated,
+        severity: BetaPlayabilityDiagnosticSeverity.error,
+        message: 'Trainer "$trainerId" references held items or abilities, '
+            'but the matching catalogs were not provided to the gate.',
+        actionHint:
+            'Run the validation with the project item and ability catalogs.',
+        path: 'manifest.trainers.$trainerId.team',
+        mapId: mapId,
+        entityId: entityId,
+        trainerId: trainerId,
+      ),
+    );
   }
 }
 
