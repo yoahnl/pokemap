@@ -127,17 +127,28 @@ final class RuntimePresentationScenePlaybackController
   }
 
   Future<bool> _publish(_RuntimePresentationActiveRun active) async {
-    if (!_isCurrent(active)) return false;
-    final frame = _evaluator.evaluate(
-      active.request.asset,
-      timeUs: active.clock.playheadUs,
-    );
-    if (!await _synchronizeVideo(active, frame)) return false;
-    if (!await _synchronizeAudio(active, frame)) return false;
-    if (!_isCurrent(active)) return false;
-    onFrame(active.request, frame);
-    if (!await _runInteractionCues(active)) return false;
-    return true;
+    while (true) {
+      if (!_isCurrent(active)) return false;
+      final frame = _evaluator.evaluate(
+        active.request.asset,
+        timeUs: active.clock.playheadUs,
+      );
+      if (!await _synchronizeVideo(active, frame)) return false;
+      if (!await _synchronizeAudio(active, frame)) return false;
+      if (!_isCurrent(active)) return false;
+      onFrame(active.request, frame);
+      switch (await _runInteractionCues(active)) {
+        case _CueLoopDirective.proceed:
+          return true;
+        case _CueLoopDirective.abort:
+          return false;
+        case _CueLoopDirective.republish:
+          // A seek or repeat moved the playhead: re-evaluate immediately so
+          // re-armed cues fire in this same pass — the transition budget is
+          // the loop bound.
+          continue;
+      }
+    }
   }
 
   Future<bool> _synchronizeAudio(
@@ -160,14 +171,14 @@ final class RuntimePresentationScenePlaybackController
     return _isCurrent(active);
   }
 
-  Future<bool> _runInteractionCues(
+  Future<_CueLoopDirective> _runInteractionCues(
     _RuntimePresentationActiveRun active,
   ) async {
     final handler = active.request.onInteractionCue;
     final currentPlayheadUs = active.clock.playheadUs;
     if (handler == null) {
       active.publishedPlayheadUs = currentPlayheadUs;
-      return true;
+      return _CueLoopDirective.proceed;
     }
     final dueMarkerIds = <(int, String)>[];
     for (final track in active.request.asset.tracks) {
@@ -204,35 +215,39 @@ final class RuntimePresentationScenePlaybackController
       } finally {
         await audioController?.resumeFromHold();
       }
-      if (!_isCurrent(active)) return false;
+      if (!_isCurrent(active)) return _CueLoopDirective.abort;
       if (!active.cueOutcomeGate.admit(cue.cueExecutionId)) continue;
-      if (!await _applyCueOutcome(active, outcome)) return false;
+      final directive = await _applyCueOutcome(active, outcome);
+      if (directive != _CueLoopDirective.proceed) return directive;
     }
-    return true;
+    return _CueLoopDirective.proceed;
   }
 
-  /// Applies exactly one terminal cue outcome (BETA-CIN-070).
+  /// Applies exactly one terminal cue outcome (BETA-CIN-070, routed by
+  /// BETA-CIN-072).
   ///
   /// Seek and repeat destinations are resolved by marker identity against
   /// the playing asset; an unknown destination fails with a stable code and
-  /// never moves the playhead. Resolved destinations also fail closed for
-  /// now: the actual routing is BETA-CIN-072, and half a seek would be worse
-  /// than none.
-  Future<bool> _applyCueOutcome(
+  /// never moves the playhead. A resolved destination consumes one unit of
+  /// the per-execution transition budget, moves the playhead to the marker,
+  /// re-arms every marker at or after the destination (the replay window of
+  /// repeatFromMarker), and asks the publish loop to re-evaluate — an
+  /// exhausted budget terminates instead of looping forever.
+  Future<_CueLoopDirective> _applyCueOutcome(
     _RuntimePresentationActiveRun active,
     PresentationInteractionOutcome outcome,
   ) async {
     switch (outcome) {
       case PresentationContinueTimelineOutcome():
-        return true;
+        return _CueLoopDirective.proceed;
       case PresentationStopOutcome():
         await _prepareTerminal(active);
         await executionController.complete(active.token);
-        return false;
+        return _CueLoopDirective.abort;
       case PresentationCancelledOutcome():
         await _prepareTerminal(active);
         await executionController.skip(active.token);
-        return false;
+        return _CueLoopDirective.abort;
       case PresentationFailedOutcome(diagnosticCode: final diagnosticCode):
         await _prepareTerminal(active);
         await executionController.fail(
@@ -240,23 +255,45 @@ final class RuntimePresentationScenePlaybackController
           diagnosticCode:
               diagnosticCode ?? PresentationDiagnosticCodes.playbackFailed,
         );
-        return false;
+        return _CueLoopDirective.abort;
       case PresentationSeekMarkerOutcome() ||
             PresentationRepeatFromMarkerOutcome():
         final resolution = resolvePresentationOutcomeDestination(
           active.request.asset,
           outcome,
         );
-        await _prepareTerminal(active);
-        await executionController.fail(
-          active.token,
-          diagnosticCode: switch (resolution) {
-            PresentationOutcomeDestinationUnknown() =>
-              PresentationCueOutcomeCodes.unknownSeekDestination,
-            _ => PresentationCueOutcomeCodes.seekRoutingUnavailable,
-          },
-        );
-        return false;
+        switch (resolution) {
+          case PresentationOutcomeDestinationResolved(:final startUs):
+            if (!active.transitionBudget.tryConsume()) {
+              await _prepareTerminal(active);
+              await executionController.fail(
+                active.token,
+                diagnosticCode:
+                    PresentationCueOutcomeCodes.transitionBudgetExhausted,
+              );
+              return _CueLoopDirective.abort;
+            }
+            active.clock.seekTo(startUs);
+            for (final track in active.request.asset.tracks) {
+              for (final clip in track.clips) {
+                if (clip is PresentationMarkerClip &&
+                    clip.startUs >= startUs) {
+                  active.triggeredMarkerIds.remove(clip.id);
+                }
+              }
+            }
+            active.publishedPlayheadUs = startUs - 1;
+            return _CueLoopDirective.republish;
+          case PresentationOutcomeDestinationUnknown() ||
+                PresentationOutcomeDestinationNone():
+            await _prepareTerminal(active);
+            await executionController.fail(
+              active.token,
+              diagnosticCode:
+                  PresentationCueOutcomeCodes.unknownSeekDestination,
+            );
+            return _CueLoopDirective.abort;
+        }
     }
   }
 
@@ -351,6 +388,8 @@ final class RuntimePresentationScenePlaybackController
       identical(_active, active) &&
       active.generation == _generation;
 }
+
+enum _CueLoopDirective { proceed, abort, republish }
 
 final class _RuntimePresentationActiveRun {
   _RuntimePresentationActiveRun({

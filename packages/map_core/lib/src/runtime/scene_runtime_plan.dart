@@ -190,12 +190,14 @@ final class SceneRuntimePlanIntent {
   factory SceneRuntimePlanIntent.showDialogue({
     required String dialogueId,
     String? yarnNodeName,
+    String? sourceNodeId,
     List<String> expectedOutcomes = const <String>[],
   }) {
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.showDialogue,
       dialogueId: dialogueId,
       yarnNodeName: yarnNodeName,
+      sourceNodeId: sourceNodeId,
       expectedOutcomes: expectedOutcomes,
     );
   }

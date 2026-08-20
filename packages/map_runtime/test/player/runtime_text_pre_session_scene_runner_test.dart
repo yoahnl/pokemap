@@ -427,7 +427,155 @@ Enchanté {{draft.playerName}} !
     );
   });
 
+  test('a Presentation cue runs a Yarn dialogue during the hold, once',
+      () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'pokemap-pre-session-yarn-cue-',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    await File('${directory.path}/cue_talk.yarn').writeAsString('''
+title: CueTalk
+---
+Le professeur entre en scène.
+Il ajuste ses lunettes.
+===
+''');
+    final project = ProjectManifest(
+      name: 'Yarn cue preSession',
+      version: ProjectVersion.v7,
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[],
+      dialogues: const <ProjectDialogueEntry>[
+        ProjectDialogueEntry(
+          id: 'cue_talk',
+          name: 'Cue talk',
+          relativePath: 'cue_talk.yarn',
+          defaultStartNode: 'CueTalk',
+        ),
+      ],
+      presentationCinematics: <PresentationCinematicAsset>[
+        PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 1000000,
+        ),
+      ],
+      scenes: <SceneAsset>[_yarnCueScene()],
+      newGame: const ProjectNewGameConfig(
+        enabled: true,
+        startMapId: 'start_map',
+        preSessionSceneId: 'scene_intro',
+      ),
+    );
+    final player = _CompletingPresentationPlayer(triggerMarkerId: 'cue_talk');
+    final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
+      runtimeSourceId: 'installed-game',
+      projectRevision:
+          'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      assets: project.presentationCinematics,
+      player: player,
+      createdAtEpochMs: () => 42,
+    );
+    final interactions = HeadlessSceneInteractionPort();
+    addTearDown(interactions.close);
+    final requests = <SceneInteractionRequest>[];
+    final subscription = interactions.requests.listen((request) {
+      requests.add(request);
+      interactions.resolve(
+        SceneInteractionResult.acknowledged(
+          requestId: request.requestId,
+          revision: request.revision,
+        ),
+      );
+    });
+    addTearDown(subscription.cancel);
+
+    await RuntimeTextPreSessionSceneRunner(
+      project: project,
+      projectRootDirectory: directory.path,
+      sceneId: 'scene_intro',
+      presentationCinematic: adapter,
+    ).run(
+      runId: 'run-yarn-cue',
+      draft: NewGameDraft.start(
+        draftId: 'draft-yarn-cue',
+        projectRevision: adapter.projectRevision,
+        slotId: 'slot_1',
+        config: project.newGame,
+      ),
+      interactions: interactions,
+    );
+
+    expect(
+      requests.map((request) => request.prompt.fallbackText),
+      [
+        'Le professeur entre en scène.',
+        'Il ajuste ses lunettes.',
+      ],
+      reason: 'the Yarn pages ran DURING the cue hold through the existing '
+          'dialogue runner, and the graph node afterwards replayed nothing — '
+          'exactly once, no parallel interpreter',
+    );
+  });
+
 }
+
+SceneAsset _yarnCueScene() => SceneAsset(
+      id: 'scene_intro',
+      name: 'Yarn cue intro',
+      executionProfile: SceneExecutionProfile.preSession,
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'presentation',
+            kind: SceneNodeKind.presentationCinematic,
+            payload: ScenePresentationCinematicPayload(
+              presentationCinematicId: 'opening',
+              interactionCueBindings: const [
+                ScenePresentationInteractionCueBinding(
+                  markerId: 'cue_talk',
+                  awaitableNodeId: 'talk',
+                ),
+              ],
+            ),
+          ),
+          SceneNode(
+            id: 'talk',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(
+              dialogueId: 'cue_talk',
+              yarnNodeName: 'CueTalk',
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: <SceneEdge>[
+          SceneEdge(
+            id: 'start_presentation',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'presentation',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'presentation_talk',
+            fromNodeId: 'presentation',
+            fromPortId: 'completed',
+            toNodeId: 'talk',
+            kind: SceneEdgeKind.presentationCompleted,
+          ),
+          SceneEdge(
+            id: 'talk_end',
+            fromNodeId: 'talk',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      ),
+    );
 
 SceneAsset _interpolationScene() => SceneAsset(
       id: 'scene_intro',

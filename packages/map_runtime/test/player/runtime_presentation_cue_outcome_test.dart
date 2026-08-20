@@ -172,27 +172,92 @@ void main() {
     );
   });
 
-  test('a resolved destination fails closed until BETA-CIN-072 routes it',
+  test('a resolved seek moves the playhead to the marker and resumes',
       () async {
-    for (final outcome in [
-      PresentationInteractionOutcome.seekMarker(markerId: 'chapter_two'),
-      PresentationInteractionOutcome.repeatFromMarker(markerId: 'chapter_two'),
-    ]) {
-      final run = launch(onInteractionCue: (_) async => outcome);
-      final terminal = await run.terminal;
-      expect(terminal.result, RuntimePresentationExecutionResult.failed);
-      expect(
-        terminal.diagnosticCode,
-        PresentationCueOutcomeCodes.seekRoutingUnavailable,
-      );
-      expect(
-        run.frameTimesUs,
-        [0, 600000],
-        reason: 'half a seek would be worse than none: the playhead never '
-            'jumps to 200000 before the real routing exists',
-      );
-      await run.player.dispose();
-    }
+    var cueCount = 0;
+    final run = launch(
+      deltasUs: const [600000, 400000, 400000],
+      onInteractionCue: (_) async {
+        cueCount += 1;
+        return cueCount == 1
+            ? PresentationInteractionOutcome.seekMarker(
+                markerId: 'chapter_two',
+              )
+            : const PresentationInteractionOutcome.continueTimeline();
+      },
+    );
+    addTearDown(run.player.dispose);
+
+    expect(
+      (await run.terminal).result,
+      RuntimePresentationExecutionResult.completed,
+    );
+    expect(
+      run.frameTimesUs,
+      [0, 600000, 200000, 600000, 1000000],
+      reason: 'the playhead lands exactly on the marker position derived by '
+          'identity, republished immediately, and the timeline resumes',
+    );
+    expect(
+      cueCount,
+      2,
+      reason: 'seeking behind the cue re-arms it: the replay window',
+    );
+  });
+
+  test('a repeat re-fires its own cue in the same pass', () async {
+    var cueCount = 0;
+    final run = launch(
+      deltasUs: const [600000, 400000, 400000],
+      onInteractionCue: (_) async {
+        cueCount += 1;
+        return cueCount == 1
+            ? PresentationInteractionOutcome.repeatFromMarker(
+                markerId: 'ask_name',
+              )
+            : const PresentationInteractionOutcome.continueTimeline();
+      },
+    );
+    addTearDown(run.player.dispose);
+
+    expect(
+      (await run.terminal).result,
+      RuntimePresentationExecutionResult.completed,
+    );
+    expect(run.frameTimesUs, [0, 600000, 500000, 900000, 1000000]);
+    expect(
+      cueCount,
+      2,
+      reason: 'repeatFromMarker on the cue own marker re-runs the '
+          'interaction — the Non branch of the reference journey',
+    );
+  });
+
+  test('an endless repeat exhausts the transition budget and fails closed',
+      () async {
+    var cueCount = 0;
+    final run = launch(
+      onInteractionCue: (_) async {
+        cueCount += 1;
+        return PresentationInteractionOutcome.repeatFromMarker(
+          markerId: 'ask_name',
+        );
+      },
+    );
+    addTearDown(run.player.dispose);
+
+    final terminal = await run.terminal;
+    expect(terminal.result, RuntimePresentationExecutionResult.failed);
+    expect(
+      terminal.diagnosticCode,
+      PresentationCueOutcomeCodes.transitionBudgetExhausted,
+    );
+    expect(
+      cueCount,
+      defaultPresentationTransitionBudgetPerExecution + 1,
+      reason: 'every applied transition consumed one budget unit; the first '
+          'response beyond the budget terminates instead of looping forever',
+    );
   });
 
   test('a stale response after a skip never produces a second resumption',

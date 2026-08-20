@@ -153,6 +153,7 @@ final class RuntimeTextPreSessionSceneRunner
     var interactionSerial = 0;
     var currentDraft = draft;
     final handledInteractionOutputsByNodeId = <String, String>{};
+    final handledDialogueOutcomesByNodeId = <String, String>{};
     Future<String> unsupported(SceneRuntimePlanIntent intent) async {
       throw StateError(
         'Unsupported preSession intent ${intent.kind.name} in text mode.',
@@ -162,13 +163,18 @@ final class RuntimeTextPreSessionSceneRunner
     final result = await SceneRuntimeExecutor(
       callbacks: SceneRuntimeExecutionCallbacks(
         evaluateCondition: unsupported,
-        showDialogue: (intent) => _runDialogue(
-          intent: intent,
-          runId: runId,
-          dialogueSerial: dialogueSerial++,
-          interactions: interactions,
-          currentScope: () => _interpolationScopeFor(currentDraft),
-        ),
+        showDialogue: (intent) async {
+          final handledOutcome =
+              handledDialogueOutcomesByNodeId[intent.sourceNodeId];
+          if (handledOutcome != null) return handledOutcome;
+          return _runDialogue(
+            intent: intent,
+            runId: runId,
+            dialogueSerial: dialogueSerial++,
+            interactions: interactions,
+            currentScope: () => _interpolationScopeFor(currentDraft),
+          );
+        },
         startBattle: unsupported,
         playCinematic: unsupported,
         playPresentationCinematic: (intent) async {
@@ -179,21 +185,43 @@ final class RuntimeTextPreSessionSceneRunner
             onInteractionCue: (cue) async {
               final awaitableNodeId = intent
                   .presentationAwaitableNodeIdsByMarkerId[cue.markerId];
-              final interactionNode = activeScene.graph.nodes
+              final awaitableNode = activeScene.graph.nodes
                   .where((node) => node.id == awaitableNodeId)
                   .firstOrNull;
-              final interactionPayload = interactionNode?.payload;
-              if (awaitableNodeId == null ||
-                  interactionPayload is! SceneActionPayload ||
-                  interactionPayload.preSessionInteraction == null) {
+              final awaitablePayload = awaitableNode?.payload;
+              if (awaitableNodeId == null || awaitableNode == null) {
                 throw StateError(
                   'Presentation interaction cue "${cue.markerId}" is not '
-                  'linked to a structured Scene interaction.',
+                  'linked to an awaitable Scene node.',
+                );
+              }
+              if (awaitablePayload is SceneYarnDialoguePayload) {
+                final outcomeId = await _runDialogue(
+                  intent: SceneRuntimePlanIntent.showDialogue(
+                    dialogueId: awaitablePayload.dialogueId,
+                    yarnNodeName: awaitablePayload.yarnNodeName,
+                    sourceNodeId: awaitableNodeId,
+                    expectedOutcomes: awaitablePayload.expectedOutcomes,
+                  ),
+                  runId: runId,
+                  dialogueSerial: dialogueSerial++,
+                  interactions: interactions,
+                  currentScope: () => _interpolationScopeFor(currentDraft),
+                );
+                handledDialogueOutcomesByNodeId[awaitableNodeId] = outcomeId;
+                return const PresentationInteractionOutcome
+                    .continueTimeline();
+              }
+              if (awaitablePayload is! SceneActionPayload ||
+                  awaitablePayload.preSessionInteraction == null) {
+                throw StateError(
+                  'Presentation interaction cue "${cue.markerId}" is not '
+                  'linked to an awaitable Scene node.',
                 );
               }
               final interactionResult = await _runStructuredInteraction(
                 intent: SceneRuntimePlanIntent.requestStructuredInteraction(
-                  interaction: interactionPayload.preSessionInteraction!,
+                  interaction: awaitablePayload.preSessionInteraction!,
                   sourceNodeId: awaitableNodeId,
                 ),
                 requestId: '$runId:scene:${interactionSerial++}',

@@ -170,6 +170,7 @@ SceneRuntimePlanIntent _runtimeIntentForNode(
     SceneNodeKind.merge => SceneRuntimePlanIntent.merge(),
     SceneNodeKind.yarnDialogue => _dialogueIntent(
       node.payload as SceneYarnDialoguePayload,
+      sourceNodeId: node.id,
     ),
     SceneNodeKind.battle => _battleIntent(node.payload as SceneBattlePayload),
     SceneNodeKind.cinematic => SceneRuntimePlanIntent.playCinematic(
@@ -261,10 +262,14 @@ SceneRuntimePlanIntent _actionIntent(SceneNode node) {
   return SceneRuntimePlanIntent.applyConsequence(consequence: consequence);
 }
 
-SceneRuntimePlanIntent _dialogueIntent(SceneYarnDialoguePayload payload) {
+SceneRuntimePlanIntent _dialogueIntent(
+  SceneYarnDialoguePayload payload, {
+  required String sourceNodeId,
+}) {
   return SceneRuntimePlanIntent.showDialogue(
     dialogueId: payload.dialogueId,
     yarnNodeName: payload.yarnNodeName,
+    sourceNodeId: sourceNodeId,
     expectedOutcomes: payload.expectedOutcomes,
   );
 }
