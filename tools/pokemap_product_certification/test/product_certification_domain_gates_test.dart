@@ -58,25 +58,25 @@ void main() {
       }
     });
 
-    test('the recorded debt is exactly this one ticket', () {
-      // Figé à l'identique : livrer une golden gate de domaine sans reclasser
-      // son entrée fait échouer la suite, donc l'assemblage ne peut ni se
-      // dégrader ni se compléter en silence.
+    test('the recorded debt is empty — every domain has shipped its gate', () {
+      // Figé à l'identique : une gate qui régresse vers une dette fait
+      // échouer la suite, donc l'assemblage ne peut pas se dégrader en
+      // silence.
       final pending = <String>{
         for (final gate in productCertificationDomainGates)
           if (gate.pendingTicket != null) gate.pendingTicket!,
       };
 
-      expect(pending, <String>{
-        'BETA-PRG-006',
-      });
+      expect(pending, isEmpty);
     });
 
-    test('the assembled verdict stays NO-GO while any debt remains', () {
-      // Le verdict est calculé, pas déclaré. Le jour où les quatre gates
-      // livrent, ce cas s'inverse volontairement : il faudra alors l'assumer en
-      // le retournant, ce qui est exactement le moment de prononcer le GO.
-      expect(productCertificationDomainGatesComplete, isFalse);
+    test('the assembled verdict is GO — and stays calculated, not declared',
+        () {
+      // Le 2026-08-20, la dernière gate (BETA-PRG-006) a livré : ce cas
+      // s'inverse volontairement, exactement comme son prédécesseur NO-GO
+      // l'annonçait. Le verdict reste CALCULÉ : le premier domaine qui
+      // retombe en dette retourne ce test tout seul.
+      expect(productCertificationDomainGatesComplete, isTrue);
     });
 
     test('every golden gate file in this package is declared in the registry',

@@ -23,6 +23,7 @@ final class NeutralCertificationGameFixture {
     this.encounterField = false,
     this.trainerArena = false,
     this.economyTown = false,
+    this.progressionArena = false,
   }) : assert(partySize == 1 || partySize == 2 || partySize == 6);
 
   final bool connectedMaps;
@@ -58,7 +59,14 @@ final class NeutralCertificationGameFixture {
   /// forme exacte.
   final bool economyTown;
 
-  bool get _arenaEnabled => trainerArena || economyTown;
+  /// BETA-PRG-006 : la gate progression a besoin d'un lead à QUATRE attaques
+  /// (chaque nouveau move force un prompt de remplacement), d'un learnset où
+  /// deux moves tombent sur le grind (growl au 6, vine_whip au 7) et d'une
+  /// évolution au niveau 7 — surcharges de DONNÉES par-dessus le seed, dans
+  /// l'espace auteur de la fixture. Implique l'arène.
+  final bool progressionArena;
+
+  bool get _arenaEnabled => trainerArena || economyTown || progressionArena;
 
   static const String shopId = 'certification_shop';
   static const String machineItemId = 'certification-tm-growl';
@@ -329,7 +337,14 @@ final class NeutralCertificationGameFixture {
             // BETA-ITM-008 : growl est libre pour l'apprentissage par CT.
             knownMoveIds: economyTown
                 ? const <String>['tackle']
-                : const <String>[],
+                : progressionArena
+                    ? const <String>[
+                        'tackle',
+                        'leer',
+                        'quick_attack',
+                        'tail_whip',
+                      ]
+                    : const <String>[],
           ),
           if (partySize > 1)
             const PlayerPokemon(
@@ -361,7 +376,7 @@ final class NeutralCertificationGameFixture {
                     BagEntry(itemId: machineItemId, quantity: 1),
                     BagEntry(itemId: heldItemId, quantity: 1),
                   ]
-                : trainerArena
+                : trainerArena || progressionArena
                     ? const <BagEntry>[
                         BagEntry(itemId: 'potion', quantity: 4),
                       ]
@@ -378,7 +393,7 @@ final class NeutralCertificationGameFixture {
       // sur un trigger d'entrée de case que le journey ne visite jamais.
       eventRegistry: economyTown
           ? _economyEventRegistry
-          : encounterField || trainerArena
+          : encounterField || _arenaEnabled
               ? _cornerEventRegistry
               : _eventRegistry,
       globalProperties: <String, Object?>{
@@ -533,6 +548,9 @@ final class NeutralCertificationGameFixture {
     if (economyTown) {
       await _appendEconomyItemsToCatalog(root);
     }
+    if (progressionArena) {
+      await _overrideProgressionLearnsetAndEvolution(root);
+    }
     await File(
       p.join(root.path, 'LICENSE.txt'),
     ).writeAsString('PokeMap neutral certification fixture.', flush: true);
@@ -647,6 +665,51 @@ final class NeutralCertificationGameFixture {
       'heldEffectId': 'leftovers',
     });
     await _writeJson(itemsFile, catalog);
+  }
+
+  /// Surcharge le learnset et l'évolution du starter pour que le grind de la
+  /// gate progression produise deux prompts d'apprentissage puis une
+  /// proposition d'évolution — des données, pas du code.
+  Future<void> _overrideProgressionLearnsetAndEvolution(Directory root) async {
+    final learnsetFile = File(
+      p.join(root.path, 'data', 'pokemon', 'learnsets', 'bulbasaur.json'),
+    );
+    final learnset =
+        jsonDecode(await learnsetFile.readAsString()) as Map<String, dynamic>;
+    learnset['levelUp'] = <Object?>[
+      <String, Object?>{
+        'moveId': 'tackle',
+        'level': 1,
+        'source': 'level_up',
+        'versionGroup': 'demo',
+      },
+      <String, Object?>{
+        'moveId': 'growl',
+        'level': 6,
+        'source': 'level_up',
+        'versionGroup': 'demo',
+      },
+      <String, Object?>{
+        'moveId': 'vine_whip',
+        'level': 7,
+        'source': 'level_up',
+        'versionGroup': 'demo',
+      },
+    ];
+    await _writeJson(learnsetFile, learnset);
+
+    final evolutionFile = File(
+      p.join(root.path, 'data', 'pokemon', 'evolutions', 'bulbasaur.json'),
+    );
+    final evolution =
+        jsonDecode(await evolutionFile.readAsString()) as Map<String, dynamic>;
+    final targets = (evolution['evolutions'] as List?)
+        ?.cast<Map<String, dynamic>>();
+    if (targets == null || targets.isEmpty) {
+      throw StateError('The seed bulbasaur evolution file has no targets.');
+    }
+    targets.first['minLevel'] = 7;
+    await _writeJson(evolutionFile, evolution);
   }
 
   Future<void> _writeArenaActorTileset(Directory root) async {

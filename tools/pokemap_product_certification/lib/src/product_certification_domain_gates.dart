@@ -149,12 +149,19 @@ const List<ProductCertificationDomainGate> productCertificationDomainGates =
   ),
   ProductCertificationDomainGate(
     domain: 'postBattleProgression',
-    coverage: DomainGateCoverage.pendingGate,
-    gateTestPaths: <String>[],
-    rationale: 'XP et niveaux sont certifiés unitairement (BETA-PRG-001/002) '
-        'mais aucune gate ne ferme victoire ET défaite avec level-up, '
-        'apprentissage, évolution, blackout et reprise.',
-    pendingTicket: 'BETA-PRG-006',
+    coverage: DomainGateCoverage.gated,
+    gateTestPaths: <String>[
+      'tools/pokemap_product_certification/test/golden_progression_gate_test.dart',
+      'tools/pokemap_product_certification/test/golden_trainer_arena_gate_test.dart',
+    ],
+    rationale: 'BETA-PRG-006. La victoire full-chain depuis un package '
+        'installé seul : le grind gagne plusieurs niveaux, DEUX capacités '
+        'tombent en prompt de remplacement — chaque choix navigué aux '
+        'flèches et validé sur les libellés réels — l’évolution est ACCEPTÉE '
+        'au niveau 7 (l’espèce change, l’identité individuelle jamais), le '
+        'boss paie argent et milestone, et le reload rend l’individu évolué '
+        'structurellement égal. Le scénario DÉFAITE (party K.O., pénalité '
+        'd’argent, whiteout, restauration, reprise) est la gate de l’arène.',
   ),
   ProductCertificationDomainGate(
     domain: 'startupPersistence',
@@ -213,8 +220,8 @@ const List<ProductCertificationDomainGate> productCertificationDomainGates =
 
 /// Verdict d'assemblage : GO seulement quand plus aucune dette ne subsiste.
 ///
-/// Calculé, pas déclaré — c'est ce qui empêche de prononcer la certification
-/// produit tant que PRG-006 n'a pas livré sa gate.
+/// Calculé, pas déclaré — chaque domaine a livré sa gate : le verdict est
+/// GO, et le premier domaine qui régresse le fait retomber tout seul.
 bool get productCertificationDomainGatesComplete =>
     productCertificationDomainGates.every(
       (gate) => gate.coverage == DomainGateCoverage.gated,
