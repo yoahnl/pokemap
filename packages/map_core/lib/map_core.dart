@@ -360,6 +360,7 @@ export 'src/validation/project_item_catalog_validator.dart';
 export 'src/validation/border_validation.dart';
 export 'src/validation/dialogue_validation.dart';
 export 'src/validation/entity_editor_visual_validation.dart';
+export 'src/validation/beta_playability_composition.dart';
 export 'src/validation/beta_playability_validator.dart';
 export 'src/exceptions/map_exceptions.dart';
 export 'src/save/game_identity.dart';

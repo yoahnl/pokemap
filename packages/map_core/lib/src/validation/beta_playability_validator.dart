@@ -23,6 +23,15 @@ enum BetaPlayabilityDiagnosticKind {
   missingStarterOrInitialPartySource,
   missingCapturePrerequisite,
   missingSaveLoadPrerequisite,
+
+  /// Une carte exige une capacité terrain que le projet ne peut pas fournir.
+  ///
+  /// BETA-SYS-005. La gate validait maps, spawns, dresseurs, espèces, starters,
+  /// capture et sauvegarde — mais rien sur les capacités terrain, alors que
+  /// BETA-SYS-002 a fait de Surf la seule porte signée du parcours bêta. Une
+  /// zone d'eau exigeant Surf dans un projet dont le catalogue n'a pas la
+  /// capacité est infranchissable pour toujours, sans un mot.
+  missingFieldAbilityPrerequisite,
 }
 
 class BetaPlayabilityDiagnostic {
@@ -200,6 +209,8 @@ BetaPlayabilityValidationResult validateBetaPlayability(
     );
   }
 
+  _appendFieldAbilityPrerequisiteDiagnostics(context, diagnostics);
+
   if (context.requiresSaveLoad && !context.hasSaveLoadSupport) {
     diagnostics.add(
       const BetaPlayabilityDiagnostic(
@@ -214,6 +225,73 @@ BetaPlayabilityValidationResult validateBetaPlayability(
   }
 
   return BetaPlayabilityValidationResult(diagnostics);
+}
+
+/// Capacités terrain exigées par les cartes, confrontées au catalogue.
+///
+/// Le calcul se fait ICI, depuis `mapsById` que la gate reçoit déjà : aucun
+/// appelant n'a à fournir un fait de plus, donc aucune chance d'oublier de le
+/// câbler. C'est exactement ce qui est arrivé aux cinq validateurs de domaine
+/// que cette gate ne compose toujours pas.
+///
+/// La règle est volontairement étroite, et c'est un choix : elle ne signale que
+/// l'impossibilité ABSOLUE — la capacité n'existe pas dans le catalogue de
+/// capacités, donc aucun Pokémon ne pourra jamais la connaître. Savoir si une
+/// ESPÈCE peut l'apprendre demande les learnsets, que la gate n'a pas ; refuser
+/// sur cette base-là produirait des faux positifs sur des projets jouables.
+void _appendFieldAbilityPrerequisiteDiagnostics(
+  BetaPlayabilityValidationContext context,
+  List<BetaPlayabilityDiagnostic> diagnostics,
+) {
+  if (!context.moveCatalogIsAuthoritative) {
+    return;
+  }
+  final requiredByMapId = <String, Set<MovementMode>>{};
+  for (final entry in context.mapsById.entries) {
+    for (final zone in entry.value.gameplayZones) {
+      final movement = zone.movement;
+      if (movement == null) continue;
+      final modes = <MovementMode>{
+        movement.requiredMode,
+        ...movement.allowedModes,
+      }..remove(MovementMode.walk);
+      if (modes.isEmpty) continue;
+      requiredByMapId.putIfAbsent(entry.key, () => <MovementMode>{})
+          .addAll(modes);
+    }
+  }
+  for (final mapId in requiredByMapId.keys.toList()..sort()) {
+    for (final mode in requiredByMapId[mapId]!.toList()
+      ..sort((left, right) => left.name.compareTo(right.name))) {
+      final ability = _fieldAbilityForMovementMode(mode);
+      if (ability == null) continue;
+      if (context.knownMoveIds.contains(ability.moveId)) continue;
+      diagnostics.add(
+        BetaPlayabilityDiagnostic(
+          kind: BetaPlayabilityDiagnosticKind.missingFieldAbilityPrerequisite,
+          severity: BetaPlayabilityDiagnosticSeverity.error,
+          message:
+              'Map "$mapId" has a zone requiring ${mode.name} movement, but the '
+              'move catalog has no "${ability.moveId}" move, so no Pokemon can '
+              'ever provide it.',
+          actionHint:
+              'Add the "${ability.moveId}" move to the catalog, or remove the '
+              '${mode.name} requirement from the zone.',
+          path: 'beta.fieldAbility.${ability.moveId}',
+          mapId: mapId,
+          moveId: ability.moveId,
+        ),
+      );
+    }
+  }
+}
+
+/// Capacité terrain qui ouvre un mode de déplacement, ou `null`.
+FieldAbility? _fieldAbilityForMovementMode(MovementMode mode) {
+  return switch (mode) {
+    MovementMode.surf => FieldAbility.surf,
+    _ => null,
+  };
 }
 
 void _validateStartMapSpawn(

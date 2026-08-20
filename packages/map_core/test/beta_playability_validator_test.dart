@@ -31,6 +31,83 @@ void main() {
       expect(result.diagnostics, isEmpty);
     });
 
+    test('diagnoses a surf zone the move catalog cannot ever satisfy', () {
+      // BETA-SYS-005. La gate validait maps, spawns, dresseurs, espèces,
+      // starters, capture et sauvegarde — rien sur les capacités terrain, alors
+      // que BETA-SYS-002 a fait de Surf la seule porte signée du parcours bêta.
+      // Une zone d'eau exigeant Surf dans un projet dont le catalogue n'a pas la
+      // capacité est infranchissable pour toujours, et ça passait sans un mot.
+      final diagnostics = _fieldAbilityDiagnostics(
+        _validateWithSurfMaps(<String, MapData>{_mapId: _mapWithSurfZone()}),
+      );
+
+      expect(diagnostics, hasLength(1));
+      expect(
+        diagnostics.single.severity,
+        BetaPlayabilityDiagnosticSeverity.error,
+      );
+      expect(diagnostics.single.mapId, _mapId);
+      expect(diagnostics.single.moveId, 'surf');
+      expect(diagnostics.single.actionHint, contains('surf'));
+    });
+
+    test('accepts the same surf zone once the catalog carries the move', () {
+      // Le contre-exemple, sans lequel un diagnostic permanent passerait pour
+      // correct.
+      final diagnostics = _fieldAbilityDiagnostics(
+        _validateWithSurfMaps(
+          <String, MapData>{_mapId: _mapWithSurfZone()},
+          knownMoveIds: const <String>{_starterMoveId, _enemyMoveId, 'surf'},
+        ),
+      );
+
+      expect(diagnostics, isEmpty);
+    });
+
+    test('says nothing when the move catalog is not authoritative', () {
+      // Ne pas savoir n'est pas la même chose que savoir que c'est cassé. Un
+      // projet dont le catalogue n'a pas été chargé ne doit pas être déclaré
+      // injouable sur cette base.
+      final diagnostics = _fieldAbilityDiagnostics(
+        _validateWithSurfMaps(
+          <String, MapData>{_mapId: _mapWithSurfZone()},
+          moveCatalogIsAuthoritative: false,
+        ),
+      );
+
+      expect(diagnostics, isEmpty);
+    });
+
+    test('reports one diagnostic per map, in a stable order', () {
+      // Critère « deterministic report ». Les cartes viennent d'une Map, dont
+      // l'ordre d'itération suit l'insertion : deux projets identiques rangés
+      // différemment produiraient deux rapports différents, et un rapport de
+      // gate qui change d'ordre est illisible en revue.
+      final maps = <String, MapData>{
+        'zeta_map': _mapWithSurfZone(id: 'zeta_map'),
+        _mapId: _mapWithSurfZone(),
+        'alpha_map': _mapWithSurfZone(id: 'alpha_map'),
+      };
+
+      final first = _fieldAbilityDiagnostics(_validateWithSurfMaps(maps));
+      final reversed = _fieldAbilityDiagnostics(
+        _validateWithSurfMaps(<String, MapData>{
+          for (final key in maps.keys.toList().reversed) key: maps[key]!,
+        }),
+      );
+
+      expect(first.map((diagnostic) => diagnostic.mapId).toList(), <String>[
+        'alpha_map',
+        _mapId,
+        'zeta_map',
+      ]);
+      expect(
+        reversed.map((diagnostic) => diagnostic.mapId).toList(),
+        first.map((diagnostic) => diagnostic.mapId).toList(),
+        reason: 'the report must not depend on how the maps were inserted',
+      );
+    });
+
     test('diagnoses an empty manifest map list', () {
       final result = validateBetaPlayability(
         const ProjectManifest(
@@ -311,6 +388,56 @@ ProjectManifest _manifest({
     tilesets: const <ProjectTilesetEntry>[],
     trainers: trainers ?? <ProjectTrainerEntry>[_trainer()],
   );
+}
+
+/// Carte du parcours bêta portant une zone d'eau qui exige Surf.
+MapData _mapWithSurfZone({String id = _mapId}) {
+  final base = _map();
+  return base.copyWith(
+    id: id,
+    gameplayZones: <MapGameplayZone>[
+      const MapGameplayZone(
+        id: 'water',
+        name: 'Water',
+        kind: GameplayZoneKind.movement,
+        area: MapRect(
+          pos: GridPos(x: 4, y: 4),
+          size: GridSize(width: 1, height: 1),
+        ),
+        movement: MovementZonePayload(requiredMode: MovementMode.surf),
+      ),
+    ],
+  );
+}
+
+BetaPlayabilityValidationResult _validateWithSurfMaps(
+  Map<String, MapData> maps, {
+  Set<String> knownMoveIds = const <String>{_starterMoveId, _enemyMoveId},
+  bool moveCatalogIsAuthoritative = true,
+}) {
+  return validateBetaPlayability(
+    _manifest(),
+    context: BetaPlayabilityValidationContext(
+      mapsById: maps,
+      knownSpeciesIds: const <String>{_starterSpeciesId, _enemySpeciesId},
+      knownMoveIds: knownMoveIds,
+      moveCatalogIsAuthoritative: moveCatalogIsAuthoritative,
+      initialPartySpeciesIds: const <String>{_starterSpeciesId},
+      initialPartyMoveIds: const <String>{_starterMoveId},
+    ),
+  );
+}
+
+List<BetaPlayabilityDiagnostic> _fieldAbilityDiagnostics(
+  BetaPlayabilityValidationResult result,
+) {
+  return result.diagnostics
+      .where(
+        (diagnostic) =>
+            diagnostic.kind ==
+            BetaPlayabilityDiagnosticKind.missingFieldAbilityPrerequisite,
+      )
+      .toList(growable: false);
 }
 
 MapData _map({String? defaultSpawnId = _spawnId}) {
