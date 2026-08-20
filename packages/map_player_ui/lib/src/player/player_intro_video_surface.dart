@@ -54,6 +54,10 @@ class _PlayerIntroVideoSurfaceState extends State<PlayerIntroVideoSurface> {
   Widget build(BuildContext context) {
     final colors = context.playerColors;
     final strings = PlayerIntroVideoStrings.of(context);
+    final onMedia = colors.background.computeLuminance() >=
+            colors.textPrimary.computeLuminance()
+        ? colors.background
+        : colors.textPrimary;
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.enter): _primaryAction,
@@ -104,7 +108,7 @@ class _PlayerIntroVideoSurfaceState extends State<PlayerIntroVideoSurface> {
                         style: Theme.of(context)
                             .textTheme
                             .bodyLarge
-                            ?.copyWith(color: colors.textPrimary),
+                            ?.copyWith(color: onMedia),
                       ),
                     ),
                   ),
@@ -127,6 +131,7 @@ class _PlayerIntroVideoSurfaceState extends State<PlayerIntroVideoSurface> {
                                 label: widget.replayLabel ?? strings.replay,
                                 icon: Icons.replay_outlined,
                                 secondary: true,
+                                foregroundColor: onMedia,
                                 onPressed: widget.onReplay,
                               ),
                             ),
@@ -180,6 +185,7 @@ class _PlayerIntroVideoSurfaceState extends State<PlayerIntroVideoSurface> {
                             label: widget.skipLabel ?? strings.skip,
                             icon: Icons.skip_next_outlined,
                             secondary: true,
+                            foregroundColor: onMedia,
                             onPressed: widget.onSkip,
                           ),
                         ),

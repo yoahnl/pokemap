@@ -574,6 +574,54 @@ void main() {
       lessThanOrEqualTo(390),
     );
   });
+
+  testWidgets('project semantic colors replace every host text color',
+      (tester) async {
+    final semantic =
+        PokeMapPlayerTheme.light().extension<PokeMapPlayerSemanticTheme>()!;
+    final theme = PokeMapPlayerTheme.withSemanticTheme(
+      PokeMapPlayerTheme.dark(),
+      semantic,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('fr'),
+        supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+        localizationsDelegates:
+            PokeMapPlayerLocalizations.localizationsDelegates,
+        theme: theme,
+        home: PlayerSceneInteractionSurface(
+          request: SceneInteractionRequest.text(
+            requestId: 'semantic-colors',
+            revision: 19,
+            prompt: _prompt('Quel est ton prénom ?'),
+          ),
+          onResult: (_) {},
+        ),
+      ),
+    );
+
+    final prompt = tester.widget<Text>(find.text('Quel est ton prénom ?'));
+    final cancel = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('scene-interaction-cancel'),
+        ),
+        matching: find.text('Annuler'),
+      ),
+    );
+    final fieldContext = tester.element(
+      find.byKey(const ValueKey<String>('scene-interaction-text-field')),
+    );
+
+    expect(prompt.style?.color, semantic.textPrimary);
+    expect(cancel.style?.color, theme.colorScheme.primary);
+    expect(
+      Theme.of(fieldContext).colorScheme.onSurfaceVariant,
+      semantic.textSecondary,
+    );
+  });
 }
 
 Widget _app({

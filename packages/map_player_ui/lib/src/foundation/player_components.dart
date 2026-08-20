@@ -359,38 +359,40 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
     final enabled = widget.onPressed != null;
     final colors = context.playerColors;
     final motion = context.playerMotion;
-    final buttonChild = Row(
-      mainAxisSize: widget.expandContent ? MainAxisSize.max : MainAxisSize.min,
-      children: <Widget>[
-        Icon(widget.icon),
-        const SizedBox(width: PlayerSpacing.sm),
-        if (widget.expandContent)
-          Expanded(
-            child: Text(
-              widget.label,
-              overflow: TextOverflow.ellipsis,
-              style: context.playerTypography.bodyStyle(
-                Theme.of(context).textTheme.labelLarge ??
-                    DefaultTextStyle.of(context).style,
+    final buttonChild = Builder(
+      builder: (buttonContext) {
+        final labelStyle = buttonContext.playerTypography.bodyStyle(
+          DefaultTextStyle.of(buttonContext).style,
+        );
+        return Row(
+          mainAxisSize:
+              widget.expandContent ? MainAxisSize.max : MainAxisSize.min,
+          children: <Widget>[
+            Icon(widget.icon),
+            const SizedBox(width: PlayerSpacing.sm),
+            if (widget.expandContent)
+              Expanded(
+                child: Text(
+                  widget.label,
+                  overflow: TextOverflow.ellipsis,
+                  style: labelStyle,
+                ),
+              )
+            else
+              Flexible(
+                child: Text(
+                  widget.label,
+                  overflow: TextOverflow.ellipsis,
+                  style: labelStyle,
+                ),
               ),
-            ),
-          )
-        else
-          Flexible(
-            child: Text(
-              widget.label,
-              overflow: TextOverflow.ellipsis,
-              style: context.playerTypography.bodyStyle(
-                Theme.of(context).textTheme.labelLarge ??
-                    DefaultTextStyle.of(context).style,
-              ),
-            ),
-          ),
-        if (widget.trailing != null) ...<Widget>[
-          const SizedBox(width: PlayerSpacing.sm),
-          Flexible(child: widget.trailing!),
-        ],
-      ],
+            if (widget.trailing != null) ...<Widget>[
+              const SizedBox(width: PlayerSpacing.sm),
+              Flexible(child: widget.trailing!),
+            ],
+          ],
+        );
+      },
     );
     final hasStyleOverride = widget.foregroundColor != null ||
         widget.backgroundColor != null ||

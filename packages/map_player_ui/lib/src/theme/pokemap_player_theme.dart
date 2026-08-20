@@ -622,24 +622,30 @@ abstract final class PokeMapPlayerTheme {
       onError: colors.background,
       surface: colors.surface,
       onSurface: colors.textPrimary,
+      onSurfaceVariant: colors.textSecondary,
       outline: colors.outline,
       inverseSurface: colors.textPrimary,
       onInverseSurface: colors.background,
       inversePrimary: colors.primary,
       surfaceTint: colors.primary,
     );
-    final textTheme = theme.textTheme.copyWith(
-      headlineLarge:
-          theme.textTheme.headlineLarge?.copyWith(color: colors.textPrimary),
-      displaySmall:
-          theme.textTheme.displaySmall?.copyWith(color: colors.textPrimary),
-      headlineMedium:
-          theme.textTheme.headlineMedium?.copyWith(color: colors.textPrimary),
-      titleLarge:
-          theme.textTheme.titleLarge?.copyWith(color: colors.textPrimary),
-      bodyLarge: theme.textTheme.bodyLarge?.copyWith(color: colors.textPrimary),
-      bodyMedium:
-          theme.textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
+    final projectedTextTheme = theme.textTheme.apply(
+      bodyColor: colors.textPrimary,
+      displayColor: colors.textPrimary,
+    );
+    final textTheme = projectedTextTheme.copyWith(
+      bodyMedium: projectedTextTheme.bodyMedium?.copyWith(
+        color: colors.textSecondary,
+      ),
+      bodySmall: projectedTextTheme.bodySmall?.copyWith(
+        color: colors.textSecondary,
+      ),
+      labelMedium: projectedTextTheme.labelMedium?.copyWith(
+        color: colors.textSecondary,
+      ),
+      labelSmall: projectedTextTheme.labelSmall?.copyWith(
+        color: colors.textSecondary,
+      ),
     );
     return theme.copyWith(
       colorScheme: colorScheme,
