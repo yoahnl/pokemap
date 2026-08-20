@@ -192,7 +192,7 @@ void main() {
           .payload as ScenePresentationCinematicPayload;
       expect(
         presentation.interactionCueBindings,
-        const [
+        [
           ScenePresentationInteractionCueBinding(
             markerId: 'cue_welcome',
             awaitableNodeId: 'welcome',

@@ -84,11 +84,13 @@ final class _ActiveAudioChannel {
     required this.handle,
     required this.snapshot,
     required this.bus,
+    required this.holdPolicy,
   });
 
   final Object handle;
   PresentationAudioChannelSnapshot snapshot;
   final PresentationAudioBus bus;
+  final PresentationHoldTrackPolicy holdPolicy;
   bool suspendedByHold = false;
   bool suspendedByLifecycle = false;
 
@@ -253,6 +255,7 @@ final class RuntimePresentationAudioController {
         volume: command.volume,
       ),
       bus: command.bus,
+      holdPolicy: command.holdPolicy,
     );
     _channels[command.clipId] = channel;
     await mixer.register(
@@ -266,7 +269,8 @@ final class RuntimePresentationAudioController {
       sourceVolume: command.volume,
       setVolume: (volume) => driver.setVolume(handle, volume),
     );
-    if (_holdDepth > 0) {
+    if (_holdDepth > 0 &&
+        command.holdPolicy == PresentationHoldTrackPolicy.frozen) {
       channel.suspendedByHold = true;
       await driver.pause(handle);
     }
@@ -285,6 +289,12 @@ final class RuntimePresentationAudioController {
 
   Future<void> _suspendAll({required bool hold}) async {
     for (final channel in _channels.values) {
+      if (hold &&
+          channel.holdPolicy == PresentationHoldTrackPolicy.ambientContinues) {
+        // Authored ambience keeps playing through the hold — only a real
+        // pause or a lifecycle suspension may silence it.
+        continue;
+      }
       final wasSuspended = channel.suspended;
       if (hold) {
         channel.suspendedByHold = true;

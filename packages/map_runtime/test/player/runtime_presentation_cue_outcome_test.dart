@@ -260,6 +260,55 @@ void main() {
     );
   });
 
+  test('the hold is an explicit phase, distinct from the engine pause',
+      () async {
+    final cueReached = Completer<void>();
+    final releaseCue = Completer<void>();
+    final run = launch(
+      onInteractionCue: (_) async {
+        cueReached.complete();
+        await releaseCue.future;
+        return const PresentationInteractionOutcome.continueTimeline();
+      },
+    );
+    addTearDown(run.player.dispose);
+
+    await cueReached.future;
+    expect(
+      run.player.executionSnapshot.phase,
+      RuntimePresentationExecutionPhase.interactionHold,
+      reason: 'the narrative freeze is a named state, never a disguised '
+          'pause',
+    );
+
+    await run.player.pauseForLifecycle();
+    expect(
+      run.player.executionSnapshot.phase,
+      RuntimePresentationExecutionPhase.paused,
+      reason: 'a real engine pause takes priority over the hold',
+    );
+
+    await run.player.resumeAfterLifecycle();
+    expect(
+      run.player.executionSnapshot.phase,
+      RuntimePresentationExecutionPhase.interactionHold,
+      reason: 'resuming the lifecycle restores the exact suspended '
+          'situation — the hold, not a bare running state',
+    );
+
+    releaseCue.complete();
+    expect(
+      (await run.terminal).result,
+      RuntimePresentationExecutionResult.completed,
+    );
+    expect(
+      run.frameTimesUs,
+      [0, 600000, 1000000],
+      reason: 'the resume lands on the exact suspended timestamp: no drift, '
+          'no re-emitted cues',
+    );
+  });
+
   test('a stale response after a skip never produces a second resumption',
       () async {
     final cueReached = Completer<void>();

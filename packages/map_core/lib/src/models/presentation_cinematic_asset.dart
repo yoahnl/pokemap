@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
+import 'presentation_dialogue_contract.dart';
+
 enum PresentationTrackKind { visual, audio, caption, marker }
 
 enum PresentationEasing { linear, easeIn, easeOut, easeInOut }
@@ -473,6 +475,7 @@ final class PresentationTrack {
     required String id,
     required String label,
     required this.kind,
+    this.holdPolicy = PresentationHoldTrackPolicy.frozen,
     List<PresentationClip> clips = const <PresentationClip>[],
   }) : id = _requiredString(id, 'PresentationTrack.id'),
        label = _requiredString(label, 'PresentationTrack.label'),
@@ -491,6 +494,11 @@ final class PresentationTrack {
   final String id;
   final String label;
   final PresentationTrackKind kind;
+
+  /// What this track's media do while an interaction cue holds the
+  /// timeline: frozen by default, ambient continuation only when explicitly
+  /// authored (BETA-CIN-077).
+  final PresentationHoldTrackPolicy holdPolicy;
   final List<PresentationClip> clips;
 
   @override
@@ -500,10 +508,12 @@ final class PresentationTrack {
           other.id == id &&
           other.label == label &&
           other.kind == kind &&
+          other.holdPolicy == holdPolicy &&
           _listEquals(other.clips, clips);
 
   @override
-  int get hashCode => Object.hash(id, label, kind, Object.hashAll(clips));
+  int get hashCode =>
+      Object.hash(id, label, kind, holdPolicy, Object.hashAll(clips));
 }
 
 @immutable

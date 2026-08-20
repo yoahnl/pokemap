@@ -196,6 +196,41 @@ void main() {
         0);
   });
 
+  test('hold and lifecycle suspend the video for independent reasons',
+      () async {
+    final driver = _RecordingVideoDriver();
+    final controller = RuntimePresentationMediaPlaybackController(
+      catalog: _catalog(),
+      targetPlatform: PresentationMediaTargetPlatform.android,
+      resolveUri: (media) => Uri.parse('file:///${media.sourceAssetId}'),
+      videoDriver: driver,
+      audioMixer: RuntimeAudioMixer(),
+    );
+
+    await controller.playVideo(
+      'opening-video',
+      audioMode: RuntimePresentationVideoAudioMode.mixerManaged,
+    );
+    await controller.pauseForHold();
+    await controller.pauseForLifecycle();
+    await controller.resumeFromHold();
+    expect(
+      driver.events,
+      [
+        'prepare:opening.mp4:1.0',
+        'play:video-1',
+        'pause:video-1',
+      ],
+      reason: 'the app is still backgrounded: answering the interaction must '
+          'NOT resume the video — hold and lifecycle are independent reasons '
+          '(BETA-CIN-077)',
+    );
+    await controller.resumeAfterLifecycle();
+    expect(driver.events.last, 'play:video-1');
+    await controller.release();
+    expect(driver.events.last, 'dispose:video-1');
+  });
+
   test('dispose invalidates a decoder prepared by a late callback', () async {
     final driver = _DeferredVideoDriver();
     final controller = RuntimePresentationMediaPlaybackController(

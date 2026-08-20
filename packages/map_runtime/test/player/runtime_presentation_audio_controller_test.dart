@@ -183,6 +183,89 @@ void main() {
     expect(theme.volume, closeTo(0.8, 1e-9));
   });
 
+  test('an authored ambient loop keeps playing through the hold', () async {
+    final harness = build();
+    final ambient = PresentationCinematicAsset(
+      id: 'opening',
+      title: 'Opening',
+      durationUs: 3000000,
+      tracks: [
+        PresentationTrack(
+          id: 'music',
+          label: 'Musique',
+          kind: PresentationTrackKind.audio,
+          holdPolicy: PresentationHoldTrackPolicy.ambientContinues,
+          clips: [
+            PresentationAudioClip(
+              id: 'theme',
+              startUs: 0,
+              durationUs: 3000000,
+              resourceId: 'media_theme',
+              audioKind: PresentationAudioKind.music,
+              volume: 0.8,
+              loop: true,
+            ),
+          ],
+        ),
+        PresentationTrack(
+          id: 'sfx',
+          label: 'Effets',
+          kind: PresentationTrackKind.audio,
+          clips: [
+            PresentationAudioClip(
+              id: 'whoosh',
+              startUs: 0,
+              durationUs: 3000000,
+              resourceId: 'media_narrator',
+              audioKind: PresentationAudioKind.soundEffect,
+              bus: PresentationAudioBus.effects,
+            ),
+          ],
+        ),
+      ],
+    );
+    await harness.controller.synchronize(
+      ambient,
+      const PresentationCinematicEvaluator().evaluate(ambient, timeUs: 500000),
+    );
+    final theme = harness.driver.handles
+        .singleWhere((handle) => handle.uri.path.contains('media_theme'));
+    final whoosh = harness.driver.handles
+        .singleWhere((handle) => handle.uri.path.contains('media_narrator'));
+
+    await harness.controller.pauseForHold();
+    expect(
+      theme.paused,
+      isFalse,
+      reason: 'authored ambience continues while the player reads or types',
+    );
+    expect(
+      whoosh.paused,
+      isTrue,
+      reason: 'frozen tracks freeze — the default policy',
+    );
+
+    await harness.controller.pauseForLifecycle();
+    expect(
+      theme.paused,
+      isTrue,
+      reason: 'a real pause or background suspends EVERY track, ambience '
+          'included',
+    );
+
+    await harness.controller.resumeAfterLifecycle();
+    expect(theme.paused, isFalse);
+    expect(
+      whoosh.paused,
+      isTrue,
+      reason: 'the hold is still active: only the ambience returns',
+    );
+
+    await harness.controller.resumeFromHold();
+    expect(whoosh.paused, isFalse);
+    expect(harness.driver.playCalls, 2);
+  });
+
   test('a media id missing from the catalog fails closed', () async {
     final driver = _RecordingAudioDriver();
     final controller = RuntimePresentationAudioController(

@@ -208,12 +208,22 @@ final class RuntimePresentationScenePlaybackController
         cueExecutionId:
             '${active.request.requestId}:cue:${marker.$2}#${active.nextCueSequence++}',
       );
+      executionController.enterInteractionHold(active.token);
       await audioController?.pauseForHold();
+      final freezeVideo = active.videoMediaId != null &&
+          active.videoHoldPolicy == PresentationHoldTrackPolicy.frozen;
+      if (freezeVideo) {
+        await executionController.mediaController.pauseForHold();
+      }
       final PresentationInteractionOutcome outcome;
       try {
         outcome = await handler(cue);
       } finally {
+        if (freezeVideo) {
+          await executionController.mediaController.resumeFromHold();
+        }
         await audioController?.resumeFromHold();
+        executionController.exitInteractionHold(active.token);
       }
       if (!_isCurrent(active)) return _CueLoopDirective.abort;
       if (!active.cueOutcomeGate.admit(cue.cueExecutionId)) continue;
@@ -302,14 +312,21 @@ final class RuntimePresentationScenePlaybackController
     PresentationFrame frame,
   ) async {
     String? videoMediaId;
+    var videoHoldPolicy = PresentationHoldTrackPolicy.frozen;
     for (final visual in frame.visuals) {
       final mediaId = _resolveVisualMediaId(active.request, visual);
       final media = executionController.mediaController.catalog.find(mediaId);
       if (media?.kind == ProjectMediaKind.video) {
         videoMediaId = mediaId;
+        videoHoldPolicy = active.request.asset.tracks
+                .where((track) => track.id == visual.trackId)
+                .map((track) => track.holdPolicy)
+                .firstOrNull ??
+            PresentationHoldTrackPolicy.frozen;
         break;
       }
     }
+    active.videoHoldPolicy = videoHoldPolicy;
     if (videoMediaId == active.videoMediaId) return true;
     active.videoMediaId = videoMediaId;
     if (videoMediaId == null) {
@@ -406,6 +423,8 @@ final class _RuntimePresentationActiveRun {
   int clockToken;
   final int generation;
   String? videoMediaId;
+  PresentationHoldTrackPolicy videoHoldPolicy =
+      PresentationHoldTrackPolicy.frozen;
   int publishedPlayheadUs = -1;
   int nextCueSequence = 1;
   final Set<String> triggeredMarkerIds = <String>{};

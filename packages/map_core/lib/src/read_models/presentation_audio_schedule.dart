@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/presentation_cinematic_asset.dart';
+import '../models/presentation_dialogue_contract.dart';
 import 'presentation_frame.dart';
 
 /// Deterministic audio scheduling of an evaluated Presentation frame —
@@ -76,6 +77,7 @@ final class PresentationAudioStartCommand extends PresentationAudioCommand {
     required this.volume,
     required this.audioKind,
     required this.bus,
+    this.holdPolicy = PresentationHoldTrackPolicy.frozen,
   });
 
   @override
@@ -87,6 +89,10 @@ final class PresentationAudioStartCommand extends PresentationAudioCommand {
   final PresentationAudioKind audioKind;
   final PresentationAudioBus bus;
 
+  /// Derived from the owning track: whether this channel keeps playing
+  /// while an interaction cue holds the timeline (BETA-CIN-077).
+  final PresentationHoldTrackPolicy holdPolicy;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -97,7 +103,8 @@ final class PresentationAudioStartCommand extends PresentationAudioCommand {
           other.loop == loop &&
           other.volume == volume &&
           other.audioKind == audioKind &&
-          other.bus == bus;
+          other.bus == bus &&
+          other.holdPolicy == holdPolicy;
 
   @override
   int get hashCode => Object.hash(
@@ -108,6 +115,7 @@ final class PresentationAudioStartCommand extends PresentationAudioCommand {
         volume,
         audioKind,
         bus,
+        holdPolicy,
       );
 }
 
@@ -216,6 +224,11 @@ PresentationAudioPlan planPresentationAudioCommands({
       for (final clip in track.clips)
         if (clip is PresentationAudioClip) clip.id: clip,
   };
+  final holdPoliciesByClipId = <String, PresentationHoldTrackPolicy>{
+    for (final track in asset.tracks)
+      for (final clip in track.clips)
+        if (clip is PresentationAudioClip) clip.id: track.holdPolicy,
+  };
 
   final dueClipIds = <String>{};
   final frameAudio = (frame?.audio ?? const <PresentationAudioFrameClip>[])
@@ -260,6 +273,8 @@ PresentationAudioPlan planPresentationAudioCommands({
           volume: volume,
           audioKind: clip.audioKind,
           bus: clip.bus,
+          holdPolicy: holdPoliciesByClipId[entry.clipId] ??
+              PresentationHoldTrackPolicy.frozen,
         ),
       );
       continue;

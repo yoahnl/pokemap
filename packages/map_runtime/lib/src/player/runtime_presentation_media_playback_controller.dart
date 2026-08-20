@@ -127,13 +127,28 @@ final class RuntimePresentationMediaPlaybackController {
   }
 
   Future<RuntimePresentationMediaPlaybackSnapshot> pauseForLifecycle() {
-    final result = _pending.then((_) => _pauseForLifecycle());
+    final result = _pending.then((_) => _suspend(lifecycle: true));
     _pending = result.then<void>((_) {}, onError: (_, __) {});
     return result;
   }
 
   Future<RuntimePresentationMediaPlaybackSnapshot> resumeAfterLifecycle() {
-    final result = _pending.then((_) => _resumeAfterLifecycle());
+    final result = _pending.then((_) => _resume(lifecycle: true));
+    _pending = result.then<void>((_) {}, onError: (_, __) {});
+    return result;
+  }
+
+  /// Suspends the active video while an interaction cue holds the timeline
+  /// — an independent reason from the lifecycle, so answering during a
+  /// backgrounded app never resumes anything (BETA-CIN-077).
+  Future<RuntimePresentationMediaPlaybackSnapshot> pauseForHold() {
+    final result = _pending.then((_) => _suspend(lifecycle: false));
+    _pending = result.then<void>((_) {}, onError: (_, __) {});
+    return result;
+  }
+
+  Future<RuntimePresentationMediaPlaybackSnapshot> resumeFromHold() {
+    final result = _pending.then((_) => _resume(lifecycle: false));
     _pending = result.then<void>((_) {}, onError: (_, __) {});
     return result;
   }
@@ -307,7 +322,35 @@ final class RuntimePresentationMediaPlaybackController {
 
   bool _isCurrent(int generation) => !_disposed && generation == _generation;
 
-  Future<RuntimePresentationMediaPlaybackSnapshot> _pauseForLifecycle() async {
+  var _suspendedByLifecycle = false;
+  var _suspendedByHold = false;
+
+  Future<RuntimePresentationMediaPlaybackSnapshot> _suspend({
+    required bool lifecycle,
+  }) async {
+    final wasSuspended = _suspendedByLifecycle || _suspendedByHold;
+    if (lifecycle) {
+      _suspendedByLifecycle = true;
+    } else {
+      _suspendedByHold = true;
+    }
+    if (wasSuspended) return _snapshot;
+    return _pauseActiveVideo();
+  }
+
+  Future<RuntimePresentationMediaPlaybackSnapshot> _resume({
+    required bool lifecycle,
+  }) async {
+    if (lifecycle) {
+      _suspendedByLifecycle = false;
+    } else {
+      _suspendedByHold = false;
+    }
+    if (_suspendedByLifecycle || _suspendedByHold) return _snapshot;
+    return _resumeActiveVideo();
+  }
+
+  Future<RuntimePresentationMediaPlaybackSnapshot> _pauseActiveVideo() async {
     final active = _activeVideo;
     if (_disposed || active == null || active.paused) return _snapshot;
     try {
@@ -331,7 +374,7 @@ final class RuntimePresentationMediaPlaybackController {
   }
 
   Future<RuntimePresentationMediaPlaybackSnapshot>
-      _resumeAfterLifecycle() async {
+      _resumeActiveVideo() async {
     final active = _activeVideo;
     if (_disposed || active == null || !active.paused) return _snapshot;
     try {

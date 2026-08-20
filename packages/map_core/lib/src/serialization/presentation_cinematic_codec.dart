@@ -1,4 +1,5 @@
 import '../models/presentation_cinematic_asset.dart';
+import '../models/presentation_dialogue_contract.dart';
 
 enum PresentationCinematicCodecErrorCode {
   invalidRoot,
@@ -235,7 +236,11 @@ PresentationTrack _decodeTrack(Object? value, int trackIndex) {
       r'$.tracks'
       '[$trackIndex]';
   final track = _object(value, path: path);
-  _allowedFields(track, const {'id', 'label', 'kind', 'clips'}, path: path);
+  _allowedFields(
+    track,
+    const {'id', 'label', 'kind', 'holdPolicy', 'clips'},
+    path: path,
+  );
   final kind = _enumValue(
     PresentationTrackKind.values,
     track['kind'],
@@ -260,6 +265,13 @@ PresentationTrack _decodeTrack(Object? value, int trackIndex) {
       id: _string(track['id'], path: '$path.id'),
       label: _string(track['label'], path: '$path.label'),
       kind: kind,
+      holdPolicy: track.containsKey('holdPolicy')
+          ? _enumValue(
+              PresentationHoldTrackPolicy.values,
+              track['holdPolicy'],
+              path: '$path.holdPolicy',
+            )
+          : PresentationHoldTrackPolicy.frozen,
       clips: clips,
     );
   } on PresentationCinematicValidationException catch (error) {
@@ -689,6 +701,8 @@ Map<String, Object?> _encodeTrack(PresentationTrack track) => {
   'id': track.id,
   'label': track.label,
   'kind': track.kind.name,
+  if (track.holdPolicy != PresentationHoldTrackPolicy.frozen)
+    'holdPolicy': track.holdPolicy.name,
   'clips': [for (final clip in track.clips) _encodeClip(clip)],
 };
 

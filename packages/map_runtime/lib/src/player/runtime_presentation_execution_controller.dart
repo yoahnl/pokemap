@@ -7,6 +7,12 @@ import 'runtime_presentation_media_playback_controller.dart';
 enum RuntimePresentationExecutionPhase {
   idle,
   running,
+
+  /// The narrative timeline is suspended by an interaction cue: distinct
+  /// from [paused], which is the user or lifecycle engine pause. Authored
+  /// ambient tracks may keep playing during a hold; a real pause silences
+  /// everything (BETA-CIN-077).
+  interactionHold,
   paused,
   terminating,
   terminated,
@@ -162,12 +168,54 @@ final class RuntimePresentationExecutionController {
     return _terminalCompleter!.future;
   }
 
-  Future<RuntimePresentationExecutionSnapshot> pause(
+  var _holdSuspendedByPause = false;
+
+  /// Marks the explicit interactionHold state: running → interactionHold.
+  /// The transition never touches the media — per-track hold policies decide
+  /// what keeps playing.
+  RuntimePresentationExecutionSnapshot enterInteractionHold(
     RuntimePresentationRunToken token,
   ) {
     if (!_isCurrent(token, RuntimePresentationExecutionPhase.running)) {
+      return _snapshot;
+    }
+    _snapshot = RuntimePresentationExecutionSnapshot(
+      phase: RuntimePresentationExecutionPhase.interactionHold,
+      runToken: token,
+    );
+    return _snapshot;
+  }
+
+  RuntimePresentationExecutionSnapshot exitInteractionHold(
+    RuntimePresentationRunToken token,
+  ) {
+    if (_isCurrent(token, RuntimePresentationExecutionPhase.paused) &&
+        _holdSuspendedByPause) {
+      // Answering while backgrounded: the hold ends, but the engine pause
+      // keeps priority — resuming the lifecycle returns to running.
+      _holdSuspendedByPause = false;
+      return _snapshot;
+    }
+    if (!_isCurrent(token, RuntimePresentationExecutionPhase.interactionHold)) {
+      return _snapshot;
+    }
+    _snapshot = RuntimePresentationExecutionSnapshot(
+      phase: RuntimePresentationExecutionPhase.running,
+      runToken: token,
+    );
+    return _snapshot;
+  }
+
+  Future<RuntimePresentationExecutionSnapshot> pause(
+    RuntimePresentationRunToken token,
+  ) {
+    final holdActive =
+        _isCurrent(token, RuntimePresentationExecutionPhase.interactionHold);
+    if (!holdActive &&
+        !_isCurrent(token, RuntimePresentationExecutionPhase.running)) {
       return Future.value(_snapshot);
     }
+    _holdSuspendedByPause = holdActive;
     _snapshot = RuntimePresentationExecutionSnapshot(
       phase: RuntimePresentationExecutionPhase.paused,
       runToken: token,
@@ -213,19 +261,23 @@ final class RuntimePresentationExecutionController {
     if (!_isCurrent(token, RuntimePresentationExecutionPhase.paused)) {
       return Future.value(_snapshot);
     }
+    final restoredPhase = _holdSuspendedByPause
+        ? RuntimePresentationExecutionPhase.interactionHold
+        : RuntimePresentationExecutionPhase.running;
+    _holdSuspendedByPause = false;
     _snapshot = RuntimePresentationExecutionSnapshot(
-      phase: RuntimePresentationExecutionPhase.running,
+      phase: restoredPhase,
       runToken: token,
     );
     final result = _pending.then((_) async {
-      if (!_isCurrent(token, RuntimePresentationExecutionPhase.running)) {
+      if (!_isCurrent(token, restoredPhase)) {
         return _snapshot;
       }
       RuntimePresentationMediaPlaybackSnapshot mediaSnapshot;
       try {
         mediaSnapshot = await mediaController.resumeAfterLifecycle();
       } on Object {
-        if (_isCurrent(token, RuntimePresentationExecutionPhase.running)) {
+        if (_isCurrent(token, restoredPhase)) {
           await _terminalize(
             token,
             RuntimePresentationExecutionResult.failed,
@@ -235,7 +287,7 @@ final class RuntimePresentationExecutionController {
         }
         return _snapshot;
       }
-      if (!_isCurrent(token, RuntimePresentationExecutionPhase.running)) {
+      if (!_isCurrent(token, restoredPhase)) {
         return _snapshot;
       }
       if (mediaSnapshot.status ==
@@ -307,6 +359,8 @@ final class RuntimePresentationExecutionController {
     _disposed = true;
     final termination = token != null &&
             (_snapshot.phase == RuntimePresentationExecutionPhase.running ||
+                _snapshot.phase ==
+                    RuntimePresentationExecutionPhase.interactionHold ||
                 _snapshot.phase == RuntimePresentationExecutionPhase.paused ||
                 _snapshot.phase ==
                     RuntimePresentationExecutionPhase.terminating)
@@ -475,6 +529,8 @@ final class RuntimePresentationExecutionController {
   bool _canObserve(RuntimePresentationRunToken token) =>
       _snapshot.runToken == token &&
       (_snapshot.phase == RuntimePresentationExecutionPhase.running ||
+          _snapshot.phase ==
+              RuntimePresentationExecutionPhase.interactionHold ||
           _snapshot.phase == RuntimePresentationExecutionPhase.paused ||
           _snapshot.phase == RuntimePresentationExecutionPhase.terminating);
 
