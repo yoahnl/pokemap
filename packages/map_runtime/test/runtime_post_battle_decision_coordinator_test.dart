@@ -562,6 +562,58 @@ void main() {
           restored.party.members.single.knownMoveIds, contains('quick_attack'));
     });
 
+    test('an abandoned learning queue commits nothing and replays identically',
+        () async {
+      // BETA-PRG-003 « interruption/reload » : le contrat produit est
+      // l'ATOMICITÉ PAR ABANDON REJOUABLE. Une transaction quittée au milieu
+      // de la file (crash, kill) ne commit RIEN — l'état original reste
+      // intact, le requestId n'est pas consommé — et un nouveau begin
+      // reconstruit LA MÊME file, dans le même ordre, sans perte
+      // d'opportunité. Aucune queue partielle n'est jamais persistée.
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _trainerResolutionWithPendingMoveAndEvolution,
+      );
+      final base = _state(knownMoves: const <String>[
+        'tackle',
+        'growl',
+        'tail_whip',
+        'focus_energy',
+      ]);
+      final outcome = _outcome();
+
+      final first = await coordinator.begin(
+        transactionBaseState: base,
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: outcome,
+        itemCatalog: _itemCatalog(),
+      );
+      final firstPending = first.transaction!.pendingMoveLearning!;
+      expect(first.transaction!.finalState, isNull,
+          reason: 'a pending queue must never expose a committable state');
+      // Abandon : la transaction est simplement oubliée, comme à un crash.
+      expect(base.trainerProfile.money, 0);
+      expect(base.completedBattleRequestIds, isEmpty,
+          reason: 'nothing was consumed by the abandoned transaction');
+
+      final second = await coordinator.begin(
+        transactionBaseState: base,
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: outcome,
+        itemCatalog: _itemCatalog(),
+      );
+      final secondPending = second.transaction!.pendingMoveLearning!;
+      expect(secondPending.opportunityId, firstPending.opportunityId);
+      expect(secondPending.partySlot, firstPending.partySlot);
+      expect(secondPending.phase, firstPending.phase);
+      expect(
+        second.transaction!.messages.map((message) => message.kind),
+        first.transaction!.messages.map((message) => message.kind),
+        reason: 'the replayed queue is byte-for-byte the same journey',
+      );
+    });
+
     test('trainer victory is exactly once before and after save reload',
         () async {
       final coordinator = RuntimePostBattleDecisionCoordinator(
