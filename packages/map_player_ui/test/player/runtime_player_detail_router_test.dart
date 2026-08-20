@@ -45,6 +45,114 @@ void main() {
     });
   }
 
+  group('BETA-SYS-001 pokedex search filters the projected entries', () {
+    RuntimePlayerSnapshot dexSnapshot() => _detailSnapshot(
+          RuntimePlayerPauseSection.pokedex,
+          detail: RuntimePlayerPauseDetailSnapshot(
+            section: RuntimePlayerPauseSection.pokedex,
+            title: 'Pokédex',
+            entries: <RuntimePlayerDetailEntrySnapshot>[
+              RuntimePlayerDetailEntrySnapshot(
+                id: 'bulbasaur',
+                title: 'Bulbizarre',
+                subtitle: '#001 · Capturé · Grass / Poison',
+                trailingLabel: '●',
+              ),
+              RuntimePlayerDetailEntrySnapshot(
+                id: 'ivysaur',
+                title: 'Herbizarre',
+                subtitle: '#002 · Vu · Grass / Poison',
+                trailingLabel: '○',
+              ),
+              RuntimePlayerDetailEntrySnapshot(
+                id: 'charmander',
+                title: '???',
+                subtitle: '#004 · Inconnu',
+              ),
+            ],
+          ),
+        );
+
+    testWidgets('typing a name keeps only the matching species',
+        (tester) async {
+      await tester.pumpWidget(_app(
+        RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
+      ));
+      expect(find.text('Bulbizarre'), findsOneWidget);
+      expect(find.text('Herbizarre'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('runtime-player-pokedex-search')),
+        'herbi',
+      );
+      await tester.pump();
+
+      expect(find.text('Herbizarre'), findsOneWidget);
+      expect(find.text('Bulbizarre'), findsNothing);
+      expect(find.text('???'), findsNothing);
+    });
+
+    testWidgets('an unknown species stays findable by number, not by name',
+        (tester) async {
+      // On ne peut pas chercher le nom de ce qu'on n'a pas vu — mais le
+      // numéro du Pokédex reste une donnée affichée, donc cherchable.
+      await tester.pumpWidget(_app(
+        RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
+      ));
+      final search =
+          find.byKey(const ValueKey<String>('runtime-player-pokedex-search'));
+
+      await tester.enterText(search, '#004');
+      await tester.pump();
+      expect(find.text('???'), findsOneWidget);
+      expect(find.text('Bulbizarre'), findsNothing);
+
+      await tester.enterText(search, 'charmander');
+      await tester.pump();
+      expect(find.text('???'), findsNothing);
+    });
+
+    testWidgets('the caught state is searchable and case-insensitive',
+        (tester) async {
+      await tester.pumpWidget(_app(
+        RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
+      ));
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('runtime-player-pokedex-search')),
+        'CAPTURÉ',
+      );
+      await tester.pump();
+
+      expect(find.text('Bulbizarre'), findsOneWidget);
+      expect(find.text('Herbizarre'), findsNothing);
+    });
+
+    testWidgets('no match shows a dedicated empty state, then recovers',
+        (tester) async {
+      await tester.pumpWidget(_app(
+        RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
+      ));
+      final search =
+          find.byKey(const ValueKey<String>('runtime-player-pokedex-search'));
+
+      await tester.enterText(search, 'zzz-aucune-espece');
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey<String>('runtime-player-pokedex-no-match'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.enterText(search, '');
+      await tester.pump();
+      expect(find.text('Bulbizarre'), findsOneWidget);
+      expect(find.text('Herbizarre'), findsOneWidget);
+      expect(find.text('???'), findsOneWidget);
+    });
+  });
+
   testWidgets('options expose a persisted touch-control opacity slider',
       (tester) async {
     PlayerPreferencesSnapshot? changed;
