@@ -71,6 +71,41 @@ void main() {
       );
     });
 
+
+    test('a failed attempt transmits the formula shakes, not a recomputation',
+        () {
+      // Transmission ENC-005 : la formule pure, rejouée avec le même seed et
+      // les mêmes entrées que la session, dicte le nombre de secousses que
+      // l'événement du tour doit porter. Un pipeline qui recalculerait
+      // `caught ? 4 : 0` rendrait 0 ici et casserait.
+      final expected = const BattleCaptureFormula().attempt(
+        targetCurrentHp: 100,
+        targetMaxHp: 100,
+        catchRate: 1,
+        ballId: canonicalPokeBallItemId,
+        ballRateNumerator: 1,
+        ballRateDenominator: 1,
+        status: BattleCaptureStatus.none,
+        rng: const BattleSeededRng(state: 47),
+      );
+      expect(expected.caught, isFalse);
+      expect(expected.shakes, 2,
+          reason: 'the chosen seed must discriminate 0, 3 and 4');
+
+      final after = createBattleSession(
+        _legacySetup(catchRate: 1),
+        rng: const BattleSeededRng(state: 47),
+      ).applyChoice(const PlayerBattleChoiceCapture());
+
+      final event = after.state.currentTurn!.captureAttemptEvents.single;
+      expect(event.caught, isFalse);
+      expect(event.shakes, expected.shakes);
+      expect(
+        (after.state.currentTurn!.playerAction as BattleActionCapture).shakes,
+        expected.shakes,
+      );
+    });
+
     test('trainer battle rejects capture without advancing RNG', () {
       const rng = BattleScriptedRng(<int>[1]);
       final session = createBattleSession(
@@ -157,6 +192,39 @@ void main() {
             .caught,
         isTrue,
       );
+    });
+
+
+    test('the native timeline transmits the formula shakes on failure', () {
+      final expected = const BattleCaptureFormula().attempt(
+        targetCurrentHp: 100,
+        targetMaxHp: 100,
+        catchRate: 1,
+        ballId: canonicalPokeBallItemId,
+        ballRateNumerator: 1,
+        ballRateDenominator: 1,
+        status: BattleCaptureStatus.none,
+        rng: const BattleSeededRng(state: 47),
+      );
+      expect(expected.caught, isFalse);
+      expect(expected.shakes, 2);
+
+      final engine = BattleEngine(
+        setup: _psdkSetup(catchRate: 1, genericSeed: 47),
+      );
+      final result = engine.submit(
+        const BattleDecision.capture(
+          itemId: canonicalPokeBallItemId,
+          rateNumerator: 1,
+          rateDenominator: 1,
+        ),
+      );
+
+      final attempt = result.timeline.events
+          .whereType<BattleCaptureAttemptTimelineEvent>()
+          .single;
+      expect(attempt.caught, isFalse);
+      expect(attempt.shakes, expected.shakes);
     });
 
     test('trainer setup rejects capture capability', () {

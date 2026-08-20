@@ -214,6 +214,7 @@ final class BattleCaptureAttemptEvent {
     required this.targetSpeciesId,
     required this.ballId,
     required this.caught,
+    required this.shakes,
   });
 
   final String attemptId;
@@ -221,8 +222,12 @@ final class BattleCaptureAttemptEvent {
   final String ballId;
   final bool caught;
 
-  /// Four shakes only represents a successful capture in this MVP.
-  int get shakes => caught ? 4 : 0;
+  /// Shake count decided by the capture formula (ENC-005).
+  ///
+  /// `4` is a capture; a failure carries `0..3` depending on how close the
+  /// single RNG draw landed to the threshold. Consumers replay it, they never
+  /// derive it from [caught].
+  final int shakes;
 }
 
 final class BattleBagHpHealItemEvent {

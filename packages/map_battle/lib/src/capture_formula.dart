@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import 'battle_rng.dart';
 
 /// Baseline capture item used by the legacy battle choice projection.
@@ -23,12 +25,21 @@ enum BattleCaptureStatus {
 final class BattleCaptureAttemptResult {
   const BattleCaptureAttemptResult({
     required this.caught,
+    required this.shakes,
     required this.chanceNumerator,
     required this.chanceDenominator,
     required this.nextRng,
   });
 
   final bool caught;
+
+  /// Deterministic shake count decided by [BattleCaptureFormula.shakeRuleId].
+  ///
+  /// `4` is a success; `0..3` is a failure whose count reflects how close the
+  /// drawn value landed to the capture threshold. The engines and the
+  /// presentation replay this number; they never recompute it.
+  final int shakes;
+
   final int chanceNumerator;
   final int chanceDenominator;
   final BattleRng nextRng;
@@ -54,8 +65,30 @@ final class BattleCaptureAttemptResult {
 /// combinations can be guaranteed. Every valid attempt consumes exactly one
 /// [BattleRng.nextChance] draw, including a guaranteed attempt. Invalid inputs
 /// consume none because validation happens before the RNG call.
+///
+/// ENC-005 versions the shake sequence as a pure projection of that single
+/// draw ([shakeRuleId]):
+///
+/// ```text
+/// caught  -> 4 shakes
+/// failure -> 3 - floor(4 * (drawn - numerator - 1) / (denominator - numerator))
+/// ```
+///
+/// A failed draw lands in `(numerator, denominator]`; the rule splits that
+/// interval into four equal integer slices, so a near miss shakes three times
+/// and a distant miss breaks out immediately. No extra RNG draw is ever
+/// consumed for shakes.
 final class BattleCaptureFormula {
   const BattleCaptureFormula();
+
+  /// Decision policy this formula implements — structurally the ruleset's
+  /// canonical id, so a divergent v2 cannot ship without touching both the
+  /// data contract and this implementation.
+  static const String decisionPolicyId =
+      PokemonRulesetProfile.canonicalCapturePolicyId;
+
+  /// Versioned rule projecting one capture draw onto a shake count.
+  static const String shakeRuleId = 'pokemap-capture-shakes-v1';
 
   BattleCaptureAttemptResult attempt({
     required int targetCurrentHp,
@@ -135,9 +168,29 @@ final class BattleCaptureFormula {
 
     return BattleCaptureAttemptResult(
       caught: roll.didOccur,
+      shakes: _shakesForDraw(
+        caught: roll.didOccur,
+        drawnValue: roll.drawnValue,
+        numerator: chanceNumerator,
+        denominator: chanceDenominator,
+      ),
       chanceNumerator: chanceNumerator,
       chanceDenominator: chanceDenominator,
       nextRng: roll.next,
     );
+  }
+
+  static int _shakesForDraw({
+    required bool caught,
+    required int drawnValue,
+    required int numerator,
+    required int denominator,
+  }) {
+    if (caught) {
+      return 4;
+    }
+    final failureSpan = denominator - numerator;
+    final missDistance = drawnValue - numerator - 1;
+    return 3 - (4 * missDistance) ~/ failureSpan;
   }
 }

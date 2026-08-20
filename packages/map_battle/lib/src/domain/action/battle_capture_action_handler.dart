@@ -72,7 +72,7 @@ final class BattleCaptureActionHandler {
         attemptId: battleCaptureAttemptId(context.turnNumber),
         target: BattlePositionRef(bank: target.bank, position: target.position),
         ballId: action.itemId,
-        shakes: capture.caught ? 4 : 0,
+        shakes: capture.shakes,
         caught: capture.caught,
       ),
     );

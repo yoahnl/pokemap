@@ -749,11 +749,13 @@ class BattleSession {
         targetSpeciesId: state.enemy.writeBackSpeciesId,
         ballId: choice.itemId,
         caught: capture.caught,
+        shakes: capture.shakes,
       );
       final captureAction = BattleActionCapture(
         attemptId: captureAttemptId,
         itemId: choice.itemId,
         caught: capture.caught,
+        shakes: capture.shakes,
       );
       if (!capture.caught) {
         return BattleSession._(

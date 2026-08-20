@@ -147,6 +147,139 @@ void main() {
       expect(plan.isEmpty, isTrue);
     });
 
+
+    test('a failed capture plays exactly the transmitted shake count', () {
+      // ENC-005 : deux secousses décidées par la formule -> deux
+      // CombatantShakeStep entre le lancer et le verdict. Un planner qui
+      // dériverait la séquence de `caught` en jouerait zéro et casserait ici.
+      final before = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle', type: 'normal')
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch', type: 'normal')
+          ],
+        ),
+      );
+      const event = BattleCaptureAttemptEvent(
+        attemptId: 'capture-attempt-1',
+        targetSpeciesId: 'sparkitten',
+        ballId: canonicalPokeBallItemId,
+        caught: false,
+        shakes: 2,
+      );
+      const turn = BattleTurnResult(
+        playerAction: BattleActionCapture(
+          attemptId: 'capture-attempt-1',
+          itemId: canonicalPokeBallItemId,
+          caught: false,
+          shakes: 2,
+        ),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[],
+        captureAttemptEvents: <BattleCaptureAttemptEvent>[event],
+        timeline: <BattleTurnEvent>[BattleTurnCaptureAttemptEvent(event)],
+      );
+      final planner = BattleTurnAnimationPlanner();
+
+      final plan = planner.buildForTurn(
+        playerBefore: before.state.player,
+        enemyBefore: before.state.enemy,
+        turnResult: turn,
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+
+      final steps = plan.steps;
+      expect(steps.whereType<CombatantShakeStep>(), hasLength(2));
+      final messages = steps
+          .whereType<ShowMessageStep>()
+          .map((step) => step.message)
+          .toList(growable: false);
+      expect(messages.first, contains('est lancée'));
+      expect(messages.last, contains('s’échappe'));
+      final throwIndex = steps.indexWhere(
+        (step) => step is ShowMessageStep && step.message.contains('lancée'),
+      );
+      final verdictIndex = steps.indexWhere(
+        (step) => step is ShowMessageStep && step.message.contains('échappe'),
+      );
+      for (final (index, step) in steps.indexed) {
+        if (step is CombatantShakeStep) {
+          expect(index, greaterThan(throwIndex));
+          expect(index, lessThan(verdictIndex));
+          expect(step.side, BattleSideId.enemy);
+        }
+      }
+    });
+
+    test('a successful capture caps visual shakes at three before the click',
+        () {
+      final before = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle', type: 'normal')
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch', type: 'normal')
+          ],
+        ),
+      );
+      const event = BattleCaptureAttemptEvent(
+        attemptId: 'capture-attempt-1',
+        targetSpeciesId: 'sparkitten',
+        ballId: canonicalPokeBallItemId,
+        caught: true,
+        shakes: 4,
+      );
+      const turn = BattleTurnResult(
+        playerAction: BattleActionCapture(
+          attemptId: 'capture-attempt-1',
+          itemId: canonicalPokeBallItemId,
+          caught: true,
+          shakes: 4,
+        ),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[],
+        captureAttemptEvents: <BattleCaptureAttemptEvent>[event],
+        timeline: <BattleTurnEvent>[BattleTurnCaptureAttemptEvent(event)],
+      );
+      final planner = BattleTurnAnimationPlanner();
+
+      final plan = planner.buildForTurn(
+        playerBefore: before.state.player,
+        enemyBefore: before.state.enemy,
+        turnResult: turn,
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+
+      expect(plan.steps.whereType<CombatantShakeStep>(), hasLength(3));
+      expect(
+        plan.steps
+            .whereType<ShowMessageStep>()
+            .map((step) => step.message)
+            .toList(growable: false)
+            .last,
+        contains('est capturé'),
+      );
+    });
+
     test('execution with damage produces recipe and hp tween', () {
       final before = _session(
         player: _combatant(

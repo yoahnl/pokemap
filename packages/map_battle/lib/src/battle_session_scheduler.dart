@@ -428,6 +428,7 @@ void _executeActionQueueStep({
         :final attemptId,
         :final itemId,
         :final caught,
+        :final shakes,
       )) {
     if (step.side != BattleSideId.player || caught) {
       throw StateError(
@@ -439,6 +440,7 @@ void _executeActionQueueStep({
       targetSpeciesId: opposingSide.active.writeBackSpeciesId,
       ballId: itemId,
       caught: false,
+      shakes: shakes,
     );
     turn.captureAttemptEvents.add(event);
     turn.timeline.add(BattleTurnCaptureAttemptEvent(event));

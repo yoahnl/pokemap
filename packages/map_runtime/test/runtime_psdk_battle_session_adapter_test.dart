@@ -124,6 +124,74 @@ void main() {
           isA<BattleActionFight>());
     });
 
+
+    test('the legacy projection transmits the formula shakes on failure', () {
+      // ENC-005 : le seed 5 fait tirer 33849 sur 120/91800 -> échec à deux
+      // secousses. La projection legacy doit porter CE nombre ; une projection
+      // qui redériverait `caught ? 4 : 0` rendrait zéro et casserait ici.
+      final expected = const BattleCaptureFormula().attempt(
+        targetCurrentHp: 120,
+        targetMaxHp: 120,
+        catchRate: 1,
+        ballId: canonicalPokeBallItemId,
+        ballRateNumerator: 1,
+        ballRateDenominator: 1,
+        status: BattleCaptureStatus.none,
+        rng: const BattleSeededRng(state: 5),
+      );
+      expect(expected.caught, isFalse);
+      expect(expected.shakes, 2,
+          reason: 'the chosen seed must discriminate 0, 3 and 4');
+
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+          player: _combatant(
+            id: 'player',
+            hp: 120,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'wait',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'wild',
+            hp: 120,
+            catchRate: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'tackle', power: 40),
+            ],
+          ),
+          canCapture: true,
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 5,
+          ),
+        ),
+      );
+
+      final result =
+          session.submitPlayerChoice(const PlayerBattleChoiceCapture());
+      final displaySession = session.createLegacyDisplaySession(
+        isTrainerBattle: false,
+        allowCapture: true,
+      );
+
+      final nativeAttempt = result.timeline.events
+          .whereType<BattleCaptureAttemptTimelineEvent>()
+          .single;
+      expect(nativeAttempt.caught, isFalse);
+      expect(nativeAttempt.shakes, expected.shakes);
+      final legacyEvent =
+          displaySession.state.currentTurn!.captureAttemptEvents.single;
+      expect(legacyEvent.caught, isFalse);
+      expect(legacyEvent.shakes, expected.shakes);
+    });
+
     test('projects native capture success and canonical item into legacy', () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(
         PsdkBattleSetup.singlesPokeMapBetaV1ForTest(

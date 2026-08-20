@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -155,6 +156,98 @@ void main() {
       expect(() => attempt(currentHp: 0), throwsArgumentError);
       expect(() => attempt(catchRate: 0), throwsArgumentError);
       expect(rng.index, 0);
+    });
+  });
+
+  group('capture shake sequence — ENC-005', () {
+    // La séquence de shakes est une projection PURE du tirage unique déjà
+    // consommé par la décision : l'intervalle d'échec (numerator, denominator]
+    // est découpé en quatre tranches entières égales. Aucun tirage
+    // supplémentaire, donc aucun replay existant ne bouge.
+    BattleCaptureAttemptResult attemptWithRoll(int roll) {
+      return const BattleCaptureFormula().attempt(
+        targetCurrentHp: 100,
+        targetMaxHp: 100,
+        catchRate: 1,
+        ballId: 'plain-orb',
+        ballRateNumerator: 1,
+        ballRateDenominator: 1,
+        status: BattleCaptureStatus.none,
+        rng: BattleScriptedRng(<int>[roll]),
+      );
+    }
+
+    test('a caught attempt always reports four shakes', () {
+      final result = attemptWithRoll(100);
+
+      expect(result.caught, isTrue);
+      expect(result.shakes, 4);
+    });
+
+    test('failure shakes follow the documented slices of the 100/76500 vector',
+        () {
+      // Le seuil est 100, l'intervalle d'échec est (100, 76500], sa largeur
+      // 76400. Les frontières de tranches tombent donc à 19200/38300/57400 :
+      // raté d'un cheveu -> 3 secousses, raté au maximum -> 0.
+      expect(attemptWithRoll(101).shakes, 3, reason: 'nearest possible miss');
+      expect(attemptWithRoll(19200).shakes, 3, reason: 'last slice-1 value');
+      expect(attemptWithRoll(19201).shakes, 2, reason: 'first slice-2 value');
+      expect(attemptWithRoll(38300).shakes, 2, reason: 'last slice-2 value');
+      expect(attemptWithRoll(38301).shakes, 1, reason: 'first slice-3 value');
+      expect(attemptWithRoll(57400).shakes, 1, reason: 'last slice-3 value');
+      expect(attemptWithRoll(57401).shakes, 0, reason: 'first slice-4 value');
+      expect(attemptWithRoll(76500).shakes, 0, reason: 'furthest miss');
+      for (final roll in <int>[101, 19201, 38301, 57401, 76500]) {
+        expect(attemptWithRoll(roll).caught, isFalse);
+      }
+    });
+
+    test('a failed attempt still consumes exactly one draw', () {
+      final result = attemptWithRoll(101);
+
+      expect((result.nextRng as BattleScriptedRng).index, 1);
+    });
+
+    test('a guaranteed capture reports four shakes', () {
+      final result = const BattleCaptureFormula().attempt(
+        targetCurrentHp: 1,
+        targetMaxHp: 100,
+        catchRate: 255,
+        ballId: 'plain-orb',
+        ballRateNumerator: 1,
+        ballRateDenominator: 1,
+        status: BattleCaptureStatus.sleep,
+        rng: const BattleScriptedRng(<int>[76500]),
+      );
+
+      expect(result.caught, isTrue);
+      expect(result.shakes, 4);
+    });
+  });
+
+  group('capture policy identity — ENC-005', () {
+    test('the formula declares the ruleset canonical decision policy', () {
+      expect(
+        BattleCaptureFormula.decisionPolicyId,
+        PokemonRulesetProfile.canonicalCapturePolicyId,
+      );
+      expect(BattleCaptureFormula.decisionPolicyId, 'pokemap-capture-mvp-v1');
+    });
+
+    test('the shake rule is versioned independently of the decision', () {
+      expect(BattleCaptureFormula.shakeRuleId, 'pokemap-capture-shakes-v1');
+      expect(
+        BattleCaptureFormula.shakeRuleId,
+        isNot(BattleCaptureFormula.decisionPolicyId),
+      );
+    });
+
+    test('the parity target pins the same capture rule the formula implements',
+        () {
+      final captureAxis = BattleParityTarget.canonicalV1.axes
+          .singleWhere((axis) => axis.axis == BattleParityAxis.capture);
+
+      expect(captureAxis.ruleId, BattleCaptureFormula.decisionPolicyId);
     });
   });
 }

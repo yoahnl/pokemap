@@ -54,11 +54,19 @@ class BattleRngRoll {
 class BattleRngChanceResult {
   const BattleRngChanceResult({
     required this.didOccur,
+    required this.drawnValue,
     required this.next,
   });
 
   /// true si l'événement s'est produit.
   final bool didOccur;
+
+  /// Valeur brute tirée dans `[1, denominator]`.
+  ///
+  /// ENC-005 l'expose parce que le tirage la calculait déjà puis la jetait :
+  /// la séquence de shakes d'une capture ratée est une projection déterministe
+  /// de cette valeur, sans consommer le moindre tirage supplémentaire.
+  final int drawnValue;
 
   /// État RNG suivant à réinjecter dans la session.
   final BattleRng next;
@@ -112,6 +120,7 @@ class BattleSeededRng extends BattleRng {
     final value = (nextState % denominator) + 1;
     return BattleRngChanceResult(
       didOccur: value <= numerator,
+      drawnValue: value,
       next: BattleSeededRng(state: nextState),
     );
   }
@@ -180,6 +189,7 @@ class BattleScriptedRng extends BattleRng {
     }
     return BattleRngChanceResult(
       didOccur: value <= numerator,
+      drawnValue: value,
       next: BattleScriptedRng(
         rolls,
         index: index + 1,

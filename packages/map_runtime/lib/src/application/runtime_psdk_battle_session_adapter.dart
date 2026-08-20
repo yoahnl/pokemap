@@ -197,6 +197,7 @@ final class RuntimePsdkBattleSessionAdapter {
               state.psdkState.battlerAt(psdkOpponentSlot).writeBackSpeciesId,
           ballId: event.ballId,
           caught: event.caught,
+          shakes: event.shakes,
         );
         captureAttemptEvents.add(captureEvent);
         timeline.add(BattleTurnCaptureAttemptEvent(captureEvent));
@@ -312,6 +313,7 @@ final class RuntimePsdkBattleSessionAdapter {
           attemptId: _captureAttemptEvent(result).attemptId,
           itemId: itemId,
           caught: state.outcome?.kind == BattleEngineOutcomeKind.captured,
+          shakes: _captureAttemptEvent(result).shakes,
         ),
       BattleSwitchDecision() ||
       BattleMegaDecision() ||

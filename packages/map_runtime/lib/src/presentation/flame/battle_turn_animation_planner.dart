@@ -168,6 +168,22 @@ final class BattleTurnAnimationPlanner {
               message: 'Une Poké Ball est lancée sur $targetName !',
             ),
           );
+          // ENC-005 : la séquence visuelle rejoue le nombre décidé par la
+          // formule, elle ne le recalcule jamais. Au plus trois secousses sont
+          // jouées — la quatrième « secousse » d'une capture est le clic de
+          // verrouillage, porté par le message de verdict. Le suspense reste
+          // couvert par reduced motion via le motionScale global de l'overlay.
+          final visibleShakes = event.shakes.clamp(0, 3);
+          for (var shake = 0; shake < visibleShakes; shake++) {
+            steps.add(const WaitStep(durationSeconds: 0.30));
+            steps.add(
+              const CombatantShakeStep(
+                side: BattleSideId.enemy,
+                amplitudePx: 6,
+                durationSeconds: 0.28,
+              ),
+            );
+          }
           steps.add(
             ShowMessageStep(
               message: event.caught

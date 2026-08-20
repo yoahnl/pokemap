@@ -135,11 +135,15 @@ final class BattleActionCapture extends BattleAction {
     required this.attemptId,
     required this.itemId,
     required this.caught,
+    required this.shakes,
   });
 
   final String attemptId;
   final String itemId;
   final bool caught;
+
+  /// Shake count decided by the capture formula, replayed verbatim downstream.
+  final int shakes;
 }
 
 sealed class BattleBagHpHealEffect {

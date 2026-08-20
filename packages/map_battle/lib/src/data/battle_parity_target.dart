@@ -1,3 +1,5 @@
+import '../capture_formula.dart';
+
 /// Battle-rule axes that must have an explicit target before PokeMap can claim
 /// trainer and player-facing parity.
 enum BattleParityAxis {
@@ -158,7 +160,7 @@ final class BattleParityTarget {
       ),
       BattleParityAxisTarget(
         axis: BattleParityAxis.capture,
-        ruleId: 'pokemap-capture-mvp-v1',
+        ruleId: BattleCaptureFormula.decisionPolicyId,
         summary:
             'Integer HP/catch-rate/status formula with one canonical Poké Ball '
             'and deterministic RNG consumption.',
