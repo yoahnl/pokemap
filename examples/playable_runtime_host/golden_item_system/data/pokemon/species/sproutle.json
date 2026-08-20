@@ -12,7 +12,8 @@
     "def": 49,
     "spa": 65,
     "spd": 65,
-    "spe": 45
+    "spe": 45,
+    "bst": 318
   },
   "abilities": {
     "primary": "overgrow",
@@ -25,6 +26,13 @@
     "catchRate": 45
   },
   "refs": {
-    "learnset": "sproutle"
+    "learnset": "sproutle",
+    "evolution": "sproutle",
+    "media": "sproutle"
+  },
+  "nationalDex": 1,
+  "forms": {
+    "formId": "sproutle",
+    "baseFormId": "sproutle"
   }
 }

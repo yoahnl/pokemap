@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "growth_rates",
+  "meta": {
+    "description": "Golden item system growth_rates catalog"
+  },
+  "entries": [
+    {
+      "id": "medium"
+    }
+  ]
+}

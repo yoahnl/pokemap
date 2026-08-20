@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "abilities",
+  "meta": {
+    "description": "Golden item system abilities catalog"
+  },
+  "entries": [
+    {
+      "id": "blaze"
+    },
+    {
+      "id": "overgrow"
+    }
+  ]
+}

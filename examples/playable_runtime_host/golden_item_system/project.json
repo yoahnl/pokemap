@@ -350,8 +350,11 @@
     "evolutionsDir": "data/pokemon/evolutions",
     "mediaDir": "data/pokemon/media",
     "catalogFiles": {
+      "abilities": "data/pokemon/catalogs/abilities.json",
+      "growth_rates": "data/pokemon/catalogs/growth_rates.json",
       "items": "data/pokemon/catalogs/items.json",
-      "moves": "data/pokemon/catalogs/moves.json"
+      "moves": "data/pokemon/catalogs/moves.json",
+      "types": "data/pokemon/catalogs/types.json"
     }
   },
   "newGame": {

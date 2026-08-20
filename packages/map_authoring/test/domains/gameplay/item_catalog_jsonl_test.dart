@@ -81,6 +81,57 @@ void main() {
       expect(receiptIds, hasLength(_durableItemActionIds.length * 2));
     });
 
+    test('a dry run plans all nine actions and mutates nothing', () async {
+      // BETA-ITM-007, critère « dry-run ». Les neuf descripteurs DÉCLARENT la
+      // garantie AuthoringGuarantee.dryRun, et un test l'assertait — mais c'est
+      // la déclaration, pas la garantie. Le comportement n'était prouvé que sur
+      // un dépôt factice (`authoring_action_contract_test`), jamais sur une
+      // action item réelle.
+      for (final scenario in _itemMutationScenarios) {
+        final harness = await _ItemTransportHarness.create(
+          'dry-run-${scenario.slug}',
+        );
+        addTearDown(harness.dispose);
+
+        final result = await harness.planOnlyDirect(scenario);
+
+        expect(
+          result.afterCatalog,
+          result.beforeCatalog,
+          reason: '${scenario.actionId} mutated the catalog while planning',
+        );
+      }
+    });
+
+    test('undo restores the catalog for all nine actions', () async {
+      // BETA-ITM-007, critère « rollback ». Même situation que le dry-run :
+      // AuthoringGuarantee.undoable était déclarée, jamais exercée sur une
+      // action item.
+      //
+      // Le cas vérifie les DEUX bords : la mutation a bien eu lieu, puis
+      // l'annulation ramène le catalogue à l'octet près. Sans le premier bord,
+      // une action inerte passerait pour parfaitement annulable.
+      for (final scenario in _itemMutationScenarios) {
+        final harness = await _ItemTransportHarness.create(
+          'undo-${scenario.slug}',
+        );
+        addTearDown(harness.dispose);
+
+        final result = await harness.applyThenUndoDirect(scenario);
+
+        expect(
+          result.error,
+          isNot(result.beforeCatalog),
+          reason: '${scenario.actionId} applied nothing to undo',
+        );
+        expect(
+          result.afterCatalog,
+          result.beforeCatalog,
+          reason: '${scenario.actionId} did not restore the catalog',
+        );
+      }
+    });
+
     test('rejects stale revisions without mutating either transport', () async {
       final direct = await _ItemTransportHarness.create('stale-direct');
       final jsonl = await _ItemTransportHarness.create('stale-jsonl');
@@ -559,6 +610,86 @@ final class _ItemTransportHarness {
         applied.data['receipt']! as Map,
       ),
       catalog: await catalogJson(),
+    );
+  }
+
+  /// Planifie sans appliquer : c'est la garantie `dryRun` du descripteur.
+  Future<_ItemRefusal> planOnlyDirect(_ItemMutationScenario scenario) async {
+    final beforeCatalog = await catalogJson();
+    final opened = await readApi.openProject(root.path);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: opened.workspaceHandle,
+      projectHandle: opened.projectHandle,
+    );
+    final snapshot = await snapshots.load(opened.projectHandle);
+    final plan = await mutations.plan(
+      opened.projectHandle,
+      scenario.request(
+        workspaceHandle: opened.workspaceHandle.value,
+        revision: snapshot.revision,
+        transport: 'direct-dry-run',
+      ),
+    );
+    expect(plan['planId'], isNotNull, reason: scenario.actionId);
+    return _ItemRefusal(
+      beforeCatalog: beforeCatalog,
+      afterCatalog: await catalogJson(),
+      error: null,
+    );
+  }
+
+  /// Applique puis annule : c'est la garantie `undoable` du descripteur.
+  Future<_ItemRefusal> applyThenUndoDirect(
+    _ItemMutationScenario scenario,
+  ) async {
+    final beforeCatalog = await catalogJson();
+    final opened = await readApi.openProject(root.path);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: opened.workspaceHandle,
+      projectHandle: opened.projectHandle,
+    );
+    final snapshot = await snapshots.load(opened.projectHandle);
+    final plan = await mutations.plan(
+      opened.projectHandle,
+      scenario.request(
+        workspaceHandle: opened.workspaceHandle.value,
+        revision: snapshot.revision,
+        transport: 'direct-undo',
+      ),
+    );
+    String? confirmationToken;
+    if (scenario.actionId == 'item.delete_apply') {
+      final confirmation = await mutations.confirm(
+        opened.projectHandle,
+        planId: plan['planId']! as String,
+      );
+      confirmationToken = confirmation['confirmationToken']! as String;
+    }
+    await mutations.apply(
+      opened.projectHandle,
+      planId: plan['planId']! as String,
+      operationId: 'operation-${scenario.slug}-undo',
+      confirmationToken: confirmationToken,
+    );
+    final mutated = await catalogJson();
+    final history = (await mutations.listMutationHistory(
+      opened.projectHandle,
+      limit: 10,
+    )).toJson();
+    final entry = Map<String, Object?>.from(
+      (history['entries']! as List).last as Map,
+    );
+    await mutations.undo(
+      opened.projectHandle,
+      entryId: entry['entryId']! as String,
+      idempotencyKey: 'undo-${scenario.slug}',
+    );
+    return _ItemRefusal(
+      beforeCatalog: beforeCatalog,
+      afterCatalog: await catalogJson(),
+      error: mutated,
     );
   }
 

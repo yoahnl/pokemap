@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "sparkitten",
+  "defaultFormId": "sparkitten",
+  "variants": {
+    "sparkitten": {
+      "frontStatic": "assets/pokemon/sprites/sparkitten/front.png",
+      "backStatic": "assets/pokemon/sprites/sparkitten/back.png"
+    }
+  }
+}
