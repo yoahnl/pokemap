@@ -7,6 +7,7 @@ import '../diagnostics/storyline_scene_link_diagnostics.dart';
 import '../diagnostics/world_rule_diagnostics.dart';
 import '../compatibility/narrative_legacy_migration_scan.dart';
 import '../models/enums.dart';
+import '../models/save_data.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/narrative_event_definition.dart';
@@ -715,6 +716,10 @@ void _appendRuntimeReadinessDiagnostics(
     context: BetaPlayabilityValidationContext(
       pokemonCatalogErrorCount: pokemonCatalogErrorCount,
       knownItemIds: knownItemIds,
+      initialParty: newGame.enabled
+          ? newGame.initialParty
+          : const <PlayerPokemon>[],
+      starterOptionCount: newGame.enabled ? newGame.starterOptions.length : 0,
       mapsById: mapsById,
       startMapId: newGame.enabled ? newGame.startMapId : null,
       knownSpeciesIds: knownSpeciesIds ?? const <String>{},

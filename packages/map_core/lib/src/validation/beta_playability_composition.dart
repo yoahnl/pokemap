@@ -91,11 +91,17 @@ const List<BetaPlayabilityCompositionEntry> betaPlayabilityComposition =
   ),
   BetaPlayabilityCompositionEntry(
     sourceFileName: 'player_roster_validation.dart',
-    role: BetaPlayabilityCompositionRole.pendingComposition,
-    rationale: 'DETTE. Ce validateur n\'a AUCUN appelant dans tout le dépôt : '
-        'ni la gate, ni l\'éditeur, ni l\'export. Un roster de départ invalide '
-        'passe donc partout. À composer sous BETA-PTY-005, qui porte la gate '
-        'Party/PC.',
+    role: BetaPlayabilityCompositionRole.composed,
+    rationale: 'COMPOSÉ sous BETA-SYS-005, par appel direct sur le roster '
+        'INITIAL du projet. Il n\'avait aucun appelant dans tout le dépôt. La '
+        'gate vérifiait déjà les références du roster initial via des ensembles, '
+        'mais pas sa structure : une party de sept jetait un StateError au '
+        'démarrage de la nouvelle partie, et une espèce vide disparaissait des '
+        'ensembles après trim. Appelé SANS catalogues, exprès : les références '
+        'restent au contrôle existant, sinon chaque espèce inconnue serait '
+        'signalée deux fois sous deux codes. Les rosters de SAUVEGARDE restent '
+        'hors gate — la gate valide un projet, pas une partie ; la garde des '
+        'sauvegardes est PlayerParty.normalized(), qui refuse au chargement.',
   ),
   BetaPlayabilityCompositionEntry(
     sourceFileName: 'pokemon_catalog_coherence_validator.dart',

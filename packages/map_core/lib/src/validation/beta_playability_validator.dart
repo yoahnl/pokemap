@@ -2,6 +2,8 @@ import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
+import '../models/save_data.dart';
+import 'player_roster_validation.dart';
 import 'shop_state_validator.dart';
 
 enum BetaPlayabilityDiagnosticSeverity {
@@ -62,6 +64,24 @@ enum BetaPlayabilityDiagnosticKind {
   /// contrôles de boutique en dépendent ; les six autres sont structurels et
   /// tournent quand même. Le manque est nommé plutôt que masqué.
   shopItemReferencesNotEvaluated,
+
+  /// Le roster initial du projet est structurellement invalide.
+  ///
+  /// BETA-SYS-005. validatePlayerRoster n'avait AUCUN appelant dans tout le
+  /// dépôt. La gate vérifiait déjà les RÉFÉRENCES du roster initial (espèce et
+  /// capacité inconnues, via des ensembles), mais pas sa STRUCTURE : une party
+  /// initiale de plus de six Pokémon passait l'authoring sans un mot et jetait
+  /// un StateError au démarrage de la nouvelle partie — chez le joueur, pas
+  /// chez l'auteur. Et une espèce vide disparaissait des ensembles, donc
+  /// n'était jamais signalée.
+  initialRosterStructurallyInvalid,
+
+  /// La party initiale pleine rend tout choix de starter impossible.
+  ///
+  /// Mesuré sur new_game_state_builder : une party initiale de six avec des
+  /// starters déclarés fait jeter starterPartyFull sur CHAQUE choix. Le projet
+  /// est authorable et injouable.
+  starterCannotJoinFullInitialParty,
 }
 
 class BetaPlayabilityDiagnostic {
@@ -108,6 +128,8 @@ class BetaPlayabilityValidationContext {
     this.hasSaveLoadSupport = true,
     this.pokemonCatalogErrorCount,
     this.knownItemIds,
+    this.initialParty = const <PlayerPokemon>[],
+    this.starterOptionCount = 0,
   });
 
   final Map<String, MapData> mapsById;
@@ -136,6 +158,17 @@ class BetaPlayabilityValidationContext {
   /// `null` n'est PAS l'ensemble vide : un ensemble vide déclarerait toute
   /// référence d'objet inconnue et produirait de faux diagnostics.
   final Set<String>? knownItemIds;
+
+  /// Roster initial du projet, tel que la nouvelle partie le construira.
+  ///
+  /// Distinct des ensembles [initialPartySpeciesIds] et [initialPartyMoveIds] :
+  /// les ensembles suffisent aux contrôles de RÉFÉRENCES mais perdent la
+  /// structure — le nombre de membres, et les espèces vides qu'un `trim`
+  /// fait disparaître.
+  final List<PlayerPokemon> initialParty;
+
+  /// Nombre d'options de starter déclarées par le projet.
+  final int starterOptionCount;
 }
 
 class BetaPlayabilityValidationResult {
@@ -256,6 +289,7 @@ BetaPlayabilityValidationResult validateBetaPlayability(
   _appendFieldAbilityPrerequisiteDiagnostics(context, diagnostics);
   _appendPokemonCatalogCoherenceDiagnostics(manifest, context, diagnostics);
   _appendShopStateDiagnostics(manifest, context, diagnostics);
+  _appendInitialRosterDiagnostics(context, diagnostics);
 
   if (context.requiresSaveLoad && !context.hasSaveLoadSupport) {
     diagnostics.add(
@@ -271,6 +305,54 @@ BetaPlayabilityValidationResult validateBetaPlayability(
   }
 
   return BetaPlayabilityValidationResult(diagnostics);
+}
+
+/// Structure du roster initial, composée depuis validatePlayerRoster.
+///
+/// Les RÉFÉRENCES (espèce ou capacité inconnues) restent au contrôle existant
+/// de la gate, fondé sur les ensembles : le validateur roster est donc appelé
+/// SANS catalogues, ce qui limite exprès sa contribution à la structure.
+/// Lui passer les catalogues produirait un doublon par référence inconnue —
+/// même défaut signalé deux fois sous deux codes.
+void _appendInitialRosterDiagnostics(
+  BetaPlayabilityValidationContext context,
+  List<BetaPlayabilityDiagnostic> diagnostics,
+) {
+  if (context.initialParty.isEmpty) {
+    return;
+  }
+  final issues = validatePlayerRoster(
+    party: PlayerParty(members: context.initialParty),
+    storage: const PokemonStorage(),
+    knownSpeciesIds: null,
+    knownMoveIds: null,
+  );
+  for (final issue in issues) {
+    diagnostics.add(
+      BetaPlayabilityDiagnostic(
+        kind: BetaPlayabilityDiagnosticKind.initialRosterStructurallyInvalid,
+        severity: BetaPlayabilityDiagnosticSeverity.error,
+        message: '${issue.code.name}: ${issue.message}',
+        actionHint:
+            'Fix the new game initial party before shipping the beta slice.',
+        path: issue.path,
+      ),
+    );
+  }
+  if (context.starterOptionCount > 0 &&
+      context.initialParty.length >= maxPlayerPartySize) {
+    diagnostics.add(
+      const BetaPlayabilityDiagnostic(
+        kind: BetaPlayabilityDiagnosticKind.starterCannotJoinFullInitialParty,
+        severity: BetaPlayabilityDiagnosticSeverity.error,
+        message: 'The initial party is already full, so every declared '
+            'starter choice will fail at new game.',
+        actionHint: 'Remove a member from the initial party or drop the '
+            'starter options.',
+        path: 'beta.initialParty.starterCapacity',
+      ),
+    );
+  }
 }
 
 /// Codes de boutique qui ne dépendent pas du catalogue d'objets.

@@ -38,6 +38,132 @@ void main() {
       expect(result.diagnostics, isEmpty);
     });
 
+    test('refuses an initial party larger than the runtime allows', () {
+      // BETA-SYS-005. validatePlayerRoster n'avait AUCUN appelant. La gate
+      // vérifiait les RÉFÉRENCES du roster initial mais pas sa STRUCTURE : une
+      // party de sept passait l'authoring et jetait un StateError au démarrage
+      // de la nouvelle partie — chez le joueur, pas chez l'auteur
+      // (new_game_state_builder fait PlayerParty(...).normalized()).
+      final diagnostics = _rosterDiagnostics(
+        _validateWithRoster(
+          initialParty: List<PlayerPokemon>.generate(
+            7,
+            (index) => _rosterMember('sproutle_$index'),
+          ),
+        ),
+      );
+
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.message, contains('partyCapacityExceeded'));
+      expect(
+        diagnostics.single.severity,
+        BetaPlayabilityDiagnosticSeverity.error,
+      );
+    });
+
+    test('refuses a blank species the reference sets cannot see', () {
+      // L'espèce vide disparaît des ensembles initialPartySpeciesIds après
+      // trim : le contrôle de références existant ne peut structurellement pas
+      // la voir. C'est le validateur roster qui la tient.
+      final diagnostics = _rosterDiagnostics(
+        _validateWithRoster(
+          initialParty: <PlayerPokemon>[_rosterMember('   ')],
+        ),
+      );
+
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.message, contains('missingSpeciesId'));
+    });
+
+    test('refuses starter options that can never join a full party', () {
+      // Mesuré sur new_game_state_builder : party initiale de six + starters
+      // déclarés fait jeter starterPartyFull sur CHAQUE choix. Le projet est
+      // authorable et injouable.
+      final result = _validateWithRoster(
+        initialParty: List<PlayerPokemon>.generate(
+          6,
+          (index) => _rosterMember('sproutle_$index'),
+        ),
+        starterOptionCount: 2,
+      );
+
+      expect(
+        result.diagnostics.where(
+          (diagnostic) =>
+              diagnostic.kind ==
+              BetaPlayabilityDiagnosticKind.starterCannotJoinFullInitialParty,
+        ),
+        hasLength(1),
+      );
+    });
+
+    test('a full party without starter options is legitimate', () {
+      // Le contre-exemple : six membres sans starter est un projet valide.
+      final result = _validateWithRoster(
+        initialParty: List<PlayerPokemon>.generate(
+          6,
+          (index) => _rosterMember('sproutle_$index'),
+        ),
+        starterOptionCount: 0,
+      );
+
+      expect(_rosterDiagnostics(result), isEmpty);
+      expect(
+        result.diagnostics.where(
+          (diagnostic) =>
+              diagnostic.kind ==
+              BetaPlayabilityDiagnosticKind.starterCannotJoinFullInitialParty,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('unknown species in the roster stays a reference diagnostic, once',
+        () {
+      // Le partage des rôles : le validateur roster est appelé SANS catalogues,
+      // pour que l'espèce inconnue reste au contrôle de références existant.
+      // Sans ce cas, lui passer les catalogues doublerait chaque référence
+      // inconnue sous deux codes.
+      final result = _validateWithRoster(
+        initialParty: <PlayerPokemon>[_rosterMember('ghost_species')],
+      );
+
+      expect(_rosterDiagnostics(result), isEmpty);
+      expect(
+        result.diagnostics.where(
+          (diagnostic) =>
+              diagnostic.kind ==
+                  BetaPlayabilityDiagnosticKind.missingPokemonSpecies &&
+              diagnostic.speciesId == 'ghost_species',
+        ),
+        hasLength(1),
+      );
+    });
+
+    test('validateNarrativeProject hands the initial roster to the gate', () {
+      // TRANSMISSION : sans ce fil, initialParty du contexte serait mort-né et
+      // la structure ne serait jamais vérifiée en production.
+      final report = validateNarrativeProject(
+        _manifest(
+          initialParty: List<PlayerPokemon>.generate(
+            7,
+            (index) => _rosterMember('sproutle_$index'),
+          ),
+        ),
+        maps: <MapData>[_map()],
+        knownSpeciesIds: null,
+        knownMoveIds: null,
+      );
+
+      expect(
+        report.diagnostics.where(
+          (diagnostic) =>
+              diagnostic.message.contains('partyCapacityExceeded'),
+        ),
+        hasLength(1),
+      );
+    });
+
     test('refuses a project whose shop carries a blocking issue', () {
       // BETA-SYS-005. ShopStateValidator existait et n'était appelé que par le
       // contrôleur de simulation de l'éditeur : une boutique incohérente
@@ -579,6 +705,7 @@ ProjectManifest _manifest({
   List<ProjectTrainerEntry>? trainers,
   bool pokemonEnabled = true,
   List<ShopDefinition> shops = const <ShopDefinition>[],
+  List<PlayerPokemon> initialParty = const <PlayerPokemon>[],
 }) {
   return ProjectManifest(
     name: 'P5 Beta Validator Project',
@@ -596,6 +723,9 @@ ProjectManifest _manifest({
     tilesets: const <ProjectTilesetEntry>[],
     trainers: trainers ?? <ProjectTrainerEntry>[_trainer()],
     shops: shops,
+    newGame: initialParty.isEmpty
+        ? const ProjectNewGameConfig()
+        : ProjectNewGameConfig(enabled: true, initialParty: initialParty),
   );
 }
 
@@ -617,6 +747,50 @@ MapData _mapWithSurfZone({String id = _mapId}) {
       ),
     ],
   );
+}
+
+PlayerPokemon _rosterMember(String speciesId) {
+  return PlayerPokemon(
+    speciesId: speciesId,
+    natureId: 'hardy',
+    abilityId: 'overgrow',
+    level: 5,
+    currentHp: 20,
+  );
+}
+
+BetaPlayabilityValidationResult _validateWithRoster({
+  required List<PlayerPokemon> initialParty,
+  int starterOptionCount = 0,
+}) {
+  return validateBetaPlayability(
+    _manifest(),
+    context: BetaPlayabilityValidationContext(
+      pokemonCatalogErrorCount: 0,
+      initialParty: initialParty,
+      starterOptionCount: starterOptionCount,
+      mapsById: <String, MapData>{_mapId: _map()},
+      knownSpeciesIds: const <String>{_starterSpeciesId, _enemySpeciesId},
+      knownMoveIds: const <String>{_starterMoveId, _enemyMoveId},
+      speciesCatalogIsAuthoritative: true,
+      initialPartySpeciesIds: {
+        for (final pokemon in initialParty) pokemon.speciesId,
+      },
+      initialPartyMoveIds: const <String>{_starterMoveId},
+    ),
+  );
+}
+
+List<BetaPlayabilityDiagnostic> _rosterDiagnostics(
+  BetaPlayabilityValidationResult result,
+) {
+  return result.diagnostics
+      .where(
+        (diagnostic) =>
+            diagnostic.kind ==
+            BetaPlayabilityDiagnosticKind.initialRosterStructurallyInvalid,
+      )
+      .toList(growable: false);
 }
 
 ShopDefinition _shop({String itemId = 'poke-ball', int price = 200}) {
