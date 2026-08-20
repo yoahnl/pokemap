@@ -253,6 +253,7 @@ abstract base class SceneInteractionRequest {
     required String requestId,
     required int revision,
     required SceneInteractionPrompt prompt,
+    String? speakerName,
     Duration? timeout,
   }) = SceneMessageInteractionRequest;
 
@@ -305,6 +306,7 @@ abstract base class SceneInteractionRequest {
         requestId: requestId,
         revision: revision,
         prompt: prompt,
+        speakerName: _readOptionalString(json, 'speakerName'),
         timeout: timeout,
       ),
       SceneInteractionRequestKind.choice => SceneInteractionRequest.choice(
@@ -408,8 +410,14 @@ final class SceneMessageInteractionRequest extends SceneInteractionRequest {
     required super.requestId,
     required super.revision,
     required super.prompt,
+    String? speakerName,
     super.timeout,
-  });
+  }) : speakerName = _optionalString(speakerName, 'speakerName');
+
+  /// Display name of the line's speaker, resolved by the narrative side
+  /// (yarn character or "Name:" prefix) — optional, never an identifier
+  /// (BETA-CIN-074).
+  final String? speakerName;
 
   @override
   SceneInteractionRequestKind get kind => SceneInteractionRequestKind.message;
@@ -420,11 +428,16 @@ final class SceneMessageInteractionRequest extends SceneInteractionRequest {
   ) => _expectResultKind(result, SceneInteractionResultKind.acknowledged);
 
   @override
-  Map<String, dynamic> toJson() => baseJson();
+  Map<String, dynamic> toJson() => {
+        ...baseJson(),
+        if (speakerName != null) 'speakerName': speakerName,
+      };
 
   @override
   bool operator ==(Object other) =>
-      other is SceneMessageInteractionRequest && baseEquals(other);
+      other is SceneMessageInteractionRequest &&
+      baseEquals(other) &&
+      other.speakerName == speakerName;
 
   @override
   int get hashCode => Object.hash(kind, baseHashCode);

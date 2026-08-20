@@ -365,6 +365,7 @@ export 'src/presentation/flutter/dialogue_presentation_snapshot.dart'
         DialoguePresentationCommand,
         DialogueAdvanceCommand,
         DialogueSelectChoiceCommand,
+        splitDialogueSpeakerLine,
         DialoguePresentationCommandRejection,
         DialoguePresentationCommandValidation,
         validateDialoguePresentationCommand;

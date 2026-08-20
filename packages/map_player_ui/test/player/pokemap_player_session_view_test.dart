@@ -568,12 +568,17 @@ void main() {
     addTearDown(controller.dispose);
 
     await tester.pumpWidget(_app(_view(controller)));
-    expect(find.text('Bienvenue à Avelune.'), findsOneWidget);
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('scene-interaction-message-submit'),
-      ),
+    final tapZone =
+        find.byKey(const ValueKey<String>('dialogue-tap-zone')).first;
+    await tester.tap(tapZone);
+    await tester.pump();
+    expect(
+      find.text('Bienvenue à Avelune.'),
+      findsOneWidget,
+      reason: 'the first press completed the typewriter',
     );
+    await tester.tap(tapZone);
+    await tester.pump();
 
     final command = controller.commands.single;
     expect(
@@ -633,12 +638,13 @@ void main() {
         ),
       );
 
+      final tapZone =
+          find.byKey(const ValueKey<String>('dialogue-tap-zone')).first;
+      await tester.tap(tapZone);
+      await tester.pump();
       expect(find.text('Quel est ton prénom ?'), findsOneWidget);
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>('scene-interaction-message-submit'),
-        ),
-      );
+      await tester.tap(tapZone);
+      await tester.pump();
 
       expect(controller.commands, hasLength(1));
       expect(

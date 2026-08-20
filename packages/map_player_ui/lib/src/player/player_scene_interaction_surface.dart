@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart'
     show PlayerInputAction, PlayerInputSource;
 
+import 'player_dialogue_surface.dart';
 import '../foundation/player_components.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_scene_interaction_strings.dart';
@@ -36,11 +39,15 @@ class PlayerSceneInteractionSurface extends StatefulWidget {
 
 class _PlayerSceneInteractionSurfaceState
     extends State<PlayerSceneInteractionSurface> {
+  static const _typewriterInterval = Duration(milliseconds: 18);
+
   final _textController = TextEditingController();
   final _textFocusNode = FocusNode(debugLabel: 'Scene interaction text');
   final _selectedOptionIds = <String>{};
   SceneInteractionValidationIssue? _validationIssue;
   var _terminal = false;
+  Timer? _revealTimer;
+  var _revealedGraphemes = 0;
 
   @override
   void didUpdateWidget(covariant PlayerSceneInteractionSurface oldWidget) {
@@ -50,11 +57,15 @@ class _PlayerSceneInteractionSurfaceState
       _selectedOptionIds.clear();
       _validationIssue = null;
       _terminal = false;
+      _revealTimer?.cancel();
+      _revealTimer = null;
+      _revealedGraphemes = 0;
     }
   }
 
   @override
   void dispose() {
+    _revealTimer?.cancel();
     _textController.dispose();
     _textFocusNode.dispose();
     super.dispose();
@@ -63,6 +74,9 @@ class _PlayerSceneInteractionSurfaceState
   @override
   Widget build(BuildContext context) {
     final request = widget.request;
+    if (request is SceneMessageInteractionRequest) {
+      return _buildMessageDialogue(context, request);
+    }
     final strings = PlayerSceneInteractionStrings.of(context);
     final prompt = _resolvePrompt(request.prompt);
     return Actions(
@@ -156,26 +170,112 @@ class _PlayerSceneInteractionSurfaceState
     );
   }
 
+  /// The paginated dialogue box over the maintained Presentation frame —
+  /// BETA-CIN-074. No opaque scrim: the staging stays visible. The first
+  /// press completes the typewriter, the next one acknowledges the page
+  /// exactly once; keyboard confirm and tap share the same advance.
+  Widget _buildMessageDialogue(
+    BuildContext context,
+    SceneMessageInteractionRequest request,
+  ) {
+    final fullText = _resolvePrompt(request.prompt);
+    final graphemes = fullText.characters;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final revealed =
+        reduceMotion ? graphemes.length : _revealedGraphemes;
+    final fullyRevealed = revealed >= graphemes.length;
+    if (!fullyRevealed && _revealTimer == null) {
+      _revealTimer = Timer.periodic(_typewriterInterval, (_) {
+        setState(() {
+          _revealedGraphemes += 1;
+          if (_revealedGraphemes >= graphemes.length) {
+            _revealTimer?.cancel();
+            _revealTimer = null;
+          }
+        });
+      });
+    }
+    return Actions(
+      key: const ValueKey<String>('scene-interaction-actions'),
+      actions: <Type, Action<Intent>>{
+        RuntimePlayerLogicalIntent: CallbackAction<RuntimePlayerLogicalIntent>(
+          onInvoke: (intent) {
+            widget.onInputSourceChanged?.call(intent.source);
+            switch (intent.action) {
+              case PlayerInputAction.confirm:
+                _advanceMessage(request, fullyRevealed: fullyRevealed);
+              case PlayerInputAction.back:
+                _cancel();
+              default:
+                break;
+            }
+            return null;
+          },
+        ),
+      },
+      child: CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.escape): _cancel,
+          const SingleActivator(LogicalKeyboardKey.enter): () =>
+              _advanceMessage(request, fullyRevealed: fullyRevealed),
+          const SingleActivator(LogicalKeyboardKey.space): () =>
+              _advanceMessage(request, fullyRevealed: fullyRevealed),
+        },
+        child: Focus(
+          autofocus: true,
+          child: PlayerDialogueSurface(
+            key: const ValueKey<String>('scene-interaction-message-dialogue'),
+            data: PlayerDialogueViewData(
+              revision: request.revision,
+              mode: PlayerDialogueMode.line,
+              speaker: request.speakerName,
+              text: fullyRevealed
+                  ? fullText
+                  : graphemes.take(revealed).toString(),
+              fullText: fullText,
+              isCurrentLineFullyRevealed: fullyRevealed,
+              isLastContent: false,
+              choices: const <PlayerDialogueChoiceViewData>[],
+            ),
+            onAction: (_) =>
+                _advanceMessage(request, fullyRevealed: fullyRevealed),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _advanceMessage(
+    SceneMessageInteractionRequest request, {
+    required bool fullyRevealed,
+  }) {
+    if (_terminal) return;
+    if (!fullyRevealed) {
+      setState(() {
+        _revealTimer?.cancel();
+        _revealTimer = null;
+        _revealedGraphemes = _resolvePrompt(request.prompt).characters.length;
+      });
+      return;
+    }
+    _publish(
+      request,
+      SceneInteractionResult.acknowledged(
+        requestId: request.requestId,
+        revision: request.revision,
+      ),
+    );
+  }
+
   Widget _buildRequest(
     BuildContext context,
     SceneInteractionRequest request,
     PlayerSceneInteractionStrings strings,
   ) =>
       switch (request) {
-        SceneMessageInteractionRequest() => PlayerActionButton(
-            key: const ValueKey<String>('scene-interaction-message-submit'),
-            label: strings.continueLabel,
-            icon: Icons.arrow_forward,
-            autofocus: true,
-            onPressed: _terminal
-                ? null
-                : () => _publish(
-                      request,
-                      SceneInteractionResult.acknowledged(
-                        requestId: request.requestId,
-                        revision: request.revision,
-                      ),
-                    ),
+        SceneMessageInteractionRequest() => throw StateError(
+            'Messages render through the dialogue box, never the panel.',
           ),
         SceneChoiceInteractionRequest(:final options) => Column(
             mainAxisSize: MainAxisSize.min,
@@ -466,6 +566,8 @@ class _PlayerSceneInteractionSurfaceState
     setState(() {
       _terminal = true;
       _validationIssue = null;
+      _revealTimer?.cancel();
+      _revealTimer = null;
     });
     widget.onResult(result);
   }

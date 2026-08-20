@@ -20,11 +20,25 @@ void main() {
         results: results,
       ),
     );
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('scene-interaction-message-submit'),
-      ),
+    final dialogueBox = find.byKey(
+      const ValueKey<String>('scene-interaction-message-dialogue'),
     );
+    expect(dialogueBox, findsOneWidget);
+    final tapTarget = find
+        .descendant(
+          of: dialogueBox,
+          matching: find.byKey(const ValueKey<String>('dialogue-tap-zone')),
+        )
+        .first;
+    await tester.tap(tapTarget);
+    await tester.pump();
+    expect(
+      results,
+      isEmpty,
+      reason: 'the first press completes the typewriter, never validates',
+    );
+    await tester.tap(tapTarget);
+    await tester.pump();
     expect(results.single, isA<SceneAcknowledgedInteractionResult>());
 
     results.clear();
@@ -214,13 +228,10 @@ void main() {
       ),
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('scene-interaction-cancel')),
-    );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('scene-interaction-cancel')),
-      warnIfMissed: false,
-    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
 
     expect(
       results.single,
@@ -271,24 +282,29 @@ void main() {
         );
 
     await tester.pumpWidget(app(1));
-    final staleCallback = tester
-        .widget<PlayerActionButton>(
-          find.byKey(
-            const ValueKey<String>('scene-interaction-message-submit'),
+    final tapTarget = find
+        .descendant(
+          of: find.byKey(
+            const ValueKey<String>('scene-interaction-message-dialogue'),
           ),
+          matching: find.byKey(const ValueKey<String>('dialogue-tap-zone')),
         )
-        .onPressed!;
+        .first;
+    await tester.tap(tapTarget);
+    await tester.pump();
 
     await tester.pumpWidget(app(2));
-    staleCallback();
+    await tester.tap(tapTarget);
     await tester.pump();
-    expect(results, isEmpty);
-
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('scene-interaction-message-submit'),
-      ),
+    expect(
+      results,
+      isEmpty,
+      reason: 'the revision change reset the page: this press completed the '
+          'new typewriter instead of validating with a stale gesture',
     );
+
+    await tester.tap(tapTarget);
+    await tester.pump();
     expect(results.single.revision, 2);
   });
 
@@ -385,6 +401,10 @@ void main() {
     );
     await tester.pump();
     invoke(PlayerInputAction.confirm);
+    await tester.pump();
+    expect(results, isEmpty);
+    invoke(PlayerInputAction.confirm);
+    await tester.pump();
     expect(results.single, isA<SceneAcknowledgedInteractionResult>());
 
     results.clear();
@@ -473,6 +493,10 @@ void main() {
     );
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(results, isEmpty);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
     expect(results.single, isA<SceneAcknowledgedInteractionResult>());
 
     results.clear();

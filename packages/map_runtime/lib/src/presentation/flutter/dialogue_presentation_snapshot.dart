@@ -113,6 +113,12 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
   };
 }
 
+/// Splits an authored "Name: text" dialogue line into speaker and body —
+/// the single canonical rule shared by the world overlay and the
+/// pre-session message box (BETA-CIN-074).
+({String? speaker, String text}) splitDialogueSpeakerLine(String rawText) =>
+    _splitDialogueLine(rawText);
+
 ({String? speaker, String text}) _splitDialogueLine(String rawText) {
   final separator = rawText.indexOf(':');
   if (separator <= 0 || separator > 40) {

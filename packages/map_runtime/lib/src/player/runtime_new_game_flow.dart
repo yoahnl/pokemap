@@ -8,6 +8,7 @@ import '../application/dialogue_runtime_models.dart';
 import '../application/load_dialogue_content.dart';
 import '../application/resolve_dialogue.dart';
 import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
+import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import 'runtime_initial_map_preloader.dart';
 
 abstract interface class RuntimeNewGamePreSessionRunner {
@@ -410,15 +411,25 @@ final class RuntimeTextPreSessionSceneRunner
       final requestId =
           '$runId:dialogue:$dialogueSerial:${interactionSerial++}';
       switch (session.state) {
-        case DialogueShowingLine(:final text):
+        case DialogueShowingLine(:final text, :final characterId):
           final scope = currentScope();
+          final split = splitDialogueSpeakerLine(text);
+          final speakerName = characterId == null
+              ? split.speaker
+              : project.characters
+                      .where((character) => character.id == characterId)
+                      .map((character) => character.name)
+                      .firstOrNull ??
+                  split.speaker;
           final response = await interactions.request(
             SceneInteractionRequest.message(
               requestId: requestId,
               revision: scope.revision,
+              speakerName: speakerName,
               prompt: SceneInteractionPrompt(
                 localizationKey: 'scene.pre_session.dialogue.line',
-                fallbackText: interpolatePresentationText(text, scope).text,
+                fallbackText:
+                    interpolatePresentationText(split.text, scope).text,
               ),
             ),
           );
