@@ -211,6 +211,65 @@ void main() {
       expect(reloaded.metadata, state.metadata);
     });
 
+    test('grants without a catalog are refused, never silently skipped', () {
+      // BETA-PRG-005 « insufficient item catalog » : appliquer des grants sans
+      // catalogue serait soit une perte silencieuse, soit un objet fantôme.
+      final state = rewardState(money: 25);
+
+      expect(
+        () => mutations.applyBattleRewards(
+          state,
+          reward: BattleReward(
+            sourceKind: BattleRewardSourceKind.trainer,
+            trainerId: 'p5_atomic_trainer',
+            money: 75,
+            itemGrants: const <BattleRewardItemGrant>[
+              BattleRewardItemGrant(itemId: 'revive', quantity: 1),
+            ],
+          ),
+        ),
+        throwsA(
+          isA<BattleRewardApplicationException>().having(
+            (error) => error.failure,
+            'failure',
+            BattleRewardApplicationFailure.missingItemCatalog,
+          ),
+        ),
+      );
+      expect(state.trainerProfile.money, 25);
+    });
+
+    test('a badge is granted exactly once across two distinct rewards', () {
+      // BETA-PRG-005 « badge/fact » : deux combats distincts récompensant le
+      // même badge (revanche de champion) ne doivent pas le dupliquer.
+      final state = rewardState(money: 0);
+      BattleReward badgeReward() => BattleReward(
+            sourceKind: BattleRewardSourceKind.trainer,
+            trainerId: 'p5_atomic_trainer',
+            badgeId: 'tide_badge',
+            flagIds: const <String>{'story:iris_won'},
+          );
+
+      final once = mutations.applyBattleRewards(
+        state,
+        reward: badgeReward(),
+        itemCatalog: itemCatalog,
+      );
+      final twice = mutations.applyBattleRewards(
+        once,
+        reward: badgeReward(),
+        itemCatalog: itemCatalog,
+      );
+
+      expect(once.trainerProfile.badgeIds, <String>['tide_badge']);
+      expect(
+        twice.trainerProfile.badgeIds,
+        <String>['tide_badge'],
+        reason: 'a rematch rewarding the same badge must not duplicate it',
+      );
+      expect(twice.storyFlags.activeFlags, contains('story:iris_won'));
+    });
+
     test('rejects an unknown item before applying any reward', () {
       final state = rewardState(money: 25);
 
