@@ -444,7 +444,7 @@ Future<_PreviewRun> _answer(
     final key = '${request.requestId}:${request.revision}';
     if (!answered.add(key)) return;
     requestKinds.add(request.kind.name);
-    prompts.add(request.prompt.fallbackText ?? "");
+    prompts.add(request.prompt.fallbackText ?? '');
     scheduleMicrotask(() {
       session.resolve(switch (request.kind) {
         SceneInteractionRequestKind.text =>
@@ -571,7 +571,7 @@ Future<_PreviewRun> _runThroughRuntimeComposition({
   var answerIndex = 0;
   final subscription = interactions.requests.listen((request) {
     requestKinds.add(request.kind.name);
-    prompts.add(request.prompt.fallbackText ?? "");
+    prompts.add(request.prompt.fallbackText ?? '');
     scheduleMicrotask(() {
       interactions.resolve(switch (request.kind) {
         SceneInteractionRequestKind.text =>

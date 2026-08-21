@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
+import 'dart:ui' show Tristate;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -1307,16 +1307,10 @@ void main() {
         final semantics = tester.getSemantics(finder);
         expect(semantics.label, contains(entry.value.label));
         expect(
-          semantics.hasFlag(SemanticsFlag.hasEnabledState),
-          isTrue,
-          reason: '${entry.value.label} must declare that it has an enabled '
-              'state at all',
-        );
-        expect(
-          semantics.hasFlag(SemanticsFlag.isEnabled),
-          isFalse,
-          reason: 'a screen reader must not announce ${entry.value.label} as '
-              'usable while the runtime refuses it',
+          semantics.flagsCollection.isEnabled,
+          Tristate.isFalse,
+          reason: 'a screen reader must be told ${entry.value.label} is '
+              'explicitly disabled, not merely left without an enabled state',
         );
         expect(
           semantics.hint,
