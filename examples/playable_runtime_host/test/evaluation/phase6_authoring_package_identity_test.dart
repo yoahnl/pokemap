@@ -91,12 +91,16 @@ void main() {
       final sourceRevision =
           'sha256:${await const ProjectTreeDigest().compute(projectRoot)}';
 
+      // The host supports the format of the project it is exercising, the way
+      // the export service derives it from its projection. 982aa3681 cut the
+      // slices over to v6 while this host still declared v2.
+      final projectFormat = authored.manifest.version.name;
       final hostCompatibility = GamePackageHostCompatibility(
         hubVersion: Version.parse('1.2.0'),
         runtimeApiVersion: Version.parse('1.4.0'),
         capabilities: const <String>{'map@1'},
-        supportedProjectFormats: const <String>{'v2'},
-        currentProjectFormat: 'v2',
+        supportedProjectFormats: <String>{projectFormat},
+        currentProjectFormat: projectFormat,
         supportedSaveFormats: const <int>{1},
       );
       final inspector = GamePackageInspector(
@@ -109,7 +113,8 @@ void main() {
         inputLoader: (request) async {
           expect(request.sourceRevision, sourceRevision);
           return EvaluationDistributionPackageInput(
-            manifest: _packageManifest(),
+            // The package declares the format of the project it carries.
+            manifest: _packageManifest(projectFormat: projectFormat),
             payloadFiles: <String, List<int>>{
               'project/project.json':
                   await File(p.join(projectRoot.path, 'project.json'))
@@ -260,7 +265,10 @@ void main() {
   );
 }
 
-GamePackageManifest _packageManifest() => GamePackageManifest(
+GamePackageManifest _packageManifest({
+  required String projectFormat,
+}) =>
+    GamePackageManifest(
       packageFormat: 1,
       gameId: 'games.example.pmcp072-golden',
       gameVersion: Version.parse('1.0.0'),
@@ -269,7 +277,7 @@ GamePackageManifest _packageManifest() => GamePackageManifest(
       compatibility: GamePackageCompatibility(
         minHubVersion: Version.parse('0.1.0'),
         runtimeApiExpression: '>=1.0.0 <2.0.0',
-        projectFormat: 'v2',
+        projectFormat: projectFormat,
         saveFormat: 1,
         compatibilityId: 'main',
         requiredCapabilities: const <String>['map@1'],
