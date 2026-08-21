@@ -47,3 +47,6 @@ packages/map_editor/test/**/failures/
 .superpowers/
 /prototypes/
 /.playwright-cli/
+
+# Golden comparison artifacts produced by failing runs (any package/app)
+**/test/**/failures/
