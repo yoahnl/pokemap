@@ -25,6 +25,9 @@ void main() {
     'landscape_960x540': Size(960, 540),
     'portrait_540x960': Size(540, 960),
     'compact_landscape_700x420': Size(700, 420),
+    // The shape the defect actually lived on: a real phone in portrait, where
+    // the player HUD used to sit 8.5px over the enemy.
+    'phone_portrait_390x844': Size(390, 844),
   };
 
   for (final entry in viewports.entries) {
@@ -72,24 +75,41 @@ void main() {
     });
   }
 
-  // Where the criterion holds today, and where it provably does not. The two
-  // skipped viewports are a real BETA-BAT-009 violation this suite found: the
-  // player HUD is anchored to the command panel without regard for what the
-  // stage occupies, so in a tall portrait the tall panel pushes it into the
-  // band where the enemy stands. Both are on the right, so they collide.
-  // Choosing where the player HUD belongs in compact portrait is a design
-  // decision, not a clamp, so it is recorded rather than guessed.
-  const knownOverlap = <String, String>{
-    'narrow_460x300': 'player HUD covers the enemy sprite by 14px',
-    'tall_390x760': 'player HUD covers the enemy sprite by 8.5px',
+  // The golden viewports plus every real device shape. That breadth is the
+  // point: when this suite first ran, the player HUD covered the enemy sprite
+  // on EVERY phone in portrait — 5px on a Pixel 7, 13.3px on a 360x800 — and
+  // 390x844 was already in battle_scene_layout_test's list, passing, because
+  // the player-HUD-against-enemy-sprite pair was the one pair of four nobody
+  // asserted. Certifying only invented viewports is how that survived.
+  final devices = <String, Size>{
+    ...viewports,
+    'android_portrait_360x800': const Size(360, 800),
+    'iphone_portrait_375x812': const Size(375, 812),
+    'iphone_pro_portrait_390x844': const Size(390, 844),
+    'pixel_portrait_412x915': const Size(412, 915),
+    'ipad_portrait_834x1194': const Size(834, 1194),
+    'ipad_landscape_1194x834': const Size(1194, 834),
+    'desktop_1024x768': const Size(1024, 768),
+    'desktop_1280x800': const Size(1280, 800),
+    'tall_390x760': const Size(390, 760),
+  };
+
+  // The one defect still open, and it predates this suite: at 460x300 the
+  // enemy HUD — anchored in screen pixels at the top left — covers 11.5px of
+  // the player sprite that the squeezed stage lifts into it. Same family of
+  // cause as the two fixed here, a screen-space rectangle against a
+  // stage-space one, measured identically before and after that fix. But
+  // 460x300 is no device's size, so it is a separate debt rather than a
+  // silent widening of BETA-BAT-009's signed scope.
+  const knownDefect = <String, String>{
+    'narrow_460x300': 'enemy HUD covers the player sprite by 11.5px',
   };
 
   for (final entry in <String, Size>{
-    ...viewports,
+    ...devices,
     'narrow_460x300': const Size(460, 300),
-    'tall_390x760': const Size(390, 760),
   }.entries) {
-    test('no chrome covers a combatant at ${entry.key}', () {
+    test('every combatant is entirely visible at ${entry.key}', () {
       final layout = BattleSceneLayout.forViewport(viewportSize: entry.value);
       final chrome = <String, Rect>{
         'enemy HUD': layout.enemyHudRect,
@@ -100,12 +120,34 @@ void main() {
         'enemy sprite': layout.enemySpriteRect,
         'player sprite': layout.playerSpriteRect,
       };
+      // The ground is held to a weaker rule on purpose. BETA-BAT-009 signs for
+      // two sprites and two HUDs, not for pixel-perfect decor, and a platform
+      // is MEANT to meet the command panel's top edge — a 3px rim tucking
+      // under a border is not an occlusion. But a platform swallowed whole is:
+      // an enemy standing on an invisible ellipse reads as floating, which is
+      // exactly what clamping the enemy against the player HUD first produced.
+      // Mostly-visible catches that and stays out of the signed criterion.
+      final grounds = <String, Rect>{
+        'enemy platform': layout.enemyPlatformRect,
+        'player platform': layout.playerPlatformRect,
+      };
 
       for (final combatant in combatants.entries) {
         expect(
           combatant.value.width > 0 && combatant.value.height > 0,
           isTrue,
           reason: '${combatant.key} must occupy real space at ${entry.key}',
+        );
+
+        // "Entirely visible" starts with being inside the frame at all.
+        expect(
+          combatant.value.left >= layout.sceneRect.left - 0.5 &&
+              combatant.value.right <= layout.sceneRect.right + 0.5 &&
+              combatant.value.top >= layout.sceneRect.top - 0.5 &&
+              combatant.value.bottom <= layout.sceneRect.bottom + 0.5,
+          isTrue,
+          reason: '${combatant.key} leaves the frame at ${entry.key}: '
+              '${combatant.value} against ${layout.sceneRect}',
         );
 
         for (final piece in chrome.entries) {
@@ -117,6 +159,25 @@ void main() {
                 '${entry.key}: ${combatant.value} against ${piece.value}',
           );
         }
+      }
+
+      for (final ground in grounds.entries) {
+        final area = ground.value.width * ground.value.height;
+        expect(area, greaterThan(0),
+            reason: '${ground.key} must occupy real space at ${entry.key}');
+        var covered = 0.0;
+        for (final piece in chrome.entries) {
+          final overlap = ground.value.intersect(piece.value);
+          if (overlap.width > 0 && overlap.height > 0) {
+            covered += overlap.width * overlap.height;
+          }
+        }
+        expect(
+          covered / area,
+          lessThan(0.2),
+          reason: '${ground.key} is mostly hidden at ${entry.key}, so its '
+              'combatant reads as floating: ${ground.value}',
+        );
       }
 
       // And the chrome must not overlap itself either, which is the other half
@@ -135,44 +196,10 @@ void main() {
         }
       }
     },
-        skip: knownOverlap[entry.key] == null
+        skip: knownDefect[entry.key] == null
             ? null
-            : 'BETA-BAT-009 open defect: ${knownOverlap[entry.key]}');
+            : 'BETA-BAT-009 separate debt: ${knownDefect[entry.key]}');
   }
-
-  // "Entirely visible" also means inside the frame, and today the player
-  // sprite is not: rectFromFootAnchor places 70% of a 350-wide box left of an
-  // anchor sitting only 158 into the stage, so it hangs off the left edge at
-  // every viewport — 87px at 960x540. Whether that crop is intended framing or
-  // an oversized box is a design call, so this suite records it instead of
-  // guessing a number.
-  group('BETA-BAT-009 combatants stay inside the frame', () {
-    for (final entry in <String, Size>{
-      ...viewports,
-      'narrow_460x300': const Size(460, 300),
-      'tall_390x760': const Size(390, 760),
-    }.entries) {
-      test('at ${entry.key}', () {
-        final layout = BattleSceneLayout.forViewport(viewportSize: entry.value);
-        for (final combatant in <String, Rect>{
-          'enemy sprite': layout.enemySpriteRect,
-          'player sprite': layout.playerSpriteRect,
-        }.entries) {
-          expect(
-            combatant.value.left >= layout.sceneRect.left - 0.5 &&
-                combatant.value.right <= layout.sceneRect.right + 0.5 &&
-                combatant.value.top >= layout.sceneRect.top - 0.5 &&
-                combatant.value.bottom <= layout.sceneRect.bottom + 0.5,
-            isTrue,
-            reason: '${combatant.key} leaves the frame at ${entry.key}: '
-                '${combatant.value} against ${layout.sceneRect}',
-          );
-        }
-      });
-    }
-  }, skip: 'BETA-BAT-009 open defect: the player sprite hangs off the left '
-      'edge at every viewport (87px at 960x540, 63px at 700x420, 12px at '
-      '540x960). Intended crop or oversized box is Yoahn\'s call.');
 }
 
 /// Paints the combatants and their platforms exactly where the layout puts

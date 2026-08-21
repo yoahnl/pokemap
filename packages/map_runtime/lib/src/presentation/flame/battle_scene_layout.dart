@@ -126,6 +126,37 @@ final class BattleSceneLayout {
       commandPanelHeight,
     );
 
+    // Calculé AVANT la scène, parce que l'ennemi doit pouvoir s'écarter de lui.
+    // Ce HUD est le seul élément placé en pixels d'écran au-dessus du panneau :
+    // son empreinte au-dessus du bas de scène est constante alors que le
+    // dégagement de l'ennemi vaut `140 * scale`. Sous une échelle d'environ
+    // 0,5 — soit tous les téléphones en portrait — les deux se croisaient.
+    final playerHudSize = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => Size(
+          (sceneRect.width * 0.47).clamp(190.0, 216.0).toDouble(),
+          (sceneRect.height * 0.105).clamp(70.0, 76.0).toDouble(),
+        ),
+      BattleViewportClass.mediumLandscape => const Size(184, 62),
+      BattleViewportClass.wideDesktop => const Size(244, 74),
+    };
+    // `wideDesktop` place le sien en coordonnées de scène, donc invariant
+    // d'échelle et sans collision possible : rien à réserver pour lui.
+    final panelAnchoredPlayerHudRect = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => Rect.fromLTWH(
+          sceneRect.right - portraitSafeMargin - playerHudSize.width,
+          commandPanelRect.top - playerHudSize.height - 10,
+          playerHudSize.width,
+          playerHudSize.height,
+        ),
+      BattleViewportClass.mediumLandscape => Rect.fromLTWH(
+          sceneRect.right - 192,
+          commandPanelRect.top - 72,
+          playerHudSize.width,
+          playerHudSize.height,
+        ),
+      BattleViewportClass.wideDesktop => Rect.zero,
+    };
+
     final stageBottomGap = switch (viewportClass) {
       BattleViewportClass.compactPortrait => 16.0,
       BattleViewportClass.mediumLandscape => 12.0,
@@ -152,6 +183,26 @@ final class BattleSceneLayout {
       BattleViewportClass.mediumLandscape => 330.0,
       BattleViewportClass.wideDesktop => 330.0,
     };
+    const playerSpriteReferenceSize = Size(350, 214);
+    const enemySpriteReferenceSize = Size(210, 154);
+    const playerPlatformReferenceSize = Size(222, 28);
+    const enemyPlatformReferenceSize = Size(160, 22);
+    const playerSpriteFootXRatio = 0.70;
+    const enemySpriteFootXRatio = 0.5;
+    const playerPlatformFootYOffset = 5.0;
+    const enemyPlatformFootYOffset = 4.0;
+
+    final playerFootReference = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => const Offset(192, 350),
+      BattleViewportClass.mediumLandscape => const Offset(158, 322),
+      BattleViewportClass.wideDesktop => const Offset(158, 322),
+    };
+    final enemyFootReference = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => const Offset(610, 220),
+      BattleViewportClass.mediumLandscape => const Offset(724, 214),
+      BattleViewportClass.wideDesktop => const Offset(724, 214),
+    };
+
     final scale = math.min(
       1.0,
       math.min(
@@ -159,9 +210,42 @@ final class BattleSceneLayout {
         stageAvailableRect.height / referenceStageHeight,
       ),
     );
+
+    // Le sprite de dos déborde volontairement à gauche de la boîte de scène :
+    // le contrat l'exige explicitement (0,72 d'inclusion côté joueur contre
+    // 0,9 côté ennemi). Ce débord n'a de sens que s'il reste de la place pour
+    // l'absorber, et centrer la scène ne le garantit pas — à 1280x720 le
+    // letterboxing l'absorbe, à 960x540 la scène remplit la largeur et le
+    // quart gauche du Pokémon tombait hors écran. On ne centre donc que dans
+    // la marge que les combattants laissent réellement.
+    final combatantReferenceLeft = <double>[
+      playerFootReference.dx -
+          (playerSpriteReferenceSize.width * playerSpriteFootXRatio),
+      playerFootReference.dx - (playerPlatformReferenceSize.width / 2),
+      enemyFootReference.dx -
+          (enemySpriteReferenceSize.width * enemySpriteFootXRatio),
+      enemyFootReference.dx - (enemyPlatformReferenceSize.width / 2),
+    ].reduce((left, right) => math.min(left, right));
+    final combatantReferenceRight = <double>[
+      playerFootReference.dx +
+          (playerSpriteReferenceSize.width * (1 - playerSpriteFootXRatio)),
+      playerFootReference.dx + (playerPlatformReferenceSize.width / 2),
+      enemyFootReference.dx +
+          (enemySpriteReferenceSize.width * (1 - enemySpriteFootXRatio)),
+      enemyFootReference.dx + (enemyPlatformReferenceSize.width / 2),
+    ].reduce((left, right) => math.max(left, right));
+    final centeredStageLeft = stageAvailableRect.left +
+        ((stageAvailableRect.width - (referenceStageWidth * scale)) / 2);
+    final stageLeft = math.max(
+      stageAvailableRect.left - (combatantReferenceLeft * scale),
+      math.min(
+        centeredStageLeft,
+        stageAvailableRect.right - (combatantReferenceRight * scale),
+      ),
+    );
+
     final stageRect = Rect.fromLTWH(
-      stageAvailableRect.left +
-          ((stageAvailableRect.width - (referenceStageWidth * scale)) / 2),
+      stageLeft,
       stageAvailableRect.bottom - (referenceStageHeight * scale),
       referenceStageWidth * scale,
       referenceStageHeight * scale,
@@ -211,45 +295,62 @@ final class BattleSceneLayout {
       );
     }
 
-    final playerFootReference = switch (viewportClass) {
-      BattleViewportClass.compactPortrait => const Offset(192, 350),
-      BattleViewportClass.mediumLandscape => const Offset(158, 322),
-      BattleViewportClass.wideDesktop => const Offset(158, 322),
-    };
-    final enemyFootReference = switch (viewportClass) {
-      BattleViewportClass.compactPortrait => const Offset(610, 220),
-      BattleViewportClass.mediumLandscape => const Offset(724, 214),
-      BattleViewportClass.wideDesktop => const Offset(724, 214),
-    };
     final playerFootAnchor = mapPoint(
       playerFootReference.dx,
       playerFootReference.dy,
     );
-    final enemyFootAnchor = mapPoint(
+    final mappedEnemyFootAnchor = mapPoint(
       enemyFootReference.dx,
       enemyFootReference.dy,
     );
+    final mappedEnemySpriteRect = rectFromFootAnchor(
+      mappedEnemyFootAnchor,
+      enemySpriteReferenceSize,
+      footXRatio: enemySpriteFootXRatio,
+    );
+
+    // C'est l'ennemi qui cède le passage au HUD joueur, jamais l'inverse : le
+    // HUD garde la taille lisible gagnée en BETA-BAT-007, et il reste de la
+    // marge au-dessus de l'ennemi pour l'accueillir. Le `min` ne mord que là
+    // où la collision existe réellement.
+    final enemyOverlapsPlayerHud = !panelAnchoredPlayerHudRect.isEmpty &&
+        mappedEnemySpriteRect.right > panelAnchoredPlayerHudRect.left &&
+        mappedEnemySpriteRect.left < panelAnchoredPlayerHudRect.right;
+    // C'est le combattant AVEC son sol qui doit degager : la plateforme
+    // descend sous l'ancre, et ne compter que le sprite laissait l'ennemi
+    // debout sur une ellipse cachee derriere le HUD, donc flottant.
+    final enemyPlatformBelowFootAnchor =
+        (enemyPlatformReferenceSize.height - enemyPlatformFootYOffset) * scale;
+    final enemyFootAnchor = enemyOverlapsPlayerHud
+        ? Offset(
+            mappedEnemyFootAnchor.dx,
+            math.min(
+              mappedEnemyFootAnchor.dy,
+              panelAnchoredPlayerHudRect.top - 4 - enemyPlatformBelowFootAnchor,
+            ),
+          )
+        : mappedEnemyFootAnchor;
 
     final playerSpriteRect = rectFromFootAnchor(
       playerFootAnchor,
-      const Size(350, 214),
-      footXRatio: 0.70,
+      playerSpriteReferenceSize,
+      footXRatio: playerSpriteFootXRatio,
     );
     final enemySpriteRect = rectFromFootAnchor(
       enemyFootAnchor,
-      const Size(210, 154),
-      footXRatio: 0.5,
+      enemySpriteReferenceSize,
+      footXRatio: enemySpriteFootXRatio,
     );
 
     final playerPlatformRect = platformRectFromFootAnchor(
       playerFootAnchor,
-      const Size(222, 28),
-      footYOffset: 5,
+      playerPlatformReferenceSize,
+      footYOffset: playerPlatformFootYOffset,
     );
     final enemyPlatformRect = platformRectFromFootAnchor(
       enemyFootAnchor,
-      const Size(160, 22),
-      footYOffset: 4,
+      enemyPlatformReferenceSize,
+      footYOffset: enemyPlatformFootYOffset,
     );
 
     final enemyHudRect = switch (viewportClass) {
@@ -267,24 +368,18 @@ final class BattleSceneLayout {
         ),
       BattleViewportClass.wideDesktop => mapRect(16, 8, 210, 70),
     };
+    // Exactement le rectangle que l'ennemi a contourné : le recalculer ici
+    // rouvrirait l'écart entre la bande réservée et la bande rendue.
     final playerHudRect = switch (viewportClass) {
-      BattleViewportClass.compactPortrait => Rect.fromLTWH(
-          sceneRect.right -
-              portraitSafeMargin -
-              (sceneRect.width * 0.47).clamp(190.0, 216.0).toDouble(),
-          commandPanelRect.top -
-              (sceneRect.height * 0.105).clamp(70.0, 76.0).toDouble() -
-              10,
-          (sceneRect.width * 0.47).clamp(190.0, 216.0).toDouble(),
-          (sceneRect.height * 0.105).clamp(70.0, 76.0).toDouble(),
+      BattleViewportClass.compactPortrait ||
+      BattleViewportClass.mediumLandscape =>
+        panelAnchoredPlayerHudRect,
+      BattleViewportClass.wideDesktop => mapRect(
+          668,
+          232,
+          playerHudSize.width,
+          playerHudSize.height,
         ),
-      BattleViewportClass.mediumLandscape => Rect.fromLTWH(
-          sceneRect.right - 192,
-          commandPanelRect.top - 72,
-          184,
-          62,
-        ),
-      BattleViewportClass.wideDesktop => mapRect(668, 232, 244, 74),
     };
 
     // BETA-BAT-007. La hauteur du rectangle est ce qui plafonnait vraiment
@@ -380,8 +475,8 @@ final class BattleSceneLayout {
 ///
 /// Un obstacle qui chevauche DÉJÀ la base est ignoré par construction — les
 /// conditions ne retiennent que ce qui est entièrement d'un côté. Sans ça, le
-/// HUD joueur en portrait, qui recouvre déjà 8 px du sprite ennemi, produirait
-/// des bornes absurdes.
+/// sprite joueur, qui déborde volontairement à gauche de la boîte de scène,
+/// produirait des bornes absurdes dès qu'un HUD naît dans son débord.
 Rect _growHudRect({
   required Rect base,
   required double textScale,

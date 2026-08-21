@@ -53,12 +53,19 @@ void main() {
 
   group('BattleSceneLayout viewport contract', () {
     const viewports = <Size>[
+      Size(360, 800),
+      Size(375, 812),
       Size(390, 844),
+      Size(412, 915),
       Size(528, 467),
+      Size(540, 960),
       Size(640, 360),
+      Size(700, 420),
       Size(844, 390),
+      Size(834, 1194),
       Size(960, 540),
       Size(1012, 467),
+      Size(1194, 834),
       Size(1280, 720),
       Size(1600, 900),
       Size(1024, 768),
@@ -121,6 +128,12 @@ void main() {
         );
         expect(layout.playerHudRect.overlaps(layout.playerSpriteRect), isFalse);
         expect(layout.enemyHudRect.overlaps(layout.enemySpriteRect), isFalse);
+        // La quatrieme paire, la seule qui manquait, et la seule qui cassait :
+        // le HUD joueur est place en pixels d'ecran au-dessus du panneau tandis
+        // que l'ennemi est place en pixels de scene, donc les deux se croisaient
+        // sous une echelle d'environ 0,5 - tous les telephones en portrait,
+        // 390x844 inclus, deja present dans cette liste et deja au vert.
+        expect(layout.playerHudRect.overlaps(layout.enemySpriteRect), isFalse);
 
         expect(
           layout.playerPlatformRect.center.dx,
