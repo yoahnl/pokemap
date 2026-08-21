@@ -8,6 +8,7 @@ import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_layout_theme.dart';
 import '../theme/pokemap_player_battle_theme.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'player_hp_tone.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 
 enum PlayerBattleEntryTone {
@@ -456,20 +457,14 @@ class _BattleHud extends StatelessWidget {
     final hpRatio = data.maxHp <= 0
         ? 0.0
         : (data.effectiveTargetDisplayedHp / data.maxHp).clamp(0.0, 1.0);
-    final hpColor = hpRatio <= 0.2
-        ? PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-              profile?.hpDangerColor,
-            ) ??
-            colors.danger
-        : hpRatio <= 0.5
-            ? PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-                  profile?.hpWarningColor,
-                ) ??
-                colors.warning
-            : PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-                  profile?.hpHealthyColor,
-                ) ??
-                colors.success;
+    // One resolver for the three HP bands, shared with the summary sheet.
+    final hpColor = playerHpColorFor(
+      context,
+      hpRatio,
+      healthyHex: profile?.hpHealthyColor,
+      warningHex: profile?.hpWarningColor,
+      dangerHex: profile?.hpDangerColor,
+    );
     final statusColor = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
           profile?.statusColor,
         ) ??

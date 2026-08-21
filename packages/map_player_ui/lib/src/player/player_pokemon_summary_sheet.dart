@@ -4,6 +4,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'player_hp_tone.dart';
 import 'player_pokemon_summary_strings.dart';
 
 /// Fiche Pokémon unique de l'Équipe et du PC.
@@ -116,9 +117,14 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
           ],
         ),
         const SizedBox(height: PlayerSpacing.xs),
+        // The track must not read as a full bar: without an explicit neutral
+        // background the theme painted a saturated green behind the fill, so a
+        // Pokémon at 20/48 looked untouched. The fill now carries the same
+        // threshold bands as the battle HUD.
         LinearProgressIndicator(
           value: summary.hpRatio,
-          color: summary.isFainted ? context.playerColors.danger : null,
+          color: playerHpColorFor(context, summary.hpRatio),
+          backgroundColor: context.playerColors.outline.withValues(alpha: 0.35),
         ),
         if (summary.statusLabel case final status?) ...<Widget>[
           const SizedBox(height: PlayerSpacing.xs),
@@ -194,9 +200,14 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         for (final move in summary.moves)
+          // The snapshot carries the move type and nobody rendered it: the
+          // sheet dropped a canonical field while its test claimed every one
+          // reached the screen.
           _SummaryLine(
             key: ValueKey<String>('pokemon-summary-move-${move.moveId}'),
-            label: move.label,
+            label: (move.typeLabel?.trim() ?? '').isEmpty
+                ? move.label
+                : '${move.label} · ${move.typeLabel}',
             value: move.hasPpTracking
                 ? strings.ppValue(move.currentPp!, move.maxPp!)
                 : strings.ppUnavailable,

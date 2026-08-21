@@ -53,11 +53,71 @@ void main() {
       expect(find.text('120'), findsOneWidget);
       expect(find.text('Baie Oran'), findsOneWidget);
       expect(find.text('70/255'), findsOneWidget);
-      expect(find.text('Charge'), findsOneWidget);
+      // The move type used to be carried by the snapshot and dropped on the
+      // floor while this very test claimed every canonical field reached the
+      // screen, so the type now travels with the move label.
+      expect(find.text('Charge · Normal'), findsOneWidget);
       expect(find.text('PP 30/35'), findsOneWidget);
       expect(find.text('Capturé'), findsOneWidget);
       expect(find.text('Route Hanazuki'), findsOneWidget);
+      expect(find.text('Tall Grass'), findsOneWidget);
+      expect(find.text('5'), findsWidgets);
+      expect(find.text('Poke Ball'), findsOneWidget);
       expect(find.text('49'), findsWidgets);
+    });
+
+    testWidgets('the HP gauge carries the same threshold as the battle HUD',
+        (tester) async {
+      Color gaugeColorFor({required int currentHp, required int maxHp}) {
+        return tester
+                .widget<LinearProgressIndicator>(
+                  find.byType(LinearProgressIndicator),
+                )
+                .color ??
+            const Color(0x00000000);
+      }
+
+      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
+        summary: _summary(currentHp: 44, maxHp: 48),
+      )));
+      final healthy = gaugeColorFor(currentHp: 44, maxHp: 48);
+
+      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
+        summary: _summary(currentHp: 20, maxHp: 48),
+      )));
+      final warning = gaugeColorFor(currentHp: 20, maxHp: 48);
+
+      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
+        summary: _summary(currentHp: 4, maxHp: 48),
+      )));
+      final danger = gaugeColorFor(currentHp: 4, maxHp: 48);
+
+      expect(
+        <Color>{healthy, warning, danger},
+        hasLength(3),
+        reason: 'a Pokémon at 20/48 must not look as healthy as one at 44/48, '
+            'and one at 4/48 must not look like either',
+      );
+      expect(playerHpToneFor(44 / 48), PlayerHpTone.healthy);
+      expect(playerHpToneFor(20 / 48), PlayerHpTone.warning);
+      expect(playerHpToneFor(4 / 48), PlayerHpTone.danger);
+    });
+
+    testWidgets('the gauge track never reads as a full bar', (tester) async {
+      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
+        summary: _summary(currentHp: 20, maxHp: 48),
+      )));
+      final gauge = tester.widget<LinearProgressIndicator>(
+        find.byType(LinearProgressIndicator),
+      );
+      expect(
+        gauge.backgroundColor,
+        isNotNull,
+        reason: 'without an explicit neutral track the theme painted a '
+            'saturated green behind the fill, so a damaged Pokémon looked '
+            'untouched',
+      );
+      expect(gauge.value, closeTo(20 / 48, 0.0001));
     });
 
     testWidgets('a move without PP tracking shows a dash, never zero',
@@ -118,6 +178,8 @@ Set<String> _visibleText(WidgetTester tester) => tester
     .toSet();
 
 RuntimePokemonSummarySnapshot _summary({
+  int currentHp = 20,
+  int maxHp = 48,
   RuntimePokemonStatsSummarySnapshot? stats =
       const RuntimePokemonStatsSummarySnapshot(
     attack: 49,
@@ -144,8 +206,8 @@ RuntimePokemonSummarySnapshot _summary({
     nickname: '',
     level: 12,
     experience: 120,
-    currentHp: 20,
-    maxHp: 48,
+    currentHp: currentHp,
+    maxHp: maxHp,
     stats: stats,
     natureLabel: 'Hardy',
     abilityLabel: 'Overgrow',
