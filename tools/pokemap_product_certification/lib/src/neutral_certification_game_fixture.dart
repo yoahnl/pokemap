@@ -24,9 +24,22 @@ final class NeutralCertificationGameFixture {
     this.trainerArena = false,
     this.economyTown = false,
     this.progressionArena = false,
+    this.dialoguedPreSession = false,
   }) : assert(partySize == 1 || partySize == 2 || partySize == 6);
 
   final bool connectedMaps;
+
+  /// BETA-CIN-083 : le parcours de presession dialogue vit en v7, parce que
+  /// c'est la version qui porte les Presentations. Seul le MANIFESTE suit ce
+  /// drapeau : les cartes restent en v6 dans un projet v7, exactement comme
+  /// celles du vrai projet. Off par defaut, donc le paquet de release et
+  /// toutes les gates existantes gardent leur forme exacte au bit pres.
+  final bool dialoguedPreSession;
+
+  ProjectVersion get projectVersion =>
+      dialoguedPreSession ? ProjectVersion.v7 : ProjectVersion.v6;
+
+  String get projectFormat => dialoguedPreSession ? 'v7' : 'v6';
 
   /// BETA-PTY-005 : la gate Party/PC exige deux membres — déposer l'unique
   /// Pokémon utilisable est refusé par la garde lastUsable. Un pour les autres
@@ -68,6 +81,8 @@ final class NeutralCertificationGameFixture {
 
   bool get _arenaEnabled => trainerArena || economyTown || progressionArena;
 
+  bool get _actorTilesetEnabled => _arenaEnabled || dialoguedPreSession;
+
   static const String shopId = 'certification_shop';
   static const String machineItemId = 'certification-tm-growl';
   static const String heldItemId = 'certification-leftovers';
@@ -88,6 +103,12 @@ final class NeutralCertificationGameFixture {
   static const String guaranteedBallItemId = 'certification-ball';
   static const GridPos encounterCell = GridPos(x: 1, y: 2);
   static const String completionTriggerId = 'certification_corner_trigger';
+
+  static const String dawnKeeperCharacterId = 'keeper_dawn';
+  static const String duskKeeperCharacterId = 'keeper_dusk';
+  static const String actorTilesetId = 'certification_actor_tileset';
+  static const String actorTilesetPath =
+      'assets/tilesets/certification_actors.png';
 
   static const String fixedGameId = 'games.pokemap.certification.neutral';
   static const String fixedGameVersion = '1.0.0';
@@ -124,8 +145,8 @@ final class NeutralCertificationGameFixture {
           'overworld.menu@1',
           'world.shop@1',
         },
-        supportedProjectFormats: const <String>{'v6'},
-        currentProjectFormat: 'v6',
+        supportedProjectFormats: <String>{projectFormat},
+        currentProjectFormat: projectFormat,
         supportedSaveFormats: const <int>{1},
       );
 
@@ -161,7 +182,7 @@ final class NeutralCertificationGameFixture {
     await root.create(recursive: true);
     final manifest = ProjectManifest(
       name: 'The Clockwork Harbor',
-      version: ProjectVersion.v6,
+      version: projectVersion,
       maps: <ProjectMapEntry>[
         const ProjectMapEntry(
           id: fixedMapId,
@@ -184,24 +205,38 @@ final class NeutralCertificationGameFixture {
           ),
         ],
       ],
-      tilesets: _arenaEnabled
+      tilesets: _actorTilesetEnabled
           ? const <ProjectTilesetEntry>[
               ProjectTilesetEntry(
-                id: 'certification_actor_tileset',
+                id: actorTilesetId,
                 name: 'Certification actors',
-                relativePath: 'assets/tilesets/certification_actors.png',
+                relativePath: actorTilesetPath,
               ),
             ]
           : const <ProjectTilesetEntry>[],
-      characters: _arenaEnabled
-          ? const <ProjectCharacterEntry>[
-              ProjectCharacterEntry(
-                id: 'certification_actor',
-                name: 'Certification actor',
-                tilesetId: 'certification_actor_tileset',
-              ),
-            ]
-          : const <ProjectCharacterEntry>[],
+      characters: <ProjectCharacterEntry>[
+        if (_arenaEnabled)
+          const ProjectCharacterEntry(
+            id: 'certification_actor',
+            name: 'Certification actor',
+            tilesetId: actorTilesetId,
+          ),
+        // BETA-CIN-083 : les deux silhouettes que le choix d'avatar propose.
+        // Elles partagent le tileset d'acteur existant plutot que d'en
+        // introduire un second — meme PNG, meme ecriture deterministe.
+        if (dialoguedPreSession) ...const <ProjectCharacterEntry>[
+          ProjectCharacterEntry(
+            id: dawnKeeperCharacterId,
+            name: 'Gardienne de l’aube',
+            tilesetId: actorTilesetId,
+          ),
+          ProjectCharacterEntry(
+            id: duskKeeperCharacterId,
+            name: 'Gardien du crépuscule',
+            tilesetId: actorTilesetId,
+          ),
+        ],
+      ],
       dialogues: _arenaEnabled
           ? const <ProjectDialogueEntry>[
               ProjectDialogueEntry(
@@ -381,6 +416,14 @@ final class NeutralCertificationGameFixture {
                         BagEntry(itemId: 'potion', quantity: 4),
                       ]
                     : const <BagEntry>[],
+        // BETA-CIN-083 : les deux silhouettes que le choix d'avatar du
+        // parcours dialogue est autorise a proposer. Une option de choix
+        // liee a avatarCharacterId doit etre declaree ici, sinon l'action
+        // d'authoring la refuse — c'est la graine du projet, pas le parcours,
+        // qui les declare, comme les especes et les objets des autres gates.
+        playerAvatarCharacterIds: dialoguedPreSession
+            ? const <String>[dawnKeeperCharacterId, duskKeeperCharacterId]
+            : const <String>[],
       ),
       scenes: <SceneAsset>[
         _completionScene,
@@ -513,6 +556,7 @@ final class NeutralCertificationGameFixture {
       File(p.join(root.path, 'maps', 'clockwork_harbor.json')),
       map.toJson(),
     );
+
     if (connectedMaps) {
       await _writeJson(
         File(p.join(root.path, 'maps', 'neutral_causeway.json')),
@@ -543,7 +587,9 @@ final class NeutralCertificationGameFixture {
     }
     if (_arenaEnabled) {
       await _writeArenaDialogues(root);
-      await _writeArenaActorTileset(root);
+    }
+    if (_actorTilesetEnabled) {
+      await _writeActorTileset(root);
     }
     if (economyTown) {
       await _appendEconomyItemsToCatalog(root);
@@ -712,10 +758,8 @@ final class NeutralCertificationGameFixture {
     await _writeJson(evolutionFile, evolution);
   }
 
-  Future<void> _writeArenaActorTileset(Directory root) async {
-    final file = File(
-      p.join(root.path, 'assets', 'tilesets', 'certification_actors.png'),
-    );
+  Future<void> _writeActorTileset(Directory root) async {
+    final file = File(p.join(root.path, actorTilesetPath));
     await file.parent.create(recursive: true);
     await file.writeAsBytes(
       base64Decode(
