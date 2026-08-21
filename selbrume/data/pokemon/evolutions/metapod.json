@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "metapod",
+  "preEvolution": "caterpie",
+  "evolutions": [
+    {
+      "targetSpeciesId": "butterfree",
+      "method": "level_up",
+      "minLevel": 10,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

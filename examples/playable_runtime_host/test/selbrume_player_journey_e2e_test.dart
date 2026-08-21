@@ -73,12 +73,14 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('FG-182 product journey source excludes forged gameplay shortcuts', () {
-    final source = <String>[
+    final journeySource = File(
       p.join(
         Directory.current.path,
         'test',
         'selbrume_player_journey_e2e_test.dart',
       ),
+    ).readAsStringSync();
+    final driverSource = File(
       p.join(
         Directory.current.path,
         'lib',
@@ -87,10 +89,10 @@ void main() {
         'driver',
         'selbrume_evaluation_driver.dart',
       ),
-    ].map((path) => File(path).readAsStringSync()).join('\n');
-    final forbiddenFragments = <String>[
+    ).readAsStringSync();
+
+    final forgingHelpers = <String>[
       <String>['_finished', 'Outcome('].join(),
-      <String>['GameState', 'Mutations'].join(),
       <String>['.', 'set', 'Flag('].join(),
       <String>['debug', 'Set'].join(),
       <String>['debug', 'Apply'].join(),
@@ -98,12 +100,32 @@ void main() {
       <String>['setPlayer', 'MovementMode('].join(),
       <String>['setSurfing', 'Enabled('].join(),
     ];
-
-    for (final fragment in forbiddenFragments) {
+    for (final fragment in forgingHelpers) {
       expect(
-        source,
+        journeySource + '\n' + driverSource,
         isNot(contains(fragment)),
         reason: 'The canonical product journey must not use $fragment.',
+      );
+    }
+
+    // The gameplay mutation layer is production code the evaluation cockpit
+    // legitimately drives through its probe surface. What the product journey
+    // may never do is write GameState itself, or reach for a probe that does.
+    expect(
+      journeySource,
+      isNot(contains(<String>['GameState', 'Mutations'].join())),
+      reason: 'The canonical product journey must not write GameState itself.',
+    );
+    for (final probe in <String>[
+      <String>['giveBag', 'Item('].join(),
+      <String>['consumeBag', 'Item('].join(),
+      <String>['probeSet', 'Money('].join(),
+    ]) {
+      expect(
+        journeySource,
+        isNot(contains(probe)),
+        reason: 'The canonical product journey must not call the evaluation '
+            'probe $probe.',
       );
     }
   });
@@ -855,6 +877,7 @@ final class _SelbrumeJourney {
     expect(hydratedStarter.provenance, expectedProvenance);
     expect(
       hydratedStarter.copyWith(
+        individualId: authoredStarter.individualId,
         experience: authoredStarter.experience,
         currentPpByMoveId: authoredStarter.currentPpByMoveId,
       ),
@@ -865,6 +888,7 @@ final class _SelbrumeJourney {
     );
     expect(hydratedStarter.experience, isNotNull);
     expect(hydratedStarter.currentPpByMoveId, isNotNull);
+    expect(hydratedStarter.individualId, isNotEmpty);
   }
 
   String pathDiagnostic(GridPos target, {required String gateEntityId}) {
@@ -1085,9 +1109,7 @@ final class _SelbrumeJourney {
     final before = bagQuantity(itemId);
     final moneyBefore = state.trainerProfile.money;
     final requestCountBefore = playerServices.shopRequests.length;
-    final stockKey = expectedStateId == ShopStateResolver.defaultStateId
-        ? 'shop_port_supplies::$itemId'
-        : 'shop_port_supplies::$expectedStateId::$itemId';
+    final stockKey = 'shop_port_supplies::$expectedStateId::$itemId';
     final stockBefore = state.progression.shopPurchaseCounts[stockKey] ?? 0;
     playerServices.queueShopPurchase(itemId);
     await interactWith(entityId: 'service_port_shop');

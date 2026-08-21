@@ -22934,10 +22934,7 @@
           "metadata": {}
         }
       ],
-      "metadata": {
-        "authoring.cutsceneSchema": "cutscene_studio_v2",
-        "authoring.cutsceneFlow": "{\"v\":1,\"seq\":[{\"t\":\"b\",\"b\":{\"id\":\"block_dialogue_1\",\"kind\":\"dialogue\",\"actorId\":null,\"dialogueId\":null,\"messageText\":null,\"scriptId\":null,\"flagName\":null,\"outcomeId\":null,\"resultLabel\":null,\"resultScope\":null,\"destinationTargetKind\":null,\"destinationTargetId\":null,\"transitionMapId\":null,\"transitionWarpId\":null,\"facingDirection\":null,\"durationMs\":null,\"waitForCompletion\":null,\"choiceOptions\":[]}}]}"
-      }
+      "metadata": {}
     },
     {
       "id": "p6_03_first_interaction",
@@ -36071,7 +36068,7 @@
           ],
           "experience": 2534,
           "currentPpByMoveId": null,
-          "currentHp": 40,
+          "currentHp": 38,
           "statusId": "",
           "isShiny": false,
           "heldItemId": "",

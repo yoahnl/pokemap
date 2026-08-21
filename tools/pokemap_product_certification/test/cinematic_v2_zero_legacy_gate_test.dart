@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -82,6 +83,31 @@ void main() {
     expect(dispatcher, contains('cinematic.capability_removed'));
   });
 
+  test('CIN-010 leaves no repository project data the runtime refuses', () {
+    final offenders = <String>[];
+    for (final file in _projectManifestFiles(repositoryRoot)) {
+      final relativePath = p.relative(file.path, from: repositoryRoot.path);
+      final Object? decoded;
+      try {
+        decoded = jsonDecode(file.readAsStringSync());
+      } on FormatException {
+        offenders.add('$relativePath: not readable as JSON');
+        continue;
+      }
+      if (decoded is! Map) {
+        offenders.add('$relativePath: not a JSON object');
+        continue;
+      }
+      offenders.addAll(
+        _refusedCinematicPaths(
+          decoded,
+        ).map((jsonPath) => '$relativePath: $jsonPath'),
+      );
+    }
+
+    expect(offenders, isEmpty);
+  });
+
   test('CIN-010 preserves both canonical cinematic families', () {
     const canonicalPaths = <String>[
       'packages/map_core/lib/src/models/cinematic_asset.dart',
@@ -99,6 +125,70 @@ void main() {
       );
     }
   });
+}
+
+/// Every project manifest committed to the repository — authored projects,
+/// golden slices and test fixtures alike. Data that the strict decoder refuses
+/// is data no host can load, and the production-source scan above cannot see
+/// it: BETA-CIN-043 removed the legacy format without migrating the manifests
+/// that still carried it, and Selbrume stayed unloadable until BETA-CIN-082.
+Iterable<File> _projectManifestFiles(Directory repositoryRoot) sync* {
+  const skippedDirectories = <String>{
+    '.git',
+    '.dart_tool',
+    '.pokemap-store',
+    'build',
+    'node_modules',
+  };
+  final pending = <Directory>[repositoryRoot];
+  while (pending.isNotEmpty) {
+    final directory = pending.removeLast();
+    final List<FileSystemEntity> entries;
+    try {
+      entries = directory.listSync(followLinks: false);
+    } on FileSystemException {
+      continue;
+    }
+    for (final entry in entries) {
+      if (entry is Directory) {
+        if (!skippedDirectories.contains(p.basename(entry.path))) {
+          pending.add(entry);
+        }
+      } else if (entry is File && p.basename(entry.path) == 'project.json') {
+        yield entry;
+      }
+    }
+  }
+}
+
+/// The exact JSON paths `_preflightRemovedCinematicJson` refuses, resolved
+/// semantically rather than by token so a manifest cannot smuggle one through
+/// formatting.
+List<String> _refusedCinematicPaths(Map<Object?, Object?> manifest) {
+  final refused = <String>[];
+  final cinematics = manifest['cinematics'];
+  if (cinematics is List) {
+    for (var index = 0; index < cinematics.length; index++) {
+      final cinematic = cinematics[index];
+      if (cinematic is Map && cinematic.containsKey('legacyBridge')) {
+        refused.add(r'$.cinematics[' '$index' '].legacyBridge');
+      }
+    }
+  }
+  final scenarios = manifest['scenarios'];
+  if (scenarios is List) {
+    for (var index = 0; index < scenarios.length; index++) {
+      final scenario = scenarios[index];
+      if (scenario is! Map) continue;
+      final metadata = scenario['metadata'];
+      if (metadata is Map && metadata.containsKey('authoring.cutsceneSchema')) {
+        refused.add(
+          r'$.scenarios[' '$index' '].metadata.authoring.cutsceneSchema',
+        );
+      }
+    }
+  }
+  return refused;
 }
 
 Directory _repositoryRoot() {

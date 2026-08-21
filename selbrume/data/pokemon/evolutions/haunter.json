@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "haunter",
+  "preEvolution": "gastly",
+  "evolutions": [
+    {
+      "targetSpeciesId": "gengar",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

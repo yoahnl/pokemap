@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "caterpie",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "metapod",
+      "method": "level_up",
+      "minLevel": 7,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

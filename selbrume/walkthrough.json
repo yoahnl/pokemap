@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "projectId": "selbrume",
+  "label": "Golden Slice MVP Selbrume",
+  "steps": [
+    {
+      "id": "new_game",
+      "label": "Démarrer une nouvelle partie",
+      "proof": "PlayableMapGame charge le spawn du bourg avec une équipe vide."
+    },
+    {
+      "id": "starter_and_capture_kit",
+      "label": "Choisir Carapuce et recevoir cinq Poké Balls",
+      "proof": "L'interaction authorée avec Maël exécute les conséquences de Scene."
+    },
+    {
+      "id": "port_alert",
+      "label": "Rejoindre le port et résoudre l'alerte",
+      "proof": "Le joueur traverse les connexions physiques et choisit une réponse Yarn."
+    },
+    {
+      "id": "surf_refused_before_unlock",
+      "label": "Constater le refus du chenal Surf",
+      "proof": "Le moteur refuse la zone movement/surf avant l'autorisation narrative."
+    },
+    {
+      "id": "lysa_victory",
+      "label": "Battre Lysa dans un vrai combat",
+      "proof": "Les commandes du battle overlay sélectionnent des attaques réelles."
+    },
+    {
+      "id": "badge_and_surf_unlocked",
+      "label": "Recevoir le Badge des Brisants et Surf",
+      "proof": "Les conséquences awardBadge et unlockFieldAbility persistent dans GameState."
+    },
+    {
+      "id": "shop_used",
+      "label": "Acheter Potion, Antidote et Poké Ball",
+      "proof": "La Scene du comptoir ouvre le service joueur et commit chaque achat."
+    },
+    {
+      "id": "healing_service_used",
+      "label": "Soigner l'équipe au poste du port",
+      "proof": "La conséquence healParty restaure les dégâts du combat contre Lysa."
+    },
+    {
+      "id": "first_wild_capture",
+      "label": "Capturer un Pokémon sauvage dans l'équipe",
+      "proof": "Une rencontre réelle consomme une Ball et ajoute le Pokémon à la party."
+    },
+    {
+      "id": "party_filled_by_captures",
+      "label": "Remplir l'équipe par des captures réelles",
+      "proof": "Cinq captures sauvages portent la party à sa capacité maximale."
+    },
+    {
+      "id": "capture_sent_to_storage",
+      "label": "Envoyer une capture au stockage",
+      "proof": "Une capture supplémentaire avec party pleine arrive dans une Box."
+    },
+    {
+      "id": "pc_withdrawal",
+      "label": "Retirer le Pokémon capturé depuis le PC",
+      "proof": "La Scene du terminal ouvre le service PC et commit dépôt puis retrait."
+    },
+    {
+      "id": "marsh_investigation",
+      "label": "Résoudre les indices et quêtes des marais",
+      "proof": "Les sources physiques déclenchent leurs Scenes et récompenses authorées."
+    },
+    {
+      "id": "surf_gate_crossed",
+      "label": "Activer Surf et traverser le chenal",
+      "proof": "Le joueur confirme le dialogue de terrain puis franchit la même zone."
+    },
+    {
+      "id": "lighthouse_completed",
+      "label": "Terminer le phare et son boss",
+      "proof": "Le joueur gravit les maps, bat les gardiens et apaise Lanturn."
+    },
+    {
+      "id": "save_reload_mid_journey",
+      "label": "Sauvegarder et recharger le parcours",
+      "proof": "Les checkpoints sérialisés conservent progression, services et Events consommés."
+    },
+    {
+      "id": "epilogue_reached",
+      "label": "Atteindre l'épilogue du port",
+      "proof": "La dernière source authorée clôt l'histoire principale de Selbrume."
+    }
+  ]
+}

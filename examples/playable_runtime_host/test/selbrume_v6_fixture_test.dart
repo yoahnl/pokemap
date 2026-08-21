@@ -226,6 +226,204 @@ void main() {
       }
     },
   );
+
+  test('ITM-103 Selbrume ships the Pokemon data its manifest can reach', () async {
+    final projectRoot = p.join(_repositoryRoot().path, 'selbrume');
+    final project = ProjectManifest.fromJson(
+      jsonDecode(
+        await File(p.join(projectRoot, 'project.json')).readAsString(),
+      ) as Map<String, dynamic>,
+    );
+    final config = project.pokemon;
+
+    final speciesById = <String, Map<String, Object?>>{};
+    for (final file in _jsonFilesIn(projectRoot, config.speciesDir)) {
+      final species = await _readJsonObject(file);
+      expect(
+        species['schemaVersion'],
+        1,
+        reason: '${p.basename(file.path)} must declare schemaVersion 1',
+      );
+      speciesById[species['id']! as String] = species;
+    }
+
+    final learnsetsBySpeciesId = <String, Map<String, Object?>>{};
+    for (final file in _jsonFilesIn(projectRoot, config.learnsetsDir)) {
+      final learnset = await _readJsonObject(file);
+      expect(learnset['schemaVersion'], 1, reason: p.basename(file.path));
+      learnsetsBySpeciesId[learnset['speciesId']! as String] = learnset;
+    }
+
+    final evolutionsBySpeciesId = <String, Map<String, Object?>>{};
+    for (final file in _jsonFilesIn(projectRoot, config.evolutionsDir)) {
+      final evolution = await _readJsonObject(file);
+      expect(evolution['schemaVersion'], 1, reason: p.basename(file.path));
+      evolutionsBySpeciesId[evolution['speciesId']! as String] = evolution;
+    }
+
+    // Every species the manifest names must be shipped, and so must every
+    // species an evolution can reach: the post-battle transaction resolves the
+    // evolution target, so a missing link fails the whole battle.
+    final reachable = <String>{};
+    final pending = _manifestSpeciesIds(project).toList();
+    expect(pending, isNotEmpty);
+    while (pending.isNotEmpty) {
+      final speciesId = pending.removeLast();
+      if (!reachable.add(speciesId)) continue;
+      expect(
+        speciesById.keys,
+        contains(speciesId),
+        reason: 'Selbrume references species "$speciesId" but ships no file',
+      );
+      expect(
+        learnsetsBySpeciesId.keys,
+        contains(speciesId),
+        reason: 'Selbrume ships species "$speciesId" without a learnset',
+      );
+      expect(
+        evolutionsBySpeciesId.keys,
+        contains(speciesId),
+        reason: 'Selbrume ships species "$speciesId" without an evolution file',
+      );
+      for (final step
+          in (evolutionsBySpeciesId[speciesId]!['evolutions'] as List<Object?>?)
+                  ?.cast<Map<String, Object?>>() ??
+              const <Map<String, Object?>>[]) {
+        final target = step['targetSpeciesId'];
+        if (target is String && target.isNotEmpty) pending.add(target);
+      }
+    }
+
+    // The moves catalog must cover the closure of what the fixture can teach:
+    // a level-up move absent from the catalog aborts the post-battle commit.
+    final catalogPath = config.catalogFiles['moves'];
+    expect(catalogPath, isNotNull);
+    final catalog = await _readJsonObject(
+      File(p.join(projectRoot, catalogPath!)),
+    );
+    expect(catalog['catalog'], 'moves');
+    final catalogMoveIds = <String>{
+      for (final entry in (catalog['entries']! as List<Object?>)
+          .cast<Map<String, Object?>>())
+        entry['id']! as String,
+    };
+
+    final requiredMoveIds = <String>{..._manifestMoveIds(project)};
+    for (final speciesId in reachable) {
+      requiredMoveIds.addAll(
+        _learnsetMoveIds(learnsetsBySpeciesId[speciesId]!),
+      );
+    }
+    requiredMoveIds.remove('');
+    expect(
+      requiredMoveIds.difference(catalogMoveIds),
+      isEmpty,
+      reason: 'The Selbrume moves catalog must cover every move its manifest '
+          'and its shipped learnsets can reach',
+    );
+  });
+
+  test('ITM-103 Selbrume ships the authored product walkthrough', () async {
+    final walkthrough = await _readJsonObject(
+      File(p.join(_repositoryRoot().path, 'selbrume', 'walkthrough.json')),
+    );
+    expect(walkthrough['projectId'], 'selbrume');
+    final steps = (walkthrough['steps']! as List<Object?>)
+        .cast<Map<String, Object?>>();
+    expect(steps, isNotEmpty);
+    expect(
+      steps.map((step) => step['id']).toSet(),
+      hasLength(steps.length),
+      reason: 'Walkthrough step ids must be unique and ordered',
+    );
+    for (final step in steps) {
+      expect(step['id'], isA<String>());
+      expect(step['label'], isA<String>());
+      expect(step['proof'], isA<String>());
+    }
+  });
+}
+
+Iterable<File> _jsonFilesIn(String projectRoot, String relativeDirectory) {
+  final directory = Directory(p.join(projectRoot, relativeDirectory));
+  if (!directory.existsSync()) return const <File>[];
+  return directory
+      .listSync(recursive: false, followLinks: false)
+      .whereType<File>()
+      .where((file) => p.extension(file.path).toLowerCase() == '.json');
+}
+
+Future<Map<String, Object?>> _readJsonObject(File file) async {
+  expect(file.existsSync(), isTrue, reason: 'missing ${file.path}');
+  return Map<String, Object?>.from(
+    jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+  );
+}
+
+Set<String> _manifestSpeciesIds(ProjectManifest project) {
+  final ids = <String>{};
+  void visit(Object? node) {
+    if (node is Map) {
+      for (final entry in node.entries) {
+        if (entry.key == 'speciesId' && entry.value is String) {
+          ids.add(entry.value as String);
+        }
+        visit(entry.value);
+      }
+    } else if (node is List) {
+      node.forEach(visit);
+    }
+  }
+
+  visit(project.toJson());
+  return ids..remove('');
+}
+
+Set<String> _manifestMoveIds(ProjectManifest project) {
+  final ids = <String>{};
+  void visit(Object? node) {
+    if (node is Map) {
+      for (final entry in node.entries) {
+        if (entry.key == 'moveId' && entry.value is String) {
+          ids.add(entry.value as String);
+        }
+        if (entry.key == 'knownMoveIds' && entry.value is List) {
+          ids.addAll((entry.value as List).whereType<String>());
+        }
+        visit(entry.value);
+      }
+    } else if (node is List) {
+      node.forEach(visit);
+    }
+  }
+
+  visit(project.toJson());
+  return ids..remove('');
+}
+
+Set<String> _learnsetMoveIds(Map<String, Object?> learnset) {
+  final ids = <String>{
+    for (final key in const <String>['startingMoves', 'relearnMoves'])
+      ...?(learnset[key] as List<Object?>?)?.whereType<String>(),
+  };
+  for (final section in const <String>[
+    'levelUp',
+    'tm',
+    'tutor',
+    'egg',
+    'event',
+    'transfer',
+  ]) {
+    for (final raw in (learnset[section] as List<Object?>?) ??
+        const <Object?>[]) {
+      if (raw is Map && raw['moveId'] is String) {
+        ids.add(raw['moveId'] as String);
+      } else if (raw is String) {
+        ids.add(raw);
+      }
+    }
+  }
+  return ids..remove('');
 }
 
 Directory _repositoryRoot() {

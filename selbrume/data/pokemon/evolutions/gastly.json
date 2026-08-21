@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "gastly",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "haunter",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}
