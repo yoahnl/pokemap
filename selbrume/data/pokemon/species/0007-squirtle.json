@@ -66,9 +66,9 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "squirtle",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "squirtle",
     "formName": null,
     "otherForms": []
   },

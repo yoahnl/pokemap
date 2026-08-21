@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "charizard",
+  "defaultFormId": "charizard",
+  "variants": {
+    "charizard": {
+      "frontStatic": "assets/pokemon/sprites/charizard/front.png",
+      "backStatic": "assets/pokemon/sprites/charizard/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/charizard/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/charizard/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/charizard.png",
+      "cry": "assets/pokemon/cries/charizard.ogg",
+      "animations": {}
+    }
+  }
+}

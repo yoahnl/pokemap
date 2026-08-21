@@ -62,9 +62,9 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "metapod",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "metapod",
     "formName": null,
     "otherForms": []
   },

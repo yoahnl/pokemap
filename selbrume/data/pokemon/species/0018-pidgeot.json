@@ -63,13 +63,11 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "pidgeot",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "pidgeot",
     "formName": null,
-    "otherForms": [
-      "pidgeot-mega"
-    ]
+    "otherForms": []
   },
   "classification": {
     "isEnabledInProject": true,

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "abilities",
+  "meta": {
+    "description": "Curated Selbrume abilities catalog: every ability its shipped species reference."
+  },
+  "entries": [
+    {
+      "id": "analytic"
+    },
+    {
+      "id": "big_pecks"
+    },
+    {
+      "id": "blaze"
+    },
+    {
+      "id": "chlorophyll"
+    },
+    {
+      "id": "compound_eyes"
+    },
+    {
+      "id": "illuminate"
+    },
+    {
+      "id": "keen_eye"
+    },
+    {
+      "id": "levitate"
+    },
+    {
+      "id": "magnet_pull"
+    },
+    {
+      "id": "overgrow"
+    },
+    {
+      "id": "rain_dish"
+    },
+    {
+      "id": "shed_skin"
+    },
+    {
+      "id": "solar_power"
+    },
+    {
+      "id": "sturdy"
+    },
+    {
+      "id": "tangled_feet"
+    },
+    {
+      "id": "tinted_lens"
+    },
+    {
+      "id": "torrent"
+    },
+    {
+      "id": "volt_absorb"
+    },
+    {
+      "id": "water_absorb"
+    }
+  ]
+}

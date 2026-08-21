@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "ivysaur",
+  "defaultFormId": "ivysaur",
+  "variants": {
+    "ivysaur": {
+      "frontStatic": "assets/pokemon/sprites/ivysaur/front.png",
+      "backStatic": "assets/pokemon/sprites/ivysaur/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ivysaur/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ivysaur/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ivysaur.png",
+      "cry": "assets/pokemon/cries/ivysaur.ogg",
+      "animations": {}
+    }
+  }
+}

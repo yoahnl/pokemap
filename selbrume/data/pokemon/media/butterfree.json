@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "butterfree",
+  "defaultFormId": "butterfree",
+  "variants": {
+    "butterfree": {
+      "frontStatic": "assets/pokemon/sprites/butterfree/front.png",
+      "backStatic": "assets/pokemon/sprites/butterfree/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/butterfree/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/butterfree/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/butterfree.png",
+      "cry": "assets/pokemon/cries/butterfree.ogg",
+      "animations": {}
+    }
+  }
+}

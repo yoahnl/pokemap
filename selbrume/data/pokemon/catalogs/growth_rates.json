@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "growth_rates",
+  "meta": {
+    "description": "Curated Selbrume growth_rates catalog: every growth rate its shipped species reference."
+  },
+  "entries": [
+    {
+      "id": "medium"
+    },
+    {
+      "id": "medium_slow"
+    },
+    {
+      "id": "slow"
+    }
+  ]
+}

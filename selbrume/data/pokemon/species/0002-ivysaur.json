@@ -67,9 +67,9 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "ivysaur",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "ivysaur",
     "formName": null,
     "otherForms": []
   },

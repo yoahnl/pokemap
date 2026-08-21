@@ -57,7 +57,7 @@ void main() {
   });
 
   test('catalog declares the complete V1 allowlist', () {
-    expect(evaluationCommandCatalog, hasLength(48));
+    expect(evaluationCommandCatalog, hasLength(50));
     expect(
       evaluationCommandCatalog['service.shop.buy']?.requiredKeys,
       <String>{'itemId', 'quantity'},
@@ -76,6 +76,9 @@ void main() {
       <String>{'strategy'},
     );
     expect(evaluationCommandCatalog['probe.goto']?.probeOnly, isTrue);
+    expect(evaluationCommandCatalog['bag.give']?.probeOnly, isTrue);
+    expect(evaluationCommandCatalog['bag.consume']?.probeOnly, isTrue);
+    expect(evaluationCommandCatalog['bag.use']?.probeOnly, isFalse);
   });
 
   test('rejects unknown root fields and commands', () {

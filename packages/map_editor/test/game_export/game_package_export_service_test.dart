@@ -363,6 +363,52 @@ void main() {
     );
 
     test(
+      'rejects starter options with no preSession and no reachable grant',
+      () async {
+        final root = await createAuthorProject(withDialogue: false);
+        addTearDown(() => root.delete(recursive: true));
+        final projectFile = File(p.join(root.path, 'project.json'));
+        final project =
+            jsonDecode(await projectFile.readAsString())
+                as Map<String, dynamic>;
+        final newGame = project['newGame'] as Map<String, dynamic>;
+        _makeStarterOnlyNewGame(newGame);
+        await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+        await _expectReadinessFailure(
+          root,
+          diagnosticCode: 'exportPreSessionSceneUnavailable',
+        );
+      },
+    );
+
+    test(
+      'exports starter options granted by a reachable world Scene',
+      () async {
+        final root = await createAuthorProject(withDialogue: false);
+        addTearDown(() => root.delete(recursive: true));
+        final projectFile = File(p.join(root.path, 'project.json'));
+        final project =
+            jsonDecode(await projectFile.readAsString())
+                as Map<String, dynamic>;
+        final newGame = project['newGame'] as Map<String, dynamic>;
+        _makeStarterOnlyNewGame(newGame);
+        _insertStarterGrantNode(project, optionId: 'starter.fixture');
+        await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+        final artifact = await const GamePackageExportService().build(
+          projectRoot: root,
+          profile: neutralExportProfile(),
+        );
+
+        expect(
+          artifact.inspection.payloadPaths,
+          contains('project/project.json'),
+        );
+      },
+    );
+
+    test(
       'rejects an initial party when the Pokemon feature is disabled',
       () async {
         final root = await createAuthorProject(withDialogue: false);
@@ -1024,6 +1070,62 @@ Future<void> _replaceFinishPayload(
   finishNode['kind'] = payload['kind'];
   finishNode['payload'] = payload;
   await projectFile.writeAsString(jsonEncode(project), flush: true);
+}
+
+/// New Game with a starter path and nothing else: no initial party, no
+/// preSession entrypoint. The starter must then come from the world.
+void _makeStarterOnlyNewGame(Map<String, dynamic> newGame) {
+  final party = (newGame['initialParty'] as List<Object?>)
+      .cast<Map<String, dynamic>>();
+  final pokemon = Map<String, dynamic>.from(party.single);
+  newGame['initialParty'] = <Object?>[];
+  newGame.remove('preSessionSceneId');
+  newGame['starterOptions'] = <Object?>[
+    <String, dynamic>{
+      'id': 'starter.fixture',
+      'label': 'Fixture starter',
+      'pokemon': pokemon,
+    },
+  ];
+}
+
+/// Wires a giveConfiguredStarter node into the fixture's reachable main Scene,
+/// between its start node and the rest of the graph.
+void _insertStarterGrantNode(
+  Map<String, dynamic> project, {
+  required String optionId,
+}) {
+  final scenes = (project['scenes'] as List<Object?>)
+      .cast<Map<String, dynamic>>();
+  final scene = scenes.firstWhere((entry) => entry['id'] == 'scene.main');
+  final graph = scene['graph'] as Map<String, dynamic>;
+  final nodes = (graph['nodes'] as List<Object?>).cast<Map<String, dynamic>>();
+  final edges = (graph['edges'] as List<Object?>).cast<Map<String, dynamic>>();
+  final template = nodes.firstWhere((node) => node['id'] == 'finish');
+  final grant = <String, dynamic>{
+    ...template,
+    'id': 'grant-starter',
+    'payload': <String, dynamic>{
+      ...(template['payload'] as Map<String, dynamic>),
+      'consequence': <String, dynamic>{
+        'kind': 'giveConfiguredStarter',
+        'starterOptionId': optionId,
+      },
+    },
+  };
+  nodes.insert(nodes.length - 1, grant);
+  for (final edge in edges) {
+    if (edge['fromNodeId'] == 'start') edge['toNodeId'] = 'grant-starter';
+  }
+  edges.add(<String, dynamic>{
+    ...edges.first,
+    'id': 'grant-finish',
+    'fromNodeId': 'grant-starter',
+    'fromPortId': 'completed',
+    'toNodeId': 'finish',
+  });
+  graph['nodes'] = nodes;
+  graph['edges'] = edges;
 }
 
 Future<void> _expectReadinessFailure(

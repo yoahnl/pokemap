@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "gastly",
+  "defaultFormId": "gastly",
+  "variants": {
+    "gastly": {
+      "frontStatic": "assets/pokemon/sprites/gastly/front.png",
+      "backStatic": "assets/pokemon/sprites/gastly/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gastly/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gastly/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gastly.png",
+      "cry": "assets/pokemon/cries/gastly.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -10,7 +10,7 @@
     ],
     "notes": [
       "Entries are extracted verbatim from the Pokemon Showdown snapshot.",
-      "Selbrume is a lean V6 fixture: this catalog is the exact closure of the moves its manifest references plus every move its shipped learnsets can teach."
+      "Selbrume is a lean V6 fixture: this catalog is the exact closure of the moves its manifest references plus every move its shipped learnsets and evolution conditions can name."
     ]
   },
   "entries": [
@@ -685,53 +685,6 @@
       }
     },
     {
-      "id": "barrier",
-      "name": "Barrier",
-      "names": {
-        "en": "Barrier"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "psychic",
-      "category": "status",
-      "target": "self",
-      "basePower": 0,
-      "accuracy": {
-        "kind": "always_hits"
-      },
-      "pp": 20,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "metronome",
-        "snatch"
-      ],
-      "effects": [
-        {
-          "targetScope": "self",
-          "chance": null,
-          "stageChanges": [
-            {
-              "stat": "defense",
-              "stages": 2
-            }
-          ],
-          "kind": "modify_stats"
-        }
-      ],
-      "shortDescription": "Raises the user's Defense by 2.",
-      "description": "Raises the user's Defense by 2 stages.",
-      "engineSupportLevel": "structured_partial",
-      "unsupportedReasons": [
-        "unsupported_mechanic:isNonstandard"
-      ],
-      "sourceRefs": {
-        "showdownMoveId": "barrier",
-        "showdownHooksPresent": []
-      }
-    },
-    {
       "id": "baton_pass",
       "name": "Baton Pass",
       "names": {
@@ -1268,51 +1221,6 @@
       ],
       "sourceRefs": {
         "showdownMoveId": "bounce",
-        "showdownHooksPresent": []
-      }
-    },
-    {
-      "id": "brave_bird",
-      "name": "Brave Bird",
-      "names": {
-        "en": "Brave Bird"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "flying",
-      "category": "physical",
-      "target": "any",
-      "basePower": 120,
-      "accuracy": {
-        "value": 100,
-        "kind": "percent"
-      },
-      "pp": 15,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "contact",
-        "distance",
-        "metronome",
-        "mirror",
-        "protect"
-      ],
-      "effects": [
-        {
-          "targetScope": "self",
-          "chance": null,
-          "numerator": 33,
-          "denominator": 100,
-          "kind": "recoil"
-        }
-      ],
-      "shortDescription": "Has 33% recoil.",
-      "description": "If the target lost HP, the user takes recoil damage equal to 33% the HP lost by the target, rounded half up, but not less than 1 HP.",
-      "engineSupportLevel": "structured_supported",
-      "unsupportedReasons": [],
-      "sourceRefs": {
-        "showdownMoveId": "bravebird",
         "showdownHooksPresent": []
       }
     },
@@ -3226,52 +3134,6 @@
       }
     },
     {
-      "id": "drain_punch",
-      "name": "Drain Punch",
-      "names": {
-        "en": "Drain Punch"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "fighting",
-      "category": "physical",
-      "target": "normal",
-      "basePower": 75,
-      "accuracy": {
-        "value": 100,
-        "kind": "percent"
-      },
-      "pp": 10,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "contact",
-        "heal",
-        "metronome",
-        "mirror",
-        "protect",
-        "punch"
-      ],
-      "effects": [
-        {
-          "targetScope": "self",
-          "chance": null,
-          "numerator": 1,
-          "denominator": 2,
-          "kind": "drain"
-        }
-      ],
-      "shortDescription": "User recovers 50% of the damage dealt.",
-      "description": "The user recovers 1/2 the HP lost by the target, rounded half up. If Big Root is held by the user, the HP recovered is 1.3x normal, rounded half down.",
-      "engineSupportLevel": "structured_supported",
-      "unsupportedReasons": [],
-      "sourceRefs": {
-        "showdownMoveId": "drainpunch",
-        "showdownHooksPresent": []
-      }
-    },
-    {
       "id": "draining_kiss",
       "name": "Draining Kiss",
       "names": {
@@ -4178,43 +4040,6 @@
       "unsupportedReasons": [],
       "sourceRefs": {
         "showdownMoveId": "featherdance",
-        "showdownHooksPresent": []
-      }
-    },
-    {
-      "id": "feint_attack",
-      "name": "Feint Attack",
-      "names": {
-        "en": "Feint Attack"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "dark",
-      "category": "physical",
-      "target": "normal",
-      "basePower": 60,
-      "accuracy": {
-        "kind": "always_hits"
-      },
-      "pp": 20,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "contact",
-        "metronome",
-        "mirror",
-        "protect"
-      ],
-      "effects": [],
-      "shortDescription": "This move does not check accuracy.",
-      "description": "This move does not check accuracy.",
-      "engineSupportLevel": "structured_partial",
-      "unsupportedReasons": [
-        "unsupported_mechanic:isNonstandard"
-      ],
-      "sourceRefs": {
-        "showdownMoveId": "feintattack",
         "showdownHooksPresent": []
       }
     },
@@ -5890,44 +5715,6 @@
       ],
       "sourceRefs": {
         "showdownMoveId": "hail",
-        "showdownHooksPresent": []
-      }
-    },
-    {
-      "id": "hard_press",
-      "name": "Hard Press",
-      "names": {
-        "en": "Hard Press"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "steel",
-      "category": "physical",
-      "target": "normal",
-      "basePower": 0,
-      "accuracy": {
-        "value": 100,
-        "kind": "percent"
-      },
-      "pp": 10,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "contact",
-        "metronome",
-        "mirror",
-        "protect"
-      ],
-      "effects": [],
-      "shortDescription": "More power the more HP the target has left.",
-      "description": "Power is equal to 100 * (target's current HP / target's maximum HP), rounded half down, but not less than 1.",
-      "engineSupportLevel": "catalog_only",
-      "unsupportedReasons": [
-        "unsupported_mechanic:basePowerCallback"
-      ],
-      "sourceRefs": {
-        "showdownMoveId": "hardpress",
         "showdownHooksPresent": []
       }
     },
@@ -7723,41 +7510,6 @@
       ],
       "sourceRefs": {
         "showdownMoveId": "magnetrise",
-        "showdownHooksPresent": []
-      }
-    },
-    {
-      "id": "magnetic_flux",
-      "name": "Magnetic Flux",
-      "names": {
-        "en": "Magnetic Flux"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "electric",
-      "category": "status",
-      "target": "allySide",
-      "basePower": 0,
-      "accuracy": {
-        "kind": "always_hits"
-      },
-      "pp": 20,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "bypasssub",
-        "distance",
-        "metronome",
-        "snatch"
-      ],
-      "effects": [],
-      "shortDescription": "Raises Def, Sp. Def of allies with Plus/Minus by 1.",
-      "description": "Raises the Defense and Special Defense of Pokemon on the user's side with the Plus or Minus Abilities by 1 stage.",
-      "engineSupportLevel": "structured_supported",
-      "unsupportedReasons": [],
-      "sourceRefs": {
-        "showdownMoveId": "magneticflux",
         "showdownHooksPresent": []
       }
     },
@@ -9628,50 +9380,6 @@
       }
     },
     {
-      "id": "psychic_noise",
-      "name": "Psychic Noise",
-      "names": {
-        "en": "Psychic Noise"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "psychic",
-      "category": "special",
-      "target": "normal",
-      "basePower": 75,
-      "accuracy": {
-        "value": 100,
-        "kind": "percent"
-      },
-      "pp": 10,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "bypasssub",
-        "metronome",
-        "mirror",
-        "protect",
-        "sound"
-      ],
-      "effects": [
-        {
-          "targetScope": "target",
-          "chance": 100,
-          "volatileStatusId": "healblock",
-          "kind": "apply_volatile_status"
-        }
-      ],
-      "shortDescription": "For 2 turns, the target is prevented from healing.",
-      "description": "For 2 turns, the target is prevented from restoring any HP as long as it remains active. During the effect, healing and draining moves are unusable, and Abilities and items that grant healing will not heal the user. If an affected Pokemon uses Baton Pass, the replacement will remain unable to restore its HP. Pain Split and the Regenerator Ability are unaffected.",
-      "engineSupportLevel": "structured_supported",
-      "unsupportedReasons": [],
-      "sourceRefs": {
-        "showdownMoveId": "psychicnoise",
-        "showdownHooksPresent": []
-      }
-    },
-    {
       "id": "psywave",
       "name": "Psywave",
       "names": {
@@ -9705,46 +9413,6 @@
       ],
       "sourceRefs": {
         "showdownMoveId": "psywave",
-        "showdownHooksPresent": []
-      }
-    },
-    {
-      "id": "pursuit",
-      "name": "Pursuit",
-      "names": {
-        "en": "Pursuit"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "dark",
-      "category": "physical",
-      "target": "normal",
-      "basePower": 40,
-      "accuracy": {
-        "value": 100,
-        "kind": "percent"
-      },
-      "pp": 20,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "contact",
-        "metronome",
-        "mirror",
-        "protect"
-      ],
-      "effects": [],
-      "shortDescription": "If a foe is switching out, hits it at 2x power.",
-      "description": "If an opposing Pokemon switches out this turn, this move hits that Pokemon before it leaves the field, even if it was not the original target. If the user moves after an opponent using Flip Turn, Parting Shot, Teleport, U-turn, or Volt Switch, but not Baton Pass, it will hit that opponent before it leaves the field. Power doubles and no accuracy check is done if the user hits an opponent switching out, and the user's turn is over; if an opponent faints from this, the replacement Pokemon does not become active until the end of the turn.",
-      "engineSupportLevel": "catalog_only",
-      "unsupportedReasons": [
-        "unsupported_mechanic:basePowerCallback",
-        "unsupported_mechanic:condition",
-        "unsupported_mechanic:isNonstandard"
-      ],
-      "sourceRefs": {
-        "showdownMoveId": "pursuit",
         "showdownHooksPresent": []
       }
     },
@@ -10571,40 +10239,6 @@
       "unsupportedReasons": [],
       "sourceRefs": {
         "showdownMoveId": "rocktomb",
-        "showdownHooksPresent": []
-      }
-    },
-    {
-      "id": "role_play",
-      "name": "Role Play",
-      "names": {
-        "en": "Role Play"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "psychic",
-      "category": "status",
-      "target": "normal",
-      "basePower": 0,
-      "accuracy": {
-        "kind": "always_hits"
-      },
-      "pp": 10,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "allyanim",
-        "bypasssub",
-        "metronome"
-      ],
-      "effects": [],
-      "shortDescription": "User replaces its Ability with the target's.",
-      "description": "The user's Ability changes to match the target's Ability. Fails if the user's Ability is As One, Battle Bond, Comatose, Disguise, Gulp Missile, Ice Face, Multitype, Power Construct, RKS System, Schooling, Shields Down, Stance Change, Tera Shift, Zen Mode, Zero to Hero, or already matches the target, or if the target's Ability is As One, Battle Bond, Comatose, Commander, Disguise, Embody Aspect, Flower Gift, Forecast, Hunger Switch, Ice Face, Illusion, Imposter, Multitype, Neutralizing Gas, Poison Puppeteer, Power Construct, Power of Alchemy, Protosynthesis, Quark Drive, Receiver, RKS System, Schooling, Shields Down, Stance Change, Tera Shell, Tera Shift, Teraform Zero, Trace, Wonder Guard, Zen Mode, or Zero to Hero.",
-      "engineSupportLevel": "structured_supported",
-      "unsupportedReasons": [],
-      "sourceRefs": {
-        "showdownMoveId": "roleplay",
         "showdownHooksPresent": []
       }
     },
@@ -12652,42 +12286,6 @@
       }
     },
     {
-      "id": "steel_roller",
-      "name": "Steel Roller",
-      "names": {
-        "en": "Steel Roller"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "steel",
-      "category": "physical",
-      "target": "normal",
-      "basePower": 130,
-      "accuracy": {
-        "value": 100,
-        "kind": "percent"
-      },
-      "pp": 5,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "contact",
-        "metronome",
-        "mirror",
-        "protect"
-      ],
-      "effects": [],
-      "shortDescription": "Fails if there is no terrain active. Ends the terrain.",
-      "description": "Fails if there is no terrain active. Ends the effects of Electric Terrain, Grassy Terrain, Misty Terrain, and Psychic Terrain.",
-      "engineSupportLevel": "structured_supported",
-      "unsupportedReasons": [],
-      "sourceRefs": {
-        "showdownMoveId": "steelroller",
-        "showdownHooksPresent": []
-      }
-    },
-    {
       "id": "steel_wing",
       "name": "Steel Wing",
       "names": {
@@ -13151,45 +12749,6 @@
       "unsupportedReasons": [],
       "sourceRefs": {
         "showdownMoveId": "sunnyday",
-        "showdownHooksPresent": []
-      }
-    },
-    {
-      "id": "supercell_slam",
-      "name": "Supercell Slam",
-      "names": {
-        "en": "Supercell Slam"
-      },
-      "generation": null,
-      "source": "showdown",
-      "type": "electric",
-      "category": "physical",
-      "target": "normal",
-      "basePower": 100,
-      "accuracy": {
-        "value": 95,
-        "kind": "percent"
-      },
-      "pp": 15,
-      "noPpBoosts": false,
-      "priority": 0,
-      "critRatio": 1,
-      "flags": [
-        "contact",
-        "metronome",
-        "minimize",
-        "mirror",
-        "protect"
-      ],
-      "effects": [],
-      "shortDescription": "User is hurt by 50% of its max HP if it misses.",
-      "description": "If this attack is not successful, the user loses half of its maximum HP, rounded down, as crash damage. Pokemon with the Magic Guard Ability are unaffected by crash damage. Damage doubles and no accuracy check is done if the target has used Minimize while active.",
-      "engineSupportLevel": "structured_partial",
-      "unsupportedReasons": [
-        "unsupported_mechanic:hasCrashDamage"
-      ],
-      "sourceRefs": {
-        "showdownMoveId": "supercellslam",
         "showdownHooksPresent": []
       }
     },

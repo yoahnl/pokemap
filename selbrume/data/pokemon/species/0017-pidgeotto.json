@@ -63,9 +63,9 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "pidgeotto",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "pidgeotto",
     "formName": null,
     "otherForms": []
   },

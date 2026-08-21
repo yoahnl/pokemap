@@ -63,9 +63,9 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "haunter",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "haunter",
     "formName": null,
     "otherForms": []
   },

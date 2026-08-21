@@ -66,13 +66,11 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "blastoise",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "blastoise",
     "formName": null,
-    "otherForms": [
-      "blastoise-mega"
-    ]
+    "otherForms": []
   },
   "classification": {
     "isEnabledInProject": true,

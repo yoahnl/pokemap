@@ -65,9 +65,9 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "magneton",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "magneton",
     "formName": null,
     "otherForms": []
   },

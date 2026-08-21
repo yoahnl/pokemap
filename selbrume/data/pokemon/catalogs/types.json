@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "types",
+  "meta": {
+    "description": "Curated Selbrume types catalog: every type its shipped species reference."
+  },
+  "entries": [
+    {
+      "id": "bug"
+    },
+    {
+      "id": "electric"
+    },
+    {
+      "id": "fire"
+    },
+    {
+      "id": "flying"
+    },
+    {
+      "id": "ghost"
+    },
+    {
+      "id": "grass"
+    },
+    {
+      "id": "normal"
+    },
+    {
+      "id": "poison"
+    },
+    {
+      "id": "steel"
+    },
+    {
+      "id": "water"
+    }
+  ]
+}

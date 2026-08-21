@@ -261,25 +261,35 @@ void _appendPublicationInvariants({
   final preSessionSceneValid = preSessionScene != null &&
       preSessionScene.executionProfile == SceneExecutionProfile.preSession &&
       !diagnoseSceneAgainstProject(preSessionScene, project).hasErrors;
+  // A project may hand its starter over before the session, through the
+  // preSession entrypoint, or in the world, through a reachable Scene that
+  // grants an authored option. Only the first route existed while this field
+  // was still named starterSelectionSceneId.
+  final hasReachableStarterGrant = _hasReachableConfiguredStarterGrant(
+    project,
+    runtimeReachability,
+  );
   if (newGame.enabled &&
       ((preSessionSceneId != null &&
               preSessionSceneId.isNotEmpty &&
               !preSessionSceneValid) ||
           (!hasInitialParty &&
               hasStarterOptions &&
+              !hasReachableStarterGrant &&
               (preSessionSceneId == null ||
                   preSessionSceneId.isEmpty ||
                   !preSessionSceneValid)))) {
     target.add(
       _diagnostic(
         code: 'exportPreSessionSceneUnavailable',
-        message: 'L’entrypoint New Game doit référencer une Scene preSession '
-            'valide.',
+        message: 'L’équipe de départ doit venir d’une Scene preSession valide '
+            'ou d’une Scene atteignable qui accorde un starter authoré.',
         path: 'newGame.preSessionSceneId',
         domain: NarrativeProjectDiagnosticDomain.scene,
         destination: NarrativeProjectDiagnosticDestination.scene,
         sceneId: preSessionSceneId,
-        suggestedFixLabel: 'Choisir ou corriger une Scene preSession.',
+        suggestedFixLabel: 'Choisir une Scene preSession, ou relier au '
+            'parcours principal une Scene qui accorde un starter.',
       ),
     );
   }
@@ -327,6 +337,47 @@ bool _hasReachableGameEnding(
       return provenance.any(
             (entry) =>
                 finishNodes.contains('${entry.sceneId}\u001f${entry.nodeId}'),
+          ) &&
+          provenance.any(
+            (entry) => runtimeStartEventIds.contains(entry.eventId),
+          );
+    },
+  );
+}
+
+bool _hasReachableConfiguredStarterGrant(
+  ProjectManifest project,
+  NarrativeSymbolicReachabilityReport? symbolic,
+) {
+  if (symbolic == null ||
+      symbolic.verdict != NarrativeSymbolicVerdict.pass ||
+      symbolic.terminalStates.isEmpty) {
+    return false;
+  }
+  final starterOptionIds = <String>{
+    for (final option in project.newGame.starterOptions) option.id,
+  };
+  if (starterOptionIds.isEmpty) return false;
+  final grantNodes = <String>{
+    for (final scene in project.scenes)
+      for (final node in scene.graph.nodes)
+        if (node.payload
+                case SceneActionPayload(
+                  consequence: SceneGiveConfiguredStarterConsequence(
+                    :final starterOptionId,
+                  ),
+                ) when starterOptionIds.contains(starterOptionId))
+          '${scene.id}\u001f${node.id}',
+  };
+  if (grantNodes.isEmpty) return false;
+  final runtimeStartEventIds = _runtimeStartEventIds(project);
+  if (runtimeStartEventIds.isEmpty) return false;
+  return symbolic.terminalStates.any(
+    (state) {
+      final provenance = state.provenance;
+      return provenance.any(
+            (entry) =>
+                grantNodes.contains('${entry.sceneId}\u001f${entry.nodeId}'),
           ) &&
           provenance.any(
             (entry) => runtimeStartEventIds.contains(entry.eventId),

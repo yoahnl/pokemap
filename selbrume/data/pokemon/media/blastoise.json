@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "blastoise",
+  "defaultFormId": "blastoise",
+  "variants": {
+    "blastoise": {
+      "frontStatic": "assets/pokemon/sprites/blastoise/front.png",
+      "backStatic": "assets/pokemon/sprites/blastoise/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/blastoise/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/blastoise/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/blastoise.png",
+      "cry": "assets/pokemon/cries/blastoise.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -67,9 +67,9 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "bulbasaur",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "bulbasaur",
     "formName": null,
     "otherForms": []
   },

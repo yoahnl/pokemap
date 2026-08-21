@@ -66,9 +66,9 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "wartortle",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "wartortle",
     "formName": null,
     "otherForms": []
   },

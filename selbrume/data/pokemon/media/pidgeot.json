@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "pidgeot",
+  "defaultFormId": "pidgeot",
+  "variants": {
+    "pidgeot": {
+      "frontStatic": "assets/pokemon/sprites/pidgeot/front.png",
+      "backStatic": "assets/pokemon/sprites/pidgeot/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pidgeot/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pidgeot/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pidgeot.png",
+      "cry": "assets/pokemon/cries/pidgeot.ogg",
+      "animations": {}
+    }
+  }
+}

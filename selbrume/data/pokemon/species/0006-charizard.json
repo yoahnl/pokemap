@@ -67,14 +67,11 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "charizard",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "charizard",
     "formName": null,
-    "otherForms": [
-      "charizard-mega-x",
-      "charizard-mega-y"
-    ]
+    "otherForms": []
   },
   "classification": {
     "isEnabledInProject": true,

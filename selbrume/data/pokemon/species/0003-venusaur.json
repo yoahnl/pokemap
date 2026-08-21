@@ -67,13 +67,11 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "venusaur",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "venusaur",
     "formName": null,
-    "otherForms": [
-      "venusaur-mega"
-    ]
+    "otherForms": []
   },
   "classification": {
     "isEnabledInProject": true,

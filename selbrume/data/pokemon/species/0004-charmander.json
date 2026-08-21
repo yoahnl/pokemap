@@ -66,9 +66,9 @@
     "baseFriendship": 70
   },
   "forms": {
-    "baseFormId": "",
+    "baseFormId": "charmander",
     "isBaseForm": true,
-    "formId": "",
+    "formId": "charmander",
     "formName": null,
     "otherForms": []
   },
