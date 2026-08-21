@@ -1620,6 +1620,25 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
           outcomePolicy: "progression",
         },
       },
+      // BETA-CIN-081: the CIN-V2 branches travel the MCP transport too, and
+      // land in the live catalog like every other action.
+      {
+        actionId: "scene.presentation.cue.routes.set",
+        parameters: {
+          sceneId: "new_game_intro",
+          presentationNodeId: "opening",
+          markerId: "cue_player_name",
+          routes: [
+            {
+              outputPortId: "completed",
+              outcome: {
+                kind: "repeatFromMarker",
+                markerId: "cue_player_name",
+              },
+            },
+          ],
+        },
+      },
     ];
 
     for (const step of presentationSteps) {
@@ -1683,6 +1702,23 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
       ids: ["new_game_intro"],
     });
     assert.equal((scene.items as unknown[]).length, 1);
+
+    // Parity of receipts is not enough: read the branch back through the same
+    // MCP query route an agent would use (BETA-CIN-081).
+    const sceneDetail = record((scene.items as unknown[])[0]);
+    const graph = record(sceneDetail.graph);
+    const presentationNode = (graph.nodes as unknown[])
+      .map((node) => record(node))
+      .find((node) => node.id === "opening");
+    assert.ok(presentationNode, "the Presentation node is queryable");
+    const bindings = record(presentationNode.payload)
+      .interactionCueBindings as unknown[];
+    assert.deepEqual(record(bindings[0]).outcomeRoutes, [
+      {
+        outputPortId: "completed",
+        outcome: { kind: "repeatFromMarker", markerId: "cue_player_name" },
+      },
+    ]);
 
     const stale = await fixture.client.callTool({
       name: "pokemap_plan",

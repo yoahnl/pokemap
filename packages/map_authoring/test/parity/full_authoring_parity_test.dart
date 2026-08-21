@@ -168,6 +168,17 @@ void main() {
           <String>['cli', 'directApi', 'editor', 'mcp'],
         ),
       );
+      // BETA-CIN-081: the CIN-V2 branch action is certified on the four
+      // transports, each backed by a test that really applies it.
+      expect(
+        catalog
+            .requireMutationAction('scene.presentation.cue.routes.set')
+            .toJson(),
+        containsPair(
+          'endToEndVerifiedTransports',
+          <String>['cli', 'directApi', 'editor', 'mcp'],
+        ),
+      );
       for (final actionId in <String>[
         'border.blueprint.delete',
         'border.blueprint.draft.upsert',

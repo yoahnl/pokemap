@@ -26,7 +26,57 @@ void main() {
     expect(directResult.finalBytes, jsonlResult.finalBytes);
     expect(directResult.staleCode, 'plan.stale');
     expect(jsonlResult.staleCode, 'plan.stale');
+
+    // Parity alone would pass even on a wrong payload applied identically on
+    // both transports — so assert what actually landed (BETA-CIN-081).
+    for (final result in <_Result>[directResult, jsonlResult]) {
+      expect(
+        _cueRoutes(result.scene),
+        [
+          {
+            'outputPortId': 'completed',
+            'outcome': {
+              'kind': 'repeatFromMarker',
+              'markerId': 'cue_player_name',
+            },
+          },
+        ],
+        reason: 'the authored branch is readable back through the query route',
+      );
+    }
+    expect(
+      _markerTrackHoldPolicy(await direct.projectJson()),
+      'ambientContinues',
+      reason: 'the authored hold policy reached the persisted document',
+    );
+    expect(
+      _markerTrackHoldPolicy(await jsonl.projectJson()),
+      'ambientContinues',
+    );
   });
+}
+
+List<Object?> _cueRoutes(Map<String, Object?> scene) {
+  final nodes =
+      ((scene['graph'] as Map<String, Object?>)['nodes'] as List<Object?>)
+          .cast<Map<String, Object?>>();
+  final presentation = nodes.singleWhere((node) => node['id'] == 'opening');
+  final payload = presentation['payload'] as Map<String, Object?>;
+  final bindings = (payload['interactionCueBindings'] as List<Object?>)
+      .cast<Map<String, Object?>>();
+  return bindings.single['outcomeRoutes'] as List<Object?>;
+}
+
+String? _markerTrackHoldPolicy(Map<String, Object?> project) {
+  final cinematics = (project['presentationCinematics'] as List<Object?>)
+      .cast<Map<String, Object?>>();
+  final opening = cinematics.singleWhere(
+    (asset) => asset['id'] == 'presentation_opening',
+  );
+  final tracks =
+      (opening['tracks'] as List<Object?>).cast<Map<String, Object?>>();
+  final markers = tracks.singleWhere((track) => track['id'] == 'markers');
+  return markers['holdPolicy'] as String?;
 }
 
 final class _Harness {
@@ -283,6 +333,42 @@ final class _Harness {
       'outcomeLabel': 'Prêt',
       'outcomePolicy': 'progression',
     });
+    // BETA-CIN-081: the CIN-V2 semantics travel the same transports as the
+    // rest — branches on a cue, and the authored hold policy of a track.
+    await apply(8, 'scene.presentation.cue.routes.set', const {
+      'sceneId': 'new_game_intro',
+      'presentationNodeId': 'opening',
+      'markerId': 'cue_player_name',
+      'routes': <Object?>[
+        <String, Object?>{
+          'outputPortId': 'completed',
+          'outcome': <String, Object?>{
+            'kind': 'repeatFromMarker',
+            'markerId': 'cue_player_name',
+          },
+        },
+      ],
+    });
+    await apply(9, 'presentationTrack.update', const {
+      'cinematicId': 'presentation_opening',
+      'track': <String, Object?>{
+        'id': 'markers',
+        'label': 'Repères',
+        'kind': 'marker',
+        'holdPolicy': 'ambientContinues',
+        'clips': <Object?>[
+          <String, Object?>{
+            'id': 'cue_player_name',
+            'kind': 'marker',
+            'startUs': 0,
+            'durationUs': 0,
+            'label': 'Demander le nom',
+            'markerKind': 'interactionCue',
+            'required': true,
+          },
+        ],
+      },
+    });
 
     final query = AuthoringQueryRequest(
       resourceKind: 'scene',
@@ -390,6 +476,10 @@ final class _Harness {
     );
   }
 
+  Future<Map<String, Object?>> projectJson() async =>
+      jsonDecode(await File('${root.path}/project.json').readAsString())
+          as Map<String, Object?>;
+
   Future<List<int>> _bytes() => File('${root.path}/project.json').readAsBytes();
 
   Future<void> dispose() async {
@@ -434,6 +524,8 @@ const _actionIds = <String>{
   'scene.preSession.presentation.createAndLink',
   'scene.preSession.condition.insert',
   'scene.preSession.end.configure',
+  'scene.presentation.cue.routes.set',
+  'presentationTrack.update',
 };
 
 AuthoringRequest _request(

@@ -474,6 +474,13 @@ const Set<String> _cin006CertifiedActionIds = <String>{
   'scene.preSession.end.configure',
 };
 
+/// BETA-CIN-081: the CIN-V2 branch semantics, certified end to end on the
+/// four transports — every entry below points at a test that really applies
+/// the action, not at a declaration.
+const Set<String> _cin081CertifiedActionIds = <String>{
+  'scene.presentation.cue.routes.set',
+};
+
 const Set<String> _cin039CertifiedActionIds = <String>{
   'scene.preSession.presentation.createAndLink',
 };
@@ -502,6 +509,18 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (_cin081CertifiedActionIds.contains(actionId)) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_scene_pre_session_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_scene_pre_session_flow_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (_cin039CertifiedActionIds.contains(actionId)) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:

@@ -2244,6 +2244,22 @@ List<_Cin033EditorStep> _cin033EditorSteps() => <_Cin033EditorStep>[
     'outcomeLabel': 'Prêt',
     'outcomePolicy': 'progression',
   }),
+  // BETA-CIN-081: the CIN-V2 branches are an editor transport too — the
+  // Studio panel emits exactly this action.
+  const _Cin033EditorStep('scene.presentation.cue.routes.set', <String, Object?>{
+    'sceneId': 'new_game_intro',
+    'presentationNodeId': 'opening',
+    'markerId': 'cue_player_name',
+    'routes': <Object?>[
+      <String, Object?>{
+        'outputPortId': 'completed',
+        'outcome': <String, Object?>{
+          'kind': 'repeatFromMarker',
+          'markerId': 'cue_player_name',
+        },
+      },
+    ],
+  }),
 ];
 
 const Set<String> _cin033CertifiedActionIds = <String>{
@@ -2273,6 +2289,7 @@ const Set<String> _cin033CertifiedActionIds = <String>{
   'scene.preSession.presentation.insert',
   'scene.preSession.condition.insert',
   'scene.preSession.end.configure',
+  'scene.presentation.cue.routes.set',
 };
 
 const Map<String, Object?> _cin033StaleInteractionParameters =
