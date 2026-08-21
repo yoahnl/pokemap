@@ -263,6 +263,85 @@ void main() {
     expect(result.first.transforms, structure.transforms);
     expect(result.first.currentMetrics, structure.currentMetrics);
   });
+  test('opens a Presentation cinematic and lists its interaction cues', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = EditorState(
+      projectRootPath: '/qa/presentation',
+      project: ProjectManifest(
+        name: 'Presentation QA',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        presentationCinematics: <PresentationCinematicAsset>[
+          PresentationCinematicAsset(
+            id: 'opening',
+            title: 'Ouverture',
+            durationUs: 8000000,
+            tracks: <PresentationTrack>[
+              PresentationTrack(
+                id: 'markers',
+                label: 'Repères',
+                kind: PresentationTrackKind.marker,
+                clips: <PresentationClip>[
+                  PresentationMarkerClip(
+                    id: 'cue_confirm',
+                    startUs: 4000000,
+                    label: 'Confirmer le nom',
+                    markerKind: PresentationMarkerKind.interactionCue,
+                  ),
+                  PresentationMarkerClip(
+                    id: 'chapter_two',
+                    startUs: 6000000,
+                    label: 'Chapitre deux',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+      workspaceMode: EditorWorkspaceMode.map,
+    );
+
+    final result = marionette.openPresentationStudioForMarionette(
+      container: container,
+      cinematicId: 'opening',
+    );
+
+    expect(result['opened'], isTrue);
+    expect(result['workspaceMode'], 'cinematics');
+    expect(result['title'], 'Ouverture');
+    expect(
+      result['interactionCueIds'],
+      const <String>['cue_confirm'],
+      reason: 'a driver needs the cues, not the ordinary markers, to reach '
+          'the Branches card (BETA-CIN-079)',
+    );
+    expect(result['availableCinematicIds'], const <String>['opening']);
+  });
+
+  test('reports plainly when the project holds no Presentation cinematic', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/qa/empty',
+      project: ProjectManifest(
+        name: 'Empty QA',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+      ),
+      workspaceMode: EditorWorkspaceMode.map,
+    );
+
+    final result = marionette.openPresentationStudioForMarionette(
+      container: container,
+      cinematicId: 'ghost',
+    );
+
+    expect(result['opened'], isFalse);
+    expect(result['interactionCueIds'], isEmpty);
+  });
+
 }
 
 BorderPrimitiveDraft _primitive({

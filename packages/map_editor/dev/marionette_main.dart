@@ -25,7 +25,9 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
+import 'package:map_editor/src/application/models/narrative_document_route.dart';
 import 'package:map_editor/src/infrastructure/riverpod_retry_policy.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navigation.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 Map<String, Object?> openCharacterStudioForMarionette({
@@ -61,6 +63,49 @@ Map<String, Object?> openPersonalizationStudioForMarionette({
     'workspaceMode': editor.workspaceMode.name,
     'projectRootPath': editor.projectRootPath,
     'projectName': editor.project?.name,
+  };
+}
+
+Map<String, Object?> openPresentationStudioForMarionette({
+  required ProviderContainer container,
+  required String cinematicId,
+}) {
+  container
+      .read(narrativeStudioNavigationControllerProvider.notifier)
+      .openDocument(
+        NarrativeDocumentRoute.presentation(
+          cinematicId: cinematicId,
+          source: NarrativeLibrarySourceContext(
+            library: NarrativeLibraryKind.cinematics,
+            cinematicFamily: CinematicLibraryFamily.presentation,
+            selectedAssetId: cinematicId,
+          ),
+        ),
+      );
+  container.read(editorNotifierProvider.notifier).selectCinematicsWorkspace();
+  final editor = container.read(editorNotifierProvider);
+  final asset = editor.project?.presentationCinematics
+      .where((candidate) => candidate.id == cinematicId)
+      .firstOrNull;
+  return <String, Object?>{
+    'opened': asset != null,
+    'workspaceMode': editor.workspaceMode.name,
+    'cinematicId': cinematicId,
+    'title': asset?.title,
+    // The cues an authoring driver can select to reach the Branches card.
+    'interactionCueIds': <String>[
+      if (asset != null)
+        for (final track in asset.tracks)
+          for (final clip in track.clips)
+            if (clip is PresentationMarkerClip &&
+                clip.markerKind == PresentationMarkerKind.interactionCue)
+              clip.id,
+    ],
+    'availableCinematicIds': <String>[
+      for (final candidate in editor.project?.presentationCinematics ??
+              const <PresentationCinematicAsset>[])
+        candidate.id,
+    ],
   };
 }
 
@@ -150,6 +195,31 @@ Future<void> main() async {
     callback: (_) async {
       return MarionetteExtensionResult.success(
         openCharacterStudioForMarionette(container: container),
+      );
+    },
+  );
+  registerMarionetteExtension(
+    name: 'pokemap.openPresentationStudio',
+    description:
+        'Opens a Presentation cinematic in the Studio through the real '
+        'navigation controller, and lists its interaction cues.',
+    callback: (parameters) async {
+      final requested = parameters['cinematicId'];
+      final editor = container.read(editorNotifierProvider);
+      final cinematicId = requested is String && requested.trim().isNotEmpty
+          ? requested.trim()
+          : editor.project?.presentationCinematics.firstOrNull?.id;
+      if (cinematicId == null) {
+        return MarionetteExtensionResult.success(<String, Object?>{
+          'opened': false,
+          'reason': 'The project holds no Presentation cinematic.',
+        });
+      }
+      return MarionetteExtensionResult.success(
+        openPresentationStudioForMarionette(
+          container: container,
+          cinematicId: cinematicId,
+        ),
       );
     },
   );
