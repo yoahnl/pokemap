@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_player_ui/presentation_renderer.dart'
+    show RuntimePresentationSessionRuntime;
 import 'package:path/path.dart' as p;
 
 import 'runtime_launch_save.dart';
@@ -112,6 +114,7 @@ final class StandaloneRuntimeStartupHost {
     RuntimeStartupClock clock = const SystemRuntimeStartupClock(),
     Duration? minimumSplashDuration,
     bool reducedMotion = false,
+    this.presentationSession,
   }) : presentation = StandaloneRuntimeStartupAdapter(
          projectFilePath: projectFilePath,
          manifest: manifest,
@@ -133,9 +136,15 @@ final class StandaloneRuntimeStartupHost {
       loadSave: (_) => saves.readEnvelope(),
       manifestLoader: (_) async => manifest,
     );
-    final newGameFlow = RuntimeProjectNewGameFlowPort(
+    // BETA-CIN-082: given the shared player composition, the standalone host
+    // runs the same interactive Presentation as the Hub — the New Game flow
+    // drives cues, branches and the world hand-off identically.
+    final session = presentationSession;
+    final newGameFlow = newGameFlowPort = RuntimeProjectNewGameFlowPort(
       projectFilePath: () async => projectFilePath,
       initialMapPreloader: initialMapPreloader,
+      preSessionRunnerFactory: session?.buildPreSessionRunner,
+      cancelActivePreSession: session?.cancelActive,
     );
     final source = _StandaloneRuntimeGameSource(
       identity: identity,
@@ -200,6 +209,14 @@ final class StandaloneRuntimeStartupHost {
   late final GameIdentity identity;
   final StandaloneRuntimeStartupAdapter presentation;
   final RuntimeAudioMixer audioMixer;
+
+  /// The New Game flow this host drives — exposed so a host can assert that
+  /// its Presentation stack is really wired (BETA-CIN-082).
+  late final RuntimeProjectNewGameFlowPort newGameFlowPort;
+
+  /// The shared interactive Presentation stack, when the project carries
+  /// media for it. Null keeps a media-less project perfectly playable.
+  final RuntimePresentationSessionRuntime? presentationSession;
   late final RuntimeInitialMapPreloader initialMapPreloader;
   late final GameSessionController sessionController;
   late final RuntimePlayerCoordinator playerCoordinator;
@@ -210,7 +227,10 @@ final class StandaloneRuntimeStartupHost {
 
   void start() => coordinator.start();
 
-  Future<void> dispose() => coordinator.dispose();
+  Future<void> dispose() async {
+    await presentationSession?.close();
+    await coordinator.dispose();
+  }
 }
 
 /// Resolves only project-relative presentation files below the selected

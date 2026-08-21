@@ -57,6 +57,12 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
   final RuntimeNewGamePreSessionRunnerFactory? _preSessionRunnerFactory;
   final void Function()? _cancelActivePreSession;
 
+  /// Whether this flow can run an authored pre-session Scene. False means a
+  /// New Game goes straight to the world, which is legitimate for a project
+  /// without a pre-session — but silent if a host simply forgot to wire its
+  /// Presentation stack, so hosts assert it (BETA-CIN-082).
+  bool get supportsPreSession => _preSessionRunnerFactory != null;
+
   @override
   Future<RuntimeNewGamePreparation> prepare() async {
     final projectFilePath = p.normalize(p.absolute(await _projectFilePath()));

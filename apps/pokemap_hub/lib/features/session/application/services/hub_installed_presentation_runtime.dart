@@ -184,59 +184,58 @@ final class HubInstalledPresentationMediaLoader {
   }
 }
 
+/// The Hub's façade over the shared player composition — BETA-CIN-082.
+///
+/// Everything about assembling the interactive Presentation stack lives in
+/// [player_ui.RuntimePresentationSessionRuntime], shared with the standalone
+/// host. What stays here is the Hub's own concern: reading media out of an
+/// installed package.
 final class HubInstalledPresentationRuntime {
   HubInstalledPresentationRuntime({
-    required this.runtimeSourceId,
+    required String runtimeSourceId,
     required HubInstalledPresentationMedia media,
     required PresentationMediaTargetPlatform targetPlatform,
     required RuntimeAudioMixer audioMixer,
     required bool reducedMotion,
     RuntimePresentationFrameDeltas? frameDeltas,
     RuntimePresentationBeforeTerminal? beforeTerminal,
-  }) : controller = player_ui.RuntimePresentationSurfaceController(
+  }) : _session = player_ui.RuntimePresentationSessionRuntime(
+         runtimeSourceId: runtimeSourceId,
          catalog: media.catalog,
          mediaUris: media.mediaUris,
          targetPlatform: targetPlatform,
-         videoDriver: player_ui.VideoPlayerPresentationPlaybackDriver(),
          audioMixer: audioMixer,
-         reduceMotion: reducedMotion,
+         reducedMotion: reducedMotion,
          frameDeltas: frameDeltas,
          beforeTerminal: beforeTerminal,
        );
 
-  final String runtimeSourceId;
-  final player_ui.RuntimePresentationSurfaceController controller;
+  final player_ui.RuntimePresentationSessionRuntime _session;
+
+  String get runtimeSourceId => _session.runtimeSourceId;
+
+  player_ui.RuntimePresentationSurfaceController get controller =>
+      _session.controller;
 
   RuntimeNewGamePreSessionRunner buildPreSessionRunner({
     required ProjectManifest project,
     required String projectRootDirectory,
     required String projectRevision,
     required String sceneId,
-  }) => RuntimeTextPreSessionSceneRunner(
+  }) => _session.buildPreSessionRunner(
     project: project,
     projectRootDirectory: projectRootDirectory,
+    projectRevision: projectRevision,
     sceneId: sceneId,
-    presentationCinematic: ScenePresentationCinematicRuntimeAwaitableAdapter(
-      runtimeSourceId: runtimeSourceId,
-      projectRevision: projectRevision,
-      assets: project.presentationCinematics,
-      player: controller,
-    ),
   );
 
-  void cancelActive() => unawaited(controller.cancelActive());
+  void cancelActive() => _session.cancelActive();
 
-  Future<void> close() => controller.close();
+  Future<void> close() => _session.close();
 }
 
-PresentationMediaTargetPlatform currentPresentationMediaTargetPlatform() {
-  if (Platform.isAndroid) return PresentationMediaTargetPlatform.android;
-  if (Platform.isIOS) return PresentationMediaTargetPlatform.ios;
-  if (Platform.isMacOS) return PresentationMediaTargetPlatform.macos;
-  if (Platform.isWindows) return PresentationMediaTargetPlatform.windows;
-  if (Platform.isLinux) return PresentationMediaTargetPlatform.linux;
-  return PresentationMediaTargetPlatform.web;
-}
+PresentationMediaTargetPlatform currentPresentationMediaTargetPlatform() =>
+    player_ui.currentPresentationMediaTargetPlatform();
 
 Future<Map<String, Object?>> _decodeObject(File file) async {
   final decoded = jsonDecode(await file.readAsString());

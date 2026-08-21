@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gamepads/gamepads.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -35,6 +36,7 @@ import 'src/runtime_pokedex_loader.dart';
 import 'src/runtime_project_picker.dart';
 import 'src/runtime_project_launch_map.dart';
 import 'src/runtime_projects_directory.dart';
+import 'src/standalone_presentation_media.dart';
 import 'src/runtime_startup_host.dart';
 import 'src/runtime_touch_controls.dart';
 import 'src/runtime_touch_controls_visibility.dart';
@@ -830,10 +832,40 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
 
     await _disposeStartupHost();
     if (!mounted) return;
+    // BETA-CIN-082: compose the shared interactive Presentation stack from
+    // the project directory before the host starts, so New Game runs cues
+    // and branches here exactly as it does in the Hub.
+    player_ui.RuntimePresentationSessionRuntime? presentationSession;
+    if (manifest.presentationCinematics.isNotEmpty) {
+      try {
+        final media = await loadStandalonePresentationMedia(
+          projectRootDirectory: p.dirname(_projectFilePath),
+        );
+        if (media != null) {
+          presentationSession = player_ui.RuntimePresentationSessionRuntime(
+            runtimeSourceId: standaloneRuntimeProfileId,
+            catalog: media.catalog,
+            mediaUris: media.mediaUris,
+            targetPlatform:
+                player_ui.currentPresentationMediaTargetPlatform(),
+            audioMixer: RuntimeAudioMixer(),
+            reducedMotion: false,
+          );
+        }
+      } on StandalonePresentationMediaException catch (error) {
+        setState(() => _error = error.message);
+        return;
+      }
+    }
+    if (!mounted) {
+      await presentationSession?.close();
+      return;
+    }
     late final StandaloneRuntimeStartupHost startupHost;
     startupHost = StandaloneRuntimeStartupHost(
       projectFilePath: _projectFilePath,
       manifest: manifest,
+      presentationSession: presentationSession,
       sessionPort: CallbackStandaloneRuntimeSessionPort(
         onLaunch: (descriptor, reportProgress, preloadedInitialMap) async {
           await _load(
