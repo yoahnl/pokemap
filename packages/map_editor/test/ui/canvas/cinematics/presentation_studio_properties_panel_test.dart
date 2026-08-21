@@ -1,4 +1,8 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/l10n/app_localizations.dart';
@@ -10,6 +14,18 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
 
 void main() {
+  setUpAll(() async {
+    final bytes = await File(
+      '${Directory.current.path}/../../examples/playable_runtime_host/'
+      'golden_personalization_v3/assets/presentation/fonts/display.ttf',
+    ).readAsBytes();
+    for (final family in <String>['Aube Display', 'Avenir Next', 'Roboto']) {
+      await (FontLoader(family)
+            ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes))))
+          .load();
+    }
+  });
+
   testWidgets('English properties remain readable at 200 percent text scale', (
     tester,
   ) async {
@@ -516,6 +532,208 @@ void main() {
     expect(find.text('Média responsive'), findsNothing);
     expect(commands, isEmpty);
   });
+
+  testWidgets('golden: the branches card in the real dark panel', (
+    tester,
+  ) async {
+    final selection = PresentationStudioSelectionController();
+    addTearDown(selection.dispose);
+
+    await tester.binding.setSurfaceSize(const Size(372, 1180));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pump(
+      tester,
+      asset: _asset(),
+      selection: selection,
+      commands: <PresentationStudioPropertyCommand>[],
+      width: 372,
+      height: 1180,
+      markerUsageCountById: const <String, int>{'cue': 1},
+      cueViews: <String, PresentationCueAuthoringView>{
+        'cue': PresentationCueAuthoringView(
+          markerId: 'cue',
+          sceneId: 'intro',
+          presentationNodeId: 'presentation',
+          awaitableNodeId: 'confirm_name',
+          awaitableLabel: 'Confirmer le nom',
+          awaitableKind: SceneNodeKind.action,
+          outputPortIds: const <String>['confirmed', 'declined'],
+          routes: <ScenePresentationCueOutcomeRoute>[
+            ScenePresentationCueOutcomeRoute(
+              outputPortId: 'declined',
+              outcome: PresentationInteractionOutcome.repeatFromMarker(
+                markerId: 'cue',
+              ),
+            ),
+          ],
+        ),
+      },
+    );
+    selection.selectClip(asset: _asset(), clipId: 'cue');
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await expectLater(
+      find.byType(PresentationStudioPropertiesPanel),
+      matchesGoldenFile('goldens/cue_branches/dark_panel.png'),
+    );
+  });
+
+  testWidgets('an unlinked cue explains itself instead of faking a binding', (
+    tester,
+  ) async {
+    final selection = PresentationStudioSelectionController();
+    final commands = <PresentationStudioPropertyCommand>[];
+    addTearDown(selection.dispose);
+
+    await _pump(
+      tester,
+      asset: _asset(),
+      selection: selection,
+      commands: commands,
+      width: 520,
+    );
+    selection.selectClip(asset: _asset(), clipId: 'cue');
+    await tester.pump();
+
+    expect(find.text('Branches'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('cue-branches-unlinked')),
+      findsOneWidget,
+    );
+    expect(commands, isEmpty);
+  });
+
+  testWidgets('routing an output emits the Scene action, continue clears it', (
+    tester,
+  ) async {
+    final selection = PresentationStudioSelectionController();
+    final commands = <PresentationStudioPropertyCommand>[];
+    addTearDown(selection.dispose);
+
+    await _pump(
+      tester,
+      asset: _asset(),
+      selection: selection,
+      commands: commands,
+      width: 520,
+      cueViews: <String, PresentationCueAuthoringView>{
+        'cue': const PresentationCueAuthoringView(
+          markerId: 'cue',
+          sceneId: 'intro',
+          presentationNodeId: 'presentation',
+          awaitableNodeId: 'confirm_name',
+          awaitableLabel: 'Confirmer le nom',
+          awaitableKind: SceneNodeKind.action,
+          outputPortIds: <String>['confirmed', 'declined'],
+          routes: <ScenePresentationCueOutcomeRoute>[],
+        ),
+      },
+    );
+    selection.selectClip(asset: _asset(), clipId: 'cue');
+    await tester.pump();
+
+    expect(
+      find.textContaining('Confirmer le nom'),
+      findsOneWidget,
+      reason: 'the linked node and its output count share one line',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('cue-branch-outcome-declined')),
+      findsOneWidget,
+      reason: 'one row per output port of the bound node',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('cue-branch-destination-declined')),
+      findsNothing,
+      reason: 'a continuation needs no destination',
+    );
+
+    final outcomeDropdown = find.descendant(
+      of: find.byKey(const ValueKey<String>('cue-branch-outcome-declined')),
+      matching: find.byType(DropdownButton<PresentationInteractionOutcomeKind>),
+    );
+    await tester.ensureVisible(outcomeDropdown);
+    await tester.tap(outcomeDropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rejouer').last);
+    await tester.pumpAndSettle();
+
+    expect(commands, hasLength(1));
+    expect(commands.single.actionId, 'scene.presentation.cue.routes.set');
+    expect(commands.single.parameters['sceneId'], 'intro');
+    expect(commands.single.parameters['markerId'], 'cue');
+    expect(
+      commands.single.parameters['routes'],
+      [
+        {
+          'outputPortId': 'declined',
+          'outcome': {'kind': 'repeatFromMarker', 'markerId': 'cue'},
+        },
+      ],
+      reason: 'the only marker of the fixture is the default destination',
+    );
+  });
+
+  testWidgets('an already routed output offers its destination and clears', (
+    tester,
+  ) async {
+    final selection = PresentationStudioSelectionController();
+    final commands = <PresentationStudioPropertyCommand>[];
+    addTearDown(selection.dispose);
+
+    await _pump(
+      tester,
+      asset: _asset(),
+      selection: selection,
+      commands: commands,
+      width: 520,
+      cueViews: <String, PresentationCueAuthoringView>{
+        'cue': PresentationCueAuthoringView(
+          markerId: 'cue',
+          sceneId: 'intro',
+          presentationNodeId: 'presentation',
+          awaitableNodeId: 'confirm_name',
+          awaitableLabel: 'Confirmer le nom',
+          awaitableKind: SceneNodeKind.action,
+          outputPortIds: const <String>['confirmed', 'declined'],
+          routes: <ScenePresentationCueOutcomeRoute>[
+            ScenePresentationCueOutcomeRoute(
+              outputPortId: 'declined',
+              outcome: PresentationInteractionOutcome.repeatFromMarker(
+                markerId: 'cue',
+              ),
+            ),
+          ],
+        ),
+      },
+    );
+    selection.selectClip(asset: _asset(), clipId: 'cue');
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('cue-branch-destination-declined')),
+      findsOneWidget,
+      reason: 'a replay exposes the cue it comes back to',
+    );
+
+    final outcomeDropdown = find.descendant(
+      of: find.byKey(const ValueKey<String>('cue-branch-outcome-declined')),
+      matching: find.byType(DropdownButton<PresentationInteractionOutcomeKind>),
+    );
+    await tester.ensureVisible(outcomeDropdown);
+    await tester.tap(outcomeDropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continuer').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      commands.single.parameters['routes'],
+      isEmpty,
+      reason: 'continuing is the default: it is stored as no route at all',
+    );
+  });
+
 }
 
 Future<void> _pump(
@@ -526,10 +744,13 @@ Future<void> _pump(
   PresentationFrameOrientation orientation =
       PresentationFrameOrientation.landscape,
   Map<String, int> markerUsageCountById = const <String, int>{},
+  Map<String, PresentationCueAuthoringView> cueViews =
+      const <String, PresentationCueAuthoringView>{},
   Set<String> selectedClipIds = const <String>{},
   Locale locale = const Locale('fr'),
   TextScaler textScaler = TextScaler.noScaling,
   double width = 360,
+  double height = 760,
 }) => tester.pumpWidget(
   MaterialApp(
     locale: locale,
@@ -543,13 +764,14 @@ Future<void> _pump(
     home: Scaffold(
       body: SizedBox(
         width: width,
-        height: 760,
+        height: height,
         child: PresentationStudioPropertiesPanel(
           asset: asset,
           selectionController: selection,
           orientation: orientation,
           onCommand: commands.add,
           markerUsageCountById: markerUsageCountById,
+          cueViews: cueViews,
           selectedClipIds: selectedClipIds,
         ),
       ),

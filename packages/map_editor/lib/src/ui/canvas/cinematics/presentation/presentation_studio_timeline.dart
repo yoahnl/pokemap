@@ -213,6 +213,7 @@ class PresentationStudioTimeline extends StatefulWidget {
     this.viewportController,
     this.projectionController,
     this.markerUsageCountById = const <String, int>{},
+    this.cueViews = const <String, PresentationCueAuthoringView>{},
     this.state = PresentationStudioTimelineState.ready,
     this.diagnostic,
   });
@@ -231,6 +232,10 @@ class PresentationStudioTimeline extends StatefulWidget {
   final PresentationTimelineViewportController? viewportController;
   final PresentationTimelineProjectionController? projectionController;
   final Map<String, int> markerUsageCountById;
+
+  /// The Scene branches of this cinematic's cues, keyed by marker id. Drawn
+  /// on the marker track for the selected cue only (BETA-CIN-079).
+  final Map<String, PresentationCueAuthoringView> cueViews;
   final PresentationStudioTimelineState state;
   final String? diagnostic;
 
@@ -797,6 +802,17 @@ class _PresentationStudioTimelineState
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
+                if (track.kind == PresentationTrackKind.marker)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: _CueBranchArcPainter(
+                          arcs: _selectedCueArcs(track),
+                          color: colors.error,
+                        ),
+                      ),
+                    ),
+                  ),
                 for (final clip in clips) _clip(clip, trackIndex),
                 if (playheadX >= 0 && playheadX <= viewportWidth)
                   Positioned(
@@ -814,6 +830,33 @@ class _PresentationStudioTimelineState
         ),
       ),
     );
+  }
+
+  /// The branch arcs to draw for the currently selected cue: source x,
+  /// destination x. Only the selection is drawn — three overlapping loops
+  /// would be unreadable, and the panel is the exhaustive view.
+  List<({double fromX, double toX})> _selectedCueArcs(
+    PresentationTrack track,
+  ) {
+    final selectedClipId = widget.selectionController.value?.clipId;
+    if (selectedClipId == null) return const <({double fromX, double toX})>[];
+    final view = widget.cueViews[selectedClipId];
+    if (view == null) return const <({double fromX, double toX})>[];
+    // The pure part lives in map_core so it can be tested without a widget;
+    // the lane only maps microseconds to pixels.
+    final arcs = presentationCueBranchArcs(
+      view: view,
+      markerStartUsById: <String, int>{
+        for (final clip in track.clips)
+          if (clip is PresentationMarkerClip) clip.id: clip.startUs,
+      },
+    );
+    double toX(int us) =>
+        us / 1000000 * _viewportController.pixelsPerSecond -
+        _viewportController.scrollOffset;
+    return <({double fromX, double toX})>[
+      for (final arc in arcs) (fromX: toX(arc.fromUs), toX: toX(arc.toUs)),
+    ];
   }
 
   Widget _clip(PresentationClip clip, int trackIndex) {
@@ -1140,3 +1183,73 @@ int _projectionDensity(double pixelsPerSecond) => pixelsPerSecond < 160
     : pixelsPerSecond < 320
     ? 128
     : 256;
+
+/// Draws the dashed return path of a cue's branches on the marker track —
+/// BETA-CIN-079. Purely decorative: the panel remains the editable truth.
+class _CueBranchArcPainter extends CustomPainter {
+  const _CueBranchArcPainter({required this.arcs, required this.color});
+
+  final List<({double fromX, double toX})> arcs;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (arcs.isEmpty) return;
+    final stroke = Paint()
+      ..color = color
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke;
+    for (final arc in arcs) {
+      final path = Path()
+        ..moveTo(arc.fromX, size.height - 6)
+        ..cubicTo(
+          arc.fromX,
+          6,
+          arc.toX,
+          6,
+          arc.toX,
+          size.height - 6,
+        );
+      _drawDashed(canvas, path, stroke);
+      canvas.drawPath(
+        Path()
+          ..moveTo(arc.toX - 4, size.height - 12)
+          ..lineTo(arc.toX, size.height - 5)
+          ..lineTo(arc.toX + 4, size.height - 12),
+        stroke,
+      );
+    }
+  }
+
+  void _drawDashed(Canvas canvas, Path path, Paint paint) {
+    const dash = 4.0;
+    const gap = 3.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = (distance + dash).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(distance, next), paint);
+        distance = next + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CueBranchArcPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.arcs.length != arcs.length ||
+      _differs(oldDelegate.arcs, arcs);
+
+  static bool _differs(
+    List<({double fromX, double toX})> left,
+    List<({double fromX, double toX})> right,
+  ) {
+    for (var index = 0; index < left.length; index++) {
+      if (left[index].fromX != right[index].fromX ||
+          left[index].toX != right[index].toX) {
+        return true;
+      }
+    }
+    return false;
+  }
+}

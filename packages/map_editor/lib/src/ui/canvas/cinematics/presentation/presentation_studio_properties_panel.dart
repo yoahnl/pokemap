@@ -19,6 +19,7 @@ class PresentationStudioPropertiesPanel extends StatelessWidget {
     required this.onCommand,
     this.selectedClipIds = const <String>{},
     this.markerUsageCountById = const <String, int>{},
+    this.cueViews = const <String, PresentationCueAuthoringView>{},
     this.mutationPending = false,
     this.canUndo = false,
     this.canRedo = false,
@@ -32,6 +33,10 @@ class PresentationStudioPropertiesPanel extends StatelessWidget {
   final ValueChanged<PresentationStudioPropertyCommand> onCommand;
   final Set<String> selectedClipIds;
   final Map<String, int> markerUsageCountById;
+
+  /// The Scene side of every linked cue of this cinematic, keyed by marker id
+  /// (BETA-CIN-079).
+  final Map<String, PresentationCueAuthoringView> cueViews;
   final bool mutationPending;
   final bool canUndo;
   final bool canRedo;
@@ -158,8 +163,30 @@ class PresentationStudioPropertiesPanel extends StatelessWidget {
         sceneUsageCount: markerUsageCountById[clip.id] ?? 0,
         onCommand: onCommand,
       ),
+      if (clip.markerKind == PresentationMarkerKind.interactionCue) ...<Widget>[
+        const SizedBox(height: 12),
+        PresentationCueBranchesInspectorSection(
+          key: ValueKey<String>('cue-branches-${clip.id}'),
+          clip: clip,
+          view: cueViews[clip.id],
+          markers: _markersOf(asset),
+          onCommand: onCommand,
+        ),
+      ],
     ],
   };
+}
+
+List<PresentationMarkerClip> _markersOf(PresentationCinematicAsset asset) {
+  final markers = <PresentationMarkerClip>[
+    for (final track in asset.tracks)
+      for (final clip in track.clips)
+        if (clip is PresentationMarkerClip) clip,
+  ]..sort((left, right) {
+      final time = left.startUs.compareTo(right.startUs);
+      return time != 0 ? time : left.id.compareTo(right.id);
+    });
+  return List<PresentationMarkerClip>.unmodifiable(markers);
 }
 
 class _MixedSelectionInspector extends StatelessWidget {
@@ -1299,6 +1326,229 @@ class PresentationMarkerInspectorSection extends StatelessWidget {
       clip: value,
     ),
   );
+}
+
+/// The branches of one interaction cue — BETA-CIN-079.
+///
+/// Sits right under the cue card, in the same field grammar as the rest of
+/// the panel. One row per output port of the bound Scene node; "Continue" is
+/// stored as no route at all, so an untouched cue keeps a clean document.
+class PresentationCueBranchesInspectorSection extends StatelessWidget {
+  const PresentationCueBranchesInspectorSection({
+    super.key,
+    required this.clip,
+    required this.view,
+    required this.markers,
+    required this.onCommand,
+  });
+
+  final PresentationMarkerClip clip;
+
+  /// Null when no Scene links this cue yet — the card then explains that
+  /// instead of pretending an empty binding exists.
+  final PresentationCueAuthoringView? view;
+  final List<PresentationMarkerClip> markers;
+  final ValueChanged<PresentationStudioPropertyCommand> onCommand;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    final resolved = view;
+    if (resolved == null) {
+      return PokeMapCinematicInspectorSection(
+        title: copy.branches,
+        child: Text(
+          copy.cueNotLinked,
+          key: const ValueKey<String>('cue-branches-unlinked'),
+          style: const TextStyle(fontSize: 11),
+        ),
+      );
+    }
+    return PokeMapCinematicInspectorSection(
+      title: copy.branches,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _ReadOnlyProperty(
+            title: copy.linkedNode,
+            value: '${resolved.awaitableLabel} · '
+                '${copy.outputsCount(resolved.outputPortIds.length)}',
+          ),
+          const SizedBox(height: 4),
+          Text(
+            copy.branchesHint,
+            style: const TextStyle(fontSize: 10),
+          ),
+          for (final portId in resolved.outputPortIds) ...<Widget>[
+            const SizedBox(height: 10),
+            PokeMapDropdownField<PresentationInteractionOutcomeKind>(
+              key: ValueKey<String>('cue-branch-outcome-$portId'),
+              label: copy.outputPortLabel(portId),
+              value: resolved.routeFor(portId)?.outcome.kind ??
+                  PresentationInteractionOutcomeKind.continueTimeline,
+              items: <PokeMapDropdownItem<PresentationInteractionOutcomeKind>>[
+                PokeMapDropdownItem(
+                  value: PresentationInteractionOutcomeKind.continueTimeline,
+                  label: copy.outcomeContinue,
+                ),
+                PokeMapDropdownItem(
+                  value: PresentationInteractionOutcomeKind.repeatFromMarker,
+                  label: copy.outcomeReplay,
+                ),
+                PokeMapDropdownItem(
+                  value: PresentationInteractionOutcomeKind.seekMarker,
+                  label: copy.outcomeSkip,
+                ),
+                PokeMapDropdownItem(
+                  value: PresentationInteractionOutcomeKind.stop,
+                  label: copy.outcomeStop,
+                ),
+                PokeMapDropdownItem(
+                  value: PresentationInteractionOutcomeKind.cancelled,
+                  label: copy.outcomeCancel,
+                ),
+                PokeMapDropdownItem(
+                  value: PresentationInteractionOutcomeKind.failed,
+                  label: copy.outcomeFail,
+                ),
+              ],
+              onChanged: (value) => _changeKind(resolved, portId, value),
+            ),
+            if (_needsDestination(resolved.routeFor(portId)?.outcome.kind))
+              ...<Widget>[
+                const SizedBox(height: 6),
+                PokeMapDropdownField<String>(
+                  key: ValueKey<String>('cue-branch-destination-$portId'),
+                  label: copy.destinationCue,
+                  value: _destinationOf(resolved, portId) ??
+                      (markers.isEmpty ? '' : markers.first.id),
+                  items: <PokeMapDropdownItem<String>>[
+                    for (final marker in markers)
+                      PokeMapDropdownItem(
+                        value: marker.id,
+                        label: '${marker.label} — '
+                            '${_formatMarkerTime(marker.startUs)}',
+                      ),
+                  ],
+                  onChanged: (value) =>
+                      _changeDestination(resolved, portId, value),
+                ),
+              ],
+          ],
+          const SizedBox(height: 10),
+          Text(
+            copy.transitionBudgetNote,
+            key: const ValueKey<String>('cue-branches-budget'),
+            style: const TextStyle(fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static bool _needsDestination(PresentationInteractionOutcomeKind? kind) =>
+      kind == PresentationInteractionOutcomeKind.seekMarker ||
+      kind == PresentationInteractionOutcomeKind.repeatFromMarker;
+
+  String? _destinationOf(PresentationCueAuthoringView view, String portId) {
+    final outcome = view.routeFor(portId)?.outcome;
+    return switch (outcome) {
+      PresentationSeekMarkerOutcome(:final markerId) => markerId,
+      PresentationRepeatFromMarkerOutcome(:final markerId) => markerId,
+      _ => null,
+    };
+  }
+
+  void _changeKind(
+    PresentationCueAuthoringView view,
+    String portId,
+    PresentationInteractionOutcomeKind kind,
+  ) {
+    // Continuing is the default: it is stored as the absence of a route, so
+    // an untouched cue never bloats the Scene document.
+    if (kind == PresentationInteractionOutcomeKind.continueTimeline) {
+      _emit(view, _withoutPort(view, portId));
+      return;
+    }
+    final destination = _destinationOf(view, portId) ??
+        (markers.isEmpty ? null : markers.first.id);
+    final outcome = switch (kind) {
+      PresentationInteractionOutcomeKind.seekMarker => destination == null
+          ? null
+          : PresentationInteractionOutcome.seekMarker(markerId: destination),
+      PresentationInteractionOutcomeKind.repeatFromMarker =>
+        destination == null
+            ? null
+            : PresentationInteractionOutcome.repeatFromMarker(
+                markerId: destination,
+              ),
+      PresentationInteractionOutcomeKind.stop =>
+        const PresentationInteractionOutcome.stop(),
+      PresentationInteractionOutcomeKind.cancelled =>
+        const PresentationInteractionOutcome.cancelled(),
+      PresentationInteractionOutcomeKind.failed =>
+        const PresentationInteractionOutcome.failed(),
+      PresentationInteractionOutcomeKind.continueTimeline => null,
+    };
+    if (outcome == null) return;
+    _emit(view, <ScenePresentationCueOutcomeRoute>[
+      ..._withoutPort(view, portId),
+      ScenePresentationCueOutcomeRoute(
+        outputPortId: portId,
+        outcome: outcome,
+      ),
+    ]);
+  }
+
+  void _changeDestination(
+    PresentationCueAuthoringView view,
+    String portId,
+    String markerId,
+  ) {
+    final kind = view.routeFor(portId)?.outcome.kind;
+    if (!_needsDestination(kind)) return;
+    _emit(view, <ScenePresentationCueOutcomeRoute>[
+      ..._withoutPort(view, portId),
+      ScenePresentationCueOutcomeRoute(
+        outputPortId: portId,
+        outcome: kind == PresentationInteractionOutcomeKind.seekMarker
+            ? PresentationInteractionOutcome.seekMarker(markerId: markerId)
+            : PresentationInteractionOutcome.repeatFromMarker(
+                markerId: markerId,
+              ),
+      ),
+    ]);
+  }
+
+  List<ScenePresentationCueOutcomeRoute> _withoutPort(
+    PresentationCueAuthoringView view,
+    String portId,
+  ) => <ScenePresentationCueOutcomeRoute>[
+    for (final route in view.routes)
+      if (route.outputPortId != portId) route,
+  ];
+
+  void _emit(
+    PresentationCueAuthoringView view,
+    List<ScenePresentationCueOutcomeRoute> routes,
+  ) => onCommand(
+    PresentationStudioPropertyCommand.setCueRoutes(
+      sceneId: view.sceneId,
+      presentationNodeId: view.presentationNodeId,
+      markerId: view.markerId,
+      routes: routes,
+    ),
+  );
+}
+
+String _formatMarkerTime(int startUs) {
+  final totalMs = startUs ~/ 1000;
+  final minutes = totalMs ~/ 60000;
+  final seconds = (totalMs % 60000) ~/ 1000;
+  final millis = totalMs % 1000;
+  return '${minutes.toString().padLeft(2, '0')}:'
+      '${seconds.toString().padLeft(2, '0')}.'
+      '${millis.toString().padLeft(3, '0')}';
 }
 
 class _MarkerNameField extends StatefulWidget {

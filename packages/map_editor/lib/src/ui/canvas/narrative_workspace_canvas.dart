@@ -3077,6 +3077,15 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         );
       }
       final resolvedAsset = asset;
+      // The Scene side of this cinematic's cues: what the properties panel
+      // and the timeline both read to show and author branches, and the
+      // source of the usage count the marker card displays (BETA-CIN-079).
+      final presentationCueViews = buildPresentationCueAuthoringViews(
+        presentationCinematicId: resolvedAsset.id,
+        scenes: _presentationDocumentController.isOpen
+            ? _presentationDocumentController.manifest.scenes
+            : project.scenes,
+      );
       _presentationResponsiveCanvasController.configureDuration(
         resolvedAsset.durationUs,
         notify: false,
@@ -3193,6 +3202,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               orientation:
                   _presentationResponsiveCanvasController.activeOrientation,
               selectedClipIds: timelineEditingController.selectedClipIds,
+              cueViews: presentationCueViews,
+              markerUsageCountById: <String, int>{
+                for (final markerId in presentationCueViews.keys) markerId: 1,
+              },
               onCommand: (command) =>
                   unawaited(_applyPresentationPropertyCommand(command)),
               mutationPending: !_presentationDocumentController.isOpen ||
@@ -3251,6 +3264,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               playheadUs: _presentationResponsiveCanvasController.playheadUs,
               selectionController:
                   _presentationResponsiveCanvasController.selection,
+              cueViews: presentationCueViews,
+              markerUsageCountById: <String, int>{
+                for (final markerId in presentationCueViews.keys) markerId: 1,
+              },
               editingController: timelineEditingController,
               projectionController: _presentationTimelineProjectionController,
               onPlayheadChanged: _presentationResponsiveCanvasController.seekTo,

@@ -54,6 +54,56 @@ void main() {
       throwsA(isA<PresentationCinematicDraftException>()),
     );
   });
+
+  test('authors cue branches from the Studio draft, and nothing else of Scene',
+      () {
+    final baseline = _manifestWithCue();
+    final draft = PresentationCinematicDraft.fromSnapshot(
+      _snapshot(baseline),
+      expectedProject: baseline,
+    );
+
+    final projected = draft.apply(
+      actionId: 'scene.presentation.cue.routes.set',
+      parameters: <String, Object?>{
+        'sceneId': 'intro',
+        'presentationNodeId': 'presentation',
+        'markerId': 'cue_confirm',
+        'routes': <Object?>[
+          <String, Object?>{
+            'outputPortId': 'declined',
+            'outcome': <String, Object?>{
+              'kind': 'repeatFromMarker',
+              'markerId': 'cue_confirm',
+            },
+          },
+        ],
+      },
+      operationId: 'routes-1',
+    );
+
+    final payload = projected.scenes.single.graph.nodes
+        .singleWhere((node) => node.id == 'presentation')
+        .payload as ScenePresentationCinematicPayload;
+    expect(
+      payload.interactionCueBindings.single.outcomeRoutes.single.outputPortId,
+      'declined',
+      reason: 'the Studio panel writes the Scene binding through the '
+          'headless action, never by mutating the model itself',
+    );
+
+    expect(
+      () => draft.apply(
+        actionId: 'scene.delete',
+        parameters: const <String, Object?>{'sceneId': 'intro'},
+        operationId: 'forbidden-1',
+      ),
+      throwsA(anything),
+      reason: 'the allowance is one action wide: the Presentation Studio is '
+          'not a Scene editor',
+    );
+  });
+
 }
 
 ProjectManifest _manifest() => ProjectManifest(
@@ -80,6 +130,67 @@ ProjectManifest _manifest() => ProjectManifest(
         ),
       ],
     );
+
+ProjectManifest _manifestWithCue() {
+  final base = _manifest();
+  return base.copyWith(
+    scenes: <SceneAsset>[
+      SceneAsset(
+        id: 'intro',
+        name: 'Pré-session',
+        executionProfile: SceneExecutionProfile.preSession,
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: <SceneNode>[
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'presentation',
+              kind: SceneNodeKind.presentationCinematic,
+              payload: ScenePresentationCinematicPayload(
+                presentationCinematicId: 'opening',
+                interactionCueBindings: <ScenePresentationInteractionCueBinding>[
+                  ScenePresentationInteractionCueBinding(
+                    markerId: 'cue_confirm',
+                    awaitableNodeId: 'confirm',
+                  ),
+                ],
+              ),
+            ),
+            SceneNode(
+              id: 'confirm',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.preSessionInteraction(
+                ScenePreSessionInteractionSpec.confirmation(
+                  prompt: SceneInteractionPrompt(
+                    localizationKey: 'newGame.confirm',
+                    fallbackText: 'On garde ce nom ?',
+                  ),
+                ),
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: <SceneEdge>[
+            SceneEdge(
+              id: 'start_presentation',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'presentation',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'presentation_end',
+              fromNodeId: 'presentation',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.presentationCompleted,
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
 
 PresentationTextClip _textClip({required String content}) =>
     PresentationTextClip(

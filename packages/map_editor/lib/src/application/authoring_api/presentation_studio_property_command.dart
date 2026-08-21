@@ -29,6 +29,25 @@ final class PresentationStudioPropertyCommand {
     },
   );
 
+  /// Authors the branches of one interaction cue — BETA-CIN-079.
+  ///
+  /// The routes live on the Scene binding, so this command carries the Scene
+  /// coordinates the read model resolved, never the Presentation clip.
+  factory PresentationStudioPropertyCommand.setCueRoutes({
+    required String sceneId,
+    required String presentationNodeId,
+    required String markerId,
+    required List<ScenePresentationCueOutcomeRoute> routes,
+  }) => PresentationStudioPropertyCommand(
+    actionId: 'scene.presentation.cue.routes.set',
+    parameters: <String, Object?>{
+      'sceneId': sceneId,
+      'presentationNodeId': presentationNodeId,
+      'markerId': markerId,
+      'routes': routes.map((route) => route.toJson()).toList(growable: false),
+    },
+  );
+
   factory PresentationStudioPropertyCommand.updateClip({
     required String cinematicId,
     required String trackId,

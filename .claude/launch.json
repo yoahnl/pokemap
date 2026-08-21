@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "map_editor",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": ["run", "-d", "macos", "--target", "lib/main.dart"],
+      "cwd": "packages/map_editor",
+      "port": 0
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../authoring/scene_authoring_operations.dart';
+import '../models/presentation_interaction_outcome.dart';
 import '../models/scene_asset.dart';
 
 /// What an authoring surface needs to know about one interaction cue —
@@ -117,6 +118,68 @@ Map<String, PresentationCueAuthoringView> buildPresentationCueAuthoringViews({
     }
   }
   return Map<String, PresentationCueAuthoringView>.unmodifiable(views);
+}
+
+
+/// One branch to draw on the marker track: where the cue sits, and where its
+/// answer sends the playhead back (or forward) — BETA-CIN-079.
+@immutable
+final class PresentationCueBranchArc {
+  const PresentationCueBranchArc({
+    required this.outputPortId,
+    required this.fromUs,
+    required this.toUs,
+  });
+
+  final String outputPortId;
+  final int fromUs;
+  final int toUs;
+
+  /// True when the answer sends the playhead backwards — the loop an author
+  /// most needs to see.
+  bool get isBackwards => toUs < fromUs;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PresentationCueBranchArc &&
+          other.outputPortId == outputPortId &&
+          other.fromUs == fromUs &&
+          other.toUs == toUs;
+
+  @override
+  int get hashCode => Object.hash(outputPortId, fromUs, toUs);
+}
+
+/// The arcs of one cue, resolved against the marker positions of its
+/// cinematic. Routes without a destination (continue, stop, cancel, fail)
+/// draw nothing, and a destination the cinematic no longer holds is skipped
+/// rather than drawn at zero.
+List<PresentationCueBranchArc> presentationCueBranchArcs({
+  required PresentationCueAuthoringView view,
+  required Map<String, int> markerStartUsById,
+}) {
+  final fromUs = markerStartUsById[view.markerId];
+  if (fromUs == null) return const <PresentationCueBranchArc>[];
+  final arcs = <PresentationCueBranchArc>[];
+  for (final route in view.routes) {
+    final destination = switch (route.outcome) {
+      PresentationSeekMarkerOutcome(:final markerId) => markerId,
+      PresentationRepeatFromMarkerOutcome(:final markerId) => markerId,
+      _ => null,
+    };
+    if (destination == null) continue;
+    final toUs = markerStartUsById[destination];
+    if (toUs == null) continue;
+    arcs.add(
+      PresentationCueBranchArc(
+        outputPortId: route.outputPortId,
+        fromUs: fromUs,
+        toUs: toUs,
+      ),
+    );
+  }
+  return List<PresentationCueBranchArc>.unmodifiable(arcs);
 }
 
 bool _sameStrings(List<String> left, List<String> right) {

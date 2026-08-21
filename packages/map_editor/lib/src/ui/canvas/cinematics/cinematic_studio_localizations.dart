@@ -676,6 +676,35 @@ final class CinematicStudioCopy {
   String get requiredCueValidation => isEnglish
       ? 'Validation blocks when this cue is not linked to any Scene.'
       : 'La validation bloque si ce cue n’est relié à aucune Scene.';
+  // Branches d'un cue — BETA-CIN-079. Nommage court, décidé avec Yoahn.
+  String get branches => 'Branches';
+  String get branchesHint => isEnglish
+      ? 'What the cinematic does after each answer.'
+      : 'Ce que fait la cinématique après chaque réponse.';
+  String get cueNotLinked => isEnglish
+      ? 'Link this cue to a Scene node to author its branches.'
+      : 'Relie ce repère à un nœud Scene pour écrire ses branches.';
+  String get linkedNode => isEnglish ? 'Linked node' : 'Nœud lié';
+  String outputsCount(int count) => isEnglish
+      ? '$count ${count == 1 ? 'output' : 'outputs'}'
+      : '$count ${count == 1 ? 'sortie' : 'sorties'}';
+  String get destinationCue => isEnglish ? 'Cue' : 'Repère';
+  String get transitionBudgetNote => isEnglish
+      ? 'Budget: 8 transitions per playback'
+      : 'Budget : 8 transitions par lecture';
+  String get outcomeContinue => isEnglish ? 'Continue' : 'Continuer';
+  String get outcomeReplay => isEnglish ? 'Replay' : 'Rejouer';
+  String get outcomeSkip => isEnglish ? 'Skip' : 'Sauter';
+  String get outcomeStop => isEnglish ? 'Stop' : 'Arrêter';
+  String get outcomeCancel => isEnglish ? 'Cancel' : 'Annuler';
+  String get outcomeFail => isEnglish ? 'Fail' : 'Échec';
+  String outputPortLabel(String portId) => switch (portId) {
+    'confirmed' => isEnglish ? 'Yes' : 'Oui',
+    'declined' => isEnglish ? 'No' : 'Non',
+    'completed' => isEnglish ? 'Completed' : 'Terminé',
+    _ => portId,
+  };
+
   String get transitionsAndAnimation =>
       isEnglish ? 'Transitions and animation' : 'Transitions et animation';
   String get curve => isEnglish ? 'Curve' : 'Courbe';

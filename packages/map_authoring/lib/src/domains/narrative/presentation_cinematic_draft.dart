@@ -9,6 +9,7 @@ import '../../workspace/project_snapshot.dart';
 import '../assets/project_media_store.dart';
 import '../maps/map_lifecycle_adapter.dart';
 import 'presentation_cinematic_actions.dart';
+import 'scene_actions.dart';
 
 final class PresentationCinematicDraftException implements Exception {
   const PresentationCinematicDraftException(this.code, this.message);
@@ -19,6 +20,12 @@ final class PresentationCinematicDraftException implements Exception {
   @override
   String toString() => 'PresentationCinematicDraftException($code): $message';
 }
+
+/// Scene actions the Presentation Studio may run on its own draft.
+///
+/// Deliberately a short, explicit list: widening it is an architectural
+/// decision, not a convenience (BETA-CIN-079).
+const _sceneActionIds = <String>{'scene.presentation.cue.routes.set'};
 
 final class PresentationCinematicDraft {
   PresentationCinematicDraft._(this._snapshot);
@@ -73,22 +80,27 @@ final class PresentationCinematicDraft {
         'must be nonblank and trimmed',
       );
     }
-    final draft = const PresentationCinematicActions().build(
-      AuthoringPlanningContext(
-        snapshot: _snapshot,
-        request: AuthoringRequest(
-          requestId: normalizedOperationId,
-          actionId: actionId,
-          actionVersion: 1,
-          workspaceHandle: 'workspace-presentation-draft',
-          parameters: parameters,
-          expectedRevision: _snapshot.revision,
-          idempotencyKey: normalizedOperationId,
-        ),
-        planId: 'plan-$normalizedOperationId',
-        seed: 0,
+    final context = AuthoringPlanningContext(
+      snapshot: _snapshot,
+      request: AuthoringRequest(
+        requestId: normalizedOperationId,
+        actionId: actionId,
+        actionVersion: 1,
+        workspaceHandle: 'workspace-presentation-draft',
+        parameters: parameters,
+        expectedRevision: _snapshot.revision,
+        idempotencyKey: normalizedOperationId,
       ),
+      planId: 'plan-$normalizedOperationId',
+      seed: 0,
     );
+    // The Studio authors two things: the Presentation document, and the cue
+    // branches that hang off its markers — which live on the Scene side of
+    // the BETA-CIN-068 boundary. Scene actions are admitted for that reason
+    // only; the single-project.json invariant below still fences them in.
+    final draft = _sceneActionIds.contains(actionId)
+        ? const SceneActions().build(context)
+        : const PresentationCinematicActions().build(context);
     final changes = draft.changeSet.changes;
     if (changes.length != 1 ||
         changes.single.storageKey != 'project.json' ||

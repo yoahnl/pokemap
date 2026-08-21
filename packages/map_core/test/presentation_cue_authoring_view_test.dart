@@ -142,4 +142,79 @@ void main() {
           'panel shows',
     );
   });
+  group('BETA-CIN-079 the branch arcs drawn on the marker track', () {
+    PresentationCueAuthoringView viewWith(
+      List<ScenePresentationCueOutcomeRoute> routes,
+    ) =>
+        PresentationCueAuthoringView(
+          markerId: 'cue_confirm',
+          sceneId: 'intro',
+          presentationNodeId: 'presentation',
+          awaitableNodeId: 'confirm_name',
+          awaitableLabel: 'Confirmer le nom',
+          awaitableKind: SceneNodeKind.action,
+          outputPortIds: const <String>['confirmed', 'declined'],
+          routes: routes,
+        );
+
+    const markers = <String, int>{
+      'cue_name': 4000000,
+      'cue_confirm': 12000000,
+    };
+
+    test('a replay draws a backwards arc between the two cues', () {
+      final arcs = presentationCueBranchArcs(
+        view: viewWith([replay]),
+        markerStartUsById: markers,
+      );
+      expect(arcs, const [
+        PresentationCueBranchArc(
+          outputPortId: 'declined',
+          fromUs: 12000000,
+          toUs: 4000000,
+        ),
+      ]);
+      expect(
+        arcs.single.isBackwards,
+        isTrue,
+        reason: 'the loop an author most needs to see',
+      );
+    });
+
+    test('destination-less outcomes draw nothing', () {
+      final arcs = presentationCueBranchArcs(
+        view: viewWith([
+          ScenePresentationCueOutcomeRoute(
+            outputPortId: 'confirmed',
+            outcome: const PresentationInteractionOutcome.stop(),
+          ),
+        ]),
+        markerStartUsById: markers,
+      );
+      expect(arcs, isEmpty);
+    });
+
+    test('a destination the cinematic lost is skipped, never drawn at zero',
+        () {
+      final arcs = presentationCueBranchArcs(
+        view: viewWith([replay]),
+        markerStartUsById: const <String, int>{'cue_confirm': 12000000},
+      );
+      expect(
+        arcs,
+        isEmpty,
+        reason: 'drawing an arc to 00:00 would invent a branch the author '
+            'never wrote',
+      );
+    });
+
+    test('an unplaced cue draws nothing at all', () {
+      final arcs = presentationCueBranchArcs(
+        view: viewWith([replay]),
+        markerStartUsById: const <String, int>{'cue_name': 4000000},
+      );
+      expect(arcs, isEmpty);
+    });
+  });
+
 }
