@@ -319,6 +319,42 @@ cd examples/playable_runtime_host && flutter test test/phase_a_golden_slice_laun
 
 When tests cannot be run, explain why and list the next command to run. Do not claim green status without fresh command evidence.
 
+### Always reap test harnesses (mandatory)
+
+`flutter test` leaks a `flutter_tester` process per suite that outlives the run,
+and every abandoned or killed run leaves its compiler and listener behind. They
+sit at 0% CPU, so nothing complains — they just take memory. A single day of
+work accumulated **501 orphaned `flutter_tester` processes holding 7.6 GB**,
+which is what makes later suites crawl and time out, which causes more runs to
+be abandoned, which leaks more processes.
+
+So: **kill everything, always, permanently.** After finishing a test run — and
+before diagnosing any suite that seems inexplicably slow or hung — reap the
+harnesses:
+
+```bash
+pkill -9 -f flutter_tester; pkill -9 -f frontend_server_aot; pkill -9 -f 'flutter_tools.snapshot test'
+```
+
+This is safe by construction: every one of those processes is either finished or
+abandoned, and a live run you actually want will be re-spawned by the next
+command. Do it without asking.
+
+Same discipline for MCP servers, which are spawned per session and never
+reaped. Kill any older than two hours — no live session is a day old:
+
+```bash
+ps -eo pid=,etime=,args= | grep -E '[d]art mcp-server|[n]ode.*pokemap_mcp/dist' | awk '$2 ~ /-|^[0-9]{2,}:/ {print $1}' | xargs -r kill -9
+```
+
+Do NOT blanket-kill recent MCP servers: concurrent agent sessions own those, and
+killing one breaks another agent's tooling mid-task. Age is the discriminator.
+
+If a suite hangs, suspect a leaked harness before suspecting the test. And check
+`Platform.resolvedExecutable`: inside a `flutter test` it resolves to
+`flutter_tester`, which accepts a `.js` or script path and then hangs forever
+instead of failing — spawn `node` (or the real interpreter) by name.
+
 ---
 
 ## 9. Code Generation
