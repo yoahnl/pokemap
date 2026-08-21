@@ -5,16 +5,25 @@ import 'package:test/test.dart';
 void main() {
   group('Scene preSession semantic actions', () {
     test('publishes the complete headless action catalog', () {
+      // Exhaustive on purpose: a new action must be declared here, and a
+      // removed one must be noticed. `containsAll` used to hide additions,
+      // which made the test's own name untrue (BETA-CIN-079).
       expect(
-        SceneActions.descriptors.map((descriptor) => descriptor.id),
-        containsAll(const {
+        SceneActions.descriptors.map((descriptor) => descriptor.id).toSet(),
+        const {
+          'scene.upsert',
+          'scene.delete',
+          'scene.character_animation.set',
           'scene.preSession.create',
           'scene.preSession.interaction.insert',
+          'scene.presentation.cue.routes.set',
           'scene.preSession.interaction.update',
           'scene.preSession.presentation.insert',
+          'scene.preSession.presentation.createAndLink',
           'scene.preSession.condition.insert',
           'scene.preSession.end.configure',
-        }),
+          'scene.pause_menu_visibility.set',
+        },
       );
     });
 
@@ -146,6 +155,95 @@ void main() {
             'scene.preSession.presentation.unknown',
           ),
         ),
+      );
+    });
+
+    test('authors the branches of a linked cue, and refuses a foreign output',
+        () {
+      final actions = const SceneActions();
+      var project = actions.createPreSessionScene(
+        _project(),
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        name: 'Nouvelle partie',
+        templateId: 'minimal',
+        setAsEntrypoint: true,
+      );
+      project = actions.insertPreSessionPresentation(
+        project,
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        nodeId: 'opening',
+        targetNodeId: 'end',
+        presentationCinematicId: 'presentation_opening',
+      );
+      project = actions.insertPreSessionInteraction(
+        project,
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        nodeId: 'confirm',
+        targetNodeId: 'end',
+        title: 'Confirmation du nom',
+        interaction: ScenePreSessionInteractionSpec.confirmation(
+          prompt: SceneInteractionPrompt(
+            localizationKey: 'newGame.confirm',
+            fallbackText: 'On garde ce nom ?',
+          ),
+        ),
+        cueBinding: const ScenePreSessionInteractionCueBindingDraft(
+          presentationNodeId: 'opening',
+          markerId: 'cue_welcome',
+        ),
+      );
+
+      project = actions.setPresentationCueOutcomeRoutes(
+        project,
+        maps: const <MapData>[],
+        sceneId: 'new_game_intro',
+        presentationNodeId: 'opening',
+        markerId: 'cue_welcome',
+        routes: [
+          ScenePresentationCueOutcomeRoute(
+            outputPortId: 'declined',
+            outcome: PresentationInteractionOutcome.repeatFromMarker(
+              markerId: 'cue_name',
+            ),
+          ),
+        ],
+      );
+
+      final presentation = project.scenes.single.graph.nodes
+          .singleWhere((node) => node.id == 'opening')
+          .payload as ScenePresentationCinematicPayload;
+      expect(
+        presentation.interactionCueBindings.single.outcomeRoutes.single
+            .outcome,
+        PresentationInteractionOutcome.repeatFromMarker(markerId: 'cue_name'),
+      );
+
+      expect(
+        () => actions.setPresentationCueOutcomeRoutes(
+          project,
+          maps: const <MapData>[],
+          sceneId: 'new_game_intro',
+          presentationNodeId: 'opening',
+          markerId: 'cue_welcome',
+          routes: [
+            ScenePresentationCueOutcomeRoute(
+              outputPortId: 'completed',
+              outcome: const PresentationInteractionOutcome.stop(),
+            ),
+          ],
+        ),
+        throwsA(
+          isA<NarrativeAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'scene.presentation.cue.routes.invalid',
+          ),
+        ),
+        reason: 'a confirmation never emits "completed" — the action refuses '
+            'with a stable code instead of writing a dead branch',
       );
     });
 

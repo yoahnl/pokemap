@@ -49,6 +49,11 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
     ),
     narrativeActionDescriptor(
+      'scene.presentation.cue.routes.set',
+      'Author what the Presentation does after each interaction output',
+      resourceKinds: const ['project', 'scene'],
+    ),
+    narrativeActionDescriptor(
       'scene.preSession.interaction.update',
       'Update a structured preSession interaction and its optional cue link',
       resourceKinds: const [
@@ -254,6 +259,28 @@ final class SceneActions {
           ),
           replaceCueBinding: parameters.containsKey('cueBinding'),
           cueBinding: _decodeOptionalCueBinding(parameters),
+        );
+        return _preSessionProjectDraft(
+          context,
+          projected,
+          sceneId: sceneId,
+        );
+      case 'scene.presentation.cue.routes.set':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {'sceneId', 'presentationNodeId', 'markerId', 'routes'},
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final projected = setPresentationCueOutcomeRoutes(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          presentationNodeId: narrativeStringParameter(
+            parameters,
+            'presentationNodeId',
+          ),
+          markerId: narrativeStringParameter(parameters, 'markerId'),
+          routes: _decodeCueOutcomeRoutes(parameters),
         );
         return _preSessionProjectDraft(
           context,
@@ -557,6 +584,57 @@ final class SceneActions {
       );
     }
     return projected;
+  }
+
+  /// Replaces the authored branches of one interaction cue — BETA-CIN-079.
+  ///
+  /// The cue must already be linked: routes speak about the output ports of
+  /// the bound awaitable node, and map_core validates them against it.
+  ProjectManifest setPresentationCueOutcomeRoutes(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String presentationNodeId,
+    required String markerId,
+    required List<ScenePresentationCueOutcomeRoute> routes,
+  }) {
+    final scene = project.scenes
+        .where((candidate) => candidate.id == sceneId)
+        .firstOrNull;
+    if (scene == null) {
+      throw NarrativeAuthoringException(
+        'scene.unknown',
+        'The Scene identity is unknown.',
+        details: <String, Object?>{'sceneId': sceneId},
+      );
+    }
+    try {
+      final updated = updateScenePresentationCueOutcomeRoutes(
+        scene,
+        presentationNodeId: presentationNodeId,
+        markerId: markerId,
+        routes: routes,
+      ).updatedScene;
+      return upsert(project, maps: maps, scene: updated);
+    } on ArgumentError catch (error) {
+      throw NarrativeAuthoringException(
+        'scene.presentation.cue.routes.invalid',
+        '${error.message}',
+        details: <String, Object?>{
+          'presentationNodeId': presentationNodeId,
+          'markerId': markerId,
+        },
+      );
+    } on ValidationException catch (error) {
+      throw NarrativeAuthoringException(
+        'scene.presentation.cue.routes.invalid',
+        error.message,
+        details: <String, Object?>{
+          'presentationNodeId': presentationNodeId,
+          'markerId': markerId,
+        },
+      );
+    }
   }
 
   ProjectManifest insertPreSessionInteraction(
@@ -1012,6 +1090,25 @@ final class SceneActions {
     );
     return upsert(project, maps: maps, scene: updated.updatedScene);
   }
+}
+
+List<ScenePresentationCueOutcomeRoute> _decodeCueOutcomeRoutes(
+  Map<String, Object?> parameters,
+) {
+  final raw = parameters['routes'];
+  if (raw is! List) {
+    throw ArgumentError.value(raw, 'routes', 'must be a list');
+  }
+  return <ScenePresentationCueOutcomeRoute>[
+    for (final entry in raw)
+      if (entry is Map)
+        ScenePresentationCueOutcomeRoute.fromJson(<String, dynamic>{
+          for (final pair in entry.entries)
+            if (pair.key is String) pair.key as String: pair.value,
+        })
+      else
+        throw ArgumentError.value(entry, 'routes', 'must contain objects'),
+  ];
 }
 
 ScenePreSessionInteractionCueBindingDraft? _decodeOptionalCueBinding(

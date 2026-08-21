@@ -1258,6 +1258,18 @@ updateScenePresentationInteractionCueBinding(
     'An interaction cue marker id is required.',
   );
   final normalizedAwaitableNodeId = _trimOptional(awaitableNodeId);
+  // Re-linking the same pair must keep the authored branches: only a change
+  // of target discards them, because the routes speak about that target's
+  // output ports (BETA-CIN-079).
+  final preservedRoutes = payload.interactionCueBindings
+      .where(
+        (binding) =>
+            binding.markerId == normalizedMarkerId &&
+            binding.awaitableNodeId == normalizedAwaitableNodeId,
+      )
+      .map((binding) => binding.outcomeRoutes)
+      .firstOrNull ??
+      const <ScenePresentationCueOutcomeRoute>[];
   final updatedBindings = <ScenePresentationInteractionCueBinding>[
     for (final binding in payload.interactionCueBindings)
       if (binding.markerId != normalizedMarkerId &&
@@ -1267,6 +1279,7 @@ updateScenePresentationInteractionCueBinding(
       ScenePresentationInteractionCueBinding(
         markerId: normalizedMarkerId,
         awaitableNodeId: normalizedAwaitableNodeId,
+        outcomeRoutes: preservedRoutes,
       ),
   ];
   final updatedPayload = ScenePresentationCinematicPayload(
@@ -1285,6 +1298,114 @@ updateScenePresentationInteractionCueBinding(
     updatedNode: updatedNode,
     updatedPayload: updatedPayload,
   );
+}
+
+/// Replaces the authored outcome routes of one interaction cue binding —
+/// BETA-CIN-079.
+///
+/// The binding must already exist: routes describe what the Presentation does
+/// after a given output port of the bound awaitable node, so there is nothing
+/// to author before the link exists. Ports are validated against the bound
+/// node's own outputs, and a duplicated port is refused — an output can only
+/// carry one branch.
+ScenePresentationInteractionCueBindingUpdateResult
+updateScenePresentationCueOutcomeRoutes(
+  SceneAsset scene, {
+  required String presentationNodeId,
+  required String markerId,
+  required List<ScenePresentationCueOutcomeRoute> routes,
+}) {
+  final node = _findNodeOrThrow(
+    scene,
+    presentationNodeId,
+    'presentationNodeId',
+  );
+  final payload = node.payload;
+  if (node.kind != SceneNodeKind.presentationCinematic ||
+      payload is! ScenePresentationCinematicPayload) {
+    throw ArgumentError.value(
+      presentationNodeId,
+      'presentationNodeId',
+      'Outcome routes require a Presentation node.',
+    );
+  }
+  final normalizedMarkerId = _trimRequired(
+    markerId,
+    'markerId',
+    'An interaction cue marker id is required.',
+  );
+  final existing = payload.interactionCueBindings
+      .where((binding) => binding.markerId == normalizedMarkerId)
+      .firstOrNull;
+  if (existing == null) {
+    throw ArgumentError.value(
+      markerId,
+      'markerId',
+      'This cue is not linked to an awaitable Scene node yet.',
+    );
+  }
+  final legalPorts = scenePresentationCueOutputPortIds(
+    scene,
+    existing.awaitableNodeId,
+  );
+  for (final route in routes) {
+    if (!legalPorts.contains(route.outputPortId)) {
+      throw ArgumentError.value(
+        route.outputPortId,
+        'routes',
+        'is not an output of ${existing.awaitableNodeId}',
+      );
+    }
+  }
+  final updatedBindings = <ScenePresentationInteractionCueBinding>[
+    for (final binding in payload.interactionCueBindings)
+      if (binding.markerId == normalizedMarkerId)
+        ScenePresentationInteractionCueBinding(
+          markerId: binding.markerId,
+          awaitableNodeId: binding.awaitableNodeId,
+          outcomeRoutes: routes,
+        )
+      else
+        binding,
+  ];
+  final updatedPayload = ScenePresentationCinematicPayload(
+    presentationCinematicId: payload.presentationCinematicId,
+    interactionCueBindings: updatedBindings,
+  );
+  final updatedNode = SceneNode(
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    description: node.description,
+    payload: updatedPayload,
+  );
+  return ScenePresentationInteractionCueBindingUpdateResult(
+    updatedScene: _sceneWithUpdatedNode(scene, updatedNode),
+    updatedNode: updatedNode,
+    updatedPayload: updatedPayload,
+  );
+}
+
+/// The output ports an awaitable Scene node can terminate on — the exact set
+/// a cue's routes may address (BETA-CIN-079).
+List<String> scenePresentationCueOutputPortIds(
+  SceneAsset scene,
+  String awaitableNodeId,
+) {
+  final node = scene.graph.nodes
+      .where((candidate) => candidate.id == awaitableNodeId)
+      .firstOrNull;
+  final payload = node?.payload;
+  if (payload is SceneActionPayload &&
+      payload.preSessionInteraction != null) {
+    return payload.preSessionInteraction!.outputPortIds;
+  }
+  if (payload is SceneYarnDialoguePayload) {
+    return payload.expectedOutcomes.isEmpty
+        ? const <String>['completed']
+        : payload.expectedOutcomes;
+  }
+  return const <String>[];
 }
 
 SceneNodeLayoutUpdateResult updateSceneNodeLayout(
