@@ -157,10 +157,17 @@ GameState hydrateRuntimePlayerPokemonProgression({
     party: gameState.party.copyWith(
       members: gameState.party.members.map(hydrate).toList(growable: false),
     ),
-    pokemonStorage: gameState.pokemonStorage.copyWith(
-      storedPokemon: gameState.pokemonStorage.storedPokemon
-          .map(hydrate)
-          .toList(growable: false),
+    // Hydrating through the storedPokemon bridge would collapse the canonical
+    // boxes: PokemonStorage.copyWith drops the box structure as soon as that
+    // pre-FG-022 field is set, so a Pokemon just sent to the PC survived only
+    // in the legacy projection and vanished from the committed boxes.
+    pokemonStorage: PokemonStorage(
+      boxes: <PokemonBox>[
+        for (final box in gameState.pokemonStorage.normalized().boxes)
+          box.copyWith(
+            pokemon: box.pokemon.map(hydrate).toList(growable: false),
+          ),
+      ],
     ),
   );
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
@@ -321,6 +322,77 @@ void main() {
       reason: 'The Selbrume moves catalog must cover every move its manifest '
           'and its shipped learnsets can reach',
     );
+  });
+
+  test('ITM-103 the Selbrume capture ball always catches at full HP', () async {
+    final projectRoot = p.join(_repositoryRoot().path, 'selbrume');
+    final project = ProjectManifest.fromJson(
+      jsonDecode(
+        await File(p.join(projectRoot, 'project.json')).readAsString(),
+      ) as Map<String, dynamic>,
+    );
+
+    final catchRateBySpeciesId = <String, int>{};
+    for (final file in _jsonFilesIn(projectRoot, project.pokemon.speciesDir)) {
+      final species = await _readJsonObject(file);
+      catchRateBySpeciesId[species['id']! as String] =
+          (species['progression']! as Map<String, Object?>)['catchRate']! as int;
+    }
+
+    final capturableSpeciesIds = <String>{
+      for (final table in project.encounterTables)
+        for (final entry in table.entries) entry.speciesId,
+    };
+    expect(capturableSpeciesIds, isNotEmpty);
+
+    final itemsPath = project.pokemon.catalogFiles['items'];
+    expect(itemsPath, isNotNull);
+    final itemCatalog = await _readJsonObject(
+      File(p.join(projectRoot, itemsPath!)),
+    );
+    final captureBalls = <Map<String, Object?>>[
+      for (final raw
+          in (itemCatalog['entries']! as List<Object?>)
+              .cast<Map<String, Object?>>())
+        if (raw['capture'] != null) raw,
+    ];
+    expect(captureBalls, isNotEmpty);
+
+    // Selbrume certifies a deterministic journey, so its capture ball must
+    // saturate the engine's own formula: at full HP and with no status, the
+    // draw can only succeed. The rate is not a magic number — it is whatever
+    // makes chanceNumerator reach chanceDenominator for every species the
+    // encounter tables can spawn.
+    for (final ball in captureBalls) {
+      final capture = ball['capture']! as Map<String, Object?>;
+      for (final speciesId in capturableSpeciesIds) {
+        final catchRate = catchRateBySpeciesId[speciesId];
+        expect(catchRate, isNotNull, reason: speciesId);
+        for (var seed = 1; seed <= 64; seed += 1) {
+          final attempt = const BattleCaptureFormula().attempt(
+            targetCurrentHp: 35,
+            targetMaxHp: 35,
+            catchRate: catchRate!,
+            ballId: ball['id']! as String,
+            ballRateNumerator: capture['rateNumerator']! as int,
+            ballRateDenominator: capture['rateDenominator']! as int,
+            status: BattleCaptureStatus.none,
+            rng: BattleSeededRng(state: seed),
+          );
+          expect(
+            attempt.chanceNumerator,
+            attempt.chanceDenominator,
+            reason: '${ball['id']} must saturate the capture chance for '
+                '$speciesId',
+          );
+          expect(
+            attempt.caught,
+            isTrue,
+            reason: '${ball['id']} failed to catch $speciesId on seed $seed',
+          );
+        }
+      }
+    }
   });
 
   test('ITM-103 Selbrume ships the authored product walkthrough', () async {

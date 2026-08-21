@@ -98,7 +98,7 @@
       "displayName": "Poké Ball",
       "aliases": [],
       "pocketId": "balls",
-      "description": "Attempts to capture a wild Pokémon.",
+      "description": "Always catches a wild Pokémon: this fixture certifies a deterministic journey.",
       "buyPrice": 200,
       "sellPrice": 100,
       "tags": [
@@ -106,7 +106,7 @@
       ],
       "uses": [],
       "capture": {
-        "rateNumerator": 1,
+        "rateNumerator": 765,
         "rateDenominator": 1,
         "allowedEncounterKinds": [
           "walk"
