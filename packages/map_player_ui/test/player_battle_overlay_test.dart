@@ -1030,6 +1030,74 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final size in const <Size>[
+    Size(960, 540),
+    Size(800, 480),
+    Size(700, 420),
+    Size(600, 380),
+    Size(460, 300),
+    Size(400, 280),
+  ]) {
+    testWidgets(
+        'BETA-BAT-009 keeps the four commands whole at '
+        '${size.width.toInt()}x${size.height.toInt()}', (tester) async {
+      const profile = ProjectBattlePresentationProfile(
+        commandLayout: ProjectBattleCommandLayout.radial,
+      );
+      final theme = PokeMapPlayerTheme.withBattleProfile(
+        PokeMapPlayerTheme.dark(),
+        profile,
+      );
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(),
+        onCommand: (_) {},
+        theme: theme,
+      );
+
+      // The criterion itself, not the mechanism: every command must be whole
+      // inside its panel. A radial arrangement in a dock too narrow to host a
+      // card left, right and centred pushed the bottom one past the border.
+      final panelFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget.key is ValueKey<String> &&
+            (widget.key! as ValueKey<String>)
+                .value
+                .startsWith('battle-panel-commands-'),
+      );
+      expect(panelFinder, findsOneWidget);
+      final panel = tester.getRect(panelFinder);
+      for (var index = 0; index < 4; index += 1) {
+        final entry = find.byKey(ValueKey<String>('battle-entry-$index'));
+        expect(entry, findsOneWidget, reason: 'entry $index must be mounted');
+        final rect = tester.getRect(entry);
+        expect(
+          rect.left >= panel.left - 0.5 &&
+              rect.right <= panel.right + 0.5 &&
+              rect.top >= panel.top - 0.5 &&
+              rect.bottom <= panel.bottom + 0.5,
+          isTrue,
+          reason: 'command $index leaves its panel at $size: '
+              '$rect against $panel',
+        );
+      }
+      // Where radial cannot fit, the panel must SAY it fell back: keying it
+      // by the authored layout let a grid masquerade as a radial dock.
+      final panelKey =
+          (tester.widget(panelFinder).key! as ValueKey<String>).value;
+      if (size.width < 420) {
+        expect(
+          panelKey,
+          'battle-panel-commands-grid',
+          reason: 'a narrow dock renders the grid, and names it',
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('V10 styles HUD, HP and each battle panel independently', (
     tester,
   ) async {

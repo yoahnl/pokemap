@@ -952,10 +952,29 @@ class _BattleCommandPanel extends StatelessWidget {
                         ? entryConstraints.maxWidth
                         : (entryConstraints.maxWidth - gap(PlayerSpacing.xs)) /
                             2;
-                    if (effectiveLayout == ProjectBattleCommandLayout.radial) {
+                    // Radial needs a box that can host a card left, right and
+                    // centred: in a narrow landscape dock it overflowed the
+                    // panel and clipped the bottom command. The authored layout
+                    // still wins wherever it fits; otherwise the 2x2 grid that
+                    // already works in portrait takes over.
+                    const radialMinimumWidth = 420.0;
+                    const radialMinimumHeight = 216.0;
+                    final radialFits =
+                        entryConstraints.maxWidth >= radialMinimumWidth &&
+                            (!entryConstraints.hasBoundedHeight ||
+                                entryConstraints.maxHeight >=
+                                    radialMinimumHeight);
+                    // The key names what was RENDERED, not what was authored,
+                    // so a fallback cannot masquerade as a radial dock.
+                    final renderedLayout =
+                        effectiveLayout == ProjectBattleCommandLayout.radial &&
+                                !radialFits
+                            ? ProjectBattleCommandLayout.grid
+                            : effectiveLayout;
+                    if (renderedLayout == ProjectBattleCommandLayout.radial) {
                       return _BattleRadialCommandLayout(
                         key: ValueKey<String>(
-                          'battle-panel-${data.panelKind.name}-${effectiveLayout.name}',
+                          'battle-panel-${data.panelKind.name}-${renderedLayout.name}',
                         ),
                         entries: data.commands,
                         interactionsEnabled: data.interactionsEnabled,
@@ -973,7 +992,7 @@ class _BattleCommandPanel extends StatelessWidget {
                     }
                     return Wrap(
                       key: ValueKey<String>(
-                        'battle-panel-${data.panelKind.name}-${effectiveLayout.name}',
+                        'battle-panel-${data.panelKind.name}-${renderedLayout.name}',
                       ),
                       spacing: gap(PlayerSpacing.xs),
                       runSpacing: gap(PlayerSpacing.xs),
