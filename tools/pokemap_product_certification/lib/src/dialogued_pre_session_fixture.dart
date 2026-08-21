@@ -42,9 +42,7 @@ final class DialoguedPreSessionFixture {
   static const String nameNodeId = 'ask_name';
   static const String confirmNodeId = 'confirm_name';
   static const String closingNodeId = 'offer_closing';
-  static const String guardNodeId = 'has_name';
   static const String endNodeId = 'end';
-  static const String missingNameEndNodeId = 'end_missing_name';
 
   static const String markerTrackId = 'markers';
   static const String pagesMarkerId = 'cue_pages';
@@ -73,7 +71,6 @@ final class DialoguedPreSessionFixture {
   static const Set<String> requiredSceneCapabilities = <String>{
     SceneExecutionCapabilityIds.flowStart,
     SceneExecutionCapabilityIds.flowEnd,
-    SceneExecutionCapabilityIds.draftLocalCondition,
     SceneExecutionCapabilityIds.presentationCinematic,
     SceneExecutionCapabilityIds.inputMessage,
     SceneExecutionCapabilityIds.inputChoice,
@@ -96,9 +93,17 @@ final class DialoguedPreSessionFixture {
   /// follows it. Inserting them all before `end` cannot work: a choice has one
   /// output port per option and a confirmation has two, so the first
   /// multi-port node gives its successor several incoming edges and every
-  /// later insert is refused as ambiguous. The condition lands early for the
-  /// same reason — once a confirmation sits in front of `end`, nothing can be
-  /// inserted there any more.
+  /// later insert is refused as ambiguous.
+  ///
+  /// There is deliberately NO draft guard here. BETA-CIN-083's scope lists the
+  /// pages, the avatar choice, the negative confirmation, the name input, the
+  /// interpolation, the autonomous montage and the world handoff — not a
+  /// condition — and `scene.preSession.condition.insert` produces a project no
+  /// analysis layer understands: the solvability solver cannot prove a
+  /// `newGameDraft` condition and the reference index reports its sourceId as
+  /// a legacy external reference, so the export refuses the package. That is a
+  /// real defect recorded as its own debt rather than smuggled into this
+  /// ticket, and the text input's minGraphemes already refuses an empty name.
   List<DialoguedPreSessionAuthoringStep> get steps =>
       <DialoguedPreSessionAuthoringStep>[
         const DialoguedPreSessionAuthoringStep(
@@ -124,17 +129,6 @@ final class DialoguedPreSessionFixture {
             'targetIndex': 0,
           },
         ),
-        const DialoguedPreSessionAuthoringStep(
-          actionId: 'scene.preSession.condition.insert',
-          parameters: <String, Object?>{
-            'sceneId': sceneId,
-            'nodeId': guardNodeId,
-            'targetNodeId': endNodeId,
-            'falseEndNodeId': missingNameEndNodeId,
-            'draftField': 'playerName',
-            'operator': 'isTrue',
-          },
-        ),
         // The markers exist before anything binds to them, because a cue
         // binding names a marker and the action refuses an unknown one. They
         // start OPTIONAL: a required cue with nothing bound to it is an
@@ -151,7 +145,7 @@ final class DialoguedPreSessionFixture {
           nodeId: closingNodeId,
           title: 'Proposer le montage final',
           markerId: closingMarkerId,
-          targetNodeId: guardNodeId,
+          targetNodeId: endNodeId,
           interaction: ScenePreSessionInteractionSpec.confirmation(
             prompt: SceneInteractionPrompt(
               localizationKey: 'nightWatch.closing.prompt',
