@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import 'presentation_frame_renderer.dart';
 import 'runtime_presentation_frame_surface.dart';
 import 'runtime_presentation_session_runtime.dart';
 import 'runtime_presentation_surface_controller.dart';
@@ -16,6 +17,46 @@ enum PresentationPreviewStatus {
   failed,
 }
 
+/// What a preview surface is allowed to know about a running journey.
+///
+/// The Studio talks to this and never to the runtime controller directly, so
+/// the surface can be driven by a scripted double in a widget test while the
+/// real journey keeps its own end-to-end parity proof.
+abstract interface class PresentationPreviewController implements Listenable {
+  PresentationPreviewStatus get status;
+
+  SceneInteractionRequest? get pendingRequest;
+
+  NewGameDraft? get resultDraft;
+
+  Object? get failure;
+
+  bool get isRunning;
+
+  ValueListenable<RuntimePresentationFrameSnapshot?> get frames;
+
+  PresentationFrameContentPort get contentPort;
+
+  PresentationFrameOrientation get orientation;
+
+  void setOrientation(PresentationFrameOrientation value);
+
+  Future<void> run({
+    required ProjectManifest project,
+    required String projectRootDirectory,
+    required String projectRevision,
+    required String sceneId,
+    required NewGameDraft sample,
+    required String runId,
+  });
+
+  SceneInteractionResolution resolve(SceneInteractionResult result);
+
+  Future<void> cancel();
+
+  Future<void> close();
+}
+
 /// One authored Presentation journey, executed for an author instead of a
 /// player — BETA-CIN-080.
 ///
@@ -24,14 +65,15 @@ enum PresentationPreviewStatus {
 /// player's own: this class only owns the wiring and the lifetime, so a Studio
 /// preview cannot drift from the installed runtime. The sample draft lives in
 /// memory and is never persisted.
-final class PresentationPreviewSession extends ChangeNotifier {
+final class PresentationPreviewSession extends ChangeNotifier
+    implements PresentationPreviewController {
   PresentationPreviewSession({
     required this.runtimeSourceId,
     required ProjectMediaCatalog catalog,
     required Map<String, Uri> mediaUris,
     required PresentationMediaTargetPlatform targetPlatform,
-    required RuntimeAudioMixer audioMixer,
     required bool reducedMotion,
+    RuntimeAudioMixer? audioMixer,
     RuntimePresentationVideoPlaybackDriver? videoDriver,
     RuntimePresentationFrameDeltas? frameDeltas,
   }) : _runtime = RuntimePresentationSessionRuntime(
@@ -39,7 +81,7 @@ final class PresentationPreviewSession extends ChangeNotifier {
           catalog: catalog,
           mediaUris: mediaUris,
           targetPlatform: targetPlatform,
-          audioMixer: audioMixer,
+          audioMixer: audioMixer ?? RuntimeAudioMixer(),
           reducedMotion: reducedMotion,
           videoDriver: videoDriver,
           frameDeltas: frameDeltas,
@@ -58,28 +100,46 @@ final class PresentationPreviewSession extends ChangeNotifier {
   NewGameDraft? _resultDraft;
   Object? _failure;
 
+  @override
   PresentationPreviewStatus get status => _status;
 
   /// The interaction the journey is waiting on, rendered by the player's own
   /// surface rather than a Studio replica.
+  @override
   SceneInteractionRequest? get pendingRequest => _pendingRequest;
 
   /// The draft the journey produced — what the authored Scene actually wrote.
+  @override
   NewGameDraft? get resultDraft => _resultDraft;
 
+  @override
   Object? get failure => _failure;
 
   /// Frames, published by the same controller the player renders.
+  @override
   ValueListenable<RuntimePresentationFrameSnapshot?> get frames =>
       _runtime.controller;
 
   RuntimePresentationSurfaceController get controller => _runtime.controller;
 
+  @override
+  PresentationFrameContentPort get contentPort => _runtime.controller;
+
+  @override
+  PresentationFrameOrientation get orientation =>
+      _runtime.controller.orientation;
+
+  @override
+  void setOrientation(PresentationFrameOrientation value) =>
+      _runtime.controller.setOrientation(value);
+
+  @override
   bool get isRunning => _status == PresentationPreviewStatus.running;
 
   /// Runs [sceneId] once. A second call supersedes the first: the previous
   /// generation can no longer publish, which is what makes a late callback,
   /// a route change or a project reload safe.
+  @override
   Future<void> run({
     required ProjectManifest project,
     required String projectRootDirectory,
@@ -138,6 +198,7 @@ final class PresentationPreviewSession extends ChangeNotifier {
 
   /// Answers the pending interaction through the port the player uses, so
   /// validation, staleness and terminal rules are the runtime's.
+  @override
   SceneInteractionResolution resolve(SceneInteractionResult result) {
     final interactions = _interactions;
     if (interactions == null) {
@@ -158,6 +219,7 @@ final class PresentationPreviewSession extends ChangeNotifier {
   /// The returned future completes once the presentation player has actually
   /// stopped. Starting a new run before that point races the teardown and the
   /// next playback fails, so [run] awaits this.
+  @override
   Future<void> cancel() async {
     if (_status != PresentationPreviewStatus.running) {
       _releaseInteractions();
@@ -188,6 +250,7 @@ final class PresentationPreviewSession extends ChangeNotifier {
 
   /// Closes the session for good: no timer, decoder, audio handle or frame
   /// survives it.
+  @override
   Future<void> close() async {
     if (_closed) return;
     _closed = true;

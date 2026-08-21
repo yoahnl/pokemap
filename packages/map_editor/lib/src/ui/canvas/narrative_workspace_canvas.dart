@@ -47,6 +47,7 @@ import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
 import 'cinematics/presentation/presentation_studio_add_panel.dart';
 import 'cinematics/presentation/presentation_studio_diagnostic.dart';
+import 'cinematics/presentation/presentation_studio_journey_preview.dart';
 import 'cinematics/presentation/presentation_studio_shell.dart';
 import 'cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'cinematics/presentation/presentation_studio_properties_panel.dart';
@@ -2869,6 +2870,49 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _presentationProjectContentController;
   PresentationStudioDiagnostic? _presentationDiagnostic;
   VoidCallback? _presentationDiagnosticAction;
+  var _presentationJourneyPreviewOpen = false;
+
+  /// Plays the authored journey inside the Studio through the player's own
+  /// runner — BETA-CIN-080. The Editor holds no project revision, so the
+  /// preview labels its own draft; the frames and outcomes come from the
+  /// shared composition either way.
+  Widget _buildPresentationJourneyPreview(
+    PresentationCinematicAsset asset,
+  ) {
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath?.trim();
+    if (project == null ||
+        projectRootPath == null ||
+        projectRootPath.isEmpty) {
+      return const Center(
+        key: ValueKey('presentation-journey-preview-unavailable'),
+        child: Text('Ouvrez un projet pour prévisualiser le parcours.'),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: PresentationStudioJourneyPreview(
+        asset: asset,
+        project: project,
+        projectRootDirectory: projectRootPath,
+        projectRevision: 'studio-preview',
+        createSession: ({
+          required ProjectMediaCatalog catalog,
+          required Map<String, Uri> mediaUris,
+          required bool reducedMotion,
+        }) =>
+            PresentationPreviewSession(
+          runtimeSourceId: 'studio-preview:${asset.id}',
+          catalog: catalog,
+          mediaUris: mediaUris,
+          targetPlatform: currentPresentationMediaTargetPlatform(),
+          reducedMotion: reducedMotion,
+        ),
+        onClose: () =>
+            setState(() => _presentationJourneyPreviewOpen = false),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -3178,10 +3222,30 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
             await _presentationDocumentController.discard();
           },
           onSave: _presentationDocumentController.save,
-          previewToolbar: PresentationStudioResponsiveToolbar(
-            controller: _presentationResponsiveCanvasController,
+          previewToolbar: Row(
+            children: <Widget>[
+              Expanded(
+                child: PresentationStudioResponsiveToolbar(
+                  controller: _presentationResponsiveCanvasController,
+                ),
+              ),
+              PokeMapButton(
+                key: const ValueKey('presentation-journey-preview-toggle'),
+                onPressed: () => setState(
+                  () => _presentationJourneyPreviewOpen =
+                      !_presentationJourneyPreviewOpen,
+                ),
+                child: Text(
+                  _presentationJourneyPreviewOpen
+                      ? 'Revenir au montage'
+                      : 'Jouer le parcours',
+                ),
+              ),
+            ],
           ),
-          canvas: presentationCanvas,
+          canvas: _presentationJourneyPreviewOpen
+              ? _buildPresentationJourneyPreview(resolvedAsset)
+              : presentationCanvas,
           layersPanel: PresentationStudioLayerTree(
             asset: resolvedAsset,
             playheadUs: _presentationResponsiveCanvasController.playheadUs,

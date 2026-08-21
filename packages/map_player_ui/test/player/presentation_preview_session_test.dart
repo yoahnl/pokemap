@@ -116,7 +116,13 @@ Le train entre en gare.
 
       expect(
         run.requestKinds,
-        const <String>['text', 'confirmation', 'text', 'confirmation'],
+        const <String>[
+          'text',
+          'confirmation',
+          'text',
+          'confirmation',
+          'choice',
+        ],
         reason: 'the refused confirmation replays the name entry from its own '
             'marker: the negative branch and the resume are executed, not '
             'simulated',
@@ -285,19 +291,30 @@ Le train entre en gare.
       if (request == null) return;
       if (!answered.add('${request.requestId}:${request.revision}')) return;
       scheduleMicrotask(() {
-        session.resolve(
-          request.kind == SceneInteractionRequestKind.text
-              ? SceneInteractionResult.textSubmitted(
-                  requestId: request.requestId,
-                  revision: request.revision,
-                  value: 'Nouvelle',
-                )
-              : SceneInteractionResult.confirmed(
-                  requestId: request.requestId,
-                  revision: request.revision,
-                  value: true,
-                ),
-        );
+        session.resolve(switch (request.kind) {
+          SceneInteractionRequestKind.text =>
+            SceneInteractionResult.textSubmitted(
+              requestId: request.requestId,
+              revision: request.revision,
+              value: 'Nouvelle',
+            ),
+          SceneInteractionRequestKind.confirmation =>
+            SceneInteractionResult.confirmed(
+              requestId: request.requestId,
+              revision: request.revision,
+              value: true,
+            ),
+          SceneInteractionRequestKind.choice =>
+            SceneInteractionResult.choiceSelected(
+              requestId: request.requestId,
+              revision: request.revision,
+              selectedOptionId: 'vif',
+            ),
+          _ => SceneInteractionResult.acknowledged(
+              requestId: request.requestId,
+              revision: request.revision,
+            ),
+        });
       });
     }
 
@@ -442,6 +459,12 @@ Future<_PreviewRun> _answer(
             revision: request.revision,
             value: answers[answerIndex++],
           ),
+        SceneInteractionRequestKind.choice =>
+          SceneInteractionResult.choiceSelected(
+            requestId: request.requestId,
+            revision: request.revision,
+            selectedOptionId: 'vif',
+          ),
         _ => SceneInteractionResult.acknowledged(
             requestId: request.requestId,
             revision: request.revision,
@@ -563,6 +586,12 @@ Future<_PreviewRun> _runThroughRuntimeComposition({
             revision: request.revision,
             value: answers[answerIndex++],
           ),
+        SceneInteractionRequestKind.choice =>
+          SceneInteractionResult.choiceSelected(
+            requestId: request.requestId,
+            revision: request.revision,
+            selectedOptionId: 'vif',
+          ),
         _ => SceneInteractionResult.acknowledged(
             requestId: request.requestId,
             revision: request.revision,
@@ -663,6 +692,12 @@ ProjectManifest _manifest() => ProjectManifest(
                   label: 'Confirmer le nom',
                   markerKind: PresentationMarkerKind.interactionCue,
                 ),
+                PresentationMarkerClip(
+                  id: 'cue_tone',
+                  startUs: 800000,
+                  label: 'Choisir le ton',
+                  markerKind: PresentationMarkerKind.interactionCue,
+                ),
               ],
             ),
           ],
@@ -693,6 +728,10 @@ SceneAsset _scene() => SceneAsset(
                 ScenePresentationInteractionCueBinding(
                   markerId: 'cue_name',
                   awaitableNodeId: 'ask_name',
+                ),
+                ScenePresentationInteractionCueBinding(
+                  markerId: 'cue_tone',
+                  awaitableNodeId: 'choose_tone',
                 ),
                 ScenePresentationInteractionCueBinding(
                   markerId: 'cue_confirm',
@@ -733,6 +772,34 @@ SceneAsset _scene() => SceneAsset(
                   localizationKey: 'newGame.confirm',
                   fallbackText: 'On garde {{draft.playerName}} ?',
                 ),
+              ),
+            ),
+          ),
+          SceneNode(
+            id: 'choose_tone',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.preSessionInteraction(
+              ScenePreSessionInteractionSpec.choice(
+                prompt: SceneInteractionPrompt(
+                  localizationKey: 'newGame.tone',
+                  fallbackText: 'Quel ton pour {{draft.playerName}} ?',
+                ),
+                options: <SceneInteractionOption>[
+                  SceneInteractionOption(
+                    id: 'calme',
+                    label: SceneInteractionPrompt(
+                      localizationKey: 'newGame.tone.calm',
+                      fallbackText: 'Calme',
+                    ),
+                  ),
+                  SceneInteractionOption(
+                    id: 'vif',
+                    label: SceneInteractionPrompt(
+                      localizationKey: 'newGame.tone.lively',
+                      fallbackText: 'Vif',
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
