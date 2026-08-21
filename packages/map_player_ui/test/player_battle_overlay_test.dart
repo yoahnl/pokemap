@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -1266,6 +1267,96 @@ void main() {
     expect(semantics.hint, contains('PP 0/30'));
   });
 
+  group('BETA-BAT-009 every root command states why it is unavailable', () {
+    const reasons = <int, ({String label, String reason})>{
+      0: (label: 'ATTAQUER', reason: 'Plus aucune capacité utilisable'),
+      1: (label: 'SAC', reason: 'Le Sac est verrouillé en combat de dresseur'),
+      2: (label: 'ÉQUIPE', reason: 'Aucun autre Pokémon en état de combattre'),
+      3: (label: 'FUITE', reason: 'Impossible de fuir un combat de dresseur'),
+    };
+
+    List<BattleCommandOverlayEntry> disabledRoots({bool withReason = true}) =>
+        <BattleCommandOverlayEntry>[
+          for (final entry in reasons.entries)
+            BattleCommandOverlayEntry(
+              index: entry.key,
+              kind: BattleCommandOverlayEntryKind.root,
+              primaryLabel: entry.value.label,
+              secondaryLabel: 'Indisponible',
+              statusLabel: withReason ? entry.value.reason : null,
+              enabled: false,
+              selected: entry.key == 0,
+              tone: BattleCommandOverlayEntryTone.neutral,
+            ),
+        ];
+
+    testWidgets('each of the four exposes its own reason and refuses the tap',
+        (tester) async {
+      var commandCount = 0;
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(entries: disabledRoots()),
+        onCommand: (_) => commandCount += 1,
+      );
+
+      for (final entry in reasons.entries) {
+        final finder = find.byKey(
+          ValueKey<String>('battle-entry-${entry.key}'),
+        );
+        expect(finder, findsOneWidget, reason: entry.value.label);
+        final semantics = tester.getSemantics(finder);
+        expect(semantics.label, contains(entry.value.label));
+        expect(
+          semantics.hasFlag(SemanticsFlag.hasEnabledState),
+          isTrue,
+          reason: '${entry.value.label} must declare that it has an enabled '
+              'state at all',
+        );
+        expect(
+          semantics.hasFlag(SemanticsFlag.isEnabled),
+          isFalse,
+          reason: 'a screen reader must not announce ${entry.value.label} as '
+              'usable while the runtime refuses it',
+        );
+        expect(
+          semantics.hint,
+          contains(entry.value.reason),
+          reason: '${entry.value.label} must say why it cannot be used, not '
+              'just look greyed out',
+        );
+        await tester.tap(finder, warnIfMissed: false);
+        await tester.pump();
+      }
+
+      expect(
+        commandCount,
+        0,
+        reason: 'a disabled root command never reaches the runtime',
+      );
+    });
+
+    testWidgets('a root command without an authored reason still says so',
+        (tester) async {
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(entries: disabledRoots(withReason: false)),
+        onCommand: (_) {},
+      );
+
+      for (final entry in reasons.entries) {
+        final semantics = tester.getSemantics(
+          find.byKey(ValueKey<String>('battle-entry-${entry.key}')),
+        );
+        expect(
+          semantics.hint.trim(),
+          isNotEmpty,
+          reason: '${entry.value.label} falls back to the generic '
+              'unavailable wording rather than an empty hint',
+        );
+      }
+    });
+  });
+
   testWidgets('forced replacement has no dismiss action and survives scaling',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(320, 568));
@@ -1619,6 +1710,7 @@ BattleCommandOverlaySnapshot _rootSnapshot({
   Rect? enemyHudRect,
   Rect? playerHudRect,
   List<String> narrationLines = const <String>[],
+  List<BattleCommandOverlayEntry>? entries,
 }) {
   final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
   return BattleCommandOverlaySnapshot(
@@ -1644,7 +1736,7 @@ BattleCommandOverlaySnapshot _rootSnapshot({
     title: 'COMMANDES',
     prompt: 'Choisissez une action.',
     narrationLines: narrationLines,
-    entries: const <BattleCommandOverlayEntry>[
+    entries: entries ?? const <BattleCommandOverlayEntry>[
       BattleCommandOverlayEntry(
         index: 0,
         kind: BattleCommandOverlayEntryKind.root,
