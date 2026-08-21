@@ -276,17 +276,26 @@ final class RuntimeStartupCoordinator {
     required RuntimePlayerCommand command,
   }) async {
     _ensureOpen();
+    final launchesSession = command.action == RuntimePlayerAction.newGame ||
+        command.action == RuntimePlayerAction.continueGame ||
+        command.action == RuntimePlayerAction.load;
+    // Only a launch is title-menu-only. A pre-session interaction is answered
+    // while its own launch is still in flight, so the shell must forward
+    // non-launching actions during launchingSession too, exactly as
+    // _requestBack already does; the player coordinator stays the authority on
+    // whether the action is enabled.
+    final phaseAcceptsCommand =
+        _snapshot.phase == RuntimeStartupPhase.titleMenu ||
+            (!launchesSession &&
+                _snapshot.phase == RuntimeStartupPhase.launchingSession);
     if (startupSnapshotRevision != _snapshot.revision ||
-        _snapshot.phase != RuntimeStartupPhase.titleMenu ||
+        !phaseAcceptsCommand ||
         !_snapshot.isLifecycleActive) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
         safeMessage: 'Le menu titre a changé avant l’arrivée de cette action.',
       );
     }
-    final launchesSession = command.action == RuntimePlayerAction.newGame ||
-        command.action == RuntimePlayerAction.continueGame ||
-        command.action == RuntimePlayerAction.load;
     if (!launchesSession) {
       return _player.dispatch(command);
     }

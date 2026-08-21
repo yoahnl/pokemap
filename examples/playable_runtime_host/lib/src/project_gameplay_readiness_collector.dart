@@ -102,8 +102,26 @@ List<ProjectGameplayReadinessEvidence> _inspectProject(
   final hasStartState = project.newGame.enabled &&
       project.newGame.startMapId.trim().isNotEmpty &&
       mapIds.contains(project.newGame.startMapId);
-  final hasStarter = project.newGame.starterOptions.isNotEmpty &&
-      (project.newGame.preSessionSceneId?.trim().isNotEmpty ?? false);
+  final starterOptionIds =
+      project.newGame.starterOptions.map((option) => option.id).toSet();
+  // A project selects its starter either before the session, through the
+  // New Game pre-session entrypoint, or in the world, through a Scene that
+  // grants an authored option. BETA-CIN-082's rename of
+  // starterSelectionSceneId to preSessionSceneId narrowed this check to the
+  // first design only, which silently declared every in-world starter
+  // unplayable.
+  final hasStarterGrantingScene = project.scenes.any(
+    (scene) => scene.graph.nodes.any((node) {
+      final payload = node.payload;
+      if (payload is! SceneActionPayload) return false;
+      final consequence = payload.consequence;
+      return consequence is SceneGiveConfiguredStarterConsequence &&
+          starterOptionIds.contains(consequence.starterOptionId);
+    }),
+  );
+  final hasStarter = starterOptionIds.isNotEmpty &&
+      ((project.newGame.preSessionSceneId?.trim().isNotEmpty ?? false) ||
+          hasStarterGrantingScene);
   final hasPlayablePartyPath =
       hasStarter || project.newGame.initialParty.isNotEmpty;
   final hasEncounterTables = project.encounterTables.isNotEmpty;
@@ -136,7 +154,8 @@ List<ProjectGameplayReadinessEvidence> _inspectProject(
     ),
     ProjectGameplayReadinessCheck.starterConfiguration: (
       passed: hasStarter,
-      detail: 'Starter options and their selection Scene are authored.',
+      detail: 'Starter options and the Scene or pre-session entrypoint that '
+          'selects one are authored.',
     ),
     ProjectGameplayReadinessCheck.playablePartyPath: (
       passed: hasPlayablePartyPath && project.maps.length >= 3,

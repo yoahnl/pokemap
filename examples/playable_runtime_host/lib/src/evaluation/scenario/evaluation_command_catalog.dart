@@ -161,6 +161,19 @@ const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
     operation: 'party.setLead',
     requiredKeys: <String>{'partyIndex'},
   ),
+  // The bag probes write the bag directly, so they are diagnostic probes and
+  // never an explicit player action. BETA-ITM-030 and BETA-ITM-031 added them
+  // to the dispatcher without declaring them here.
+  'bag.give': EvaluationCommandDefinition(
+    operation: 'bag.give',
+    requiredKeys: <String>{'itemId', 'quantity'},
+    probeOnly: true,
+  ),
+  'bag.consume': EvaluationCommandDefinition(
+    operation: 'bag.consume',
+    requiredKeys: <String>{'itemId', 'quantity'},
+    probeOnly: true,
+  ),
   'bag.use': EvaluationCommandDefinition(
     operation: 'bag.use',
     requiredKeys: <String>{'itemId', 'partyIndex'},

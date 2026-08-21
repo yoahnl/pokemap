@@ -1084,6 +1084,80 @@ void main() {
     expect(launch.status, RuntimePlayerCommandStatus.accepted);
   });
 
+  test(
+    'the startup shell answers a pre-session and refuses a second launch',
+    () async {
+      final harness = _RuntimeStartupTestHarness(
+        profile: _presentationWithIntroAndMusic(includeIntro: false),
+        preSessionRunner: _NamePreSessionRunner(),
+      );
+      addTearDown(harness.dispose);
+      harness.startup.start();
+      harness.clock.elapseMinimum();
+      await _flushEvents();
+      await harness.startup.dispatch(
+        RuntimeStartupCommand(
+          action: RuntimeStartupAction.pressStart,
+          snapshotRevision: harness.startup.snapshot.revision,
+        ),
+      );
+
+      final launchFuture = harness.startup.dispatchPlayerCommand(
+        startupSnapshotRevision: harness.startup.snapshot.revision,
+        command: RuntimePlayerCommand(
+          action: RuntimePlayerAction.newGame,
+          snapshotRevision: harness.player.coordinator.snapshot.revision,
+          payload: const RuntimePlayerLoadSlot(
+            profileId: 'player',
+            slotId: 'slot_1',
+          ),
+        ),
+      );
+      await _waitForPreSessionRequest(harness.player.coordinator);
+      expect(
+        harness.startup.snapshot.phase,
+        RuntimeStartupPhase.launchingSession,
+      );
+
+      // A launch is title-menu-only: the shell must not start a second session
+      // while the first one is still waiting on its pre-session.
+      final secondLaunch = await harness.startup.dispatchPlayerCommand(
+        startupSnapshotRevision: harness.startup.snapshot.revision,
+        command: RuntimePlayerCommand(
+          action: RuntimePlayerAction.newGame,
+          snapshotRevision: harness.player.coordinator.snapshot.revision,
+          payload: const RuntimePlayerLoadSlot(
+            profileId: 'player',
+            slotId: 'slot_2',
+          ),
+        ),
+      );
+      expect(secondLaunch.status, RuntimePlayerCommandStatus.stale);
+
+      // The pre-session answer, by contrast, must reach the player coordinator
+      // through the very same shell seam the player uses.
+      final playerSnapshot = harness.player.coordinator.snapshot;
+      final request = playerSnapshot.preSessionRequest!;
+      final resolution = await harness.startup.dispatchPlayerCommand(
+        startupSnapshotRevision: harness.startup.snapshot.revision,
+        command: RuntimePlayerCommand(
+          action: RuntimePlayerAction.resolvePreSessionInteraction,
+          snapshotRevision: playerSnapshot.revision,
+          payload: SceneInteractionResult.textSubmitted(
+            requestId: request.requestId,
+            revision: request.revision,
+            value: 'Yoahn',
+          ),
+        ),
+      );
+      expect(resolution.status, RuntimePlayerCommandStatus.accepted);
+
+      final launch = await launchFuture;
+      expect(launch.status, RuntimePlayerCommandStatus.accepted);
+      expect(harness.player.source.requests, hasLength(1));
+    },
+  );
+
   test('returning from a session re-enters the runtime title menu', () async {
     final harness = _RuntimeStartupTestHarness(
       profile: _presentationWithIntroAndMusic(includeIntro: false),
