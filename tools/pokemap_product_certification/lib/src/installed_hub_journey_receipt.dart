@@ -206,10 +206,13 @@ Map<String, Map<String, Object?>> _validatePaths(Object? value) {
       record['interactions'],
       '$where.interactions',
     );
-    if (interactions.isEmpty) {
+    final outcome = _nonEmptyString(record['outcome'], '$where.outcome');
+    // A path that answered nothing did not exercise the dialogue — unless it
+    // failed before the first cue could open, which is what an error path is.
+    if (interactions.isEmpty && outcome != 'failed') {
       throw FormatException(
         '$where.interactions must record at least one interaction: a path '
-        'that answered nothing did not exercise the dialogue.',
+        'that answered nothing and did not fail exercised no dialogue.',
       );
     }
     final residual = _map(record['residual'], '$where.residual');
@@ -220,7 +223,7 @@ Map<String, Map<String, Object?>> _validatePaths(Object? value) {
     );
 
     result[path] = <String, Object?>{
-      'outcome': _nonEmptyString(record['outcome'], '$where.outcome'),
+      'outcome': outcome,
       'terminalCommits': _nonNegativeInteger(
         record['terminalCommits'],
         '$where.terminalCommits',

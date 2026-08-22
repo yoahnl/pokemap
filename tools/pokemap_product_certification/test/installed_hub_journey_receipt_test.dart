@@ -59,7 +59,24 @@ void main() {
       });
     }
 
-    test('a path that answered nothing is refused', () {
+    test('a FAILED path may legitimately have answered nothing', () {
+      // An error that lands before the first cue can open never gets to
+      // answer anything, so requiring an interaction of it would require the
+      // impossible. Only a path that did not fail must have exercised the
+      // dialogue.
+      final measurements = _measurements(noInteractions: true);
+      for (final entry
+          in (measurements['paths']! as Map<String, Object?>).entries) {
+        (entry.value! as Map<String, Object?>)['outcome'] = 'failed';
+      }
+      final receipt = InstalledHubJourneyReceipt.fromMeasurements(
+        measurements: measurements,
+        provenance: _provenance(),
+      );
+      expect(receipt.passed, isTrue);
+    });
+
+    test('a path that answered nothing and did not fail is refused', () {
       expect(
         () => InstalledHubJourneyReceipt.fromMeasurements(
           measurements: _measurements(noInteractions: true),
@@ -69,7 +86,7 @@ void main() {
           isA<FormatException>().having(
             (error) => error.message,
             'message',
-            contains('did not exercise the dialogue'),
+            contains('exercised no dialogue'),
           ),
         ),
       );
