@@ -7,6 +7,19 @@
       "runtimeArgs": ["run", "-d", "macos", "--target", "lib/main.dart"],
       "cwd": "packages/map_editor",
       "port": 0
+    },
+    {
+      "name": "pokemap_hub",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": [
+        "run",
+        "-d",
+        "macos",
+        "--target",
+        "dev/marionette_main.dart"
+      ],
+      "cwd": "apps/pokemap_hub",
+      "port": 0
     }
   ]
 }
