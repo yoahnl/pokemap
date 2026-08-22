@@ -6,6 +6,7 @@ import '../diagnostics/scene_diagnostics.dart';
 import '../diagnostics/storyline_scene_link_diagnostics.dart';
 import '../diagnostics/world_rule_diagnostics.dart';
 import '../compatibility/narrative_legacy_migration_scan.dart';
+import 'presentation_text_reference_audit.dart';
 import '../models/enums.dart';
 import '../models/save_data.dart';
 import '../models/map_data.dart';
@@ -259,6 +260,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
 
   _appendLegacyNarrativeDiagnostics(project, maps, diagnostics);
   _appendSceneDiagnostics(project, diagnostics);
+  _appendPresentationTextReferenceDiagnostics(project, diagnostics);
   _appendSceneBattleReadinessDiagnostics(
     project,
     diagnostics,
@@ -320,6 +322,61 @@ NarrativeProjectValidationReport validateNarrativeProject(
 /// NSC-55 deliberately proves only narrative retry availability. Physical
 /// access to the retry source is a separate map_gameplay dimension and is
 /// correlated later by NSC-57.
+/// Les références d'interpolation d'un texte vu par le joueur, avant l'export.
+///
+/// L'interpolateur de BETA-CIN-071 laisse littérale toute référence qu'il ne
+/// reconnaît pas, exprès, pour que l'auteur voie son erreur plutôt qu'un nom
+/// vide. Mais rien ne lisait ce texte avant la certification : la fixture Night
+/// Watch a été packagée, certifiée, installée et jouée avec
+/// `{draft.playerName}` affiché brut dans une confirmation. L'erreur était donc
+/// révélée au joueur, pas à l'auteur.
+///
+/// Portée réelle : les invites et libellés d'options portés par le MANIFESTE.
+/// Les lignes de dialogue vivent dans des fichiers séparés (`relativePath`) et
+/// les légendes de Presentation ne portent qu'un `captionId` résolu ailleurs :
+/// ni les unes ni les autres ne sont couvertes ici. Le trou est réduit, pas
+/// fermé.
+void _appendPresentationTextReferenceDiagnostics(
+  ProjectManifest project,
+  List<NarrativeProjectDiagnostic> target,
+) {
+  void audit(String? text, String path, String sceneId) {
+    if (text == null || text.isEmpty) return;
+    for (final issue in auditPresentationTextReferences(text)) {
+      target.add(
+        NarrativeProjectDiagnostic(
+          code: 'presentationTextReferenceUnresolvable',
+          severity: NarrativeProjectDiagnosticSeverity.error,
+          domain: NarrativeProjectDiagnosticDomain.scene,
+          message: issue.message,
+          path: path,
+          destination: NarrativeProjectDiagnosticDestination.scene,
+          suggestedFixLabel: 'Corriger la référence dans le texte authoré.',
+          sceneId: sceneId,
+        ),
+      );
+    }
+  }
+
+  for (final scene in project.scenes) {
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneActionPayload) continue;
+      final interaction = payload.preSessionInteraction;
+      if (interaction == null) continue;
+      final base = 'scenes.${scene.id}.nodes.${node.id}.preSessionInteraction';
+      audit(interaction.prompt.fallbackText, '$base.prompt', scene.id);
+      for (var index = 0; index < interaction.options.length; index++) {
+        audit(
+          interaction.options[index].label.fallbackText,
+          '$base.options[$index].label',
+          scene.id,
+        );
+      }
+    }
+  }
+}
+
 void _appendSceneOutcomePolicyDiagnostics(
   ProjectManifest project,
   NarrativeSymbolicReachabilityReport symbolicReachability,

@@ -6,6 +6,9 @@ const _eventB = 'evt_019abcde-4000-7000-8000-000000000072';
 const _eventC = 'evt_019abcde-4000-7000-8000-000000000073';
 
 void main() {
+  group('interpolation references in authored player text',
+      _presentationTextReferenceTests);
+
   group('Narrative project validator', () {
     test('aggregates a playable project and exposes its map Event view', () {
       final fixture = _fixture();
@@ -1061,6 +1064,131 @@ void main() {
       expect(diagnostic.severity, NarrativeProjectDiagnosticSeverity.warning);
       expect(report.byCode('oneShotRetryableOutcomeSoftlock'), isEmpty);
     });
+  });
+}
+
+
+/// BETA-CIN-086 — un placeholder malformé ne doit plus atteindre un joueur.
+///
+/// L'interpolateur laisse littérale toute référence qu'il ne reconnaît pas,
+/// exprès. Mais rien ne relisait ce texte avant la certification, et la fixture
+/// Night Watch a été packagée, certifiée, installée et jouée avec
+/// `{draft.playerName}` affiché brut. Le Validator regarde maintenant.
+void _presentationTextReferenceTests() {
+  SceneAsset sceneWithPrompt(String fallbackText) => SceneAsset(
+        id: 'presession',
+        name: 'Pre-session',
+        executionProfile: SceneExecutionProfile.preSession,
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: <SceneNode>[
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'confirm',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload(
+                preSessionInteraction:
+                    ScenePreSessionInteractionSpec.confirmation(
+                  prompt: SceneInteractionPrompt(
+                    localizationKey: 'confirm',
+                    fallbackText: fallbackText,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          edges: const <SceneEdge>[],
+        ),
+      );
+
+  test('a single-brace reference is an error the export refuses', () {
+    final fixture = _fixture();
+    final report = validateNarrativeProject(
+      fixture.project.copyWith(
+        scenes: <SceneAsset>[
+          ...fixture.project.scenes,
+          sceneWithPrompt('Le registre dira donc {draft.playerName}.'),
+        ],
+      ),
+      maps: <MapData>[fixture.map],
+    );
+
+    final issues = report.byCode('presentationTextReferenceUnresolvable');
+    expect(issues, hasLength(1));
+    expect(issues.single.severity, NarrativeProjectDiagnosticSeverity.error);
+    expect(
+      issues.single.path,
+      'scenes.presession.nodes.confirm.preSessionInteraction.prompt',
+    );
+    expect(
+      report.isPlayable,
+      isFalse,
+      reason: 'an error diagnostic is what makes the export refuse; a '
+          'diagnostic nobody consumes was the original defect',
+    );
+  });
+
+  test('the canonical form is accepted', () {
+    final fixture = _fixture();
+    final report = validateNarrativeProject(
+      fixture.project.copyWith(
+        scenes: <SceneAsset>[
+          ...fixture.project.scenes,
+          sceneWithPrompt('Le registre dira donc {{draft.playerName}}.'),
+        ],
+      ),
+      maps: <MapData>[fixture.map],
+    );
+
+    expect(report.byCode('presentationTextReferenceUnresolvable'), isEmpty);
+  });
+
+  test('an option label is audited too, not only the prompt', () {
+    final fixture = _fixture();
+    final scene = SceneAsset(
+      id: 'presession',
+      name: 'Pre-session',
+      executionProfile: SceneExecutionProfile.preSession,
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'pick',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload(
+              preSessionInteraction: ScenePreSessionInteractionSpec.choice(
+                prompt: SceneInteractionPrompt(
+                  localizationKey: 'pick',
+                  fallbackText: 'Qui prend la veille ?',
+                ),
+                options: <SceneInteractionOption>[
+                  SceneInteractionOption(
+                    id: 'dawn',
+                    label: SceneInteractionPrompt(
+                      localizationKey: 'dawn',
+                      fallbackText: 'Celle que {draft.playerName} attend.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        edges: const <SceneEdge>[],
+      ),
+    );
+    final report = validateNarrativeProject(
+      fixture.project.copyWith(
+        scenes: <SceneAsset>[...fixture.project.scenes, scene],
+      ),
+      maps: <MapData>[fixture.map],
+    );
+
+    expect(
+      report.byCode('presentationTextReferenceUnresolvable').single.path,
+      'scenes.presession.nodes.pick.preSessionInteraction.options[0].label',
+    );
   });
 }
 
