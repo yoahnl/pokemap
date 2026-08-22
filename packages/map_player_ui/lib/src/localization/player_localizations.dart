@@ -375,6 +375,53 @@ final class PokeMapPlayerLocalizations {
       : 'Progress to the next level: $percent%';
 
   String postBattleProgress(int current, int total) => '$current / $total';
+
+  // --- Invites produites par le runtime -------------------------------------
+  //
+  // Le runtime n'a pas de BuildContext : il émet une `localizationKey` et un
+  // `fallbackText` dans la langue où il a été écrit. Ces entrées sont la
+  // traduction de ces clés-là, et d'elles seules. Le texte AUTHORÉ ne passe
+  // jamais par ici : c'est le contenu du jeu, pas une chaîne produit.
+
+  String get confirmOverwrite => _fr
+      ? 'Cette sauvegarde existe déjà. Voulez-vous la remplacer ?'
+      : 'This save already exists. Do you want to replace it?';
+
+  String confirmOverwriteUnusable(String reason) => _fr
+      ? 'Cette sauvegarde ne peut pas être poursuivie : $reason '
+          'La remplacer effacera définitivement sa progression.'
+      : 'This save cannot be continued: $reason '
+          'Replacing it will permanently erase its progress.';
+
+  String get dialogueChoicePrompt =>
+      _fr ? 'Choisissez une réponse.' : 'Choose a reply.';
+
+  /// La cause d'indisponibilité, depuis le code transporté par le runtime.
+  ///
+  /// `null` pour un code inconnu : l'appelant retombe alors sur la formulation
+  /// déjà rendue par le runtime, plutôt que d'afficher un identifiant.
+  String? saveUnavailableReason(String code) => switch (code) {
+        'postGameContinuationRefused' => _fr
+            ? 'Cette fin n’autorise pas de reprise après la fin du jeu.'
+            : 'This ending does not allow post-game continuation.',
+        'migrationRequired' => _fr
+            ? 'Cette sauvegarde doit être migrée avant de pouvoir être chargée.'
+            : 'This save must be migrated before it can be loaded.',
+        'incompatibleVersion' => _fr
+            ? 'Cette sauvegarde n’est pas compatible avec la version installée.'
+            : 'This save is not compatible with the installed game version.',
+        'corrupt' => _fr
+            ? 'Cette sauvegarde est endommagée et n’a pas pu être récupérée '
+                'depuis sa copie de secours.'
+            : 'This save is damaged and could not be recovered from its backup.',
+        'missing' => _fr
+            ? 'Aucune sauvegarde n’existe dans cet emplacement.'
+            : 'No save exists in this slot.',
+        'temporarilyUnavailable' => _fr
+            ? 'Cette sauvegarde est temporairement indisponible.'
+            : 'This save is temporarily unavailable.',
+        _ => null,
+      };
 }
 
 extension PokeMapPlayerLocalizationContext on BuildContext {

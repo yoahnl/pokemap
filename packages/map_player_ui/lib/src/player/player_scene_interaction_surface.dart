@@ -10,10 +10,14 @@ import 'player_dialogue_surface.dart';
 import '../foundation/player_components.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../localization/player_localizations.dart';
 import 'player_scene_interaction_strings.dart';
 import 'runtime_player_actions.dart';
+import 'runtime_prompt_localization.dart';
 
-typedef SceneInteractionPromptResolver = String Function(
+/// `null` signifie « pas à moi » : l'invite retombe alors sur la résolution
+/// produit, puis sur son `fallbackText`.
+typedef SceneInteractionPromptResolver = String? Function(
   SceneInteractionPrompt prompt,
 );
 
@@ -584,8 +588,20 @@ class _PlayerSceneInteractionSurfaceState
     widget.onResult(result);
   }
 
+  /// L'invite telle que le joueur la lit.
+  ///
+  /// La résolution produit est INTRINSÈQUE, pas injectée : `promptResolver`
+  /// existait depuis le début et n'a jamais été branché par aucun site de
+  /// production, ce qui est précisément comment chaque invite du runtime a fini
+  /// affichée dans la langue où elle avait été tapée. Une couture qu'il faut
+  /// penser à remplir finit par ne pas l'être.
+  ///
+  /// L'ordre est délibéré : un appelant qui fournit un résolveur garde le
+  /// dernier mot (le Studio prévisualise autrement), puis les clés que le
+  /// produit possède, puis le texte authoré.
   String _resolvePrompt(SceneInteractionPrompt prompt) {
     var value = widget.promptResolver?.call(prompt) ??
+        localizeRuntimePrompt(prompt, context.playerL10n) ??
         prompt.fallbackText ??
         prompt.localizationKey;
     for (final entry in prompt.arguments.entries) {
