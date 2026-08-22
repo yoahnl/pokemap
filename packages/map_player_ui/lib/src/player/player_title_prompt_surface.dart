@@ -121,8 +121,8 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                                       ),
                                     )
                                   else
-                                    Text(
-                                      gameTitle,
+                                    PlayerFittedDisplayText(
+                                      text: gameTitle,
                                       textAlign: compact
                                           ? TextAlign.center
                                           : TextAlign.start,

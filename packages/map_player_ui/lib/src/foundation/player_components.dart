@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -282,6 +284,75 @@ enum PlayerPanelRole {
   battleHud,
 }
 
+/// Display text that shrinks just enough for its longest word to fit.
+///
+/// A display style sized for a desktop hero is wider than a phone in portrait,
+/// and Flutter's last resort when a single word exceeds the line is to break
+/// inside it — "The Clockwork Harbor" came out as "The Clo / ckwork / Harbor"
+/// on a real device. Clamping [maxLines] would truncate a game title, and a
+/// hardcoded smaller size would be wrong for the next font: the scale is
+/// measured against the actual widest word, so the result holds whatever
+/// typography a game authors.
+///
+/// Only the overflowing case is touched. When every word already fits, the
+/// style is passed through unchanged.
+class PlayerFittedDisplayText extends StatelessWidget {
+  const PlayerFittedDisplayText({
+    super.key,
+    required this.text,
+    required this.style,
+    this.textAlign,
+    this.minimumScale = .45,
+  }) : assert(minimumScale > 0 && minimumScale <= 1);
+
+  final String text;
+  final TextStyle style;
+  final TextAlign? textAlign;
+
+  /// The floor below which the title stops shrinking. Past this point an
+  /// unreadable title is worse than a wrapped one.
+  final double minimumScale;
+
+  @override
+  Widget build(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) => Text(
+        text,
+        textAlign: textAlign,
+        style: _fit(constraints.maxWidth, scaler, direction),
+      ),
+    );
+  }
+
+  TextStyle _fit(double available, TextScaler scaler, TextDirection direction) {
+    final baseSize = style.fontSize;
+    if (baseSize == null || !available.isFinite || available <= 0) return style;
+    var widest = .0;
+    for (final word in text.split(RegExp(r'\s+'))) {
+      if (word.isEmpty) continue;
+      final painter = TextPainter(
+        text: TextSpan(text: word, style: style),
+        textDirection: direction,
+        textScaler: scaler,
+      )..layout();
+      widest = math.max(widest, painter.width);
+      painter.dispose();
+    }
+    if (widest <= available || widest <= 0) return style;
+    // Half a logical pixel of slack: scaling to exactly the available width
+    // leaves rounding no room, and a glyph flush against the edge can still
+    // spill in the real renderer.
+    final scale = math.max(minimumScale, (available - .5) / widest);
+    final letterSpacing = style.letterSpacing;
+    return style.copyWith(
+      fontSize: baseSize * scale,
+      letterSpacing: letterSpacing == null ? null : letterSpacing * scale,
+    );
+  }
+}
+
 class PlayerActionButton extends StatefulWidget {
   const PlayerActionButton({
     super.key,
@@ -298,6 +369,7 @@ class PlayerActionButton extends StatefulWidget {
     this.showFocusHighlight = true,
     this.selected = false,
     this.shortcutLabel,
+    this.labelMaxLines = 1,
     this.minimumHeight = 48,
     this.shape,
     this.backgroundColor,
@@ -319,6 +391,14 @@ class PlayerActionButton extends StatefulWidget {
   final bool showFocusHighlight;
   final bool selected;
   final String? shortcutLabel;
+
+  /// Lines the label may occupy before it ellipsizes. One by default, because
+  /// a command label is a word and a taller button would move every existing
+  /// layout. A dialogue option is prose — on a phone in portrait "La gardienne
+  /// de l'aube" came out as "La gardienne de l'au…", so the player could not
+  /// read what they were choosing between — and those call sites ask for more.
+  final int labelMaxLines;
+
   final double minimumHeight;
   final OutlinedBorder? shape;
   final Color? backgroundColor;
@@ -374,6 +454,7 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
               Expanded(
                 child: Text(
                   widget.label,
+                  maxLines: widget.labelMaxLines,
                   overflow: TextOverflow.ellipsis,
                   style: labelStyle,
                 ),
@@ -382,6 +463,7 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
               Flexible(
                 child: Text(
                   widget.label,
+                  maxLines: widget.labelMaxLines,
                   overflow: TextOverflow.ellipsis,
                   style: labelStyle,
                 ),

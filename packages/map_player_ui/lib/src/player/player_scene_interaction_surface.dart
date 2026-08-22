@@ -377,6 +377,9 @@ class _PlayerSceneInteractionSurfaceState
       PlayerActionButton(
         key: ValueKey<String>('scene-interaction-option-${option.id}'),
         label: _resolvePrompt(option.label),
+        // An option is prose, not a command word: it must stay readable rather
+        // than ellipsize, or the player is choosing blind.
+        labelMaxLines: 2,
         icon: Icons.chevron_right,
         autofocus: option.enabled &&
             request.options
@@ -458,6 +461,7 @@ class _PlayerSceneInteractionSurfaceState
     return PlayerActionButton(
       key: ValueKey<String>('scene-interaction-option-${option.id}'),
       label: _resolvePrompt(option.label),
+      labelMaxLines: 2,
       icon: selected ? Icons.check_box : Icons.check_box_outline_blank,
       autofocus: option.enabled &&
           request.options.take(index).every((candidate) => !candidate.enabled),

@@ -696,6 +696,9 @@ class _RuntimePlayerOptionsState extends State<_RuntimePlayerOptions> {
                     ),
           ),
           Text(context.playerL10n.textSize),
+          // La valeur vit ici, en continu. Le `label:` du Slider la repetait
+          // dans une bulle qui se posait pile sur ce Text pendant le
+          // glissement : deux fois la meme information, superposees.
           Text('${(_textScale * 100).round()} %'),
           Slider(
             key: const ValueKey<String>('runtime-player-text-scale-slider'),
@@ -703,7 +706,6 @@ class _RuntimePlayerOptionsState extends State<_RuntimePlayerOptions> {
             min: 0.8,
             max: 1.6,
             divisions: 8,
-            label: '${(_textScale * 100).round()} %',
             onChanged: widget.onChanged == null
                 ? null
                 : (value) => setState(() => _textScale = value),
@@ -733,7 +735,6 @@ class _RuntimePlayerOptionsState extends State<_RuntimePlayerOptions> {
             min: 0.3,
             max: 1,
             divisions: 14,
-            label: '${(_touchControlsOpacity * 100).round()} %',
             onChanged: widget.onChanged == null
                 ? null
                 : (value) => setState(
