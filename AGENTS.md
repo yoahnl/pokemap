@@ -437,6 +437,43 @@ If unavailable: say so, inspect installed Flame version in `pubspec.yaml` / lock
 
 PokeMap architecture wins over generic Flame examples: pure Dart packages stay Flutter/Flame-free, and gameplay rules stay out of runtime components.
 
+### PSDK parity sources (on this machine, outside the repository)
+
+Two checkouts are the parity oracle. They are NOT in this repository and never
+get committed into it:
+
+```text
+/Users/karim/Project/pokemonProject autre dossiers/pokemonsdk-development/
+/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/
+```
+
+`pokemonsdk-development` is the PSDK engine itself — ~1500 Ruby files. The
+directories that answer most questions:
+
+| Path | Answers |
+| --- | --- |
+| `scripts/5 Battle/01 Scene` | battle scene flow, phase order, transitions |
+| `scripts/5 Battle/20 MoveAnimation` | move animation choreography and timing |
+| `scripts/5 Battle/04 Logic` | turn resolution and damage application order |
+| `scripts/4 Systems` | audio, transitions, shared systems |
+
+`pokémon_sdk_test_project` is a runnable RMXP/PSDK project: `audio/`,
+`graphics/`, `Data/` hold the real asset layout and naming, which is what
+settles questions a script alone cannot (which file plays when, how a cell zoom
+is authored).
+
+Rules:
+
+- For any parity question — animation order, timing, zoom and scale conversions,
+  audio triggers, transitions — the **Ruby source is authoritative**. Write the
+  reference from it, never from the Dart code, and never from a web article.
+  A web search is fine for general game-feel principles; it does not settle
+  what PSDK does.
+- Quote the Ruby file and line in the ticket or the commit, so the next reader
+  can check the claim instead of trusting it.
+- Never copy Ruby verbatim into Dart, and never copy PSDK assets into this
+  repository: the licence and the provenance rules of `## 5` still apply.
+
 ---
 
 ## 12. High-Signal Directories and Hygiene
