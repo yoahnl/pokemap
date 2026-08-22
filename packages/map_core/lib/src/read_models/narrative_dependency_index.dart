@@ -2164,6 +2164,16 @@ final class _NarrativeDependencyIndexBuilder {
       _collectLegacyFactRef(source.sourceId, owner, '$path.sourceId');
       return;
     }
+    // A pre-session draft field is not a project resource. Its sourceId is a
+    // member of the closed ScenePreSessionDraftField enum, so there is nothing
+    // to resolve and no way for it to go missing — emitting a dependency for
+    // it could only ever produce a false diagnostic, and it did: the field fell
+    // through to the synthetic catch-all below, came back as a legacy external
+    // reference at error severity, and made the export refuse a project the
+    // canonical authoring action had just produced.
+    if (source.sourceKind == SceneConditionSourceKind.newGameDraft) {
+      return;
+    }
     final target = switch (source.sourceKind) {
       SceneConditionSourceKind.fact => NarrativeDependencyKey(
           NarrativeDependencyTargetKind.fact,

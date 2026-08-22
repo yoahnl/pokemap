@@ -73,10 +73,12 @@ final class NarrativeSymbolicState {
     Set<FieldAbility> unlockedFieldAbilities = const <FieldAbility>{},
     Set<String> emittedOutcomeKeys = const <String>{},
     Set<String> executedEventIds = const <String>{},
+    Set<String> assignedDraftFields = const <String>{},
     List<NarrativeSymbolicProvenance> provenance =
         const <NarrativeSymbolicProvenance>[],
     this.indeterminate = false,
   })  : factValues = Map.unmodifiable(factValues),
+        assignedDraftFields = Set.unmodifiable(assignedDraftFields),
         completedStepIds = Set.unmodifiable(completedStepIds),
         consumedEventIds = Set.unmodifiable(consumedEventIds),
         badgeIds = Set.unmodifiable(badgeIds),
@@ -92,6 +94,12 @@ final class NarrativeSymbolicState {
   final Set<FieldAbility> unlockedFieldAbilities;
   final Set<String> emittedOutcomeKeys;
   final Set<String> executedEventIds;
+
+  /// The pre-session draft fields a traversed interaction has bound on this
+  /// path. Nothing else can assign one, which is what makes a draft guard
+  /// provable from the graph rather than unknowable.
+  final Set<String> assignedDraftFields;
+
   final List<NarrativeSymbolicProvenance> provenance;
   final bool indeterminate;
 
@@ -103,6 +111,7 @@ final class NarrativeSymbolicState {
     Set<FieldAbility>? unlockedFieldAbilities,
     Set<String>? emittedOutcomeKeys,
     Set<String>? executedEventIds,
+    Set<String>? assignedDraftFields,
     List<NarrativeSymbolicProvenance>? provenance,
     bool? indeterminate,
   }) =>
@@ -115,6 +124,7 @@ final class NarrativeSymbolicState {
             unlockedFieldAbilities ?? this.unlockedFieldAbilities,
         emittedOutcomeKeys: emittedOutcomeKeys ?? this.emittedOutcomeKeys,
         executedEventIds: executedEventIds ?? this.executedEventIds,
+        assignedDraftFields: assignedDraftFields ?? this.assignedDraftFields,
         provenance: provenance ?? this.provenance,
         indeterminate: indeterminate ?? this.indeterminate,
       );
@@ -144,6 +154,7 @@ final class NarrativeSymbolicState {
       'field=${unlockedFieldAbilities.map((value) => value.moveId).toList()..sort()}',
       'outcomes=${_sorted(emittedOutcomeKeys).join(',')}',
       'executed=${_sorted(executedEventIds).join(',')}',
+      'draft=${_sorted(assignedDraftFields).join(',')}',
       'indeterminate=$indeterminate',
     ].join('|');
   }
@@ -1372,6 +1383,16 @@ NarrativeSymbolicState _applyAction({
   required void Function(NarrativeSymbolicIssue) addIssue,
 }) {
   var next = state;
+  // A pre-session interaction with a result binding is the ONLY thing that
+  // assigns a draft field, and reaching this node means it completed — so on
+  // this path the field is set. That is what turns a draft guard from
+  // unknowable into decided.
+  final boundField = payload.preSessionInteraction?.resultBinding?.field;
+  if (boundField != null) {
+    next = next.copyWith(
+      assignedDraftFields: <String>{...next.assignedDraftFields, boundField.name},
+    );
+  }
   final consequence = payload.consequence;
   if (consequence != null) {
     switch (consequence) {
@@ -1513,7 +1534,12 @@ bool? _sceneConditionValue(
   if (source == null) return null;
   switch (source.sourceKind) {
     case SceneConditionSourceKind.newGameDraft:
-      return null;
+      // Decided by the graph: assigned upstream is true, never assigned is
+      // false. Both are answers, so neither leaves the path indeterminate.
+      return _boolConditionValue(
+        source,
+        state.assignedDraftFields.contains(source.sourceId),
+      );
     case SceneConditionSourceKind.fact:
     case SceneConditionSourceKind.factLikeStoryFlag:
       final actual = state.factValues[source.sourceId];
