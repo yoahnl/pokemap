@@ -229,7 +229,18 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             resolvedPresentation,
             imageForAsset: _startupImage,
           );
-    final personalizedTheme = playerPresentation.applyTo(Theme.of(context));
+    // La personnalisation part d'un thème joueur VIERGE, jamais de
+    // `Theme.of(context)` : à ce niveau, c'est le thème Avelune, et
+    // `applyAveluneTheme` y écrase `colorScheme.primary` avec l'accent du
+    // lanceur. Comme `applyTo` n'empile que typographie, palettes et profils
+    // sans jamais toucher au `colorScheme`, un jeu qui n'authore aucune
+    // couleur héritait de la marque du lanceur au lieu de la sienne — visible
+    // sur tout widget qui laisse `style: null`. La luminosité résolue par
+    // l'app est conservée, elle vient bien d'une préférence du joueur.
+    final playerBaseTheme = Theme.of(context).brightness == Brightness.dark
+        ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
+        : player_ui.PokeMapPlayerTheme.light(reducedMotion: _reducedMotion);
+    final personalizedTheme = playerPresentation.applyTo(playerBaseTheme);
     final startupTheme =
         visiblePhase == RuntimeStartupPhase.preparing ||
                 visiblePhase == RuntimeStartupPhase.splash
