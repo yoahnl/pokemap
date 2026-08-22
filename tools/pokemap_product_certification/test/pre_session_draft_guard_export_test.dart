@@ -116,7 +116,7 @@ void main() {
     final guard = scene.graph.nodes.singleWhere(
       (node) => node.id == guardNodeId,
     );
-    final payload = guard.payload! as SceneConditionPayload;
+    final payload = guard.payload as SceneConditionPayload;
     expect(
       payload.conditionSource?.sourceKind,
       SceneConditionSourceKind.newGameDraft,

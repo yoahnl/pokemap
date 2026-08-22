@@ -31,7 +31,7 @@ Le train entre en gare.
     final digest = sha256.convert(utf8.encode(vtt)).toString();
     final store = Directory(p.join(root.path, 'assets', '.pokemap-store'));
     await store.create(recursive: true);
-    await File(p.join(store.path, digest)).writeAsString(vtt);
+    await File(p.join(store.path, '$digest.blob')).writeAsString(vtt);
     await File(
       p.join(root.path, 'assets', '.pokemap-media.json'),
     ).writeAsString(

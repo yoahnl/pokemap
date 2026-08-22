@@ -106,8 +106,16 @@ Future<ProjectDirectoryPresentationMedia?>
         mediaId: media.id,
       );
     }
+    // `.blob`, because that is what writes the file. The canonical key is
+    // assetBlobStorageKey in map_authoring — 'assets/.pokemap-store/<digest>
+    // .blob' — and joining the bare digest here meant this loader never found
+    // a single blob of any real project. It went unnoticed because the CIN-082
+    // fixture wrote its store WITHOUT the extension too: the test agreed with
+    // the implementation instead of with the contract, so both were wrong
+    // together. map_player_ui must not depend on the authoring package, so the
+    // convention is restated rather than imported, and pinned by a test.
     final blob = File(
-      p.join(projectRootDirectory, 'assets', '.pokemap-store', digest),
+      p.join(projectRootDirectory, 'assets', '.pokemap-store', '$digest.blob'),
     );
     if (!await blob.exists()) {
       throw ProjectDirectoryPresentationMediaException(
