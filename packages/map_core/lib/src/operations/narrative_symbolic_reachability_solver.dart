@@ -1704,13 +1704,24 @@ NarrativeSymbolicVerdict _verdict(
   List<NarrativeSymbolicIssue> issues,
   List<NarrativeSymbolicState> terminals,
 ) {
+  // A failure REPORTED BY AN ISSUE outranks an indeterminacy. The other order
+  // swallowed real defects: a scene with both an unprovable condition and a
+  // path that reaches no ending reported only the indeterminacy, so anything
+  // reading the verdict never saw the failure. The diagnostics always listed
+  // both, which is why this hid for so long.
+  if (issues.any((issue) => issue.verdict == NarrativeSymbolicVerdict.fail)) {
+    return NarrativeSymbolicVerdict.fail;
+  }
+  // An indeterminacy outranks the ABSENCE of terminals, because the commonest
+  // reason to have none is that the budget ran out before the walk finished —
+  // "I could not finish exploring" is not "this cannot be finished". Ordering
+  // these two the other way turned every budget exhaustion into a failure.
   if (issues.any(
     (issue) => issue.verdict == NarrativeSymbolicVerdict.indeterminate,
   )) {
     return NarrativeSymbolicVerdict.indeterminate;
   }
-  if (issues.any((issue) => issue.verdict == NarrativeSymbolicVerdict.fail) ||
-      terminals.isEmpty) {
+  if (terminals.isEmpty) {
     return NarrativeSymbolicVerdict.fail;
   }
   return NarrativeSymbolicVerdict.pass;
