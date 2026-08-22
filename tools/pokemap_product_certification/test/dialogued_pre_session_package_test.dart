@@ -119,7 +119,7 @@ void main() {
     final opening = scene.graph.nodes.singleWhere(
       (node) => node.id == DialoguedPreSessionFixture.openingNodeId,
     );
-    final payload = opening.payload! as ScenePresentationCinematicPayload;
+    final payload = opening.payload as ScenePresentationCinematicPayload;
     expect(
       payload.presentationCinematicId,
       DialoguedPreSessionFixture.cinematicId,
@@ -155,6 +155,80 @@ void main() {
       contains(DialoguedPreSessionFixture.montageMarkerId),
       reason: 'the seek destination survived too, or the jump would resolve '
           'to nothing at play time',
+    );
+
+    // BETA-CIN-083's media criterion, read out of the INSTALLED package rather
+    // than out of the authoring workspace: the variants and the single music
+    // are what a player would actually get.
+    final clips = <String, PresentationClip>{
+      for (final track in cinematic.tracks)
+        for (final clip in track.clips) clip.id: clip,
+    };
+    final backdrop =
+        clips[DialoguedPreSessionFixture.backdropClipId]!
+            as PresentationVisualClip;
+    expect(
+      backdrop.landscapeResourceId,
+      DialoguedPreSessionFixture.backdropWideMediaId,
+    );
+    expect(
+      backdrop.portraitResourceId,
+      DialoguedPreSessionFixture.backdropTallMediaId,
+    );
+
+    final sharedOnly =
+        clips[DialoguedPreSessionFixture.sharedOnlyClipId]!
+            as PresentationVisualClip;
+    expect(
+      sharedOnly.landscapeResourceId,
+      isNull,
+      reason: 'this clip is the fallback case on purpose: no variant at all',
+    );
+    expect(sharedOnly.portraitResourceId, isNull);
+    expect(
+      sharedOnly.resourceId,
+      DialoguedPreSessionFixture.backdropMediaId,
+      reason: 'so both orientations resolve to the one available version',
+    );
+
+    final music =
+        clips[DialoguedPreSessionFixture.musicClipId]! as PresentationAudioClip;
+    expect(music.audioKind, PresentationAudioKind.music);
+    expect(
+      music.landscapeResourceId,
+      isNull,
+      reason: 'a music carries one shared source across orientations',
+    );
+    expect(music.portraitResourceId, isNull);
+    expect(
+      presentationAudioResourceForOrientation(
+        music,
+        PresentationAudioOrientation.landscape,
+      ),
+      presentationAudioResourceForOrientation(
+        music,
+        PresentationAudioOrientation.portrait,
+      ),
+      reason: 'the installed music resolves identically both ways',
+    );
+
+    // And the bytes travelled with it: the catalog is in the installed tree.
+    expect(
+      await File(
+        p.join(
+          supportRoot.path,
+          'games',
+          fixture.gameId,
+          'versions',
+          fixture.gameVersion,
+          'project',
+          'assets',
+          '.pokemap-media.json',
+        ),
+      ).exists(),
+      isTrue,
+      reason: 'a clip pointing at a media the package does not carry would '
+          'render nothing offline',
     );
   }, timeout: const Timeout(Duration(minutes: 6)));
 

@@ -100,7 +100,7 @@ void main() {
     final opening = scene.graph.nodes.singleWhere(
       (node) => node.id == DialoguedPreSessionFixture.openingNodeId,
     );
-    final payload = opening.payload! as ScenePresentationCinematicPayload;
+    final payload = opening.payload as ScenePresentationCinematicPayload;
     expect(
       payload.interactionCueBindings.map((binding) => binding.markerId),
       containsAll(<String>[

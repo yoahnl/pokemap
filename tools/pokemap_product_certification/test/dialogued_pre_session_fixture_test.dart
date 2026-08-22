@@ -114,7 +114,7 @@ void main() {
     final confirmation = scene.graph.nodes.singleWhere(
       (node) => node.id == DialoguedPreSessionFixture.confirmNodeId,
     );
-    final payload = confirmation.payload! as SceneActionPayload;
+    final payload = confirmation.payload as SceneActionPayload;
     expect(
       payload.preSessionInteraction!.prompt.fallbackText,
       contains('{draft.playerName}'),
@@ -126,7 +126,7 @@ void main() {
     final nameNode = scene.graph.nodes.singleWhere(
       (node) => node.id == DialoguedPreSessionFixture.nameNodeId,
     );
-    final namePayload = nameNode.payload! as SceneActionPayload;
+    final namePayload = nameNode.payload as SceneActionPayload;
     expect(
       namePayload.preSessionInteraction!.resultBinding?.field,
       ScenePreSessionDraftField.playerName,
@@ -145,7 +145,7 @@ void main() {
     final opening = scene.graph.nodes.singleWhere(
       (node) => node.id == DialoguedPreSessionFixture.openingNodeId,
     );
-    final payload = opening.payload! as ScenePresentationCinematicPayload;
+    final payload = opening.payload as ScenePresentationCinematicPayload;
     final binding = payload.interactionCueBindings.singleWhere(
       (candidate) =>
           candidate.markerId == DialoguedPreSessionFixture.confirmMarkerId,

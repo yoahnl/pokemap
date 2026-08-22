@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'neutral_certification_game_fixture.dart';
+
 /// One canonical semantic operation of the reference journey.
 ///
 /// The sequence below is DATA, not four hand-written transport scripts: every
@@ -44,7 +46,17 @@ final class DialoguedPreSessionFixture {
   static const String closingNodeId = 'offer_closing';
   static const String endNodeId = 'end';
 
+  static const String visualLayerId = 'layer_tower';
+  static const String visualTrackId = 'visuals';
+  static const String audioTrackId = 'audio';
   static const String markerTrackId = 'markers';
+
+  /// The clip carrying BOTH orientation variants, and the one carrying NONE:
+  /// the second is what proves an absent variant falls back rather than
+  /// rendering nothing.
+  static const String backdropClipId = 'clip_backdrop';
+  static const String sharedOnlyClipId = 'clip_keeper_plate';
+  static const String musicClipId = 'clip_lighthouse_music';
   static const String pagesMarkerId = 'cue_pages';
   static const String avatarMarkerId = 'cue_keeper';
   static const String nameMarkerId = 'cue_player_name';
@@ -64,6 +76,15 @@ final class DialoguedPreSessionFixture {
   static const String duskKeeperOptionId = 'keeper_dusk';
 
   static const String outcomeId = 'ready';
+
+  static const String backdropMediaId =
+      NeutralCertificationGameFixture.backdropMediaId;
+  static const String backdropWideMediaId =
+      NeutralCertificationGameFixture.backdropWideMediaId;
+  static const String backdropTallMediaId =
+      NeutralCertificationGameFixture.backdropTallMediaId;
+  static const String lighthouseMusicMediaId =
+      NeutralCertificationGameFixture.lighthouseMusicMediaId;
 
   /// The capabilities a dialogued pre-session actually exercises. Declared
   /// here so the export profile and the host compatibility cannot disagree
@@ -139,6 +160,106 @@ final class DialoguedPreSessionFixture {
           parameters: <String, Object?>{
             'cinematicId': cinematicId,
             'track': markerTrack(cuesRequired: false),
+          },
+        ),
+        // One layer, then the visuals. The media BYTES are project seed — the
+        // clips that reference them are authored here, which is the boundary
+        // this fixture keeps: the journey goes through the actions, the base
+        // data does not have to.
+        const DialoguedPreSessionAuthoringStep(
+          actionId: 'presentationLayer.create',
+          parameters: <String, Object?>{
+            'cinematicId': cinematicId,
+            'layer': <String, Object?>{
+              'id': visualLayerId,
+              'label': 'La tour',
+              'zIndex': 0,
+              'visible': true,
+              'locked': false,
+            },
+          },
+        ),
+        const DialoguedPreSessionAuthoringStep(
+          actionId: 'presentationTrack.create',
+          parameters: <String, Object?>{
+            'cinematicId': cinematicId,
+            'track': <String, Object?>{
+              'id': visualTrackId,
+              'label': 'Visuels',
+              'kind': 'visual',
+              'clips': <Object?>[],
+            },
+          },
+        ),
+        // Both variants authored: each orientation gets its own framing.
+        const DialoguedPreSessionAuthoringStep(
+          actionId: 'presentationClip.create',
+          parameters: <String, Object?>{
+            'cinematicId': cinematicId,
+            'trackId': visualTrackId,
+            'clip': <String, Object?>{
+              'id': backdropClipId,
+              'kind': 'visual',
+              'contentKind': 'media',
+              'mediaKind': 'image',
+              'startUs': 0,
+              'durationUs': 6000000,
+              'layerId': visualLayerId,
+              'resourceId': backdropMediaId,
+              'landscapeResourceId': backdropWideMediaId,
+              'portraitResourceId': backdropTallMediaId,
+            },
+          },
+        ),
+        // No variant at all: the shared source has to serve both orientations,
+        // which is the fallback the criterion names.
+        const DialoguedPreSessionAuthoringStep(
+          actionId: 'presentationClip.create',
+          parameters: <String, Object?>{
+            'cinematicId': cinematicId,
+            'trackId': visualTrackId,
+            'clip': <String, Object?>{
+              'id': sharedOnlyClipId,
+              'kind': 'visual',
+              'contentKind': 'media',
+              'mediaKind': 'image',
+              'startUs': 6000000,
+              'durationUs': 5000000,
+              'layerId': visualLayerId,
+              'resourceId': backdropMediaId,
+            },
+          },
+        ),
+        const DialoguedPreSessionAuthoringStep(
+          actionId: 'presentationTrack.create',
+          parameters: <String, Object?>{
+            'cinematicId': cinematicId,
+            'track': <String, Object?>{
+              'id': audioTrackId,
+              'label': 'Audio',
+              'kind': 'audio',
+              'holdPolicy': 'ambientContinues',
+              'clips': <Object?>[],
+            },
+          },
+        ),
+        // One music, one source, no orientation variant — the schema refuses
+        // one and the runtime resolver ignores one.
+        const DialoguedPreSessionAuthoringStep(
+          actionId: 'presentationClip.create',
+          parameters: <String, Object?>{
+            'cinematicId': cinematicId,
+            'trackId': audioTrackId,
+            'clip': <String, Object?>{
+              'id': musicClipId,
+              'kind': 'audio',
+              'startUs': 0,
+              'durationUs': 11000000,
+              'resourceId': lighthouseMusicMediaId,
+              'audioKind': 'music',
+              'bus': 'music',
+              'loop': true,
+            },
           },
         ),
         _interaction(

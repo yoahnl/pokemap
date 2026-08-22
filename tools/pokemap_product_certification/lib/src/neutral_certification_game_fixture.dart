@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_editor/game_export.dart';
@@ -109,6 +110,138 @@ final class NeutralCertificationGameFixture {
   static const String actorTilesetId = 'certification_actor_tileset';
   static const String actorTilesetPath =
       'assets/tilesets/certification_actors.png';
+
+  /// BETA-CIN-083 : les quatre medias du parcours dialogue.
+  ///
+  /// Les OCTETS sont de la graine, comme le tileset d'acteur ; les CLIPS qui
+  /// les referencent sont authores par actions canoniques. La frontiere est
+  /// deliberee : le risque nomme du ticket est une fixture qui contourne
+  /// l'authoring, et c'est le parcours qui doit passer par les actions, pas la
+  /// donnee de base. L'import transactionnel des medias est certifie ailleurs
+  /// (BETA-CIN-029) et part d'un handle d'artefact local au transport, donc il
+  /// ne peut pas vivre dans une sequence rejouee par les quatre.
+  static const String backdropMediaId = 'media.tower_night';
+  static const String backdropWideMediaId = 'media.tower_night_wide';
+  static const String backdropTallMediaId = 'media.tower_night_tall';
+  static const String lighthouseMusicMediaId = 'media.lighthouse_loop';
+
+  static const List<_SeededMedia> _seededMedia = <_SeededMedia>[
+    _SeededMedia(
+      mediaId: backdropMediaId,
+      label: 'La tour, composition partagee',
+      kind: 'image',
+      mediaType: 'image/png',
+      container: 'png',
+      codec: 'png',
+      logicalPath: 'assets/presentation/images/tower_night.png',
+      base64:
+          'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAIAAABLbSncAAAAG0lEQVR4nGNkGGjA'
+          'yGgz0E5gZBz1Y9SPUT8G0A8AtOwCFmXCTsIAAAAASUVORK5CYII=',
+      width: 24,
+      height: 24,
+    ),
+    _SeededMedia(
+      mediaId: backdropWideMediaId,
+      label: 'La tour, cadrage paysage',
+      kind: 'image',
+      mediaType: 'image/png',
+      container: 'png',
+      codec: 'png',
+      logicalPath: 'assets/presentation/images/tower_night_wide.png',
+      base64:
+          'iVBORw0KGgoAAAANSUhEUgAAACAAAAASCAIAAACIl0KCAAAAG0lEQVR4nGNkoBww'
+          'MtoMtBMYGUf9GPVj1I8B9AMAwzMCTS9wU8UAAAAASUVORK5CYII=',
+      width: 32,
+      height: 18,
+    ),
+    _SeededMedia(
+      mediaId: backdropTallMediaId,
+      label: 'La tour, cadrage portrait',
+      kind: 'image',
+      mediaType: 'image/png',
+      container: 'png',
+      codec: 'png',
+      logicalPath: 'assets/presentation/images/tower_night_tall.png',
+      base64:
+          'iVBORw0KGgoAAAANSUhEUgAAABIAAAAgCAIAAAD8GuqPAAAAGklEQVR4nGNkwAcY'
+          'GW0G2gmMjKN+jPox6scA+gEAmn4CJfaXNe8AAAAASUVORK5CYII=',
+      width: 18,
+      height: 32,
+    ),
+    // La musique : une SEULE source, jamais de variante d'orientation. Le
+    // schema du clip audio le refuse et le resolveur runtime l'ignore.
+    _SeededMedia(
+      mediaId: lighthouseMusicMediaId,
+      label: 'Boucle du phare',
+      kind: 'audio',
+      mediaType: 'audio/ogg',
+      container: 'ogg',
+      codec: 'vorbis',
+      logicalPath: 'assets/presentation/audio/lighthouse_loop.ogg',
+      base64: 'T2dnUwAB',
+    ),
+  ];
+
+  Future<void> _writeSeededMedia(Directory root) async {
+    final store = Directory(p.join(root.path, 'assets', '.pokemap-store'));
+    await store.create(recursive: true);
+    final records = <Map<String, Object?>>[];
+    final entries = <Map<String, Object?>>[];
+    for (final media in _seededMedia) {
+      final bytes = base64Decode(media.base64);
+      // The fingerprint is a DOMAIN-FRAMED sha256, not a bare one, so it is
+      // computed by the repository's own function rather than recomputed here:
+      // a bare hash produces a blob the loader rejects as mismatched.
+      final artifact = ContentArtifactRef.fromBytes(
+        bytes,
+        mediaType: media.mediaType,
+      );
+      await File(
+        p.join(store.path, '${artifact.hexDigest}.blob'),
+      ).writeAsBytes(bytes, flush: true);
+      final assetId = 'asset.${media.mediaId}';
+      records.add(<String, Object?>{
+        'id': assetId,
+        'logicalPath': media.logicalPath,
+        'artifact': artifact.toJson(),
+        'usages': const <Object?>[],
+        'tags': const <String>['presentation'],
+      });
+      entries.add(<String, Object?>{
+        'id': media.mediaId,
+        'label': media.label,
+        'kind': media.kind,
+        'sourceAssetId': assetId,
+        // La publication EXIGE une provenance authoree, et c'est justifie :
+        // un paquet redistribuable doit pouvoir dire d'ou vient chaque media.
+        // Ceux-ci sont generes par la fixture, donc rien de proprietaire.
+        'provenance': const <String, Object?>{
+          'source': 'Genere par la fixture de certification PokeMap',
+          'creator': 'PokeMap Certification Studio',
+        },
+        'license': const <String, Object?>{
+          'identifier': 'CC0-1.0',
+          'name': 'Domaine public (media genere, aucune source tierce)',
+        },
+        'technicalMetadata': <String, Object?>{
+          'mediaType': media.mediaType,
+          'container': media.container,
+          'codec': media.codec,
+          'sizeBytes': bytes.length,
+          if (media.width != null) 'width': media.width,
+          if (media.height != null) 'height': media.height,
+        },
+      });
+    }
+    await _writeJson(
+      File(p.join(root.path, 'assets', '.pokemap-assets.json')),
+      <String, Object?>{'schemaVersion': 1, 'records': records},
+    );
+    await _writeJson(
+      File(p.join(root.path, 'assets', '.pokemap-media.json')),
+      <String, Object?>{'schemaVersion': 1, 'entries': entries},
+    );
+  }
 
   static const String fixedGameId = 'games.pokemap.certification.neutral';
   static const String fixedGameVersion = '1.0.0';
@@ -591,6 +724,9 @@ final class NeutralCertificationGameFixture {
     if (_actorTilesetEnabled) {
       await _writeActorTileset(root);
     }
+    if (dialoguedPreSession) {
+      await _writeSeededMedia(root);
+    }
     if (economyTown) {
       await _appendEconomyItemsToCatalog(root);
     }
@@ -1022,4 +1158,31 @@ Future<void> _writeJson(File file, Map<String, Object?> value) async {
     const JsonEncoder.withIndent('  ').convert(value),
     flush: true,
   );
+}
+
+/// Un media seme : les octets et ce qu'il faut pour les declarer.
+final class _SeededMedia {
+  const _SeededMedia({
+    required this.mediaId,
+    required this.label,
+    required this.kind,
+    required this.mediaType,
+    required this.container,
+    required this.codec,
+    required this.logicalPath,
+    required this.base64,
+    this.width,
+    this.height,
+  });
+
+  final String mediaId;
+  final String label;
+  final String kind;
+  final String mediaType;
+  final String container;
+  final String codec;
+  final String logicalPath;
+  final String base64;
+  final int? width;
+  final int? height;
 }
