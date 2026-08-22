@@ -115,11 +115,36 @@ void main() {
       (node) => node.id == DialoguedPreSessionFixture.confirmNodeId,
     );
     final payload = confirmation.payload as SceneActionPayload;
+    final fallbackText = payload.preSessionInteraction!.prompt.fallbackText!;
+    // Asserted against the enum's own placeholder rather than a literal, so a
+    // hand-typed reference can never drift from the canonical form again. The
+    // previous literal `contains('{draft.playerName}')` was satisfied by BOTH
+    // the single-brace form and the canonical one, so it could not fail — and
+    // a single-brace placeholder shipped raw to a real player.
     expect(
-      payload.preSessionInteraction!.prompt.fallbackText,
-      contains('{draft.playerName}'),
+      fallbackText,
+      contains(PresentationDraftInterpolationField.playerName.placeholder),
       reason: 'the interpolated value is what makes the negative branch '
           'meaningful — the player must see the name before rejecting it',
+    );
+    // And it must actually interpolate: no residual braces once a draft is in
+    // scope. This is the assertion the literal one could never make.
+    final rendered = interpolatePresentationText(
+      fallbackText,
+      PresentationInterpolationScope(
+        revision: 1,
+        draftValues: const <PresentationDraftInterpolationField, String>{
+          PresentationDraftInterpolationField.playerName: 'Kaelis',
+        },
+      ),
+    );
+    expect(rendered.text, contains('Kaelis'));
+    expect(rendered.missingReferences, isEmpty);
+    expect(
+      rendered.text,
+      isNot(contains('{')),
+      reason: 'a placeholder the player can read is an authoring bug that '
+          'reached production',
     );
 
     // And the field it reads back is the field the text input binds.

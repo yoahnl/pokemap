@@ -17,11 +17,12 @@ import 'package:pokemap_product_certification/pokemap_product_certification.dart
 /// over and the Hub installs it.
 Future<void> main(List<String> arguments) async {
   if (arguments.contains('--help')) {
+    // `dart run` cannot compile this package: it depends on Flutter, so the
+    // standalone VM crashes in the front end. The build goes through the test
+    // runner, which is the only VM that can load these libraries.
     stdout.writeln(
-      'Usage: flutter test --plain-name build '
-      'test/build_dialogued_pre_session_package_test.dart\n'
-      'or: dart run bin/build_dialogued_pre_session_package.dart '
-      '--output <path.avelunegame>',
+      'Usage: flutter test test/build_dialogued_pre_session_package_test.dart '
+      '--dart-define=POKEMAP_DIALOGUED_OUTPUT=<path.avelunegame>',
     );
     return;
   }

@@ -286,7 +286,11 @@ final class DialoguedPreSessionFixture {
           interaction: ScenePreSessionInteractionSpec.confirmation(
             prompt: SceneInteractionPrompt(
               localizationKey: 'nightWatch.playerName.confirm',
-              fallbackText: 'Le registre dira donc {draft.playerName}. '
+              // Doubles accolades : c'est la forme canonique de BETA-CIN-071,
+              // la seule que l'interpolateur reconnaisse. Une simple accolade
+              // reste litterale par doctrine, et le joueur lit alors le
+              // placeholder brut.
+              fallbackText: 'Le registre dira donc {{draft.playerName}}. '
                   'C’est bien cela ?',
             ),
           ),
