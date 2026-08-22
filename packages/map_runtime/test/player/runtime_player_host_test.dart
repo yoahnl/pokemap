@@ -53,7 +53,7 @@ void main() {
     expect(summary.address, address);
     expect(summary.playTimeSeconds, 42);
     expect(summary.locationLabel, 'Hanazuki');
-    expect(summary.safeUnavailableReason, isNull);
+    expect(summary.unavailableReason, isNull);
   });
 
   test('player preferences and external exit are host-owned ports', () async {

@@ -317,8 +317,9 @@ final class RuntimePlayerCoordinator {
           }
           return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: save?.safeUnavailableReason ??
-                'The selected save is unavailable or incompatible.',
+            safeMessage: save?.unavailableReason == null
+                ? 'La sauvegarde choisie est indisponible ou incompatible.'
+                : playerSaveUnavailableReasonText(save!.unavailableReason!),
           );
         }
         return _launchSave(save, GameSessionLaunchMode.load);
@@ -1517,8 +1518,9 @@ final class RuntimePlayerCoordinator {
   List<RuntimePlayerActionAvailability> get _titleActions {
     final save = _latestSave;
     final continueEnabled = save != null && save.canContinue;
-    final unavailableReason = save?.safeUnavailableReason ??
-        'No compatible save is available for this game.';
+    final unavailableReason = save?.unavailableReason == null
+        ? 'Aucune sauvegarde compatible n\u2019est disponible pour ce jeu.'
+        : playerSaveUnavailableReasonText(save!.unavailableReason!);
     return <RuntimePlayerActionAvailability>[
       if (save != null && !save.canContinue)
         const RuntimePlayerActionAvailability.enabled(
@@ -1761,22 +1763,26 @@ final class RuntimePlayerCoordinator {
   }
 
   SceneInteractionPrompt _overwritePrompt(PlayerSaveSummary existing) {
-    final reason = existing.canContinue
-        ? null
-        : existing.safeUnavailableReason?.trim();
-    if (reason == null || reason.isEmpty) {
+    final reason = existing.canContinue ? null : existing.unavailableReason;
+    if (reason == null) {
       return SceneInteractionPrompt(
         localizationKey: 'player.new_game.confirm_overwrite',
         fallbackText:
             'Cette sauvegarde existe déjà. Voulez-vous la remplacer ?',
       );
     }
+    // `reasonCode` voyage à côté de la formulation : un résolveur de
+    // localisation choisira sa propre phrase par langue au lieu de réutiliser
+    // celle-ci, sans avoir à la reconnaître.
     return SceneInteractionPrompt(
       localizationKey: 'player.new_game.confirm_overwrite_unusable',
       fallbackText:
           'Cette sauvegarde ne peut pas être poursuivie : {reason} '
           'La remplacer effacera définitivement sa progression.',
-      arguments: <String, String>{'reason': reason},
+      arguments: <String, String>{
+        'reason': playerSaveUnavailableReasonText(reason),
+        'reasonCode': reason.name,
+      },
     );
   }
 

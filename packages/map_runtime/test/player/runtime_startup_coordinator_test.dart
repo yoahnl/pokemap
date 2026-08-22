@@ -259,7 +259,7 @@ void main() {
         playTimeSeconds: 120,
         status: SaveStatus.active,
         canContinue: false,
-        safeUnavailableReason: 'Save incompatible.',
+        unavailableReason: PlayerSaveUnavailableReason.incompatibleVersion,
       ),
       initialMapPreloadPort: preloader,
     );

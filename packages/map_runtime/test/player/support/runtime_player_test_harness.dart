@@ -502,7 +502,8 @@ PlayerSaveSummary compatiblePlayerSave(GameIdentity identity) {
 
 PlayerSaveSummary unusablePlayerSave(
   GameIdentity identity, {
-  String reason = 'This save was written by a newer version of the game.',
+  PlayerSaveUnavailableReason reason =
+      PlayerSaveUnavailableReason.incompatibleVersion,
 }) {
   return PlayerSaveSummary(
     address: SaveSlotAddress(
@@ -514,7 +515,7 @@ PlayerSaveSummary unusablePlayerSave(
     playTimeSeconds: 120,
     status: SaveStatus.active,
     canContinue: false,
-    safeUnavailableReason: reason,
+    unavailableReason: reason,
   );
 }
 

@@ -113,8 +113,14 @@ void main() {
     );
     expect(
       request.prompt.arguments['reason'],
-      existing.safeUnavailableReason,
+      playerSaveUnavailableReasonText(existing.unavailableReason!),
       reason: 'the player must be told why the save cannot be continued',
+    );
+    expect(
+      request.prompt.arguments['reasonCode'],
+      existing.unavailableReason!.name,
+      reason: 'the machine-readable cause travels beside the wording, so a '
+          'localization resolver can pick its own phrase',
     );
 
     final resolution = await harness.coordinator.dispatch(
@@ -135,11 +141,72 @@ void main() {
     expect(await harness.saves.readSummary(existing.address), same(existing));
   });
 
+  test('the overwrite prompt is written in a single language', () async {
+    // La capture qui a lancé ce correctif : « Cette sauvegarde ne peut pas être
+    // poursuivie : This ending does not allow post-game continuation. La
+    // remplacer effacera définitivement sa progression. » Un gabarit d'un côté,
+    // une phrase produite ailleurs de l'autre, et deux langues dans un même
+    // paragraphe. Le test interpole comme la surface joueur et regarde la
+    // phrase entière, pas ses morceaux.
+    final seed = RuntimePlayerTestHarness();
+    final existing = unusablePlayerSave(
+      seed.source.identity,
+      reason: PlayerSaveUnavailableReason.postGameContinuationRefused,
+    );
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(latestSave: existing);
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final launch = harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    await _waitForInteraction(harness.coordinator);
+
+    final prompt = harness.coordinator.snapshot.preSessionRequest!.prompt;
+    var rendered = prompt.fallbackText!;
+    for (final entry in prompt.arguments.entries) {
+      rendered = rendered.replaceAll('{${entry.key}}', entry.value);
+    }
+
+    expect(
+      rendered,
+      'Cette sauvegarde ne peut pas être poursuivie : Cette fin n’autorise pas '
+      'de reprise après la fin du jeu. La remplacer effacera définitivement sa '
+      'progression.',
+    );
+    expect(
+      rendered,
+      isNot(contains('{')),
+      reason: 'a placeholder the player can read is the other half of this bug',
+    );
+
+    await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.resolvePreSessionInteraction,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: SceneInteractionResult.confirmed(
+          requestId: harness.coordinator.snapshot.preSessionRequest!.requestId,
+          revision: harness.coordinator.snapshot.preSessionRequest!.revision,
+          value: false,
+        ),
+      ),
+    );
+    await launch;
+  });
+
   test('an unusable save explains itself when Continue is refused', () async {
     final seed = RuntimePlayerTestHarness();
     final existing = unusablePlayerSave(
       seed.source.identity,
-      reason: 'This save was written by a newer version of the game.',
+      reason: PlayerSaveUnavailableReason.incompatibleVersion,
     );
     await seed.dispose();
     final harness = RuntimePlayerTestHarness(latestSave: existing);
@@ -160,7 +227,7 @@ void main() {
     expect(result.status, RuntimePlayerCommandStatus.unavailable);
     expect(
       result.safeMessage,
-      existing.safeUnavailableReason,
+      playerSaveUnavailableReasonText(existing.unavailableReason!),
       reason: 'the player must learn why the save cannot be continued',
     );
     expect(harness.source.requests, isEmpty);

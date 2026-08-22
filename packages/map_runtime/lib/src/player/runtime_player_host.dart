@@ -24,6 +24,45 @@ abstract interface class RuntimeGameSource {
   });
 }
 
+/// Pourquoi une sauvegarde ne peut pas être reprise, sous forme de code.
+///
+/// Le host connaît la cause typée ; il ne connaît pas la langue du joueur. Tant
+/// qu'il renvoyait une phrase toute faite, elle finissait interpolée dans un
+/// gabarit du runtime rédigé dans une autre langue, et le joueur lisait « Cette
+/// sauvegarde ne peut pas être poursuivie : This ending does not allow post-game
+/// continuation. » Le code traverse la frontière, la formulation reste du côté
+/// qui sait ce que le joueur lit.
+enum PlayerSaveUnavailableReason {
+  postGameContinuationRefused,
+  migrationRequired,
+  incompatibleVersion,
+  corrupt,
+  missing,
+  temporarilyUnavailable,
+}
+
+/// La formulation vue par le joueur pour chaque cause.
+///
+/// Un seul propriétaire de la langue : le host renvoie un code, le runtime le
+/// rend. C'est ce qui empêche deux moitiés de la même phrase d'être écrites dans
+/// deux langues par deux auteurs différents.
+String playerSaveUnavailableReasonText(PlayerSaveUnavailableReason reason) =>
+    switch (reason) {
+      PlayerSaveUnavailableReason.postGameContinuationRefused =>
+        'Cette fin n’autorise pas de reprise après la fin du jeu.',
+      PlayerSaveUnavailableReason.migrationRequired =>
+        'Cette sauvegarde doit être migrée avant de pouvoir être chargée.',
+      PlayerSaveUnavailableReason.incompatibleVersion =>
+        'Cette sauvegarde n’est pas compatible avec la version installée.',
+      PlayerSaveUnavailableReason.corrupt =>
+        'Cette sauvegarde est endommagée et n’a pas pu être récupérée depuis '
+            'sa copie de secours.',
+      PlayerSaveUnavailableReason.missing =>
+        'Aucune sauvegarde n’existe dans cet emplacement.',
+      PlayerSaveUnavailableReason.temporarilyUnavailable =>
+        'Cette sauvegarde est temporairement indisponible.',
+    };
+
 /// Player-safe metadata for one save slot.
 ///
 /// The actual save payload and filesystem location never cross this boundary.
@@ -34,7 +73,7 @@ final class PlayerSaveSummary {
     required this.playTimeSeconds,
     required this.status,
     required this.canContinue,
-    this.safeUnavailableReason,
+    this.unavailableReason,
     String? locationLabel,
   }) : locationLabel = switch (locationLabel?.trim()) {
           '' => null,
@@ -54,7 +93,7 @@ final class PlayerSaveSummary {
   final int playTimeSeconds;
   final SaveStatus status;
   final bool canContinue;
-  final String? safeUnavailableReason;
+  final PlayerSaveUnavailableReason? unavailableReason;
   final String? locationLabel;
 }
 

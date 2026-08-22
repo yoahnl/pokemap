@@ -86,12 +86,12 @@ final class HubPlayerSaveGateway implements PlayerSaveGateway {
       playTimeSeconds: envelope?.playTimeSeconds ?? 0,
       status: envelope?.status ?? SaveStatus.active,
       canContinue: canContinue,
-      safeUnavailableReason:
+      unavailableReason:
           canContinue
               ? null
               : envelope?.status == SaveStatus.completed
-              ? 'This ending does not allow post-game continuation.'
-              : _safeReason(read.status),
+              ? PlayerSaveUnavailableReason.postGameContinuationRefused
+              : _unavailableReason(read.status),
     );
   }
 }
@@ -102,17 +102,20 @@ bool _canContinue(SaveSlotRead read, SaveEnvelope? envelope) {
   return gameStateAllowsPostGameContinue(envelope.state);
 }
 
-String _safeReason(SaveSlotReadStatus status) => switch (status) {
-  SaveSlotReadStatus.migrationRequired =>
-    'This save must be migrated before it can be loaded.',
-  SaveSlotReadStatus.incompatible =>
-    'This save is not compatible with the installed game version.',
-  SaveSlotReadStatus.corrupt =>
-    'This save is damaged and could not be recovered from its backup.',
-  SaveSlotReadStatus.missing => 'No save exists in this slot.',
-  SaveSlotReadStatus.valid || SaveSlotReadStatus.recoveredFromBackup =>
-    'This save is temporarily unavailable.',
-};
+// Le host connaît la cause, pas la langue du joueur : il renvoie le code et le
+// runtime le formule. Avant, cette fonction rendait des phrases anglaises qui
+// finissaient interpolées dans un gabarit français.
+PlayerSaveUnavailableReason _unavailableReason(SaveSlotReadStatus status) =>
+    switch (status) {
+      SaveSlotReadStatus.migrationRequired =>
+        PlayerSaveUnavailableReason.migrationRequired,
+      SaveSlotReadStatus.incompatible =>
+        PlayerSaveUnavailableReason.incompatibleVersion,
+      SaveSlotReadStatus.corrupt => PlayerSaveUnavailableReason.corrupt,
+      SaveSlotReadStatus.missing => PlayerSaveUnavailableReason.missing,
+      SaveSlotReadStatus.valid || SaveSlotReadStatus.recoveredFromBackup =>
+        PlayerSaveUnavailableReason.temporarilyUnavailable,
+    };
 
 typedef _CheckpointCommitKey =
     ({
