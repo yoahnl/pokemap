@@ -48,6 +48,19 @@ final class RuntimeAudioMix {
   final double musicVolume;
   final double effectsVolume;
 
+  /// Interpolates towards [target]. Used by a mix fade, which needs the
+  /// intermediate mixes rather than a jump.
+  RuntimeAudioMix lerpTo(RuntimeAudioMix target, double t) {
+    final progress = t.clamp(0.0, 1.0);
+    double at(double from, double to) =>
+        (from + (to - from) * progress).clamp(0.0, 1.0);
+    return RuntimeAudioMix(
+      masterVolume: at(masterVolume, target.masterVolume),
+      musicVolume: at(musicVolume, target.musicVolume),
+      effectsVolume: at(effectsVolume, target.effectsVolume),
+    );
+  }
+
   double volumeFor(
     RuntimeAudioRoute route, {
     double sourceVolume = 1,
@@ -66,11 +79,32 @@ final class RuntimeAudioMix {
 /// Playback ownership remains with the title, overworld, battle, or cinematic
 /// controller. The mixer only retains safe channel identifiers and volume
 /// callbacks, and unregistering never stops playback.
+/// Waits for [delay]. Injected so a fade is deterministic in a test instead of
+/// depending on wall-clock timing.
+typedef RuntimeAudioFadeDelay = Future<void> Function(Duration delay);
+
 final class RuntimeAudioMixer {
-  RuntimeAudioMixer({RuntimeAudioMix mix = const RuntimeAudioMix()})
-      : _mix = mix;
+  RuntimeAudioMixer({
+    RuntimeAudioMix mix = const RuntimeAudioMix(),
+    RuntimeAudioFadeDelay? fadeDelay,
+    int fadeSteps = 8,
+  })  : _mix = mix,
+        _fadeDelay = fadeDelay ?? Future<void>.delayed,
+        _fadeSteps = fadeSteps < 1 ? 1 : fadeSteps;
 
   RuntimeAudioMix _mix;
+  final RuntimeAudioFadeDelay _fadeDelay;
+  final int _fadeSteps;
+
+  /// Bumped by anything that supersedes a fade. A ramp compares it on every
+  /// step and drops itself the moment it is no longer the current one, which
+  /// is what "annulable sans double player" means in practice: exactly one
+  /// ramp may write volumes, so a late step from a cancelled fade can never
+  /// land on top of a newer target.
+  int _fadeGeneration = 0;
+
+  bool get isFading => _fadingGeneration == _fadeGeneration;
+  int _fadingGeneration = -1;
   final Map<Object, _RuntimeMixedChannel> _channels =
       <Object, _RuntimeMixedChannel>{};
   final Map<Object, _RuntimeAudioDuck> _ducking = <Object, _RuntimeAudioDuck>{};
@@ -121,10 +155,52 @@ final class RuntimeAudioMixer {
     _channels.remove(channel);
   }
 
-  Future<void> transitionTo(RuntimeAudioMix mix) async {
-    _mix = mix;
+  /// Moves the mix to [mix], optionally ramping over [fade].
+  ///
+  /// With no fade this is the instantaneous behaviour every existing caller
+  /// already relies on, unchanged. With a fade the ramp is cancelled by the
+  /// next transition, by [cancelFade], and by [dispose]; a cancelled ramp
+  /// stops writing immediately, so two transitions in a row settle on the
+  /// second target and never on a stale step of the first.
+  Future<void> transitionTo(
+    RuntimeAudioMix mix, {
+    Duration fade = Duration.zero,
+  }) async {
+    final generation = ++_fadeGeneration;
+    if (fade <= Duration.zero) {
+      _mix = mix;
+      await _applyAll();
+      return;
+    }
+    final from = _mix;
+    final step = Duration(
+      microseconds: (fade.inMicroseconds / _fadeSteps).ceil(),
+    );
+    _fadingGeneration = generation;
+    try {
+      for (var index = 1; index <= _fadeSteps; index += 1) {
+        await _fadeDelay(step);
+        if (generation != _fadeGeneration) return;
+        _mix = from.lerpTo(mix, index / _fadeSteps);
+        await _applyAll();
+        if (generation != _fadeGeneration) return;
+      }
+    } finally {
+      if (generation == _fadingGeneration) _fadingGeneration = -1;
+    }
+  }
+
+  /// Stops a ramp where it got to. The mix keeps its current value — a fade
+  /// that jumped to its target on cancel would be indistinguishable from no
+  /// fade at all.
+  void cancelFade() {
+    _fadeGeneration += 1;
+    _fadingGeneration = -1;
+  }
+
+  Future<void> _applyAll() async {
     for (final channel in _channels.values.toList(growable: false)) {
-      await channel.apply(mix, _duckingGainFor(channel.route.bus));
+      await channel.apply(_mix, _duckingGainFor(channel.route.bus));
     }
   }
 

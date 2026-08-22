@@ -49,7 +49,9 @@ export 'src/player/runtime_audio_mixer.dart'
         RuntimeAudioMixer,
         RuntimeAudioRoute,
         RuntimeAudioRouteBus,
+        RuntimeAudioFadeDelay,
         RuntimeAudioVolumeSetter;
+export 'src/player/runtime_sfx_pool.dart' show RuntimeSfxPool;
 export 'src/player/runtime_presentation_audio_controller.dart'
     show
         FlameRuntimePresentationAudioDriver,
