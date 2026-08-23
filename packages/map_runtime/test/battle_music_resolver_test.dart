@@ -9,6 +9,7 @@ RuntimeMapBundle _runtimeBundle({
   List<ProjectTrainerEntry> trainers = const <ProjectTrainerEntry>[],
   MapMetadata mapMetadata = const MapMetadata(),
   ProjectBattleAudioConfig? battleAudio,
+  List<MapGameplayZone> gameplayZones = const <MapGameplayZone>[],
 }) {
   return RuntimeMapBundle(
     manifest: ProjectManifest(
@@ -29,6 +30,7 @@ RuntimeMapBundle _runtimeBundle({
       name: 'Field Map',
       size: const GridSize(width: 10, height: 10),
       mapMetadata: mapMetadata,
+      gameplayZones: gameplayZones,
     ),
     projectRootDirectory: '/tmp/runtime_music_resolver_test_project',
     tilesetAbsolutePathsById: const <String, String>{},
@@ -195,6 +197,114 @@ void main() {
         expect(selection.battleMusicAbsolutePath, expectedBattle);
         expect(selection.victoryMusicAbsolutePath, expectedVictory);
       });
+    });
+  });
+
+  group('BattleMusicResolver — couche zone de rencontre', () {
+    const musicZone = MapGameplayZone(
+      id: 'grass_zone',
+      kind: GameplayZoneKind.encounter,
+      area: MapRect(
+        pos: GridPos(x: 1, y: 1),
+        size: GridSize(width: 3, height: 3),
+      ),
+      encounter: EncounterZonePayload(
+        encounterTableId: 'grass_table',
+        battleMusicPath: 'audio/zone_battle.ogg',
+        encounterMusicPath: 'audio/zone_spotted.ogg',
+      ),
+    );
+
+    test('sauvage : la zone déclencheuse gagne sur la carte et le projet', () {
+      final selection = resolver.resolve(
+        request: _wildRequest(),
+        bundle: _runtimeBundle(
+          battleAudio: projectDefaults,
+          mapMetadata: const MapMetadata(
+            battleMusicPath: 'audio/cave_battle.ogg',
+          ),
+          gameplayZones: const <MapGameplayZone>[musicZone],
+        ),
+      );
+      expect(selection.battleMusicAbsolutePath, '$_root/audio/zone_battle.ogg');
+      expect(
+        selection.victoryMusicAbsolutePath,
+        '$_root/audio/wild_victory.ogg',
+        reason: 'la zone ne porte pas de victoire, le projet reste la source',
+      );
+    });
+
+    test('dresseur : son thème gagne sur la zone, sinon la zone gagne', () {
+      final zoneBundle = _runtimeBundle(
+        battleAudio: projectDefaults,
+        mapMetadata: const MapMetadata(
+          battleMusicPath: 'audio/cave_battle.ogg',
+        ),
+        gameplayZones: const <MapGameplayZone>[musicZone],
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'rookie',
+            name: 'Rookie',
+            trainerClass: 'Youngster',
+            battleMusicPath: 'audio/rival_battle.ogg',
+          ),
+        ],
+      );
+      expect(
+        resolver
+            .resolve(request: _trainerRequest(), bundle: zoneBundle)
+            .battleMusicAbsolutePath,
+        '$_root/audio/rival_battle.ogg',
+      );
+
+      final noThemeBundle = _runtimeBundle(
+        battleAudio: projectDefaults,
+        mapMetadata: const MapMetadata(
+          battleMusicPath: 'audio/cave_battle.ogg',
+        ),
+        gameplayZones: const <MapGameplayZone>[musicZone],
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'rookie',
+            name: 'Rookie',
+            trainerClass: 'Youngster',
+          ),
+        ],
+      );
+      expect(
+        resolver
+            .resolve(request: _trainerRequest(), bundle: noThemeBundle)
+            .battleMusicAbsolutePath,
+        '$_root/audio/zone_battle.ogg',
+        reason: 'le joueur combat DANS la zone : elle gagne sur la carte',
+      );
+    });
+
+    test('rencontre : la zone sous le joueur gagne, sans position le projet',
+        () {
+      final bundle = _runtimeBundle(
+        battleAudio: projectDefaults,
+        gameplayZones: const <MapGameplayZone>[musicZone],
+      );
+      expect(
+        resolver.resolveEncounterMusicAbsolutePath(
+          bundle: bundle,
+          playerPos: const GridPos(x: 2, y: 2),
+        ),
+        '$_root/audio/zone_spotted.ogg',
+      );
+      expect(
+        resolver.resolveEncounterMusicAbsolutePath(
+          bundle: bundle,
+          playerPos: const GridPos(x: 8, y: 8),
+        ),
+        '$_root/audio/encounter.ogg',
+        reason: 'hors de la zone, le défaut projet reprend',
+      );
+      expect(
+        resolver.resolveEncounterMusicAbsolutePath(bundle: bundle),
+        '$_root/audio/encounter.ogg',
+      );
     });
   });
 

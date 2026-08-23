@@ -28,6 +28,17 @@ abstract class EncounterZonePayload with _$EncounterZonePayload {
     /// - le runtime pourra l'utiliser comme override visuel du fond contextuel ;
     /// - l'absence de valeur garde le comportement contextuel existant.
     String? battleBackgroundRelativePath,
+
+    /// Musique des combats déclenchés dans cette zone — BETA-BAT-015.
+    ///
+    /// Même sémantique que le fond : chemin project-local optionnel. La
+    /// chaîne runtime la place entre le thème explicite du dresseur et la
+    /// musique de combat de la carte ; vide = la chaîne continue.
+    String? battleMusicPath,
+
+    /// Musique de rencontre jouée quand un dresseur repère le joueur dans
+    /// cette zone — BETA-BAT-015. Gagne sur le défaut projet ; vide = défaut.
+    String? encounterMusicPath,
   }) = _EncounterZonePayload;
 
   factory EncounterZonePayload.fromJson(Map<String, dynamic> json) =>

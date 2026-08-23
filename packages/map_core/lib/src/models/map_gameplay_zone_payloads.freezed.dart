@@ -23,7 +23,14 @@ mixin _$EncounterZonePayload {
 /// - aucune bibliothèque média globale n'est introduite ici ;
 /// - le runtime pourra l'utiliser comme override visuel du fond contextuel ;
 /// - l'absence de valeur garde le comportement contextuel existant.
- String? get battleBackgroundRelativePath;
+ String? get battleBackgroundRelativePath;/// Musique des combats déclenchés dans cette zone — BETA-BAT-015.
+///
+/// Même sémantique que le fond : chemin project-local optionnel. La
+/// chaîne runtime la place entre le thème explicite du dresseur et la
+/// musique de combat de la carte ; vide = la chaîne continue.
+ String? get battleMusicPath;/// Musique de rencontre jouée quand un dresseur repère le joueur dans
+/// cette zone — BETA-BAT-015. Gagne sur le défaut projet ; vide = défaut.
+ String? get encounterMusicPath;
 /// Create a copy of EncounterZonePayload
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -36,16 +43,16 @@ $EncounterZonePayloadCopyWith<EncounterZonePayload> get copyWith => _$EncounterZ
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EncounterZonePayload&&(identical(other.encounterTableId, encounterTableId) || other.encounterTableId == encounterTableId)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.battleBackgroundRelativePath, battleBackgroundRelativePath) || other.battleBackgroundRelativePath == battleBackgroundRelativePath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EncounterZonePayload&&(identical(other.encounterTableId, encounterTableId) || other.encounterTableId == encounterTableId)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.battleBackgroundRelativePath, battleBackgroundRelativePath) || other.battleBackgroundRelativePath == battleBackgroundRelativePath)&&(identical(other.battleMusicPath, battleMusicPath) || other.battleMusicPath == battleMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,encounterTableId,encounterKind,battleBackgroundRelativePath);
+int get hashCode => Object.hash(runtimeType,encounterTableId,encounterKind,battleBackgroundRelativePath,battleMusicPath,encounterMusicPath);
 
 @override
 String toString() {
-  return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind, battleBackgroundRelativePath: $battleBackgroundRelativePath)';
+  return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind, battleBackgroundRelativePath: $battleBackgroundRelativePath, battleMusicPath: $battleMusicPath, encounterMusicPath: $encounterMusicPath)';
 }
 
 
@@ -56,7 +63,7 @@ abstract mixin class $EncounterZonePayloadCopyWith<$Res>  {
   factory $EncounterZonePayloadCopyWith(EncounterZonePayload value, $Res Function(EncounterZonePayload) _then) = _$EncounterZonePayloadCopyWithImpl;
 @useResult
 $Res call({
- String? encounterTableId, EncounterKind encounterKind, String? battleBackgroundRelativePath
+ String? encounterTableId, EncounterKind encounterKind, String? battleBackgroundRelativePath, String? battleMusicPath, String? encounterMusicPath
 });
 
 
@@ -73,11 +80,13 @@ class _$EncounterZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of EncounterZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? encounterTableId = freezed,Object? encounterKind = null,Object? battleBackgroundRelativePath = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? encounterTableId = freezed,Object? encounterKind = null,Object? battleBackgroundRelativePath = freezed,Object? battleMusicPath = freezed,Object? encounterMusicPath = freezed,}) {
   return _then(_self.copyWith(
 encounterTableId: freezed == encounterTableId ? _self.encounterTableId : encounterTableId // ignore: cast_nullable_to_non_nullable
 as String?,encounterKind: null == encounterKind ? _self.encounterKind : encounterKind // ignore: cast_nullable_to_non_nullable
 as EncounterKind,battleBackgroundRelativePath: freezed == battleBackgroundRelativePath ? _self.battleBackgroundRelativePath : battleBackgroundRelativePath // ignore: cast_nullable_to_non_nullable
+as String?,battleMusicPath: freezed == battleMusicPath ? _self.battleMusicPath : battleMusicPath // ignore: cast_nullable_to_non_nullable
+as String?,encounterMusicPath: freezed == encounterMusicPath ? _self.encounterMusicPath : encounterMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -163,10 +172,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath,  String? battleMusicPath,  String? encounterMusicPath)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EncounterZonePayload() when $default != null:
-return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath);case _:
+return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath,_that.battleMusicPath,_that.encounterMusicPath);case _:
   return orElse();
 
 }
@@ -184,10 +193,10 @@ return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroun
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath,  String? battleMusicPath,  String? encounterMusicPath)  $default,) {final _that = this;
 switch (_that) {
 case _EncounterZonePayload():
-return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath);case _:
+return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath,_that.battleMusicPath,_that.encounterMusicPath);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +213,10 @@ return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroun
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath,  String? battleMusicPath,  String? encounterMusicPath)?  $default,) {final _that = this;
 switch (_that) {
 case _EncounterZonePayload() when $default != null:
-return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath);case _:
+return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath,_that.battleMusicPath,_that.encounterMusicPath);case _:
   return null;
 
 }
@@ -219,7 +228,7 @@ return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroun
 
 @JsonSerializable(explicitToJson: true)
 class _EncounterZonePayload implements EncounterZonePayload {
-  const _EncounterZonePayload({this.encounterTableId, this.encounterKind = EncounterKind.walk, this.battleBackgroundRelativePath});
+  const _EncounterZonePayload({this.encounterTableId, this.encounterKind = EncounterKind.walk, this.battleBackgroundRelativePath, this.battleMusicPath, this.encounterMusicPath});
   factory _EncounterZonePayload.fromJson(Map<String, dynamic> json) => _$EncounterZonePayloadFromJson(json);
 
 /// ID de la [ProjectEncounterTable] du projet (optionnel — zone sans table = inerte).
@@ -233,6 +242,15 @@ class _EncounterZonePayload implements EncounterZonePayload {
 /// - le runtime pourra l'utiliser comme override visuel du fond contextuel ;
 /// - l'absence de valeur garde le comportement contextuel existant.
 @override final  String? battleBackgroundRelativePath;
+/// Musique des combats déclenchés dans cette zone — BETA-BAT-015.
+///
+/// Même sémantique que le fond : chemin project-local optionnel. La
+/// chaîne runtime la place entre le thème explicite du dresseur et la
+/// musique de combat de la carte ; vide = la chaîne continue.
+@override final  String? battleMusicPath;
+/// Musique de rencontre jouée quand un dresseur repère le joueur dans
+/// cette zone — BETA-BAT-015. Gagne sur le défaut projet ; vide = défaut.
+@override final  String? encounterMusicPath;
 
 /// Create a copy of EncounterZonePayload
 /// with the given fields replaced by the non-null parameter values.
@@ -247,16 +265,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EncounterZonePayload&&(identical(other.encounterTableId, encounterTableId) || other.encounterTableId == encounterTableId)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.battleBackgroundRelativePath, battleBackgroundRelativePath) || other.battleBackgroundRelativePath == battleBackgroundRelativePath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EncounterZonePayload&&(identical(other.encounterTableId, encounterTableId) || other.encounterTableId == encounterTableId)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.battleBackgroundRelativePath, battleBackgroundRelativePath) || other.battleBackgroundRelativePath == battleBackgroundRelativePath)&&(identical(other.battleMusicPath, battleMusicPath) || other.battleMusicPath == battleMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,encounterTableId,encounterKind,battleBackgroundRelativePath);
+int get hashCode => Object.hash(runtimeType,encounterTableId,encounterKind,battleBackgroundRelativePath,battleMusicPath,encounterMusicPath);
 
 @override
 String toString() {
-  return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind, battleBackgroundRelativePath: $battleBackgroundRelativePath)';
+  return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind, battleBackgroundRelativePath: $battleBackgroundRelativePath, battleMusicPath: $battleMusicPath, encounterMusicPath: $encounterMusicPath)';
 }
 
 
@@ -267,7 +285,7 @@ abstract mixin class _$EncounterZonePayloadCopyWith<$Res> implements $EncounterZ
   factory _$EncounterZonePayloadCopyWith(_EncounterZonePayload value, $Res Function(_EncounterZonePayload) _then) = __$EncounterZonePayloadCopyWithImpl;
 @override @useResult
 $Res call({
- String? encounterTableId, EncounterKind encounterKind, String? battleBackgroundRelativePath
+ String? encounterTableId, EncounterKind encounterKind, String? battleBackgroundRelativePath, String? battleMusicPath, String? encounterMusicPath
 });
 
 
@@ -284,11 +302,13 @@ class __$EncounterZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of EncounterZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? encounterTableId = freezed,Object? encounterKind = null,Object? battleBackgroundRelativePath = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? encounterTableId = freezed,Object? encounterKind = null,Object? battleBackgroundRelativePath = freezed,Object? battleMusicPath = freezed,Object? encounterMusicPath = freezed,}) {
   return _then(_EncounterZonePayload(
 encounterTableId: freezed == encounterTableId ? _self.encounterTableId : encounterTableId // ignore: cast_nullable_to_non_nullable
 as String?,encounterKind: null == encounterKind ? _self.encounterKind : encounterKind // ignore: cast_nullable_to_non_nullable
 as EncounterKind,battleBackgroundRelativePath: freezed == battleBackgroundRelativePath ? _self.battleBackgroundRelativePath : battleBackgroundRelativePath // ignore: cast_nullable_to_non_nullable
+as String?,battleMusicPath: freezed == battleMusicPath ? _self.battleMusicPath : battleMusicPath // ignore: cast_nullable_to_non_nullable
+as String?,encounterMusicPath: freezed == encounterMusicPath ? _self.encounterMusicPath : encounterMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

@@ -43,6 +43,10 @@ class _GameplayZonePropertiesPanelState
   EncounterKind _encounterKind = EncounterKind.walk;
   String? _encounterBattleBackgroundRelativePath;
   String? _encounterBattleBackgroundMessage;
+  String? _zoneBattleMusicPath;
+  String? _zoneBattleMusicMessage;
+  String? _zoneEncounterMusicPath;
+  String? _zoneEncounterMusicMessage;
 
   // movement
   MovementMode _movementMode = MovementMode.walk;
@@ -316,6 +320,46 @@ class _GameplayZonePropertiesPanelState
           _buildEncounterBattleBackgroundPicker(
             context: context,
             projectRootPath: projectRootPath,
+          ),
+          const SizedBox(height: 8),
+          _buildZoneMusicPicker(
+            context: context,
+            projectRootPath: projectRootPath,
+            title: 'Battle music',
+            keyPrefix: 'gameplay-zone-battle-music',
+            relativePath: _zoneBattleMusicPath,
+            message: _zoneBattleMusicMessage,
+            fallbackLabel: _zoneBattleMusicFallbackLabel(),
+            onPicked: (path) => setState(() {
+              _zoneBattleMusicPath = path;
+              _zoneBattleMusicMessage = null;
+            }),
+            onError: (message) =>
+                setState(() => _zoneBattleMusicMessage = message),
+            onClear: () => setState(() {
+              _zoneBattleMusicPath = null;
+              _zoneBattleMusicMessage = null;
+            }),
+          ),
+          const SizedBox(height: 8),
+          _buildZoneMusicPicker(
+            context: context,
+            projectRootPath: projectRootPath,
+            title: 'Encounter music',
+            keyPrefix: 'gameplay-zone-encounter-music',
+            relativePath: _zoneEncounterMusicPath,
+            message: _zoneEncounterMusicMessage,
+            fallbackLabel: _zoneEncounterMusicFallbackLabel(),
+            onPicked: (path) => setState(() {
+              _zoneEncounterMusicPath = path;
+              _zoneEncounterMusicMessage = null;
+            }),
+            onError: (message) =>
+                setState(() => _zoneEncounterMusicMessage = message),
+            onClear: () => setState(() {
+              _zoneEncounterMusicPath = null;
+              _zoneEncounterMusicMessage = null;
+            }),
           ),
           const SizedBox(height: 8),
         ],
@@ -687,6 +731,189 @@ class _GameplayZonePropertiesPanelState
     );
   }
 
+  /// Ce qui jouera réellement si la zone ne porte rien : la suite de la
+  /// chaîne runtime, rendue visible pour que « vide » ne soit jamais opaque.
+  String _zoneBattleMusicFallbackLabel() {
+    final state = ref.read(editorNotifierProvider);
+    final mapPath = state.activeMap?.mapMetadata.battleMusicPath?.trim();
+    if (mapPath != null && mapPath.isNotEmpty) {
+      return 'Default: ${p.basename(mapPath)} (map)';
+    }
+    final projectPath =
+        state.project?.battleAudio?.wildBattleMusicPath?.trim();
+    if (projectPath != null && projectPath.isNotEmpty) {
+      return 'Default: ${p.basename(projectPath)} (project, wild)';
+    }
+    return 'Default: silence';
+  }
+
+  String _zoneEncounterMusicFallbackLabel() {
+    final projectPath =
+        ref.read(editorNotifierProvider).project?.battleAudio?.encounterMusicPath?.trim();
+    if (projectPath != null && projectPath.isNotEmpty) {
+      return 'Default: ${p.basename(projectPath)} (project)';
+    }
+    return 'Default: silence';
+  }
+
+  Widget _buildZoneMusicPicker({
+    required BuildContext context,
+    required String? projectRootPath,
+    required String title,
+    required String keyPrefix,
+    required String? relativePath,
+    required String? message,
+    required String fallbackLabel,
+    required ValueChanged<String> onPicked,
+    required ValueChanged<String> onError,
+    required VoidCallback onClear,
+  }) {
+    final labelColor = CupertinoColors.label.resolveFrom(context);
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final trimmedPath = relativePath?.trim();
+    final hasExplicitPath = trimmedPath != null && trimmedPath.isNotEmpty;
+    final absolutePath = !hasExplicitPath || projectRootPath == null
+        ? null
+        : p.normalize(p.join(projectRootPath, trimmedPath));
+    final exists = absolutePath != null && File(absolutePath).existsSync();
+    final statusLabel = !hasExplicitPath
+        ? 'default'
+        : exists
+            ? 'linked'
+            : 'missing';
+    final statusColor = switch (statusLabel) {
+      'linked' => EditorChrome.accentJade,
+      'missing' => EditorChrome.inspectorJoyCoral,
+      _ => subtle,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: subtle,
+          ),
+        ),
+        const SizedBox(height: 6),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: EditorChrome.islandFillElevated(context),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: EditorChrome.editorIslandRim(context),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasExplicitPath ? trimmedPath : fallbackLabel,
+                  key: Key('$keyPrefix-value'),
+                  style: TextStyle(
+                    color: hasExplicitPath ? labelColor : subtle,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Status: $statusLabel',
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (message != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: EditorChrome.inspectorJoyCoral,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    CupertinoButton(
+                      key: Key('$keyPrefix-pick'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      onPressed: () => _pickZoneMusic(
+                        projectRootPath: projectRootPath,
+                        onPicked: onPicked,
+                        onError: onError,
+                      ),
+                      child: const Text(
+                        'Choose…',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    CupertinoButton(
+                      key: Key('$keyPrefix-clear'),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      onPressed: hasExplicitPath ? onClear : null,
+                      child: const Text(
+                        'Clear',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickZoneMusic({
+    required String? projectRootPath,
+    required ValueChanged<String> onPicked,
+    required ValueChanged<String> onError,
+  }) async {
+    final normalizedProjectRoot = projectRootPath?.trim();
+    if (normalizedProjectRoot == null || normalizedProjectRoot.isEmpty) {
+      onError('A valid project workspace is required before linking music.');
+      return;
+    }
+
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>['ogg', 'mp3', 'wav', 'flac', 'm4a'],
+      withData: false,
+    );
+    final pickedAbsolutePath = result?.files.single.path?.trim();
+    if (pickedAbsolutePath == null || pickedAbsolutePath.isEmpty) {
+      return;
+    }
+
+    final relativePath = normalizeProjectLocalBattleBackgroundPath(
+      projectRootPath: normalizedProjectRoot,
+      pickedAbsolutePath: pickedAbsolutePath,
+    );
+    if (relativePath == null) {
+      onError('Only project-local audio files can be linked to a zone.');
+      return;
+    }
+    onPicked(relativePath);
+  }
+
   Widget _buildMovementModeDropdown(BuildContext context, Color accent) {
     if (widget.embedded) {
       return InspectorEmbeddedDropdown(
@@ -851,6 +1078,10 @@ class _GameplayZonePropertiesPanelState
     _encounterBattleBackgroundRelativePath =
         zone?.encounter?.battleBackgroundRelativePath;
     _encounterBattleBackgroundMessage = null;
+    _zoneBattleMusicPath = zone?.encounter?.battleMusicPath;
+    _zoneBattleMusicMessage = null;
+    _zoneEncounterMusicPath = zone?.encounter?.encounterMusicPath;
+    _zoneEncounterMusicMessage = null;
 
     // movement
     _movementMode = zone?.movement?.requiredMode ?? MovementMode.walk;
@@ -884,6 +1115,12 @@ class _GameplayZonePropertiesPanelState
           encounterKind: _encounterKind,
           battleBackgroundRelativePath: _normalizeOptionalProjectRelativePath(
             _encounterBattleBackgroundRelativePath,
+          ),
+          battleMusicPath: _normalizeOptionalProjectRelativePath(
+            _zoneBattleMusicPath,
+          ),
+          encounterMusicPath: _normalizeOptionalProjectRelativePath(
+            _zoneEncounterMusicPath,
           ),
         );
       case GameplayZoneKind.movement:

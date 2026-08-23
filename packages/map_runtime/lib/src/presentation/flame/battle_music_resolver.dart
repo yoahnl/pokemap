@@ -1,3 +1,4 @@
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../application/battle_start_request.dart';
@@ -26,11 +27,13 @@ final class BattleMusicSelection {
 ///
 /// Chaîne de précédence, calquée sur la référence (le thème explicite du
 /// dresseur gagne sur le BGM de zone persistant, qui gagne sur les défauts
-/// `Configs.sounds.base*`) :
-/// - combat dresseur : dresseur > carte > défaut projet dresseur ;
-/// - combat sauvage : carte > défaut projet sauvage ;
+/// `Configs.sounds.base*`) — la zone de rencontre s'intercale comme le fait
+/// déjà son fond de combat :
+/// - combat dresseur : dresseur > zone > carte > défaut projet dresseur ;
+/// - combat sauvage : zone > carte > défaut projet sauvage ;
 /// - victoire dresseur : dresseur > défaut projet dresseur ;
-/// - victoire sauvage : défaut projet sauvage.
+/// - victoire sauvage : défaut projet sauvage ;
+/// - rencontre (le « ! ») : zone sous le joueur > défaut projet.
 final class BattleMusicResolver {
   const BattleMusicResolver();
 
@@ -50,6 +53,7 @@ final class BattleMusicResolver {
 
     final battleRelativePath = _firstAuthoredPath([
       if (isTrainerBattle) trainer?.battleMusicPath,
+      _zoneBattleMusicRelativePath(request: request, bundle: bundle),
       bundle.map.mapMetadata.battleMusicPath,
       if (isTrainerBattle)
         defaults?.trainerBattleMusicPath
@@ -72,14 +76,26 @@ final class BattleMusicResolver {
 
   /// Musique de rencontre jouée au repérage (le « ! ») avant le combat.
   ///
-  /// L'équivalent du troisième étage `eye_bgm` de la référence, réduit à un
-  /// défaut projet unique tant qu'aucun besoin par-dresseur n'existe.
+  /// L'équivalent du troisième étage `eye_bgm` de la référence : la zone de
+  /// rencontre sous le joueur peut porter la sienne, sinon le défaut projet.
   String? resolveEncounterMusicAbsolutePath({
     required RuntimeMapBundle bundle,
+    GridPos? playerPos,
   }) {
+    final zone = playerPos == null
+        ? null
+        : _encounterZoneAtPos(
+            bundle: bundle,
+            pos: playerPos,
+            hasAuthoredValue: (payload) =>
+                _isAuthored(payload.encounterMusicPath),
+          );
     return _absolute(
       bundle,
-      _firstAuthoredPath([bundle.manifest.battleAudio?.encounterMusicPath]),
+      _firstAuthoredPath([
+        zone?.encounter?.encounterMusicPath,
+        bundle.manifest.battleAudio?.encounterMusicPath,
+      ]),
     );
   }
 
@@ -92,6 +108,66 @@ final class BattleMusicResolver {
       _firstAuthoredPath([bundle.map.mapMetadata.musicPath]),
     );
   }
+
+  /// La musique de combat portée par la zone de rencontre concernée.
+  ///
+  /// Même règle de ciblage que le fond de zone : une rencontre sauvage vise
+  /// d'abord la zone qui l'a déclenchée (`zoneId`), puis la zone sous le
+  /// joueur ; un combat de dresseur regarde la zone sous le joueur.
+  String? _zoneBattleMusicRelativePath({
+    required BattleStartRequest request,
+    required RuntimeMapBundle bundle,
+  }) {
+    if (request case WildBattleStartRequest(:final zoneId)) {
+      final normalizedZoneId = zoneId.trim();
+      if (normalizedZoneId.isNotEmpty) {
+        for (final zone in bundle.map.gameplayZones) {
+          if (zone.id != normalizedZoneId) continue;
+          final authored = zone.encounter?.battleMusicPath;
+          if (_isAuthored(authored)) return authored;
+          break;
+        }
+      }
+    }
+    final lookupPos = switch (request) {
+      WildBattleStartRequest(:final playerPos) => playerPos,
+      TrainerBattleStartRequest(:final playerPos) => playerPos,
+      StaticBattleStartRequest(:final playerPos) => playerPos,
+    };
+    final zone = _encounterZoneAtPos(
+      bundle: bundle,
+      pos: lookupPos,
+      hasAuthoredValue: (payload) => _isAuthored(payload.battleMusicPath),
+    );
+    return zone?.encounter?.battleMusicPath;
+  }
+
+  MapGameplayZone? _encounterZoneAtPos({
+    required RuntimeMapBundle bundle,
+    required GridPos pos,
+    required bool Function(EncounterZonePayload payload) hasAuthoredValue,
+  }) {
+    MapGameplayZone? bestZone;
+    for (final zone in bundle.map.gameplayZones) {
+      if (zone.kind != GameplayZoneKind.encounter) continue;
+      final payload = zone.encounter;
+      if (payload == null || !hasAuthoredValue(payload)) continue;
+      if (!_containsPos(zone.area, pos)) continue;
+      if (bestZone == null || zone.priority >= bestZone.priority) {
+        bestZone = zone;
+      }
+    }
+    return bestZone;
+  }
+
+  bool _containsPos(MapRect rect, GridPos pos) {
+    return pos.x >= rect.pos.x &&
+        pos.y >= rect.pos.y &&
+        pos.x < rect.pos.x + rect.size.width &&
+        pos.y < rect.pos.y + rect.size.height;
+  }
+
+  bool _isAuthored(String? value) => (value?.trim().isNotEmpty) ?? false;
 
   String? _firstAuthoredPath(List<String?> candidates) {
     for (final candidate in candidates) {

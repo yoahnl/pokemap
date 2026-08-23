@@ -663,6 +663,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         final encounterPath = _trainerEncounterMusicActive
             ? _battleMusicResolver.resolveEncounterMusicAbsolutePath(
                 bundle: _bundle,
+                playerPos: _world.player.pos,
               )
             : null;
         if (encounterPath != null) {

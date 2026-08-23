@@ -14,6 +14,8 @@ _EncounterZonePayload _$EncounterZonePayloadFromJson(
       $enumDecodeNullable(_$EncounterKindEnumMap, json['encounterKind']) ??
       EncounterKind.walk,
   battleBackgroundRelativePath: json['battleBackgroundRelativePath'] as String?,
+  battleMusicPath: json['battleMusicPath'] as String?,
+  encounterMusicPath: json['encounterMusicPath'] as String?,
 );
 
 Map<String, dynamic> _$EncounterZonePayloadToJson(
@@ -22,6 +24,8 @@ Map<String, dynamic> _$EncounterZonePayloadToJson(
   'encounterTableId': instance.encounterTableId,
   'encounterKind': _$EncounterKindEnumMap[instance.encounterKind]!,
   'battleBackgroundRelativePath': instance.battleBackgroundRelativePath,
+  'battleMusicPath': instance.battleMusicPath,
+  'encounterMusicPath': instance.encounterMusicPath,
 };
 
 const _$EncounterKindEnumMap = {
