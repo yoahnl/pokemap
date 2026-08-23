@@ -718,6 +718,17 @@ class BattleOverlayComponent extends PositionComponent {
   /// en bloc dans la narration du premier tour serait une redite.
   bool _introPlayed = false;
 
+  /// L'horloge de présentation des PV, par camp — recette 2026-08-23.
+  ///
+  /// Le HUD Flame la tient déjà via `startingDisplayedHp`, mais sur mobile
+  /// les HUD sont les widgets Flutter nourris par le snapshot, et le snapshot
+  /// publiait l'état FINAL du tour dès `updateState` : barres drainées et
+  /// badge K.O. pendant tout l'avant-impact. Ici : tant que le plan actif
+  /// porte un drain à venir pour un camp, le snapshot publie le PV d'avant ;
+  /// chaque drain joué avance la référence à son `toHp` ; la fin de la
+  /// présentation rend la main à l'état réel.
+  final Map<BattleSideId, int> _presentationHeldHp = <BattleSideId, int>{};
+
   bool get isTurnPresentationActive =>
       (_animationRunner?.isActive ?? false) || _pendingIntroPlan != null;
 
@@ -1157,6 +1168,11 @@ class BattleOverlayComponent extends PositionComponent {
     _selectedMedicineTargetIndex = 0;
     _bagFeedbackMessage = null;
     _activeAnimationPlan = animationPlan;
+    _presentationHeldHp.clear();
+    for (final step
+        in animationPlan.flattenedSteps.whereType<HudHpTweenStep>()) {
+      _presentationHeldHp.putIfAbsent(step.side, () => step.fromHp);
+    }
     _presentationLockedCombatantSides =
         _lockedCombatantSidesFor(animationPlan).toSet();
     _resetBattleCamera();
@@ -1787,7 +1803,9 @@ class BattleOverlayComponent extends PositionComponent {
     final targetSide = isPlayerSide ? BattleSideId.player : BattleSideId.enemy;
     final presentationStep = _animationRunner?.currentHpTweenStep;
     final isHpTweenStep = presentationStep?.side == targetSide;
-    final statusLabel = combatant.isFainted
+    final heldHp = _presentationHeldHp[targetSide];
+    final koIsPresented = heldHp == null || heldHp <= 0;
+    final statusLabel = combatant.isFainted && koIsPresented
         ? 'K.O.'
         : combatant.majorStatus?.id.name.toUpperCase();
     return BattleCommandOverlayHudSnapshot(
@@ -1797,8 +1815,9 @@ class BattleOverlayComponent extends PositionComponent {
       level: combatant.level,
       currentHp: combatant.currentHp,
       maxHp: combatant.maxHp,
-      displayedHp:
-          isHpTweenStep ? presentationStep!.fromHp : combatant.currentHp,
+      displayedHp: isHpTweenStep
+          ? presentationStep!.fromHp
+          : (heldHp ?? combatant.currentHp),
       targetDisplayedHp: isHpTweenStep ? presentationStep!.toHp : null,
       hpTweenDurationMs: isHpTweenStep ? presentationStep!.durationMs : null,
       hpTweenRevision:
@@ -2537,6 +2556,7 @@ class BattleOverlayComponent extends PositionComponent {
     }
     _resetBattleCamera();
     _presentationLockedCombatantSides = <BattleSideId>{};
+    _presentationHeldHp.clear();
     _activeAnimationPlan =
         const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
     final presentationGeneration = _presentationGeneration;
@@ -2912,6 +2932,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleHudHpTweenStep(HudHpTweenStep step) {
+    _presentationHeldHp[step.side] = step.toHp;
     _hudForSide(step.side)?.animateDisplayedHp(
       fromHp: step.fromHp,
       toHp: step.toHp,

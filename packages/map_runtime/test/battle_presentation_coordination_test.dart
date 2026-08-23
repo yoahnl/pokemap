@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 
 // Recette du 2026-08-23 (vidéo 18-58-46) : « soucis de coordination entre les
 // attaques, le résultat visuel sur la barre, le moment où l'on est mort et
@@ -59,12 +60,14 @@ BattleSession _fatalSession() {
 
 Future<BattleOverlayComponent> _mountFatalTurn({
   BattleSfxPlayerLog? seLog,
+  void Function(BattleCommandOverlaySnapshot?)? onSnapshot,
 }) async {
   final session = _fatalSession();
   final overlay = BattleOverlayComponent(
     session: session,
     viewportSize: Vector2(960, 540),
     onPlayerChoice: (_) {},
+    onCommandOverlaySnapshotChanged: onSnapshot,
     playSfx: seLog == null
         ? null
         : (name, {required volume, required pitch}) => seLog.add(name),
@@ -115,6 +118,42 @@ void main() {
       'K.O.',
       reason: 'une fois la mort JOUÉE, le badge dit la vérité',
     );
+  });
+
+  // Recette 2026-08-23 (vidéo 19-51-35, iOS) : sur mobile les HUD sont les
+  // widgets Flutter nourris par le snapshot — et le snapshot publiait l'état
+  // FINAL du tour (PV drainés, badge K.O.) dès le updateState, pendant toute
+  // la fenêtre de préchargement et les phases d'avant-impact. « Je lance une
+  // attaque et PAF les deux barres descendent, PUIS les animations. »
+  test('le snapshot mobile tient les PV d’avant-tour jusqu’au drain joué',
+      () async {
+    BattleCommandOverlaySnapshot? snapshot;
+    final overlay = await _mountFatalTurn(onSnapshot: (s) => snapshot = s);
+    overlay.setUseFlutterCommandOverlay(true);
+    await _pump(overlay, 0.2);
+
+    expect(snapshot, isNotNull);
+    expect(
+      snapshot!.playerHud.displayedHp,
+      1,
+      reason: 'l’issue est calculée mais pas jouée : le mobile doit tenir '
+          'le PV d’avant-tour comme le fait le HUD Flame',
+    );
+    expect(
+      snapshot!.enemyHud.displayedHp,
+      12,
+      reason: 'la barre ennemie aussi attend son impact',
+    );
+    expect(
+      snapshot!.playerHud.statusLabel,
+      isNot('K.O.'),
+      reason: 'le badge K.O. mobile ne spoile pas la mort',
+    );
+
+    await _pump(overlay, 12.0);
+    expect(snapshot!.playerHud.displayedHp, 0);
+    expect(snapshot!.playerHud.statusLabel, 'K.O.');
+    expect(snapshot!.enemyHud.displayedHp, lessThan(12));
   });
 
   test('la timeline du tour fatal reste dans l’ordre de la référence',

@@ -38,7 +38,12 @@ class BattleTransitionOverlayComponent extends PositionComponent {
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
-          priority: 96,
+          // Recette 2026-08-23 (vidéo 19-51-35) : la scène de combat vit à 97
+          // et se monte SOUS le noir pendant que la pré-transition joue — à
+          // 96, flash, planche et noir jouaient intégralement DERRIÈRE elle.
+          // 101 couvre le combat (97), le post-combat (99) et le dialogue
+          // (100) : rien ne perce le rideau pendant l'entrée en combat.
+          priority: 101,
         );
 
   final BattleTransitionSpec spec;
@@ -67,6 +72,12 @@ class BattleTransitionOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   int get debugPhaseIndex => _phaseIndex;
+
+  @visibleForTesting
+  bool get debugReady => _ready;
+
+  @visibleForTesting
+  double get debugScreenAlpha => _screenColor.a;
 
   @override
   Future<void> onLoad() async {

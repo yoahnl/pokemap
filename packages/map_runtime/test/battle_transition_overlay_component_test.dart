@@ -36,6 +36,25 @@ Future<void> _flushMicrotasks() => Future<void>.delayed(Duration.zero);
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('le rideau couvre la scène de combat (97), le post-combat (99) et le '
+      'dialogue (100)', () async {
+    final overlay = await _loadedOverlay(
+      spec: battleTransitionRbyWild,
+      onBlackHeld: () {},
+    );
+    expect(
+      overlay.priority,
+      greaterThan(100),
+      reason: 'recette 2026-08-23 (19-51-35) : à 96 le flash, la planche et '
+          'le noir jouaient intégralement DERRIÈRE la scène montée à 97',
+    );
+    expect(
+      overlay.priority,
+      lessThan(150000),
+      reason: 'les notifications système du runtime restent au-dessus',
+    );
+  });
+
   test('joue les phases dans l’ordre et notifie le noir une seule fois',
       () async {
     var blackHeldCount = 0;
