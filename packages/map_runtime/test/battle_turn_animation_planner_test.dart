@@ -362,7 +362,7 @@ void main() {
       expect(plan.steps.whereType<PlayRmxpAnimationStep>(), isNotEmpty);
     });
 
-    test('damage that faints the target adds KO and victory narration', () {
+    test('damage that faints the target adds KO narration', () {
       final before = _session(
         player: _combatant(
           speciesId: 'sproutle',
@@ -397,7 +397,11 @@ void main() {
           plan.steps.whereType<ShowMessageStep>().map((step) => step.message);
       expect(after.state.outcome!.isVictory, isTrue);
       expect(messages, contains('roucoups est K.O. !'));
-      expect(messages, contains('Tu as gagné le combat !'));
+      // BETA-BAT-012 : ce combat est SAUVAGE (`_session` construit un setup non
+      // dresseur), et une victoire sauvage ne s'annonce plus — décision de
+      // Yoahn du 2026-08-23, alignée sur la référence où `show_wild_victory` ne
+      // fait qu'un changement de musique et l'XP. Le K.O. reste annoncé.
+      expect(messages, isNot(contains('Tu as gagné le combat !')));
       expect(plan.steps.whereType<FaintCombatantStep>().single.side,
           BattleSideId.enemy);
     });
@@ -1041,6 +1045,88 @@ void main() {
 
       expect(firstMessage, lessThan(groupIndex));
       expect(faintIndex, greaterThan(groupIndex));
+    });
+  });
+  // BETA-BAT-012 : le texte de fin arrive quand le tour est FINI, et une
+  // victoire sauvage ne s'annonce pas.
+  //
+  // Décision de Yoahn du 2026-08-23 : on suit la référence, où
+  // `show_wild_victory` ne fait qu'un changement de musique et l'XP.
+  group('BETA-BAT-012 — annonce de fin de combat', () {
+    test('une victoire sauvage ne produit aucun texte', () {
+      final outcome = BattleOutcome(
+        type: BattleOutcomeType.victory,
+        finalState: _session(
+          player: _combatant(
+            speciesId: 'froakie',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'water_gun', name: 'Water Gun', type: 'water'),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'machop',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'low_kick', name: 'Low Kick', type: 'fighting'),
+            ],
+          ),
+        ).state,
+      );
+
+      expect(
+        battleOutcomeIsAnnounced(outcome, isTrainerBattle: false),
+        isFalse,
+        reason: 'la référence n’annonce pas une victoire sauvage',
+      );
+      expect(
+        battleOutcomeIsAnnounced(outcome, isTrainerBattle: true),
+        isTrue,
+        reason: 'un combat de dresseur garde son texte',
+      );
+    });
+
+    test('les autres issues gardent leur texte, sauvage ou non', () {
+      final state = _session(
+        player: _combatant(
+          speciesId: 'froakie',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'water_gun', name: 'Water Gun', type: 'water'),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'machop',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'low_kick', name: 'Low Kick', type: 'fighting'),
+          ],
+        ),
+      ).state;
+
+      for (final type in const <BattleOutcomeType>[
+        BattleOutcomeType.defeat,
+        BattleOutcomeType.runaway,
+        BattleOutcomeType.captured,
+      ]) {
+        // Une capture doit identifier son objet et sa tentative : le domaine
+        // le refuse autrement, et c'est une bonne assertion.
+        final outcome = type == BattleOutcomeType.captured
+            ? BattleOutcome(
+                type: type,
+                finalState: state,
+                captureItemId: 'poke_ball',
+                captureAttemptId: 'attempt-1',
+              )
+            : BattleOutcome(type: type, finalState: state);
+        for (final trainer in const <bool>[false, true]) {
+          expect(
+            battleOutcomeIsAnnounced(outcome, isTrainerBattle: trainer),
+            isTrue,
+            reason: '$type doit rester annoncé (dresseur=$trainer)',
+          );
+        }
+      }
     });
   });
 }

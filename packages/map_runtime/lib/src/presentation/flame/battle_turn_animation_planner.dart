@@ -54,7 +54,11 @@ final class BattleTurnAnimationPlanner {
       }
       return BattleAnimationPlan(
         steps: List<BattleAnimationStep>.unmodifiable(
-          _buildOutcomeSteps(outcome),
+          _buildOutcomeSteps(
+            outcome,
+            isTrainerBattle: newSession.setup.isTrainerBattle,
+            speciesDisplayName: speciesDisplayName,
+          ),
         ),
       );
     }
@@ -72,7 +76,11 @@ final class BattleTurnAnimationPlanner {
     return BattleAnimationPlan(
       steps: List<BattleAnimationStep>.unmodifiable(<BattleAnimationStep>[
         ...plan.steps,
-        ..._buildOutcomeSteps(outcome),
+        ..._buildOutcomeSteps(
+          outcome,
+          isTrainerBattle: newSession.setup.isTrainerBattle,
+          speciesDisplayName: speciesDisplayName,
+        ),
       ]),
     );
   }
@@ -570,14 +578,40 @@ final class BattleTurnAnimationPlanner {
   }
 }
 
-List<BattleAnimationStep> _buildOutcomeSteps(BattleOutcome outcome) {
+/// BETA-BAT-012 — une victoire en combat SAUVAGE ne s'annonce pas.
+///
+/// Décision de Yoahn du 2026-08-23, alignée sur la référence : chez PSDK
+/// `show_wild_victory` ne fait qu'un changement de musique, l'XP et un message
+/// d'argent optionnel. Le texte de victoire est réservé aux combats de dresseur,
+/// où il accompagne le retour des sprites.
+///
+/// Les autres issues gardent leur texte : une défaite, une fuite et une capture
+/// ont chacune leur propre annonce dans la référence aussi.
+///
+/// Ce prédicat est le SEUL : le plan d'animation et le bandeau de l'overlay le
+/// consultent tous les deux, faute de quoi l'un pourrait annoncer ce que l'autre
+/// taît.
+bool battleOutcomeIsAnnounced(
+  BattleOutcome outcome, {
+  required bool isTrainerBattle,
+}) =>
+    isTrainerBattle || outcome.type != BattleOutcomeType.victory;
+
+List<BattleAnimationStep> _buildOutcomeSteps(
+  BattleOutcome outcome, {
+  required bool isTrainerBattle,
+  required BattleTurnSpeciesDisplayName speciesDisplayName,
+}) {
+  if (!battleOutcomeIsAnnounced(outcome, isTrainerBattle: isTrainerBattle)) {
+    return const <BattleAnimationStep>[];
+  }
   final message = switch (outcome.type) {
     BattleOutcomeType.victory => 'Tu as gagné le combat !',
     BattleOutcomeType.defeat =>
       'Tu n’as plus de Pokémon en état de combattre !',
     BattleOutcomeType.runaway => 'Tu as pris la fuite !',
     BattleOutcomeType.captured =>
-      '${outcome.finalState.enemy.speciesId} est capturé !',
+      '${speciesDisplayName(outcome.finalState.enemy.speciesId)} est capturé !',
   };
   return <BattleAnimationStep>[ShowMessageStep(message: message)];
 }

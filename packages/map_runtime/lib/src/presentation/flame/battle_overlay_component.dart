@@ -571,6 +571,13 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCommandPanelComponent? _commandPanel;
   BattleDebugPanelComponent? _debugPanel;
   TextComponent? _outcomeBanner;
+
+  /// Le texte du bandeau de fin, ou `null` quand il n'y en a pas.
+  ///
+  /// BETA-BAT-012 : exposé parce que le défaut portait précisément sur le
+  /// MOMENT où ce bandeau apparaît, et qu'aucun test ne pouvait le voir.
+  @visibleForTesting
+  String? get outcomeBannerText => _outcomeBanner?.text;
   Future<void>? _pendingVisualSync;
   // BETA-BAT-011 : le planner reçoit les MÊMES résolveurs que le HUD et le
   // menu. `late` parce qu'un initialiseur de champ ne peut pas lire `this`, et
@@ -658,6 +665,19 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   bool get isTurnPresentationActive => _animationRunner?.isActive ?? false;
+
+  /// Une présentation est en cours OU pas encore démarrée.
+  ///
+  /// BETA-BAT-012 : [isTurnPresentationActive] ne regarde que le runner, et il
+  /// existe une fenêtre entre le moment où le plan est posé et celui où le
+  /// runner l'entame. C'est dans cette fenêtre que le bandeau de fin
+  /// s'affichait, puisque le plan n'avait encore rien joué.
+  ///
+  /// Le plan est remis à vide quand le runner a fini, donc « plan non vide ou
+  /// runner actif » couvre exactement la durée d'une présentation.
+  bool get _presentationPendingOrRunning =>
+      (_animationRunner?.isActive ?? false) ||
+      _activeAnimationPlan.steps.isNotEmpty;
 
   @visibleForTesting
   bool get isBattleCameraFocusActive => _battleCameraRig.isActive;
@@ -2321,13 +2341,28 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _syncOutcomeBanner() {
-    if (!_session.state.isFinished || _session.state.outcome == null) {
+    final outcome = _session.state.outcome;
+    // BETA-BAT-012 : deux horloges. L'issue est décidée dès que le tour est
+    // CALCULÉ, bien avant d'être JOUÉ, et ce bandeau ne regardait que la
+    // première — il s'affichait donc par-dessus l'attaque qui provoquait la
+    // victoire. Il attend maintenant que le plan d'animation soit vidé.
+    //
+    // La référence obtient la même chose par trois barrières structurelles :
+    // aucune phase n'est dispatchée pendant qu'un message est à l'écran,
+    // `wait_for_animation` bloque la pile, et l'animation d'une capacité est
+    // drainée deux fois avant que sa procédure ne rende la main.
+    if (!_session.state.isFinished ||
+        outcome == null ||
+        _presentationPendingOrRunning ||
+        !battleOutcomeIsAnnounced(
+          outcome,
+          isTrainerBattle: _session.setup.isTrainerBattle,
+        )) {
       _outcomeBanner?.removeFromParent();
       _outcomeBanner = null;
       return;
     }
 
-    final outcome = _session.state.outcome!;
     final bannerText = _buildOutcomeHeadline(
       outcome,
       resolveSpeciesDisplayName,

@@ -3231,6 +3231,127 @@ void main() {
       expect(overlay.currentPlayerHudSpeciesText, equals('aquafi ♂'));
     });
 
+    // BETA-BAT-012 : le bandeau de fin attend que le tour soit joué.
+    //
+    // Le défaut filmé sur appareil : « Tu as gagné le combat ! » en gros vert
+    // au centre, EN MÊME TEMPS que « pidgey utilise Tackle ! » dans la boîte de
+    // message, avec l'adversaire encore affiché. L'issue est décidée quand le
+    // tour est CALCULÉ, et le bandeau suivait cette horloge au lieu de celle de
+    // l'animation.
+    test('le bandeau de victoire n’apparaît pas pendant le tour', () async {
+      // Un combat de DRESSEUR : une victoire sauvage ne s'annonce plus du tout,
+      // donc elle ne pourrait pas prouver un problème de moment.
+      final session = _session(
+        isTrainerBattle: true,
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 40,
+          stats: _stats(speed: 120, attack: 180),
+          moves: <BattleMoveData>[_runtimeStrike(power: 180)],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          maxHp: 24,
+          currentHp: 24,
+          stats: _stats(speed: 40, defense: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: session,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(
+        afterTurn.state.outcome?.isVictory,
+        isTrue,
+        reason: 'l’issue est déjà décidée à cet instant — c’est tout le sujet',
+      );
+
+      overlay.updateState(afterTurn);
+      await overlay.waitForPendingVisualSync();
+
+      expect(
+        overlay.outcomeBannerText,
+        isNull,
+        reason: 'le bandeau s’affichait dès que l’issue était décidée, '
+            'par-dessus l’attaque qui la provoquait',
+      );
+
+      // On avance par petits pas et on vérifie qu'à AUCUN moment le bandeau ne
+      // cohabite avec un message de tour.
+      var sawPresentation = false;
+      for (var step = 0; step < 40; step += 1) {
+        overlay.updateTree(0.1);
+        if (overlay.isTurnPresentationActive) {
+          sawPresentation = true;
+          expect(
+            overlay.outcomeBannerText,
+            isNull,
+            reason: 'bandeau visible alors que le tour joue encore',
+          );
+        }
+      }
+
+      expect(sawPresentation, isTrue, reason: 'le tour doit avoir été joué');
+      expect(overlay.isTurnPresentationActive, isFalse);
+      // La synchronisation visuelle qui pose le bandeau est asynchrone : la
+      // boucle d'images ci-dessus ne laisse pas tourner la boucle d'événements.
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.outcomeBannerText, 'Tu as gagné le combat !');
+    });
+
+    test('une victoire sauvage n’affiche aucun bandeau', () async {
+      // Décision de Yoahn du 2026-08-23 : parité avec la référence, où
+      // `show_wild_victory` ne fait qu'un changement de musique et l'XP.
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 40,
+          stats: _stats(speed: 120, attack: 180),
+          moves: <BattleMoveData>[_runtimeStrike(power: 180)],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          maxHp: 24,
+          currentHp: 24,
+          stats: _stats(speed: 40, defense: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: session,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      overlay.updateState(afterTurn);
+      await overlay.waitForPendingVisualSync();
+      for (var step = 0; step < 40; step += 1) {
+        overlay.updateTree(0.1);
+      }
+      await overlay.waitForPendingVisualSync();
+
+      expect(afterTurn.state.outcome?.isVictory, isTrue);
+      expect(overlay.isTurnPresentationActive, isFalse);
+      expect(overlay.outcomeBannerText, isNull);
+    });
+
     test('plays a short turn presentation with hp tween on damage', () async {
       final session = _session(
         player: _combatant(
