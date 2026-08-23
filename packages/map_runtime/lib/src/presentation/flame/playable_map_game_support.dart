@@ -8,7 +8,6 @@ final class _PlayableMapCinematicRuntimeHost
   TextComponent? _dialogueLineOverlay;
   RectangleComponent? _fadeOverlay;
   Paint? _fadePaint;
-  static const double _emoteOverlayLift = 22;
   static const double _emoteFrameStepSeconds = 0.28;
 
   PositionComponent? _emoteOverlay;
@@ -226,8 +225,23 @@ final class _PlayableMapCinematicRuntimeHost
     FlameCinematicRuntimeActorHandle actor,
   ) {
     _emoteOverlay?.removeFromParent();
+    final actorSize = actor.visualSize;
+    final targetScale = cinematicEmoteTargetScale(
+      naturalHeight: component.size.y,
+      actorHeight: actorSize.y,
+    );
     component
-      ..position = actor.focusPoint - Vector2(0, _emoteOverlayLift)
+      // `bottomCenter` : la position est le BAS de la bulle. La poser à la
+      // moitié de la hauteur au-dessus du centre, plus un dégagement, la met
+      // entièrement au-dessus de la tête.
+      ..position = Vector2(
+        actor.focusPoint.x,
+        cinematicEmoteOverlayBottomY(
+          actorCentreY: actor.focusPoint.y,
+          actorHeight: actorSize.y,
+        ),
+      )
+      ..scale = Vector2.all(targetScale * cinematicEmotePopInFactor)
       ..priority = 200000;
     _game.world.add(component);
     _emoteOverlay = component;
@@ -238,12 +252,14 @@ final class _PlayableMapCinematicRuntimeHost
       if (!component.isMounted) return;
       component.add(
         ScaleEffect.to(
-          Vector2.all(1),
+          Vector2.all(targetScale),
           EffectController(duration: 0.18, curve: Curves.easeOutBack),
         ),
       );
     }));
   }
+
+
 
   PositionComponent _emoteGlyphComponent(String emoteId) {
     return TextComponent(
@@ -259,7 +275,7 @@ final class _PlayableMapCinematicRuntimeHost
         ),
       ),
       anchor: Anchor.bottomCenter,
-    )..scale = Vector2.all(0.6);
+    );
   }
 
   PositionComponent _emoteSpriteComponent(List<Sprite> frames) {
@@ -269,7 +285,7 @@ final class _PlayableMapCinematicRuntimeHost
         sprite: frames.first,
         size: size,
         anchor: Anchor.bottomCenter,
-      )..scale = Vector2.all(0.6);
+      );
     }
     // Les atlas dessinent chaque emote sur deux images : les alterner est
     // l'animation voulue par l'auteur, là où le runtime n'affichait qu'un
@@ -281,7 +297,7 @@ final class _PlayableMapCinematicRuntimeHost
       ),
       size: size,
       anchor: Anchor.bottomCenter,
-    )..scale = Vector2.all(0.6);
+    );
   }
 
   @override
@@ -354,6 +370,9 @@ final class _PlayableMapPlayerCinematicActorHandle
   Vector2 get focusPoint => _player.focusPoint;
 
   @override
+  Vector2 get visualSize => _player.size.clone();
+
+  @override
   EntityFacing get facing => _player.cinematicFacing;
 
   @override
@@ -395,6 +414,9 @@ final class _PlayableMapNpcCinematicActorHandle
   Vector2 get focusPoint => _actor.position + _actor.size / 2;
 
   @override
+  Vector2 get visualSize => _actor.size.clone();
+
+  @override
   EntityFacing get facing => _actor.facing;
 
   @override
@@ -407,6 +429,52 @@ final class _PlayableMapNpcCinematicActorHandle
     _actor.setMotion(facing, CharacterAnimationState.idle);
   }
 }
+
+/// BETA-TRN-001 — une emote se dimensionne et se place PAR RAPPORT au sprite.
+///
+/// L'objectif signé du ticket dit « affiche un point d'exclamation au-dessus de
+/// sa tête ». La bulle était décalée de 22 unités depuis le CENTRE de l'acteur :
+/// pour un sprite de 48 de haut, son bas atterrissait 2 unités SOUS le sommet
+/// du crâne, donc sur le chapeau. Et un cadre d'atlas fait 16×16 alors que les
+/// cartes du projet sont en tuiles de 32, ce qui donnait une bulle d'une
+/// demi-tuile.
+///
+/// Ces règles sont des fractions de la hauteur du personnage : elles restent
+/// justes quel que soit le sprite ou la taille de tuile, ce qu'une constante en
+/// unités monde ne pouvait pas garantir. La proportion de taille est un choix de
+/// lisibilité, pas une mesure prise sur la référence — PSDK joue son « ! »
+/// comme une particule dont le zoom est un multiplicateur brut, sans ratio à
+/// recopier.
+@visibleForTesting
+const double cinematicEmoteHeightFactor = 0.6;
+
+@visibleForTesting
+const double cinematicEmoteHeadClearance = 3;
+
+@visibleForTesting
+const double cinematicEmotePopInFactor = 0.6;
+
+/// L'échelle qui donne à l'emote une hauteur proportionnelle au personnage.
+///
+/// Jamais inférieure à 1 : la règle agrandit une bulle trop petite, elle ne
+/// rapetisse pas celle d'un auteur qui en a fourni une généreuse.
+@visibleForTesting
+double cinematicEmoteTargetScale({
+  required double naturalHeight,
+  required double actorHeight,
+}) {
+  if (naturalHeight <= 0 || actorHeight <= 0) return 1;
+  final scale = (actorHeight * cinematicEmoteHeightFactor) / naturalHeight;
+  return scale < 1 ? 1 : scale;
+}
+
+/// L'ordonnée du BAS de la bulle, l'ancre du composant étant `bottomCenter`.
+@visibleForTesting
+double cinematicEmoteOverlayBottomY({
+  required double actorCentreY,
+  required double actorHeight,
+}) =>
+    actorCentreY - (actorHeight / 2 + cinematicEmoteHeadClearance);
 
 String _cinematicEmoteGlyph(String emoteId) {
   return switch (emoteId) {

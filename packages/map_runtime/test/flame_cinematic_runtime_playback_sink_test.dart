@@ -294,6 +294,10 @@ final class _FakeActor implements FlameCinematicCharacterAnimationActorHandle {
   @override
   Vector2 focusPoint;
 
+  /// Un sprite de personnage de 32x48, la forme du projet.
+  @override
+  Vector2 visualSize = Vector2(32, 48);
+
   @override
   EntityFacing facing;
   final List<String> playedDefinitions = <String>[];

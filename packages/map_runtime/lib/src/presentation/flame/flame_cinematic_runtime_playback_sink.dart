@@ -16,6 +16,14 @@ import '../../application/character_custom_animation_runtime_controller.dart';
 abstract interface class FlameCinematicRuntimeActorHandle {
   Vector2 get focusPoint;
 
+  /// Encombrement visuel du sprite, en unités monde.
+  ///
+  /// BETA-TRN-001 : une emote se place et se dimensionne PAR RAPPORT au
+  /// personnage. Sans cette taille, l'overlay ne pouvait que deviner — il
+  /// décalait de 22 unités depuis le CENTRE de l'acteur, ce qui posait la bulle
+  /// sur la tête au lieu de la mettre au-dessus.
+  Vector2 get visualSize;
+
   EntityFacing get facing;
 
   void setFocusPoint(Vector2 focusPoint);
