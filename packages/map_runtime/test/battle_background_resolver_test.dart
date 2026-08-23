@@ -9,6 +9,7 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_compone
 
 RuntimeMapBundle _runtimeBundle({
   List<MapGameplayZone> gameplayZones = const <MapGameplayZone>[],
+  List<MapLayer> layers = const <MapLayer>[],
   List<ProjectTrainerEntry> trainers = const <ProjectTrainerEntry>[],
   MapMetadata mapMetadata = const MapMetadata(),
 }) {
@@ -31,6 +32,7 @@ RuntimeMapBundle _runtimeBundle({
       size: const GridSize(width: 10, height: 10),
       mapMetadata: mapMetadata,
       gameplayZones: gameplayZones,
+      layers: layers,
     ),
     projectRootDirectory: '/tmp/runtime_background_resolver_test_project',
     tilesetAbsolutePathsById: const <String, String>{},
@@ -38,7 +40,8 @@ RuntimeMapBundle _runtimeBundle({
 }
 
 WildBattleStartRequest _wildRequest({
-  String zoneId = 'grass_zone',
+  String encounterSourceId = 'grass_zone',
+  EncounterSourceKind encounterSourceKind = EncounterSourceKind.gameplayZone,
   GridPos playerPos = const GridPos(x: 2, y: 2),
 }) {
   return WildBattleStartRequest(
@@ -50,7 +53,8 @@ WildBattleStartRequest _wildRequest({
       playerFacing: Direction.north,
     ),
     mapId: 'field_map',
-    zoneId: zoneId,
+    encounterSourceId: encounterSourceId,
+    encounterSourceKind: encounterSourceKind,
     tableId: 'grass_table',
     encounterKind: EncounterKind.walk,
     speciesId: 'sparkitten',
@@ -116,6 +120,46 @@ void main() {
       expect(
         spec.explicitImageAbsolutePath,
         '/tmp/runtime_background_resolver_test_project/assets/battle_backgrounds/grass_zone.png',
+      );
+    });
+
+    test('wild battle uses Smart Tile encounter source explicit background',
+        () {
+      final bundle = _runtimeBundle(
+        layers: const <MapLayer>[
+          SmartTileLayer(
+            id: 'grass_north',
+            name: 'Tall grass north',
+            presetId: 'grass-preset',
+            usage: SmartTileUsage.path,
+            materialPalette: <String>['', 'tall_grass'],
+            field: SmartTileField.cell(
+              semanticCells: <int>[0, 1],
+            ),
+            encounterBehavior: SmartTileEncounterBehavior(
+              materialId: 'tall_grass',
+              encounter: EncounterZonePayload(
+                encounterTableId: 'grass_table',
+                encounterKind: EncounterKind.walk,
+                battleBackgroundRelativePath:
+                    'assets/battle_backgrounds/smart_grass.png',
+              ),
+            ),
+          ),
+        ],
+      );
+
+      final spec = resolver.resolve(
+        request: _wildRequest(
+          encounterSourceId: 'smart_tile_layer:grass_north',
+          encounterSourceKind: EncounterSourceKind.smartTileLayer,
+        ),
+        bundle: bundle,
+      );
+
+      expect(
+        spec.explicitImageAbsolutePath,
+        '/tmp/runtime_background_resolver_test_project/assets/battle_backgrounds/smart_grass.png',
       );
     });
 

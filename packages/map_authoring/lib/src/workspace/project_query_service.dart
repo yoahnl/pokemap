@@ -1762,6 +1762,13 @@ Map<String, Object?> _smartTileLayerSummary(
       'presetId': layer.presetId,
       'usage': layer.usage.name,
       'authoredValueCount': smartTileAuthoredValueCount(layer),
+      if (layer.encounterBehavior case final behavior?)
+        'encounterBehavior': <String, Object?>{
+          'materialId': behavior.materialId,
+          'priority': behavior.priority,
+          'encounterTableId': behavior.encounter.encounterTableId,
+          'encounterKind': behavior.encounter.encounterKind.name,
+        },
     };
 
 Map<String, Object?> _borderBlueprintSummary(BorderBlueprintRecord record) =>

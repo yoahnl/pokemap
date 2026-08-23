@@ -8,7 +8,7 @@ enum RuntimeBattleKind {
 }
 
 enum RuntimeBattleSourceKind {
-  encounterZone,
+  wildEncounter,
   trainerInteraction,
   staticEncounter,
   script,
@@ -65,7 +65,8 @@ class WildBattleStartRequest extends BattleStartRequest {
     required super.createdAtEpochMs,
     required super.returnContext,
     required this.mapId,
-    required this.zoneId,
+    required this.encounterSourceId,
+    required this.encounterSourceKind,
     required this.tableId,
     required this.encounterKind,
     required this.speciesId,
@@ -81,11 +82,12 @@ class WildBattleStartRequest extends BattleStartRequest {
     this.generationSchemaVersion = 0,
   }) : super(
           kind: RuntimeBattleKind.wild,
-          source: RuntimeBattleSourceKind.encounterZone,
+          source: RuntimeBattleSourceKind.wildEncounter,
         );
 
   final String mapId;
-  final String zoneId;
+  final String encounterSourceId;
+  final EncounterSourceKind encounterSourceKind;
   final String tableId;
   final EncounterKind encounterKind;
   final String speciesId;
@@ -110,7 +112,8 @@ class WildBattleStartRequest extends BattleStartRequest {
       createdAtEpochMs: createdAtEpochMs,
       returnContext: returnContext,
       mapId: mapId,
-      zoneId: zoneId,
+      encounterSourceId: encounterSourceId,
+      encounterSourceKind: encounterSourceKind,
       tableId: tableId,
       encounterKind: encounterKind,
       speciesId: speciesId,
@@ -136,7 +139,8 @@ class WildBattleStartRequest extends BattleStartRequest {
       'source': source.name,
       'returnContext': returnContext.toJson(),
       'mapId': mapId,
-      'zoneId': zoneId,
+      'encounterSourceId': encounterSourceId,
+      'encounterSourceKind': encounterSourceKind.name,
       'tableId': tableId,
       'encounterKind': encounterKind.name,
       'speciesId': speciesId,

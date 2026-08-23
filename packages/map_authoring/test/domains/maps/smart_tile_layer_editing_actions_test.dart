@@ -18,6 +18,8 @@ void main() {
           'smart_tile.layer.reconstruct',
           'smart_tile.layer.set_animation_activation',
           'smart_tile.layer.set_candidate_weights',
+          'smart_tile.layer.set_encounter_behavior',
+          'smart_tile.layer.clear_encounter_behavior',
         ],
       );
     });

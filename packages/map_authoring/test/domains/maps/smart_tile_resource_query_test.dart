@@ -64,6 +64,25 @@ void main() {
     expect(coverage['exactCount'], 1);
     expect(coverage['isExact'], isTrue);
   });
+
+  test('layer summary exposes the native encounter behavior', () {
+    final page = const ProjectQueryService().query(
+      _snapshot(),
+      AuthoringQueryRequest(
+        resourceKind: 'smartTileLayer',
+        operation: AuthoringQueryOperation.get,
+        view: AuthoringQueryView.summary,
+        ids: <String>['map:terrain'],
+      ),
+    );
+
+    expect(page.items.single['encounterBehavior'], <String, Object?>{
+      'materialId': 'grass',
+      'priority': 2,
+      'encounterTableId': 'route_grass',
+      'encounterKind': 'walk',
+    });
+  });
 }
 
 ProjectSnapshot _snapshot() {
@@ -164,6 +183,14 @@ ProjectSnapshot _snapshot() {
         usage: SmartTileUsage.terrain,
         materialPalette: <String>['', 'grass'],
         field: SmartTileField.cell(semanticCells: <int>[1]),
+        encounterBehavior: SmartTileEncounterBehavior(
+          materialId: 'grass',
+          priority: 2,
+          encounter: EncounterZonePayload(
+            encounterTableId: 'route_grass',
+            encounterKind: EncounterKind.walk,
+          ),
+        ),
       ),
     ],
   );
@@ -182,6 +209,20 @@ ProjectSnapshot _snapshot() {
         id: 'tileset',
         name: 'Tileset',
         relativePath: 'assets/tileset.png',
+      ),
+    ],
+    encounterTables: const <ProjectEncounterTable>[
+      ProjectEncounterTable(
+        id: 'route_grass',
+        name: 'Route grass',
+        encounterKind: EncounterKind.walk,
+        entries: <ProjectEncounterEntry>[
+          ProjectEncounterEntry(
+            speciesId: 'pidgey',
+            minLevel: 3,
+            maxLevel: 3,
+          ),
+        ],
       ),
     ],
     smartTileCatalog: ProjectSmartTileCatalog(

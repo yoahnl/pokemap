@@ -276,6 +276,21 @@ function nativeSmartTileV5Project(mixed = false): JsonRecord {
         relativePath: "assets/smart_tileset.png",
       },
     ],
+    encounterTables: [
+      {
+        id: "route_grass",
+        name: "Route grass",
+        encounterKind: "walk",
+        entries: [
+          {
+            speciesId: "pidgey",
+            minLevel: 3,
+            maxLevel: 3,
+            weight: 1,
+          },
+        ],
+      },
+    ],
     smartTileCatalog: {
       formatVersion: 2,
       categories: [],
@@ -4004,6 +4019,126 @@ test("MCP upserts and paints a reusable Smart Tile pattern", async () => {
       record((smartLayer.patternStrokes as unknown[])[0]).patternId,
       "road-cutout",
     );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP sets and queries a Smart Tile encounter behavior", async () => {
+  const fixture = await mutationFixture({ withNativeSmartTileV5: true });
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => action.id,
+    );
+    assert.ok(actionIds.includes("smart_tile.layer.set_encounter_behavior"));
+    assert.ok(actionIds.includes("smart_tile.layer.clear_encounter_behavior"));
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const revision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "smart-tile-encounter-set",
+        actionId: "smart_tile.layer.set_encounter_behavior",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: {
+          mapId: "native_v5",
+          layerId: "terrain",
+          materialId: "grass",
+          priority: 5,
+          encounterTableId: "route_grass",
+          encounterKind: "walk",
+        },
+        expectedRevision: revision,
+        idempotencyKey: "idem-smart-tile-encounter-set",
+        dryRun: false,
+      },
+    });
+    const preview = record(record(planned.plan).preview);
+    assert.equal(preview.gameplayZonesChanged, false);
+    await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "operation-smart-tile-encounter-set",
+    });
+    const queried = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "smartTileLayer",
+      operation: "get",
+      view: "detail",
+      ids: ["native_v5:terrain"],
+    });
+    const layer = record((queried.items as unknown[])[0]);
+    const behavior = record(layer.encounterBehavior);
+    assert.equal(behavior.materialId, "grass");
+    assert.equal(behavior.priority, 5);
+    assert.equal(record(behavior.encounter).encounterTableId, "route_grass");
+    const persisted = record(
+      JSON.parse(
+        await readFile(join(fixture.root, "maps/native_v5.json"), "utf8"),
+      ),
+    );
+    assert.deepEqual(persisted.gameplayZones, []);
+    const clearRevision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    const clearPlan = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "smart-tile-encounter-clear",
+        actionId: "smart_tile.layer.clear_encounter_behavior",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: {
+          mapId: "native_v5",
+          layerId: "terrain",
+        },
+        expectedRevision: clearRevision,
+        idempotencyKey: "idem-smart-tile-encounter-clear",
+        dryRun: false,
+      },
+    });
+    await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: clearPlan.planId,
+      operationId: "operation-smart-tile-encounter-clear",
+    });
+    const queriedAfterClear = await toolData(
+      fixture.client,
+      "pokemap_query",
+      {
+        projectHandle,
+        resourceKind: "smartTileLayer",
+        operation: "get",
+        view: "detail",
+        ids: ["native_v5:terrain"],
+      },
+    );
+    const clearedLayer = record(
+      (queriedAfterClear.items as unknown[])[0],
+    );
+    assert.equal(clearedLayer.encounterBehavior, undefined);
   } finally {
     await fixture.client.close();
     await fixture.server.close();

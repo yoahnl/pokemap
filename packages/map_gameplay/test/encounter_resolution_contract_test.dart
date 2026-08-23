@@ -17,10 +17,10 @@ void main() {
       final first = _check(firstOrder, project, seed: 41);
       final reversed = _check(reversedOrder, project, seed: 41);
 
-      expect(first.status, GameplayEncounterCheckStatus.ambiguousZone);
-      expect(reversed.status, GameplayEncounterCheckStatus.ambiguousZone);
-      expect(first.ambiguousZoneIds, <String>['alpha', 'beta']);
-      expect(reversed.ambiguousZoneIds, <String>['alpha', 'beta']);
+      expect(first.status, GameplayEncounterCheckStatus.ambiguousSource);
+      expect(reversed.status, GameplayEncounterCheckStatus.ambiguousSource);
+      expect(first.ambiguousSourceIds, <String>['alpha', 'beta']);
+      expect(reversed.ambiguousSourceIds, <String>['alpha', 'beta']);
       expect(first.encounter, isNull);
       expect(reversed.encounter, isNull);
     });
@@ -36,7 +36,7 @@ void main() {
       final reversed = _check(_world(zones.reversed), project, seed: 91);
 
       expect(first.status, GameplayEncounterCheckStatus.triggered);
-      expect(first.zoneId, 'high');
+      expect(first.sourceId, 'high');
       expect(first.tableId, 'beta');
       expect(first.encounterKind, EncounterKind.walk);
       expect(first.encounter?.toJson(), reversed.encounter?.toJson());
@@ -54,9 +54,9 @@ void main() {
       final reversed = _check(_world(zones.reversed), project, seed: 91);
 
       expect(first.status, GameplayEncounterCheckStatus.triggered);
-      expect(first.zoneId, 'alpha');
+      expect(first.sourceId, 'alpha');
       expect(first.tableId, 'alpha');
-      expect(reversed.zoneId, first.zoneId);
+      expect(reversed.sourceId, first.sourceId);
       expect(reversed.encounter?.toJson(), first.encounter?.toJson());
     });
 
@@ -78,7 +78,7 @@ void main() {
       final reorderedResult = _check(world, reordered, seed: 8122026);
 
       expect(original.status, GameplayEncounterCheckStatus.triggered);
-      expect(original.zoneId, 'only');
+      expect(original.sourceId, 'only');
       expect(original.tableId, 'alpha');
       expect(original.encounterKind, EncounterKind.walk);
       expect(original.encounter?.speciesId, 'zubat');
@@ -186,7 +186,7 @@ void main() {
 
       expect(blocked.status, GameplayEncounterCheckStatus.conditionsNotMet);
       expect(active.status, GameplayEncounterCheckStatus.triggered);
-      expect(active.zoneId, 'conditioned');
+      expect(active.sourceId, 'conditioned');
       expect(active.tableId, 'alpha');
       expect(active.encounter?.speciesId, isNotEmpty);
       expect(active.encounter?.level, inInclusiveRange(2, 8));

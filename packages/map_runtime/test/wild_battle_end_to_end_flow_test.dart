@@ -83,7 +83,7 @@ void main() {
         createdAtEpochMs: 1,
       );
       expect(request.kind, equals(RuntimeBattleKind.wild));
-      expect(request.source, equals(RuntimeBattleSourceKind.encounterZone));
+      expect(request.source, equals(RuntimeBattleSourceKind.wildEncounter));
 
       final setup = await mapper.map(
         bundle: _buildBundle(tempProjectRoot.path, manifest, map),
@@ -106,7 +106,8 @@ void main() {
       }
       expect(session.state.outcome, isNotNull);
       // ignore: avoid_print
-      print('XOUT type=${session.state.outcome!.type} turns=$turnCount hp=${session.state.outcome!.finalState.player.currentHp}');
+      print(
+          'XOUT type=${session.state.outcome!.type} turns=$turnCount hp=${session.state.outcome!.finalState.player.currentHp}');
       expect(session.state.outcome!.isVictory, isTrue);
 
       final updatedState = applyRuntimeBattleOutcomeToGameState(
@@ -121,7 +122,8 @@ void main() {
               playerFacing: Direction.east,
             ),
             mapId: 'field_map',
-            zoneId: 'encounter_grass',
+            encounterSourceId: 'encounter_grass',
+            encounterSourceKind: EncounterSourceKind.gameplayZone,
             tableId: 'field_grass',
             encounterKind: EncounterKind.walk,
             speciesId: 'sparkitten',
@@ -162,7 +164,8 @@ void main() {
       final request = buildBattleStartRequestFromEncounter(
         encounter: const GameplayEncounter(
           mapId: 'field_map',
-          zoneId: 'encounter_grass',
+          sourceId: 'encounter_grass',
+          sourceKind: EncounterSourceKind.gameplayZone,
           tableId: 'field_grass',
           encounterKind: EncounterKind.walk,
           speciesId: 'sparkitten',
@@ -438,8 +441,7 @@ void main() {
       );
     });
 
-    test('BETA-BAT-016 : le vrai handoff traverse la pré-transition',
-        () async {
+    test('BETA-BAT-016 : le vrai handoff traverse la pré-transition', () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();
       final game = PlayableMapGame(
@@ -473,6 +475,7 @@ void main() {
         reason: 'la pré-transition se joue par-dessus la carte',
       );
 
+
       // Le chargement court en PARALLÈLE : la scène se monte sous le noir.
       await pumpTicks(
         until: () => game.debugBattleOverlayMounted,
@@ -496,6 +499,7 @@ void main() {
         isFalse,
         reason: 'la pré-transition ne survit pas au reveal',
       );
+
       expect(game.debugFlowPhaseName, 'battle');
       expect(game.debugBattleOverlayComponent!.selectRootEntry(0), isTrue);
     });
@@ -811,9 +815,8 @@ void main() {
       // fermeture. C'est le seul point d'observation possible : la requête
       // enfilée par la rencontre ne porte pas encore d'individu, le générateur
       // canonique ne tourne que dans hydrateWildRequest.
-      final fought =
-          (game.debugActiveBattleRequest! as WildBattleStartRequest)
-              .generatedPokemon!;
+      final fought = (game.debugActiveBattleRequest! as WildBattleStartRequest)
+          .generatedPokemon!;
       expect(game.selectBattleBagEntry(0), isTrue);
       await game.debugWaitForBattleOverlaySync();
 
@@ -2103,7 +2106,8 @@ WildBattleStartRequest _wildRequest(ProjectManifest manifest, MapData map) {
   return buildBattleStartRequestFromEncounter(
     encounter: const GameplayEncounter(
       mapId: 'field_map',
-      zoneId: 'encounter_grass',
+      sourceId: 'encounter_grass',
+      sourceKind: EncounterSourceKind.gameplayZone,
       tableId: 'field_grass',
       encounterKind: EncounterKind.walk,
       speciesId: 'sparkitten',

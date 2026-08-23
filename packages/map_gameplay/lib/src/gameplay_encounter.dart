@@ -24,8 +24,8 @@ class GameplayEncounterPolicy {
 }
 
 enum GameplayEncounterCheckStatus {
-  noZone,
-  ambiguousZone,
+  noSource,
+  ambiguousSource,
   noEncounterTableId,
   encounterTableNotFound,
   encounterKindMismatch,
@@ -40,7 +40,8 @@ enum GameplayEncounterCheckStatus {
 class GameplayEncounter {
   const GameplayEncounter({
     required this.mapId,
-    required this.zoneId,
+    required this.sourceId,
+    required this.sourceKind,
     required this.tableId,
     required this.encounterKind,
     required this.speciesId,
@@ -54,7 +55,8 @@ class GameplayEncounter {
   });
 
   final String mapId;
-  final String zoneId;
+  final String sourceId;
+  final EncounterSourceKind sourceKind;
   final String tableId;
   final EncounterKind encounterKind;
   final String speciesId;
@@ -69,7 +71,8 @@ class GameplayEncounter {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'mapId': mapId,
-      'zoneId': zoneId,
+      'sourceId': sourceId,
+      'sourceKind': sourceKind.name,
       'tableId': tableId,
       'encounterKind': encounterKind.name,
       'speciesId': speciesId,
@@ -87,9 +90,20 @@ class GameplayEncounter {
     final rawKind =
         (json['encounterKind'] as String?) ?? EncounterKind.walk.name;
     final parsedKind = EncounterKind.values.where((k) => k.name == rawKind);
+    final rawSourceKind = json['sourceKind'] as String?;
+    final parsedSourceKind = EncounterSourceKind.values.where(
+      (kind) => kind.name == rawSourceKind,
+    );
+    if (parsedSourceKind.isEmpty) {
+      throw FormatException(
+        'GameplayEncounter requires a valid sourceKind',
+        rawSourceKind,
+      );
+    }
     return GameplayEncounter(
       mapId: (json['mapId'] as String?) ?? '',
-      zoneId: (json['zoneId'] as String?) ?? '',
+      sourceId: (json['sourceId'] as String?) ?? '',
+      sourceKind: parsedSourceKind.first,
       tableId: (json['tableId'] as String?) ?? '',
       encounterKind: parsedKind.isEmpty ? EncounterKind.walk : parsedKind.first,
       speciesId: (json['speciesId'] as String?) ?? '',
@@ -113,21 +127,23 @@ class GameplayEncounter {
 class GameplayEncounterCheckResult {
   const GameplayEncounterCheckResult({
     required this.status,
-    this.zoneId,
+    this.sourceId,
+    this.sourceKind,
     this.tableId,
     this.encounterKind,
     this.roll,
     this.encounter,
-    this.ambiguousZoneIds = const <String>[],
+    this.ambiguousSourceIds = const <String>[],
   });
 
   final GameplayEncounterCheckStatus status;
-  final String? zoneId;
+  final String? sourceId;
+  final EncounterSourceKind? sourceKind;
   final String? tableId;
   final EncounterKind? encounterKind;
   final double? roll;
   final GameplayEncounter? encounter;
-  final List<String> ambiguousZoneIds;
+  final List<String> ambiguousSourceIds;
 
   bool get triggered =>
       status == GameplayEncounterCheckStatus.triggered && encounter != null;
@@ -143,39 +159,32 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
 }) {
   final position = world.player.pos;
-  final zoneResolution = resolveEncounterZoneAtPosition(
-    world.map.gameplayZones,
+  final sourceResolution = resolveEncounterSourceAtPosition(
+    world.map,
     position: position,
     encounterKind: encounterKind,
   );
-  if (zoneResolution.status == EncounterZoneResolutionStatus.noZone) {
+  if (sourceResolution.status == EncounterSourceResolutionStatus.noSource) {
     return const GameplayEncounterCheckResult(
-      status: GameplayEncounterCheckStatus.noZone,
+      status: GameplayEncounterCheckStatus.noSource,
     );
   }
-  if (zoneResolution.status == EncounterZoneResolutionStatus.ambiguous) {
+  if (sourceResolution.status == EncounterSourceResolutionStatus.ambiguous) {
     return GameplayEncounterCheckResult(
-      status: GameplayEncounterCheckStatus.ambiguousZone,
+      status: GameplayEncounterCheckStatus.ambiguousSource,
       encounterKind: encounterKind,
-      ambiguousZoneIds: zoneResolution.ambiguousZoneIds,
+      ambiguousSourceIds: sourceResolution.ambiguousSourceIds,
     );
   }
-  final zone = zoneResolution.zone!;
+  final source = sourceResolution.source!;
 
-  final zoneEncounter = zone.encounter;
-  if (zoneEncounter == null) {
-    return GameplayEncounterCheckResult(
-      status: GameplayEncounterCheckStatus.noEncounterTableId,
-      zoneId: zone.id,
-      encounterKind: encounterKind,
-    );
-  }
-
-  final tableId = zoneEncounter.encounterTableId?.trim();
+  final sourceEncounter = source.encounter;
+  final tableId = sourceEncounter.encounterTableId?.trim();
   if (tableId == null || tableId.isEmpty) {
     return GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.noEncounterTableId,
-      zoneId: zone.id,
+      sourceId: source.id,
+      sourceKind: source.kind,
       encounterKind: encounterKind,
     );
   }
@@ -184,7 +193,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   if (table == null) {
     return GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.encounterTableNotFound,
-      zoneId: zone.id,
+      sourceId: source.id,
+      sourceKind: source.kind,
       tableId: tableId,
       encounterKind: encounterKind,
     );
@@ -193,7 +203,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   if (table.encounterKind != encounterKind) {
     return GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.encounterKindMismatch,
-      zoneId: zone.id,
+      sourceId: source.id,
+      sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
     );
@@ -202,7 +213,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   if (table.conditions.isNotEmpty && gameState == null) {
     return GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.conditionContextUnavailable,
-      zoneId: zone.id,
+      sourceId: source.id,
+      sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
     );
@@ -217,7 +229,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
       )) {
         return GameplayEncounterCheckResult(
           status: GameplayEncounterCheckStatus.conditionsNotMet,
-          zoneId: zone.id,
+          sourceId: source.id,
+          sourceKind: source.kind,
           tableId: table.id,
           encounterKind: encounterKind,
         );
@@ -231,7 +244,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   if (entries.isEmpty) {
     return GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.emptyEncounterTable,
-      zoneId: zone.id,
+      sourceId: source.id,
+      sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
     );
@@ -242,7 +256,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   if (!chancePerStep.isFinite || chancePerStep < 0 || chancePerStep > 1) {
     return GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.invalidEncounterRate,
-      zoneId: zone.id,
+      sourceId: source.id,
+      sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
     );
@@ -251,7 +266,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   if (roll >= chancePerStep) {
     return GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.rollFailed,
-      zoneId: zone.id,
+      sourceId: source.id,
+      sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
       roll: roll,
@@ -263,7 +279,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   final level = selected.minLevel + rng.nextInt(levelRange);
   final encounter = GameplayEncounter(
     mapId: world.map.id,
-    zoneId: zone.id,
+    sourceId: source.id,
+    sourceKind: source.kind,
     tableId: table.id,
     encounterKind: encounterKind,
     speciesId: selected.speciesId,
@@ -274,7 +291,7 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
     playerPos: GridPos(x: position.x, y: position.y),
     generationSeed: _stableWildGenerationSeed(
       mapId: world.map.id,
-      zoneId: zone.id,
+      sourceId: source.id,
       tableId: table.id,
       encounterKind: encounterKind,
       speciesId: selected.speciesId,
@@ -286,7 +303,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   );
   return GameplayEncounterCheckResult(
     status: GameplayEncounterCheckStatus.triggered,
-    zoneId: zone.id,
+    sourceId: source.id,
+    sourceKind: source.kind,
     tableId: table.id,
     encounterKind: encounterKind,
     roll: roll,
@@ -296,7 +314,7 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
 
 int _stableWildGenerationSeed({
   required String mapId,
-  required String zoneId,
+  required String sourceId,
   required String tableId,
   required EncounterKind encounterKind,
   required String speciesId,
@@ -306,7 +324,7 @@ int _stableWildGenerationSeed({
 }) {
   final value = <Object>[
     mapId,
-    zoneId,
+    sourceId,
     tableId,
     encounterKind.name,
     speciesId,

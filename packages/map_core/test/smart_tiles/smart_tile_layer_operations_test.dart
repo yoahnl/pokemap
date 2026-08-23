@@ -128,24 +128,26 @@ void main() {
       expect(smartTileVerticalEdges(result), isEmpty);
     });
 
-    test('inactive lattice writes are rejected instead of changing variant',
-        () {
-      final source = _layer(
-        const SmartTileField.cell(semanticCells: <int>[0, 0, 0, 0]),
-      );
+    test(
+      'inactive lattice writes are rejected instead of changing variant',
+      () {
+        final source = _layer(
+          const SmartTileField.cell(semanticCells: <int>[0, 0, 0, 0]),
+        );
 
-      expect(
-        () => setSmartTileCornerMaterial(
-          source,
-          mapSize: mapSize,
-          x: 0,
-          y: 0,
-          materialId: 'grass',
-        ),
-        throwsA(isA<ValidationException>()),
-      );
-      expect(source.field, isA<SmartTileCellField>());
-    });
+        expect(
+          () => setSmartTileCornerMaterial(
+            source,
+            mapSize: mapSize,
+            x: 0,
+            y: 0,
+            materialId: 'grass',
+          ),
+          throwsA(isA<ValidationException>()),
+        );
+        expect(source.field, isA<SmartTileCellField>());
+      },
+    );
   });
 
   group('atomic material gesture projection', () {
@@ -215,19 +217,13 @@ void main() {
       final reverse = applySmartTileMaterialGesture(
         source,
         mapSize: mapSize,
-        cells: const <GridPos>[
-          GridPos(x: 1, y: 0),
-          GridPos(x: 0, y: 0),
-        ],
+        cells: const <GridPos>[GridPos(x: 1, y: 0), GridPos(x: 0, y: 0)],
         materialId: 'grass',
       );
 
       expect(forward, reverse);
       expect(smartTileSemanticCells(forward), <int>[1, 1, 0, 0]);
-      expect(
-        smartTileHorizontalEdges(forward),
-        <int>[1, 1, 1, 1, 0, 0],
-      );
+      expect(smartTileHorizontalEdges(forward), <int>[1, 1, 1, 1, 0, 0]);
       expect(smartTileVerticalEdges(forward), <int>[1, 1, 1, 0, 0, 0]);
       expect(smartTileCorners(forward), <int>[1, 1, 1, 1, 1, 1, 0, 0, 0]);
     });
@@ -266,28 +262,50 @@ void main() {
     });
   });
 
-  test('normalization reindexes only active lattices and keeps the variant',
-      () {
-    final source = _layer(
-      const SmartTileField.corner(
-        semanticCells: <int>[3, 0, 1, 3],
-        corners: <int>[0, 3, 0, 0, 1, 0, 3, 0, 0],
-      ),
-      materialPalette: const <String>['', 'dirt', 'unused', 'stone'],
-    );
+  test(
+    'normalization reindexes only active lattices and keeps the variant',
+    () {
+      final source = _layer(
+        const SmartTileField.corner(
+          semanticCells: <int>[3, 0, 1, 3],
+          corners: <int>[0, 3, 0, 0, 1, 0, 3, 0, 0],
+        ),
+        materialPalette: const <String>['', 'dirt', 'unused', 'stone'],
+      );
+
+      final result = normalizeSmartTileLayer(source);
+
+      expect(result.layer.field, isA<SmartTileCornerField>());
+      expect(result.layer.materialPalette, <String>['', 'dirt', 'stone']);
+      expect(smartTileSemanticCells(result.layer), <int>[2, 0, 1, 2]);
+      expect(smartTileCorners(result.layer), <int>[0, 2, 0, 0, 1, 0, 2, 0, 0]);
+      expect(result.removedPaletteEntries.single.materialId, 'unused');
+      expect(result.reindexedEntryCounts.keys, <String>{
+        'semanticCells',
+        'corners',
+      });
+    },
+  );
+
+  test('normalization retains the encounter behavior material', () {
+    final source =
+        _layer(
+          const SmartTileField.cell(semanticCells: <int>[1, 0, 0, 0]),
+          materialPalette: const <String>['', 'grass', 'tall_grass'],
+        ).copyWith(
+          encounterBehavior: const SmartTileEncounterBehavior(
+            materialId: 'tall_grass',
+            encounter: EncounterZonePayload(
+              encounterTableId: 'grass-table',
+              encounterKind: EncounterKind.walk,
+            ),
+          ),
+        );
 
     final result = normalizeSmartTileLayer(source);
 
-    expect(result.layer.field, isA<SmartTileCornerField>());
-    expect(result.layer.materialPalette, <String>['', 'dirt', 'stone']);
-    expect(smartTileSemanticCells(result.layer), <int>[2, 0, 1, 2]);
-    expect(
-      smartTileCorners(result.layer),
-      <int>[0, 2, 0, 0, 1, 0, 2, 0, 0],
-    );
-    expect(result.removedPaletteEntries.single.materialId, 'unused');
-    expect(
-        result.reindexedEntryCounts.keys, <String>{'semanticCells', 'corners'});
+    expect(result.layer.materialPalette, <String>['', 'grass', 'tall_grass']);
+    expect(result.layer.encounterBehavior?.materialId, 'tall_grass');
   });
 
   group('union', () {
@@ -300,7 +318,9 @@ void main() {
       );
 
       final result = unionSmartTileLayers(
-          target: target, sources: <SmartTileLayer>[source]);
+        target: target,
+        sources: <SmartTileLayer>[source],
+      );
 
       expect(result.layer.field, isA<SmartTileCellField>());
       expect(smartTileSemanticCells(result.layer), <int>[1, 1, 0, 1]);
@@ -325,6 +345,48 @@ void main() {
           sources: <SmartTileLayer>[source],
         ),
         throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects incompatible encounter behaviors', () {
+      final target =
+          _layer(
+            const SmartTileField.cell(semanticCells: <int>[1, 0, 0, 0]),
+          ).copyWith(
+            encounterBehavior: const SmartTileEncounterBehavior(
+              materialId: 'grass',
+              encounter: EncounterZonePayload(
+                encounterTableId: 'north',
+                encounterKind: EncounterKind.walk,
+              ),
+            ),
+          );
+      final source =
+          _layer(
+            const SmartTileField.cell(semanticCells: <int>[0, 1, 0, 0]),
+          ).copyWith(
+            id: 'source',
+            encounterBehavior: const SmartTileEncounterBehavior(
+              materialId: 'grass',
+              encounter: EncounterZonePayload(
+                encounterTableId: 'south',
+                encounterKind: EncounterKind.walk,
+              ),
+            ),
+          );
+
+      expect(
+        () => unionSmartTileLayers(
+          target: target,
+          sources: <SmartTileLayer>[source],
+        ),
+        throwsA(
+          isA<ValidationException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile.layer_merge_encounter_behavior_conflict',
+          ),
+        ),
       );
     });
   });
@@ -408,8 +470,9 @@ void main() {
           layers: <MapLayer>[_layer(field)],
         );
 
-        final result = resizeMapData(source, width: 3, height: 3).layers.single
-            as SmartTileLayer;
+        final result =
+            resizeMapData(source, width: 3, height: 3).layers.single
+                as SmartTileLayer;
 
         expect(result.field.runtimeType, field.runtimeType);
         expect(smartTileSemanticCells(result), hasLength(9));
@@ -561,31 +624,33 @@ void main() {
       expect(first, isNot(different));
     });
 
-    test('rectangle may cover a whole map beyond the explicit payload limit',
-        () {
-      const largeMapSize = GridSize(width: 65, height: 64);
-      final largeLayer = _layer(
-        SmartTileField.cell(
-          semanticCells: List<int>.filled(
-            largeMapSize.width * largeMapSize.height,
-            0,
+    test(
+      'rectangle may cover a whole map beyond the explicit payload limit',
+      () {
+        const largeMapSize = GridSize(width: 65, height: 64);
+        final largeLayer = _layer(
+          SmartTileField.cell(
+            semanticCells: List<int>.filled(
+              largeMapSize.width * largeMapSize.height,
+              0,
+            ),
           ),
-        ),
-      );
+        );
 
-      final cells = compileSmartTileGestureSelection(
-        largeLayer,
-        mapSize: largeMapSize,
-        selection: const SmartTileGestureSelection.rectangle(
-          start: GridPos(x: 0, y: 0),
-          end: GridPos(x: 64, y: 63),
-        ),
-      );
+        final cells = compileSmartTileGestureSelection(
+          largeLayer,
+          mapSize: largeMapSize,
+          selection: const SmartTileGestureSelection.rectangle(
+            start: GridPos(x: 0, y: 0),
+            end: GridPos(x: 64, y: 63),
+          ),
+        );
 
-      expect(cells, hasLength(4160));
-      expect(cells.first, const GridPos(x: 0, y: 0));
-      expect(cells.last, const GridPos(x: 64, y: 63));
-    });
+        expect(cells, hasLength(4160));
+        expect(cells.first, const GridPos(x: 0, y: 0));
+        expect(cells.last, const GridPos(x: 64, y: 63));
+      },
+    );
 
     test('flood fill is four-connected, semantic, and bounded', () {
       expect(
@@ -640,10 +705,11 @@ SmartTileLayer _layer(
   List<String> materialPalette = const <String>['', 'grass'],
 }) =>
     MapLayer.smartTile(
-      id: 'layer',
-      name: 'Layer',
-      presetId: 'preset',
-      usage: SmartTileUsage.path,
-      materialPalette: materialPalette,
-      field: field,
-    ) as SmartTileLayer;
+          id: 'layer',
+          name: 'Layer',
+          presetId: 'preset',
+          usage: SmartTileUsage.path,
+          materialPalette: materialPalette,
+          field: field,
+        )
+        as SmartTileLayer;

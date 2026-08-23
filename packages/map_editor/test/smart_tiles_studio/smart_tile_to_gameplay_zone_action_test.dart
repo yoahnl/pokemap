@@ -10,6 +10,7 @@ import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_ti
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tile_to_gameplay_zone_dialog.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_to_gameplay_zone_presenter.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   group('Tall grass Smart Tile to gameplay zone presenter', () {
@@ -392,101 +393,101 @@ void main() {
     });
   });
 
-  group('SmartTileToGameplayZoneDialog', () {
-    testWidgets('requires an encounter table id before confirming',
-        (tester) async {
-      SmartTileGameplayZoneGenerationPlan? confirmedPlan;
+  group('SmartTileEncounterBehaviorDialog', () {
+    testWidgets('requires a guided walk encounter table before confirming', (
+      tester,
+    ) async {
+      SmartTileEncounterBehaviorConfiguration? configuration;
 
       await tester.pumpWidget(
-        CupertinoApp(
-          home: CupertinoPageScaffold(
-            child: SmartTileToGameplayZoneDialog(
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: Scaffold(
+            body: SmartTileEncounterBehaviorDialog(
               map: _mapWithTallGrassSmartTile(),
               smartTileLayer: _tallGrassLayer(),
               smartTilePresetId: 'tall_grass',
+              materialId: 'tall_grass-material',
               catalog: _smartTileCatalog(
                 presets: [
-                  _smartTilePreset(id: 'tall_grass', name: 'Tall Grass')
+                  _smartTilePreset(id: 'tall_grass', name: 'Tall Grass'),
                 ],
               ),
               encounterTables: const [],
-              onConfirm: (plan) => confirmedPlan = plan,
+              onConfirm: (value) => configuration = value,
             ),
           ),
         ),
       );
 
-      expect(
-        find.text('Créer une zone de rencontre depuis ce Smart Tile'),
-        findsOneWidget,
-      );
-      expect(find.text('Table de rencontres requise'), findsOneWidget);
+      expect(find.text('Ajouter les hautes herbes au calque'), findsOneWidget);
+      expect(find.text('Aucune table pour les hautes herbes'), findsOneWidget);
+      expect(find.byType(CupertinoTextField), findsNothing);
       expect(
         tester
-            .widget<CupertinoDialogAction>(
-              find.widgetWithText(CupertinoDialogAction, 'Créer les zones'),
+            .widget<PokeMapButton>(
+              find.byKey(const Key('smart-tile-encounter-behavior-confirm')),
             )
             .onPressed,
         isNull,
       );
-      expect(confirmedPlan, isNull);
-
-      await tester.enterText(
-        find.byKey(
-            const Key('smart-tile-to-gameplay-zone-encounter-table-field')),
-        'route_1_grass',
-      );
-      await tester.pump();
-
-      expect(find.text('Plan prêt à appliquer'), findsOneWidget);
-
-      final createAction = tester.widget<CupertinoDialogAction>(
-        find.widgetWithText(CupertinoDialogAction, 'Créer les zones'),
-      );
-      expect(createAction.onPressed, isNotNull);
-      createAction.onPressed!();
-
-      expect(confirmedPlan, isNotNull);
-      expect(confirmedPlan!.generatedZones, hasLength(2));
+      expect(configuration, isNull);
     });
 
-    testWidgets('announces synchronization for an existing binding',
-        (tester) async {
-      final baseMap = _mapWithTallGrassSmartTile();
-      final catalog = _smartTileCatalog(
-        presets: [_smartTilePreset(id: 'tall_grass', name: 'Tall Grass')],
-      );
-      final existing = buildTallGrassEncounterSmartTileGameplayZonePreview(
-        map: baseMap,
-        smartTileLayer: _tallGrassLayer(),
-        smartTilePresetId: 'tall_grass',
-        catalog: catalog,
-        encounterTableId: 'route_1_grass',
-      ).plan!;
+    testWidgets('returns the selected table without generating zones', (
+      tester,
+    ) async {
+      SmartTileEncounterBehaviorConfiguration? configuration;
+      final map = _mapWithTallGrassSmartTile();
 
       await tester.pumpWidget(
-        CupertinoApp(
-          home: CupertinoPageScaffold(
-            child: SmartTileToGameplayZoneDialog(
-              map: baseMap.copyWith(gameplayZones: existing.generatedZones),
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: Scaffold(
+            body: SmartTileEncounterBehaviorDialog(
+              map: map,
               smartTileLayer: _tallGrassLayer(),
               smartTilePresetId: 'tall_grass',
-              catalog: catalog,
+              materialId: 'tall_grass-material',
+              catalog: _smartTileCatalog(
+                presets: [
+                  _smartTilePreset(id: 'tall_grass', name: 'Tall Grass'),
+                ],
+              ),
               encounterTables: const [
                 ProjectEncounterTable(
                   id: 'route_1_grass',
                   name: 'Route 1 Grass',
                   encounterKind: EncounterKind.walk,
                 ),
+                ProjectEncounterTable(
+                  id: 'route_1_surf',
+                  name: 'Route 1 Surf',
+                  encounterKind: EncounterKind.surf,
+                ),
               ],
-              onConfirm: (_) {},
+              onConfirm: (value) => configuration = value,
             ),
           ),
         ),
       );
 
-      expect(find.text('Remplacées : '), findsOneWidget);
-      expect(find.text('Synchroniser les zones'), findsOneWidget);
+      expect(
+        find.byKey(const Key('smart-tile-encounter-table-picker')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Route 1 Surf'), findsNothing);
+      expect(
+        find.textContaining('Aucune zone de rencontre séparée'),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const Key('smart-tile-encounter-behavior-confirm')),
+      );
+      await tester.pump();
+
+      expect(configuration?.encounterTableId, 'route_1_grass');
+      expect(map.gameplayZones, isEmpty);
     });
   });
 
@@ -670,8 +671,9 @@ void main() {
   });
 
   group('SmartTileBehaviorActionMenu', () {
-    testWidgets('opens the no-code choices and routes tall grass',
-        (tester) async {
+    testWidgets('opens the no-code choices and routes tall grass', (
+      tester,
+    ) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final keepAlive = container.listen(editorNotifierProvider, (_, _) {});
@@ -718,11 +720,15 @@ void main() {
       await tester.tap(find.text('Herbe haute avec rencontres'));
       await tester.pumpAndSettle();
 
+      expect(find.text('Ajouter les hautes herbes au calque'), findsOneWidget);
       expect(
-        find.text('Créer une zone de rencontre depuis ce Smart Tile'),
+        find.byKey(const Key('smart-tile-encounter-table-picker')),
         findsOneWidget,
       );
-      expect(find.text('Plan prêt à appliquer'), findsOneWidget);
+      expect(
+        find.textContaining('Aucune zone de rencontre séparée'),
+        findsOneWidget,
+      );
     });
   });
 

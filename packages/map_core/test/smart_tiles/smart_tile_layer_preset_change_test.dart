@@ -51,10 +51,12 @@ void main() {
       expect(success.layer.opacity, layer.opacity);
       expect(success.layer.presetId, target.id);
       expect(success.layer.usage, layer.usage);
-      expect(
-        success.layer.materialPalette,
-        const <String>['', 'shared', 'rural', 'extra'],
-      );
+      expect(success.layer.materialPalette, const <String>[
+        '',
+        'shared',
+        'rural',
+        'extra',
+      ]);
       expect(
         success.layer.field,
         const SmartTileField.cell(semanticCells: <int>[2, 1]),
@@ -65,10 +67,10 @@ void main() {
       expect(success.layer.candidateWeights, isEmpty);
       expect(success.remappedEntryCount, 2);
       expect(success.clearedCandidateWeightCount, 2);
-      expect(
-        success.materialMappings,
-        const <String, String>{'dark': 'rural', 'shared': 'shared'},
-      );
+      expect(success.materialMappings, const <String, String>{
+        'dark': 'rural',
+        'shared': 'shared',
+      });
       expect(layer.presetId, source.id);
       expect(
         layer.field,
@@ -79,31 +81,31 @@ void main() {
     test('reprojects every active Wang lattice', () {
       for (final fixture
           in <({SmartTileTopology topology, SmartTileField field})>[
-        (
-          topology: SmartTileTopology.wangEdge4,
-          field: const SmartTileField.edge(
-            semanticCells: <int>[1],
-            horizontalEdges: <int>[1, 2],
-            verticalEdges: <int>[2, 1],
-          ),
-        ),
-        (
-          topology: SmartTileTopology.wangCorner4,
-          field: const SmartTileField.corner(
-            semanticCells: <int>[1],
-            corners: <int>[1, 2, 2, 1],
-          ),
-        ),
-        (
-          topology: SmartTileTopology.wang8,
-          field: const SmartTileField.mixed(
-            semanticCells: <int>[1],
-            horizontalEdges: <int>[1, 2],
-            verticalEdges: <int>[2, 1],
-            corners: <int>[1, 2, 2, 1],
-          ),
-        ),
-      ]) {
+            (
+              topology: SmartTileTopology.wangEdge4,
+              field: const SmartTileField.edge(
+                semanticCells: <int>[1],
+                horizontalEdges: <int>[1, 2],
+                verticalEdges: <int>[2, 1],
+              ),
+            ),
+            (
+              topology: SmartTileTopology.wangCorner4,
+              field: const SmartTileField.corner(
+                semanticCells: <int>[1],
+                corners: <int>[1, 2, 2, 1],
+              ),
+            ),
+            (
+              topology: SmartTileTopology.wang8,
+              field: const SmartTileField.mixed(
+                semanticCells: <int>[1],
+                horizontalEdges: <int>[1, 2],
+                verticalEdges: <int>[2, 1],
+                corners: <int>[1, 2, 2, 1],
+              ),
+            ),
+          ]) {
         final source = _preset(
           id: 'source-${fixture.topology.name}',
           topology: fixture.topology,
@@ -134,23 +136,21 @@ void main() {
         );
 
         final success = result as SmartTileLayerPresetChangeSuccess;
-        expect(
-          smartTileSemanticCells(success.layer),
-          const <int>[2],
-          reason: fixture.topology.name,
-        );
+        expect(smartTileSemanticCells(success.layer), const <int>[
+          2,
+        ], reason: fixture.topology.name);
         expect(
           smartTileHorizontalEdges(success.layer),
-          smartTileHorizontalEdges(layer)
-              .map((value) => value == 1 ? 2 : 1)
-              .toList(),
+          smartTileHorizontalEdges(
+            layer,
+          ).map((value) => value == 1 ? 2 : 1).toList(),
           reason: fixture.topology.name,
         );
         expect(
           smartTileVerticalEdges(success.layer),
-          smartTileVerticalEdges(layer)
-              .map((value) => value == 1 ? 2 : 1)
-              .toList(),
+          smartTileVerticalEdges(
+            layer,
+          ).map((value) => value == 1 ? 2 : 1).toList(),
           reason: fixture.topology.name,
         );
         expect(
@@ -227,10 +227,7 @@ void main() {
         field: SmartTileField.cell(semanticCells: <int>[1]),
       );
       final source = _preset(id: 'source');
-      final target = _preset(
-        id: 'target',
-        status: SmartTilePresetStatus.draft,
-      );
+      final target = _preset(id: 'target', status: SmartTilePresetStatus.draft);
 
       final result = planSmartTileLayerPresetChange(
         map: _mapWith(layer, size: const GridSize(width: 1, height: 1)),
@@ -400,10 +397,7 @@ void main() {
         field: SmartTileField.cell(semanticCells: <int>[1]),
       );
       final source = _preset(id: 'source');
-      final target = _preset(
-        id: 'target',
-        rules: const <SmartTileRule>[],
-      );
+      final target = _preset(id: 'target', rules: const <SmartTileRule>[]);
 
       final result = planSmartTileLayerPresetChange(
         map: _mapWith(layer, size: const GridSize(width: 1, height: 1)),
@@ -418,6 +412,52 @@ void main() {
         'smart_tile.layer_preset_unresolved',
       );
     });
+
+    test(
+      'remaps the encounter behavior material even when no cell uses it',
+      () {
+        const layer = SmartTileLayer(
+          id: 'path',
+          name: 'Path',
+          presetId: 'source',
+          usage: SmartTileUsage.path,
+          materialPalette: <String>['', 'dark', 'unused'],
+          field: SmartTileField.cell(semanticCells: <int>[1]),
+          encounterBehavior: SmartTileEncounterBehavior(
+            materialId: 'unused',
+            encounter: EncounterZonePayload(
+              encounterTableId: 'grass',
+              encounterKind: EncounterKind.walk,
+            ),
+          ),
+        );
+        final source = _preset(
+          id: 'source',
+          allowedMaterialIds: const <String>['dark', 'unused'],
+        );
+        final target = _preset(
+          id: 'target',
+          allowedMaterialIds: const <String>['rural', 'extra'],
+          defaultMaterialId: 'rural',
+        );
+
+        final result = planSmartTileLayerPresetChange(
+          map: _mapWith(layer, size: const GridSize(width: 1, height: 1)),
+          layer: layer,
+          sourcePreset: source,
+          targetPreset: target,
+          catalog: _catalog(source, target),
+          materialMappings: const <String, String>{
+            'dark': 'rural',
+            'unused': 'extra',
+          },
+        );
+
+        final success = result as SmartTileLayerPresetChangeSuccess;
+        expect(success.layer.encounterBehavior?.materialId, 'extra');
+        expect(success.materialMappings['unused'], 'extra');
+      },
+    );
   });
 }
 
@@ -437,11 +477,7 @@ const List<ProjectSmartTileMaterial> _materials = <ProjectSmartTileMaterial>[
     name: 'Unused dirt',
     connectionGroupId: 'dirt',
   ),
-  ProjectSmartTileMaterial(
-    id: 'mud',
-    name: 'Mud',
-    connectionGroupId: 'dirt',
-  ),
+  ProjectSmartTileMaterial(id: 'mud', name: 'Mud', connectionGroupId: 'dirt'),
   ProjectSmartTileMaterial(
     id: 'rural',
     name: 'Rural dirt',
@@ -457,25 +493,15 @@ const List<ProjectSmartTileMaterial> _materials = <ProjectSmartTileMaterial>[
 MapData _mapWith(
   SmartTileLayer layer, {
   GridSize size = const GridSize(width: 2, height: 1),
-}) =>
-    MapData(
-      id: 'map',
-      name: 'Map',
-      size: size,
-      layers: <MapLayer>[layer],
-    );
+}) => MapData(id: 'map', name: 'Map', size: size, layers: <MapLayer>[layer]);
 
 ProjectSmartTileCatalog _catalog(
   ProjectSmartTilePreset first, [
   ProjectSmartTilePreset? second,
-]) =>
-    ProjectSmartTileCatalog(
-      materials: _materials,
-      presets: <ProjectSmartTilePreset>[
-        first,
-        if (second != null) second,
-      ],
-    );
+]) => ProjectSmartTileCatalog(
+  materials: _materials,
+  presets: <ProjectSmartTilePreset>[first, if (second != null) second],
+);
 
 ProjectSmartTilePreset _preset({
   required String id,
@@ -485,28 +511,28 @@ ProjectSmartTilePreset _preset({
   List<String> allowedMaterialIds = const <String>['dark'],
   String defaultMaterialId = 'dark',
   List<SmartTileRule>? rules,
-}) =>
-    ProjectSmartTilePreset(
-      id: id,
-      name: id,
-      usage: usage,
-      topology: topology,
-      status: status,
-      coveragePolicy: SmartTileCoveragePolicy.sparse,
-      coverageProfile: const SmartTileCoverageProfile(
-        mode: SmartTileCoverageMode.explicit,
-      ),
-      transformPolicy: const SmartTileTransformPolicy(),
-      defaultMaterialId: defaultMaterialId,
-      allowedMaterialIds: allowedMaterialIds,
-      rules: rules ??
-          <SmartTileRule>[
-            SmartTileRule(
-              id: '$id-rule',
-              centerMatch: const SmartTileSlotMatch.any(),
-              candidates: <SmartTileCandidate>[
-                SmartTileCandidate(id: '$id-candidate'),
-              ],
-            ),
+}) => ProjectSmartTilePreset(
+  id: id,
+  name: id,
+  usage: usage,
+  topology: topology,
+  status: status,
+  coveragePolicy: SmartTileCoveragePolicy.sparse,
+  coverageProfile: const SmartTileCoverageProfile(
+    mode: SmartTileCoverageMode.explicit,
+  ),
+  transformPolicy: const SmartTileTransformPolicy(),
+  defaultMaterialId: defaultMaterialId,
+  allowedMaterialIds: allowedMaterialIds,
+  rules:
+      rules ??
+      <SmartTileRule>[
+        SmartTileRule(
+          id: '$id-rule',
+          centerMatch: const SmartTileSlotMatch.any(),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(id: '$id-candidate'),
           ],
-    );
+        ),
+      ],
+);

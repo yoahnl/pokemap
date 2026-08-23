@@ -606,6 +606,20 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
+  if (actionId == 'smart_tile.layer.set_encounter_behavior' ||
+      actionId == 'smart_tile.layer.clear_encounter_behavior') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/maps/smart_tile_encounter_behavior_transport_parity_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/smart_tile_encounter_behavior_transport_parity_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/features/editor/presentation/world_map/'
+              'smart_tile_layer_preset_change_flow_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (actionId == 'smart_tile.layer.change_preset') {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:

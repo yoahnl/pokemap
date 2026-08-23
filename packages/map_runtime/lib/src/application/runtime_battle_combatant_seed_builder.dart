@@ -57,7 +57,7 @@ int _fallbackWildGenerationSeed(WildBattleStartRequest request) {
   final value = <Object>[
     request.requestId,
     request.mapId,
-    request.zoneId,
+    request.encounterSourceId,
     request.tableId,
     request.speciesId,
     request.level,

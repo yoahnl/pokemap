@@ -159,6 +159,11 @@ SmartTileLayer _$SmartTileLayerFromJson(Map<String, dynamic> json) =>
             json['animationActivation'],
           ) ??
           SmartTileAnimationActivation.always,
+      encounterBehavior: json['encounterBehavior'] == null
+          ? null
+          : SmartTileEncounterBehavior.fromJson(
+              json['encounterBehavior'] as Map<String, dynamic>,
+            ),
       properties:
           (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
@@ -182,6 +187,7 @@ Map<String, dynamic> _$SmartTileLayerToJson(SmartTileLayer instance) =>
       'candidateWeights': ?_candidateWeightsToJson(instance.candidateWeights),
       'animationActivation':
           _$SmartTileAnimationActivationEnumMap[instance.animationActivation]!,
+      'encounterBehavior': ?instance.encounterBehavior?.toJson(),
       'properties': instance.properties,
       'runtimeType': instance.$type,
     };

@@ -81,29 +81,44 @@ class SmartTileBehaviorActionMenu extends StatelessWidget {
 
   Future<void> _openTallGrassDialog(BuildContext context) async {
     final currentMap = map;
-    if (currentMap == null) {
+    final currentLayer = smartTileLayer;
+    final currentMaterialId = materialId;
+    if (currentMap == null ||
+        currentLayer == null ||
+        currentMaterialId == null) {
       return;
     }
-    final plan = await showDialog<SmartTileGameplayZoneGenerationPlan>(
+    final configuration =
+        await showDialog<SmartTileEncounterBehaviorConfiguration>(
       context: context,
       builder: (dialogContext) {
-        return SmartTileToGameplayZoneDialog(
+        return SmartTileEncounterBehaviorDialog(
           map: currentMap,
-          smartTileLayer: smartTileLayer,
+          smartTileLayer: currentLayer,
           smartTilePresetId: smartTilePresetId,
-          materialId: materialId,
+          materialId: currentMaterialId,
           catalog: catalog,
           encounterTables: encounterTables,
-          onConfirm: (plan) => Navigator.of(dialogContext).pop(plan),
+          onConfirm: (value) => Navigator.of(dialogContext).pop(value),
         );
       },
     );
-    if (plan == null) {
+    if (configuration == null) {
       return;
     }
-    applyTallGrassEncounterGameplayZonePlan(
-      notifier: notifier,
-      plan: plan,
+    if (configuration.isClear) {
+      await notifier.clearSmartTileLayerEncounterBehavior(
+        mapId: currentMap.id,
+        layerId: currentLayer.id,
+      );
+      return;
+    }
+    await notifier.applySmartTileLayerEncounterBehavior(
+      mapId: currentMap.id,
+      layerId: currentLayer.id,
+      materialId: currentMaterialId,
+      encounterTableId: configuration.encounterTableId,
+      encounterKind: EncounterKind.walk,
     );
   }
 

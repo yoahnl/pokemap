@@ -21,6 +21,8 @@ void main() {
           'smart_tile.layer.reconstruct',
           'smart_tile.layer.set_animation_activation',
           'smart_tile.layer.set_candidate_weights',
+          'smart_tile.layer.set_encounter_behavior',
+          'smart_tile.layer.clear_encounter_behavior',
         ],
       );
       for (final descriptor in descriptors) {
@@ -864,6 +866,83 @@ void main() {
             'smart_tile.animation_activation_invalid',
           ),
         ),
+      );
+    });
+  });
+
+  group('Smart Tile encounter behavior', () {
+    final fixture = _m01Fixture();
+    final manifest = fixture.manifest.copyWith(
+      encounterTables: const <ProjectEncounterTable>[
+        ProjectEncounterTable(
+          id: 'route_grass',
+          name: 'Route grass',
+          encounterKind: EncounterKind.walk,
+          entries: <ProjectEncounterEntry>[
+            ProjectEncounterEntry(
+              speciesId: 'pidgey',
+              minLevel: 3,
+              maxLevel: 3,
+            ),
+          ],
+        ),
+      ],
+    );
+    final map = fixture.map.copyWith(
+      layers: <MapLayer>[
+        (fixture.map.layers[2] as SmartTileLayer).copyWith(
+          id: 'grass',
+          isVisible: true,
+          materialPalette: const <String>['', 'dirt'],
+          field: const SmartTileField.mixed(
+            semanticCells: <int>[1, 0, 0, 0, 0, 0, 0, 0, 0],
+            horizontalEdges: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            verticalEdges: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          ),
+        ),
+      ],
+    );
+
+    test('sets then clears the behavior without generating gameplay zones', () {
+      final setDraft = const SmartTileLayerActions().build(
+        _context(
+          _snapshot(manifest, map),
+          actionId: 'smart_tile.layer.set_encounter_behavior',
+          parameters: const <String, Object?>{
+            'mapId': 'map_hanazuki_village',
+            'layerId': 'grass',
+            'materialId': 'dirt',
+            'priority': 4,
+            'encounterTableId': 'route_grass',
+            'encounterKind': 'walk',
+          },
+        ),
+      );
+      final withBehavior = _projectedMap(setDraft);
+      final behavior =
+          (withBehavior.layers.single as SmartTileLayer).encounterBehavior;
+
+      expect(behavior?.materialId, 'dirt');
+      expect(behavior?.priority, 4);
+      expect(behavior?.encounter.encounterTableId, 'route_grass');
+      expect(withBehavior.gameplayZones, isEmpty);
+      expect(setDraft.preview, containsPair('gameplayZonesChanged', false));
+
+      final clearDraft = const SmartTileLayerActions().build(
+        _context(
+          _snapshot(manifest, withBehavior),
+          actionId: 'smart_tile.layer.clear_encounter_behavior',
+          parameters: const <String, Object?>{
+            'mapId': 'map_hanazuki_village',
+            'layerId': 'grass',
+          },
+        ),
+      );
+      expect(
+        (_projectedMap(clearDraft).layers.single as SmartTileLayer)
+            .encounterBehavior,
+        isNull,
       );
     });
   });

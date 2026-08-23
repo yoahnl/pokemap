@@ -168,6 +168,18 @@ void main() {
           <String>['cli', 'directApi', 'editor', 'mcp'],
         ),
       );
+      for (final actionId in const <String>[
+        'smart_tile.layer.set_encounter_behavior',
+        'smart_tile.layer.clear_encounter_behavior',
+      ]) {
+        expect(
+          catalog.requireMutationAction(actionId).toJson(),
+          containsPair(
+            'endToEndVerifiedTransports',
+            <String>['cli', 'directApi', 'editor', 'mcp'],
+          ),
+        );
+      }
       // BETA-CIN-081: the CIN-V2 branch action is certified on the four
       // transports, each backed by a test that really applies it.
       expect(

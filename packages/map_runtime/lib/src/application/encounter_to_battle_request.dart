@@ -9,7 +9,7 @@ WildBattleStartRequest buildBattleStartRequestFromEncounter({
 }) {
   final now = createdAtEpochMs ?? DateTime.now().millisecondsSinceEpoch;
   final requestId =
-      'wild:${encounter.mapId}:${encounter.zoneId}:${encounter.speciesId}:$now';
+      'wild:${encounter.mapId}:${encounter.sourceId}:${encounter.speciesId}:$now';
   return WildBattleStartRequest(
     requestId: requestId,
     createdAtEpochMs: now,
@@ -19,7 +19,8 @@ WildBattleStartRequest buildBattleStartRequestFromEncounter({
       playerFacing: world.player.facing,
     ),
     mapId: encounter.mapId,
-    zoneId: encounter.zoneId,
+    encounterSourceId: encounter.sourceId,
+    encounterSourceKind: encounter.sourceKind,
     tableId: encounter.tableId,
     encounterKind: encounter.encounterKind,
     speciesId: encounter.speciesId,

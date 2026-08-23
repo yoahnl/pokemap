@@ -23,7 +23,8 @@ WildBattleStartRequest _wildRequest() {
       playerFacing: Direction.north,
     ),
     mapId: 'field_map',
-    zoneId: 'grass_zone',
+    encounterSourceId: 'grass_zone',
+    encounterSourceKind: EncounterSourceKind.gameplayZone,
     tableId: 'grass_table',
     encounterKind: EncounterKind.walk,
     speciesId: 'sparkitten',
@@ -144,8 +145,7 @@ void main() {
       expect(battleTransitionRbyWild.totalSeconds, closeTo(2.25, 1e-9));
     });
 
-    test('dpp_trainer : flash 0,7 s ×2, ball zoom+rotation, deux planches',
-        () {
+    test('dpp_trainer : flash 0,7 s ×2, ball zoom+rotation, deux planches', () {
       final phases = battleTransitionDppTrainer.phases;
       expect(phases, hasLength(6));
       expect(

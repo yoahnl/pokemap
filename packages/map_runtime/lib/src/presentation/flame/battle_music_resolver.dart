@@ -112,22 +112,24 @@ final class BattleMusicResolver {
   /// La musique de combat portée par la zone de rencontre concernée.
   ///
   /// Même règle de ciblage que le fond de zone : une rencontre sauvage vise
-  /// d'abord la zone qui l'a déclenchée (`zoneId`), puis la zone sous le
+  /// d'abord la source qui l'a déclenchée, puis la zone sous le
   /// joueur ; un combat de dresseur regarde la zone sous le joueur.
   String? _zoneBattleMusicRelativePath({
     required BattleStartRequest request,
     required RuntimeMapBundle bundle,
   }) {
-    if (request case WildBattleStartRequest(:final zoneId)) {
-      final normalizedZoneId = zoneId.trim();
-      if (normalizedZoneId.isNotEmpty) {
-        for (final zone in bundle.map.gameplayZones) {
-          if (zone.id != normalizedZoneId) continue;
-          final authored = zone.encounter?.battleMusicPath;
-          if (_isAuthored(authored)) return authored;
-          break;
-        }
-      }
+    if (request
+        case WildBattleStartRequest(
+          :final encounterSourceId,
+          :final encounterSourceKind,
+        )) {
+      final source = findEncounterSource(
+        bundle.map,
+        kind: encounterSourceKind,
+        id: encounterSourceId,
+      );
+      final authored = source?.encounter.battleMusicPath;
+      if (_isAuthored(authored)) return authored;
     }
     final lookupPos = switch (request) {
       WildBattleStartRequest(:final playerPos) => playerPos,

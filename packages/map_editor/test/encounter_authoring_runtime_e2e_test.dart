@@ -221,7 +221,8 @@ void main() {
         orderedEquals(<double>[0.1, 0.5, 0.4]),
       );
       expect(result.status, GameplayEncounterCheckStatus.triggered);
-      expect(result.zoneId, 'forest-zone-high');
+      expect(result.sourceId, 'forest-zone-high');
+      expect(result.sourceKind, EncounterSourceKind.gameplayZone);
       expect(result.tableId, 'forest_walk');
       expect(result.encounterKind, EncounterKind.walk);
       expect(result.encounter?.speciesId, isNotEmpty);

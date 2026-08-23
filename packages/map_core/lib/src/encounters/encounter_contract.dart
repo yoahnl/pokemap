@@ -3,6 +3,8 @@ import 'dart:convert';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_layer.dart';
+import '../models/map_gameplay_zone_payloads.dart';
 import '../models/project_manifest.dart';
 
 enum EncounterProbabilityIssue {
@@ -97,6 +99,320 @@ List<ProjectEncounterEntry> canonicalEncounterEntries(
       ).compareTo(jsonEncode(right.pokemonOverrides?.toJson()));
     });
   return List<ProjectEncounterEntry>.unmodifiable(ordered);
+}
+
+enum EncounterSourceKind { gameplayZone, smartTileLayer }
+
+class EncounterSource {
+  const EncounterSource({
+    required this.kind,
+    required this.id,
+    required this.priority,
+    required this.encounter,
+  });
+
+  final EncounterSourceKind kind;
+  final String id;
+  final int priority;
+  final EncounterZonePayload encounter;
+}
+
+enum EncounterSourceResolutionStatus { noSource, resolved, ambiguous }
+
+class EncounterSourceResolution {
+  const EncounterSourceResolution._({
+    required this.status,
+    this.source,
+    this.ambiguousSourceIds = const <String>[],
+  });
+
+  const EncounterSourceResolution.noSource()
+    : this._(status: EncounterSourceResolutionStatus.noSource);
+
+  EncounterSourceResolution.resolved(EncounterSource source)
+    : this._(status: EncounterSourceResolutionStatus.resolved, source: source);
+
+  EncounterSourceResolution.ambiguous(Iterable<String> sourceIds)
+    : this._(
+        status: EncounterSourceResolutionStatus.ambiguous,
+        ambiguousSourceIds: List<String>.unmodifiable(
+          sourceIds.toList(growable: false)..sort(),
+        ),
+      );
+
+  final EncounterSourceResolutionStatus status;
+  final EncounterSource? source;
+  final List<String> ambiguousSourceIds;
+}
+
+class EncounterSourceAmbiguity {
+  EncounterSourceAmbiguity({
+    required this.encounterKind,
+    required this.priority,
+    required this.position,
+    required Iterable<String> sourceIds,
+  }) : sourceIds = List<String>.unmodifiable(
+         sourceIds.toList(growable: false)..sort(),
+       );
+
+  final EncounterKind encounterKind;
+  final int priority;
+  final GridPos position;
+  final List<String> sourceIds;
+}
+
+EncounterSource? findEncounterSource(
+  MapData map, {
+  required EncounterSourceKind kind,
+  required String id,
+}) {
+  switch (kind) {
+    case EncounterSourceKind.gameplayZone:
+      for (final zone in map.gameplayZones) {
+        final encounter = zone.encounter;
+        if (zone.id == id &&
+            zone.kind == GameplayZoneKind.encounter &&
+            encounter != null) {
+          return EncounterSource(
+            kind: kind,
+            id: zone.id,
+            priority: zone.priority,
+            encounter: encounter,
+          );
+        }
+      }
+      return null;
+    case EncounterSourceKind.smartTileLayer:
+      const prefix = 'smart_tile_layer:';
+      if (!id.startsWith(prefix)) {
+        return null;
+      }
+      final layerId = id.substring(prefix.length);
+      for (final layer in map.layers.whereType<SmartTileLayer>()) {
+        final behavior = layer.encounterBehavior;
+        if (layer.id == layerId && behavior != null) {
+          return EncounterSource(
+            kind: kind,
+            id: '$prefix${layer.id}',
+            priority: behavior.priority,
+            encounter: behavior.encounter,
+          );
+        }
+      }
+      return null;
+  }
+}
+
+EncounterSourceResolution resolveEncounterSourceAtPosition(
+  MapData map, {
+  required GridPos position,
+  required EncounterKind encounterKind,
+}) {
+  final eligible = <EncounterSource>[
+    for (final zone in map.gameplayZones)
+      if (zone.kind == GameplayZoneKind.encounter &&
+          zone.encounter?.encounterKind == encounterKind &&
+          _containsPosition(zone.area, position))
+        EncounterSource(
+          kind: EncounterSourceKind.gameplayZone,
+          id: zone.id,
+          priority: zone.priority,
+          encounter: zone.encounter!,
+        ),
+    for (final layer in map.layers.whereType<SmartTileLayer>())
+      if (_smartTileLayerContainsEncounter(
+        map: map,
+        layer: layer,
+        position: position,
+        encounterKind: encounterKind,
+      ))
+        EncounterSource(
+          kind: EncounterSourceKind.smartTileLayer,
+          id: 'smart_tile_layer:${layer.id}',
+          priority: layer.encounterBehavior!.priority,
+          encounter: layer.encounterBehavior!.encounter,
+        ),
+  ];
+  if (eligible.isEmpty) {
+    return const EncounterSourceResolution.noSource();
+  }
+  final highestPriority = eligible
+      .map((source) => source.priority)
+      .reduce((left, right) => left > right ? left : right);
+  final highest = eligible
+      .where((source) => source.priority == highestPriority)
+      .toList(growable: false);
+  if (highest.length == 1) {
+    return EncounterSourceResolution.resolved(highest.single);
+  }
+  final encounter = highest.first.encounter;
+  if (highest.every((source) => source.encounter == encounter)) {
+    final canonical = highest.toList(growable: false)
+      ..sort((left, right) => left.id.compareTo(right.id));
+    return EncounterSourceResolution.resolved(canonical.first);
+  }
+  return EncounterSourceResolution.ambiguous(
+    highest.map((source) => source.id),
+  );
+}
+
+List<EncounterSourceAmbiguity> findEncounterSourceAmbiguities(MapData map) {
+  final nativeLayers = map.layers
+      .whereType<SmartTileLayer>()
+      .where((layer) => layer.isVisible && layer.encounterBehavior != null)
+      .toList(growable: false);
+  final ambiguities = <EncounterSourceAmbiguity>[];
+  for (final zone in map.gameplayZones) {
+    final zoneEncounter = zone.encounter;
+    if (zone.kind != GameplayZoneKind.encounter || zoneEncounter == null) {
+      continue;
+    }
+    for (final layer in nativeLayers) {
+      final behavior = layer.encounterBehavior!;
+      if (zone.priority != behavior.priority ||
+          zoneEncounter.encounterKind != behavior.encounter.encounterKind ||
+          zoneEncounter == behavior.encounter) {
+        continue;
+      }
+      final position = _firstSmartTileMaterialPositionInRect(
+        map: map,
+        layer: layer,
+        materialId: behavior.materialId,
+        rect: zone.area,
+      );
+      if (position != null) {
+        ambiguities.add(
+          EncounterSourceAmbiguity(
+            encounterKind: zoneEncounter.encounterKind,
+            priority: zone.priority,
+            position: position,
+            sourceIds: <String>[zone.id, 'smart_tile_layer:${layer.id}'],
+          ),
+        );
+      }
+    }
+  }
+  for (var leftIndex = 0; leftIndex < nativeLayers.length; leftIndex++) {
+    final left = nativeLayers[leftIndex];
+    final leftBehavior = left.encounterBehavior!;
+    for (
+      var rightIndex = leftIndex + 1;
+      rightIndex < nativeLayers.length;
+      rightIndex++
+    ) {
+      final right = nativeLayers[rightIndex];
+      final rightBehavior = right.encounterBehavior!;
+      if (leftBehavior.priority != rightBehavior.priority ||
+          leftBehavior.encounter.encounterKind !=
+              rightBehavior.encounter.encounterKind ||
+          leftBehavior.encounter == rightBehavior.encounter) {
+        continue;
+      }
+      final position = _firstSharedSmartTileMaterialPosition(
+        map: map,
+        left: left,
+        leftMaterialId: leftBehavior.materialId,
+        right: right,
+        rightMaterialId: rightBehavior.materialId,
+      );
+      if (position != null) {
+        ambiguities.add(
+          EncounterSourceAmbiguity(
+            encounterKind: leftBehavior.encounter.encounterKind,
+            priority: leftBehavior.priority,
+            position: position,
+            sourceIds: <String>[
+              'smart_tile_layer:${left.id}',
+              'smart_tile_layer:${right.id}',
+            ],
+          ),
+        );
+      }
+    }
+  }
+  return List<EncounterSourceAmbiguity>.unmodifiable(ambiguities);
+}
+
+GridPos? _firstSmartTileMaterialPositionInRect({
+  required MapData map,
+  required SmartTileLayer layer,
+  required String materialId,
+  required MapRect rect,
+}) {
+  final materialValue = layer.materialPalette.indexOf(materialId);
+  if (materialValue <= 0) return null;
+  final left = rect.pos.x < 0 ? 0 : rect.pos.x;
+  final top = rect.pos.y < 0 ? 0 : rect.pos.y;
+  final right = rect.pos.x + rect.size.width > map.size.width
+      ? map.size.width
+      : rect.pos.x + rect.size.width;
+  final bottom = rect.pos.y + rect.size.height > map.size.height
+      ? map.size.height
+      : rect.pos.y + rect.size.height;
+  final semanticCells = layer.field.semanticCells;
+  for (var y = top; y < bottom; y++) {
+    for (var x = left; x < right; x++) {
+      final index = y * map.size.width + x;
+      if (index < semanticCells.length &&
+          semanticCells[index] == materialValue) {
+        return GridPos(x: x, y: y);
+      }
+    }
+  }
+  return null;
+}
+
+GridPos? _firstSharedSmartTileMaterialPosition({
+  required MapData map,
+  required SmartTileLayer left,
+  required String leftMaterialId,
+  required SmartTileLayer right,
+  required String rightMaterialId,
+}) {
+  final leftValue = left.materialPalette.indexOf(leftMaterialId);
+  final rightValue = right.materialPalette.indexOf(rightMaterialId);
+  if (leftValue <= 0 || rightValue <= 0) return null;
+  final leftCells = left.field.semanticCells;
+  final rightCells = right.field.semanticCells;
+  final cellCount = map.size.width * map.size.height;
+  final upperBound = cellCount < leftCells.length
+      ? cellCount
+      : leftCells.length;
+  final sharedBound = upperBound < rightCells.length
+      ? upperBound
+      : rightCells.length;
+  for (var index = 0; index < sharedBound; index++) {
+    if (leftCells[index] == leftValue && rightCells[index] == rightValue) {
+      return GridPos(x: index % map.size.width, y: index ~/ map.size.width);
+    }
+  }
+  return null;
+}
+
+bool _smartTileLayerContainsEncounter({
+  required MapData map,
+  required SmartTileLayer layer,
+  required GridPos position,
+  required EncounterKind encounterKind,
+}) {
+  final behavior = layer.encounterBehavior;
+  if (!layer.isVisible ||
+      behavior == null ||
+      behavior.encounter.encounterKind != encounterKind ||
+      position.x < 0 ||
+      position.y < 0 ||
+      position.x >= map.size.width ||
+      position.y >= map.size.height) {
+    return false;
+  }
+  final materialValue = layer.materialPalette.indexOf(behavior.materialId);
+  if (materialValue <= 0) {
+    return false;
+  }
+  final cellIndex = position.y * map.size.width + position.x;
+  final semanticCells = layer.field.semanticCells;
+  return cellIndex < semanticCells.length &&
+      semanticCells[cellIndex] == materialValue;
 }
 
 enum EncounterZoneResolutionStatus { noZone, resolved, ambiguous }

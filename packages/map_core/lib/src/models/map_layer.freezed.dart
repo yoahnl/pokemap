@@ -814,12 +814,12 @@ return border(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<TileLayerPaletteEntry> palette,  List<int> cells)?  tile,TResult Function( String id,  String name,  bool isVisible,  double opacity,  List<bool> collisions)?  collision,TResult Function( String id,  String name,  bool isVisible,  double opacity,  String presetId,  SmartTileUsage usage,  List<String> materialPalette,  SmartTileField field,  List<SmartTilePatternStroke> patternStrokes,  int layerSeed, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)  Map<String, int> candidateWeights,  SmartTileAnimationActivation animationActivation,  Map<String, String> properties)?  smartTile,TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<MapPlacedTile> tileObjects)?  object,TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent)  EnvironmentLayerContent content,  Map<String, String> properties)?  environment,TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson)  BorderLayerContent content,  Map<String, String> properties)?  border,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<TileLayerPaletteEntry> palette,  List<int> cells)?  tile,TResult Function( String id,  String name,  bool isVisible,  double opacity,  List<bool> collisions)?  collision,TResult Function( String id,  String name,  bool isVisible,  double opacity,  String presetId,  SmartTileUsage usage,  List<String> materialPalette,  SmartTileField field,  List<SmartTilePatternStroke> patternStrokes,  int layerSeed, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)  Map<String, int> candidateWeights,  SmartTileAnimationActivation animationActivation, @JsonKey(includeIfNull: false)  SmartTileEncounterBehavior? encounterBehavior,  Map<String, String> properties)?  smartTile,TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<MapPlacedTile> tileObjects)?  object,TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent)  EnvironmentLayerContent content,  Map<String, String> properties)?  environment,TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson)  BorderLayerContent content,  Map<String, String> properties)?  border,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case TileLayer() when tile != null:
 return tile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.palette,_that.cells);case CollisionLayer() when collision != null:
 return collision(_that.id,_that.name,_that.isVisible,_that.opacity,_that.collisions);case SmartTileLayer() when smartTile != null:
-return smartTile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.presetId,_that.usage,_that.materialPalette,_that.field,_that.patternStrokes,_that.layerSeed,_that.candidateWeights,_that.animationActivation,_that.properties);case ObjectLayer() when object != null:
+return smartTile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.presetId,_that.usage,_that.materialPalette,_that.field,_that.patternStrokes,_that.layerSeed,_that.candidateWeights,_that.animationActivation,_that.encounterBehavior,_that.properties);case ObjectLayer() when object != null:
 return object(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.tileObjects);case EnvironmentLayer() when environment != null:
 return environment(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case BorderLayer() when border != null:
 return border(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case _:
@@ -840,12 +840,12 @@ return border(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<TileLayerPaletteEntry> palette,  List<int> cells)  tile,required TResult Function( String id,  String name,  bool isVisible,  double opacity,  List<bool> collisions)  collision,required TResult Function( String id,  String name,  bool isVisible,  double opacity,  String presetId,  SmartTileUsage usage,  List<String> materialPalette,  SmartTileField field,  List<SmartTilePatternStroke> patternStrokes,  int layerSeed, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)  Map<String, int> candidateWeights,  SmartTileAnimationActivation animationActivation,  Map<String, String> properties)  smartTile,required TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<MapPlacedTile> tileObjects)  object,required TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent)  EnvironmentLayerContent content,  Map<String, String> properties)  environment,required TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson)  BorderLayerContent content,  Map<String, String> properties)  border,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<TileLayerPaletteEntry> palette,  List<int> cells)  tile,required TResult Function( String id,  String name,  bool isVisible,  double opacity,  List<bool> collisions)  collision,required TResult Function( String id,  String name,  bool isVisible,  double opacity,  String presetId,  SmartTileUsage usage,  List<String> materialPalette,  SmartTileField field,  List<SmartTilePatternStroke> patternStrokes,  int layerSeed, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)  Map<String, int> candidateWeights,  SmartTileAnimationActivation animationActivation, @JsonKey(includeIfNull: false)  SmartTileEncounterBehavior? encounterBehavior,  Map<String, String> properties)  smartTile,required TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<MapPlacedTile> tileObjects)  object,required TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent)  EnvironmentLayerContent content,  Map<String, String> properties)  environment,required TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson)  BorderLayerContent content,  Map<String, String> properties)  border,}) {final _that = this;
 switch (_that) {
 case TileLayer():
 return tile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.palette,_that.cells);case CollisionLayer():
 return collision(_that.id,_that.name,_that.isVisible,_that.opacity,_that.collisions);case SmartTileLayer():
-return smartTile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.presetId,_that.usage,_that.materialPalette,_that.field,_that.patternStrokes,_that.layerSeed,_that.candidateWeights,_that.animationActivation,_that.properties);case ObjectLayer():
+return smartTile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.presetId,_that.usage,_that.materialPalette,_that.field,_that.patternStrokes,_that.layerSeed,_that.candidateWeights,_that.animationActivation,_that.encounterBehavior,_that.properties);case ObjectLayer():
 return object(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.tileObjects);case EnvironmentLayer():
 return environment(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case BorderLayer():
 return border(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);}
@@ -862,12 +862,12 @@ return border(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<TileLayerPaletteEntry> palette,  List<int> cells)?  tile,TResult? Function( String id,  String name,  bool isVisible,  double opacity,  List<bool> collisions)?  collision,TResult? Function( String id,  String name,  bool isVisible,  double opacity,  String presetId,  SmartTileUsage usage,  List<String> materialPalette,  SmartTileField field,  List<SmartTilePatternStroke> patternStrokes,  int layerSeed, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)  Map<String, int> candidateWeights,  SmartTileAnimationActivation animationActivation,  Map<String, String> properties)?  smartTile,TResult? Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<MapPlacedTile> tileObjects)?  object,TResult? Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent)  EnvironmentLayerContent content,  Map<String, String> properties)?  environment,TResult? Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson)  BorderLayerContent content,  Map<String, String> properties)?  border,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<TileLayerPaletteEntry> palette,  List<int> cells)?  tile,TResult? Function( String id,  String name,  bool isVisible,  double opacity,  List<bool> collisions)?  collision,TResult? Function( String id,  String name,  bool isVisible,  double opacity,  String presetId,  SmartTileUsage usage,  List<String> materialPalette,  SmartTileField field,  List<SmartTilePatternStroke> patternStrokes,  int layerSeed, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)  Map<String, int> candidateWeights,  SmartTileAnimationActivation animationActivation, @JsonKey(includeIfNull: false)  SmartTileEncounterBehavior? encounterBehavior,  Map<String, String> properties)?  smartTile,TResult? Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<MapPlacedTile> tileObjects)?  object,TResult? Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent)  EnvironmentLayerContent content,  Map<String, String> properties)?  environment,TResult? Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson)  BorderLayerContent content,  Map<String, String> properties)?  border,}) {final _that = this;
 switch (_that) {
 case TileLayer() when tile != null:
 return tile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.palette,_that.cells);case CollisionLayer() when collision != null:
 return collision(_that.id,_that.name,_that.isVisible,_that.opacity,_that.collisions);case SmartTileLayer() when smartTile != null:
-return smartTile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.presetId,_that.usage,_that.materialPalette,_that.field,_that.patternStrokes,_that.layerSeed,_that.candidateWeights,_that.animationActivation,_that.properties);case ObjectLayer() when object != null:
+return smartTile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.presetId,_that.usage,_that.materialPalette,_that.field,_that.patternStrokes,_that.layerSeed,_that.candidateWeights,_that.animationActivation,_that.encounterBehavior,_that.properties);case ObjectLayer() when object != null:
 return object(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.tileObjects);case EnvironmentLayer() when environment != null:
 return environment(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case BorderLayer() when border != null:
 return border(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case _:
@@ -1066,7 +1066,7 @@ as List<bool>,
 
 @JsonSerializable(explicitToJson: true)
 class SmartTileLayer extends MapLayer {
-  const SmartTileLayer({required this.id, required this.name, this.isVisible = true, this.opacity = 1.0, required this.presetId, required this.usage, final  List<String> materialPalette = const <String>[''], required this.field, final  List<SmartTilePatternStroke> patternStrokes = const <SmartTilePatternStroke>[], this.layerSeed = 0, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false) final  Map<String, int> candidateWeights = const <String, int>{}, this.animationActivation = SmartTileAnimationActivation.always, final  Map<String, String> properties = const <String, String>{}, final  String? $type}): _materialPalette = materialPalette,_patternStrokes = patternStrokes,_candidateWeights = candidateWeights,_properties = properties,$type = $type ?? 'smart_tile',super._();
+  const SmartTileLayer({required this.id, required this.name, this.isVisible = true, this.opacity = 1.0, required this.presetId, required this.usage, final  List<String> materialPalette = const <String>[''], required this.field, final  List<SmartTilePatternStroke> patternStrokes = const <SmartTilePatternStroke>[], this.layerSeed = 0, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false) final  Map<String, int> candidateWeights = const <String, int>{}, this.animationActivation = SmartTileAnimationActivation.always, @JsonKey(includeIfNull: false) this.encounterBehavior, final  Map<String, String> properties = const <String, String>{}, final  String? $type}): _materialPalette = materialPalette,_patternStrokes = patternStrokes,_candidateWeights = candidateWeights,_properties = properties,$type = $type ?? 'smart_tile',super._();
   factory SmartTileLayer.fromJson(Map<String, dynamic> json) => _$SmartTileLayerFromJson(json);
 
 @override final  String id;
@@ -1107,6 +1107,7 @@ class SmartTileLayer extends MapLayer {
 }
 
 @JsonKey() final  SmartTileAnimationActivation animationActivation;
+@JsonKey(includeIfNull: false) final  SmartTileEncounterBehavior? encounterBehavior;
  final  Map<String, String> _properties;
 @JsonKey() Map<String, String> get properties {
   if (_properties is EqualUnmodifiableMapView) return _properties;
@@ -1132,16 +1133,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTileLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.presetId, presetId) || other.presetId == presetId)&&(identical(other.usage, usage) || other.usage == usage)&&const DeepCollectionEquality().equals(other._materialPalette, _materialPalette)&&(identical(other.field, field) || other.field == field)&&const DeepCollectionEquality().equals(other._patternStrokes, _patternStrokes)&&(identical(other.layerSeed, layerSeed) || other.layerSeed == layerSeed)&&const DeepCollectionEquality().equals(other._candidateWeights, _candidateWeights)&&(identical(other.animationActivation, animationActivation) || other.animationActivation == animationActivation)&&const DeepCollectionEquality().equals(other._properties, _properties));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTileLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.presetId, presetId) || other.presetId == presetId)&&(identical(other.usage, usage) || other.usage == usage)&&const DeepCollectionEquality().equals(other._materialPalette, _materialPalette)&&(identical(other.field, field) || other.field == field)&&const DeepCollectionEquality().equals(other._patternStrokes, _patternStrokes)&&(identical(other.layerSeed, layerSeed) || other.layerSeed == layerSeed)&&const DeepCollectionEquality().equals(other._candidateWeights, _candidateWeights)&&(identical(other.animationActivation, animationActivation) || other.animationActivation == animationActivation)&&(identical(other.encounterBehavior, encounterBehavior) || other.encounterBehavior == encounterBehavior)&&const DeepCollectionEquality().equals(other._properties, _properties));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,isVisible,opacity,presetId,usage,const DeepCollectionEquality().hash(_materialPalette),field,const DeepCollectionEquality().hash(_patternStrokes),layerSeed,const DeepCollectionEquality().hash(_candidateWeights),animationActivation,const DeepCollectionEquality().hash(_properties));
+int get hashCode => Object.hash(runtimeType,id,name,isVisible,opacity,presetId,usage,const DeepCollectionEquality().hash(_materialPalette),field,const DeepCollectionEquality().hash(_patternStrokes),layerSeed,const DeepCollectionEquality().hash(_candidateWeights),animationActivation,encounterBehavior,const DeepCollectionEquality().hash(_properties));
 
 @override
 String toString() {
-  return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, field: $field, patternStrokes: $patternStrokes, layerSeed: $layerSeed, candidateWeights: $candidateWeights, animationActivation: $animationActivation, properties: $properties)';
+  return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, field: $field, patternStrokes: $patternStrokes, layerSeed: $layerSeed, candidateWeights: $candidateWeights, animationActivation: $animationActivation, encounterBehavior: $encounterBehavior, properties: $properties)';
 }
 
 
@@ -1152,11 +1153,11 @@ abstract mixin class $SmartTileLayerCopyWith<$Res> implements $MapLayerCopyWith<
   factory $SmartTileLayerCopyWith(SmartTileLayer value, $Res Function(SmartTileLayer) _then) = _$SmartTileLayerCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, bool isVisible, double opacity, String presetId, SmartTileUsage usage, List<String> materialPalette, SmartTileField field, List<SmartTilePatternStroke> patternStrokes, int layerSeed,@JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false) Map<String, int> candidateWeights, SmartTileAnimationActivation animationActivation, Map<String, String> properties
+ String id, String name, bool isVisible, double opacity, String presetId, SmartTileUsage usage, List<String> materialPalette, SmartTileField field, List<SmartTilePatternStroke> patternStrokes, int layerSeed,@JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false) Map<String, int> candidateWeights, SmartTileAnimationActivation animationActivation,@JsonKey(includeIfNull: false) SmartTileEncounterBehavior? encounterBehavior, Map<String, String> properties
 });
 
 
-$SmartTileFieldCopyWith<$Res> get field;
+$SmartTileFieldCopyWith<$Res> get field;$SmartTileEncounterBehaviorCopyWith<$Res>? get encounterBehavior;
 
 }
 /// @nodoc
@@ -1169,7 +1170,7 @@ class _$SmartTileLayerCopyWithImpl<$Res>
 
 /// Create a copy of MapLayer
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isVisible = null,Object? opacity = null,Object? presetId = null,Object? usage = null,Object? materialPalette = null,Object? field = null,Object? patternStrokes = null,Object? layerSeed = null,Object? candidateWeights = null,Object? animationActivation = null,Object? properties = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isVisible = null,Object? opacity = null,Object? presetId = null,Object? usage = null,Object? materialPalette = null,Object? field = null,Object? patternStrokes = null,Object? layerSeed = null,Object? candidateWeights = null,Object? animationActivation = null,Object? encounterBehavior = freezed,Object? properties = null,}) {
   return _then(SmartTileLayer(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -1183,7 +1184,8 @@ as SmartTileField,patternStrokes: null == patternStrokes ? _self._patternStrokes
 as List<SmartTilePatternStroke>,layerSeed: null == layerSeed ? _self.layerSeed : layerSeed // ignore: cast_nullable_to_non_nullable
 as int,candidateWeights: null == candidateWeights ? _self._candidateWeights : candidateWeights // ignore: cast_nullable_to_non_nullable
 as Map<String, int>,animationActivation: null == animationActivation ? _self.animationActivation : animationActivation // ignore: cast_nullable_to_non_nullable
-as SmartTileAnimationActivation,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
+as SmartTileAnimationActivation,encounterBehavior: freezed == encounterBehavior ? _self.encounterBehavior : encounterBehavior // ignore: cast_nullable_to_non_nullable
+as SmartTileEncounterBehavior?,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,
   ));
 }
@@ -1196,6 +1198,18 @@ $SmartTileFieldCopyWith<$Res> get field {
 
   return $SmartTileFieldCopyWith<$Res>(_self.field, (value) {
     return _then(_self.copyWith(field: value));
+  });
+}/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SmartTileEncounterBehaviorCopyWith<$Res>? get encounterBehavior {
+    if (_self.encounterBehavior == null) {
+    return null;
+  }
+
+  return $SmartTileEncounterBehaviorCopyWith<$Res>(_self.encounterBehavior!, (value) {
+    return _then(_self.copyWith(encounterBehavior: value));
   });
 }
 }

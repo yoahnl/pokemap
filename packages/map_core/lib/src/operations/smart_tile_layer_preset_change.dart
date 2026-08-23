@@ -47,7 +47,8 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
   if (sourcePreset.id != layer.presetId) {
     return SmartTileLayerPresetChangeFailure(
       code: 'smart_tile.layer_preset_source_mismatch',
-      message: 'Layer "${layer.id}" references preset "${layer.presetId}", '
+      message:
+          'Layer "${layer.id}" references preset "${layer.presetId}", '
           'not "${sourcePreset.id}".',
     );
   }
@@ -66,7 +67,8 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
   if (sourcePreset.usage != layer.usage || targetPreset.usage != layer.usage) {
     return SmartTileLayerPresetChangeFailure(
       code: 'smart_tile.layer_preset_usage_incompatible',
-      message: 'Target preset "${targetPreset.id}" does not use the '
+      message:
+          'Target preset "${targetPreset.id}" does not use the '
           '${layer.usage.name} layer usage.',
     );
   }
@@ -76,7 +78,8 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
   )) {
     return SmartTileLayerPresetChangeFailure(
       code: 'smart_tile.layer_preset_topology_incompatible',
-      message: 'Target preset "${targetPreset.id}" topology '
+      message:
+          'Target preset "${targetPreset.id}" topology '
           '${targetPreset.topology.name} is incompatible with the existing '
           'layer field.',
     );
@@ -88,14 +91,16 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
   if (mapLayerIndex < 0 || map.layers[mapLayerIndex] != layer) {
     return SmartTileLayerPresetChangeFailure(
       code: 'smart_tile.layer_preset_layer_mismatch',
-      message: 'Layer "${layer.id}" is not the current layer in map '
+      message:
+          'Layer "${layer.id}" is not the current layer in map '
           '"${map.id}".',
     );
   }
 
   final targetPalette = _targetPalette(targetPreset);
-  final catalogMaterialIds =
-      catalog.materials.map((material) => material.id).toSet();
+  final catalogMaterialIds = catalog.materials
+      .map((material) => material.id)
+      .toSet();
   final invalidTargetMaterialIds = targetPalette
       .skip(1)
       .where((materialId) => !catalogMaterialIds.contains(materialId))
@@ -105,7 +110,8 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
       invalidTargetMaterialIds.isNotEmpty) {
     return SmartTileLayerPresetChangeFailure(
       code: 'smart_tile.layer_preset_material_mapping_invalid',
-      message: 'Target preset "${targetPreset.id}" has an invalid material '
+      message:
+          'Target preset "${targetPreset.id}" has an invalid material '
           'palette.',
     );
   }
@@ -114,7 +120,8 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
   if (!_hasExpectedDimensions(map, layer.field)) {
     return SmartTileLayerPresetChangeFailure(
       code: 'smart_tile.layer_preset_field_invalid',
-      message: 'Layer "${layer.id}" field dimensions do not match map '
+      message:
+          'Layer "${layer.id}" field dimensions do not match map '
           '"${map.id}".',
     );
   }
@@ -133,7 +140,8 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
   if (invalidPaletteIndex != null) {
     return SmartTileLayerPresetChangeFailure(
       code: 'smart_tile.layer_preset_material_mapping_invalid',
-      message: 'Layer "${layer.id}" references palette index '
+      message:
+          'Layer "${layer.id}" references palette index '
           '$invalidPaletteIndex outside its material palette.',
     );
   }
@@ -142,11 +150,28 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
     for (final lattice in activeLattices)
       for (final value in lattice) value,
   };
+  final behaviorMaterialId = layer.encounterBehavior?.materialId.trim();
+  if (behaviorMaterialId != null && behaviorMaterialId.isNotEmpty) {
+    final behaviorPaletteIndex = layer.materialPalette.indexOf(
+      behaviorMaterialId,
+    );
+    if (behaviorPaletteIndex <= 0) {
+      return SmartTileLayerPresetChangeFailure(
+        code: 'smart_tile.layer_preset_material_mapping_invalid',
+        message:
+            'Layer "${layer.id}" encounter behavior references invalid '
+            'material "$behaviorMaterialId".',
+      );
+    }
+    usedPaletteIndexes.add(behaviorPaletteIndex);
+  }
   final usedMaterialIds = <String>[];
   final seenUsedMaterialIds = <String>{};
-  for (var paletteIndex = 1;
-      paletteIndex < layer.materialPalette.length;
-      paletteIndex += 1) {
+  for (
+    var paletteIndex = 1;
+    paletteIndex < layer.materialPalette.length;
+    paletteIndex += 1
+  ) {
     if (!usedPaletteIndexes.contains(paletteIndex)) {
       continue;
     }
@@ -154,7 +179,8 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
     if (materialId.isEmpty || !catalogMaterialIds.contains(materialId)) {
       return SmartTileLayerPresetChangeFailure(
         code: 'smart_tile.layer_preset_material_mapping_invalid',
-        message: 'Layer "${layer.id}" uses invalid material at palette '
+        message:
+            'Layer "${layer.id}" uses invalid material at palette '
             'index $paletteIndex.',
       );
     }
@@ -174,7 +200,8 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
         !catalogMaterialIds.contains(targetMaterialId)) {
       return SmartTileLayerPresetChangeFailure(
         code: 'smart_tile.layer_preset_material_mapping_invalid',
-        message: 'Material mapping "${entry.key}" to "${entry.value}" '
+        message:
+            'Material mapping "${entry.key}" to "${entry.value}" '
             'cannot be applied to target preset "${targetPreset.id}".',
       );
     }
@@ -203,16 +230,19 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
   if (requiredMaterialIds.isNotEmpty) {
     return SmartTileLayerPresetChangeFailure(
       code: 'smart_tile.layer_preset_material_mapping_required',
-      message: 'Target preset "${targetPreset.id}" needs mappings for '
+      message:
+          'Target preset "${targetPreset.id}" needs mappings for '
           '${requiredMaterialIds.join(', ')}.',
       requiredMaterialIds: requiredMaterialIds,
     );
   }
 
   final paletteIndexMappings = <int, int>{0: 0};
-  for (var sourceIndex = 1;
-      sourceIndex < layer.materialPalette.length;
-      sourceIndex += 1) {
+  for (
+    var sourceIndex = 1;
+    sourceIndex < layer.materialPalette.length;
+    sourceIndex += 1
+  ) {
     final sourceMaterialId = layer.materialPalette[sourceIndex].trim();
     final targetMaterialId = effectiveMappings[sourceMaterialId];
     if (targetMaterialId != null) {
@@ -224,29 +254,28 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
 
   var remappedEntryCount = 0;
   List<int> reproject(List<int> values) => List<int>.unmodifiable(
-        values.map((sourceIndex) {
-          final targetIndex = paletteIndexMappings[sourceIndex];
-          if (targetIndex == null) {
-            return 0;
-          }
-          final sourceMaterialId = sourceIndex == 0
-              ? null
-              : layer.materialPalette[sourceIndex].trim();
-          final targetMaterialId = sourceMaterialId == null
-              ? null
-              : effectiveMappings[sourceMaterialId];
-          if (sourceIndex != targetIndex ||
-              sourceMaterialId != targetMaterialId) {
-            remappedEntryCount += 1;
-          }
-          return targetIndex;
-        }),
-      );
+    values.map((sourceIndex) {
+      final targetIndex = paletteIndexMappings[sourceIndex];
+      if (targetIndex == null) {
+        return 0;
+      }
+      final sourceMaterialId = sourceIndex == 0
+          ? null
+          : layer.materialPalette[sourceIndex].trim();
+      final targetMaterialId = sourceMaterialId == null
+          ? null
+          : effectiveMappings[sourceMaterialId];
+      if (sourceIndex != targetIndex || sourceMaterialId != targetMaterialId) {
+        remappedEntryCount += 1;
+      }
+      return targetIndex;
+    }),
+  );
 
   final projectedField = switch (layer.field) {
     SmartTileCellField(:final semanticCells) => SmartTileField.cell(
-        semanticCells: reproject(semanticCells),
-      ),
+      semanticCells: reproject(semanticCells),
+    ),
     SmartTileEdgeField(
       :final semanticCells,
       :final horizontalEdges,
@@ -280,6 +309,11 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
     materialPalette: targetPalette,
     field: projectedField,
     candidateWeights: const <String, int>{},
+    encounterBehavior: layer.encounterBehavior == null
+        ? null
+        : layer.encounterBehavior!.copyWith(
+            materialId: effectiveMappings[behaviorMaterialId]!,
+          ),
   );
   final projectedLayers = List<MapLayer>.of(map.layers)
     ..[mapLayerIndex] = projectedLayer;
@@ -292,7 +326,8 @@ SmartTileLayerPresetChangeResult planSmartTileLayerPresetChange({
   if (readiness.hasErrors) {
     return SmartTileLayerPresetChangeFailure(
       code: 'smart_tile.layer_preset_unresolved',
-      message: 'Target preset "${targetPreset.id}" cannot resolve the '
+      message:
+          'Target preset "${targetPreset.id}" cannot resolve the '
           'existing layer geometry.',
     );
   }
@@ -318,30 +353,25 @@ List<String> _targetPalette(ProjectSmartTilePreset preset) {
 }
 
 List<List<int>> _activeLattices(SmartTileField field) => switch (field) {
-      SmartTileCellField(:final semanticCells) => <List<int>>[semanticCells],
-      SmartTileEdgeField(
-        :final semanticCells,
-        :final horizontalEdges,
-        :final verticalEdges,
-      ) =>
-        <List<int>>[semanticCells, horizontalEdges, verticalEdges],
-      SmartTileCornerField(:final semanticCells, :final corners) => <List<int>>[
-          semanticCells,
-          corners
-        ],
-      SmartTileMixedField(
-        :final semanticCells,
-        :final horizontalEdges,
-        :final verticalEdges,
-        :final corners,
-      ) =>
-        <List<int>>[
-          semanticCells,
-          horizontalEdges,
-          verticalEdges,
-          corners,
-        ],
-    };
+  SmartTileCellField(:final semanticCells) => <List<int>>[semanticCells],
+  SmartTileEdgeField(
+    :final semanticCells,
+    :final horizontalEdges,
+    :final verticalEdges,
+  ) =>
+    <List<int>>[semanticCells, horizontalEdges, verticalEdges],
+  SmartTileCornerField(:final semanticCells, :final corners) => <List<int>>[
+    semanticCells,
+    corners,
+  ],
+  SmartTileMixedField(
+    :final semanticCells,
+    :final horizontalEdges,
+    :final verticalEdges,
+    :final corners,
+  ) =>
+    <List<int>>[semanticCells, horizontalEdges, verticalEdges, corners],
+};
 
 bool _hasExpectedDimensions(MapData map, SmartTileField field) {
   final width = map.size.width;

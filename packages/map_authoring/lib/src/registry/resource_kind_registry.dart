@@ -341,9 +341,9 @@ final class AuthoringResourceKindRegistry {
       ),
       AuthoringResourceKindDescriptor(
         id: 'smartTileLayer',
-        version: 1,
+        version: 2,
         displayName: 'Smart Tile layer',
-        summary: 'Map-owned semantic field derived from a published preset',
+        summary: 'Map-owned semantic field and optional gameplay behavior',
       ),
       AuthoringResourceKindDescriptor(
         id: 'borderBlueprint',
@@ -398,6 +398,12 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Fact',
         summary: 'Typed narrative state definition',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'encounterTable',
+        version: 1,
+        displayName: 'Encounter table',
+        summary: 'Project-owned wild encounter table',
       ),
       AuthoringResourceKindDescriptor(
         id: 'worldRule',

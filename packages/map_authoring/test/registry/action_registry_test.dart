@@ -134,6 +134,7 @@ void main() {
           'dialogue',
           'dialogueSource',
           'elementCategory',
+          'encounterTable',
           'eventV2',
           'fact',
           'itemCatalog',

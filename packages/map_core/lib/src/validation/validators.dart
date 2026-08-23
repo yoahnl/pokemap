@@ -193,9 +193,7 @@ class ProjectValidator {
       );
     }
     if (config.playerName.trim().isEmpty) {
-      throw const ValidationException(
-        'newGame playerName must not be blank',
-      );
+      throw const ValidationException('newGame playerName must not be blank');
     }
     final characterIds = manifest.characters.map((entry) => entry.id).toSet();
     final avatarIds = <String>{};
@@ -341,8 +339,9 @@ class ProjectValidator {
     for (final entry in manifest.cinematicLibraryCatalog.entries) {
       final known = switch (entry.family) {
         CinematicLibraryFamily.world => worldIds.contains(entry.cinematicId),
-        CinematicLibraryFamily.presentation =>
-          presentationIds.contains(entry.cinematicId),
+        CinematicLibraryFamily.presentation => presentationIds.contains(
+          entry.cinematicId,
+        ),
       };
       if (!known) {
         throw ValidationException(
@@ -519,8 +518,9 @@ class ProjectValidator {
             'Cycle detected in group hierarchy at ${group.id}',
           );
         }
-        current = manifest.groups
-            .firstWhere((candidate) => candidate.id == current.parentGroupId);
+        current = manifest.groups.firstWhere(
+          (candidate) => candidate.id == current.parentGroupId,
+        );
       }
     }
 
@@ -633,7 +633,9 @@ class ProjectValidator {
   }
 
   static void _validateTilesets(
-      ProjectManifest manifest, Set<String> groupIds) {
+    ProjectManifest manifest,
+    Set<String> groupIds,
+  ) {
     var worldTilesetCount = 0;
     final tilesetElementGroupIdsByTileset = <String, Set<String>>{};
     final allTilesetIds = manifest.tilesets.map((t) => t.id).toSet();
@@ -661,7 +663,8 @@ class ProjectValidator {
         worldTilesetCount++;
         if (tileset.scope != TilesetScope.global) {
           throw ValidationException(
-              'World tileset ${tileset.id} must be global');
+            'World tileset ${tileset.id} must be global',
+          );
         }
       }
 
@@ -710,8 +713,8 @@ class ProjectValidator {
         }
       }
 
-      tilesetElementGroupIdsByTileset[tileset.id] =
-          elementGroupById.keys.toSet();
+      tilesetElementGroupIdsByTileset[tileset.id] = elementGroupById.keys
+          .toSet();
 
       final paletteIds = <String>{};
       for (final entry in tileset.paletteEntries) {
@@ -922,8 +925,9 @@ class ProjectValidator {
           !object.height.isFinite ||
           !object.rotation.isFinite ||
           !dimensionsAreValid ||
-          object.points
-              .any((point) => !point.x.isFinite || !point.y.isFinite)) {
+          object.points.any(
+            (point) => !point.x.isFinite || !point.y.isFinite,
+          )) {
         throw ValidationException(
           'Tileset ${tileset.id} has an invalid image collection source '
           'collision object ${object.id} for tile ${tile.tileId}',
@@ -950,15 +954,17 @@ class ProjectValidator {
         ProjectTilesetPropertyType.integer => value is int,
         ProjectTilesetPropertyType.decimal => value is num && value.isFinite,
         ProjectTilesetPropertyType.boolean => value is bool,
-        ProjectTilesetPropertyType.color => value is String &&
-            RegExp(r'^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$').hasMatch(value),
+        ProjectTilesetPropertyType.color =>
+          value is String &&
+              RegExp(r'^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$').hasMatch(value),
         ProjectTilesetPropertyType.assetReference =>
           value is String && value.trim().isNotEmpty,
         ProjectTilesetPropertyType.objectReference => value is int,
-        ProjectTilesetPropertyType.structured => value is Map &&
-            property.customType != null &&
-            property.customType!.trim().isNotEmpty &&
-            _isJsonCompatible(value),
+        ProjectTilesetPropertyType.structured =>
+          value is Map &&
+              property.customType != null &&
+              property.customType!.trim().isNotEmpty &&
+              _isJsonCompatible(value),
       };
       if (property.name.trim().isEmpty ||
           !names.add(property.name) ||
@@ -1025,7 +1031,9 @@ class ProjectValidator {
   }
 
   static void _validateElements(
-      ProjectManifest manifest, Set<String> groupIds) {
+    ProjectManifest manifest,
+    Set<String> groupIds,
+  ) {
     final tilesetIds = manifest.tilesets.map((t) => t.id).toSet();
     final tilesetElementGroupIdsByTileset = <String, Set<String>>{
       for (final tileset in manifest.tilesets)
@@ -1149,11 +1157,13 @@ class ProjectValidator {
 
   static void _validateScenarios(ProjectManifest manifest) {
     final knownScriptIds = manifest.scripts.map((script) => script.id).toSet();
-    final knownDialogueIds =
-        manifest.dialogues.map((dialogue) => dialogue.id).toSet();
+    final knownDialogueIds = manifest.dialogues
+        .map((dialogue) => dialogue.id)
+        .toSet();
     final knownMapIds = manifest.maps.map((map) => map.id).toSet();
-    final knownTrainerIds =
-        manifest.trainers.map((trainer) => trainer.id).toSet();
+    final knownTrainerIds = manifest.trainers
+        .map((trainer) => trainer.id)
+        .toSet();
 
     for (final scenario in manifest.scenarios) {
       final scenarioId = _requireProjectNonBlank(
@@ -1161,7 +1171,9 @@ class ProjectValidator {
         'Scenario ID cannot be empty',
       );
       _requireProjectNonBlank(
-          scenario.name, 'Scenario $scenarioId has an empty name');
+        scenario.name,
+        'Scenario $scenarioId has an empty name',
+      );
 
       // Outcomes déclarés: non vides et sans doublons.
       final declaredOutcomeIds = <String>{};
@@ -1650,8 +1662,9 @@ class ProjectValidator {
     final badgesById = <String, BadgeDefinition>{
       for (final badge in manifest.badges) badge.id: badge,
     };
-    final dialogueIds =
-        manifest.dialogues.map((dialogue) => dialogue.id).toSet();
+    final dialogueIds = manifest.dialogues
+        .map((dialogue) => dialogue.id)
+        .toSet();
     for (final trainer in manifest.trainers) {
       final id = trainer.id.trim();
       if (id.isEmpty) {
@@ -1786,8 +1799,8 @@ class ProjectValidator {
         case null:
           break;
       }
-      final battleBackgroundRelativePath =
-          trainer.battleBackgroundRelativePath?.trim();
+      final battleBackgroundRelativePath = trainer.battleBackgroundRelativePath
+          ?.trim();
       if (battleBackgroundRelativePath != null &&
           battleBackgroundRelativePath.isNotEmpty) {
         _validateRelativePath(
@@ -1814,9 +1827,7 @@ class ProjectValidator {
       for (var i = 0; i < trainer.team.length; i++) {
         final pokemon = trainer.team[i];
         if (pokemon.speciesId.trim().isEmpty) {
-          throw ValidationException(
-            'Trainer $id team[$i] has empty speciesId',
-          );
+          throw ValidationException('Trainer $id team[$i] has empty speciesId');
         }
         if (pokemon.level <= 0) {
           throw ValidationException(
@@ -2145,10 +2156,7 @@ void _validateFactEqualsCondition(
 
 class MapValidator {
   /// [projectDialogueContext] : si fourni, les [DialogueRef] sans chemin legacy doivent pointer vers [ProjectManifest.dialogues].
-  static void validate(
-    MapData map, {
-    ProjectManifest? projectDialogueContext,
-  }) {
+  static void validate(MapData map, {ProjectManifest? projectDialogueContext}) {
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
     _requireNonBlank(map.name, 'Map name cannot be empty');
     if (map.size.width <= 0 || map.size.height <= 0) {
@@ -2172,9 +2180,7 @@ class MapValidator {
         'A map can contain only one Smart Tile terrain provider; found: '
         '${smartTileTerrainProviderIds.join(', ')}',
         code: 'smart_tile_terrain_provider_already_exists',
-        details: <String, Object?>{
-          'layerIds': smartTileTerrainProviderIds,
-        },
+        details: <String, Object?>{'layerIds': smartTileTerrainProviderIds},
       );
     }
     final visualStack = map.visualStack;
@@ -2288,14 +2294,10 @@ class MapValidator {
 
     final scriptIds = projectDialogueContext == null
         ? null
-        : {
-            for (final script in projectDialogueContext.scripts) script.id,
-          };
+        : {for (final script in projectDialogueContext.scripts) script.id};
     final sceneIds = projectDialogueContext == null
         ? null
-        : {
-            for (final scene in projectDialogueContext.scenes) scene.id,
-          };
+        : {for (final scene in projectDialogueContext.scenes) scene.id};
     final layerIds = <String>{for (final layer in map.layers) layer.id};
     for (final event in map.events) {
       _validateMapEvent(
@@ -2315,11 +2317,7 @@ class MapValidator {
     for (final warp in map.warps) {
       final warpId = _requireNonBlank(warp.id, 'Warp ID cannot be empty');
       _requireNonBlank(warp.targetMapId, 'Warp $warpId has empty targetMapId');
-      _validatePositionInBounds(
-        warp.pos,
-        map.size,
-        errorLabel: 'Warp $warpId',
-      );
+      _validatePositionInBounds(warp.pos, map.size, errorLabel: 'Warp $warpId');
       if (warp.targetPos.x < 0 || warp.targetPos.y < 0) {
         throw ValidationException(
           'Warp $warpId has invalid target position: (${warp.targetPos.x}, ${warp.targetPos.y})',
@@ -2349,14 +2347,19 @@ class MapValidator {
     );
 
     for (final trigger in map.triggers) {
-      final triggerId =
-          _requireNonBlank(trigger.id, 'Trigger ID cannot be empty');
+      final triggerId = _requireNonBlank(
+        trigger.id,
+        'Trigger ID cannot be empty',
+      );
       _requireNonBlank(
-          trigger.type.name, 'Trigger $triggerId has invalid type');
+        trigger.type.name,
+        'Trigger $triggerId has invalid type',
+      );
       for (final key in trigger.properties.keys) {
         if (key.trim().isEmpty) {
           throw ValidationException(
-              'Trigger $triggerId has an empty property key');
+            'Trigger $triggerId has an empty property key',
+          );
         }
       }
       _validatePositionInBounds(
@@ -2390,10 +2393,32 @@ class MapValidator {
             for (final table in projectDialogueContext.encounterTables)
               table.id: table,
           };
+    final nativeEncounterLayerIds = map.layers
+        .whereType<SmartTileLayer>()
+        .where((layer) => layer.encounterBehavior != null)
+        .map((layer) => layer.id)
+        .toSet();
     for (final zone in map.gameplayZones) {
-      final zoneId =
-          _requireNonBlank(zone.id, 'Gameplay zone ID cannot be empty');
+      final zoneId = _requireNonBlank(
+        zone.id,
+        'Gameplay zone ID cannot be empty',
+      );
       final smartTileProvenance = zone.smartTileProvenance;
+      if (zone.kind == GameplayZoneKind.encounter &&
+          smartTileProvenance != null &&
+          nativeEncounterLayerIds.contains(
+            smartTileProvenance.smartTileLayerId,
+          )) {
+        throw ValidationException(
+          'Gameplay zone $zoneId duplicates the native Smart Tile encounter '
+          'behavior on ${smartTileProvenance.smartTileLayerId}',
+          code: 'encounter.smart_tile_duplicate_representation',
+          details: <String, Object?>{
+            'zoneId': zoneId,
+            'layerId': smartTileProvenance.smartTileLayerId,
+          },
+        );
+      }
       if (smartTileProvenance != null) {
         _requireNonBlank(
           smartTileProvenance.smartTileLayerId,
@@ -2413,9 +2438,13 @@ class MapValidator {
         );
       }
       _requireNonBlank(
-          zone.kind.name, 'Gameplay zone $zoneId has invalid kind');
-      final encounterBattleBackgroundRelativePath =
-          zone.encounter?.battleBackgroundRelativePath?.trim();
+        zone.kind.name,
+        'Gameplay zone $zoneId has invalid kind',
+      );
+      final encounterBattleBackgroundRelativePath = zone
+          .encounter
+          ?.battleBackgroundRelativePath
+          ?.trim();
       final encounterTableId = zone.encounter?.encounterTableId?.trim();
       if (encounterTableId != null && encounterTableId.isNotEmpty) {
         final table = encounterTablesById[encounterTableId];
@@ -2513,6 +2542,22 @@ class MapValidator {
           'zoneIds': ambiguity.zoneIds,
           'priority': ambiguity.priority,
           'encounterKind': ambiguity.encounterKind.name,
+        },
+      );
+    }
+    final encounterSourceAmbiguities = findEncounterSourceAmbiguities(map);
+    if (encounterSourceAmbiguities.isNotEmpty) {
+      final ambiguity = encounterSourceAmbiguities.first;
+      throw ValidationException(
+        'Encounter sources ${ambiguity.sourceIds.join(', ')} overlap with '
+        'equal priority ${ambiguity.priority} for '
+        '${ambiguity.encounterKind.name}',
+        code: 'encounter.source_ambiguous',
+        details: <String, Object?>{
+          'sourceIds': ambiguity.sourceIds,
+          'priority': ambiguity.priority,
+          'encounterKind': ambiguity.encounterKind.name,
+          'position': ambiguity.position.toJson(),
         },
       );
     }
@@ -2821,9 +2866,7 @@ class MapValidator {
   }) {
     final mapWidth = map.size.width;
     final mapHeight = map.size.height;
-    final layerById = <String, MapLayer>{
-      for (final l in map.layers) l.id: l,
-    };
+    final layerById = <String, MapLayer>{for (final l in map.layers) l.id: l};
 
     final layerId = _requireNonBlank(layer.id, 'Layer ID cannot be empty');
     _requireNonBlank(layer.name, 'Layer $layerId name cannot be empty');
@@ -2973,10 +3016,10 @@ class MapValidator {
               (mapWidth + 1) * (mapHeight + 1),
             );
           case SmartTileEdgeField(
-              :final semanticCells,
-              :final horizontalEdges,
-              :final verticalEdges,
-            ):
+            :final semanticCells,
+            :final horizontalEdges,
+            :final verticalEdges,
+          ):
             validateLattice('semanticCells', semanticCells, expectedCellCount);
             validateLattice(
               'horizontalEdges',
@@ -2989,11 +3032,11 @@ class MapValidator {
               (mapWidth + 1) * mapHeight,
             );
           case SmartTileMixedField(
-              :final semanticCells,
-              :final horizontalEdges,
-              :final verticalEdges,
-              :final corners,
-            ):
+            :final semanticCells,
+            :final horizontalEdges,
+            :final verticalEdges,
+            :final corners,
+          ):
             validateLattice('semanticCells', semanticCells, expectedCellCount);
             validateLattice(
               'horizontalEdges',
@@ -3010,6 +3053,104 @@ class MapValidator {
               corners,
               (mapWidth + 1) * (mapHeight + 1),
             );
+        }
+        final encounterBehavior = smartTileLayer.encounterBehavior;
+        if (encounterBehavior != null) {
+          final rawMaterialId = encounterBehavior.materialId;
+          final materialId = rawMaterialId.trim();
+          final materialIndex = palette.indexOf(materialId);
+          if (materialId.isEmpty ||
+              rawMaterialId != materialId ||
+              materialIndex <= 0) {
+            throw ValidationException(
+              'Smart Tile layer $layerId encounter behavior references '
+              'unknown material: $rawMaterialId',
+              code: 'smart_tile_encounter_material_unknown',
+              details: <String, Object?>{
+                'layerId': layerId,
+                'materialId': rawMaterialId,
+              },
+            );
+          }
+          final encounterTableId = encounterBehavior.encounter.encounterTableId
+              ?.trim();
+          if (encounterTableId == null || encounterTableId.isEmpty) {
+            throw ValidationException(
+              'Smart Tile layer $layerId encounter behavior requires a table',
+              code: 'encounter.table_id_required',
+              details: <String, Object?>{'layerId': layerId},
+            );
+          }
+          final hasEncounterCells = smartTileLayer.field.semanticCells.contains(
+            materialIndex,
+          );
+          if (!hasEncounterCells) {
+            throw ValidationException(
+              'Smart Tile layer $layerId encounter behavior has no painted '
+              'cells',
+              code: 'smart_tile_encounter_layer_empty',
+              details: <String, Object?>{'layerId': layerId},
+            );
+          }
+          if (!smartTileLayer.isVisible && hasEncounterCells) {
+            throw ValidationException(
+              'Smart Tile layer $layerId has active encounters while hidden',
+              code: 'smart_tile_encounter_layer_hidden',
+              details: <String, Object?>{'layerId': layerId},
+            );
+          }
+          final project = projectContext;
+          ProjectEncounterTable? table;
+          if (project != null) {
+            for (final candidate in project.encounterTables) {
+              if (candidate.id == encounterTableId) {
+                table = candidate;
+                break;
+              }
+            }
+            if (table == null) {
+              throw ValidationException(
+                'Smart Tile layer $layerId references unknown encounter '
+                'table: $encounterTableId',
+                code: 'encounter.table_unknown',
+                details: <String, Object?>{
+                  'layerId': layerId,
+                  'tableId': encounterTableId,
+                },
+              );
+            }
+          }
+          if (table != null &&
+              table.encounterKind !=
+                  encounterBehavior.encounter.encounterKind) {
+            throw ValidationException(
+              'Smart Tile layer $layerId encounter kind '
+              '${encounterBehavior.encounter.encounterKind.name} does not '
+              'match table $encounterTableId kind '
+              '${table.encounterKind.name}',
+              code: 'encounter.kind_mismatch',
+              details: <String, Object?>{
+                'layerId': layerId,
+                'tableId': encounterTableId,
+                'sourceKind': 'smartTileLayer',
+                'sourceEncounterKind':
+                    encounterBehavior.encounter.encounterKind.name,
+                'tableKind': table.encounterKind.name,
+              },
+            );
+          }
+          final battleBackgroundRelativePath = encounterBehavior
+              .encounter
+              .battleBackgroundRelativePath
+              ?.trim();
+          if (battleBackgroundRelativePath != null &&
+              battleBackgroundRelativePath.isNotEmpty) {
+            ProjectValidator._validateRelativePath(
+              battleBackgroundRelativePath,
+              'Smart Tile layer $layerId encounter '
+              'battleBackgroundRelativePath',
+            );
+          }
         }
         for (final key in smartTileLayer.properties.keys) {
           if (key.trim().isEmpty) {
@@ -3124,8 +3265,9 @@ class MapValidator {
               );
             }
           }
-          final knownMaterialIds =
-              catalog.materials.map((material) => material.id).toSet();
+          final knownMaterialIds = catalog.materials
+              .map((material) => material.id)
+              .toSet();
           for (final materialId in materialIds) {
             if (!knownMaterialIds.contains(materialId)) {
               throw ValidationException(
@@ -3144,9 +3286,7 @@ class MapValidator {
                   'materialId': materialId,
                   'presetId': presetId,
                 },
-                remediation: [
-                  'Run smart_tile.layer.normalize for $layerId.',
-                ],
+                remediation: ['Run smart_tile.layer.normalize for $layerId.'],
               );
             }
           }
@@ -3211,7 +3351,8 @@ class MapValidator {
         for (final key in environmentLayer.properties.keys) {
           if (key.trim().isEmpty) {
             throw ValidationException(
-                'Environment layer $layerId has an empty property key');
+              'Environment layer $layerId has an empty property key',
+            );
           }
         }
         final tid = environmentLayer.content.targetTileLayerId;
@@ -3395,9 +3536,11 @@ class MapValidator {
         );
       }
     }
-    for (var behaviorIndex = 0;
-        behaviorIndex < instance.behaviors.length;
-        behaviorIndex++) {
+    for (
+      var behaviorIndex = 0;
+      behaviorIndex < instance.behaviors.length;
+      behaviorIndex++
+    ) {
       final behavior = instance.behaviors[behaviorIndex];
       final behaviorId = behavior.id.trim();
       const maxBehaviorCooldownMs = 600000;
@@ -3503,8 +3646,9 @@ class MapValidator {
             contextLabel: '$behaviorLabel dialogue',
           );
           if (projectDialogueContext != null && scriptPath.isEmpty) {
-            final exists = projectDialogueContext.dialogues
-                .any((entry) => entry.id == dialogueId);
+            final exists = projectDialogueContext.dialogues.any(
+              (entry) => entry.id == dialogueId,
+            );
             if (!exists) {
               throw ValidationException(
                 '$behaviorLabel references unknown dialogue id "$dialogueId"',

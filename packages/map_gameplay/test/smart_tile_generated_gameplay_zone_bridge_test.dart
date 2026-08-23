@@ -34,7 +34,7 @@ void main() {
         random: Random(1),
       );
 
-      expect(encounterResult.status, GameplayEncounterCheckStatus.noZone);
+      expect(encounterResult.status, GameplayEncounterCheckStatus.noSource);
       expect(encounterResult.triggered, isFalse);
 
       final lavaWorld = GameplayWorldState.initial(
@@ -150,7 +150,7 @@ void main() {
       expect(result.status, GameplayEncounterCheckStatus.triggered);
       expect(result.triggered, isTrue);
       expect(result.tableId, 'route_1_grass');
-      expect(result.zoneId, plan.generatedZones.first.id);
+      expect(result.sourceId, plan.generatedZones.first.id);
       expect(result.encounter?.speciesId, 'pidgey');
       expect(result.encounter?.level, 3);
       expect(result.encounter?.playerPos, const GridPos(x: 0, y: 1));
@@ -254,7 +254,7 @@ void main() {
         random: Random(1),
       );
 
-      expect(result.status, GameplayEncounterCheckStatus.noZone);
+      expect(result.status, GameplayEncounterCheckStatus.noSource);
     });
 
     test('generated lava hazard zones are consumed by hazard effects', () {

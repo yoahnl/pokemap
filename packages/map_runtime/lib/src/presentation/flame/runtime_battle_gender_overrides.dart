@@ -85,7 +85,7 @@ Future<Map<int, String>> _buildWildEnemyGenderIdsByIndex({
     speciesLoader: speciesLoader,
     speciesId: request.speciesId,
     stableSeed:
-        '${request.requestId}|${request.mapId}|${request.zoneId}|${request.speciesId}|${request.level}',
+        '${request.requestId}|${request.mapId}|${request.encounterSourceId}|${request.speciesId}|${request.level}',
   );
   if (resolvedGenderId == null) {
     return const <int, String>{};

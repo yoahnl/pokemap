@@ -1,10 +1,25 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../ui/design_system/design_system.dart';
 import '../application/smart_tile_to_gameplay_zone_presenter.dart';
 
-class SmartTileToGameplayZoneDialog extends StatefulWidget {
-  const SmartTileToGameplayZoneDialog({
+final class SmartTileEncounterBehaviorConfiguration {
+  const SmartTileEncounterBehaviorConfiguration.set({
+    required this.encounterTableId,
+  }) : isClear = false;
+
+  const SmartTileEncounterBehaviorConfiguration.clear()
+    : encounterTableId = '',
+      isClear = true;
+
+  final String encounterTableId;
+  final bool isClear;
+}
+
+class SmartTileEncounterBehaviorDialog extends StatefulWidget {
+  const SmartTileEncounterBehaviorDialog({
     super.key,
     required this.map,
     required this.smartTileLayer,
@@ -22,136 +37,157 @@ class SmartTileToGameplayZoneDialog extends StatefulWidget {
   final String? materialId;
   final ProjectSmartTileCatalog catalog;
   final List<ProjectEncounterTable> encounterTables;
-  final ValueChanged<SmartTileGameplayZoneGenerationPlan> onConfirm;
+  final ValueChanged<SmartTileEncounterBehaviorConfiguration> onConfirm;
   final VoidCallback? onCancel;
 
   @override
-  State<SmartTileToGameplayZoneDialog> createState() =>
-      _SmartTileToGameplayZoneDialogState();
+  State<SmartTileEncounterBehaviorDialog> createState() =>
+      _SmartTileEncounterBehaviorDialogState();
 }
 
-class _SmartTileToGameplayZoneDialogState
-    extends State<SmartTileToGameplayZoneDialog> {
-  late final TextEditingController _encounterTableController;
+class _SmartTileEncounterBehaviorDialogState
+    extends State<SmartTileEncounterBehaviorDialog> {
+  String? _encounterTableId;
 
   @override
   void initState() {
     super.initState();
-    _encounterTableController = TextEditingController(
-      text:
-          widget.encounterTables.isEmpty ? '' : widget.encounterTables.first.id,
-    );
-  }
-
-  @override
-  void dispose() {
-    _encounterTableController.dispose();
-    super.dispose();
+    final walkTables = _walkTables;
+    final currentTableId =
+        widget.smartTileLayer?.encounterBehavior?.encounter.encounterTableId;
+    _encounterTableId = walkTables.any((table) => table.id == currentTableId)
+        ? currentTableId
+        : walkTables.firstOrNull?.id;
   }
 
   @override
   Widget build(BuildContext context) {
-    final preview = buildTallGrassEncounterSmartTileGameplayZonePreview(
-      map: widget.map,
-      smartTileLayer: widget.smartTileLayer,
-      smartTilePresetId: widget.smartTilePresetId,
-      materialId: widget.materialId,
-      catalog: widget.catalog,
-      encounterTableId: _encounterTableController.text,
-    );
+    final walkTables = _walkTables;
+    final sourceCellCount = _sourceCellCount;
+    final canConfirm =
+        widget.map != null &&
+        widget.smartTileLayer != null &&
+        widget.materialId != null &&
+        sourceCellCount > 0 &&
+        _encounterTableId != null;
+    final isUpdate = widget.smartTileLayer?.encounterBehavior != null;
 
-    return CupertinoAlertDialog(
-      title: const Text('Créer une zone de rencontre depuis ce Smart Tile'),
-      content: Column(
+    return PokeMapDialog(
+      title: isUpdate
+          ? 'Modifier les hautes herbes du calque'
+          : 'Ajouter les hautes herbes au calque',
+      icon: Icons.grass,
+      maxWidth: 520,
+      footer: Wrap(
+        alignment: WrapAlignment.end,
+        spacing: 8,
+        children: [
+          PokeMapButton(
+            onPressed: widget.onCancel ?? () => Navigator.of(context).pop(),
+            variant: PokeMapButtonVariant.secondary,
+            child: const Text('Annuler'),
+          ),
+          if (isUpdate)
+            PokeMapButton(
+              key: const Key('smart-tile-encounter-behavior-clear'),
+              onPressed: () => widget.onConfirm(
+                const SmartTileEncounterBehaviorConfiguration.clear(),
+              ),
+              variant: PokeMapButtonVariant.danger,
+              child: const Text('Retirer du calque'),
+            ),
+          PokeMapButton(
+            key: const Key('smart-tile-encounter-behavior-confirm'),
+            onPressed: canConfirm
+                ? () => widget.onConfirm(
+                    SmartTileEncounterBehaviorConfiguration.set(
+                      encounterTableId: _encounterTableId!,
+                    ),
+                  )
+                : null,
+            child: Text(isUpdate ? 'Mettre à jour' : 'Ajouter au calque'),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 10),
-          _InfoLine(label: 'Surface', value: preview.surfaceLabel),
-          _InfoLine(label: 'Cellules', value: '${preview.sourceCellCount}'),
+          const Text(
+            'Les rencontres suivront exactement les cellules peintes de ce '
+            'calque. Aucune zone de rencontre séparée ne sera créée.',
+          ),
+          const SizedBox(height: 12),
           _InfoLine(
-            label: 'Zones',
-            value: '${preview.generatedZoneCount}',
+            label: 'Calque',
+            value: widget.smartTileLayer?.name ?? 'Aucun',
           ),
-          if (preview.isSynchronization)
-            _InfoLine(
-              label: 'Remplacées',
-              value: '${preview.existingZoneCount}',
+          _InfoLine(label: 'Cellules', value: '$sourceCellCount'),
+          const SizedBox(height: 12),
+          if (walkTables.isEmpty)
+            const PokeMapDiagnosticCallout(
+              severity: PokeMapDiagnosticSeverity.info,
+              title: 'Aucune table pour les hautes herbes',
+              message:
+                  'Créez d’abord une table de rencontres à pied dans '
+                  'Encounter Studio.',
+            )
+          else
+            PokeMapDropdownField<String>(
+              key: const Key('smart-tile-encounter-table-picker'),
+              label: 'Table de rencontres',
+              value: _encounterTableId!,
+              items: [
+                for (final table in walkTables)
+                  PokeMapDropdownItem(
+                    value: table.id,
+                    label: '${table.name} (${table.id})',
+                  ),
+              ],
+              onChanged: (value) => setState(() => _encounterTableId = value),
             ),
-          const SizedBox(height: 10),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text('Table de rencontres'),
-          ),
-          const SizedBox(height: 6),
-          CupertinoTextField(
-            key: const Key('smart-tile-to-gameplay-zone-encounter-table-field'),
-            controller: _encounterTableController,
-            placeholder: 'route_1_grass',
-            onChanged: (_) => setState(() {}),
-          ),
-          if (widget.encounterTables.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Disponible : ${widget.encounterTables.map((table) => table.id).join(', ')}',
-                style: const TextStyle(fontSize: 12),
-              ),
+          if (sourceCellCount == 0) ...[
+            const SizedBox(height: 12),
+            const PokeMapDiagnosticCallout(
+              severity: PokeMapDiagnosticSeverity.error,
+              title: 'Aucune cellule peinte',
+              message:
+                  'Peignez ce matériau sur le calque avant d’ajouter '
+                  'le comportement.',
             ),
           ],
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              preview.summaryTitle,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
+          const PokeMapDiagnosticCallout(
+            severity: PokeMapDiagnosticSeverity.info,
+            title: 'Plusieurs zones de rencontres',
+            message:
+                'Utilisez un calque Smart Tile par table de rencontres. '
+                'Chaque calque peut couvrir une zone différente.',
           ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(preview.summaryDescription),
-          ),
-          const SizedBox(height: 8),
-          for (final message in preview.messages) ...[
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text('• ${message.title}'),
-            ),
-            const SizedBox(height: 3),
-          ],
-          if (preview.assessment != null) ...[
-            const SizedBox(height: 8),
-            _InfoLine(
-              label: 'Couverture',
-              value:
-                  '${(preview.assessment!.coveragePercent * 100).toStringAsFixed(1)}%',
-            ),
-            _InfoLine(
-              label: 'Hors surface',
-              value:
-                  '${(preview.assessment!.extraCellRatio * 100).toStringAsFixed(1)}%',
-            ),
-          ],
         ],
       ),
-      actions: [
-        CupertinoDialogAction(
-          onPressed: widget.onCancel ?? () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        CupertinoDialogAction(
-          isDefaultAction: true,
-          onPressed:
-              preview.canConfirm ? () => widget.onConfirm(preview.plan!) : null,
-          child: Text(
-            preview.isSynchronization
-                ? 'Synchroniser les zones'
-                : 'Créer les zones',
-          ),
-        ),
-      ],
     );
+  }
+
+  List<ProjectEncounterTable> get _walkTables => widget.encounterTables
+      .where((table) => table.encounterKind == EncounterKind.walk)
+      .toList(growable: false);
+
+  int get _sourceCellCount {
+    final layer = widget.smartTileLayer;
+    final materialId = widget.materialId;
+    final map = widget.map;
+    if (layer == null || materialId == null || map == null) return 0;
+    final materialValue = layer.materialPalette.indexOf(materialId);
+    if (materialValue <= 0) return 0;
+    final cellLimit = map.size.width * map.size.height;
+    final cells = layer.field.semanticCells;
+    final upperBound = cells.length < cellLimit ? cells.length : cellLimit;
+    var count = 0;
+    for (var index = 0; index < upperBound; index++) {
+      if (cells[index] == materialValue) count++;
+    }
+    return count;
   }
 }
 

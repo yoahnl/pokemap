@@ -107,7 +107,7 @@ final class BattleBackgroundResolver {
     }
 
     final explicitZoneBackgroundAbsolutePath =
-        _resolveExplicitEncounterZoneBackgroundAbsolutePath(
+        _resolveExplicitEncounterSourceBackgroundAbsolutePath(
       request: request,
       bundle: bundle,
     );
@@ -156,15 +156,27 @@ final class BattleBackgroundResolver {
     );
   }
 
-  String? _resolveExplicitEncounterZoneBackgroundAbsolutePath({
+  String? _resolveExplicitEncounterSourceBackgroundAbsolutePath({
     required BattleStartRequest request,
     required RuntimeMapBundle bundle,
   }) {
-    if (request case WildBattleStartRequest(:final zoneId)) {
-      final explicitPath = _resolveExplicitZoneBackgroundById(
-        bundle: bundle,
-        zoneId: zoneId,
+    if (request
+        case WildBattleStartRequest(
+          :final encounterSourceId,
+          :final encounterSourceKind,
+        )) {
+      final source = findEncounterSource(
+        bundle.map,
+        kind: encounterSourceKind,
+        id: encounterSourceId,
       );
+      final relativePath =
+          source?.encounter.battleBackgroundRelativePath?.trim();
+      final explicitPath = relativePath == null || relativePath.isEmpty
+          ? null
+          : p.normalize(
+              p.join(bundle.projectRootDirectory, relativePath),
+            );
       if (explicitPath != null) {
         return explicitPath;
       }
@@ -187,29 +199,6 @@ final class BattleBackgroundResolver {
     return p.normalize(
       p.join(bundle.projectRootDirectory, relativePath),
     );
-  }
-
-  String? _resolveExplicitZoneBackgroundById({
-    required RuntimeMapBundle bundle,
-    required String zoneId,
-  }) {
-    final normalizedZoneId = zoneId.trim();
-    if (normalizedZoneId.isEmpty) {
-      return null;
-    }
-    for (final zone in bundle.map.gameplayZones) {
-      if (zone.id != normalizedZoneId) {
-        continue;
-      }
-      final relativePath = zone.encounter?.battleBackgroundRelativePath?.trim();
-      if (relativePath == null || relativePath.isEmpty) {
-        return null;
-      }
-      return p.normalize(
-        p.join(bundle.projectRootDirectory, relativePath),
-      );
-    }
-    return null;
   }
 
   MapGameplayZone? _resolveEncounterZoneAtPos({

@@ -1237,6 +1237,146 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  Future<bool> applySmartTileLayerEncounterBehavior({
+    required String mapId,
+    required String layerId,
+    required String materialId,
+    required String encounterTableId,
+    EncounterKind encounterKind = EncounterKind.walk,
+    int priority = 0,
+  }) async {
+    final projectRootPath = state.projectRootPath;
+    if (projectRootPath == null) return false;
+    final activeMap = state.activeMap;
+    final currentLayer =
+        activeMap == null ? null : _findLayerById(activeMap, layerId);
+    if (currentLayer is! SmartTileLayer) return false;
+    final normalizedTableId = encounterTableId.trim();
+    if (!currentLayer.materialPalette.contains(materialId) ||
+        materialId.isEmpty ||
+        normalizedTableId.isEmpty) {
+      return false;
+    }
+    final currentBehavior = currentLayer.encounterBehavior;
+    if (currentBehavior?.materialId == materialId &&
+        currentBehavior?.priority == priority &&
+        currentBehavior?.encounter.encounterTableId == normalizedTableId &&
+        currentBehavior?.encounter.encounterKind == encounterKind) {
+      state = state.copyWith(
+        statusMessage: 'Comportement de hautes herbes inchangé.',
+        errorMessage: null,
+      );
+      return true;
+    }
+    final parameters = <String, Object?>{
+      'mapId': mapId,
+      'layerId': layerId,
+      'materialId': materialId,
+      'priority': priority,
+      'encounterTableId': normalizedTableId,
+      'encounterKind': encounterKind.name,
+    };
+
+    try {
+      final before =
+          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      final identity = _smartTileEditorMutationIdentity(
+        purpose: 'smart-tile-layer-encounter-behavior',
+        values: <String, Object?>{
+          ...parameters,
+          'snapshotRevision': before.snapshotRevision,
+        },
+      );
+      final mutations = ref.read(authoringMutationAdapterProvider);
+      final plan = await mutations.plan(
+        projectRootPath,
+        actionId: 'smart_tile.layer.set_encounter_behavior',
+        parameters: parameters,
+        expectedRevision: before.snapshotRevision,
+        idempotencyKey: identity,
+        requestId: identity,
+      );
+      final applied = await mutations.apply(
+        plan,
+        operationId: '$identity-apply',
+      );
+      return await _adoptCanonicalSmartTileSnapshot(
+        projectRootPath: projectRootPath,
+        expectedSnapshotRevision: applied.snapshotRevision,
+        mapId: mapId,
+        layerId: layerId,
+        statusMessage: 'Hautes herbes ajoutées directement au calque.',
+      );
+    } on Object catch (error) {
+      debugPrint('EditorNotifier: Smart Tile encounter behavior failed: '
+          '$error');
+      state = state.copyWith(
+        errorMessage: canonicalSmartTileFailureMessage(
+          EditorAuthoringMutationFailure.capture(error),
+        ),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> clearSmartTileLayerEncounterBehavior({
+    required String mapId,
+    required String layerId,
+  }) async {
+    final projectRootPath = state.projectRootPath;
+    if (projectRootPath == null) return false;
+    final activeMap = state.activeMap;
+    final currentLayer =
+        activeMap == null ? null : _findLayerById(activeMap, layerId);
+    if (currentLayer is! SmartTileLayer) return false;
+    if (currentLayer.encounterBehavior == null) return true;
+    final parameters = <String, Object?>{
+      'mapId': mapId,
+      'layerId': layerId,
+    };
+
+    try {
+      final before =
+          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      final identity = _smartTileEditorMutationIdentity(
+        purpose: 'smart-tile-layer-clear-encounter-behavior',
+        values: <String, Object?>{
+          ...parameters,
+          'snapshotRevision': before.snapshotRevision,
+        },
+      );
+      final mutations = ref.read(authoringMutationAdapterProvider);
+      final plan = await mutations.plan(
+        projectRootPath,
+        actionId: 'smart_tile.layer.clear_encounter_behavior',
+        parameters: parameters,
+        expectedRevision: before.snapshotRevision,
+        idempotencyKey: identity,
+        requestId: identity,
+      );
+      final applied = await mutations.apply(
+        plan,
+        operationId: '$identity-apply',
+      );
+      return await _adoptCanonicalSmartTileSnapshot(
+        projectRootPath: projectRootPath,
+        expectedSnapshotRevision: applied.snapshotRevision,
+        mapId: mapId,
+        layerId: layerId,
+        statusMessage: 'Comportement de hautes herbes retiré du calque.',
+      );
+    } on Object catch (error) {
+      debugPrint('EditorNotifier: clear Smart Tile encounter behavior failed: '
+          '$error');
+      state = state.copyWith(
+        errorMessage: canonicalSmartTileFailureMessage(
+          EditorAuthoringMutationFailure.capture(error),
+        ),
+      );
+      return false;
+    }
+  }
+
   /// Adopts the authoritative manifest + active map returned by one atomic
   /// Authoring transaction, then focuses the newly-created layer.
   ///

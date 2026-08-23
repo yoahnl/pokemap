@@ -5,6 +5,7 @@ import '../operations/environment_layer_content_json_codec.dart';
 import 'border_layer.dart';
 import 'environment.dart';
 import 'smart_tile.dart';
+import 'smart_tile_encounter_behavior.dart';
 import 'smart_tile_field.dart';
 
 part 'map_layer.freezed.dart';
@@ -141,6 +142,8 @@ sealed class MapLayer with _$MapLayer {
     Map<String, int> candidateWeights,
     @Default(SmartTileAnimationActivation.always)
     SmartTileAnimationActivation animationActivation,
+    @JsonKey(includeIfNull: false)
+    SmartTileEncounterBehavior? encounterBehavior,
     @Default(<String, String>{}) Map<String, String> properties,
   }) = SmartTileLayer;
 
@@ -193,10 +196,10 @@ sealed class MapLayer with _$MapLayer {
 }
 
 MapLayerPurpose mapLayerPurpose(MapLayer layer) => switch (layer) {
-      TileLayer value => value.purpose,
-      ObjectLayer value => value.purpose,
-      _ => MapLayerPurpose.visual,
-    };
+  TileLayer value => value.purpose,
+  ObjectLayer value => value.purpose,
+  _ => MapLayerPurpose.visual,
+};
 
 bool mapLayerParticipatesInVisualComposition(MapLayer layer) =>
     mapLayerPurpose(layer) == MapLayerPurpose.visual;

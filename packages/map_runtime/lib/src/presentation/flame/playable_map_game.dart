@@ -626,7 +626,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _battleVictoryMusicActive = false;
   bool _trainerEncounterMusicActive = false;
 
-  RuntimeMusicService get _music => _injectedMusicService ??
+  RuntimeMusicService get _music =>
+      _injectedMusicService ??
       (_musicService ??= RuntimeMusicService(
         mixer: _audioMixer,
       ));
@@ -678,6 +679,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     unawaited(_music.update(route: route, path: path));
   }
+
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
       PlacedBehaviorCooldownGate();
   final StoryFlagsManager _storyFlags = const StoryFlagsManager();
@@ -1643,6 +1645,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Le requestId lie causalement la continuation au combat effectivement
   /// consommé. Ne jamais conserver ou modifier ces trois valeurs séparément.
   _PendingScenarioBattleHandoff? _pendingScenarioBattleHandoff;
+
   /// Autorisation en attente pour une action terrain, ou null.
   ///
   /// BETA-SYS-002 remplace un booléen « une confirmation Surf est en attente »
@@ -2819,6 +2822,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool get debugPsdkBattleSessionActive => _psdkBattleSession != null;
 
   @visibleForTesting
+
   /// Traverse le VRAI flux d'entrée en combat, pré-transition comprise —
   /// BETA-BAT-016. Contrairement à [debugOpenBattleForTest] qui monte la
   /// scène directement, ce seam prouve la séquence complète : flash, noir
@@ -2831,6 +2835,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   bool get debugBattleTransitionOverlayMounted =>
       _battleTransitionOverlay != null;
+
+  @visibleForTesting
+  BattleTransitionOverlayComponent? get debugBattleTransitionOverlay =>
+      _battleTransitionOverlay;
 
   Future<void> debugOpenBattleForTest(BattleStartRequest request) async {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
@@ -4746,7 +4754,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       '[battle] battle request created kind=${request.kind.name} source=${request.source.name} requestId=${request.requestId}',
     );
     debugPrint(
-      '[battle] wild payload species=${encounter.speciesId} level=${encounter.level} map=${encounter.mapId} zone=${encounter.zoneId}',
+      '[battle] wild payload species=${encounter.speciesId} level=${encounter.level} map=${encounter.mapId} source=${encounter.sourceId}',
     );
   }
 
@@ -7578,27 +7586,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final kind = check.encounterKind?.name ?? EncounterKind.walk.name;
     switch (check.status) {
-      case GameplayEncounterCheckStatus.noZone:
-        debugPrint('[encounter] no compatible zone');
+      case GameplayEncounterCheckStatus.noSource:
+        debugPrint('[encounter] no compatible source');
         return;
-      case GameplayEncounterCheckStatus.ambiguousZone:
+      case GameplayEncounterCheckStatus.ambiguousSource:
         debugPrint(
-          '[encounter] ambiguous zones=${check.ambiguousZoneIds.join(',')}',
+          '[encounter] ambiguous sources=${check.ambiguousSourceIds.join(',')}',
         );
         return;
       case GameplayEncounterCheckStatus.noEncounterTableId:
         debugPrint(
-          '[encounter] zone=${check.zoneId ?? 'unknown'} has no encounter table id (kind=$kind)',
+          '[encounter] source=${check.sourceId ?? 'unknown'} has no encounter table id (kind=$kind)',
         );
         return;
       case GameplayEncounterCheckStatus.encounterTableNotFound:
         debugPrint(
-          '[encounter] zone=${check.zoneId ?? 'unknown'} table=${check.tableId ?? 'unknown'} not found',
+          '[encounter] source=${check.sourceId ?? 'unknown'} table=${check.tableId ?? 'unknown'} not found',
         );
         return;
       case GameplayEncounterCheckStatus.encounterKindMismatch:
         debugPrint(
-          '[encounter] zone=${check.zoneId ?? 'unknown'} table=${check.tableId ?? 'unknown'} kind mismatch (expected=$kind)',
+          '[encounter] source=${check.sourceId ?? 'unknown'} table=${check.tableId ?? 'unknown'} kind mismatch (expected=$kind)',
         );
         return;
       case GameplayEncounterCheckStatus.conditionContextUnavailable:
@@ -7618,12 +7626,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return;
       case GameplayEncounterCheckStatus.emptyEncounterTable:
         debugPrint(
-          '[encounter] zone=${check.zoneId ?? 'unknown'} table=${check.tableId ?? 'unknown'} has no valid entries',
+          '[encounter] source=${check.sourceId ?? 'unknown'} table=${check.tableId ?? 'unknown'} has no valid entries',
         );
         return;
       case GameplayEncounterCheckStatus.rollFailed:
         debugPrint(
-          '[encounter] matched zone=${check.zoneId ?? 'unknown'} table=${check.tableId ?? 'unknown'}',
+          '[encounter] matched source=${check.sourceId ?? 'unknown'} table=${check.tableId ?? 'unknown'}',
         );
         debugPrint(
           '[encounter] rolled no encounter roll=${check.roll?.toStringAsFixed(3) ?? 'n/a'}',
@@ -7636,7 +7644,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           return;
         }
         debugPrint(
-          '[encounter] matched zone=${encounter.zoneId} table=${encounter.tableId}',
+          '[encounter] matched source=${encounter.sourceId} table=${encounter.tableId}',
         );
         debugPrint(
           '[encounter] triggered species=${encounter.speciesId} level=${encounter.level} kind=${encounter.encounterKind.name}',
@@ -11051,10 +11059,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    final entity = _world.map.entities
-        .cast<MapEntity?>()
-        .firstWhere((candidate) => candidate?.id == pending.entityId,
-            orElse: () => null);
+    final entity = _world.map.entities.cast<MapEntity?>().firstWhere(
+        (candidate) => candidate?.id == pending.entityId,
+        orElse: () => null);
     if (entity == null) {
       _abandonTrainerSpot(pending, reason: 'entity left the map');
       return;
@@ -11085,7 +11092,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _startTrainerSpotApproach(_PendingTrainerSpot pending, MapEntity entity) {
+  void _startTrainerSpotApproach(
+      _PendingTrainerSpot pending, MapEntity entity) {
     final destinations = _resolveScenarioEntityApproachCandidates(
       moverEntityId: pending.entityId,
       targetEntityId: 'player',

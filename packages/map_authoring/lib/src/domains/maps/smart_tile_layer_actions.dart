@@ -89,6 +89,21 @@ final class SmartTileLayerActions {
         'smartTilePreset',
       ],
     ),
+    _smartTileLayerDescriptor(
+      'smart_tile.layer.set_encounter_behavior',
+      'Attach a wild encounter behavior to one Smart Tile material',
+      resourceKinds: const <String>[
+        'map',
+        'smartTileLayer',
+        'smartTileMaterial',
+        'encounterTable',
+      ],
+    ),
+    _smartTileLayerDescriptor(
+      'smart_tile.layer.clear_encounter_behavior',
+      'Remove the wild encounter behavior from one Smart Tile layer',
+      resourceKinds: const <String>['map', 'smartTileLayer'],
+    ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
@@ -103,6 +118,10 @@ final class SmartTileLayerActions {
         _setAnimationActivation(planning),
       'smart_tile.layer.set_candidate_weights' =>
         _setCandidateWeights(planning),
+      'smart_tile.layer.set_encounter_behavior' =>
+        _setEncounterBehavior(planning),
+      'smart_tile.layer.clear_encounter_behavior' =>
+        _clearEncounterBehavior(planning),
       _ => throw semanticFailure(
           'map.action_unsupported',
           'The requested Smart Tile layer action is unsupported.',
@@ -590,6 +609,124 @@ final class SmartTileLayerActions {
         },
         'geometryPreserved': true,
         'renderPreserved': false,
+      },
+    );
+  }
+
+  AuthoringMutationDraft _setEncounterBehavior(
+    AuthoringPlanningContext planning,
+  ) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const <String>{
+        'layerId',
+        'materialId',
+        'priority',
+        'encounterTableId',
+        'encounterKind',
+        'battleBackgroundRelativePath',
+        'battleMusicPath',
+        'encounterMusicPath',
+      },
+    );
+    final layerId = context.parameters.string('layerId');
+    _requireNativeSmartTileProject(
+      context,
+      operation: 'smart_tile.layer.set_encounter_behavior',
+      layerId: layerId,
+    );
+    final layer = _smartTileLayer(context.map, layerId);
+    final materialId = context.parameters.string('materialId');
+    if (!layer.materialPalette.contains(materialId) || materialId.isEmpty) {
+      throw semanticFailure(
+        'smart_tile_encounter_material_unknown',
+        'The encounter material is absent from the Smart Tile layer palette.',
+        details: <String, Object?>{
+          'layerId': layerId,
+          'materialId': materialId,
+        },
+      );
+    }
+    final encounterKindValue = context.parameters.string('encounterKind');
+    final encounterKinds = EncounterKind.values.where(
+      (candidate) => candidate.name == encounterKindValue,
+    );
+    if (encounterKinds.isEmpty) {
+      throw invalidSemanticField(
+        'encounterKind',
+        EncounterKind.values.map((candidate) => candidate.name).join(', '),
+      );
+    }
+    final behavior = SmartTileEncounterBehavior(
+      materialId: materialId,
+      priority: context.parameters.optionalInteger('priority') ?? 0,
+      encounter: EncounterZonePayload(
+        encounterTableId: context.parameters.string('encounterTableId'),
+        encounterKind: encounterKinds.first,
+        battleBackgroundRelativePath:
+            context.parameters.optionalString('battleBackgroundRelativePath'),
+        battleMusicPath: context.parameters.optionalString('battleMusicPath'),
+        encounterMusicPath:
+            context.parameters.optionalString('encounterMusicPath'),
+      ),
+    );
+    final projected = replaceSmartTileLayer(
+      context.map,
+      layer: layer.copyWith(encounterBehavior: behavior),
+    );
+    preflightNativeSmartTileMutation(
+      snapshot: context.planning.snapshot,
+      projectedManifest: context.manifest,
+      projectedMaps: <String, MapData>{context.map.id: projected},
+    );
+    return context.draftMap(
+      after: projected,
+      operation: 'smart_tile.layer.set_encounter_behavior',
+      changedItems: layer.encounterBehavior == behavior ? 0 : 1,
+      layerId: layerId,
+      preview: <String, Object?>{
+        'materialId': materialId,
+        'priority': behavior.priority,
+        'encounterTableId': behavior.encounter.encounterTableId,
+        'encounterKind': behavior.encounter.encounterKind.name,
+        'gameplayZonesChanged': false,
+        'geometryPreserved': true,
+      },
+    );
+  }
+
+  AuthoringMutationDraft _clearEncounterBehavior(
+    AuthoringPlanningContext planning,
+  ) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const <String>{'layerId'},
+    );
+    final layerId = context.parameters.string('layerId');
+    _requireNativeSmartTileProject(
+      context,
+      operation: 'smart_tile.layer.clear_encounter_behavior',
+      layerId: layerId,
+    );
+    final layer = _smartTileLayer(context.map, layerId);
+    final projected = replaceSmartTileLayer(
+      context.map,
+      layer: layer.copyWith(encounterBehavior: null),
+    );
+    preflightNativeSmartTileMutation(
+      snapshot: context.planning.snapshot,
+      projectedManifest: context.manifest,
+      projectedMaps: <String, MapData>{context.map.id: projected},
+    );
+    return context.draftMap(
+      after: projected,
+      operation: 'smart_tile.layer.clear_encounter_behavior',
+      changedItems: layer.encounterBehavior == null ? 0 : 1,
+      layerId: layerId,
+      preview: const <String, Object?>{
+        'encounterBehaviorCleared': true,
+        'gameplayZonesChanged': false,
+        'geometryPreserved': true,
       },
     );
   }

@@ -10,6 +10,7 @@ RuntimeMapBundle _runtimeBundle({
   MapMetadata mapMetadata = const MapMetadata(),
   ProjectBattleAudioConfig? battleAudio,
   List<MapGameplayZone> gameplayZones = const <MapGameplayZone>[],
+  List<MapLayer> layers = const <MapLayer>[],
 }) {
   return RuntimeMapBundle(
     manifest: ProjectManifest(
@@ -31,14 +32,18 @@ RuntimeMapBundle _runtimeBundle({
       size: const GridSize(width: 10, height: 10),
       mapMetadata: mapMetadata,
       gameplayZones: gameplayZones,
+      layers: layers,
     ),
     projectRootDirectory: '/tmp/runtime_music_resolver_test_project',
     tilesetAbsolutePathsById: const <String, String>{},
   );
 }
 
-WildBattleStartRequest _wildRequest() {
-  return const WildBattleStartRequest(
+WildBattleStartRequest _wildRequest({
+  String encounterSourceId = 'grass_zone',
+  EncounterSourceKind encounterSourceKind = EncounterSourceKind.gameplayZone,
+}) {
+  return WildBattleStartRequest(
     requestId: 'wild-request',
     createdAtEpochMs: 1,
     returnContext: OverworldReturnContext(
@@ -47,7 +52,8 @@ WildBattleStartRequest _wildRequest() {
       playerFacing: Direction.north,
     ),
     mapId: 'field_map',
-    zoneId: 'grass_zone',
+    encounterSourceId: encounterSourceId,
+    encounterSourceKind: encounterSourceKind,
     tableId: 'grass_table',
     encounterKind: EncounterKind.walk,
     speciesId: 'sparkitten',
@@ -231,6 +237,41 @@ void main() {
         selection.victoryMusicAbsolutePath,
         '$_root/audio/wild_victory.ogg',
         reason: 'la zone ne porte pas de victoire, le projet reste la source',
+      );
+    });
+
+    test('sauvage : le calque Smart Tile déclencheur porte la musique', () {
+      final selection = resolver.resolve(
+        request: _wildRequest(
+          encounterSourceId: 'smart_tile_layer:grass_north',
+          encounterSourceKind: EncounterSourceKind.smartTileLayer,
+        ),
+        bundle: _runtimeBundle(
+          battleAudio: projectDefaults,
+          layers: const <MapLayer>[
+            SmartTileLayer(
+              id: 'grass_north',
+              name: 'Tall grass north',
+              presetId: 'grass-preset',
+              usage: SmartTileUsage.path,
+              materialPalette: <String>['', 'tall_grass'],
+              field: SmartTileField.cell(semanticCells: <int>[0, 1]),
+              encounterBehavior: SmartTileEncounterBehavior(
+                materialId: 'tall_grass',
+                encounter: EncounterZonePayload(
+                  encounterTableId: 'grass_table',
+                  encounterKind: EncounterKind.walk,
+                  battleMusicPath: 'audio/smart_grass_battle.ogg',
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        selection.battleMusicAbsolutePath,
+        '$_root/audio/smart_grass_battle.ogg',
       );
     });
 

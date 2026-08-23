@@ -408,7 +408,6 @@ void main() {
           storageResult.transaction!.messages.last.text, contains('stockage'));
     });
 
-
     test('party and storage both full keeps an explicit lossless outcome',
         () async {
       // BETA-ENC-006, branche « stockage plein » : la destination est
@@ -614,8 +613,7 @@ void main() {
       );
     });
 
-    test('an abandon at the evolution step also replays identically',
-        () async {
+    test('an abandon at the evolution step also replays identically', () async {
       // BETA-PRG-004 : le même contrat d'atomicité couvre la file ENTIÈRE.
       // Résoudre l'apprentissage, atteindre l'évolution pendante, abandonner
       // là — rien n'est commité, et le rejeu déroule la même file jusqu'à la
@@ -644,11 +642,9 @@ void main() {
             .resolveMoveLearning(
               transaction: transaction,
               decision: BattleMoveLearningDecision.decline(
-                opportunityId:
-                    transaction.pendingMoveLearning!.opportunityId,
+                opportunityId: transaction.pendingMoveLearning!.opportunityId,
                 partySlot: transaction.pendingMoveLearning!.partySlot,
-                moveId:
-                    transaction.pendingMoveLearning!.candidate.moveId,
+                moveId: transaction.pendingMoveLearning!.candidate.moveId,
               ),
             )
             .transaction!;
@@ -1103,7 +1099,8 @@ WildBattleStartRequest _wildRequest() {
       playerFacing: Direction.south,
     ),
     mapId: 'route',
-    zoneId: 'grass',
+    encounterSourceId: 'grass',
+    encounterSourceKind: EncounterSourceKind.gameplayZone,
     tableId: 'grass',
     encounterKind: EncounterKind.walk,
     speciesId: 'foe',
@@ -1126,7 +1123,8 @@ RuntimeActiveBattleContext _captureContext() {
         playerFacing: Direction.south,
       ),
       mapId: 'route',
-      zoneId: 'grass',
+      encounterSourceId: 'grass',
+      encounterSourceKind: EncounterSourceKind.gameplayZone,
       tableId: 'grass',
       encounterKind: EncounterKind.walk,
       speciesId: 'capture_target',

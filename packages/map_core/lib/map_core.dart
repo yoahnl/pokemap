@@ -26,6 +26,7 @@ export 'src/models/map_entity_payloads.dart';
 export 'src/models/map_entity_editor_visual.dart';
 export 'src/models/map_gameplay_zone_payloads.dart';
 export 'src/models/smart_tile_gameplay_zone_provenance.dart';
+export 'src/models/smart_tile_encounter_behavior.dart';
 export 'src/models/map_layer.dart';
 export 'src/models/map_metadata.dart';
 export 'src/models/map_visual_stack_config.dart';

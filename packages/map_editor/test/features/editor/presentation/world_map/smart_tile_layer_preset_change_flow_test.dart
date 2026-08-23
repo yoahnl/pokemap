@@ -241,6 +241,82 @@ void main() {
     expect(diskLayer.animationActivation, SmartTileAnimationActivation.onEnter);
     expect(notifier.state.isDirty, isFalse);
   });
+
+  test(
+    'le réglage éditeur attache et retire les rencontres sans zone',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'pokemap_layer_encounter_behavior_',
+      );
+      final container = ProviderContainer();
+      addTearDown(() async {
+        container.dispose();
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final manifest = _canonicalManifest();
+      final mapPath = p.join(root.path, 'maps', 'map.json');
+      await Directory(p.dirname(mapPath)).create(recursive: true);
+      await FileProjectRepository().saveProject(
+        manifest,
+        p.join(root.path, 'project.json'),
+      );
+      await FileMapRepository().saveMap(
+        _map,
+        mapPath,
+        projectDialogueContext: manifest,
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        projectRootPath: root.path,
+        project: manifest,
+        workspaceMode: EditorWorkspaceMode.map,
+      );
+      await notifier.loadMap('maps/map.json');
+
+      final applied = await notifier.applySmartTileLayerEncounterBehavior(
+        mapId: _map.id,
+        layerId: _layer.id,
+        materialId: 'dark',
+        encounterTableId: 'route_grass',
+      );
+
+      expect(applied, isTrue);
+      final activeMap = notifier.state.activeMap!;
+      final activeLayer = activeMap.layers.single as SmartTileLayer;
+      expect(activeLayer.encounterBehavior?.materialId, 'dark');
+      expect(
+        activeLayer.encounterBehavior?.encounter.encounterTableId,
+        'route_grass',
+      );
+      expect(activeMap.gameplayZones, isEmpty);
+      final diskMap = await FileMapRepository().loadMap(mapPath);
+      final diskLayer = diskMap.layers.single as SmartTileLayer;
+      expect(
+        diskLayer.encounterBehavior?.encounter.encounterTableId,
+        'route_grass',
+      );
+      expect(diskMap.gameplayZones, isEmpty);
+      expect(notifier.state.isDirty, isFalse);
+
+      final cleared = await notifier.clearSmartTileLayerEncounterBehavior(
+        mapId: _map.id,
+        layerId: _layer.id,
+      );
+
+      expect(cleared, isTrue);
+      expect(
+        (notifier.state.activeMap!.layers.single as SmartTileLayer)
+            .encounterBehavior,
+        isNull,
+      );
+      final clearedDiskMap = await FileMapRepository().loadMap(mapPath);
+      expect(
+        (clearedDiskMap.layers.single as SmartTileLayer).encounterBehavior,
+        isNull,
+      );
+      expect(clearedDiskMap.gameplayZones, isEmpty);
+    },
+  );
 }
 
 Future<void> _waitUntil(bool Function() condition) async {
@@ -381,6 +457,13 @@ ProjectManifest _canonicalManifest() => ProjectManifest(
       id: 'paths',
       name: 'Paths',
       relativePath: 'assets/paths.png',
+    ),
+  ],
+  encounterTables: const <ProjectEncounterTable>[
+    ProjectEncounterTable(
+      id: 'route_grass',
+      name: 'Route grass',
+      encounterKind: EncounterKind.walk,
     ),
   ],
   smartTileCatalog: ProjectSmartTileCatalog(

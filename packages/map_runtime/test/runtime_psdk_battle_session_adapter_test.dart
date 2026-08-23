@@ -124,7 +124,6 @@ void main() {
           isA<BattleActionFight>());
     });
 
-
     test('the legacy projection transmits the formula shakes on failure', () {
       // ENC-005 : le seed 5 fait tirer 33849 sur 120/91800 -> échec à deux
       // secousses. La projection legacy doit porter CE nombre ; une projection
@@ -308,7 +307,8 @@ void main() {
               playerFacing: Direction.south,
             ),
             mapId: 'field',
-            zoneId: 'grass',
+            encounterSourceId: 'grass',
+            encounterSourceKind: EncounterSourceKind.gameplayZone,
             tableId: 'field-grass',
             encounterKind: EncounterKind.walk,
             speciesId: 'opponent_0',
@@ -495,7 +495,8 @@ void main() {
               playerFacing: Direction.south,
             ),
             mapId: 'field',
-            zoneId: 'grass',
+            encounterSourceId: 'grass',
+            encounterSourceKind: EncounterSourceKind.gameplayZone,
             tableId: 'field-grass',
             encounterKind: EncounterKind.walk,
             speciesId: 'opponent_0',
@@ -649,7 +650,8 @@ GameState _applySinglePlayerOutcome({
           playerFacing: Direction.south,
         ),
         mapId: 'field',
-        zoneId: 'grass',
+        encounterSourceId: 'grass',
+        encounterSourceKind: EncounterSourceKind.gameplayZone,
         tableId: 'field-grass',
         encounterKind: EncounterKind.walk,
         speciesId: 'opponent_0',
