@@ -714,6 +714,16 @@ class BattleOverlayComponent extends PositionComponent {
     _handleAnimationPresentationChanged();
   }
 
+  /// Recette 2026-08-23 (22-57-18) : tant que le rideau n'est pas tombé, la
+  /// scène ne dessine RIEN — le flash de la pré-transition est translucide et
+  /// la scène montée en parallèle se voyait à travers, à la place de
+  /// l'overworld que la référence garde affiché.
+  @override
+  void renderTree(Canvas canvas) {
+    if (_pendingIntroPlan != null) return;
+    super.renderTree(canvas);
+  }
+
   /// L'intro a déjà déroulé les messages d'ouverture un à un : les réafficher
   /// en bloc dans la narration du premier tour serait une redite.
   bool _introPlayed = false;
@@ -1749,6 +1759,12 @@ class BattleOverlayComponent extends PositionComponent {
     required List<String> narrationLines,
     required bool interactionsEnabled,
   }) {
+    if (_pendingIntroPlan != null) {
+      // Sous le rideau, les widgets Flutter (au-dessus de tout canvas Flame)
+      // perceraient le noir : aucun snapshot tant que l'intro n'a pas démarré.
+      onCommandOverlaySnapshotChanged?.call(null);
+      return;
+    }
     final layout = currentSceneLayout;
     final isForcedReplacement =
         partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement &&

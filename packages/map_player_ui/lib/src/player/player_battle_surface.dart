@@ -588,47 +588,51 @@ class _BattleHud extends StatelessWidget {
                   ),
                 ),
               ),
-              Row(
-                children: <Widget>[
-                  if (!largeText) ...<Widget>[
-                    Text(
-                      context.playerL10n.hpAbbreviation,
-                      key: ValueKey<String>('battle-hp-label-$sideId'),
-                      style: context.playerTypography
-                          .combatStyle(
-                            Theme.of(context).textTheme.labelSmall ??
-                                const TextStyle(),
-                          )
-                          .copyWith(
-                            color: hpColor,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
-                          ),
-                    ),
-                    const SizedBox(width: PlayerSpacing.xxs),
-                  ],
-                  Expanded(
-                    child: TweenAnimationBuilder<double>(
-                      key: ValueKey<int>(data.hpTweenRevision),
-                      tween: Tween<double>(
-                        begin: data.maxHp <= 0
-                            ? 0
-                            : (data.effectiveDisplayedHp / data.maxHp)
-                                .clamp(0.0, 1.0),
-                        end: hpRatio,
+              // Recette 2026-08-23 (22-57-18) : la barre animait pendant que
+              // le texte affichait l'état FINAL (data.currentHp) — le nombre
+              // sautait de 15/15 à 9/15 avant tout impact. Un SEUL tween
+              // pilote désormais la barre ET le texte : même valeur, même
+              // horloge, en PV réels pour l'arrondi du nombre.
+              TweenAnimationBuilder<double>(
+                key: ValueKey<int>(data.hpTweenRevision),
+                tween: Tween<double>(
+                  begin: data.effectiveDisplayedHp.toDouble(),
+                  end: data.effectiveTargetDisplayedHp.toDouble(),
+                ),
+                duration: context.playerMotion.standard == Duration.zero
+                    ? Duration.zero
+                    : data.hpTweenDuration ?? context.playerMotion.standard,
+                builder: (context, animatedHp, _) => Row(
+                  children: <Widget>[
+                    if (!largeText) ...<Widget>[
+                      Text(
+                        context.playerL10n.hpAbbreviation,
+                        key: ValueKey<String>('battle-hp-label-$sideId'),
+                        style: context.playerTypography
+                            .combatStyle(
+                              Theme.of(context).textTheme.labelSmall ??
+                                  const TextStyle(),
+                            )
+                            .copyWith(
+                              color: hpColor,
+                              fontWeight: FontWeight.w900,
+                              height: 1,
+                            ),
                       ),
-                      duration: context.playerMotion.standard == Duration.zero
-                          ? Duration.zero
-                          : data.hpTweenDuration ??
-                              context.playerMotion.standard,
-                      builder: (context, value, _) => _BattleHpBar(
+                      const SizedBox(width: PlayerSpacing.xxs),
+                    ],
+                    Expanded(
+                      child: _BattleHpBar(
                         key: ValueKey<String>(
                           'battle-hp-${hpBarShape.name}-$sideId',
                         ),
-                        value: value,
+                        value: data.maxHp <= 0
+                            ? 0
+                            : (animatedHp / data.maxHp).clamp(0.0, 1.0),
                         shape: hpBarShape,
                         color: hpColor,
-                        backgroundColor: colors.outline.withValues(alpha: 0.35),
+                        backgroundColor:
+                            colors.outline.withValues(alpha: 0.35),
                         height: dense
                             ? largeText
                                 ? 4
@@ -636,29 +640,29 @@ class _BattleHud extends StatelessWidget {
                             : 6,
                       ),
                     ),
-                  ),
-                  if (showExactHp && !largeText) ...<Widget>[
-                    const SizedBox(width: PlayerSpacing.xxs),
-                    Text(
-                      context.playerL10n.hpFraction(
-                        data.currentHp,
-                        data.maxHp,
+                    if (showExactHp && !largeText) ...<Widget>[
+                      const SizedBox(width: PlayerSpacing.xxs),
+                      Text(
+                        context.playerL10n.hpFraction(
+                          animatedHp.round(),
+                          data.maxHp,
+                        ),
+                        key: ValueKey<String>('battle-exact-hp-$sideId'),
+                        maxLines: 1,
+                        style: context.playerTypography
+                            .numbersStyle(
+                              Theme.of(context).textTheme.labelSmall ??
+                                  const TextStyle(),
+                            )
+                            .copyWith(
+                              color: paletteText,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                            ),
                       ),
-                      key: ValueKey<String>('battle-exact-hp-$sideId'),
-                      maxLines: 1,
-                      style: context.playerTypography
-                          .numbersStyle(
-                            Theme.of(context).textTheme.labelSmall ??
-                                const TextStyle(),
-                          )
-                          .copyWith(
-                            color: paletteText,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                          ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
               if (experienceProgress case final progress?
                   when !dense || !largeText) ...<Widget>[

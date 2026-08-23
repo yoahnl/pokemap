@@ -91,6 +91,17 @@ Widget _positionedRect(Rect rect, Widget child) {
   );
 }
 
+/// Seam de test : le carton HUD seul, pour instrumenter texte et barre.
+@visibleForTesting
+class BattleHudCardForTest extends StatelessWidget {
+  const BattleHudCardForTest({super.key, required this.snapshot});
+
+  final BattleCommandOverlayHudSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) => _BattleHudCard(snapshot: snapshot);
+}
+
 class _BattleHudCard extends StatelessWidget {
   const _BattleHudCard({
     super.key,

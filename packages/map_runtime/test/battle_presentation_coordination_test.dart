@@ -1,3 +1,5 @@
+import 'dart:ui' show Canvas, PictureRecorder;
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
@@ -154,6 +156,64 @@ void main() {
     expect(snapshot!.playerHud.displayedHp, 0);
     expect(snapshot!.playerHud.statusLabel, 'K.O.');
     expect(snapshot!.enemyHud.displayedHp, lessThan(12));
+  });
+
+  // Recette 2026-08-23 (vidéo 22-57-18, macOS) : pendant la pré-transition,
+  // la scène de combat montée en parallèle se voyait à travers le flash
+  // translucide, et les HUD Flutter (au-dessus de tout canvas Flame)
+  // perçaient le noir tenu. Tant que l'intro n'a pas démarré : la scène ne
+  // dessine RIEN et le snapshot Flutter reste nul.
+  test('sous le rideau, la scène ne dessine rien et le snapshot est nul',
+      () async {
+    final snapshots = <BattleCommandOverlaySnapshot?>[];
+    final session = _fatalSession();
+    final overlay = BattleOverlayComponent(
+      session: session,
+      viewportSize: Vector2(960, 540),
+      onPlayerChoice: (_) {},
+      introEnabled: true,
+      onCommandOverlaySnapshotChanged: snapshots.add,
+    );
+    await overlay.onLoad();
+    await overlay.waitForPendingVisualSync();
+
+    expect(
+      snapshots.isEmpty || snapshots.last == null,
+      isTrue,
+      reason: 'les widgets Flutter perceraient le rideau : pas de snapshot '
+          'avant le reveal',
+    );
+    final recorder = PictureRecorder();
+    overlay.renderTree(Canvas(recorder));
+    final image = await recorder.endRecording().toImage(96, 54);
+    final bytes = await image.toByteData();
+    var opaque = 0;
+    for (var i = 3; i < bytes!.lengthInBytes; i += 4) {
+      if (bytes.getUint8(i) > 8) opaque += 1;
+    }
+    expect(
+      opaque,
+      0,
+      reason: 'la scène se voyait à travers le flash translucide : elle ne '
+          'dessine rien tant que le rideau n’est pas tombé',
+    );
+
+    overlay.startIntro();
+    await _pump(overlay, 0.3);
+    expect(
+      snapshots.isNotEmpty && snapshots.last != null,
+      isTrue,
+      reason: 'au reveal, les widgets reviennent',
+    );
+    final recorder2 = PictureRecorder();
+    overlay.renderTree(Canvas(recorder2));
+    final image2 = await recorder2.endRecording().toImage(96, 54);
+    final bytes2 = await image2.toByteData();
+    var opaque2 = 0;
+    for (var i = 3; i < bytes2!.lengthInBytes; i += 4) {
+      if (bytes2.getUint8(i) > 8) opaque2 += 1;
+    }
+    expect(opaque2, greaterThan(0), reason: 'la scène redevient visible');
   });
 
   test('la timeline du tour fatal reste dans l’ordre de la référence',

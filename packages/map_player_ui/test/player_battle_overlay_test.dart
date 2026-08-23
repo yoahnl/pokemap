@@ -269,6 +269,54 @@ void main() {
     },
   );
 
+  // Recette 2026-08-23 (vidéo 22-57-18, macOS) : la barre animait pendant que
+  // le nombre affichait l'état FINAL — « 15/15 → 9/15 » en une frame, la
+  // barre en 600 ms. Le nombre et la barre partagent désormais le même tween.
+  testWidgets(
+    'le nombre de PV suit la barre pendant le drain, pas l’état final',
+    (tester) async {
+      const viewport = Size(436, 697);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(viewport);
+
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          playerHp: 9,
+          playerDisplayedHp: 61,
+          playerTargetDisplayedHp: 9,
+          playerHpTweenDurationMs: 600,
+          playerHpTweenRevision: 3,
+        ),
+        onCommand: (_) {},
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+
+      String readPlayerHp() {
+        final text = tester.widget<Text>(
+          find.byKey(const ValueKey<String>('battle-exact-hp-player')),
+        );
+        return text.data ?? '';
+      }
+
+      final early = readPlayerHp();
+      expect(
+        early,
+        isNot(contains('9/72')),
+        reason: 'au début du drain, le nombre ne montre pas l’état final '
+            '(il affichait $early)',
+      );
+
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(
+        readPlayerHp(),
+        contains('9/72'),
+        reason: 'une fois le drain joué, le nombre atteint la valeur finale',
+      );
+    },
+  );
+
   testWidgets(
     'default battle HUDs keep exact HP player-only and use compact rails',
     (tester) async {
@@ -1633,6 +1681,11 @@ BattleCommandOverlaySnapshot _snapshot({
   String? enemyGender,
   String? playerGender,
   double? playerExperienceProgress,
+  int? playerHp,
+  int? playerDisplayedHp,
+  int? playerTargetDisplayedHp,
+  int? playerHpTweenDurationMs,
+  int playerHpTweenRevision = 0,
 }) {
   final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
   return BattleCommandOverlaySnapshot(
@@ -1655,10 +1708,14 @@ BattleCommandOverlaySnapshot _snapshot({
       rect: layout.playerHudRect,
       owner: 'JOUEUR',
       species: 'Pikachu',
-      hp: 61,
+      hp: playerHp ?? 61,
       maxHp: 72,
       gender: playerGender,
       experienceProgress: playerExperienceProgress,
+      displayedHp: playerDisplayedHp,
+      targetDisplayedHp: playerTargetDisplayedHp,
+      hpTweenDurationMs: playerHpTweenDurationMs,
+      hpTweenRevision: playerHpTweenRevision,
     ),
     battleLabel: 'COMBAT DE DRESSEUR',
     title: title ??
@@ -1782,6 +1839,10 @@ BattleCommandOverlayHudSnapshot _hud({
   String? status,
   String? gender,
   double? experienceProgress,
+  int? displayedHp,
+  int? targetDisplayedHp,
+  int? hpTweenDurationMs,
+  int hpTweenRevision = 0,
 }) {
   return BattleCommandOverlayHudSnapshot(
     rect: rect,
@@ -1794,6 +1855,10 @@ BattleCommandOverlayHudSnapshot _hud({
     genderSymbol: gender,
     experienceProgress: experienceProgress,
     isPlayerSide: owner == 'JOUEUR',
+    displayedHp: displayedHp,
+    targetDisplayedHp: targetDisplayedHp,
+    hpTweenDurationMs: hpTweenDurationMs,
+    hpTweenRevision: hpTweenRevision,
   );
 }
 
