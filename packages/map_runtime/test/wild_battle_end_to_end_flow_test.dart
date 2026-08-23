@@ -475,7 +475,6 @@ void main() {
         reason: 'la pré-transition se joue par-dessus la carte',
       );
 
-
       // Le chargement court en PARALLÈLE : la scène se monte sous le noir.
       await pumpTicks(
         until: () => game.debugBattleOverlayMounted,
@@ -1914,19 +1913,52 @@ void main() {
       expect(activeOverlay.isTurnPresentationActive, isTrue);
       expect(activeOverlay.currentPromptText, equals('Tu as pris la fuite !'));
 
-      for (var i = 0; i < 4; i++) {
+      // BETA-BAT-017 : le handoff ne passe plus par l'écran plein de
+      // progression — la narration finale rend la main aux MESSAGES DU
+      // COORDINATOR joués dans la scène, puis au fondu de sortie. Le combat
+      // reste la phase active tant que la fin n'est pas committée.
+      var sawSceneFinaleMessage = false;
+      var sawExitCurtain = false;
+      for (var i = 0; i < 120 && game.debugFlowPhaseName == 'battle'; i++) {
+        expect(
+          game.debugPostBattleOverlayMounted,
+          isFalse,
+          reason: 'un flux sans décision ne montre plus l’écran plein',
+        );
+        final battleOverlay = game.debugBattleOverlayComponent;
+        if (battleOverlay != null &&
+            (game.debugBattleSessionSnapshot?.state.isFinished ?? false) &&
+            battleOverlay.debugCurrentAnimationMessage != null) {
+          sawSceneFinaleMessage = true;
+        }
+        sawExitCurtain = sawExitCurtain || game.debugBattleExitCurtainMounted;
         game.update(0.25);
         await Future<void>.delayed(Duration.zero);
       }
-
-      expect(game.debugFlowPhaseName, equals('battle'));
-      expect(game.debugPostBattleOverlayMounted, isTrue);
-      expect(game.debugValidatePostBattleChoice(), isTrue);
       await game.debugWaitForPostBattleCompletion();
 
+      expect(
+        sawSceneFinaleMessage,
+        isTrue,
+        reason: 'la fin a joué ses messages dans la boîte de la scène',
+      );
+      expect(
+        sawExitCurtain,
+        isTrue,
+        reason: 'la sortie de combat passe par le fondu au noir',
+      );
       expect(game.debugFlowPhaseName, equals('overworld'));
       expect(game.debugBattleOverlayComponent, isNull);
       expect(game.debugPostBattleOverlayMounted, isFalse);
+      for (var i = 0; i < 12 && game.debugBattleExitCurtainMounted; i++) {
+        game.update(0.25);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(
+        game.debugBattleExitCurtainMounted,
+        isFalse,
+        reason: 'le fondu s’ouvre sur l’overworld puis se retire',
+      );
     });
 
     test('battle overlay reflows when PlayableMapGame viewport changes',
@@ -1986,26 +2018,28 @@ void main() {
   });
 }
 
-/// Acquitte la progression post-combat et attend le retour en overworld.
+/// Suit la fin de combat jusqu'au retour en overworld.
 ///
-/// Ce helper porte aussi un critère d'acceptation de BETA-BAT-007 :
-/// « l'overlay se ferme uniquement après résultat appliqué ». Tant que la
-/// progression attend un acquittement, le runtime ne doit PAS être déjà revenu
-/// en overworld — sinon le joueur reprend la main pendant qu'un écran de fin
-/// flotte encore, ou pire, l'écran disparaît avant que le résultat soit écrit.
+/// Ce helper porte un critère d'acceptation de BETA-BAT-007 : « l'overlay se
+/// ferme uniquement après résultat appliqué ». Tant qu'une fin de combat se
+/// joue — messages dans la scène ou écran de progression — le runtime ne doit
+/// PAS être déjà revenu en overworld, sinon le joueur reprend la main pendant
+/// qu'un écran de fin flotte encore, ou pire, avant que le résultat soit
+/// écrit.
 ///
-/// L'ordre des vérifications compte : l'overlay est regardé AVANT la sortie sur
-/// overworld, faute de quoi un état où les deux sont vrais en même temps —
-/// exactement le défaut cherché — sortirait de la boucle sans être vu.
-///
-/// [expectPostBattleOverlay] verrouille le fait que le vecteur passe vraiment
-/// par cet écran. Sans ce compteur, un flux qui ne l'afficherait jamais rendrait
-/// l'invariant muet tout en gardant le test vert.
+/// BETA-BAT-017 : le vecteur nominal est désormais la SCÈNE — les messages du
+/// coordinator joués dans la boîte de dialogue du combat, puis le fondu de
+/// sortie. [expectScenePresentation] verrouille ce vecteur : l'écran plein de
+/// progression ne doit plus jamais s'afficher sur un flux sans décision, et
+/// le fondu doit s'être réellement joué puis retiré. Passer false pour un
+/// flux qui attend encore l'écran plein (décisions du sous-lot 2).
 Future<void> _acknowledgePostBattleAndWaitForOverworld(
   PlayableMapGame game, {
-  bool expectPostBattleOverlay = true,
+  bool expectScenePresentation = true,
 }) async {
   var sawPostBattleOverlay = false;
+  var sawSceneFinaleMessage = false;
+  var sawExitCurtain = false;
   for (var tick = 0; tick < 240; tick++) {
     if (game.debugPostBattleOverlayMounted) {
       sawPostBattleOverlay = true;
@@ -2017,9 +2051,44 @@ Future<void> _acknowledgePostBattleAndWaitForOverworld(
       );
       expect(game.debugValidatePostBattleChoice(), isTrue);
     }
+    final battleOverlay = game.debugBattleOverlayComponent;
+    if (battleOverlay != null &&
+        (game.debugBattleSessionSnapshot?.state.isFinished ?? false) &&
+        battleOverlay.debugCurrentAnimationMessage != null) {
+      sawSceneFinaleMessage = true;
+    }
+    sawExitCurtain = sawExitCurtain || game.debugBattleExitCurtainMounted;
     if (game.debugFlowPhaseName == 'overworld') {
       await game.debugWaitForPostBattleCompletion();
-      if (expectPostBattleOverlay) {
+      if (expectScenePresentation) {
+        expect(
+          sawPostBattleOverlay,
+          isFalse,
+          reason: 'BETA-BAT-017 : un flux sans décision ne montre plus '
+              'l’écran plein de progression — la fin se joue dans la scène',
+        );
+        expect(
+          sawSceneFinaleMessage,
+          isTrue,
+          reason: 'la fin doit avoir joué au moins un message dans la boîte '
+              'de dialogue de la scène de combat',
+        );
+        expect(
+          sawExitCurtain,
+          isTrue,
+          reason: 'la sortie de combat passe par le fondu au noir',
+        );
+        for (var i = 0; i < 12 && game.debugBattleExitCurtainMounted; i++) {
+          game.update(0.25);
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(
+          game.debugBattleExitCurtainMounted,
+          isFalse,
+          reason: 'le fondu s’ouvre sur l’overworld puis se retire — un '
+              'rideau orphelin laisserait un écran noir éternel',
+        );
+      } else {
         expect(
           sawPostBattleOverlay,
           isTrue,

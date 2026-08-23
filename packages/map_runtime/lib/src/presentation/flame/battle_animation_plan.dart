@@ -802,6 +802,24 @@ final class HudHpTweenStep extends BattleAnimationStep {
   final int durationMs;
 }
 
+/// Remplit la barre d'XP du joueur dans le HUD — BETA-BAT-017.
+///
+/// Étape À DURÉE (elle tient sa phase) : la référence anime la barre pendant
+/// que le message « a gagné N points Exp. ! » reste affiché. Les progrès sont
+/// des ratios 0..1 du niveau courant ; une montée de niveau se joue en
+/// plusieurs étapes (jusqu'à 1, puis repart de 0).
+final class HudXpTweenStep extends BattleAnimationStep {
+  const HudXpTweenStep({
+    required this.fromProgress,
+    required this.toProgress,
+    this.durationMs = 600,
+  });
+
+  final double fromProgress;
+  final double toProgress;
+  final int durationMs;
+}
+
 final class SwapCombatantVisualStep extends BattleAnimationStep {
   const SwapCombatantVisualStep({
     required this.side,

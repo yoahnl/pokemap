@@ -80,6 +80,18 @@ final class TransitionHoldBlackPhase extends BattleTransitionPhase {
   final double durationSeconds;
 }
 
+/// Fondu progressif transparent → noir — BETA-BAT-017.
+///
+/// La sortie de combat de la référence : l'écran fond au noir depuis la
+/// scène encore affichée, puis le noir est tenu pendant que l'overworld se
+/// remonte dessous. Alpha linéaire 0 → 255 sur la durée.
+final class TransitionFadeToBlackPhase extends BattleTransitionPhase {
+  const TransitionFadeToBlackPhase({required this.durationSeconds});
+
+  @override
+  final double durationSeconds;
+}
+
 /// Une transition de début de combat complète. Les planches sont toujours
 /// ajustées à la largeur du viewport et centrées — c'est le cadrage commun de
 /// RBYWild (étirée plein écran) et de DPPTrainer (pokéball centrée).
@@ -143,6 +155,18 @@ const battleTransitionDppTrainer = BattleTransitionSpec(
   ],
 );
 
+/// La sortie de combat — BETA-BAT-017. Jouée par le même overlay que les
+/// pré-transitions : fondu au noir par-dessus la scène de combat, noir tenu,
+/// puis le jeu commit l'état, démonte le combat et demande le reveal sur
+/// l'overworld. Hors registre : ce n'est pas un choix d'authoring.
+const battleExitFade = BattleTransitionSpec(
+  id: 'battle_exit_fade',
+  phases: <BattleTransitionPhase>[
+    TransitionFadeToBlackPhase(durationSeconds: 0.45),
+    TransitionHoldBlackPhase(durationSeconds: 0.05),
+  ],
+);
+
 /// Le registre moteur des transitions connues.
 const Map<String, BattleTransitionSpec> battleTransitionRegistry =
     <String, BattleTransitionSpec>{
@@ -162,10 +186,9 @@ BattleTransitionSpec resolveBattleTransitionSpec({
   final isTrainerBattle = request is TrainerBattleStartRequest ||
       request is StaticBattleStartRequest;
   final config = manifest.battleTransitions;
-  final requestedId = (isTrainerBattle
-          ? config?.trainerTransitionId
-          : config?.wildTransitionId)
-      ?.trim();
+  final requestedId =
+      (isTrainerBattle ? config?.trainerTransitionId : config?.wildTransitionId)
+          ?.trim();
   final fallback =
       isTrainerBattle ? battleTransitionDppTrainer : battleTransitionRbyWild;
   if (requestedId == null || requestedId.isEmpty) {

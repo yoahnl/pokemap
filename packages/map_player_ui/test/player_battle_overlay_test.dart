@@ -318,6 +318,54 @@ void main() {
   );
 
   testWidgets(
+    'la barre d’XP se remplit pendant le message de gain, pas d’un coup',
+    (tester) async {
+      const viewport = Size(436, 697);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(viewport);
+
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          playerExperienceProgress: 0.25,
+          playerExperienceProgressTarget: 0.8,
+          playerXpTweenDurationMs: 600,
+          playerXpTweenRevision: 1,
+        ),
+        onCommand: (_) {},
+      );
+      await tester.pump(const Duration(milliseconds: 60));
+
+      double readXpValue() {
+        final bar = find.byKey(const ValueKey<String>('battle-xp-player'));
+        final progress = tester.widget<LinearProgressIndicator>(
+          find.descendant(
+            of: bar,
+            matching: find.byType(LinearProgressIndicator),
+          ),
+        );
+        return progress.value ?? 0;
+      }
+
+      final early = readXpValue();
+      expect(
+        early,
+        lessThan(0.8),
+        reason: 'BETA-BAT-017 : au début du gain, la barre n’affiche pas '
+            'déjà la cible (elle affichait $early)',
+      );
+
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(
+        readXpValue(),
+        moreOrLessEquals(0.8, epsilon: 0.001),
+        reason: 'une fois le remplissage joué, la barre atteint la cible',
+      );
+    },
+  );
+
+  testWidgets(
     'default battle HUDs keep exact HP player-only and use compact rails',
     (tester) async {
       const viewport = Size(436, 697);
@@ -1681,6 +1729,9 @@ BattleCommandOverlaySnapshot _snapshot({
   String? enemyGender,
   String? playerGender,
   double? playerExperienceProgress,
+  double? playerExperienceProgressTarget,
+  int? playerXpTweenDurationMs,
+  int playerXpTweenRevision = 0,
   int? playerHp,
   int? playerDisplayedHp,
   int? playerTargetDisplayedHp,
@@ -1712,6 +1763,9 @@ BattleCommandOverlaySnapshot _snapshot({
       maxHp: 72,
       gender: playerGender,
       experienceProgress: playerExperienceProgress,
+      experienceProgressTarget: playerExperienceProgressTarget,
+      xpTweenDurationMs: playerXpTweenDurationMs,
+      xpTweenRevision: playerXpTweenRevision,
       displayedHp: playerDisplayedHp,
       targetDisplayedHp: playerTargetDisplayedHp,
       hpTweenDurationMs: playerHpTweenDurationMs,
@@ -1787,44 +1841,45 @@ BattleCommandOverlaySnapshot _rootSnapshot({
     title: 'COMMANDES',
     prompt: 'Choisissez une action.',
     narrationLines: narrationLines,
-    entries: entries ?? const <BattleCommandOverlayEntry>[
-      BattleCommandOverlayEntry(
-        index: 0,
-        kind: BattleCommandOverlayEntryKind.root,
-        primaryLabel: 'ATTAQUER',
-        secondaryLabel: 'Choisir une capacité',
-        enabled: true,
-        selected: true,
-        tone: BattleCommandOverlayEntryTone.attack,
-      ),
-      BattleCommandOverlayEntry(
-        index: 1,
-        kind: BattleCommandOverlayEntryKind.root,
-        primaryLabel: 'SAC',
-        secondaryLabel: 'Utiliser un objet',
-        enabled: true,
-        selected: false,
-        tone: BattleCommandOverlayEntryTone.medicine,
-      ),
-      BattleCommandOverlayEntry(
-        index: 2,
-        kind: BattleCommandOverlayEntryKind.root,
-        primaryLabel: 'ÉQUIPE',
-        secondaryLabel: 'Changer de Pokémon',
-        enabled: true,
-        selected: false,
-        tone: BattleCommandOverlayEntryTone.switching,
-      ),
-      BattleCommandOverlayEntry(
-        index: 3,
-        kind: BattleCommandOverlayEntryKind.root,
-        primaryLabel: 'FUITE',
-        secondaryLabel: 'Quitter le combat',
-        enabled: true,
-        selected: false,
-        tone: BattleCommandOverlayEntryTone.neutral,
-      ),
-    ],
+    entries: entries ??
+        const <BattleCommandOverlayEntry>[
+          BattleCommandOverlayEntry(
+            index: 0,
+            kind: BattleCommandOverlayEntryKind.root,
+            primaryLabel: 'ATTAQUER',
+            secondaryLabel: 'Choisir une capacité',
+            enabled: true,
+            selected: true,
+            tone: BattleCommandOverlayEntryTone.attack,
+          ),
+          BattleCommandOverlayEntry(
+            index: 1,
+            kind: BattleCommandOverlayEntryKind.root,
+            primaryLabel: 'SAC',
+            secondaryLabel: 'Utiliser un objet',
+            enabled: true,
+            selected: false,
+            tone: BattleCommandOverlayEntryTone.medicine,
+          ),
+          BattleCommandOverlayEntry(
+            index: 2,
+            kind: BattleCommandOverlayEntryKind.root,
+            primaryLabel: 'ÉQUIPE',
+            secondaryLabel: 'Changer de Pokémon',
+            enabled: true,
+            selected: false,
+            tone: BattleCommandOverlayEntryTone.switching,
+          ),
+          BattleCommandOverlayEntry(
+            index: 3,
+            kind: BattleCommandOverlayEntryKind.root,
+            primaryLabel: 'FUITE',
+            secondaryLabel: 'Quitter le combat',
+            enabled: true,
+            selected: false,
+            tone: BattleCommandOverlayEntryTone.neutral,
+          ),
+        ],
     interactionsEnabled: true,
     canGoBack: false,
   );
@@ -1839,6 +1894,9 @@ BattleCommandOverlayHudSnapshot _hud({
   String? status,
   String? gender,
   double? experienceProgress,
+  double? experienceProgressTarget,
+  int? xpTweenDurationMs,
+  int xpTweenRevision = 0,
   int? displayedHp,
   int? targetDisplayedHp,
   int? hpTweenDurationMs,
@@ -1854,6 +1912,9 @@ BattleCommandOverlayHudSnapshot _hud({
     statusLabel: status,
     genderSymbol: gender,
     experienceProgress: experienceProgress,
+    experienceProgressTarget: experienceProgressTarget,
+    xpTweenDurationMs: xpTweenDurationMs,
+    xpTweenRevision: xpTweenRevision,
     isPlayerSide: owner == 'JOUEUR',
     displayedHp: displayedHp,
     targetDisplayedHp: targetDisplayedHp,

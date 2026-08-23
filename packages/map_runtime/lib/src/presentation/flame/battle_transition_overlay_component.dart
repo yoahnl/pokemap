@@ -234,6 +234,9 @@ class BattleTransitionOverlayComponent extends PositionComponent {
       case TransitionHoldBlackPhase():
         _visibleSheet = null;
         _screenColor = const Color(0xFF000000);
+      case TransitionFadeToBlackPhase():
+        _visibleSheet = null;
+        _screenColor = Color.fromARGB((255 * progress).round(), 0, 0, 0);
     }
   }
 

@@ -141,6 +141,9 @@ class BattleCommandOverlayHudSnapshot {
     this.genderSymbol,
     this.statusLabel,
     this.experienceProgress,
+    this.experienceProgressTarget,
+    this.xpTweenDurationMs,
+    this.xpTweenRevision = 0,
   });
 
   final Rect rect;
@@ -157,6 +160,9 @@ class BattleCommandOverlayHudSnapshot {
   final String? genderSymbol;
   final String? statusLabel;
   final double? experienceProgress;
+  final double? experienceProgressTarget;
+  final int? xpTweenDurationMs;
+  final int xpTweenRevision;
 
   int get effectiveDisplayedHp => displayedHp ?? currentHp;
 
@@ -170,6 +176,18 @@ class BattleCommandOverlayHudSnapshot {
   bool get hasHpTween =>
       hpTweenDuration != null &&
       effectiveDisplayedHp != effectiveTargetDisplayedHp;
+
+  double? get effectiveTargetExperienceProgress =>
+      experienceProgressTarget ?? experienceProgress;
+
+  Duration? get xpTweenDuration => xpTweenDurationMs == null
+      ? null
+      : Duration(milliseconds: xpTweenDurationMs!);
+
+  bool get hasXpTween =>
+      xpTweenDuration != null &&
+      experienceProgress != null &&
+      experienceProgress != effectiveTargetExperienceProgress;
 
   @override
   bool operator ==(Object other) {
@@ -190,7 +208,10 @@ class BattleCommandOverlayHudSnapshot {
         other.hpTweenRevision == hpTweenRevision &&
         other.genderSymbol == genderSymbol &&
         other.statusLabel == statusLabel &&
-        other.experienceProgress == experienceProgress;
+        other.experienceProgress == experienceProgress &&
+        other.experienceProgressTarget == experienceProgressTarget &&
+        other.xpTweenDurationMs == xpTweenDurationMs &&
+        other.xpTweenRevision == xpTweenRevision;
   }
 
   @override
@@ -209,6 +230,9 @@ class BattleCommandOverlayHudSnapshot {
         genderSymbol,
         statusLabel,
         experienceProgress,
+        experienceProgressTarget,
+        xpTweenDurationMs,
+        xpTweenRevision,
       );
 }
 

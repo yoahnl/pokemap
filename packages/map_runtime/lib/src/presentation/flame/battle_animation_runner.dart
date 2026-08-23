@@ -15,6 +15,7 @@ final class BattleAnimationRunner {
     required this.onCombatantShake,
     required this.onFaintCombatant,
     required this.onHudHpTween,
+    this.onHudXpTween,
     this.onPlaySe,
     required this.onBarrierPulse,
     required this.onSwapCombatantVisual,
@@ -46,6 +47,7 @@ final class BattleAnimationRunner {
   final void Function(CombatantShakeStep step) onCombatantShake;
   final void Function(FaintCombatantStep step) onFaintCombatant;
   final void Function(HudHpTweenStep step) onHudHpTween;
+  final void Function(HudXpTweenStep step)? onHudXpTween;
 
   /// BETA-BAT-014 : un son du plan. Nul chez un hôte sans audio — les
   /// harnais de test et les hôtes silencieux gardent exactement l'ancien
@@ -80,6 +82,7 @@ final class BattleAnimationRunner {
   bool _active = false;
   String? _currentMessage;
   HudHpTweenStep? _currentHpTweenStep;
+  HudXpTweenStep? _currentXpTweenStep;
   Completer<void>? _completionCompleter;
   final List<_ScheduledAccentStep> _scheduledAccentSteps =
       <_ScheduledAccentStep>[];
@@ -89,6 +92,7 @@ final class BattleAnimationRunner {
   String? get currentMessage => _currentMessage;
 
   HudHpTweenStep? get currentHpTweenStep => _currentHpTweenStep;
+  HudXpTweenStep? get currentXpTweenStep => _currentXpTweenStep;
 
   Future<void> get completionFuture {
     if (!_active) {
@@ -108,6 +112,7 @@ final class BattleAnimationRunner {
     _phaseDuration = 0;
     _active = true;
     _currentHpTweenStep = null;
+    _currentXpTweenStep = null;
     _completionCompleter = Completer<void>();
     _beginNextPhase();
   }
@@ -122,6 +127,7 @@ final class BattleAnimationRunner {
     _phaseDuration = 0;
     _active = false;
     _currentHpTweenStep = null;
+    _currentXpTweenStep = null;
     _scheduledAccentSteps.clear();
     _completeCurrentPlan();
     if (clearMessage) {
@@ -153,6 +159,7 @@ final class BattleAnimationRunner {
 
   void _beginNextPhase() {
     _currentHpTweenStep = null;
+    _currentXpTweenStep = null;
     _phaseElapsed = 0;
     _phaseDuration = 0;
     _scheduledAccentSteps.clear();
@@ -163,6 +170,7 @@ final class BattleAnimationRunner {
         _active = false;
         _currentMessage = null;
         _currentHpTweenStep = null;
+        _currentXpTweenStep = null;
         _plan = null;
         _completeCurrentPlan();
         onPresentationChanged();
@@ -189,6 +197,16 @@ final class BattleAnimationRunner {
           _nextStepIndex += 1;
           _currentHpTweenStep = step;
           onHudHpTween(step);
+          _phaseDuration = step.durationMs / 1000;
+          onPresentationChanged();
+          if (_phaseDuration <= 0) {
+            continue;
+          }
+          return;
+        case HudXpTweenStep():
+          _nextStepIndex += 1;
+          _currentXpTweenStep = step;
+          onHudXpTween?.call(step);
           _phaseDuration = step.durationMs / 1000;
           onPresentationChanged();
           if (_phaseDuration <= 0) {
@@ -537,6 +555,8 @@ final class BattleAnimationRunner {
         // sa cible et y SAUTAIT au lieu de descendre.
         _currentHpTweenStep = step;
         onHudHpTween(step);
+      case HudXpTweenStep():
+        onHudXpTween?.call(step);
       case AnimationGroupStep():
       case ShowMessageStep():
       case WaitStep():

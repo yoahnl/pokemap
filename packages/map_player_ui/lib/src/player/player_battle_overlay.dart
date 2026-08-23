@@ -163,6 +163,9 @@ PlayerBattleHudViewData _hud(BattleCommandOverlayHudSnapshot snapshot) =>
       statusLabel: snapshot.statusLabel,
       genderSymbol: snapshot.genderSymbol,
       experienceProgress: snapshot.experienceProgress,
+      experienceProgressTarget: snapshot.experienceProgressTarget,
+      xpTweenDuration: snapshot.xpTweenDuration,
+      xpTweenRevision: snapshot.xpTweenRevision,
     );
 
 PlayerBattleEntryTone _tone(BattleCommandOverlayEntryTone tone) =>

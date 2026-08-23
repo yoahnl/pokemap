@@ -459,7 +459,6 @@ String _defaultBattleMoveDisplayName(String moveId, String fallbackName) =>
 /// visible et non oublié.
 const double battleReducedMotionSpeedFactor = 2.5;
 
-
 class BattleOverlayComponent extends PositionComponent {
   BattleOverlayComponent({
     required BattleSession session,
@@ -478,6 +477,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.playSfx,
     this.onOutcomePresented,
     this.introEnabled = false,
+    this.outcomeBannerEnabled = true,
     this.resolveSpeciesDisplayName = _battleDisplayName,
     this.showDebugPanel = false,
     this.motionScale = 1.0,
@@ -636,6 +636,19 @@ class BattleOverlayComponent extends PositionComponent {
 
   bool get acceptsPlayerCommands => _acceptsPlayerCommands;
 
+  /// BETA-BAT-017 : ferme les commandes sans éteindre l'UI de combat.
+  ///
+  /// Le chemin « fin de combat dans la scène » garde les HUD et la boîte de
+  /// dialogue vivants — ils jouent les messages du coordinator et la barre
+  /// d'XP — mais plus aucune commande ne doit répondre, ni pendant que le
+  /// coordinator calcule, ni sous le fondu de sortie. [lockForPostBattle]
+  /// reste la coupure totale du chemin plein écran.
+  void beginPostBattleGate() {
+    if (!_acceptsPlayerCommands) return;
+    _acceptsPlayerCommands = false;
+    _syncPanelsOnly();
+  }
+
   /// Permanently hands command authority to the post-battle coordinator.
   void lockForPostBattle() {
     if (!_acceptsPlayerCommands) return;
@@ -662,7 +675,9 @@ class BattleOverlayComponent extends PositionComponent {
   String? get debugCurrentAnimationMessage => _animationRunner?.currentMessage;
 
   @visibleForTesting
-  double? get debugPlayerSpriteOpacity => _playerCombatant?.currentVisualOpacity;
+  double? get debugPlayerSpriteOpacity =>
+      // ignore: invalid_use_of_visible_for_testing_member
+      _playerCombatant?.currentVisualOpacity;
 
   @visibleForTesting
   bool get narrationPanelMounted => _commandPanel != null;
@@ -695,6 +710,7 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCommandMenuMode get currentMenuMode => _menuMode;
 
   @visibleForTesting
+
   /// BETA-BAT-016 : l'entrée en combat se joue comme une présentation.
   ///
   /// Le plan d'intro est construit au montage et reste EN ATTENTE sous le
@@ -704,6 +720,13 @@ class BattleOverlayComponent extends PositionComponent {
   /// fin du plan, une seule fois, comme tout plan du runner.
   final bool introEnabled;
   BattleAnimationPlan? _pendingIntroPlan;
+
+  /// BETA-BAT-017 : quand l'hôte présente la fin de combat DANS la scène
+  /// (messages du coordinator joués par le runner), le bandeau flottant
+  /// « Victoire ! » ferait doublon — et il flasherait dans la fenêtre entre
+  /// la fin du dernier tour et le démarrage du plan de fin. L'hôte le coupe
+  /// au montage ; les harnais existants gardent l'ancien comportement.
+  final bool outcomeBannerEnabled;
 
   void startIntro() {
     final plan = _pendingIntroPlan;
@@ -727,6 +750,31 @@ class BattleOverlayComponent extends PositionComponent {
   /// L'intro a déjà déroulé les messages d'ouverture un à un : les réafficher
   /// en bloc dans la narration du premier tour serait une redite.
   bool _introPlayed = false;
+
+  /// BETA-BAT-017 : la fin de combat se joue dans la scène.
+  ///
+  /// Le plan porte les messages du coordinator (victoire, Exp., niveaux,
+  /// argent…) et les remplissages de barre d'XP. Même mécanique qu'un tour :
+  /// le runner le joue, les commandes restent verrouillées, l'hôte attend
+  /// [waitForTurnPresentationComplete] avant de committer et démonter.
+  void presentPostBattlePlan(BattleAnimationPlan plan) {
+    if (plan.isEmpty) return;
+    // Le plan actif suit le même cycle qu'un tour : posé ici, vidé par
+    // [_handleAnimationPresentationChanged] quand le runner s'éteint. Les
+    // révisions de tween du snapshot se comptent dessus, et le bandeau
+    // d'issue le regarde pour savoir qu'une présentation est en cours.
+    _activeAnimationPlan = plan;
+    _animationRunner?.start(plan);
+    _handleAnimationPresentationChanged();
+  }
+
+  /// L'XP présentée du combattant joueur actif — BETA-BAT-017.
+  ///
+  /// La table `_playerExperienceProgressByLineupIndex` est figée au montage
+  /// (l'état d'AVANT combat) : après un remplissage joué, elle mentirait.
+  /// Chaque tween avance cette référence à sa cible ; le snapshot la préfère
+  /// à la table dès qu'elle existe.
+  double? _presentationXpProgress;
 
   /// L'horloge de présentation des PV, par camp — recette 2026-08-23.
   ///
@@ -962,6 +1010,7 @@ class BattleOverlayComponent extends PositionComponent {
       onCombatantShake: _handleCombatantShakeStep,
       onFaintCombatant: _handleFaintCombatantStep,
       onHudHpTween: _handleHudHpTweenStep,
+      onHudXpTween: _handleHudXpTweenStep,
       onPlaySe: (step) => playSfx?.call(
         step.seName,
         volume: step.volume,
@@ -1657,7 +1706,8 @@ class BattleOverlayComponent extends PositionComponent {
     final bagMenuModel = _currentBagMenuModel();
     final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
     final currentAnimationMessage = _animationRunner?.currentMessage;
-    final isPresenting = _animationRunner?.isActive ?? false;
+    final isPresenting =
+        (_animationRunner?.isActive ?? false) || !_acceptsPlayerCommands;
     final partyPrompt = menuModel.mode == BattleCommandMenuMode.pokemon
         ? buildBattlePartyPromptForOverlay(partyMenuModel)
         : null;
@@ -1700,15 +1750,14 @@ class BattleOverlayComponent extends PositionComponent {
           _session,
           resolveSpeciesDisplayName: resolveSpeciesDisplayName,
         );
-    final defaultNarration =
-        _introPlayed &&
-                !_session.state.isFinished &&
-                _session.state.currentTurn == null
-            ? const <String>[]
-            : buildBattleNarrationLinesForOverlay(
-                _session,
-                resolveSpeciesDisplayName: resolveSpeciesDisplayName,
-              );
+    final defaultNarration = _introPlayed &&
+            !_session.state.isFinished &&
+            _session.state.currentTurn == null
+        ? const <String>[]
+        : buildBattleNarrationLinesForOverlay(
+            _session,
+            resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+          );
     final resolvedNarration = isPresenting
         ? const <String>[]
         : (medicineTargetNarration ??
@@ -1819,6 +1868,7 @@ class BattleOverlayComponent extends PositionComponent {
     final targetSide = isPlayerSide ? BattleSideId.player : BattleSideId.enemy;
     final presentationStep = _animationRunner?.currentHpTweenStep;
     final isHpTweenStep = presentationStep?.side == targetSide;
+    final xpStep = isPlayerSide ? _animationRunner?.currentXpTweenStep : null;
     final heldHp = _presentationHeldHp[targetSide];
     final koIsPresented = heldHp == null || heldHp <= 0;
     final statusLabel = combatant.isFainted && koIsPresented
@@ -1845,8 +1895,13 @@ class BattleOverlayComponent extends PositionComponent {
       ),
       statusLabel: statusLabel?.trim().isEmpty ?? true ? null : statusLabel,
       experienceProgress: isPlayerSide
-          ? _playerExperienceProgressByLineupIndex[combatant.lineupIndex]
+          ? (xpStep?.fromProgress ??
+              _presentationXpProgress ??
+              _playerExperienceProgressByLineupIndex[combatant.lineupIndex])
           : null,
+      experienceProgressTarget: xpStep?.toProgress,
+      xpTweenDurationMs: xpStep?.durationMs,
+      xpTweenRevision: xpStep == null ? 0 : _xpTweenRevisionFor(xpStep),
     );
   }
 
@@ -2461,6 +2516,11 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _syncOutcomeBanner() {
+    if (!outcomeBannerEnabled) {
+      _outcomeBanner?.removeFromParent();
+      _outcomeBanner = null;
+      return;
+    }
     final outcome = _session.state.outcome;
     // BETA-BAT-012 : deux horloges. L'issue est décidée dès que le tour est
     // CALCULÉ, bien avant d'être JOUÉ, et ce bandeau ne regardait que la
@@ -2956,6 +3016,10 @@ class BattleOverlayComponent extends PositionComponent {
     );
   }
 
+  void _handleHudXpTweenStep(HudXpTweenStep step) {
+    _presentationXpProgress = step.toProgress;
+  }
+
   void _handleBarrierPulseStep(BarrierPulseStep step) {
     final fxLayer = _fxLayer;
     final targetRect = _combatantRenderedRectForSide(step.side);
@@ -3193,6 +3257,18 @@ class BattleOverlayComponent extends PositionComponent {
       return null;
     }
     return previousCombatant.currentHp;
+  }
+
+  int _xpTweenRevisionFor(HudXpTweenStep targetStep) {
+    var revision = 0;
+    for (final step
+        in _activeAnimationPlan.flattenedSteps.whereType<HudXpTweenStep>()) {
+      revision += 1;
+      if (identical(step, targetStep)) {
+        return revision;
+      }
+    }
+    return 0;
   }
 
   int _hpTweenRevisionFor(HudHpTweenStep targetStep) {

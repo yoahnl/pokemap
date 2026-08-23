@@ -171,6 +171,7 @@ final class RuntimePostBattleDecisionCoordinator {
     required BattleOutcome outcome,
     required ItemCatalogSnapshot itemCatalog,
     RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
+    String Function(String speciesId)? resolveSpeciesDisplayName,
   }) async {
     final requestId = runtimeContext.request.requestId.trim();
     if (requestId.isEmpty) {
@@ -235,6 +236,7 @@ final class RuntimePostBattleDecisionCoordinator {
         itemCatalog: itemCatalog,
       );
       final messages = _initialVictoryMessages(
+        resolveSpeciesDisplayName: resolveSpeciesDisplayName,
         resolution: resolution,
       );
       final transaction = RuntimePostBattleTransaction._(
@@ -591,6 +593,7 @@ GameState _completeBattleRequest(
 
 List<RuntimePostBattleMessage> _initialVictoryMessages({
   required RuntimeBattleRewardResolution resolution,
+  String Function(String speciesId)? resolveSpeciesDisplayName,
 }) {
   final messages = <RuntimePostBattleMessage>[
     const RuntimePostBattleMessage(
@@ -599,26 +602,28 @@ List<RuntimePostBattleMessage> _initialVictoryMessages({
     ),
   ];
   for (final change in resolution.progression.changes) {
-    final name = _displayId(
+    final name = _speciesDisplayName(
       resolution.baseState.party.members[change.partySlot].speciesId,
+      resolveSpeciesDisplayName,
     );
     messages.add(
       RuntimePostBattleMessage(
         kind: RuntimePostBattleMessageKind.experience,
-        text: '$name gagne ${change.experienceAwarded} PX.',
+        text: '$name a gagné ${change.experienceAwarded} points Exp. !',
         partySlot: change.partySlot,
       ),
     );
   }
   for (final change in resolution.progression.changes) {
-    final name = _displayId(
+    final name = _speciesDisplayName(
       resolution.baseState.party.members[change.partySlot].speciesId,
+      resolveSpeciesDisplayName,
     );
     for (var level = change.oldLevel + 1; level <= change.newLevel; level++) {
       messages.add(
         RuntimePostBattleMessage(
           kind: RuntimePostBattleMessageKind.levelUp,
-          text: '$name monte au niveau $level.',
+          text: '$name monte au N. $level !',
           partySlot: change.partySlot,
         ),
       );
@@ -689,7 +694,7 @@ List<RuntimePostBattleMessage> _rewardMessages(BattleReward reward) {
     if (reward.money > 0)
       RuntimePostBattleMessage(
         kind: RuntimePostBattleMessageKind.money,
-        text: 'Vous recevez ${reward.money} ₽.',
+        text: 'Vous remportez ${reward.money} ₽ !',
       ),
     for (final grant in reward.itemGrants)
       RuntimePostBattleMessage(
@@ -759,6 +764,15 @@ String _trainerDisplayName(RuntimeMapBundle bundle, String trainerId) {
     return matches.single.name.trim();
   }
   return _displayId(trainerId);
+}
+
+String _speciesDisplayName(
+  String speciesId,
+  String Function(String speciesId)? resolve,
+) {
+  final resolved = resolve?.call(speciesId).trim();
+  if (resolved != null && resolved.isNotEmpty) return resolved;
+  return _displayId(speciesId);
 }
 
 String _displayId(String id) {

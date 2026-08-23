@@ -109,6 +109,7 @@ import '../../shadow/shadow_runtime_instruction_collection.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_fx_bundle_cache.dart';
+import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
 import 'battle_music_resolver.dart';
 import 'battle_sfx_player.dart';
@@ -510,7 +511,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _dialoguePresentationPostFrameFlushScheduled = false;
   bool _preferDialogueFlutterOverlay = false;
   BattleTransitionOverlayComponent? _battleTransitionOverlay;
+
+  /// BETA-BAT-017 : le fondu de sortie de combat. Champ SÉPARÉ de
+  /// [_battleTransitionOverlay] : les nettoyages de la pré-transition (dont
+  /// celui de [_onBattleFinished]) le tueraient avant son reveal — il doit
+  /// justement survivre au démontage du combat pour fondre sur l'overworld.
+  BattleTransitionOverlayComponent? _battleExitCurtain;
   BattleOverlayComponent? _battleOverlay;
+  Map<String, String> _battleSpeciesDisplayNames = const <String, String>{};
+  Map<int, double> _battleXpProgressAtMount = const <int, double>{};
   PostBattleProgressionOverlayComponent? _postBattleProgressionOverlay;
   final ValueNotifier<PostBattlePresentationSnapshot?>
       _postBattlePresentationNotifier =
@@ -2793,6 +2802,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _postBattleProgressionOverlay != null;
 
   @visibleForTesting
+  bool get debugBattleExitCurtainMounted => _battleExitCurtain != null;
+
+  @visibleForTesting
   bool get debugIsBattleResolving => _isBattleResolving;
 
   @visibleForTesting
@@ -2874,6 +2886,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
+    _dismissBattleExitCurtainImmediately();
+    _battleSpeciesDisplayNames = const <String, String>{};
+    _battleXpProgressAtMount = const <int, double>{};
     _battleSession = null;
     _psdkBattleSession = null;
     _activeBattleContext = null;
@@ -7938,6 +7953,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       final battleSpeciesDisplayNames =
           await _loadBattleSpeciesDisplayNames(_battleSession!);
+      _battleSpeciesDisplayNames = battleSpeciesDisplayNames;
       final playerExperienceProgressByLineupIndex = await _traceAsync(
         'battle',
         'experienceProgress',
@@ -7953,6 +7969,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                   .growthRateId,
         ),
       );
+      _battleXpProgressAtMount = playerExperienceProgressByLineupIndex;
 
       // Afficher l'overlay de combat avec la session
       final overlay = _traceSync(
@@ -8449,8 +8466,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       owner: RuntimeInputLockOwner.postBattleProgression,
       surface: RuntimeInputSurface.progression,
     );
-    _battleOverlay?.lockForPostBattle();
-    _setBattleCommandOverlaySnapshot(null);
+    // BETA-BAT-017 : les commandes se ferment tout de suite, mais l'UI de
+    // combat reste vivante — si la fin peut se jouer dans la scène, c'est
+    // elle qui affichera les messages et la barre d'XP. La coupure totale
+    // ([lockForPostBattle] + snapshot nul) n'arrive plus que sur le chemin
+    // plein écran, ou une fois le fondu de sortie au noir complet.
+    _battleOverlay?.beginPostBattleGate();
     final generation = ++_postBattleFlowGeneration;
     final completer = Completer<void>();
     _postBattleFlowCompleter = completer;
@@ -8473,6 +8494,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         outcome: outcome,
         captureAttemptReceipt: _captureAttemptReceipt,
         itemCatalog: _itemCatalogSnapshot,
+        resolveSpeciesDisplayName: (speciesId) =>
+            _battleSpeciesDisplayNames[speciesId] ?? speciesId,
       );
       if (generation != _postBattleFlowGeneration ||
           _flowPhase != _RuntimeFlowPhase.battle ||
@@ -8480,6 +8503,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return;
       }
 
+      // BETA-BAT-017 : la fin de combat se joue dans la scène (parité
+      // Platine) dès qu'aucune décision n'est en attente. L'écran plein
+      // (« le grand écran bleu ») ne reste que pour les décisions
+      // d'apprentissage/évolution — sous-lot 2 — et les échecs.
+      final sceneTransaction = result.transaction;
+      final sceneOverlay = _battleOverlay;
+      if (result.isSuccess &&
+          sceneTransaction != null &&
+          sceneTransaction.pendingMoveLearning == null &&
+          sceneTransaction.pendingEvolution == null &&
+          sceneTransaction.isReadyToCommit &&
+          sceneOverlay != null) {
+        await _presentPostBattleInScene(
+          overlay: sceneOverlay,
+          transaction: sceneTransaction,
+          outcome: outcome,
+          generation: generation,
+          activeBattleContext: activeBattleContext,
+        );
+        return;
+      }
+
+      _battleOverlay?.lockForPostBattle();
+      _setBattleCommandOverlaySnapshot(null);
       late final PostBattleProgressionOverlayComponent postBattleOverlay;
       postBattleOverlay = PostBattleProgressionOverlayComponent(
         initialResult: result,
@@ -8540,6 +8587,191 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  /// BETA-BAT-017 : joue la fin de combat DANS la scène, parité Platine.
+  ///
+  /// Les messages du coordinator (victoire, Exp., niveaux, argent…) défilent
+  /// dans la boîte de dialogue du combat pendant que la barre d'XP du
+  /// combattant affiché se remplit, puis l'écran fond au noir, l'état est
+  /// committé sous le noir et le fondu s'ouvre sur l'overworld. L'écran
+  /// plein de progression ne s'affiche plus sur ce chemin.
+  Future<void> _presentPostBattleInScene({
+    required BattleOverlayComponent overlay,
+    required RuntimePostBattleTransaction transaction,
+    required BattleOutcome outcome,
+    required int generation,
+    required RuntimeActiveBattleContext activeBattleContext,
+  }) async {
+    final finalState = transaction.finalState;
+    if (finalState == null) {
+      throw StateError('Scene post-battle presentation requires finalState.');
+    }
+    final plan = await _buildPostBattleScenePlan(
+      transaction: transaction,
+      finalState: finalState,
+      activeBattleContext: activeBattleContext,
+    );
+    if (generation != _postBattleFlowGeneration ||
+        _flowPhase != _RuntimeFlowPhase.battle ||
+        !identical(_activeBattleContext, activeBattleContext) ||
+        !identical(_battleOverlay, overlay)) {
+      return;
+    }
+    overlay.presentPostBattlePlan(plan);
+    await overlay.waitForTurnPresentationComplete();
+    if (generation != _postBattleFlowGeneration ||
+        _flowPhase != _RuntimeFlowPhase.battle ||
+        !identical(_activeBattleContext, activeBattleContext) ||
+        !identical(_battleOverlay, overlay)) {
+      return;
+    }
+
+    final blackHeld = Completer<void>();
+    late final BattleTransitionOverlayComponent curtain;
+    curtain = BattleTransitionOverlayComponent(
+      spec: battleExitFade,
+      viewportSize: camera.viewport.size,
+      onBlackHeld: () {
+        if (!blackHeld.isCompleted) blackHeld.complete();
+      },
+      onDismissed: () {
+        if (identical(_battleExitCurtain, curtain)) {
+          _battleExitCurtain = null;
+        }
+      },
+    );
+    _battleExitCurtain = curtain;
+    try {
+      await camera.viewport.add(curtain);
+      // Sous le fondu, le runner tient le verrou de commandes : un plan
+      // d'attente couvre la descente au noir, et meurt avec l'overlay.
+      overlay.presentPostBattlePlan(
+        const BattleAnimationPlan(
+          steps: <BattleAnimationStep>[WaitStep(durationSeconds: 3)],
+        ),
+      );
+      await blackHeld.future;
+    } on Object {
+      _dismissBattleExitCurtainImmediately();
+      rethrow;
+    }
+    if (generation != _postBattleFlowGeneration ||
+        _flowPhase != _RuntimeFlowPhase.battle ||
+        !identical(_activeBattleContext, activeBattleContext)) {
+      _dismissBattleExitCurtainImmediately();
+      return;
+    }
+
+    _isPostBattleCommitCompleted = true;
+    try {
+      beforePostBattleStateCommit?.call();
+      _onBattleFinished(outcome, postBattleFinalState: finalState);
+    } on Object {
+      _dismissBattleExitCurtainImmediately();
+      rethrow;
+    }
+    curtain.revealAndDismiss();
+  }
+
+  /// Le plan de fin de combat : chaque message du coordinator devient une
+  /// phase lisible, et les gains d'Exp. du combattant affiché remplissent la
+  /// barre — jusqu'au plein + remise à zéro à chaque niveau gagné, puis
+  /// jusqu'au reliquat exact recalculé sur l'état final.
+  Future<BattleAnimationPlan> _buildPostBattleScenePlan({
+    required RuntimePostBattleTransaction transaction,
+    required GameState finalState,
+    required RuntimeActiveBattleContext activeBattleContext,
+  }) async {
+    final activeLineupIndex = _battleSession?.state.player.lineupIndex;
+    final lineupSlots = activeBattleContext.playerPartySlotIndicesByLineupIndex;
+    int? activePartySlot;
+    if (activeLineupIndex != null) {
+      if (activeLineupIndex < lineupSlots.length) {
+        activePartySlot = lineupSlots[activeLineupIndex];
+      } else if (activeLineupIndex == 0) {
+        activePartySlot = activeBattleContext.playerPartyIndex;
+      }
+    }
+
+    double? finalXpProgress;
+    if (activeLineupIndex != null && activePartySlot != null) {
+      try {
+        final lineup = lineupSlots.isEmpty
+            ? RuntimePlayerBattleLineupSelection(
+                activeIndex: activeBattleContext.playerPartyIndex,
+                reserveIndices: const <int>[],
+              )
+            : RuntimePlayerBattleLineupSelection(
+                activeIndex: lineupSlots.first,
+                reserveIndices: lineupSlots.skip(1).toList(growable: false),
+              );
+        final progressByLineupIndex =
+            await buildRuntimeBattleExperienceProgressByLineupIndex(
+          gameState: finalState,
+          playerLineup: lineup,
+          loadGrowthRateId: (speciesId) async =>
+              (await _battleSpeciesLoader.loadById(
+            projectRootDirectory: _bundle.projectRootDirectory,
+            pokemonConfig: _bundle.manifest.pokemon,
+            speciesId: speciesId,
+          ))
+                  .growthRateId,
+        );
+        finalXpProgress = progressByLineupIndex[activeLineupIndex];
+      } on Object catch (error) {
+        debugPrint('[battle] post-battle xp progress unavailable: $error');
+      }
+    }
+
+    final messages = transaction.messages;
+    final remainingActiveLevelUps = messages
+        .where((message) =>
+            message.kind == RuntimePostBattleMessageKind.levelUp &&
+            message.partySlot == activePartySlot)
+        .length;
+    var pendingLevelUps = remainingActiveLevelUps;
+    var xpBarFull = false;
+    final steps = <BattleAnimationStep>[];
+    for (final message in messages) {
+      final concernsDisplayedPokemon =
+          activePartySlot != null && message.partySlot == activePartySlot;
+      if (message.kind == RuntimePostBattleMessageKind.levelUp &&
+          concernsDisplayedPokemon &&
+          xpBarFull) {
+        steps.add(ShowMessageStep(message: message.text));
+        steps.add(
+          const HudXpTweenStep(fromProgress: 1, toProgress: 0, durationMs: 0),
+        );
+        final target = pendingLevelUps > 1 ? 1.0 : (finalXpProgress ?? 1.0);
+        steps.add(HudXpTweenStep(fromProgress: 0, toProgress: target));
+        xpBarFull = pendingLevelUps > 1;
+        pendingLevelUps -= 1;
+        steps.add(const WaitStep(durationSeconds: 0.35));
+        continue;
+      }
+      steps.add(ShowMessageStep(message: message.text));
+      if (message.kind == RuntimePostBattleMessageKind.experience &&
+          concernsDisplayedPokemon &&
+          finalXpProgress != null) {
+        final fromProgress = _battleXpProgressAtMount[activeLineupIndex] ?? 0.0;
+        final target = pendingLevelUps > 0 ? 1.0 : finalXpProgress;
+        steps.add(
+          HudXpTweenStep(fromProgress: fromProgress, toProgress: target),
+        );
+        xpBarFull = pendingLevelUps > 0;
+        steps.add(const WaitStep(durationSeconds: 0.35));
+        continue;
+      }
+      steps.add(const WaitStep(durationSeconds: 0.9));
+    }
+    return BattleAnimationPlan(steps: List.unmodifiable(steps));
+  }
+
+  void _dismissBattleExitCurtainImmediately() {
+    final curtain = _battleExitCurtain;
+    _battleExitCurtain = null;
+    curtain?.removeFromParent();
+  }
+
   void _completePostBattleFlow({
     required PostBattleProgressionOverlayComponent overlay,
     required BattleOutcome outcome,
@@ -8584,6 +8816,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     debugPrint(
       '[battle] post-battle transaction rolled back: $error\n$stackTrace',
     );
+    _dismissBattleExitCurtainImmediately();
     _showNotification('La fin du combat ne peut pas être appliquée.');
     try {
       _onBattleFinished(outcome, postBattleFailed: true);
@@ -8617,6 +8850,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
+    _dismissBattleExitCurtainImmediately();
+    _battleSpeciesDisplayNames = const <String, String>{};
+    _battleXpProgressAtMount = const <int, double>{};
     _battleSession = null;
     _psdkBattleSession = null;
     _activeBattleContext = null;
@@ -8739,6 +8975,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
+    _battleSpeciesDisplayNames = const <String, String>{};
+    _battleXpProgressAtMount = const <int, double>{};
     _battleSession = null;
     _psdkBattleSession = null;
     _activeBattleContext = null;

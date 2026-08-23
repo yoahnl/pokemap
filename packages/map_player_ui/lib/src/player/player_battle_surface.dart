@@ -74,6 +74,9 @@ final class PlayerBattleHudViewData {
     this.statusLabel,
     this.genderSymbol,
     this.experienceProgress,
+    this.experienceProgressTarget,
+    this.xpTweenDuration,
+    this.xpTweenRevision = 0,
   });
 
   final String ownerLabel;
@@ -88,11 +91,17 @@ final class PlayerBattleHudViewData {
   final String? statusLabel;
   final String? genderSymbol;
   final double? experienceProgress;
+  final double? experienceProgressTarget;
+  final Duration? xpTweenDuration;
+  final int xpTweenRevision;
 
   int get effectiveDisplayedHp => displayedHp ?? currentHp;
 
   int get effectiveTargetDisplayedHp =>
       targetDisplayedHp ?? effectiveDisplayedHp;
+
+  double? get effectiveTargetExperienceProgress =>
+      experienceProgressTarget ?? experienceProgress;
 }
 
 @immutable
@@ -631,8 +640,7 @@ class _BattleHud extends StatelessWidget {
                             : (animatedHp / data.maxHp).clamp(0.0, 1.0),
                         shape: hpBarShape,
                         color: hpColor,
-                        backgroundColor:
-                            colors.outline.withValues(alpha: 0.35),
+                        backgroundColor: colors.outline.withValues(alpha: 0.35),
                         height: dense
                             ? largeText
                                 ? 4
@@ -667,35 +675,51 @@ class _BattleHud extends StatelessWidget {
               if (experienceProgress case final progress?
                   when !dense || !largeText) ...<Widget>[
                 SizedBox(height: dense ? 2 : PlayerSpacing.xxs),
-                Row(
-                  children: <Widget>[
-                    if (!largeText) ...<Widget>[
-                      Text(
-                        context.playerL10n.experienceAbbreviation,
-                        key: ValueKey<String>('battle-xp-label-$sideId'),
-                        style: context.playerTypography
-                            .numbersStyle(
-                              Theme.of(context).textTheme.labelSmall ??
-                                  const TextStyle(),
-                            )
-                            .copyWith(
-                              color: chrome.water,
-                              fontWeight: FontWeight.w900,
-                              height: 1,
-                            ),
+                // BETA-BAT-017 : la barre d'XP se remplit comme la barre de
+                // PV se vide — même mécanique de tween, même horloge que le
+                // message « a gagné N points Exp. ! » qui la déclenche.
+                TweenAnimationBuilder<double>(
+                  key: ValueKey<String>(
+                      'battle-xp-tween-$sideId-${data.xpTweenRevision}'),
+                  tween: Tween<double>(
+                    begin: progress,
+                    end: (data.effectiveTargetExperienceProgress ?? progress)
+                        .clamp(0.0, 1.0),
+                  ),
+                  duration: context.playerMotion.standard == Duration.zero
+                      ? Duration.zero
+                      : data.xpTweenDuration ?? Duration.zero,
+                  builder: (context, animatedXp, _) => Row(
+                    children: <Widget>[
+                      if (!largeText) ...<Widget>[
+                        Text(
+                          context.playerL10n.experienceAbbreviation,
+                          key: ValueKey<String>('battle-xp-label-$sideId'),
+                          style: context.playerTypography
+                              .numbersStyle(
+                                Theme.of(context).textTheme.labelSmall ??
+                                    const TextStyle(),
+                              )
+                              .copyWith(
+                                color: chrome.water,
+                                fontWeight: FontWeight.w900,
+                                height: 1,
+                              ),
+                        ),
+                        const SizedBox(width: PlayerSpacing.xxs),
+                      ],
+                      Expanded(
+                        child: _BattleExperienceBar(
+                          key: ValueKey<String>('battle-xp-$sideId'),
+                          value: animatedXp,
+                          color: chrome.water,
+                          backgroundColor:
+                              chrome.outline.withValues(alpha: 0.28),
+                          height: dense ? 2 : 3,
+                        ),
                       ),
-                      const SizedBox(width: PlayerSpacing.xxs),
                     ],
-                    Expanded(
-                      child: _BattleExperienceBar(
-                        key: ValueKey<String>('battle-xp-$sideId'),
-                        value: progress,
-                        color: chrome.water,
-                        backgroundColor: chrome.outline.withValues(alpha: 0.28),
-                        height: dense ? 2 : 3,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ],
@@ -963,11 +987,10 @@ class _BattleCommandPanel extends StatelessWidget {
                     // already works in portrait takes over.
                     const radialMinimumWidth = 420.0;
                     const radialMinimumHeight = 216.0;
-                    final radialFits =
-                        entryConstraints.maxWidth >= radialMinimumWidth &&
-                            (!entryConstraints.hasBoundedHeight ||
-                                entryConstraints.maxHeight >=
-                                    radialMinimumHeight);
+                    final radialFits = entryConstraints.maxWidth >=
+                            radialMinimumWidth &&
+                        (!entryConstraints.hasBoundedHeight ||
+                            entryConstraints.maxHeight >= radialMinimumHeight);
                     // The key names what was RENDERED, not what was authored,
                     // so a fallback cannot masquerade as a radial dock.
                     final renderedLayout =
