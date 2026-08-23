@@ -965,6 +965,12 @@ class BattleCommandPanelComponent extends PositionComponent with DragCallbacks {
 
     _updateHeaderChrome(commandsPanel);
 
+    // Recette 2026-08-23 : pendant une présentation, la référence n'affiche
+    // que la boîte de message — aucune entrée de commande, même grisée.
+    if (!interactionsEnabled) {
+      return;
+    }
+
     if (_menuModel.isRootMode) {
       _renderRootEntries(
         commandsPanel,

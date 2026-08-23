@@ -653,6 +653,18 @@ class BattleOverlayComponent extends PositionComponent {
   bool get playerHudMounted => _playerHud != null;
 
   @visibleForTesting
+  BattleSceneHudComponent? get debugPlayerHud => _playerHud;
+
+  @visibleForTesting
+  BattleSceneHudComponent? get debugEnemyHud => _enemyHud;
+
+  @visibleForTesting
+  String? get debugCurrentAnimationMessage => _animationRunner?.currentMessage;
+
+  @visibleForTesting
+  double? get debugPlayerSpriteOpacity => _playerCombatant?.currentVisualOpacity;
+
+  @visibleForTesting
   bool get narrationPanelMounted => _commandPanel != null;
 
   @visibleForTesting

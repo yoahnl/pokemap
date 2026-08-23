@@ -473,7 +473,13 @@ class _BattleCommandPanelShell extends StatelessWidget {
           BattleViewportClass.wideDesktop =>
             const EdgeInsets.fromLTRB(18, 16, 18, 16),
         };
-        final body = switch (viewportClass) {
+        // Recette 2026-08-23 : pendant qu'un tour se joue, seule la boîte de
+        // message vit — les entrées de commandes disparaissent, comme chez la
+        // référence. Les laisser affichées en grisé donnait l'impression de
+        // pouvoir jouer pendant l'animation.
+        final body = !snapshot.interactionsEnabled
+            ? _BattlePromptCard(snapshot: snapshot)
+            : switch (viewportClass) {
           BattleViewportClass.compactPortrait => _CompactPortraitPanelBody(
               snapshot: snapshot,
               onEntrySelected: onEntrySelected,

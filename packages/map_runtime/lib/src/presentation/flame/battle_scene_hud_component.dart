@@ -122,6 +122,9 @@ class BattleSceneHudComponent extends PositionComponent {
   double get currentDisplayedHp => _displayedHp;
 
   @visibleForTesting
+  String get debugStatusLabel => _statusLabel(_combatant);
+
+  @visibleForTesting
   bool get isHpAnimationActive => _hpAnimationTo != null;
 
   @override
@@ -356,8 +359,12 @@ class BattleSceneHudComponent extends PositionComponent {
       : '${(((_displayedHp) / (_combatant.maxHp <= 0 ? 1 : _combatant.maxHp)) * 100).round()}%';
 
   String _statusLabel(BattleCombatant combatant) {
+    // Recette 2026-08-23 : le combattant reçu est l'état FINAL du tour, mais
+    // le badge doit suivre la mort JOUÉE, pas la mort calculée — sinon le HUD
+    // annonce « K.O. » pendant que le Pokémon attaque encore, quatre secondes
+    // avant la chute. La barre affichée est l'horloge de présentation.
     if (combatant.isFainted) {
-      return 'K.O.';
+      return _displayedHp <= 0 ? 'K.O.' : '';
     }
     final status = combatant.majorStatus;
     if (status == null) {

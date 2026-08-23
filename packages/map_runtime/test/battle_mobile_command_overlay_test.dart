@@ -207,6 +207,43 @@ BattleCommandOverlaySnapshot _layoutSnapshot({
 }
 
 void main() {
+  // Recette 2026-08-23 : pendant qu'un tour se joue, la référence n'affiche
+  // que la boîte de message — les boutons de commandes disparaissent. Le
+  // panneau restait affiché en grisé « Résolution... », ce qui donnait
+  // l'impression qu'on pouvait jouer pendant l'animation et brouillait toute
+  // la coordination perçue.
+  testWidgets('une présentation masque les entrées de commandes',
+      (tester) async {
+    final snapshot = _snapshot(
+      mode: BattleCommandOverlayMode.root,
+      entries: _rootEntries(),
+      interactionsEnabled: false,
+    );
+    await tester.pumpWidget(
+      _hostedOverlay(snapshot: snapshot, onEntrySelected: (_) {}),
+    );
+    await tester.pump();
+
+    expect(find.text('FIGHT'), findsNothing);
+    expect(find.text('RUN'), findsNothing);
+    expect(find.text('Résolution...'), findsOneWidget);
+  });
+
+  testWidgets('les entrées reviennent quand la présentation est finie',
+      (tester) async {
+    final snapshot = _snapshot(
+      mode: BattleCommandOverlayMode.root,
+      entries: _rootEntries(),
+    );
+    await tester.pumpWidget(
+      _hostedOverlay(snapshot: snapshot, onEntrySelected: (_) {}),
+    );
+    await tester.pump();
+
+    expect(find.text('FIGHT'), findsOneWidget);
+    expect(find.text('Résolution...'), findsNothing);
+  });
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('BattleMobileCommandOverlay', () {
