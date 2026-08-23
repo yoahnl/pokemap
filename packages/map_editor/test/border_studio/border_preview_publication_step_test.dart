@@ -323,12 +323,13 @@ void main() {
       preview: _preview(template: BorderBlueprintTemplate.connectedLine),
     );
 
-    expect(find.text('4/4'), findsOneWidget);
-    expect(find.text('Côté principal'), findsNWidgets(4));
-    expect(find.text('Côté inversé'), findsNWidgets(4));
+    expect(find.text('5/5'), findsOneWidget);
+    expect(find.text('Côté principal'), findsNWidgets(5));
+    expect(find.text('Côté inversé'), findsNWidgets(5));
     for (final galleryCase in <BorderCanonicalGalleryCase>[
       BorderCanonicalGalleryCase.longEdge,
       BorderCanonicalGalleryCase.sharpCorner,
+      BorderCanonicalGalleryCase.sBend,
       BorderCanonicalGalleryCase.endpoint,
       BorderCanonicalGalleryCase.opening,
     ]) {
@@ -375,7 +376,7 @@ void main() {
       ),
       orderedEquals(<String>['leftTurn', 'rightTurn']),
     );
-    expect(find.byType(Image), findsNWidgets(8));
+    expect(find.byType(Image), findsNWidgets(10));
   });
 
   testWidgets(
@@ -447,7 +448,7 @@ void main() {
     expect(tester.widget<PokeMapButton>(publish).onPressed, isNull);
     expect(
       find.textContaining(
-        'Les 4 cas canoniques doivent être résolus sans erreur',
+        'Les 5 cas canoniques doivent être résolus sans erreur',
       ),
       findsOneWidget,
     );

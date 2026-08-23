@@ -18,8 +18,7 @@ final class BorderAssetStepFeedback {
       : this(
           title: 'Asset analysé',
           message: message,
-          tone: PokeMapTone.success,
-        );
+          tone: PokeMapTone.success);
 
   const BorderAssetStepFeedback.error(String message)
       : this(
@@ -50,6 +49,7 @@ class BorderAssetsStep extends StatelessWidget {
     required this.onAnalyzeSelected,
     required this.onReanalyzePrimitive,
     required this.onRemovePrimitive,
+    required this.onRealignConnectedLineAnchors,
     required this.onAuthoredOrientationChanged,
     required this.previewBytesByPrimitiveId,
     this.feedback,
@@ -63,6 +63,7 @@ class BorderAssetsStep extends StatelessWidget {
   final Future<void> Function() onAnalyzeSelected;
   final Future<void> Function(String primitiveId) onReanalyzePrimitive;
   final ValueChanged<String> onRemovePrimitive;
+  final VoidCallback onRealignConnectedLineAnchors;
   final void Function(
     String primitiveId,
     BorderPrimitiveOrientation orientation,
@@ -158,6 +159,42 @@ class BorderAssetsStep extends StatelessWidget {
               },
             ),
           ],
+          if (template == BorderBlueprintTemplate.connectedLine &&
+              primitives.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            PokeMapCard(
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Points de raccord'),
+                        SizedBox(height: 3),
+                        Text(
+                          'Border Studio aligne automatiquement les pièces au centre de leur cellule.',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  PokeMapButton(
+                    key: const ValueKey<String>(
+                      'border-studio-realign-connected-line-anchors',
+                    ),
+                    onPressed:
+                        isAnalyzing || !_hasMisalignedConnectedLine(primitives)
+                        ? null
+                        : onRealignConnectedLineAnchors,
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
+                    leading: const Icon(CupertinoIcons.arrow_2_circlepath),
+                    child: const Text('Réaligner les raccords'),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           if (primitives.isEmpty)
             const BorderStudioNotice(
@@ -204,6 +241,17 @@ class BorderAssetsStep extends StatelessWidget {
                             variant: PokeMapBadgeVariant.info,
                           ),
                           if (template ==
+                              BorderBlueprintTemplate.connectedLine) ...[
+                            const SizedBox(height: 10),
+                            const Text('Point de raccord'),
+                            const SizedBox(height: 3),
+                            Text(
+                              _hasRecommendedConnectedLineAnchor(primitive)
+                                  ? 'Automatique — centre de la cellule'
+                                  : 'À réaligner — ancien point de raccord',
+                            ),
+                          ],
+                          if (template ==
                               BorderBlueprintTemplate.stoneChainLine) ...[
                             const SizedBox(height: 10),
                             PokeMapDropdownField<BorderPrimitiveOrientation>(
@@ -213,7 +261,9 @@ class BorderAssetsStep extends StatelessWidget {
                               label: 'Orientation dessinée dans l\'asset',
                               value: primitive.authoredOrientation,
                               items: const <PokeMapDropdownItem<
-                                  BorderPrimitiveOrientation>>[
+                                  BorderPrimitiveOrientation
+                                    >
+                                  >[
                                 PokeMapDropdownItem<BorderPrimitiveOrientation>(
                                   value: BorderPrimitiveOrientation.legacyAxis,
                                   label: 'Historique',
@@ -310,4 +360,16 @@ class BorderAssetsStep extends StatelessWidget {
     }
     return 'Élément indisponible';
   }
+
+  bool _hasMisalignedConnectedLine(List<BorderPrimitiveDraft> primitives) =>
+      primitives.any(
+        (primitive) => !_hasRecommendedConnectedLineAnchor(primitive),
+      );
+
+  bool _hasRecommendedConnectedLineAnchor(BorderPrimitiveDraft primitive) =>
+      primitive.anchorPx ==
+      recommendedBorderPrimitiveAnchor(
+        template: BorderBlueprintTemplate.connectedLine,
+        metrics: primitive.currentMetrics,
+      );
 }

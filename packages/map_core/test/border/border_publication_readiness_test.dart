@@ -43,8 +43,8 @@ void main() {
       final cases = <(
         BorderBlueprintTemplate,
         List<BorderPublishedPrimitive>,
-        List<String>
-      )>[
+        List<String>,
+            )>[
         (
           BorderBlueprintTemplate.organicEdge,
           <BorderPublishedPrimitive>[
@@ -106,8 +106,8 @@ void main() {
       final cases = <(
         BorderBlueprintTemplate,
         List<BorderPublishedPrimitive>,
-        List<String>
-      )>[
+        List<String>,
+            )>[
         (
           BorderBlueprintTemplate.organicEdge,
           <BorderPublishedPrimitive>[
@@ -235,8 +235,7 @@ void main() {
           BorderPrimitiveRole.span,
           BorderPrimitiveRole.accent,
           BorderPrimitiveRole.surfacePatch,
-        },
-      );
+        });
       expect(
         () => lineRoles.add(BorderPrimitiveRole.filler),
         throwsUnsupportedError,
@@ -289,8 +288,7 @@ void main() {
         primitives: <BorderPublishedPrimitive>[
           fixture.primitive(
             'large-a',
-            BorderPrimitiveRole.structureLarge,
-          ),
+            BorderPrimitiveRole.structureLarge),
           fixture.primitive(
             'large-b',
             BorderPrimitiveRole.structureLarge,
@@ -309,7 +307,8 @@ void main() {
 
       expect(result.canPublish, isTrue);
       expect(_codes(result),
-          isNot(contains('border.publication.required_role_missing')));
+          isNot(contains('border.publication.required_role_missing')),
+      );
     });
 
     test('stone-chain rotation and depth rules are blocking and explicit', () {
@@ -375,8 +374,7 @@ void main() {
         primitives: <BorderPublishedPrimitive>[
           fixture.primitive(
             'large-a',
-            BorderPrimitiveRole.structureLarge,
-          ),
+            BorderPrimitiveRole.structureLarge),
         ],
         defaults: _stoneChainParams(depthRows: 1),
       );
@@ -560,9 +558,11 @@ void main() {
         primitives: <BorderPublishedPrimitive>[
           fixture.primitive('post', BorderPrimitiveRole.lineCap, snapshot: 0),
           fixture.primitive('span', BorderPrimitiveRole.lineStraight,
-              snapshot: 1),
+              snapshot: 1,
+            ),
           fixture.primitive('accent', BorderPrimitiveRole.lineCorner,
-              snapshot: 2),
+              snapshot: 2,
+            ),
         ],
       );
 
@@ -573,7 +573,8 @@ void main() {
         _codes(result),
         contains('border.publication.connected_line_transform_unavailable'),
       );
-    });
+    },
+    );
 
     test(
         'requires only quarter-turn zero when connected-line auto-rotation is disabled',
@@ -621,10 +622,11 @@ void main() {
       expect(
         _codes(result),
         isNot(contains(
-          'border.publication.connected_line_transform_unavailable',
-        )),
+          'border.publication.connected_line_transform_unavailable'),
+          ),
       );
-    });
+    },
+    );
 
     test(
         'keeps requiring connected-line quarter-turns when auto-rotation is enabled',
@@ -674,7 +676,8 @@ void main() {
         ),
         everyElement(isNot(0)),
       );
-    });
+    },
+    );
 
     test('accepts a real connected-line gallery covering both sides', () {
       final fixture = _Fixture.complete();
@@ -726,6 +729,7 @@ void main() {
           BorderCanonicalGalleryCase.sharpCorner,
           BorderCanonicalGalleryCase.endpoint,
           BorderCanonicalGalleryCase.opening,
+          BorderCanonicalGalleryCase.sBend,
         ],
       );
     });
@@ -770,8 +774,7 @@ void main() {
       final result = _assess(
         fixture,
         definition: definition,
-        samples: samples,
-      );
+        samples: samples);
 
       expect(
         _codes(result),
@@ -820,7 +823,8 @@ void main() {
         );
 
         expect(gallery.allCasesResolved, isTrue,
-            reason: definition.template.name);
+            reason: definition.template.name,
+        );
         expect(readiness.canPublish, isTrue, reason: definition.template.name);
         expect(
           _codes(readiness),
@@ -853,12 +857,12 @@ void main() {
       expect(result.canPublish, isFalse);
       expect(
         missing.map((item) => item.parameters['orientation']),
-        <String>['north', 'south'],
-      );
+        <String>['north', 'south',
+      ]);
       expect(
         missing.map((item) => item.parameters['roleGroup']),
-        <String>['structure', 'structure'],
-      );
+        <String>['structure', 'structure',
+      ]);
     });
 
     test(
@@ -893,7 +897,8 @@ void main() {
         _codes(result),
         isNot(contains('border.publication.orientation_missing')),
       );
-    });
+    },
+    );
 
     test('rejects masonry structures that cannot render the inverted side', () {
       final fixture = _Fixture.complete();
@@ -988,8 +993,7 @@ void main() {
               'empty',
               BorderPrimitiveRole.structureLarge,
               metrics: fixture.metrics(
-                occupancy: 'border-rle-v1:4:0:4',
-              ),
+                occupancy: 'border-rle-v1:4:0:4'),
             ),
           ],
         ),
@@ -1004,8 +1008,7 @@ void main() {
       );
       expect(
         _codes(empty),
-        contains('border.blueprint.occupancy_mask_empty'),
-      );
+        contains('border.blueprint.occupancy_mask_empty'));
       expect(invalid.canPublish, isFalse);
       expect(empty.canPublish, isFalse);
     });
@@ -1085,7 +1088,8 @@ void main() {
         _codes(mismatched),
         contains('border.publication.snapshot_metrics_mismatch'),
       );
-    });
+    },
+    );
 
     test('rejects duplicate snapshot ids independently of input order', () {
       final fixture = _Fixture.complete();
@@ -1098,8 +1102,7 @@ void main() {
 
       final first = _assess(
         fixture,
-        visualSnapshots: duplicateSnapshots,
-      );
+        visualSnapshots: duplicateSnapshots);
       final second = _assess(
         fixture,
         visualSnapshots: duplicateSnapshots.reversed.toList(),
@@ -1147,7 +1150,8 @@ void main() {
       );
       expect(missingElement.canPublish, isFalse);
       expect(missingSmartTile.canPublish, isFalse);
-    });
+    },
+    );
 
     test('rejects ground for every linear template', () {
       final fixture = _Fixture.complete();
@@ -1172,8 +1176,7 @@ void main() {
           primitives: <BorderPublishedPrimitive>[
             fixture.primitive(
               'large-a',
-              BorderPrimitiveRole.structureLarge,
-            ),
+              BorderPrimitiveRole.structureLarge),
             fixture.primitive(
               'large-b',
               BorderPrimitiveRole.structureLarge,
@@ -1216,9 +1219,9 @@ void main() {
         );
         expect(
           errors.single.parameters,
-          <String, Object?>{'template': definition.template.name},
-          reason: definition.template.name,
-        );
+          <String, Object?>{'template': definition.template.name,
+        },
+          reason: definition.template.name);
         expect(
           errors.single.suggestedAction,
           'border.action.remove_ground_from_linear_blueprint',
@@ -1235,8 +1238,7 @@ void main() {
       final definition = fixture.definitionFor(
         ground: _ground(
           presetId: 'sand',
-          snapshotId: groundSnapshotId,
-        ),
+          snapshotId: groundSnapshotId),
       );
       final missingSnapshot = _assess(fixture, definition: definition);
       final available = _assess(
@@ -1256,7 +1258,8 @@ void main() {
         contains('border.blueprint.visual_snapshot_missing'),
       );
       expect(available.canPublish, isTrue);
-    });
+    },
+    );
 
     test('ground readiness ignores mutable Smart Tile rules after snapshotting',
         () {
@@ -1287,7 +1290,8 @@ void main() {
       );
 
       expect(result.canPublish, isTrue);
-    });
+    },
+    );
 
     test('blocks a missing gallery or a gap beyond candidate tolerance', () {
       final fixture = _Fixture.complete();
@@ -1322,8 +1326,7 @@ void main() {
       );
       expect(
         _codes(gap),
-        contains('border.publication.coverage_gap_exceeded'),
-      );
+        contains('border.publication.coverage_gap_exceeded'));
       expect(absent.canPublish, isFalse);
       expect(gap.canPublish, isFalse);
     });
@@ -1336,8 +1339,7 @@ void main() {
         primitives: <BorderPublishedPrimitive>[
           fixture.primitive(
             'large-a',
-            BorderPrimitiveRole.structureLarge,
-          ),
+            BorderPrimitiveRole.structureLarge),
           fixture.primitive(
             'large-b',
             BorderPrimitiveRole.structureLarge,
@@ -1361,7 +1363,8 @@ void main() {
       );
       final stroke = stoneChainRectangularLoop(id: 'publication-gap-loop');
       final baselineRequest =
-          StoneChainLineFixture(strokes: <BorderStroke>[stroke]).request;
+          StoneChainLineFixture(strokes: <BorderStroke>[stroke],
+        ).request;
       final baseline = resolveStoneChainLineBorder(baselineRequest);
       final seamX = stroke.points.first.x * baselineRequest.tileSizePx.width;
       final seamY = stroke.points.first.y * baselineRequest.tileSizePx.height;
@@ -1376,7 +1379,8 @@ void main() {
               }
 
               final byDistance =
-                  squaredDistance(left).compareTo(squaredDistance(right));
+                  squaredDistance(left,
+                ).compareTo(squaredDistance(right));
               return byDistance != 0
                   ? byDistance
                   : left.slotKey.compareTo(right.slotKey);
@@ -1417,18 +1421,17 @@ void main() {
         contains('border.publication.coverage_gap_exceeded'),
       );
       expect(result.canPublish, isFalse);
-    });
+    },
+    );
 
     for (final (
           allowAutoRotation,
-          expectedSeverity,
-          expectedCanPublish,
-        ) in <(bool, BorderDiagnosticSeverity, bool)>[
-      (false, BorderDiagnosticSeverity.warning, true),
-      (true, BorderDiagnosticSeverity.error, false),
+          expectedSeverity) in <(bool, BorderDiagnosticSeverity)>[
+      (false, BorderDiagnosticSeverity.warning),
+      (true, BorderDiagnosticSeverity.error),
     ]) {
       test(
-        'keeps connected-line coverage gaps ${allowAutoRotation ? 'blocking with' : 'acknowledgeable without'} automatic rotation',
+        'keeps ordinary connected-line gaps ${allowAutoRotation ? 'blocking with' : 'acknowledgeable without'} rotation and the S-bend blocking',
         () {
           final fixture = _Fixture.complete();
           final definition = fixture.definitionFor(
@@ -1499,12 +1502,22 @@ void main() {
                     'border.publication.coverage_gap_exceeded',
               )
               .toList(growable: false);
+          final disconnected = result.diagnosticReport.diagnostics.singleWhere(
+            (diagnostic) =>
+                diagnostic.code ==
+                'border.publication.connected_line_disconnected',
+          );
 
-          expect(result.canPublish, expectedCanPublish);
+          expect(result.canPublish, isFalse);
           expect(gapDiagnostics, hasLength(5));
           expect(
             gapDiagnostics.map((diagnostic) => diagnostic.severity),
             everyElement(expectedSeverity),
+          );
+          expect(disconnected.severity, BorderDiagnosticSeverity.error);
+          expect(
+            disconnected.suggestedAction,
+            'border.action.realign_connected_line_anchors',
           );
         },
       );
@@ -1527,7 +1540,8 @@ void main() {
             ),
           ],
           structuralRuns: const <BorderPublicationStructuralRun>[],
-        ));
+        ),
+            );
 
       final result = _assess(fixture, samples: incomplete);
       final diagnostic = result.diagnosticReport.diagnostics.singleWhere(
@@ -1884,8 +1898,7 @@ void main() {
         fixture.definition,
         _gapSample(
           BorderCanonicalGalleryCase.hole,
-          fixture.definition,
-        ),
+          fixture.definition),
       );
       final first = _assess(
         fixture,
@@ -1902,7 +1915,8 @@ void main() {
       for (final diagnostic in first.diagnosticReport.diagnostics) {
         expect(() => jsonEncode(diagnostic.parameters), returnsNormally);
       }
-    });
+    },
+    );
   });
 
   group('publication gallery values', () {
@@ -2155,7 +2169,8 @@ List<BorderPublicationGallerySample> _passingSamplesFor(
 ) =>
     <BorderPublicationGallerySample>[
       for (final galleryCase
-          in borderCanonicalGalleryCasesForTemplate(definition.template))
+          in borderCanonicalGalleryCasesForTemplate(definition.template,
+  ))
         _passingSample(galleryCase, definition),
     ];
 
@@ -2391,8 +2406,7 @@ final class _Fixture {
   BorderVisualSnapshot snapshot(
     int index, {
     int width = 2,
-    int height = 2,
-  }) =>
+    int height = 2}) =>
       _snapshot(index, width: width, height: height);
 
   BorderVisualSnapshotIntegrity validIntegrity(String id) =>
@@ -2470,8 +2484,7 @@ String _snapshotId(int index) {
 BorderVisualSnapshot _snapshot(
   int index, {
   int width = 2,
-  int height = 2,
-}) {
+  int height = 2}) {
   final id = _snapshotId(index);
   final fingerprint = id.substring('border-snapshot-sha256:'.length);
   return BorderVisualSnapshot(
@@ -2484,8 +2497,7 @@ BorderVisualSnapshot _snapshot(
           x: 0,
           y: 0,
           width: width,
-          height: height,
-        ),
+          height: height),
         durationMs: 100,
       ),
     ],
@@ -2553,7 +2565,6 @@ ProjectManifest _project() => ProjectManifest(
           ),
         ],
         presets: <ProjectSmartTilePreset>[
-          _publishedSmartTilePreset('sand'),
-        ],
+          _publishedSmartTilePreset('sand')],
       ),
     );

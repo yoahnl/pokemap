@@ -19,9 +19,11 @@ void main() {
 
     expect(localizeEditorBorderDiagnostic(known), 'Peignez une zone non vide.');
     expect(localizeEditorBorderDiagnostic(unknown),
-        'Diagnostic de bordure à vérifier.');
+        'Diagnostic de bordure à vérifier.',
+    );
     expect(
-        localizeEditorBorderDiagnostic(unknown), isNot(contains(unknown.code)));
+        localizeEditorBorderDiagnostic(unknown), isNot(contains(unknown.code)),
+    );
   });
 
   test('localizes every diagnostic currently emitted by Border resolution', () {
@@ -82,7 +84,8 @@ void main() {
         _diagnostic(code: code, severity: BorderDiagnosticSeverity.error),
       );
       expect(localized, isNot('Diagnostic de bordure à vérifier.'),
-          reason: code);
+          reason: code,
+      );
       expect(localized, isNot(contains(code)), reason: code);
     }
   });
@@ -114,8 +117,7 @@ void main() {
       final localized = localizeEditorBorderDiagnostic(
         _diagnostic(
           code: code,
-          severity: BorderDiagnosticSeverity.warning,
-        ),
+          severity: BorderDiagnosticSeverity.warning),
       );
       expect(
         localized,
@@ -146,7 +148,21 @@ void main() {
     }
   });
 
-  test('template mismatch remediation stays compatible with every template',
+  test('localizes a disconnected connected-line publication', () {
+    final diagnostic = _diagnostic(
+      code: 'border.publication.connected_line_disconnected',
+      severity: BorderDiagnosticSeverity.error,
+    );
+
+    expect(
+      localizeEditorBorderDiagnostic(diagnostic),
+      'Les pièces de cette bordure ne se raccordent pas dans tous les virages. '
+      'Réalignez leurs points de raccord avant de publier.',
+    );
+  });
+
+  test(
+    'template mismatch remediation stays compatible with every template',
       () {
     final diagnostic = _diagnostic(
       code: 'border.resolution.template_mismatch',
@@ -157,7 +173,8 @@ void main() {
       localizeEditorBorderDiagnostic(diagnostic),
       'Choisissez un blueprint compatible avec cette géométrie de bordure.',
     );
-  });
+  },
+  );
 
   test('unsupported role remediation stays compatible with every template', () {
     final diagnostic = _diagnostic(
@@ -186,10 +203,8 @@ void main() {
         ),
         _diagnostic(
           code: 'border.info',
-          severity: BorderDiagnosticSeverity.info,
-        ),
-      ],
-    );
+          severity: BorderDiagnosticSeverity.info),
+      ]);
 
     expect(marks, hasLength(2));
     expect(marks[0].cell, const GridPos(x: 2, y: 1));
@@ -216,8 +231,7 @@ void main() {
           severity: BorderDiagnosticSeverity.warning,
           cell: const GridPos(x: 1, y: 1),
         ),
-      ],
-    );
+      ]);
 
     expect(marks, hasLength(2));
     expect(marks[0].cell, const GridPos(x: 1, y: 1));
@@ -243,22 +257,19 @@ void main() {
     expect(
       editorBorderPreviewDiagnosticsForMap(
         map: mapB,
-        preview: preview,
-      ),
+        preview: preview),
       isEmpty,
     );
     expect(
       editorBorderPreviewDiagnosticsForMap(
         map: mapA,
-        preview: preview,
-      ),
+        preview: preview),
       hasLength(1),
     );
     expect(
       editorBorderPreviewDiagnosticsForMap(
         map: clonedMapA,
-        preview: preview,
-      ),
+        preview: preview),
       isEmpty,
       reason: 'same map id must not bypass document identity isolation',
     );
@@ -298,7 +309,8 @@ void main() {
     expect(_pixel(bytes, image.width, 24, 8), const ui.Color(0xFF445566));
     picture.dispose();
     image.dispose();
-  });
+  },
+  );
 }
 
 BorderPreviewTransaction _preview({
@@ -343,8 +355,7 @@ BorderPreviewTransaction _preview({
 MapData _diagnosticMap(String id) => MapData(
       id: id,
       name: id,
-      size: const GridSize(width: 1, height: 1),
-    );
+      size: const GridSize(width: 1, height: 1));
 
 BorderDiagnostic _diagnostic({
   required String code,

@@ -735,6 +735,19 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
+  if (actionId == 'border.blueprint.draft.upsert' ||
+      actionId == 'border.blueprint.publish') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/maps/border_catalog_actions_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_border_catalog_flow_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/border_studio/'
+          'border_studio_asset_crud_rules_widget_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/border_catalog_server.test.ts',
+    };
+  }
   if (actionId.startsWith('border.blueprint.')) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:

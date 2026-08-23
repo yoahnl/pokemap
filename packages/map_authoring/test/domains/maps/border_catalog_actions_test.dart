@@ -123,7 +123,7 @@ void main() {
     test('publishes normalized artifact snapshots atomically', () async {
       final preparation = const CanonicalBorderSnapshotCompiler().prepare(
         sourceElementId: 'fence-element',
-        anchorPx: const BorderPixelPos(x: 0, y: 0),
+        anchorPx: const BorderPixelPos(x: 16, y: 16),
         frames: <CanonicalBorderSourceFrame>[
           CanonicalBorderSourceFrame(
             sourceProjectRelativePath: 'assets/tilesets/fence.png',
@@ -136,16 +136,19 @@ void main() {
           id: 'cap',
           role: BorderPrimitiveRole.lineCap,
           metrics: preparation.metrics,
+          anchorPx: const BorderPixelPos(x: 16, y: 16),
         ),
         _primitive(
           id: 'span',
           role: BorderPrimitiveRole.lineStraight,
           metrics: preparation.metrics,
+          anchorPx: const BorderPixelPos(x: 16, y: 16),
         ),
         _primitive(
           id: 'corner',
           role: BorderPrimitiveRole.lineCorner,
           metrics: preparation.metrics,
+          anchorPx: const BorderPixelPos(x: 16, y: 16),
         ),
       ];
       final fixture = _fixture(
@@ -178,7 +181,7 @@ void main() {
           parameters: <String, Object?>{
             'blueprintId': 'fence',
             'acceptedWarningCodes': const <String>[
-              'border.publication.coverage_gap_exceeded',
+              'border.publication.coverage_overlap_exceeded',
             ],
             'primitiveSources': <Object?>[
               for (final primitive in primitives)
@@ -209,6 +212,205 @@ void main() {
         containsPair('primitiveSnapshotIdsByPrimitiveId', isNotEmpty),
       );
     });
+
+    test(
+      'rejects disconnected network anchors then publishes their centered draft',
+      () async {
+        const roles = <BorderPrimitiveRole>[
+          BorderPrimitiveRole.lineCap,
+          BorderPrimitiveRole.lineStraight,
+          BorderPrimitiveRole.lineCorner,
+        ];
+        const oldAnchors = <BorderPrimitiveRole, BorderPixelPos>{
+          BorderPrimitiveRole.lineCap: BorderPixelPos(x: 22, y: 30),
+          BorderPrimitiveRole.lineStraight: BorderPixelPos(x: 16, y: 31),
+          BorderPrimitiveRole.lineCorner: BorderPixelPos(x: 11, y: 31),
+        };
+        const centeredAnchor = BorderPixelPos(x: 16, y: 16);
+        final sourceBytes = <BorderPrimitiveRole, List<int>>{
+          for (final role in roles) role: _networkPngBytes(role),
+        };
+        List<BorderPrimitiveDraft> primitivesFor(
+                BorderPixelPos Function(
+                  BorderPrimitiveRole role,
+                ) anchorFor) =>
+            <BorderPrimitiveDraft>[
+              for (final role in roles)
+                _primitive(
+                  id: role.name,
+                  role: role,
+                  sourceElementId: 'element-${role.name}',
+                  anchorPx: anchorFor(role),
+                  metrics: const CanonicalBorderSnapshotCompiler().prepare(
+                    sourceElementId: 'element-${role.name}',
+                    anchorPx: anchorFor(role),
+                    frames: <CanonicalBorderSourceFrame>[
+                      CanonicalBorderSourceFrame(
+                        sourceProjectRelativePath:
+                            'assets/tilesets/${role.name}.png',
+                        encodedImageBytes: sourceBytes[role]!,
+                      ),
+                    ],
+                  ).metrics,
+                ),
+            ];
+
+        final disconnected = primitivesFor((role) => oldAnchors[role]!);
+        final rejectedFixture = _fixture(
+          records: <BorderBlueprintRecord>[
+            _record(
+              primitives: disconnected,
+              gapTolerancePx: 1,
+              variationPermille: 1000,
+              previewSeed: BorderSignedInt64.fromInt(23),
+            ),
+          ],
+          elements: <ProjectElementEntry>[
+            for (final role in roles)
+              ProjectElementEntry(
+                id: 'element-${role.name}',
+                name: role.name,
+                tilesetId: 'tileset',
+                categoryId: 'border',
+                frames: const <TilesetVisualFrame>[
+                  TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+                ],
+              ),
+          ],
+        );
+        final rejectedArtifacts = <BorderPrimitiveRole, String>{};
+        for (final role in roles) {
+          final artifact = await rejectedFixture.artifacts.put(
+            sourceBytes[role]!,
+            declaredMediaType: 'image/png',
+          );
+          rejectedArtifacts[role] = artifact.reference.handle;
+        }
+
+        try {
+          await rejectedFixture.actions.build(
+            _context(
+              rejectedFixture.snapshot,
+              actionId: 'border.blueprint.publish',
+              parameters: _publishParameters(
+                roles: roles,
+                artifactHandles: rejectedArtifacts,
+              ),
+            ),
+          );
+          fail('Disconnected connected-line anchors must be rejected');
+        } on MapAuthoringException catch (error) {
+          expect(error.code, 'border.blueprint.publication_invalid');
+          final diagnostics = error.details['diagnostics']! as List<Object?>;
+          expect(
+            diagnostics.whereType<Map>().map((entry) => entry['code']),
+            contains('border.publication.connected_line_disconnected'),
+          );
+        }
+
+        final centered = primitivesFor((_) => centeredAnchor);
+        final upsert = await rejectedFixture.actions.build(
+          _context(
+            rejectedFixture.snapshot,
+            actionId: 'border.blueprint.draft.upsert',
+            parameters: <String, Object?>{
+              'record': encodeBorderBlueprintRecordJson(
+                _record(
+                  primitives: centered,
+                  gapTolerancePx: 1,
+                  variationPermille: 1000,
+                  previewSeed: BorderSignedInt64.fromInt(23),
+                ),
+                formatVersion:
+                    ProjectBorderCatalog.latestSupportedFormatVersion,
+              ),
+            },
+          ),
+        );
+        expect(
+          _manifestFrom(upsert)
+              .borderCatalog
+              .records
+              .single
+              .draft
+              .definition
+              .primitives
+              .map((primitive) => primitive.anchorPx),
+          everyElement(centeredAnchor),
+        );
+
+        final acceptedFixture = _fixture(
+          records: <BorderBlueprintRecord>[
+            _record(
+              primitives: centered,
+              gapTolerancePx: 1,
+              variationPermille: 1000,
+              previewSeed: BorderSignedInt64.fromInt(23),
+            ),
+          ],
+          elements: <ProjectElementEntry>[
+            for (final role in roles)
+              ProjectElementEntry(
+                id: 'element-${role.name}',
+                name: role.name,
+                tilesetId: 'tileset',
+                categoryId: 'border',
+                frames: const <TilesetVisualFrame>[
+                  TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+                ],
+              ),
+          ],
+        );
+        final acceptedArtifacts = <BorderPrimitiveRole, String>{};
+        for (final role in roles) {
+          final artifact = await acceptedFixture.artifacts.put(
+            sourceBytes[role]!,
+            declaredMediaType: 'image/png',
+          );
+          acceptedArtifacts[role] = artifact.reference.handle;
+        }
+        final published = await acceptedFixture.actions.build(
+          _context(
+            acceptedFixture.snapshot,
+            actionId: 'border.blueprint.publish',
+            parameters: _publishParameters(
+              roles: roles,
+              artifactHandles: acceptedArtifacts,
+            ),
+          ),
+        );
+        final projected = _manifestFrom(published);
+        final revision =
+            projected.borderCatalog.records.single.latestPublished!;
+        expect(revision.revision, 1);
+        expect(
+          revision.definition.primitives.map((primitive) => primitive.anchorPx),
+          everyElement(centeredAnchor),
+        );
+        expect(
+          published.preview['projectWidePreflight'],
+          'passed',
+        );
+        final gallery = resolveBorderCanonicalGallery(
+          blueprintId: 'fence',
+          blueprintRevision: revision,
+          visualSnapshots: projected.borderCatalog.visualSnapshots,
+          tileSizePx: GridSize(
+            width: projected.settings.tileWidth,
+            height: projected.settings.tileHeight,
+          ),
+        );
+        final sBend = gallery.report.samples.singleWhere(
+          (sample) => sample.galleryCase == BorderCanonicalGalleryCase.sBend,
+        );
+        expect(
+          sBend.coverageChecks.map(
+            (check) => check.longestContiguousGapPx,
+          ),
+          everyElement(lessThanOrEqualTo(1)),
+        );
+      },
+    );
   });
 }
 
@@ -294,19 +496,22 @@ BorderBlueprintRecord _record({
   String name = 'Fence',
   int baseRevision = 0,
   int? publishedRevision,
+  int gapTolerancePx = 0,
+  int variationPermille = 0,
+  BorderSignedInt64? previewSeed,
   List<BorderPrimitiveDraft> primitives = const <BorderPrimitiveDraft>[],
 }) {
   final definition = BorderBlueprintDraftDefinition(
     name: name,
-    previewSeed: BorderSignedInt64.zero,
+    previewSeed: previewSeed ?? BorderSignedInt64.zero,
     template: BorderBlueprintTemplate.connectedLine,
     primitives: primitives,
     defaults: BorderGenerationParams(
       irregularityPermille: 0,
       detailDensityPermille: 0,
-      variationPermille: 0,
+      variationPermille: variationPermille,
       maxOverlapPx: 8,
-      gapTolerancePx: 0,
+      gapTolerancePx: gapTolerancePx,
       depthRows: 1,
       allowAutoRotation: false,
     ),
@@ -338,13 +543,15 @@ BorderPrimitiveDraft _primitive({
   required String id,
   required BorderPrimitiveRole role,
   required BorderPrimitiveAssetMetrics metrics,
+  String sourceElementId = 'fence-element',
+  BorderPixelPos anchorPx = const BorderPixelPos(x: 0, y: 0),
 }) =>
     BorderPrimitiveDraft(
       id: id,
-      sourceElementId: 'fence-element',
+      sourceElementId: sourceElementId,
       role: role,
       weight: 1000,
-      anchorPx: const BorderPixelPos(x: 0, y: 0),
+      anchorPx: anchorPx,
       transforms: BorderTransformPolicy(
         allowedQuarterTurns: const <int>[0, 1, 2, 3],
         allowFlipX: true,
@@ -353,6 +560,43 @@ BorderPrimitiveDraft _primitive({
     );
 
 final List<int> _pngBytes = base64Decode(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+'
-  'A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAASUlEQVR42mNkoAA4LEj4D2MfSFjASI4ZTAwDDEYdMOqAUQeMOmDUAaMOGHAHMCJXqaNRMCBRMNoiGnXAqANGHTDqgFEHjHgHAADb/Qp9KEMvVQAAAABJRU5ErkJggg==',
 );
+
+Map<String, Object?> _publishParameters({
+  required List<BorderPrimitiveRole> roles,
+  required Map<BorderPrimitiveRole, String> artifactHandles,
+}) =>
+    <String, Object?>{
+      'blueprintId': 'fence',
+      'acceptedWarningCodes': const <String>[
+        'border.publication.coverage_gap_exceeded',
+        'border.publication.coverage_overlap_exceeded',
+      ],
+      'primitiveSources': <Object?>[
+        for (final role in roles)
+          <String, Object?>{
+            'primitiveId': role.name,
+            'frames': <Object?>[
+              <String, Object?>{
+                'artifactHandle': artifactHandles[role]!,
+                'sourceProjectRelativePath': 'assets/tilesets/${role.name}.png',
+              },
+            ],
+          },
+      ],
+    };
+
+List<int> _networkPngBytes(BorderPrimitiveRole role) {
+  return base64Decode(
+    switch (role) {
+      BorderPrimitiveRole.lineCap =>
+        'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAI0lEQVR4nO3WAREAAAQEMPp39k4OW4rVJCkA4LP2AQB47SqwWugL866rJOcAAAAASUVORK5CYII=',
+      BorderPrimitiveRole.lineStraight =>
+        'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAI0lEQVR4nO3WAQ0AAAgDoNs/9J05hBSkbQMAfDY+AACvXQUWcxoL9n1OGtMAAAAASUVORK5CYII=',
+      BorderPrimitiveRole.lineCorner =>
+        'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAASUlEQVR4nO2WsQkAMAzDXP//s0tv8GAK0h4QKJAoSVTQzte0AtYYIyASjDECIsEYI6AxZ37PW/gHvl9CIyASjDECIsGYaYJ3SS+xeRgizvP++gAAAABJRU5ErkJggg==',
+      _ => throw StateError('Unexpected connected-line role'),
+    },
+  );
+}

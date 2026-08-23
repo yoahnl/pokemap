@@ -621,6 +621,79 @@ void main() {
       },
     );
 
+    test('realigns connected-line anchors as one reversible operation', () {
+      final primitives = <BorderPrimitiveDraft>[
+        _primitive(id: 'cap', role: BorderPrimitiveRole.lineCap),
+        _primitive(id: 'straight', role: BorderPrimitiveRole.lineStraight),
+        _primitive(id: 'corner', role: BorderPrimitiveRole.lineCorner),
+      ];
+      final controller = mountBorderStudioDraftController()
+        ..loadFromManifest(
+          _manifest(
+            records: <BorderBlueprintRecord>[
+              _record(
+                id: 'connected',
+                name: 'Falaise connectée',
+                template: BorderBlueprintTemplate.connectedLine,
+                primitives: primitives,
+              ),
+            ],
+          ),
+        );
+
+      controller.realignConnectedLinePrimitiveAnchors();
+
+      final aligned =
+          controller.state.workingDraft!.blueprint.definition.primitives;
+      expect(
+        aligned.map((primitive) => primitive.anchorPx),
+        everyElement(const BorderPixelPos(x: 8, y: 8)),
+      );
+      expect(
+        aligned.map((primitive) => primitive.currentMetrics.defaultAnchorPx),
+        everyElement(const BorderPixelPos(x: 8, y: 8)),
+      );
+      expect(
+        aligned.map((primitive) => primitive.role),
+        primitives.map((primitive) => primitive.role),
+      );
+      expect(
+        aligned.map((primitive) => primitive.weight),
+        primitives.map((primitive) => primitive.weight),
+      );
+      expect(
+        aligned.map((primitive) => primitive.authoredOrientation),
+        primitives.map((primitive) => primitive.authoredOrientation),
+      );
+      expect(
+        aligned.map((primitive) => primitive.transforms),
+        primitives.map((primitive) => primitive.transforms),
+      );
+      expect(controller.canUndoConnectedLineAnchorRealignment, isTrue);
+      expect(controller.canRedoConnectedLineAnchorRealignment, isFalse);
+
+      controller.undoConnectedLineAnchorRealignment();
+      expect(
+        controller.state.workingDraft!.blueprint.definition.primitives,
+        primitives,
+      );
+      expect(controller.canRedoConnectedLineAnchorRealignment, isTrue);
+
+      controller.redoConnectedLineAnchorRealignment();
+      expect(
+        controller.state.workingDraft!.blueprint.definition.primitives,
+        aligned,
+      );
+
+      controller.realignConnectedLinePrimitiveAnchors();
+      controller.undoConnectedLineAnchorRealignment();
+      expect(
+        controller.state.workingDraft!.blueprint.definition.primitives,
+        primitives,
+      );
+      expect(controller.canUndoConnectedLineAnchorRealignment, isFalse);
+    });
+
     test('enables every V1 template only after a current preview', () {
       final controller = mountBorderStudioDraftController()
         ..loadFromManifest(

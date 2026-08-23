@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../fixtures/border/masonry_line_fixture.dart';
+import '../fixtures/border/connected_line_network_fixture.dart';
 import '../fixtures/border/organic_edge_reference_coast_fixture.dart';
 import '../fixtures/border/post_and_rail_line_fixture.dart';
 import '../fixtures/border/selbrume_two_tier_stone_chain_v4_fixture.dart';
@@ -40,8 +41,7 @@ void main() {
         expect(caseResult.resolverResult.canApply, isTrue);
         expect(
           caseResult.publicationSample,
-          gallery.report.samples[index],
-        );
+          gallery.report.samples[index]);
 
         final directEvidence = resolveMasonryLineBorderWithEvidence(
           _requestForCase(request, caseResult),
@@ -50,14 +50,16 @@ void main() {
         expect(
           check.longestContiguousGapPx,
           directEvidence.edges.map((edge) => edge.longestGapPx).fold<int>(
-              0, (maximum, value) => value > maximum ? value : maximum),
+              0, (maximum, value) => value > maximum ? value : maximum,
+              ),
         );
         expect(
           check.maximumPairwiseOverlapPx,
           directEvidence.edges
               .map((edge) => edge.maximumPairwiseOverlapPx)
               .fold<int>(
-                  0, (maximum, value) => value > maximum ? value : maximum),
+                  0, (maximum, value) => value > maximum ? value : maximum,
+              ),
         );
       }
     });
@@ -88,10 +90,12 @@ void main() {
       final geometry = opening.geometry as BorderStrokeGeometry;
       expect(geometry.strokes, hasLength(2));
       expect(geometry.strokes.map((stroke) => stroke.id),
-          orderedEquals(const <String>['leading', 'trailing']));
+          orderedEquals(const <String>['leading', 'trailing']),
+      );
       expect(
         opening.publicationSample.coverageChecks
-            .map((check) => check.component),
+            .map((check) => check.component,
+        ),
         orderedEquals(const <BorderCanonicalCoverageComponent>[
           BorderCanonicalCoverageComponent.leadingStroke,
           BorderCanonicalCoverageComponent.trailingStroke,
@@ -117,14 +121,16 @@ void main() {
           expect(
             check.longestContiguousGapPx,
             edgesByStroke[strokeId]!.map((edge) => edge.longestGapPx).fold<int>(
-                0, (maximum, value) => value > maximum ? value : maximum),
+                0, (maximum, value) => value > maximum ? value : maximum,
+                ),
           );
           expect(
             check.maximumPairwiseOverlapPx,
             edgesByStroke[strokeId]!
                 .map((edge) => edge.maximumPairwiseOverlapPx)
                 .fold<int>(
-                    0, (maximum, value) => value > maximum ? value : maximum),
+                    0, (maximum, value) => value > maximum ? value : maximum,
+                ),
           );
         }
       }
@@ -224,6 +230,7 @@ void main() {
           BorderCanonicalGalleryCase.sharpCorner,
           BorderCanonicalGalleryCase.endpoint,
           BorderCanonicalGalleryCase.opening,
+          BorderCanonicalGalleryCase.sBend,
         ]),
       );
       final sharpCorner = gallery.cases.singleWhere(
@@ -232,17 +239,20 @@ void main() {
       expect(
         (sharpCorner.geometry as BorderStrokeGeometry)
             .strokes
-            .map((stroke) => stroke.id),
+            .map((stroke) => stroke.id,
+        ),
         orderedEquals(const <String>['leftTurn', 'rightTurn']),
       );
       expect(
         sharpCorner.resolverResult.materialization!.placements
-            .where((placement) => placement.primitiveId == 'corner'),
+            .where((placement) => placement.primitiveId == 'corner',
+        ),
         hasLength(2),
       );
       expect(
         sharpCorner.invertedResolverResult!.materialization!.placements
-            .where((placement) => placement.primitiveId == 'corner'),
+            .where((placement) => placement.primitiveId == 'corner',
+        ),
         hasLength(2),
       );
       for (final caseResult in gallery.cases) {
@@ -251,12 +261,14 @@ void main() {
         expect(caseResult.invertedResolverResult!.canApply, isTrue);
         expect(
           caseResult.resolverResult.materialization!.placements
-              .map((placement) => placement.transform.flipX),
+              .map((placement) => placement.transform.flipX,
+          ),
           everyElement(isFalse),
         );
         expect(
           caseResult.invertedResolverResult!.materialization!.placements
-              .map((placement) => placement.transform.flipX),
+              .map((placement) => placement.transform.flipX,
+          ),
           everyElement(isTrue),
         );
         final sample = caseResult.publicationSample;
@@ -268,6 +280,40 @@ void main() {
           sample.structuralRuns.map((run) => run.id),
           anyElement(startsWith('inverted:')),
         );
+      }
+    });
+
+    test('rejects disconnected legacy anchors on the repeated s-bend', () {
+      final request = ConnectedLineNetworkFixture(
+        networkAnchors: false,
+      ).request;
+      final gallery = _galleryFor(request);
+      final sBend = gallery.report.samples.singleWhere(
+        (sample) => sample.galleryCase == BorderCanonicalGalleryCase.sBend,
+      );
+
+      expect(
+        sBend.coverageChecks,
+        contains(
+          isA<BorderPublicationCoverageCheck>().having(
+            (check) => check.hasExcessiveGap,
+            'has excessive gap',
+            isTrue,
+          ),
+        ),
+      );
+    });
+
+    test('certifies network-centered anchors on the repeated s-bend', () {
+      final request = ConnectedLineNetworkFixture(networkAnchors: true).request;
+      final gallery = _galleryFor(request);
+      final sBend = gallery.report.samples.singleWhere(
+        (sample) => sample.galleryCase == BorderCanonicalGalleryCase.sBend,
+      );
+
+      for (final check in sBend.coverageChecks) {
+        expect(check.longestContiguousGapPx, lessThanOrEqualTo(1));
+        expect(check.maximumPairwiseOverlapPx, lessThanOrEqualTo(8));
       }
     });
 
@@ -328,12 +374,10 @@ void main() {
         );
         expect(
           caseResult.publicationSample.primaryStoneChainEvidence,
-          isNull,
-        );
+          isNull);
         expect(
           caseResult.publicationSample.invertedStoneChainEvidence,
-          isNull,
-        );
+          isNull);
       }
     });
 
@@ -342,8 +386,8 @@ void main() {
 
       final gallery = _galleryFor(fixture.request);
 
-      expect(borderCanonicalGalleryVersion, 2);
-      expect(gallery.report.canonicalGalleryVersion, 2);
+      expect(borderCanonicalGalleryVersion, 3);
+      expect(gallery.report.canonicalGalleryVersion, 3);
       final geometries = <BorderCanonicalGalleryCase, BorderStrokeGeometry>{
         for (final item in gallery.cases)
           item.galleryCase: item.geometry as BorderStrokeGeometry,
@@ -351,13 +395,15 @@ void main() {
       expect(
         geometries[BorderCanonicalGalleryCase.longEdge]!
             .strokes
-            .map((stroke) => stroke.id),
+            .map((stroke) => stroke.id,
+        ),
         orderedEquals(const <String>['horizontal', 'vertical']),
       );
       expect(
         geometries[BorderCanonicalGalleryCase.sharpCorner]!
             .strokes
-            .map((stroke) => stroke.id),
+            .map((stroke) => stroke.id,
+        ),
         orderedEquals(const <String>['convexL', 'concaveL']),
       );
       expect(
@@ -397,8 +443,7 @@ void main() {
           ('primary', sample.primaryStoneChainEvidence),
           (
             'inverted',
-            sample.invertedStoneChainEvidence,
-          ),
+            sample.invertedStoneChainEvidence),
         ]) {
           final evidence = side.$2;
           final reason = '${caseResult.galleryCase.name}:${side.$1}';
@@ -456,7 +501,8 @@ void main() {
         final evidence =
             sharpCorner.publicationSample.invertedStoneChainEvidence!;
         expect(
-            evidence.minimumCrossRowInterlockPixels, greaterThanOrEqualTo(8));
+            evidence.minimumCrossRowInterlockPixels, greaterThanOrEqualTo(8),
+        );
         expect(evidence.minimumVisibleFaceDepthPx, greaterThanOrEqualTo(12));
         expect(evidence.faceConnectedComponentCount, 1);
       },
@@ -480,10 +526,12 @@ void main() {
       // parallel runs. Proximity alone is ambiguous, but the rank-one node
       // slot encodes the turn vertex and therefore its exact outgoing run.
       final evidence = bend.publicationSample.invertedStoneChainEvidence!;
-      expect(evidence.minimumCrossRowInterlockPixels, greaterThanOrEqualTo(8));
+      expect(evidence.minimumCrossRowInterlockPixels, greaterThanOrEqualTo(8),
+        );
       expect(evidence.minimumVisibleFaceDepthPx, greaterThanOrEqualTo(12));
       expect(evidence.faceConnectedComponentCount, 1);
-    });
+    },
+    );
 
     test('planner avoids aligned joints for nearby face asset shifts', () {
       int alignedRatioForShift(int shiftPx) {
@@ -539,7 +587,8 @@ void main() {
       expect(alignedRatioForShift(9), 1000, reason: 'joint delta +2 px');
       expect(alignedRatioForShift(4), 0, reason: 'joint delta -3 px');
       expect(alignedRatioForShift(10), 0, reason: 'joint delta +3 px');
-    });
+    },
+    );
 
     test('measures connected-line gaps and overlaps from real placements', () {
       PostAndRailLineFixture connectedFixture(int size, String suffix) =>
@@ -623,7 +672,9 @@ void main() {
         expect(
             adapted.mapSize,
             GridSize(
-                width: source.geometry.width, height: source.geometry.height));
+                width: source.geometry.width, height: source.geometry.height,
+          ),
+        );
         expect(adapted.geometry, source.geometry);
         expect(adapted.resolverResult, source.resolverEvidence.result);
         expect(adapted.publicationSample, source.publicationSample);
@@ -692,7 +743,7 @@ void main() {
       for (final pair in <(BorderResolutionRequest, BorderResolutionRequest)>[
         (
           MasonryLineFixture().request,
-          MasonryLineFixture(reverseInputs: true).request
+          MasonryLineFixture(reverseInputs: true).request,
         ),
         (
           PostAndRailLineFixture().request,

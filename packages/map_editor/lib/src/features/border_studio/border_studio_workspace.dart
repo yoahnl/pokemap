@@ -208,8 +208,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
                                 ? null
                                 : () => _duplicateBlueprint(
                                       controller,
-                                      state,
-                                    ),
+                                      state),
                             icon: const Icon(CupertinoIcons.doc_on_doc),
                           ),
                           const SizedBox(width: 4),
@@ -332,7 +331,9 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
                     ),
                     onRemovePrimitive: (primitiveId) =>
                         _removeAsset(controller, primitiveId),
-                    onAuthoredOrientationChanged: (primitiveId, orientation) =>
+                  onRealignConnectedLineAnchors: () =>
+                      _realignConnectedLineAnchors(controller),
+                  onAuthoredOrientationChanged: (primitiveId, orientation) =>
                         _changeAuthoredOrientation(
                       controller,
                       primitiveId,
@@ -350,8 +351,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
                       controller,
                       state,
                       primitiveId,
-                      role,
-                    ),
+                      role),
                   ),
                 3 => BorderRulesStep(
                     state: state,
@@ -485,6 +485,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
       final prepared = await _assetService.prepare(
         manifest: manifest,
         projectRootPath: projectRootPath ?? '',
+        template: working.blueprint.definition.template,
         sourceElementId: sourceElementId,
         primitiveId: primitiveId,
         role: role,
@@ -535,6 +536,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
       final prepared = await _assetService.reanalyze(
         manifest: manifest,
         projectRootPath: projectRootPath ?? '',
+        template: state.workingDraft!.blueprint.definition.template,
         primitive: source,
       );
       if (!_isAssetAnalysisTargetCurrent(
@@ -568,6 +570,28 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
     });
   }
 
+  Future<void> _realignConnectedLineAnchors(
+    BorderStudioDraftController controller,
+  ) async {
+    if (!controller.realignConnectedLinePrimitiveAnchors()) return;
+    setState(() {
+      _publicationPreview = null;
+      _feedback = null;
+      _assetFeedback = const BorderAssetStepFeedback.success(
+        'Les points de raccord ont été recentrés. Actualisation de l’aperçu…',
+      );
+    });
+    await _preparePublication(controller);
+    if (!mounted) return;
+    setState(() {
+      _assetFeedback = BorderAssetStepFeedback.success(
+        _publicationPreview == null
+            ? 'Les points de raccord ont été recentrés.'
+            : 'Les points de raccord, l’aperçu et les diagnostics ont été actualisés.',
+      );
+    });
+  }
+
   bool _isAssetAnalysisTargetCurrent({
     required ProjectManifest manifest,
     required String? projectRootPath,
@@ -588,7 +612,8 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
     final primitives = current.workingDraft!.blueprint.definition.primitives;
     if (primitiveIdMustBeAbsent != null &&
         primitives
-            .any((primitive) => primitive.id == primitiveIdMustBeAbsent)) {
+            .any((primitive) => primitive.id == primitiveIdMustBeAbsent,
+        )) {
       return false;
     }
     if (expectedPrimitive != null &&
@@ -599,8 +624,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
   }
 
   Future<void> _runAssetAnalysis(
-    Future<String> Function() action,
-  ) async {
+    Future<String> Function() action) async {
     setState(() {
       _isAnalyzingAsset = true;
       _assetFeedback = null;
@@ -884,8 +908,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
     if (currentManifest == expectedManifest) {
       return _workingRecord(
             manifest: expectedManifest,
-            state: currentState,
-          ) ==
+            state: currentState) ==
           expectedRecord;
     }
     if (currentManifest != resultManifest) return false;
@@ -895,8 +918,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
     return resultRecord != null &&
         _workingRecord(
               manifest: resultManifest,
-              state: currentState,
-            ) ==
+              state: currentState) ==
             resultRecord;
   }
 

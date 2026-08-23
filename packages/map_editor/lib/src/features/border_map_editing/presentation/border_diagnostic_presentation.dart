@@ -112,6 +112,9 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
       'Autorisez les orientations requises pour les pierres, puis régénérez la galerie.',
     'border.publication.coverage_gap_exceeded' =>
       _publicationCoverageGapMessage(diagnostic),
+    'border.publication.connected_line_disconnected' =>
+      'Les pièces de cette bordure ne se raccordent pas dans tous les virages. '
+          'Réalignez leurs points de raccord avant de publier.',
     'border.publication.coverage_overlap_exceeded' =>
       _publicationCoverageOverlapMessage(diagnostic),
     'invalid_tile_size' =>

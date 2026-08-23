@@ -23,6 +23,17 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
       const <String, Set<String>>{};
   BorderDiagnosticsReport _externalDiagnostics =
       const BorderDiagnosticsReport.empty();
+  final List<List<BorderPrimitiveDraft>>
+  _connectedLineAnchorRealignmentUndoStack = <List<BorderPrimitiveDraft>>[];
+  final List<List<BorderPrimitiveDraft>>
+  _connectedLineAnchorRealignmentRedoStack = <List<BorderPrimitiveDraft>>[];
+  bool _isRestoringConnectedLineAnchorRealignment = false;
+
+  bool get canUndoConnectedLineAnchorRealignment =>
+      _connectedLineAnchorRealignmentUndoStack.isNotEmpty;
+
+  bool get canRedoConnectedLineAnchorRealignment =>
+      _connectedLineAnchorRealignmentRedoStack.isNotEmpty;
 
   @override
   BorderStudioDraftState build() => buildStateFromManifest(_initialManifest);
@@ -156,6 +167,7 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
     required String name,
     required BorderBlueprintTemplate template,
   }) {
+    _clearConnectedLineAnchorRealignmentHistory();
     final manifest = _requireManifest();
     _requireNewBlueprintId(manifest.borderCatalog, id);
     final definition = BorderBlueprintDraftDefinition(
@@ -196,6 +208,7 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
     required String newBlueprintId,
     required String name,
   }) {
+    _clearConnectedLineAnchorRealignmentHistory();
     final manifest = _requireManifest();
     _requireNewBlueprintId(manifest.borderCatalog, newBlueprintId);
     final selectedDraft = state.workingDraft;
@@ -283,6 +296,59 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
     _updateDefinition(
       (current) => _copyDefinition(current, primitives: primitives),
     );
+  }
+
+  bool realignConnectedLinePrimitiveAnchors() {
+    final definition = _requireWorkingDraft().blueprint.definition;
+    if (definition.template != BorderBlueprintTemplate.connectedLine) {
+      throw StateError(
+        'Primitive anchor realignment only applies to connected-line borders',
+      );
+    }
+    final current = definition.primitives;
+    final aligned = <BorderPrimitiveDraft>[
+      for (final primitive in current)
+        _copyPrimitiveWithAnchor(
+          primitive,
+          recommendedBorderPrimitiveAnchor(
+            template: definition.template,
+            metrics: primitive.currentMetrics,
+          ),
+        ),
+    ];
+    if (_samePrimitiveAnchors(current, aligned)) {
+      return false;
+    }
+    _connectedLineAnchorRealignmentUndoStack.add(
+      List<BorderPrimitiveDraft>.unmodifiable(current),
+    );
+    _connectedLineAnchorRealignmentRedoStack.clear();
+    _restoreConnectedLinePrimitiveAnchors(aligned);
+    return true;
+  }
+
+  void undoConnectedLineAnchorRealignment() {
+    if (!canUndoConnectedLineAnchorRealignment) {
+      return;
+    }
+    final current = _requireWorkingDraft().blueprint.definition.primitives;
+    final previous = _connectedLineAnchorRealignmentUndoStack.removeLast();
+    _connectedLineAnchorRealignmentRedoStack.add(
+      List<BorderPrimitiveDraft>.unmodifiable(current),
+    );
+    _restoreConnectedLinePrimitiveAnchors(previous);
+  }
+
+  void redoConnectedLineAnchorRealignment() {
+    if (!canRedoConnectedLineAnchorRealignment) {
+      return;
+    }
+    final current = _requireWorkingDraft().blueprint.definition.primitives;
+    final next = _connectedLineAnchorRealignmentRedoStack.removeLast();
+    _connectedLineAnchorRealignmentUndoStack.add(
+      List<BorderPrimitiveDraft>.unmodifiable(current),
+    );
+    _restoreConnectedLinePrimitiveAnchors(next);
   }
 
   /// Adds one primitive prepared from a normal project element.
@@ -457,6 +523,7 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
   }
 
   ProjectManifest saveDraft() {
+    _clearConnectedLineAnchorRealignmentHistory();
     final manifest = _requireManifest();
     final working = _requireWorkingDraft();
     final existing = manifest.borderCatalog.recordById(working.id);
@@ -531,6 +598,7 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
   }
 
   void _load(ProjectManifest? manifest, {String? preferredBlueprintId}) {
+    _clearConnectedLineAnchorRealignmentHistory();
     _manifest = manifest;
     _externalDiagnostics = const BorderDiagnosticsReport.empty();
     final records =
@@ -559,6 +627,7 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
     List<BorderBlueprintRecord> records, {
     bool preserveExternalDiagnostics = false,
   }) {
+    _clearConnectedLineAnchorRealignmentHistory();
     if (!preserveExternalDiagnostics) {
       _externalDiagnostics = const BorderDiagnosticsReport.empty();
     }
@@ -597,6 +666,9 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
     )
     update,
   ) {
+    if (!_isRestoringConnectedLineAnchorRealignment) {
+      _clearConnectedLineAnchorRealignmentHistory();
+    }
     final working = _requireWorkingDraft();
     final previousFingerprints = _primitiveFingerprints(
       working.blueprint.definition.primitives,
@@ -640,6 +712,22 @@ class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
       return;
     }
     state = composed;
+  }
+
+  void _restoreConnectedLinePrimitiveAnchors(
+    List<BorderPrimitiveDraft> primitives,
+  ) {
+    _isRestoringConnectedLineAnchorRealignment = true;
+    try {
+      replacePrimitives(primitives);
+    } finally {
+      _isRestoringConnectedLineAnchorRealignment = false;
+    }
+  }
+
+  void _clearConnectedLineAnchorRealignmentHistory() {
+    _connectedLineAnchorRealignmentUndoStack.clear();
+    _connectedLineAnchorRealignmentRedoStack.clear();
   }
 
   BorderDiagnosticsReport _composeDiagnostics(BorderStudioDraftState next) {
@@ -806,6 +894,42 @@ void _validateUniquePrimitiveIds(List<BorderPrimitiveDraft> primitives) {
       );
     }
   }
+}
+
+BorderPrimitiveDraft _copyPrimitiveWithAnchor(
+  BorderPrimitiveDraft primitive,
+  BorderPixelPos anchorPx,
+) => BorderPrimitiveDraft(
+  id: primitive.id,
+  sourceElementId: primitive.sourceElementId,
+  role: primitive.role,
+  authoredOrientation: primitive.authoredOrientation,
+  weight: primitive.weight,
+  anchorPx: anchorPx,
+  transforms: primitive.transforms,
+  currentMetrics: BorderPrimitiveAssetMetrics(
+    assetFingerprint: primitive.currentMetrics.assetFingerprint,
+    pixelSize: primitive.currentMetrics.pixelSize,
+    opaqueBounds: primitive.currentMetrics.opaqueBounds,
+    defaultAnchorPx: anchorPx,
+    occupancyMaskRle: primitive.currentMetrics.occupancyMaskRle,
+  ),
+);
+
+bool _samePrimitiveAnchors(
+  List<BorderPrimitiveDraft> left,
+  List<BorderPrimitiveDraft> right,
+) {
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index].id != right[index].id ||
+        left[index].anchorPx != right[index].anchorPx) {
+      return false;
+    }
+  }
+  return true;
 }
 
 Map<String, String> _primitiveFingerprints(

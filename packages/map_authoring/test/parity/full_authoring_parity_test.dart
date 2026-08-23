@@ -192,9 +192,20 @@ void main() {
         ),
       );
       for (final actionId in <String>[
-        'border.blueprint.delete',
         'border.blueprint.draft.upsert',
         'border.blueprint.publish',
+      ]) {
+        expect(
+          catalog.requireMutationAction(actionId).toJson(),
+          containsPair(
+            'endToEndVerifiedTransports',
+            <String>['cli', 'directApi', 'editor', 'mcp'],
+          ),
+          reason: actionId,
+        );
+      }
+      for (final actionId in <String>[
+        'border.blueprint.delete',
         'border.blueprint.set_deprecated',
       ]) {
         expect(

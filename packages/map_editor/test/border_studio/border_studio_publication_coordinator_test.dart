@@ -361,7 +361,7 @@ void main() {
         draftRecord: target,
       );
 
-      expect(preview.canonicalGalleryCases, hasLength(4));
+      expect(preview.canonicalGalleryCases, hasLength(5));
       for (final galleryCase in preview.canonicalGalleryCases) {
         expect(galleryCase.resolution.canApply, isTrue);
         expect(galleryCase.invertedResolution?.canApply, isTrue);
