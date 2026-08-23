@@ -768,6 +768,65 @@ class BattleOverlayComponent extends PositionComponent {
     _handleAnimationPresentationChanged();
   }
 
+  /// Une décision post-combat posée par l'hôte — BETA-BAT-017 sous-lot 2.
+  ///
+  /// L'apprentissage de capacité et l'évolution se choisissent DANS la scène :
+  /// la boîte de dialogue garde le message du coordinator en prompt, le
+  /// panneau liste les choix, et le tap/clavier remonte l'index à l'hôte.
+  /// Pendant qu'une décision est affichée, le snapshot publié est celui de la
+  /// décision (mode root, interactions ouvertes malgré le gate) et toutes les
+  /// entrées de navigation sont routées vers elle.
+  _PostBattleDecisionRequest? _postBattleDecision;
+  int _postBattleDecisionSelectedIndex = 0;
+
+  void presentPostBattleDecision({
+    required String prompt,
+    required List<String> choices,
+    required ValueChanged<int> onChoice,
+  }) {
+    assert(choices.isNotEmpty, 'a decision needs at least one choice');
+    _postBattleDecision = _PostBattleDecisionRequest(
+      prompt: prompt,
+      choices: List<String>.unmodifiable(choices),
+      onChoice: onChoice,
+    );
+    _postBattleDecisionSelectedIndex = 0;
+    _syncPanelsOnly();
+  }
+
+  void clearPostBattleDecision() {
+    if (_postBattleDecision == null) return;
+    _postBattleDecision = null;
+    _postBattleDecisionSelectedIndex = 0;
+    _syncPanelsOnly();
+  }
+
+  bool get hasPostBattleDecision => _postBattleDecision != null;
+
+  @visibleForTesting
+  int get debugPostBattleDecisionSelectedIndex =>
+      _postBattleDecisionSelectedIndex;
+
+  bool _movePostBattleDecisionSelection(int delta) {
+    final decision = _postBattleDecision;
+    if (decision == null) return false;
+    final next = (_postBattleDecisionSelectedIndex + delta)
+        .clamp(0, decision.choices.length - 1);
+    if (next == _postBattleDecisionSelectedIndex) return true;
+    _postBattleDecisionSelectedIndex = next;
+    _syncPanelsOnly();
+    return true;
+  }
+
+  bool _submitPostBattleDecision(int index) {
+    final decision = _postBattleDecision;
+    if (decision == null) return false;
+    if (index < 0 || index >= decision.choices.length) return false;
+    _postBattleDecisionSelectedIndex = index;
+    decision.onChoice(index);
+    return true;
+  }
+
   /// L'XP présentée du combattant joueur actif — BETA-BAT-017.
   ///
   /// La table `_playerExperienceProgressByLineupIndex` est figée au montage
@@ -1339,6 +1398,9 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool validateSelectedChoice() {
+    if (_postBattleDecision != null) {
+      return _submitPostBattleDecision(_postBattleDecisionSelectedIndex);
+    }
     if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
@@ -1407,6 +1469,9 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool selectRootEntry(int index) {
+    if (_postBattleDecision != null) {
+      return _submitPostBattleDecision(index);
+    }
     if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
@@ -1700,6 +1765,11 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _syncPanelsOnly() {
+    final decision = _postBattleDecision;
+    if (decision != null) {
+      _publishPostBattleDecisionPresentation(decision);
+      return;
+    }
     _syncMenuStateFromModel();
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
@@ -1797,6 +1867,79 @@ class BattleOverlayComponent extends PositionComponent {
             : menuModel.selectedChoiceIndex,
       ),
     );
+  }
+
+  /// BETA-BAT-017 sous-lot 2 : la présentation d'une décision post-combat.
+  ///
+  /// Le prompt (le message du coordinator) reste dans la boîte de dialogue,
+  /// les choix prennent la place des commandes. Les interactions passent
+  /// outre le gate post-combat : c'est précisément le moment où le joueur
+  /// doit répondre. Sur le panneau Flame (hôte développeur), les choix
+  /// s'affichent en narration avec la sélection marquée.
+  void _publishPostBattleDecisionPresentation(
+    _PostBattleDecisionRequest decision,
+  ) {
+    final narrationLines = List<String>.unmodifiable(<String>[
+      for (var index = 0; index < decision.choices.length; index++)
+        '${index == _postBattleDecisionSelectedIndex ? '▶' : ' '} '
+            '${decision.choices[index]}',
+    ]);
+    _commandPanel?.sync(
+      battleLabel: _titleForSession(),
+      prompt: decision.prompt,
+      narrationLines: narrationLines,
+      menuModel: _currentMenuModel(),
+      partyMenuModel: _currentPartyMenuModel(),
+      bagMenuModel: _currentBagMenuModel(),
+      medicineTargetMenuModel: _currentMedicineTargetMenuModel(),
+      selectedPartyIndex: _selectedPartyIndex,
+      selectedBagIndex: _selectedBagIndex,
+      selectedMedicineTargetIndex: _selectedMedicineTargetIndex,
+      allowEmptyNarrationBody: false,
+      interactionsEnabled: false,
+    );
+    final layout = currentSceneLayout;
+    final snapshot = BattleCommandOverlaySnapshot(
+      revision: ++_commandOverlayRevision,
+      phase: BattlePresentationPhase.choosingCommand,
+      forcedReplacement: false,
+      mode: BattleCommandOverlayMode.root,
+      viewportSize: layout.viewportSize,
+      panelRect: layout.commandPanelRect,
+      enemyHud: _buildHudSnapshot(
+        rect: layout.enemyHudRect,
+        ownerLabel: 'ENNEMI',
+        combatant: _displayedEnemyCombatant ?? _session.state.enemy,
+        isPlayerSide: false,
+      ),
+      playerHud: _buildHudSnapshot(
+        rect: layout.playerHudRect,
+        ownerLabel: 'JOUEUR',
+        combatant: _displayedPlayerCombatant ?? _session.state.player,
+        isPlayerSide: true,
+      ),
+      battleLabel: _titleForSession(),
+      title: 'CHOIX',
+      prompt: decision.prompt,
+      narrationLines: const <String>[],
+      entries: List<
+          BattleCommandOverlayEntry>.unmodifiable(<BattleCommandOverlayEntry>[
+        for (var index = 0; index < decision.choices.length; index++)
+          BattleCommandOverlayEntry(
+            index: index,
+            kind: BattleCommandOverlayEntryKind.root,
+            primaryLabel: decision.choices[index],
+            secondaryLabel: '',
+            enabled: true,
+            selected: index == _postBattleDecisionSelectedIndex,
+            tone: BattleCommandOverlayEntryTone.neutral,
+          ),
+      ]),
+      interactionsEnabled: true,
+      canGoBack: false,
+    );
+    _currentCommandOverlaySnapshot = snapshot;
+    onCommandOverlaySnapshotChanged?.call(snapshot);
   }
 
   void _publishCommandOverlaySnapshot({
@@ -2076,6 +2219,11 @@ class BattleOverlayComponent extends PositionComponent {
     required int horizontalDelta,
     required int verticalDelta,
   }) {
+    if (_postBattleDecision != null) {
+      return _movePostBattleDecisionSelection(
+        verticalDelta != 0 ? verticalDelta : horizontalDelta,
+      );
+    }
     if (!_acceptsPlayerCommands) return false;
     if (isTurnPresentationActive) {
       return false;
@@ -3390,4 +3538,16 @@ String _overlayMedicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
     return 'OK';
   }
   return 'Unavailable';
+}
+
+final class _PostBattleDecisionRequest {
+  const _PostBattleDecisionRequest({
+    required this.prompt,
+    required this.choices,
+    required this.onChoice,
+  });
+
+  final String prompt;
+  final List<String> choices;
+  final ValueChanged<int> onChoice;
 }

@@ -1046,6 +1046,192 @@ void main() {
       expect(game.debugBattleOverlayComponent, isNull);
     });
 
+    test(
+        'wild victory with a pending move learning decides IN the scene and '
+        'commits the learned move', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      // Quatre capacités connues : sous ce plafond, l'apprentissage est
+      // automatique et aucune décision n'est posée — le test veut la boucle
+      // complète Apprendre → choisir la capacité à remplacer.
+      final strongPlayerState = GameState(
+        saveId: 'wild-flow-save',
+        party: const PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 10,
+              knownMoveIds: <String>['vine_whip', 'scratch', 'wrap', 'coil'],
+              currentPpByMoveId: <String, int>{
+                'vine_whip': 35,
+                'scratch': 35,
+                'wrap': 20,
+                'coil': 20,
+              },
+              currentHp: 20,
+            ),
+          ],
+        ),
+      );
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(strongPlayerState),
+        postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(
+          resolveReward: _pendingMoveLearningResolution,
+        ),
+        runtimePlayerPokemonProgressionCatalogLoader:
+            _progressionCatalogsForScene,
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(request);
+      await game.debugWaitForBattleOverlaySync();
+      final overlay = game.debugBattleOverlayComponent!;
+
+      // Gagner le combat par le vrai chemin de commandes.
+      for (var turn = 0; turn < 25; turn++) {
+        for (var i = 0;
+            i < 80 &&
+                (overlay.isTurnPresentationActive ||
+                    !overlay.acceptsPlayerCommands);
+            i++) {
+          game.update(0.25);
+          await Future<void>.delayed(Duration.zero);
+        }
+        final session = game.debugBattleSessionSnapshot;
+        if (session == null || session.state.isFinished) break;
+        // Le menu revient en racine ou reste sur les capacités selon le
+        // tour : ouvrir ATTAQUER si possible, puis confirmer la capacité.
+        if (game.selectBattleRootEntry(0)) {
+          await game.debugWaitForBattleOverlaySync();
+        }
+        expect(game.selectBattleChoiceEntry(0), isTrue,
+            reason: 'première capacité (tour $turn)');
+        await game.debugWaitForBattleOverlaySync();
+      }
+      expect(
+        game.debugBattleSessionSnapshot!.state.outcome?.isVictory,
+        isTrue,
+        reason: 'sproutle 10 doit battre sparkitten 6',
+      );
+
+      // BETA-BAT-017 sous-lot 2 : la décision d'apprentissage s'affiche dans
+      // le panneau de la SCÈNE, jamais sur l'écran plein de progression.
+      BattleCommandOverlaySnapshot? decisionSnapshot;
+      for (var i = 0; i < 200; i++) {
+        expect(game.debugPostBattleOverlayMounted, isFalse,
+            reason: 'l’écran plein ne doit jamais se monter sur ce flux');
+        final snapshot = game.battleCommandOverlayListenable.value;
+        if (snapshot != null &&
+            snapshot.interactionsEnabled &&
+            snapshot.prompt.contains('peut apprendre')) {
+          decisionSnapshot = snapshot;
+          break;
+        }
+        game.update(0.25);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(decisionSnapshot, isNotNull,
+          reason: 'le prompt d’apprentissage doit s’afficher dans la scène');
+      expect(
+        decisionSnapshot!.entries.map((entry) => entry.primaryLabel),
+        <String>['Apprendre', 'Ne pas apprendre'],
+      );
+
+      // Le choix passe par le vrai contrat du shell joueur.
+      expect(
+        game.dispatchBattlePresentationCommand(
+          BattleSelectEntryCommand(
+            snapshotRevision: decisionSnapshot.revision,
+            expectedMode: decisionSnapshot.mode,
+            entryIndex: 0,
+          ),
+        ),
+        isTrue,
+        reason: 'Apprendre',
+      );
+
+      // Deuxième décision de la même boucle : la capacité à remplacer,
+      // libellée par le catalogue du projet.
+      BattleCommandOverlaySnapshot? replacementSnapshot;
+      for (var i = 0; i < 200; i++) {
+        expect(game.debugPostBattleOverlayMounted, isFalse);
+        final snapshot = game.battleCommandOverlayListenable.value;
+        if (snapshot != null &&
+            snapshot.interactionsEnabled &&
+            snapshot.prompt.contains('capacité à remplacer')) {
+          replacementSnapshot = snapshot;
+          break;
+        }
+        game.update(0.25);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(replacementSnapshot, isNotNull,
+          reason: 'le choix de la capacité à remplacer suit dans la scène');
+      expect(
+        replacementSnapshot!.entries.map((entry) => entry.primaryLabel),
+        <String>['Vine Whip', 'Scratch', 'Wrap', 'Coil', 'Ne pas apprendre'],
+      );
+      expect(
+        game.dispatchBattlePresentationCommand(
+          BattleSelectEntryCommand(
+            snapshotRevision: replacementSnapshot.revision,
+            expectedMode: replacementSnapshot.mode,
+            entryIndex: 0,
+          ),
+        ),
+        isTrue,
+        reason: 'remplacer Vine Whip',
+      );
+
+      await _acknowledgePostBattleAndWaitForOverworld(game);
+
+      final committed = game.gameStateSnapshot;
+      expect(
+        committed.party.members.single.knownMoveIds,
+        contains('quick_attack'),
+        reason: 'la capacité apprise via les décisions en scène est commitée',
+      );
+      expect(
+        committed.party.members.single.knownMoveIds,
+        isNot(contains('vine_whip')),
+        reason: 'Vine Whip a été remplacée',
+      );
+      expect(committed.trainerProfile.money, 100);
+      expect(game.debugFlowPhaseName, equals('overworld'));
+      expect(game.debugPsdkBattleSessionActive, isFalse);
+    });
+
     test('wild capture is disabled when the player has no poke-ball', () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();
@@ -2193,6 +2379,104 @@ WildBattleStartRequest _wildRequest(ProjectManifest manifest, MapData map) {
       tileHeight: 16,
     ),
     createdAtEpochMs: 1,
+  );
+}
+
+/// Catalogues d'hydratation synthétiques : la progression du test propose
+/// quick_attack, absent des données du bundle de flux — sans ce loader,
+/// l'hydratation échoue et la fin de combat retombe sur l'écran d'échec.
+Future<RuntimePlayerPokemonProgressionCatalogs> _progressionCatalogsForScene({
+  required GameState gameState,
+  required String projectRootDirectory,
+  required ProjectPokemonConfig pokemonConfig,
+}) async {
+  return const RuntimePlayerPokemonProgressionCatalogs(
+    speciesById: <String, PlayerPokemonHydrationSpecies>{
+      'sproutle': PlayerPokemonHydrationSpecies(
+        id: 'sproutle',
+        baseStats: PokemonBaseStats(
+          hp: 45,
+          attack: 49,
+          defense: 49,
+          specialAttack: 65,
+          specialDefense: 65,
+          speed: 45,
+        ),
+        primaryAbilityId: 'overgrow',
+        abilityIds: <String>['overgrow'],
+        growthRateId: 'medium',
+      ),
+    },
+    maxPpByMoveId: <String, int>{
+      'vine_whip': 35,
+      'scratch': 35,
+      'wrap': 20,
+      'coil': 20,
+      'quick_attack': 30,
+    },
+  );
+}
+
+/// Progression synthétique : la victoire sauvage rapporte assez d'Exp. pour
+/// proposer quick_attack à sproutle — le vrai resolver du runtime dépend des
+/// catalogues d'espèces du bundle, hors du périmètre de ce test de flux.
+Future<RuntimeBattleRewardResolution> _pendingMoveLearningResolution({
+  required RuntimeMapBundle bundle,
+  required GameState postWriteBackState,
+  required RuntimeActiveBattleContext runtimeContext,
+  required BattleOutcome outcome,
+}) async {
+  final reward = BattleReward(
+    sourceKind: BattleRewardSourceKind.trainer,
+    trainerId: 'wild_bonus',
+    money: 100,
+  );
+  final context = BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    outcome: BattleProgressionOutcomeKind.victory,
+    playerParticipantPartySlots: const <int>{0},
+    // Assez d'Exp. pour traverser le niveau 11 : la candidate ne se propose
+    // que si la montée de niveau franchit son learnedAtLevel.
+    defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
+      BattleProgressionDefeatedOpponent(level: 14, baseExperience: 200),
+    ],
+    partySlotMetadata: const <BattleProgressionPartySlotMetadata>[
+      BattleProgressionPartySlotMetadata(
+        partySlot: 0,
+        growthRateId: 'medium',
+        oldMaxHp: 30,
+        baseStats: PokemonBaseStats(
+          hp: 45,
+          attack: 49,
+          defense: 49,
+          specialAttack: 65,
+          specialDefense: 65,
+          speed: 45,
+        ),
+      ),
+    ],
+    moveLearningCandidatesByPartySlot: const <int,
+        Iterable<PokemonMoveLearningCandidate>>{
+      0: <PokemonMoveLearningCandidate>[
+        PokemonMoveLearningCandidate(
+          opportunityId: 'sproutle:11:quick_attack',
+          moveId: 'quick_attack',
+          learnedAtLevel: 11,
+          maxPp: 30,
+        ),
+      ],
+    },
+  );
+  return RuntimeBattleRewardResolution(
+    baseState: postWriteBackState,
+    reward: reward,
+    progressionContext: context,
+    progression: const BattleProgressionService().apply(
+      state: postWriteBackState,
+      context: context,
+      reward: reward,
+      applyAuthoredRewards: false,
+    ),
   );
 }
 

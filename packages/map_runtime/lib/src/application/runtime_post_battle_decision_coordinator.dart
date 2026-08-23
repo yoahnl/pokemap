@@ -138,6 +138,14 @@ final class RuntimePostBattleTransaction {
   final BattleProgressionResult? _progression;
 
   bool get isReadyToCommit => finalState != null;
+
+  /// L'état de progression courant, pour la PRÉSENTATION uniquement.
+  ///
+  /// BETA-BAT-017 : la barre d'XP de la scène a besoin du reliquat exact
+  /// pendant que des décisions restent en attente — les gains y sont déjà
+  /// appliqués bien avant la publication de [finalState]. Jamais un état à
+  /// committer : seul [finalState] engage la transaction.
+  GameState? get presentationProgressState => _progression?.state;
 }
 
 /// Builds one all-or-nothing post-battle transaction.

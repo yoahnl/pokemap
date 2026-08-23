@@ -170,6 +170,67 @@ void main() {
     expect(snapshot!.playerHud.hasXpTween, isFalse);
   });
 
+  test(
+      'une décision post-combat prend le panneau : choix publiés, navigation '
+      'et validation routées, puis retour au flux normal', () async {
+    BattleCommandOverlaySnapshot? snapshot;
+    final overlay = BattleOverlayComponent(
+      session: _session(),
+      viewportSize: Vector2(960, 540),
+      onPlayerChoice: (_) {},
+      onCommandOverlaySnapshotChanged: (s) => snapshot = s,
+    );
+    await overlay.onLoad();
+    await overlay.waitForPendingVisualSync();
+    overlay.setUseFlutterCommandOverlay(true);
+    overlay.beginPostBattleGate();
+
+    final chosen = <int>[];
+    overlay.presentPostBattleDecision(
+      prompt: 'grenousse peut apprendre Vive-Attaque.',
+      choices: const <String>['Apprendre', 'Ne pas apprendre'],
+      onChoice: chosen.add,
+    );
+
+    expect(snapshot, isNotNull);
+    expect(snapshot!.prompt, 'grenousse peut apprendre Vive-Attaque.');
+    expect(
+      snapshot!.interactionsEnabled,
+      isTrue,
+      reason: 'le gate post-combat ferme les commandes du tour, mais une '
+          'décision est précisément le moment où le joueur doit répondre',
+    );
+    expect(
+      snapshot!.entries.map((entry) => entry.primaryLabel),
+      <String>['Apprendre', 'Ne pas apprendre'],
+    );
+    expect(snapshot!.entries.first.selected, isTrue);
+
+    expect(overlay.moveSelectionDown(), isTrue);
+    expect(
+      snapshot!.entries.last.selected,
+      isTrue,
+      reason: 'la navigation clavier est routée vers la décision',
+    );
+    expect(overlay.validateSelectedChoice(), isTrue);
+    expect(chosen, <int>[1]);
+
+    expect(
+      overlay.selectRootEntry(0),
+      isTrue,
+      reason: 'le tap du Hub (mode root) est routé vers la décision',
+    );
+    expect(chosen, <int>[1, 0]);
+
+    overlay.clearPostBattleDecision();
+    expect(
+      snapshot!.interactionsEnabled,
+      isFalse,
+      reason: 'décision retirée : le gate post-combat reprend la main',
+    );
+    expect(overlay.selectRootEntry(0), isFalse);
+  });
+
   test('une montée de niveau remet la barre à zéro entre deux remplissages',
       () async {
     BattleCommandOverlaySnapshot? snapshot;

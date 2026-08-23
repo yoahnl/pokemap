@@ -8504,16 +8504,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
 
       // BETA-BAT-017 : la fin de combat se joue dans la scène (parité
-      // Platine) dès qu'aucune décision n'est en attente. L'écran plein
-      // (« le grand écran bleu ») ne reste que pour les décisions
-      // d'apprentissage/évolution — sous-lot 2 — et les échecs.
+      // Platine) — messages, barre d'XP, décisions d'apprentissage et
+      // d'évolution comprises. L'écran plein (« le grand écran bleu ») ne
+      // reste que pour les échecs du coordinator et les hôtes sans scène
+      // montée (seams de test).
       final sceneTransaction = result.transaction;
       final sceneOverlay = _battleOverlay;
+      if (!result.isSuccess) {
+        debugPrint(
+          '[battle] post-battle falls back to full-screen: '
+          '${result.failure?.code} ${result.failure?.message} '
+          'cause=${result.failure?.cause}',
+        );
+      }
       if (result.isSuccess &&
           sceneTransaction != null &&
-          sceneTransaction.pendingMoveLearning == null &&
-          sceneTransaction.pendingEvolution == null &&
-          sceneTransaction.isReadyToCommit &&
           sceneOverlay != null) {
         await _presentPostBattleInScene(
           overlay: sceneOverlay,
@@ -8591,9 +8596,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ///
   /// Les messages du coordinator (victoire, Exp., niveaux, argent…) défilent
   /// dans la boîte de dialogue du combat pendant que la barre d'XP du
-  /// combattant affiché se remplit, puis l'écran fond au noir, l'état est
-  /// committé sous le noir et le fondu s'ouvre sur l'overworld. L'écran
-  /// plein de progression ne s'affiche plus sur ce chemin.
+  /// combattant affiché se remplit ; les décisions (apprentissage de
+  /// capacité, évolution) se choisissent dans le panneau de la scène ; puis
+  /// l'écran fond au noir, l'état est committé sous le noir et le fondu
+  /// s'ouvre sur l'overworld. L'écran plein de progression ne s'affiche plus
+  /// sur ce chemin.
   Future<void> _presentPostBattleInScene({
     required BattleOverlayComponent overlay,
     required RuntimePostBattleTransaction transaction,
@@ -8601,28 +8608,77 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required int generation,
     required RuntimeActiveBattleContext activeBattleContext,
   }) async {
-    final finalState = transaction.finalState;
+    bool flowDied() =>
+        generation != _postBattleFlowGeneration ||
+        _flowPhase != _RuntimeFlowPhase.battle ||
+        !identical(_activeBattleContext, activeBattleContext) ||
+        !identical(_battleOverlay, overlay);
+
+    final activeLineupIndex = _battleSession?.state.player.lineupIndex;
+    final lineupSlots = activeBattleContext.playerPartySlotIndicesByLineupIndex;
+    int? activePartySlot;
+    if (activeLineupIndex != null) {
+      if (activeLineupIndex < lineupSlots.length) {
+        activePartySlot = lineupSlots[activeLineupIndex];
+      } else if (activeLineupIndex == 0) {
+        activePartySlot = activeBattleContext.playerPartyIndex;
+      }
+    }
+    var currentTransaction = transaction;
+    var playedMessageCount = 0;
+    var currentXpProgress = activeLineupIndex == null
+        ? 0.0
+        : (_battleXpProgressAtMount[activeLineupIndex] ?? 0.0);
+
+    while (true) {
+      final segmentMessages = currentTransaction.messages
+          .skip(playedMessageCount)
+          .toList(growable: false);
+      playedMessageCount = currentTransaction.messages.length;
+      final targetXpProgress = await _postBattleXpProgressForPresentation(
+        transaction: currentTransaction,
+        activeBattleContext: activeBattleContext,
+        activeLineupIndex: activeLineupIndex,
+      );
+      if (flowDied()) return;
+      final segment = _buildPostBattleSceneSegmentPlan(
+        messages: segmentMessages,
+        activePartySlot: activePartySlot,
+        fromXpProgress: currentXpProgress,
+        targetXpProgress: targetXpProgress,
+      );
+      currentXpProgress = segment.endXpProgress;
+      if (!segment.plan.isEmpty) {
+        overlay.presentPostBattlePlan(segment.plan);
+        await overlay.waitForTurnPresentationComplete();
+        if (flowDied()) return;
+      }
+
+      final pendingMove = currentTransaction.pendingMoveLearning;
+      final pendingEvolution = currentTransaction.pendingEvolution;
+      if (pendingMove == null && pendingEvolution == null) break;
+
+      final result = await _askPostBattleDecisionInScene(
+        overlay: overlay,
+        transaction: currentTransaction,
+        pendingMove: pendingMove,
+        pendingEvolution: pendingEvolution,
+        segmentMessages: segmentMessages,
+      );
+      if (flowDied()) return;
+      final nextTransaction = result?.transaction;
+      if (result == null || !result.isSuccess || nextTransaction == null) {
+        throw StateError(
+          result?.failure?.message ??
+              'La décision post-combat ne peut pas être appliquée.',
+        );
+      }
+      currentTransaction = nextTransaction;
+    }
+
+    final finalState = currentTransaction.finalState;
     if (finalState == null) {
       throw StateError('Scene post-battle presentation requires finalState.');
-    }
-    final plan = await _buildPostBattleScenePlan(
-      transaction: transaction,
-      finalState: finalState,
-      activeBattleContext: activeBattleContext,
-    );
-    if (generation != _postBattleFlowGeneration ||
-        _flowPhase != _RuntimeFlowPhase.battle ||
-        !identical(_activeBattleContext, activeBattleContext) ||
-        !identical(_battleOverlay, overlay)) {
-      return;
-    }
-    overlay.presentPostBattlePlan(plan);
-    await overlay.waitForTurnPresentationComplete();
-    if (generation != _postBattleFlowGeneration ||
-        _flowPhase != _RuntimeFlowPhase.battle ||
-        !identical(_activeBattleContext, activeBattleContext) ||
-        !identical(_battleOverlay, overlay)) {
-      return;
     }
 
     final blackHeld = Completer<void>();
@@ -8672,63 +8728,67 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     curtain.revealAndDismiss();
   }
 
-  /// Le plan de fin de combat : chaque message du coordinator devient une
+  /// Le reliquat d'XP du combattant affiché, recalculé sur l'état de
+  /// progression courant — [RuntimePostBattleTransaction.finalState] quand la
+  /// transaction est finalisée, l'état de progression interne sinon (les
+  /// gains sont appliqués avant les décisions ; une évolution acceptée peut
+  /// changer la courbe, d'où le recalcul par segment).
+  Future<double?> _postBattleXpProgressForPresentation({
+    required RuntimePostBattleTransaction transaction,
+    required RuntimeActiveBattleContext activeBattleContext,
+    required int? activeLineupIndex,
+  }) async {
+    final presentationState =
+        transaction.finalState ?? transaction.presentationProgressState;
+    if (activeLineupIndex == null || presentationState == null) return null;
+    final lineupSlots = activeBattleContext.playerPartySlotIndicesByLineupIndex;
+    try {
+      final lineup = lineupSlots.isEmpty
+          ? RuntimePlayerBattleLineupSelection(
+              activeIndex: activeBattleContext.playerPartyIndex,
+              reserveIndices: const <int>[],
+            )
+          : RuntimePlayerBattleLineupSelection(
+              activeIndex: lineupSlots.first,
+              reserveIndices: lineupSlots.skip(1).toList(growable: false),
+            );
+      final progressByLineupIndex =
+          await buildRuntimeBattleExperienceProgressByLineupIndex(
+        gameState: presentationState,
+        playerLineup: lineup,
+        loadGrowthRateId: (speciesId) async =>
+            (await _battleSpeciesLoader.loadById(
+          projectRootDirectory: _bundle.projectRootDirectory,
+          pokemonConfig: _bundle.manifest.pokemon,
+          speciesId: speciesId,
+        ))
+                .growthRateId,
+      );
+      return progressByLineupIndex[activeLineupIndex];
+    } on Object catch (error) {
+      debugPrint('[battle] post-battle xp progress unavailable: $error');
+      return null;
+    }
+  }
+
+  /// Le plan d'un segment de fin de combat : chaque message devient une
   /// phase lisible, et les gains d'Exp. du combattant affiché remplissent la
   /// barre — jusqu'au plein + remise à zéro à chaque niveau gagné, puis
-  /// jusqu'au reliquat exact recalculé sur l'état final.
-  Future<BattleAnimationPlan> _buildPostBattleScenePlan({
-    required RuntimePostBattleTransaction transaction,
-    required GameState finalState,
-    required RuntimeActiveBattleContext activeBattleContext,
-  }) async {
-    final activeLineupIndex = _battleSession?.state.player.lineupIndex;
-    final lineupSlots = activeBattleContext.playerPartySlotIndicesByLineupIndex;
-    int? activePartySlot;
-    if (activeLineupIndex != null) {
-      if (activeLineupIndex < lineupSlots.length) {
-        activePartySlot = lineupSlots[activeLineupIndex];
-      } else if (activeLineupIndex == 0) {
-        activePartySlot = activeBattleContext.playerPartyIndex;
-      }
-    }
-
-    double? finalXpProgress;
-    if (activeLineupIndex != null && activePartySlot != null) {
-      try {
-        final lineup = lineupSlots.isEmpty
-            ? RuntimePlayerBattleLineupSelection(
-                activeIndex: activeBattleContext.playerPartyIndex,
-                reserveIndices: const <int>[],
-              )
-            : RuntimePlayerBattleLineupSelection(
-                activeIndex: lineupSlots.first,
-                reserveIndices: lineupSlots.skip(1).toList(growable: false),
-              );
-        final progressByLineupIndex =
-            await buildRuntimeBattleExperienceProgressByLineupIndex(
-          gameState: finalState,
-          playerLineup: lineup,
-          loadGrowthRateId: (speciesId) async =>
-              (await _battleSpeciesLoader.loadById(
-            projectRootDirectory: _bundle.projectRootDirectory,
-            pokemonConfig: _bundle.manifest.pokemon,
-            speciesId: speciesId,
-          ))
-                  .growthRateId,
-        );
-        finalXpProgress = progressByLineupIndex[activeLineupIndex];
-      } on Object catch (error) {
-        debugPrint('[battle] post-battle xp progress unavailable: $error');
-      }
-    }
-
-    final messages = transaction.messages;
-    final remainingActiveLevelUps = messages
+  /// jusqu'au reliquat exact. Retourne aussi la progression affichée en fin
+  /// de segment, pour enchaîner le segment suivant après une décision.
+  ({BattleAnimationPlan plan, double endXpProgress})
+      _buildPostBattleSceneSegmentPlan({
+    required List<RuntimePostBattleMessage> messages,
+    required int? activePartySlot,
+    required double fromXpProgress,
+    required double? targetXpProgress,
+  }) {
+    var pendingLevelUps = messages
         .where((message) =>
             message.kind == RuntimePostBattleMessageKind.levelUp &&
             message.partySlot == activePartySlot)
         .length;
-    var pendingLevelUps = remainingActiveLevelUps;
+    var xpProgress = fromXpProgress;
     var xpBarFull = false;
     final steps = <BattleAnimationStep>[];
     for (final message in messages) {
@@ -8741,8 +8801,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         steps.add(
           const HudXpTweenStep(fromProgress: 1, toProgress: 0, durationMs: 0),
         );
-        final target = pendingLevelUps > 1 ? 1.0 : (finalXpProgress ?? 1.0);
+        final target = pendingLevelUps > 1 ? 1.0 : (targetXpProgress ?? 1.0);
         steps.add(HudXpTweenStep(fromProgress: 0, toProgress: target));
+        xpProgress = target;
         xpBarFull = pendingLevelUps > 1;
         pendingLevelUps -= 1;
         steps.add(const WaitStep(durationSeconds: 0.35));
@@ -8751,19 +8812,134 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       steps.add(ShowMessageStep(message: message.text));
       if (message.kind == RuntimePostBattleMessageKind.experience &&
           concernsDisplayedPokemon &&
-          finalXpProgress != null) {
-        final fromProgress = _battleXpProgressAtMount[activeLineupIndex] ?? 0.0;
-        final target = pendingLevelUps > 0 ? 1.0 : finalXpProgress;
+          targetXpProgress != null) {
+        final target = pendingLevelUps > 0 ? 1.0 : targetXpProgress;
         steps.add(
-          HudXpTweenStep(fromProgress: fromProgress, toProgress: target),
+          HudXpTweenStep(fromProgress: xpProgress, toProgress: target),
         );
+        xpProgress = target;
         xpBarFull = pendingLevelUps > 0;
         steps.add(const WaitStep(durationSeconds: 0.35));
         continue;
       }
       steps.add(const WaitStep(durationSeconds: 0.9));
     }
-    return BattleAnimationPlan(steps: List.unmodifiable(steps));
+    return (
+      plan: BattleAnimationPlan(steps: List.unmodifiable(steps)),
+      endXpProgress: xpProgress,
+    );
+  }
+
+  /// Pose une décision post-combat dans le panneau de la scène et attend le
+  /// choix du joueur. Le prompt reste le message du coordinator (le dernier
+  /// prompt du segment) ; les choix reprennent exactement ceux de l'écran
+  /// plein : Apprendre/Ne pas apprendre, la capacité à remplacer, ou
+  /// Évoluer/Refuser. Court-circuité si le flux meurt pendant l'attente.
+  Future<RuntimePostBattleCoordinatorResult?> _askPostBattleDecisionInScene({
+    required BattleOverlayComponent overlay,
+    required RuntimePostBattleTransaction transaction,
+    required PendingBattleMoveLearning? pendingMove,
+    required PendingBattleEvolution? pendingEvolution,
+    required List<RuntimePostBattleMessage> segmentMessages,
+  }) async {
+    final promptKinds = <RuntimePostBattleMessageKind>{
+      RuntimePostBattleMessageKind.moveLearningPrompt,
+      RuntimePostBattleMessageKind.moveReplacementPrompt,
+      RuntimePostBattleMessageKind.evolutionPrompt,
+    };
+    final promptText = segmentMessages
+            .where((message) => promptKinds.contains(message.kind))
+            .map((message) => message.text)
+            .lastOrNull ??
+        'Que faire ?';
+
+    final List<String> choices;
+    if (pendingMove != null) {
+      if (pendingMove.phase == BattleMoveLearningPhase.awaitingDecision) {
+        choices = const <String>['Apprendre', 'Ne pas apprendre'];
+      } else {
+        choices = <String>[
+          for (final moveId in transaction.pendingPartyMoveIds)
+            _resolveBattleMoveDisplayName(moveId, moveId),
+          'Ne pas apprendre',
+        ];
+      }
+    } else {
+      choices = const <String>['Évoluer', 'Refuser'];
+    }
+
+    final chosen = Completer<int>();
+    overlay.presentPostBattleDecision(
+      prompt: promptText,
+      choices: choices,
+      onChoice: (index) {
+        if (!chosen.isCompleted) chosen.complete(index);
+      },
+    );
+    // Le flux peut mourir pendant l'attente (reset, fin forcée) : la course
+    // avec le completer du flux évite un await orphelin — les gardes du
+    // appelant font le tri au réveil.
+    final chosenIndex = await Future.any(<Future<int?>>[
+      chosen.future,
+      _postBattleCompletionFuture.then((_) => null),
+    ]);
+    overlay.clearPostBattleDecision();
+    if (chosenIndex == null) return null;
+
+    if (pendingMove != null) {
+      if (pendingMove.phase == BattleMoveLearningPhase.awaitingDecision) {
+        return _postBattleDecisionCoordinator.resolveMoveLearning(
+          transaction: transaction,
+          decision: chosenIndex == 0
+              ? BattleMoveLearningDecision.learn(
+                  opportunityId: pendingMove.opportunityId,
+                  partySlot: pendingMove.partySlot,
+                  moveId: pendingMove.candidate.moveId,
+                )
+              : BattleMoveLearningDecision.decline(
+                  opportunityId: pendingMove.opportunityId,
+                  partySlot: pendingMove.partySlot,
+                  moveId: pendingMove.candidate.moveId,
+                ),
+        );
+      }
+      final moves = transaction.pendingPartyMoveIds;
+      return _postBattleDecisionCoordinator.resolveMoveLearning(
+        transaction: transaction,
+        decision: chosenIndex < moves.length
+            ? BattleMoveLearningDecision.replace(
+                opportunityId: pendingMove.opportunityId,
+                partySlot: pendingMove.partySlot,
+                moveId: pendingMove.candidate.moveId,
+                replaceMoveIndex: chosenIndex,
+                expectedReplacedMoveId: moves[chosenIndex],
+              )
+            : BattleMoveLearningDecision.decline(
+                opportunityId: pendingMove.opportunityId,
+                partySlot: pendingMove.partySlot,
+                moveId: pendingMove.candidate.moveId,
+              ),
+      );
+    }
+    final evolution = pendingEvolution!;
+    return _postBattleDecisionCoordinator.resolveEvolution(
+      transaction: transaction,
+      decision: chosenIndex == 0
+          ? BattleEvolutionDecision.accept(
+              opportunityId: evolution.opportunityId,
+              occurrenceId: evolution.occurrenceId,
+              partySlot: evolution.partySlot,
+              sourceSpeciesId: evolution.sourceSpeciesId,
+              targetSpeciesId: evolution.targetSpeciesId,
+            )
+          : BattleEvolutionDecision.refuse(
+              opportunityId: evolution.opportunityId,
+              occurrenceId: evolution.occurrenceId,
+              partySlot: evolution.partySlot,
+              sourceSpeciesId: evolution.sourceSpeciesId,
+              targetSpeciesId: evolution.targetSpeciesId,
+            ),
+    );
   }
 
   void _dismissBattleExitCurtainImmediately() {
