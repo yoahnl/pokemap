@@ -14,6 +14,7 @@ _ProjectBattleAudioConfig _$ProjectBattleAudioConfigFromJson(
   wildVictoryMusicPath: json['wildVictoryMusicPath'] as String?,
   trainerVictoryMusicPath: json['trainerVictoryMusicPath'] as String?,
   encounterMusicPath: json['encounterMusicPath'] as String?,
+  battleStartSePath: json['battleStartSePath'] as String?,
 );
 
 Map<String, dynamic> _$ProjectBattleAudioConfigToJson(
@@ -24,4 +25,5 @@ Map<String, dynamic> _$ProjectBattleAudioConfigToJson(
   'wildVictoryMusicPath': ?instance.wildVictoryMusicPath,
   'trainerVictoryMusicPath': ?instance.trainerVictoryMusicPath,
   'encounterMusicPath': ?instance.encounterMusicPath,
+  'battleStartSePath': ?instance.battleStartSePath,
 };

@@ -20,7 +20,10 @@ mixin _$ProjectBattleAudioConfig {
 @JsonKey(includeIfNull: false) String? get trainerBattleMusicPath;/// Thème de victoire d'un combat sauvage.
 @JsonKey(includeIfNull: false) String? get wildVictoryMusicPath;/// Thème de victoire d'un combat de dresseur.
 @JsonKey(includeIfNull: false) String? get trainerVictoryMusicPath;/// Musique de rencontre, jouée au repérage (le « ! ») avant le combat.
-@JsonKey(includeIfNull: false) String? get encounterMusicPath;
+@JsonKey(includeIfNull: false) String? get encounterMusicPath;/// Son de début de combat, joué au premier instant de la transition —
+/// BETA-BAT-016. Optionnel et ABSENT PAR DÉFAUT : parité avec la
+/// référence, dont le `battle_start_se` du projet de référence est vide.
+@JsonKey(includeIfNull: false) String? get battleStartSePath;
 /// Create a copy of ProjectBattleAudioConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -33,16 +36,16 @@ $ProjectBattleAudioConfigCopyWith<ProjectBattleAudioConfig> get copyWith => _$Pr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectBattleAudioConfig&&(identical(other.wildBattleMusicPath, wildBattleMusicPath) || other.wildBattleMusicPath == wildBattleMusicPath)&&(identical(other.trainerBattleMusicPath, trainerBattleMusicPath) || other.trainerBattleMusicPath == trainerBattleMusicPath)&&(identical(other.wildVictoryMusicPath, wildVictoryMusicPath) || other.wildVictoryMusicPath == wildVictoryMusicPath)&&(identical(other.trainerVictoryMusicPath, trainerVictoryMusicPath) || other.trainerVictoryMusicPath == trainerVictoryMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectBattleAudioConfig&&(identical(other.wildBattleMusicPath, wildBattleMusicPath) || other.wildBattleMusicPath == wildBattleMusicPath)&&(identical(other.trainerBattleMusicPath, trainerBattleMusicPath) || other.trainerBattleMusicPath == trainerBattleMusicPath)&&(identical(other.wildVictoryMusicPath, wildVictoryMusicPath) || other.wildVictoryMusicPath == wildVictoryMusicPath)&&(identical(other.trainerVictoryMusicPath, trainerVictoryMusicPath) || other.trainerVictoryMusicPath == trainerVictoryMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath)&&(identical(other.battleStartSePath, battleStartSePath) || other.battleStartSePath == battleStartSePath));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,wildBattleMusicPath,trainerBattleMusicPath,wildVictoryMusicPath,trainerVictoryMusicPath,encounterMusicPath);
+int get hashCode => Object.hash(runtimeType,wildBattleMusicPath,trainerBattleMusicPath,wildVictoryMusicPath,trainerVictoryMusicPath,encounterMusicPath,battleStartSePath);
 
 @override
 String toString() {
-  return 'ProjectBattleAudioConfig(wildBattleMusicPath: $wildBattleMusicPath, trainerBattleMusicPath: $trainerBattleMusicPath, wildVictoryMusicPath: $wildVictoryMusicPath, trainerVictoryMusicPath: $trainerVictoryMusicPath, encounterMusicPath: $encounterMusicPath)';
+  return 'ProjectBattleAudioConfig(wildBattleMusicPath: $wildBattleMusicPath, trainerBattleMusicPath: $trainerBattleMusicPath, wildVictoryMusicPath: $wildVictoryMusicPath, trainerVictoryMusicPath: $trainerVictoryMusicPath, encounterMusicPath: $encounterMusicPath, battleStartSePath: $battleStartSePath)';
 }
 
 
@@ -53,7 +56,7 @@ abstract mixin class $ProjectBattleAudioConfigCopyWith<$Res>  {
   factory $ProjectBattleAudioConfigCopyWith(ProjectBattleAudioConfig value, $Res Function(ProjectBattleAudioConfig) _then) = _$ProjectBattleAudioConfigCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? wildBattleMusicPath,@JsonKey(includeIfNull: false) String? trainerBattleMusicPath,@JsonKey(includeIfNull: false) String? wildVictoryMusicPath,@JsonKey(includeIfNull: false) String? trainerVictoryMusicPath,@JsonKey(includeIfNull: false) String? encounterMusicPath
+@JsonKey(includeIfNull: false) String? wildBattleMusicPath,@JsonKey(includeIfNull: false) String? trainerBattleMusicPath,@JsonKey(includeIfNull: false) String? wildVictoryMusicPath,@JsonKey(includeIfNull: false) String? trainerVictoryMusicPath,@JsonKey(includeIfNull: false) String? encounterMusicPath,@JsonKey(includeIfNull: false) String? battleStartSePath
 });
 
 
@@ -70,13 +73,14 @@ class _$ProjectBattleAudioConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProjectBattleAudioConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? wildBattleMusicPath = freezed,Object? trainerBattleMusicPath = freezed,Object? wildVictoryMusicPath = freezed,Object? trainerVictoryMusicPath = freezed,Object? encounterMusicPath = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? wildBattleMusicPath = freezed,Object? trainerBattleMusicPath = freezed,Object? wildVictoryMusicPath = freezed,Object? trainerVictoryMusicPath = freezed,Object? encounterMusicPath = freezed,Object? battleStartSePath = freezed,}) {
   return _then(_self.copyWith(
 wildBattleMusicPath: freezed == wildBattleMusicPath ? _self.wildBattleMusicPath : wildBattleMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,trainerBattleMusicPath: freezed == trainerBattleMusicPath ? _self.trainerBattleMusicPath : trainerBattleMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,wildVictoryMusicPath: freezed == wildVictoryMusicPath ? _self.wildVictoryMusicPath : wildVictoryMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,trainerVictoryMusicPath: freezed == trainerVictoryMusicPath ? _self.trainerVictoryMusicPath : trainerVictoryMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,encounterMusicPath: freezed == encounterMusicPath ? _self.encounterMusicPath : encounterMusicPath // ignore: cast_nullable_to_non_nullable
+as String?,battleStartSePath: freezed == battleStartSePath ? _self.battleStartSePath : battleStartSePath // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -162,10 +166,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? wildBattleMusicPath, @JsonKey(includeIfNull: false)  String? trainerBattleMusicPath, @JsonKey(includeIfNull: false)  String? wildVictoryMusicPath, @JsonKey(includeIfNull: false)  String? trainerVictoryMusicPath, @JsonKey(includeIfNull: false)  String? encounterMusicPath)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? wildBattleMusicPath, @JsonKey(includeIfNull: false)  String? trainerBattleMusicPath, @JsonKey(includeIfNull: false)  String? wildVictoryMusicPath, @JsonKey(includeIfNull: false)  String? trainerVictoryMusicPath, @JsonKey(includeIfNull: false)  String? encounterMusicPath, @JsonKey(includeIfNull: false)  String? battleStartSePath)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectBattleAudioConfig() when $default != null:
-return $default(_that.wildBattleMusicPath,_that.trainerBattleMusicPath,_that.wildVictoryMusicPath,_that.trainerVictoryMusicPath,_that.encounterMusicPath);case _:
+return $default(_that.wildBattleMusicPath,_that.trainerBattleMusicPath,_that.wildVictoryMusicPath,_that.trainerVictoryMusicPath,_that.encounterMusicPath,_that.battleStartSePath);case _:
   return orElse();
 
 }
@@ -183,10 +187,10 @@ return $default(_that.wildBattleMusicPath,_that.trainerBattleMusicPath,_that.wil
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? wildBattleMusicPath, @JsonKey(includeIfNull: false)  String? trainerBattleMusicPath, @JsonKey(includeIfNull: false)  String? wildVictoryMusicPath, @JsonKey(includeIfNull: false)  String? trainerVictoryMusicPath, @JsonKey(includeIfNull: false)  String? encounterMusicPath)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? wildBattleMusicPath, @JsonKey(includeIfNull: false)  String? trainerBattleMusicPath, @JsonKey(includeIfNull: false)  String? wildVictoryMusicPath, @JsonKey(includeIfNull: false)  String? trainerVictoryMusicPath, @JsonKey(includeIfNull: false)  String? encounterMusicPath, @JsonKey(includeIfNull: false)  String? battleStartSePath)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectBattleAudioConfig():
-return $default(_that.wildBattleMusicPath,_that.trainerBattleMusicPath,_that.wildVictoryMusicPath,_that.trainerVictoryMusicPath,_that.encounterMusicPath);case _:
+return $default(_that.wildBattleMusicPath,_that.trainerBattleMusicPath,_that.wildVictoryMusicPath,_that.trainerVictoryMusicPath,_that.encounterMusicPath,_that.battleStartSePath);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +207,10 @@ return $default(_that.wildBattleMusicPath,_that.trainerBattleMusicPath,_that.wil
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? wildBattleMusicPath, @JsonKey(includeIfNull: false)  String? trainerBattleMusicPath, @JsonKey(includeIfNull: false)  String? wildVictoryMusicPath, @JsonKey(includeIfNull: false)  String? trainerVictoryMusicPath, @JsonKey(includeIfNull: false)  String? encounterMusicPath)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? wildBattleMusicPath, @JsonKey(includeIfNull: false)  String? trainerBattleMusicPath, @JsonKey(includeIfNull: false)  String? wildVictoryMusicPath, @JsonKey(includeIfNull: false)  String? trainerVictoryMusicPath, @JsonKey(includeIfNull: false)  String? encounterMusicPath, @JsonKey(includeIfNull: false)  String? battleStartSePath)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectBattleAudioConfig() when $default != null:
-return $default(_that.wildBattleMusicPath,_that.trainerBattleMusicPath,_that.wildVictoryMusicPath,_that.trainerVictoryMusicPath,_that.encounterMusicPath);case _:
+return $default(_that.wildBattleMusicPath,_that.trainerBattleMusicPath,_that.wildVictoryMusicPath,_that.trainerVictoryMusicPath,_that.encounterMusicPath,_that.battleStartSePath);case _:
   return null;
 
 }
@@ -218,7 +222,7 @@ return $default(_that.wildBattleMusicPath,_that.trainerBattleMusicPath,_that.wil
 @JsonSerializable()
 
 class _ProjectBattleAudioConfig implements ProjectBattleAudioConfig {
-  const _ProjectBattleAudioConfig({@JsonKey(includeIfNull: false) this.wildBattleMusicPath, @JsonKey(includeIfNull: false) this.trainerBattleMusicPath, @JsonKey(includeIfNull: false) this.wildVictoryMusicPath, @JsonKey(includeIfNull: false) this.trainerVictoryMusicPath, @JsonKey(includeIfNull: false) this.encounterMusicPath});
+  const _ProjectBattleAudioConfig({@JsonKey(includeIfNull: false) this.wildBattleMusicPath, @JsonKey(includeIfNull: false) this.trainerBattleMusicPath, @JsonKey(includeIfNull: false) this.wildVictoryMusicPath, @JsonKey(includeIfNull: false) this.trainerVictoryMusicPath, @JsonKey(includeIfNull: false) this.encounterMusicPath, @JsonKey(includeIfNull: false) this.battleStartSePath});
   factory _ProjectBattleAudioConfig.fromJson(Map<String, dynamic> json) => _$ProjectBattleAudioConfigFromJson(json);
 
 /// Combat contre un Pokémon sauvage.
@@ -231,6 +235,10 @@ class _ProjectBattleAudioConfig implements ProjectBattleAudioConfig {
 @override@JsonKey(includeIfNull: false) final  String? trainerVictoryMusicPath;
 /// Musique de rencontre, jouée au repérage (le « ! ») avant le combat.
 @override@JsonKey(includeIfNull: false) final  String? encounterMusicPath;
+/// Son de début de combat, joué au premier instant de la transition —
+/// BETA-BAT-016. Optionnel et ABSENT PAR DÉFAUT : parité avec la
+/// référence, dont le `battle_start_se` du projet de référence est vide.
+@override@JsonKey(includeIfNull: false) final  String? battleStartSePath;
 
 /// Create a copy of ProjectBattleAudioConfig
 /// with the given fields replaced by the non-null parameter values.
@@ -245,16 +253,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectBattleAudioConfig&&(identical(other.wildBattleMusicPath, wildBattleMusicPath) || other.wildBattleMusicPath == wildBattleMusicPath)&&(identical(other.trainerBattleMusicPath, trainerBattleMusicPath) || other.trainerBattleMusicPath == trainerBattleMusicPath)&&(identical(other.wildVictoryMusicPath, wildVictoryMusicPath) || other.wildVictoryMusicPath == wildVictoryMusicPath)&&(identical(other.trainerVictoryMusicPath, trainerVictoryMusicPath) || other.trainerVictoryMusicPath == trainerVictoryMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectBattleAudioConfig&&(identical(other.wildBattleMusicPath, wildBattleMusicPath) || other.wildBattleMusicPath == wildBattleMusicPath)&&(identical(other.trainerBattleMusicPath, trainerBattleMusicPath) || other.trainerBattleMusicPath == trainerBattleMusicPath)&&(identical(other.wildVictoryMusicPath, wildVictoryMusicPath) || other.wildVictoryMusicPath == wildVictoryMusicPath)&&(identical(other.trainerVictoryMusicPath, trainerVictoryMusicPath) || other.trainerVictoryMusicPath == trainerVictoryMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath)&&(identical(other.battleStartSePath, battleStartSePath) || other.battleStartSePath == battleStartSePath));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,wildBattleMusicPath,trainerBattleMusicPath,wildVictoryMusicPath,trainerVictoryMusicPath,encounterMusicPath);
+int get hashCode => Object.hash(runtimeType,wildBattleMusicPath,trainerBattleMusicPath,wildVictoryMusicPath,trainerVictoryMusicPath,encounterMusicPath,battleStartSePath);
 
 @override
 String toString() {
-  return 'ProjectBattleAudioConfig(wildBattleMusicPath: $wildBattleMusicPath, trainerBattleMusicPath: $trainerBattleMusicPath, wildVictoryMusicPath: $wildVictoryMusicPath, trainerVictoryMusicPath: $trainerVictoryMusicPath, encounterMusicPath: $encounterMusicPath)';
+  return 'ProjectBattleAudioConfig(wildBattleMusicPath: $wildBattleMusicPath, trainerBattleMusicPath: $trainerBattleMusicPath, wildVictoryMusicPath: $wildVictoryMusicPath, trainerVictoryMusicPath: $trainerVictoryMusicPath, encounterMusicPath: $encounterMusicPath, battleStartSePath: $battleStartSePath)';
 }
 
 
@@ -265,7 +273,7 @@ abstract mixin class _$ProjectBattleAudioConfigCopyWith<$Res> implements $Projec
   factory _$ProjectBattleAudioConfigCopyWith(_ProjectBattleAudioConfig value, $Res Function(_ProjectBattleAudioConfig) _then) = __$ProjectBattleAudioConfigCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? wildBattleMusicPath,@JsonKey(includeIfNull: false) String? trainerBattleMusicPath,@JsonKey(includeIfNull: false) String? wildVictoryMusicPath,@JsonKey(includeIfNull: false) String? trainerVictoryMusicPath,@JsonKey(includeIfNull: false) String? encounterMusicPath
+@JsonKey(includeIfNull: false) String? wildBattleMusicPath,@JsonKey(includeIfNull: false) String? trainerBattleMusicPath,@JsonKey(includeIfNull: false) String? wildVictoryMusicPath,@JsonKey(includeIfNull: false) String? trainerVictoryMusicPath,@JsonKey(includeIfNull: false) String? encounterMusicPath,@JsonKey(includeIfNull: false) String? battleStartSePath
 });
 
 
@@ -282,13 +290,14 @@ class __$ProjectBattleAudioConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProjectBattleAudioConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? wildBattleMusicPath = freezed,Object? trainerBattleMusicPath = freezed,Object? wildVictoryMusicPath = freezed,Object? trainerVictoryMusicPath = freezed,Object? encounterMusicPath = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? wildBattleMusicPath = freezed,Object? trainerBattleMusicPath = freezed,Object? wildVictoryMusicPath = freezed,Object? trainerVictoryMusicPath = freezed,Object? encounterMusicPath = freezed,Object? battleStartSePath = freezed,}) {
   return _then(_ProjectBattleAudioConfig(
 wildBattleMusicPath: freezed == wildBattleMusicPath ? _self.wildBattleMusicPath : wildBattleMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,trainerBattleMusicPath: freezed == trainerBattleMusicPath ? _self.trainerBattleMusicPath : trainerBattleMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,wildVictoryMusicPath: freezed == wildVictoryMusicPath ? _self.wildVictoryMusicPath : wildVictoryMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,trainerVictoryMusicPath: freezed == trainerVictoryMusicPath ? _self.trainerVictoryMusicPath : trainerVictoryMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,encounterMusicPath: freezed == encounterMusicPath ? _self.encounterMusicPath : encounterMusicPath // ignore: cast_nullable_to_non_nullable
+as String?,battleStartSePath: freezed == battleStartSePath ? _self.battleStartSePath : battleStartSePath // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

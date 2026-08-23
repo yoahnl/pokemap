@@ -94,6 +94,11 @@ enum BattleCombatantMotionKind {
   fastDash,
   switchOut,
   switchIn,
+
+  /// Glissement d'entrée en combat — BETA-BAT-016. L'ennemi traverse depuis
+  /// la gauche, le joueur depuis la droite (parité RBY : `x ± 360` → `x`),
+  /// opacité pleine du premier au dernier pixel.
+  introSlide,
 }
 
 class BattleAnimationPlan {

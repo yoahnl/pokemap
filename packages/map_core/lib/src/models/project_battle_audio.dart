@@ -31,6 +31,11 @@ abstract class ProjectBattleAudioConfig with _$ProjectBattleAudioConfig {
 
     /// Musique de rencontre, jouée au repérage (le « ! ») avant le combat.
     @JsonKey(includeIfNull: false) String? encounterMusicPath,
+
+    /// Son de début de combat, joué au premier instant de la transition —
+    /// BETA-BAT-016. Optionnel et ABSENT PAR DÉFAUT : parité avec la
+    /// référence, dont le `battle_start_se` du projet de référence est vide.
+    @JsonKey(includeIfNull: false) String? battleStartSePath,
   }) = _ProjectBattleAudioConfig;
 
   factory ProjectBattleAudioConfig.fromJson(Map<String, dynamic> json) =>

@@ -438,6 +438,68 @@ void main() {
       );
     });
 
+    test('BETA-BAT-016 : le vrai handoff traverse la pré-transition',
+        () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(_playerState()),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      Future<void> pumpTicks({
+        required bool Function() until,
+        required int maxTicks,
+      }) async {
+        for (var i = 0; i < maxTicks; i++) {
+          if (until()) return;
+          game.update(0.016);
+          await Future<void>.delayed(Duration.zero);
+        }
+        fail('Timed out after $maxTicks ticks.');
+      }
+
+      await pumpTicks(
+        until: () => !game.debugIsMapActivationDispatchInFlight,
+        maxTicks: 240,
+      );
+      game.debugStartBattleHandoffForTest(_wildRequest(manifest, map));
+      expect(
+        game.debugBattleTransitionOverlayMounted,
+        isTrue,
+        reason: 'la pré-transition se joue par-dessus la carte',
+      );
+
+      // Le chargement court en PARALLÈLE : la scène se monte sous le noir.
+      await pumpTicks(
+        until: () => game.debugBattleOverlayMounted,
+        maxTicks: 400,
+      );
+      expect(
+        game.debugBattleOverlayComponent!.isTurnPresentationActive,
+        isTrue,
+        reason: 'critère 5 : verrouillé du montage au déverrouillage final',
+      );
+      expect(game.debugBattleOverlayComponent!.selectRootEntry(0), isFalse);
+
+      // RBY 2,25 s + fondu 0,25 s + glissement 0,8 s + 2 messages ≈ 4,2 s.
+      await pumpTicks(
+        until: () =>
+            !game.debugBattleOverlayComponent!.isTurnPresentationActive,
+        maxTicks: 800,
+      );
+      expect(
+        game.debugBattleTransitionOverlayMounted,
+        isFalse,
+        reason: 'la pré-transition ne survit pas au reveal',
+      );
+      expect(game.debugFlowPhaseName, 'battle');
+      expect(game.debugBattleOverlayComponent!.selectRootEntry(0), isTrue);
+    });
+
     test('the battle surface is driven by controller inputs alone', () async {
       // « Clavier, manette et tactile » de BETA-BAT-007. La surface de combat est
       // pilotée par le vocabulaire AGNOSTIQUE `RuntimeInputControl` : croix

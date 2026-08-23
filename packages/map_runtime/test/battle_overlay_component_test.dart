@@ -3414,6 +3414,74 @@ void main() {
       expect(presented, hasLength(1), reason: 'une seule fanfare par combat');
     });
 
+    // BETA-BAT-016, critère 5 : le joueur ne peut RIEN faire avant le
+    // déverrouillage final de l'intro, et le verrou ne survit jamais.
+    test('l’intro verrouille les commandes du montage au dernier message',
+        () async {
+      final session = _session(
+        isTrainerBattle: true,
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 40,
+          stats: _stats(),
+          moves: <BattleMoveData>[_runtimeStrike(power: 10)],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          currentHp: 18,
+          stats: _stats(),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: session,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+        introEnabled: true,
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      expect(
+        overlay.isTurnPresentationActive,
+        isTrue,
+        reason: 'le plan d’intro EN ATTENTE verrouille déjà, sous le noir',
+      );
+      expect(
+        overlay.selectRootEntry(0),
+        isFalse,
+        reason: 'aucune commande ne passe avant le déverrouillage final',
+      );
+
+      overlay.startIntro();
+      expect(overlay.isTurnPresentationActive, isTrue);
+      expect(overlay.selectRootEntry(0), isFalse);
+
+      // Fondu 0,25 s + glissement 0,8 s + 3 messages × 0,42 s ≈ 2,31 s.
+      for (var step = 0; step < 40; step += 1) {
+        overlay.updateTree(0.1);
+      }
+      await overlay.waitForPendingVisualSync();
+
+      expect(
+        overlay.isTurnPresentationActive,
+        isFalse,
+        reason: 'le verrou ne survit pas à l’intro',
+      );
+      expect(overlay.selectRootEntry(0), isTrue);
+
+      overlay.startIntro();
+      expect(
+        overlay.isTurnPresentationActive,
+        isFalse,
+        reason: 'le déverrouillage est unique : une intro rejouée est un no-op',
+      );
+    });
+
     test('plays a short turn presentation with hp tween on damage', () async {
       final session = _session(
         player: _combatant(

@@ -7,6 +7,7 @@ import 'element_collision_profile.dart';
 import 'environment.dart';
 import 'enums.dart';
 import 'project_battle_audio.dart';
+import 'project_battle_transitions.dart';
 import 'project_trainer.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
@@ -504,6 +505,10 @@ abstract class ProjectManifest with _$ProjectManifest {
 
     /// Musiques de combat par défaut du projet — BETA-BAT-015.
     @JsonKey(includeIfNull: false) ProjectBattleAudioConfig? battleAudio,
+
+    /// Transitions de début de combat — BETA-BAT-016.
+    @JsonKey(includeIfNull: false)
+    ProjectBattleTransitionConfig? battleTransitions,
     @Default(ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1))
     ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,

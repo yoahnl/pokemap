@@ -340,6 +340,31 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _animationDistancePx = 46;
   }
 
+  /// Pose le combattant hors écran, à sa position de départ d'intro —
+  /// BETA-BAT-016. Appelé avant le premier rendu pour qu'aucune image ne le
+  /// montre à sa place finale sous le noir de la pré-transition.
+  void holdIntroSlideOffscreen({required double distancePx}) {
+    _animationDistancePx = distancePx;
+    _animation = _CombatantPresentationAnimation.none;
+    _visualOffset = _introSlideOffset(progress: 1);
+    _visualOpacity = 1;
+    _applyVisualPresentation();
+  }
+
+  /// Glissement d'entrée en combat (parité `create_sprite_move_animation`).
+  Future<void> playIntroSlide({
+    required double durationSeconds,
+    required double distancePx,
+  }) async {
+    _animationDistancePx = distancePx;
+    _visualOffset = _introSlideOffset(progress: 1);
+    _visualOpacity = 1;
+    _applyVisualPresentation();
+    _animation = _CombatantPresentationAnimation.introSlide;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+  }
+
   Future<void> playFaint({
     required double durationSeconds,
   }) async {
@@ -852,6 +877,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
       case _CombatantPresentationAnimation.switchIn:
         _visualOffset = _switchTravelOffset(progress: 1 - progress);
         _visualOpacity = progress;
+      case _CombatantPresentationAnimation.introSlide:
+        _visualOffset = _introSlideOffset(progress: 1 - progress);
+        _visualOpacity = 1;
       case _CombatantPresentationAnimation.faint:
         _visualOffset = Offset(0, _animationDistancePx * progress);
         _visualOpacity = 1 - progress;
@@ -881,6 +909,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
       case _CombatantPresentationAnimation.fastDash:
       case _CombatantPresentationAnimation.shake:
       case _CombatantPresentationAnimation.switchIn:
+      case _CombatantPresentationAnimation.introSlide:
         _visualOffset = Offset.zero;
         _visualOpacity = 1;
         _visualScaleX = 1;
@@ -901,6 +930,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
     _animation = _CombatantPresentationAnimation.none;
     _applyVisualPresentation();
+  }
+
+  /// Le départ du glissement d'intro : l'ennemi vient de la gauche, le
+  /// joueur de la droite — la parité RBY où `enemy.x -= 360` et
+  /// `actor.x += 360` avant que tout le monde glisse vers sa place.
+  Offset _introSlideOffset({required double progress}) {
+    final horizontalDirection = isPlayerSide ? 1.0 : -1.0;
+    return Offset(_animationDistancePx * horizontalDirection * progress, 0);
   }
 
   Offset _switchTravelOffset({
@@ -998,6 +1035,7 @@ enum _CombatantPresentationAnimation {
   shake,
   switchOut,
   switchIn,
+  introSlide,
   faint,
   compress,
   ellipse,

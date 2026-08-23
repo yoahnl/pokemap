@@ -140,6 +140,11 @@ _ProjectManifest _$ProjectManifestFromJson(
       : ProjectBattleAudioConfig.fromJson(
           json['battleAudio'] as Map<String, dynamic>,
         ),
+  battleTransitions: json['battleTransitions'] == null
+      ? null
+      : ProjectBattleTransitionConfig.fromJson(
+          json['battleTransitions'] as Map<String, dynamic>,
+        ),
   pokemon: json['pokemon'] == null
       ? const ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1)
       : ProjectPokemonConfig.fromJson(json['pokemon'] as Map<String, dynamic>),
@@ -228,6 +233,7 @@ Map<String, dynamic> _$ProjectManifestToJson(
   ),
   'settings': instance.settings.toJson(),
   'battleAudio': ?instance.battleAudio?.toJson(),
+  'battleTransitions': ?instance.battleTransitions?.toJson(),
   'pokemon': instance.pokemon.toJson(),
   'newGame': instance.newGame.toJson(),
   'presentation': ?instance.presentation?.toJson(),

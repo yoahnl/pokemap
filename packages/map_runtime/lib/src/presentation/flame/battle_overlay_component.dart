@@ -21,6 +21,7 @@ import 'battle_camera_rig.dart';
 import 'battle_debug_panel_component.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_fx_layer_component.dart';
+import 'battle_intro_animation_planner.dart';
 import 'battle_medicine_target_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
@@ -476,6 +477,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.resolveMoveDisplayName = _defaultBattleMoveDisplayName,
     this.playSfx,
     this.onOutcomePresented,
+    this.introEnabled = false,
     this.resolveSpeciesDisplayName = _battleDisplayName,
     this.showDebugPanel = false,
     this.motionScale = 1.0,
@@ -681,7 +683,31 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCommandMenuMode get currentMenuMode => _menuMode;
 
   @visibleForTesting
-  bool get isTurnPresentationActive => _animationRunner?.isActive ?? false;
+  /// BETA-BAT-016 : l'entrée en combat se joue comme une présentation.
+  ///
+  /// Le plan d'intro est construit au montage et reste EN ATTENTE sous le
+  /// noir de la pré-transition : pendant cette attente, les commandes sont
+  /// verrouillées par le même gate que les tours. [startIntro] le lance au
+  /// moment où la pré-transition fond son noir ; le déverrouillage est la
+  /// fin du plan, une seule fois, comme tout plan du runner.
+  final bool introEnabled;
+  BattleAnimationPlan? _pendingIntroPlan;
+
+  void startIntro() {
+    final plan = _pendingIntroPlan;
+    if (plan == null) return;
+    _pendingIntroPlan = null;
+    _introPlayed = true;
+    _animationRunner?.start(plan);
+    _handleAnimationPresentationChanged();
+  }
+
+  /// L'intro a déjà déroulé les messages d'ouverture un à un : les réafficher
+  /// en bloc dans la narration du premier tour serait une redite.
+  bool _introPlayed = false;
+
+  bool get isTurnPresentationActive =>
+      (_animationRunner?.isActive ?? false) || _pendingIntroPlan != null;
 
   /// Une présentation est en cours OU pas encore démarrée.
   ///
@@ -868,6 +894,25 @@ class BattleOverlayComponent extends PositionComponent {
     debugPrint(
       '[perf][battle][real] overlay.playerCombatant=${playerCombatantStopwatch.elapsedMilliseconds}ms',
     );
+
+    if (introEnabled) {
+      // BETA-BAT-016 : les combattants attendent hors écran, à leur position
+      // de départ d'intro, AVANT le premier rendu — sous le noir de la
+      // pré-transition, personne ne doit apparaître à sa place finale.
+      // 360 px sur l'écran 320 de la référence = 1,125 largeur d'écran.
+      final introSlideDistancePx = size.x * 1.125;
+      _enemyCombatant?.holdIntroSlideOffscreen(
+        distancePx: introSlideDistancePx,
+      );
+      _playerCombatant?.holdIntroSlideOffscreen(
+        distancePx: introSlideDistancePx,
+      );
+      _pendingIntroPlan = buildBattleIntroAnimationPlan(
+        session: _session,
+        slideDistancePx: introSlideDistancePx,
+        resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+      );
+    }
 
     _fxLayer = BattleFxLayerComponent(
       size: size.clone(),
@@ -1617,15 +1662,21 @@ class BattleOverlayComponent extends PositionComponent {
           _session,
           resolveSpeciesDisplayName: resolveSpeciesDisplayName,
         );
+    final defaultNarration =
+        _introPlayed &&
+                !_session.state.isFinished &&
+                _session.state.currentTurn == null
+            ? const <String>[]
+            : buildBattleNarrationLinesForOverlay(
+                _session,
+                resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+              );
     final resolvedNarration = isPresenting
         ? const <String>[]
         : (medicineTargetNarration ??
             bagNarration ??
             partyNarration ??
-            buildBattleNarrationLinesForOverlay(
-              _session,
-              resolveSpeciesDisplayName: resolveSpeciesDisplayName,
-            ));
+            defaultNarration);
 
     _commandPanel?.sync(
       battleLabel: _titleForSession(),
@@ -2714,6 +2765,13 @@ class BattleOverlayComponent extends PositionComponent {
       case BattleCombatantMotionKind.switchIn:
         unawaited(
           combatant.playSwitchIn(durationSeconds: step.durationSeconds),
+        );
+      case BattleCombatantMotionKind.introSlide:
+        unawaited(
+          combatant.playIntroSlide(
+            durationSeconds: step.durationSeconds,
+            distancePx: step.distancePx,
+          ),
         );
     }
   }

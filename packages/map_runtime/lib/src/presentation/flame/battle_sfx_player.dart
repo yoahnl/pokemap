@@ -69,6 +69,32 @@ final class FlameAudioBattleSfxPlayer {
     }();
   }
 
+  /// Joue un fichier audio du PROJET, tir-et-oubli — BETA-BAT-016.
+  ///
+  /// Le son de début de combat est un chemin projet, pas un asset embarqué :
+  /// même cycle de vie que les sons nommés, même tolérance aux échecs.
+  void playProjectFile(String absolutePath) {
+    if (_disposed) return;
+    final player = AudioPlayer()
+      ..audioCache = AudioCache(prefix: '');
+    _livePlayers.add(player);
+    player.onPlayerComplete.first.whenComplete(() => _release(player));
+    () async {
+      try {
+        await player.setReleaseMode(ReleaseMode.release);
+        await player.play(DeviceFileSource(absolutePath));
+      } on Object catch (error) {
+        if (_reportedMisses.add(absolutePath)) {
+          debugPrint(
+            '[battle-sfx] project file playback failed "$absolutePath": '
+            '$error',
+          );
+        }
+        await _release(player);
+      }
+    }();
+  }
+
   Future<void> _release(AudioPlayer player) async {
     if (!_livePlayers.remove(player)) return;
     try {

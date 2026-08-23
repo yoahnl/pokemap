@@ -124,6 +124,7 @@ import 'runtime_input_event.dart';
 import 'runtime_input_authority.dart';
 import 'runtime_input_key_bindings.dart';
 import 'battle_transition_overlay_component.dart';
+import 'battle_transition_spec.dart';
 import 'dialogue_overlay_component.dart';
 import 'dialogue_text_speed.dart';
 import 'cinematic_emote_sprite_cache.dart';
@@ -2818,6 +2819,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool get debugPsdkBattleSessionActive => _psdkBattleSession != null;
 
   @visibleForTesting
+  /// Traverse le VRAI flux d'entrée en combat, pré-transition comprise —
+  /// BETA-BAT-016. Contrairement à [debugOpenBattleForTest] qui monte la
+  /// scène directement, ce seam prouve la séquence complète : flash, noir
+  /// tenu, chargement en parallèle, reveal, intro, déverrouillage.
+  @visibleForTesting
+  void debugStartBattleHandoffForTest(BattleStartRequest request) {
+    _startBattleHandoff(request);
+  }
+
+  @visibleForTesting
+  bool get debugBattleTransitionOverlayMounted =>
+      _battleTransitionOverlay != null;
+
   Future<void> debugOpenBattleForTest(BattleStartRequest request) async {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       throw StateError('Battle test seam requires overworld flow.');
@@ -7668,18 +7682,56 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     debugPrint(
       '[battle] transition started requestId=${request.requestId} kind=${request.kind.name}',
     );
-    final overlay = BattleTransitionOverlayComponent(
+    // BETA-BAT-016 : la pré-transition réelle (flash, planche, noir tenu) se
+    // joue par-dessus la carte pendant que le chargement du combat court en
+    // parallèle. La scène est révélée quand les DEUX sont prêts — le noir
+    // tient tant que le mapping n'a pas fini, exactement comme un vrai jeu
+    // masque son chargement derrière sa transition.
+    final spec = resolveBattleTransitionSpec(
       request: request,
+      manifest: _bundle.manifest,
+    );
+    final battleStartSePath =
+        _bundle.manifest.battleAudio?.battleStartSePath?.trim();
+    if (battleStartSePath != null && battleStartSePath.isNotEmpty) {
+      (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer()).playProjectFile(
+        p.normalize(
+          p.join(_bundle.projectRootDirectory, battleStartSePath),
+        ),
+      );
+    }
+    final overlay = BattleTransitionOverlayComponent(
+      spec: spec,
       viewportSize: camera.viewport.size,
-      onFinished: () {
-        // Le mapping vers BattleSetup peut maintenant lire le vrai projet et
-        // échouer explicitement. On déclenche donc l'ouverture de manière async
-        // au lieu de supposer qu'un setup placeholder sera toujours disponible.
-        unawaited(_openBattleOverlay(request));
-      },
+      onBlackHeld: _maybeRevealBattleScene,
     );
     camera.viewport.add(overlay);
     _battleTransitionOverlay = overlay;
+    // Le mapping vers BattleSetup peut lire le vrai projet et échouer
+    // explicitement ; il court en parallèle de la pré-transition et monte la
+    // scène sous le noir.
+    unawaited(_openBattleOverlay(request));
+  }
+
+  /// Révèle la scène de combat quand la pré-transition tient son noir ET que
+  /// l'overlay de combat est monté dessous — l'ordre d'arrivée des deux
+  /// événements est indifférent.
+  void _maybeRevealBattleScene() {
+    final battle = _battleOverlay;
+    if (battle == null) {
+      return;
+    }
+    final transition = _battleTransitionOverlay;
+    if (transition == null) {
+      battle.startIntro();
+      return;
+    }
+    if (!transition.isHoldingBlack) {
+      return;
+    }
+    _battleTransitionOverlay = null;
+    transition.revealAndDismiss();
+    battle.startIntro();
   }
 
   /// Ouvre l'overlay de combat après la transition.
@@ -7694,8 +7746,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_flowPhase != _RuntimeFlowPhase.battleTransition) {
       return;
     }
-    _battleTransitionOverlay?.removeFromParent();
-    _battleTransitionOverlay = null;
+    // BETA-BAT-016 : la pré-transition n'est PLUS retirée ici. Elle vit
+    // par-dessus le chargement et tombe au reveal (_maybeRevealBattleScene) ;
+    // les chemins d'échec la retirent déjà explicitement.
     final battleStopwatch = Stopwatch()..start();
     try {
       await beforeBattleHandoffPreparation?.call();
@@ -7898,6 +7951,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'battle',
         'overlay',
         () => BattleOverlayComponent(
+          // L'intro n'existe que sous une vraie pré-transition : le seam de
+          // test `debugOpenBattleForTest` et tout chemin sans transition
+          // montent la scène immédiatement jouable, comme avant BAT-016.
+          introEnabled: _battleTransitionOverlay != null,
           playSfx: (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer()).play,
           onOutcomePresented: (outcome) {
             _battleVictoryMusicActive = outcome.isVictory || outcome.isCaptured;
@@ -7936,6 +7993,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       overlay.setUseFlutterCommandOverlay(_preferBattleFlutterCommandOverlay);
       _battleOverlay = overlay;
       _syncRuntimeMusic();
+      _maybeRevealBattleScene();
       battleStopwatch.stop();
       debugPrint(
           '[perf][battle] total=${battleStopwatch.elapsedMilliseconds}ms');
