@@ -593,4 +593,110 @@ void main() {
       expect(runner.currentHpTweenStep, isNull);
     });
   });
+
+  // BETA-BAT-014 : un son du plan est un accent de durée nulle.
+  //
+  // Dans un groupe parallèle il part à l'offset du groupe — la même frame que
+  // le clignotement et la barre de PV — et seul, il se déclenche sans allonger
+  // le tour.
+  group('BETA-BAT-014 — PlaySeStep', () {
+    test('dans un groupe parallèle, le son part au démarrage du groupe', () {
+      final events = <String>[];
+      final runner = BattleAnimationRunner(
+        onPresentationChanged: () {},
+        onSpawnFx: (_) {},
+        onScreenFlash: (_) {},
+        onCombatantMotion: (_) {},
+        onCombatantFlash: (step) => events.add('flash'),
+        onCombatantShake: (_) {},
+        onFaintCombatant: (_) {},
+        onHudHpTween: (step) => events.add('hp'),
+        onBarrierPulse: (_) {},
+        onSwapCombatantVisual: (_) {},
+        onPlaySe: (step) =>
+            events.add('se:${step.seName}:${step.volume}:${step.pitch}'),
+      );
+
+      const plan = BattleAnimationPlan(
+        steps: <BattleAnimationStep>[
+          AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: <BattleAnimationStep>[
+              PlaySeStep(seName: 'hit'),
+              CombatantFlashStep(
+                side: BattleSideId.enemy,
+                durationSeconds: 0.6,
+              ),
+              HudHpTweenStep(
+                side: BattleSideId.enemy,
+                fromHp: 20,
+                toHp: 8,
+                durationMs: 200,
+              ),
+            ],
+          ),
+        ],
+      );
+      runner.start(plan);
+
+      expect(
+        events,
+        containsAll(<String>['se:hit:100:100', 'hp']),
+        reason: 'le son et la barre partent à la même frame, au démarrage',
+      );
+      expect(runner.isActive, isTrue);
+    });
+
+    test('seul, un son ne consomme aucun temps de tour', () {
+      final events = <String>[];
+      final runner = BattleAnimationRunner(
+        onPresentationChanged: () {},
+        onSpawnFx: (_) {},
+        onScreenFlash: (_) {},
+        onCombatantMotion: (_) {},
+        onCombatantFlash: (_) {},
+        onCombatantShake: (_) {},
+        onFaintCombatant: (_) {},
+        onHudHpTween: (_) {},
+        onBarrierPulse: (_) {},
+        onSwapCombatantVisual: (_) {},
+        onPlaySe: (step) => events.add('se:${step.seName}:${step.pitch}'),
+      );
+
+      const plan = BattleAnimationPlan(
+        steps: <BattleAnimationStep>[
+          PlaySeStep(seName: 'down', pitch: 80),
+        ],
+      );
+      runner.start(plan);
+
+      expect(events, <String>['se:down:80']);
+      expect(
+        runner.isActive,
+        isFalse,
+        reason: 'un son seul est de durée nulle : le plan est déjà fini',
+      );
+    });
+
+    test('sans onPlaySe, un plan sonore joue en silence sans casser', () {
+      final runner = BattleAnimationRunner(
+        onPresentationChanged: () {},
+        onSpawnFx: (_) {},
+        onScreenFlash: (_) {},
+        onCombatantMotion: (_) {},
+        onCombatantFlash: (_) {},
+        onCombatantShake: (_) {},
+        onFaintCombatant: (_) {},
+        onHudHpTween: (_) {},
+        onBarrierPulse: (_) {},
+        onSwapCombatantVisual: (_) {},
+      );
+
+      const plan = BattleAnimationPlan(
+        steps: <BattleAnimationStep>[PlaySeStep(seName: 'hit')],
+      );
+
+      expect(() => runner.start(plan), returnsNormally);
+    });
+  });
 }

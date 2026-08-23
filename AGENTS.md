@@ -471,8 +471,16 @@ Rules:
   what PSDK does.
 - Quote the Ruby file and line in the ticket or the commit, so the next reader
   can check the claim instead of trusting it.
-- Never copy Ruby verbatim into Dart, and never copy PSDK assets into this
-  repository: the licence and the provenance rules of `## 5` still apply.
+- Never copy Ruby verbatim into Dart. Never copy code from the Showdown
+  client either: it is AGPLv3, and reading it as a choreography reference is
+  the only permitted use.
+- Assets from the runnable test project MAY be embedded in the engine's
+  runtime assets, following the existing precedent: the 181 RMXP animation
+  sheets and the battle sound effects under
+  `packages/map_runtime/assets/` were imported from it by the tools in
+  `packages/map_runtime/tool/`. Yoahn designated these directories as the
+  battle asset source on 2026-08-23. Always import through a rerunnable tool
+  that records its source, never by hand-copying files.
 
 ---
 

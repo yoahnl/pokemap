@@ -517,6 +517,103 @@ void main() {
       expect(didClear, isTrue);
     });
   });
+
+  // BETA-BAT-014 : les sons portés par les timings du catalogue jouent enfin.
+  //
+  // Le catalogue transporte seName/seVolume/sePitch depuis sa génération et le
+  // composant ne traitait que les flashs : chaque animation RMXP était muette.
+  group('sons des timings RMXP', () {
+    RmxpAnimationTimingSpec timing({
+      required int frame,
+      int condition = 0,
+      String? seName,
+      int seVolume = 100,
+      int sePitch = 100,
+    }) =>
+        RmxpAnimationTimingSpec(
+          frame: frame,
+          condition: condition,
+          flashScope: 0,
+          flashDuration: 0,
+          flashRed: 0,
+          flashGreen: 0,
+          flashBlue: 0,
+          flashAlpha: 0,
+          seName: seName,
+          seVolume: seVolume,
+          sePitch: sePitch,
+        );
+
+    RmxpAnimationFrameSpec frame() => const RmxpAnimationFrameSpec(
+          cellMax: 1,
+          cells: <RmxpAnimationCellSpec>[
+            RmxpAnimationCellSpec(
+              index: 0,
+              pattern: 0,
+              x: 0,
+              y: 0,
+              zoom: 100,
+              angle: 0,
+              mirror: false,
+              opacity: 255,
+              blendType: 0,
+            ),
+          ],
+        );
+
+    test('un timing sonore se déclenche à sa frame, une seule fois', () async {
+      final played = <String>[];
+      final component = BattleRmxpAnimationComponent(
+        image: await _image(960, 384),
+        animation: _animation(
+          frames: <RmxpAnimationFrameSpec>[frame(), frame(), frame()],
+          timings: <RmxpAnimationTimingSpec>[
+            timing(frame: 1, seName: '089-Attack01', seVolume: 80, sePitch: 130),
+          ],
+        ),
+        sourceAnchorPosition: Vector2(100, 100),
+        sceneSize: Vector2(320, 240),
+        reverse: false,
+        onSeTiming: (spec) =>
+            played.add('${spec.seName}:${spec.seVolume}:${spec.sePitch}'),
+      );
+
+      component.update(0.001);
+      expect(played, isEmpty, reason: 'la frame 1 n’est pas encore atteinte');
+
+      component.update(0.05);
+      expect(played, <String>['089-Attack01:80:130']);
+
+      component.update(0.05);
+      expect(
+        played,
+        <String>['089-Attack01:80:130'],
+        reason: 'un timing consommé ne rejoue pas',
+      );
+    });
+
+    test('la condition 2 (sur échec) ne joue jamais en combat', () async {
+      // La référence passe hit=true en combat : 0 et 1 se déclenchent, 2 non.
+      final played = <String>[];
+      final component = BattleRmxpAnimationComponent(
+        image: await _image(960, 384),
+        animation: _animation(
+          frames: <RmxpAnimationFrameSpec>[frame(), frame()],
+          timings: <RmxpAnimationTimingSpec>[
+            timing(frame: 0, condition: 1, seName: 'toujours'),
+            timing(frame: 0, condition: 2, seName: 'jamais'),
+          ],
+        ),
+        sourceAnchorPosition: Vector2(100, 100),
+        sceneSize: Vector2(320, 240),
+        reverse: false,
+        onSeTiming: (spec) => played.add(spec.seName!),
+      );
+
+      component.update(0.001);
+      expect(played, <String>['toujours']);
+    });
+  });
 }
 
 RmxpAnimationSpec _animation({

@@ -71,6 +71,7 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
     this.onCombatantTransformCleared,
     this.onPokemonFlash,
     this.onSceneFlash,
+    this.onSeTiming,
     this.onVisibilityChanged,
   })  : attackerAnchorPosition = attackerAnchorPosition ?? sourceAnchorPosition,
         defenderAnchorPosition = defenderAnchorPosition ?? sourceAnchorPosition,
@@ -106,6 +107,12 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
   final RmxpCombatantTransformCallback? onCombatantTransform;
   final RmxpVoidCallback? onCombatantTransformCleared;
   final RmxpFlashCallback? onPokemonFlash;
+
+  /// BETA-BAT-014 : un timing qui porte un son. Le catalogue transporte
+  /// `seName`/`seVolume`/`sePitch` depuis sa génération, et ce composant ne
+  /// traitait que les flashs — les sons des animations étaient silencieusement
+  /// ignorés.
+  final RmxpFlashCallback? onSeTiming;
   final RmxpFlashCallback? onSceneFlash;
   final RmxpVisibilityCallback? onVisibilityChanged;
 
@@ -203,6 +210,11 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
         continue;
       }
       _processedTimingIndexes.add(i);
+      // La référence passe hit=true en combat : les conditions 0 (toujours) et
+      // 1 (sur coup) se déclenchent, la condition 2 (sur échec) jamais.
+      if (timing.condition <= 1 && (timing.seName?.isNotEmpty ?? false)) {
+        onSeTiming?.call(timing);
+      }
       switch (timing.flashScope) {
         case 1:
           onPokemonFlash?.call(timing);

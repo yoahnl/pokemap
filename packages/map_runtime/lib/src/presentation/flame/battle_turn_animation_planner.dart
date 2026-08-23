@@ -172,6 +172,13 @@ final class BattleTurnAnimationPlanner {
               AnimationGroupStep(
                 mode: BattleAnimationGroupMode.parallel,
                 steps: <BattleAnimationStep>[
+                  // BETA-BAT-014 : le son du coup part sur la même frame que le
+                  // clignotement et la descente des PV — les trois sont les
+                  // entrées du même handler parallèle chez la référence, et le
+                  // son est choisi par l'efficacité.
+                  PlaySeStep(
+                    seName: _hitSeName(execution.typeEffectivenessMultiplier),
+                  ),
                   // Inconditionnel : la référence joue le clignotement depuis
                   // le gestionnaire de dégâts, donc il ne dépend pas de ce que
                   // la recette a déclaré. Un coup à animation RMXP n'en émet
@@ -213,6 +220,9 @@ final class BattleTurnAnimationPlanner {
               steps.add(ShowMessageStep(message: effectiveness));
             }
             if (hpFrom > 0 && hpTo == 0) {
+              // BETA-BAT-014 : le son de K.O. de la référence — `down`, volume
+              // 100, pitch 80, joué une fois avant que la chute ne démarre.
+              steps.add(const PlaySeStep(seName: 'down', pitch: 80));
               if (!replacementRequiredSides.contains(targetSide)) {
                 steps.add(
                   FaintCombatantStep(
@@ -622,6 +632,16 @@ List<BattleAnimationStep> _buildOutcomeSteps(
 /// efficacité neutre ne produit AUCUN message. Une immunité n'en produit pas
 /// non plus ici, parce qu'un coup immunisé n'infligeait aucun dégât et
 /// n'atteint donc jamais ce point.
+/// Le son du coup selon l'efficacité, comme la référence le choisit :
+/// `hit` pour un coup neutre, `hitplus` quand ça porte, `hitlow` quand ça
+/// glisse. La référence n'a AUCUN son de coup critique — le critique est un
+/// texte seul.
+String _hitSeName(double multiplier) {
+  if (multiplier > 1.0) return 'hitplus';
+  if (multiplier > 0.0 && multiplier < 1.0) return 'hitlow';
+  return 'hit';
+}
+
 String? _effectivenessMessage(double multiplier) {
   if (multiplier > 1.0) return 'C’est super efficace !';
   if (multiplier > 0.0 && multiplier < 1.0) {

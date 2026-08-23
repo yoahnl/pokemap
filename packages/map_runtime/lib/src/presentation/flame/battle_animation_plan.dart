@@ -655,6 +655,24 @@ final class CombatantMotionStep extends BattleAnimationStep {
   final double distancePx;
 }
 
+/// Joue un son de combat nommé — BETA-BAT-014.
+///
+/// Durée nulle : dans un groupe parallèle il part à l'offset du groupe, dans
+/// une suite d'accents il part avec elle, exactement comme le `se_play` de la
+/// référence est un nœud sans durée dans son arbre d'animation. Le volume et
+/// le pitch sont des pourcentages RMXP, 100 neutre.
+final class PlaySeStep extends BattleAnimationStep {
+  const PlaySeStep({
+    required this.seName,
+    this.volume = 100,
+    this.pitch = 100,
+  });
+
+  final String seName;
+  final int volume;
+  final int pitch;
+}
+
 final class CombatantFlashStep extends BattleAnimationStep {
   const CombatantFlashStep({
     required this.side,

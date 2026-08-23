@@ -47,5 +47,6 @@ dev_dependencies:
 flutter:
   assets:
     - assets/audio/
+    - assets/audio/battle/se/
     - assets/battle_animations/
     - assets/cinematics/emotes/

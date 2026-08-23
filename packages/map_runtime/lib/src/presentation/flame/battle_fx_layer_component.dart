@@ -471,6 +471,7 @@ final class BattleFxLayerComponent extends PositionComponent {
     RmxpVoidCallback? onCombatantTransformCleared,
     RmxpFlashCallback? onPokemonFlash,
     RmxpFlashCallback? onSceneFlash,
+    RmxpFlashCallback? onSeTiming,
     RmxpVisibilityCallback? onVisibilityChanged,
   }) async {
     final animation = BattleSdkRmxpAnimationCatalog.require(step.animationId);
@@ -528,6 +529,7 @@ final class BattleFxLayerComponent extends PositionComponent {
         onCombatantTransform: onCombatantTransform,
         onCombatantTransformCleared: onCombatantTransformCleared,
         onPokemonFlash: onPokemonFlash,
+        onSeTiming: onSeTiming,
         onSceneFlash: onSceneFlash,
         onVisibilityChanged: onVisibilityChanged,
       ),

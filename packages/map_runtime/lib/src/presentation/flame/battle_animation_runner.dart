@@ -15,6 +15,7 @@ final class BattleAnimationRunner {
     required this.onCombatantShake,
     required this.onFaintCombatant,
     required this.onHudHpTween,
+    this.onPlaySe,
     required this.onBarrierPulse,
     required this.onSwapCombatantVisual,
     this.onSpriteSheetFx,
@@ -45,6 +46,11 @@ final class BattleAnimationRunner {
   final void Function(CombatantShakeStep step) onCombatantShake;
   final void Function(FaintCombatantStep step) onFaintCombatant;
   final void Function(HudHpTweenStep step) onHudHpTween;
+
+  /// BETA-BAT-014 : un son du plan. Nul chez un hôte sans audio — les
+  /// harnais de test et les hôtes silencieux gardent exactement l'ancien
+  /// comportement.
+  final void Function(PlaySeStep step)? onPlaySe;
   final void Function(BarrierPulseStep step) onBarrierPulse;
   final void Function(BattleSideId side) onSwapCombatantVisual;
   final void Function(PlaySpriteSheetFxStep step)? onSpriteSheetFx;
@@ -303,6 +309,7 @@ final class BattleAnimationRunner {
       WeatherParticleStep() => true,
       PlayRmxpAnimationStep() => true,
       CombatantFlashStep() => true,
+      PlaySeStep() => true,
       CombatantShakeStep() => true,
       CombatantToneStep() => true,
       CombatantCompressStep() => true,
@@ -392,6 +399,10 @@ final class BattleAnimationRunner {
       CombatantFlashStep(:final durationSeconds) => () {
           _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
           return startAtSeconds + durationSeconds;
+        }(),
+      PlaySeStep() => () {
+          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
+          return startAtSeconds;
         }(),
       // BETA-BAT-013 : la barre de PV est ordonnançable À L'INTÉRIEUR d'un
       // groupe, pour qu'elle puisse partir sur la même frame que le
@@ -500,6 +511,8 @@ final class BattleAnimationRunner {
         onRmxpAnimation?.call(step);
       case CombatantFlashStep():
         onCombatantFlash(step);
+      case PlaySeStep():
+        onPlaySe?.call(step);
       case CombatantShakeStep():
         onCombatantShake(step);
       case CombatantToneStep():

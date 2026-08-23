@@ -31,6 +31,7 @@ import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
 import 'battle_scene_hud_component.dart';
 import 'battle_turn_animation_planner.dart';
+import 'battle_sfx_player.dart';
 import 'battle_move_visual_resolver.dart';
 
 /// Retourne le prompt de décision à afficher pour la requête courante.
@@ -473,6 +474,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.bagItemIconResolver,
     this.genderResolver,
     this.resolveMoveDisplayName = _defaultBattleMoveDisplayName,
+    this.playSfx,
     this.resolveSpeciesDisplayName = _battleDisplayName,
     this.showDebugPanel = false,
     this.motionScale = 1.0,
@@ -523,6 +525,11 @@ class BattleOverlayComponent extends PositionComponent {
   final BattleBagItemIconResolver? bagItemIconResolver;
   final BattleCombatantGenderResolver? genderResolver;
   final BattleMoveDisplayNameResolver resolveMoveDisplayName;
+
+  /// BETA-BAT-014 : le lecteur des sons de combat. Nul chez un hôte silencieux
+  /// — les harnais de test et les hôtes sans audio gardent exactement l'ancien
+  /// comportement, et aucun test existant ne change.
+  final BattleSfxPlayer? playSfx;
   final BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName;
   final RuntimeMoveCatalog _moveCatalog;
   late final BattleMoveVisualResolver _moveVisualResolver;
@@ -867,6 +874,11 @@ class BattleOverlayComponent extends PositionComponent {
       onCombatantShake: _handleCombatantShakeStep,
       onFaintCombatant: _handleFaintCombatantStep,
       onHudHpTween: _handleHudHpTweenStep,
+      onPlaySe: (step) => playSfx?.call(
+        step.seName,
+        volume: step.volume,
+        pitch: step.pitch,
+      ),
       onBarrierPulse: _handleBarrierPulseStep,
       onSwapCombatantVisual: _handleSwapCombatantVisualStep,
       onSpriteSheetFx: _handleSpriteSheetFxStep,
@@ -2612,6 +2624,16 @@ class BattleOverlayComponent extends PositionComponent {
                 );
               },
         onCombatantTransformCleared: combatant?.clearRmxpTransform,
+        onSeTiming: (timing) {
+          final seName = timing.seName;
+          if (seName != null) {
+            playSfx?.call(
+              seName,
+              volume: timing.seVolume,
+              pitch: timing.sePitch,
+            );
+          }
+        },
         onPokemonFlash: (timing) {
           combatant?.triggerHitFlash(
             duration:

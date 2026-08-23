@@ -1129,6 +1129,122 @@ void main() {
       }
     });
   });
+  // BETA-BAT-014 : le combat s'entend.
+  //
+  // Le son du coup part sur la même frame que le clignotement et la descente
+  // des PV — les trois sont les entrées du même handler parallèle chez la
+  // référence — et son nom suit l'efficacité. Le K.O. joue `down` à pitch 80
+  // avant que la chute ne démarre. La référence n'a AUCUN son de critique.
+  group('BETA-BAT-014 — sons du plan', () {
+    BattleAnimationPlan planFor({
+      int damage = 12,
+      int enemyMaxHp = 40,
+      double effectiveness = 1.0,
+      bool didCrit = false,
+    }) {
+      final before = _session(
+        player: _combatant(
+          speciesId: 'froakie',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'water_gun', name: 'Water Gun', type: 'water'),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'machop',
+          lineupIndex: 0,
+          maxHp: enemyMaxHp,
+          moves: <BattleMoveData>[
+            _move(id: 'low_kick', name: 'Low Kick', type: 'fighting'),
+          ],
+        ),
+      );
+      final execution = BattleMoveExecution(
+        attackerSlot: BattleSlotRef.active(BattleSideId.player),
+        move: const BattleMove(
+          id: 'water_gun',
+          name: 'Water Gun',
+          power: 40,
+          target: BattleMoveTarget.opponent,
+        ),
+        targetKind: BattleMoveExecutionTargetKind.combatant,
+        targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+        damage: damage,
+        didHit: true,
+        didCrit: didCrit,
+        typeEffectivenessMultiplier: effectiveness,
+      );
+      return BattleTurnAnimationPlanner().buildForTurn(
+        playerBefore: before.state.player,
+        enemyBefore: before.state.enemy,
+        turnResult: BattleTurnResult(
+          playerAction: BattleActionFight(execution.move, moveIndex: 0),
+          enemyAction: const BattleActionNone(),
+          executions: <BattleMoveExecution>[execution],
+          timeline: <BattleTurnEvent>[BattleTurnExecutionEvent(execution)],
+        ),
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+    }
+
+    AnimationGroupStep damageGroupOf(BattleAnimationPlan plan) =>
+        plan.steps.whereType<AnimationGroupStep>().firstWhere(
+              (group) => group.steps.any((step) => step is HudHpTweenStep),
+            );
+
+    test('le son du coup part dans le groupe du clignotement et des PV', () {
+      final se = damageGroupOf(planFor())
+          .steps
+          .whereType<PlaySeStep>()
+          .single;
+
+      expect(se.seName, 'hit');
+      expect(se.volume, 100);
+      expect(se.pitch, 100);
+    });
+
+    test('le nom du son suit l’efficacité', () {
+      String seFor(double effectiveness) =>
+          damageGroupOf(planFor(effectiveness: effectiveness))
+              .steps
+              .whereType<PlaySeStep>()
+              .single
+              .seName;
+
+      expect(seFor(2.0), 'hitplus');
+      expect(seFor(0.5), 'hitlow');
+      expect(seFor(1.0), 'hit');
+    });
+
+    test('le K.O. joue down à pitch 80, avant la chute', () {
+      final plan = planFor(damage: 40, enemyMaxHp: 40);
+      final steps = plan.steps;
+      final downIndex = steps.indexWhere(
+        (step) => step is PlaySeStep && step.seName == 'down',
+      );
+      final faintIndex = steps.indexWhere(
+        (step) => step is FaintCombatantStep,
+      );
+
+      expect(downIndex, greaterThan(-1));
+      expect((steps[downIndex] as PlaySeStep).pitch, 80);
+      expect(faintIndex, greaterThan(downIndex));
+    });
+
+    test('pas de K.O., pas de down ; et jamais de son de critique', () {
+      // La référence n'a aucun son de coup critique : le critique est un texte
+      // seul, décision notée au ticket.
+      final plan = planFor(damage: 12, enemyMaxHp: 40, didCrit: true);
+      final seNames = <String>[
+        for (final step in plan.flattenedSteps)
+          if (step is PlaySeStep) step.seName,
+      ];
+
+      expect(seNames, <String>['hit']);
+    });
+  });
 }
 
 String _rawSpecies(String speciesId) => speciesId;

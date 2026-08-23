@@ -109,6 +109,7 @@ import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_overlay_component.dart';
+import 'battle_sfx_player.dart';
 import 'battle_background_resolver.dart';
 import 'battle_medicine_target_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
@@ -584,6 +585,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Cache FX au scope jeu : construit par combat auparavant, chaque combat
   /// re-décodait les mêmes PNG et orphelinait les images du combat précédent.
   final BattleFxBundleCache _battleFxBundleCache = BattleFxBundleCache();
+
+  /// BETA-BAT-014 : le lecteur des sons de combat, créé au premier combat.
+  /// Les assets sont embarqués dans le runtime, donc le moteur fournit le
+  /// défaut ; un hôte peut rester silencieux en ne montant pas de combat.
+  FlameAudioBattleSfxPlayer? _battleSfxPlayer;
   late final RuntimeBattleSetupMapper _battleSetupMapper =
       RuntimeBattleSetupMapper(
     moveCatalogLoader: _battleMoveCatalogLoader,
@@ -3566,6 +3572,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _tilesetImageCache.dispose();
       _battleVisualAssetCache.dispose();
       _battleFxBundleCache.dispose();
+      unawaited(_battleSfxPlayer?.dispose());
+      _battleSfxPlayer = null;
     }
     super.onRemove();
   }
@@ -7806,6 +7814,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'battle',
         'overlay',
         () => BattleOverlayComponent(
+          playSfx: (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer()).play,
           motionScale: reducedMotion ? battleReducedMotionSpeedFactor : 1.0,
           textScale: textScale,
           session: _battleSession!,
