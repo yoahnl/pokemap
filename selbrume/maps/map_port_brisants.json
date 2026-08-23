@@ -26233,7 +26233,7 @@
   "mapMetadata": {
     "displayName": "Port des Brisants",
     "mapType": "city",
-    "musicId": null,
+    "musicPath": null,
     "weather": "none",
     "isIndoor": false,
     "allowEscapeRope": false,

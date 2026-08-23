@@ -14432,7 +14432,7 @@
   "mapMetadata": {
     "displayName": "Vieux Phare d'Ecume - Interieur",
     "mapType": "interior",
-    "musicId": null,
+    "musicPath": null,
     "weather": "none",
     "isIndoor": true,
     "allowEscapeRope": false,

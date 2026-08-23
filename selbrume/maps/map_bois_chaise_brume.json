@@ -16683,7 +16683,7 @@
   "mapMetadata": {
     "displayName": "Bois de la Chaise-Brume",
     "mapType": "forest",
-    "musicId": null,
+    "musicPath": null,
     "weather": "fog",
     "isIndoor": false,
     "allowEscapeRope": false,

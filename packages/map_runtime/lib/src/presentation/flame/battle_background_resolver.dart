@@ -78,8 +78,8 @@ final class BattleBackgroundSpec {
 /// - `MapMetadata.tags` : trop libres, pas assez canoniques pour un lot borné ;
 /// - `ProjectTrainerEntry.trainerClass` : utile produit plus tard, mais trop
 ///   instable pour piloter honnêtement le décor maintenant ;
-/// - `ProjectTrainerEntry.battleThemeId` : tentant, mais ce repo n'a pas
-///   encore de pipeline d'assets battle dédiée à respecter ici ;
+/// - `ProjectTrainerEntry.battleMusicPath` : c'est une musique (BETA-BAT-015),
+///   pas un indice de décor — le fond ne doit pas s'en déduire ;
 /// - `ProjectEncounterTable.tags` : décrivent les rencontres, pas forcément la
 ///   scène de combat.
 final class BattleBackgroundResolver {

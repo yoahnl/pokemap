@@ -475,6 +475,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.genderResolver,
     this.resolveMoveDisplayName = _defaultBattleMoveDisplayName,
     this.playSfx,
+    this.onOutcomePresented,
     this.resolveSpeciesDisplayName = _battleDisplayName,
     this.showDebugPanel = false,
     this.motionScale = 1.0,
@@ -530,6 +531,15 @@ class BattleOverlayComponent extends PositionComponent {
   /// — les harnais de test et les hôtes sans audio gardent exactement l'ancien
   /// comportement, et aucun test existant ne change.
   final BattleSfxPlayer? playSfx;
+
+  /// Notifié une seule fois, au moment où l'issue devient VISIBLE — plan
+  /// d'animation vidé, plus rien en attente. C'est l'horloge du thème de
+  /// victoire (BETA-BAT-015) : la référence lance sa fanfare quand la phase
+  /// de fin commence à se jouer, pas quand le tour est calculé. Le bandeau
+  /// texte reste soumis en plus à [battleOutcomeIsAnnounced] : une victoire
+  /// sauvage se notifie ici sans jamais s'afficher là-bas.
+  final void Function(BattleOutcome outcome)? onOutcomePresented;
+  bool _outcomePresentedNotified = false;
   final BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName;
   final RuntimeMoveCatalog _moveCatalog;
   late final BattleMoveVisualResolver _moveVisualResolver;
@@ -2363,9 +2373,14 @@ class BattleOverlayComponent extends PositionComponent {
     // aucune phase n'est dispatchée pendant qu'un message est à l'écran,
     // `wait_for_animation` bloque la pile, et l'animation d'une capacité est
     // drainée deux fois avant que sa procédure ne rende la main.
-    if (!_session.state.isFinished ||
-        outcome == null ||
-        _presentationPendingOrRunning ||
+    final outcomePresented = _session.state.isFinished &&
+        outcome != null &&
+        !_presentationPendingOrRunning;
+    if (outcomePresented && !_outcomePresentedNotified) {
+      _outcomePresentedNotified = true;
+      onOutcomePresented?.call(outcome);
+    }
+    if (!outcomePresented ||
         !battleOutcomeIsAnnounced(
           outcome,
           isTrainerBattle: _session.setup.isTrainerBattle,

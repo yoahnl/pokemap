@@ -163,8 +163,8 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.nameController,
     required this.classController,
     required this.portraitController,
-    required this.battleThemeController,
-    required this.victoryThemeController,
+    required this.battleMusicController,
+    required this.victoryMusicController,
     required this.tagsController,
     required this.rewardMoneyController,
     required this.rewardFlagsController,
@@ -215,8 +215,8 @@ class _TrainerEditorCard extends StatelessWidget {
   final TextEditingController nameController;
   final TextEditingController classController;
   final TextEditingController portraitController;
-  final TextEditingController battleThemeController;
-  final TextEditingController victoryThemeController;
+  final TextEditingController battleMusicController;
+  final TextEditingController victoryMusicController;
   final TextEditingController tagsController;
   final TextEditingController rewardMoneyController;
   final TextEditingController rewardFlagsController;
@@ -513,11 +513,11 @@ class _TrainerEditorCard extends StatelessWidget {
               CupertinoTextField(
                 key: Key(
                   createMode
-                      ? 'trainer-library-create-battle-theme-field'
-                      : 'trainer-library-edit-battle-theme-field',
+                      ? 'trainer-library-create-battle-music-field'
+                      : 'trainer-library-edit-battle-music-field',
                 ),
-                controller: battleThemeController,
-                placeholder: 'ID de thème de combat brut (optionnel)',
+                controller: battleMusicController,
+                placeholder: 'Chemin projet de la musique de combat (optionnel)',
                 decoration: BoxDecoration(
                   color: EditorChrome.islandFill(context),
                   borderRadius: BorderRadius.circular(8),
@@ -533,11 +533,11 @@ class _TrainerEditorCard extends StatelessWidget {
               CupertinoTextField(
                 key: Key(
                   createMode
-                      ? 'trainer-library-create-victory-theme-field'
-                      : 'trainer-library-edit-victory-theme-field',
+                      ? 'trainer-library-create-victory-music-field'
+                      : 'trainer-library-edit-victory-music-field',
                 ),
-                controller: victoryThemeController,
-                placeholder: 'ID de thème de victoire brut (optionnel)',
+                controller: victoryMusicController,
+                placeholder: 'Chemin projet de la musique de victoire (optionnel)',
                 decoration: BoxDecoration(
                   color: EditorChrome.islandFill(context),
                   borderRadius: BorderRadius.circular(8),
@@ -753,7 +753,7 @@ class _TrainerEditorCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Ces refs optionnelles restent brutes pour le moment. Le fond de combat trainer reste un simple chemin relatif projet qui override le fond contextuel côté runtime ; battle theme, victory theme et tags restent conservés tels quels.',
+                'Ces refs optionnelles restent brutes pour le moment. Le fond de combat trainer reste un simple chemin relatif projet qui override le fond contextuel côté runtime ; les musiques de combat et de victoire sont des chemins relatifs projet consommés par le runtime (BETA-BAT-015), les tags restent conservés tels quels.',
                 style: TextStyle(
                   color: subtle,
                   fontSize: 11,

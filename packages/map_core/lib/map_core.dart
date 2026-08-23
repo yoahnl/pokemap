@@ -29,6 +29,7 @@ export 'src/models/smart_tile_gameplay_zone_provenance.dart';
 export 'src/models/map_layer.dart';
 export 'src/models/map_metadata.dart';
 export 'src/models/map_visual_stack_config.dart';
+export 'src/models/project_battle_audio.dart';
 export 'src/models/project_manifest.dart';
 export 'src/operations/character_studio_readiness.dart';
 export 'src/read_models/character_studio_reference_index.dart';

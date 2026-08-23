@@ -3352,6 +3352,68 @@ void main() {
       expect(overlay.outcomeBannerText, isNull);
     });
 
+    // BETA-BAT-015 : le thème de victoire suit le moment VISIBLE de l'issue.
+    //
+    // Une victoire sauvage n'affiche aucun bandeau (BAT-012), mais la
+    // référence joue quand même sa fanfare — la notification doit donc exister
+    // indépendamment du bandeau, arriver après la présentation du tour, et
+    // n'arriver qu'une seule fois même si la synchronisation visuelle repasse.
+    test('l’issue présentée se notifie une fois, même pour du sauvage',
+        () async {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 40,
+          stats: _stats(speed: 120, attack: 180),
+          moves: <BattleMoveData>[_runtimeStrike(power: 180)],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          maxHp: 24,
+          currentHp: 24,
+          stats: _stats(speed: 40, defense: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final presented = <BattleOutcome>[];
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: session,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+        onOutcomePresented: presented.add,
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      overlay.updateState(afterTurn);
+      await overlay.waitForPendingVisualSync();
+
+      expect(
+        presented,
+        isEmpty,
+        reason: 'l’issue est décidée mais pas encore jouée : la fanfare '
+            'partirait par-dessus l’attaque, exactement le défaut BAT-012',
+      );
+
+      for (var step = 0; step < 40; step += 1) {
+        overlay.updateTree(0.1);
+      }
+      await overlay.waitForPendingVisualSync();
+
+      expect(presented, hasLength(1));
+      expect(presented.single.isVictory, isTrue);
+      expect(overlay.outcomeBannerText, isNull);
+
+      overlay.onGameResize(Vector2(1024, 600));
+      overlay.updateState(afterTurn);
+      await overlay.waitForPendingVisualSync();
+      expect(presented, hasLength(1), reason: 'une seule fanfare par combat');
+    });
+
     test('plays a short turn presentation with hp tween on damage', () async {
       final session = _session(
         player: _combatant(

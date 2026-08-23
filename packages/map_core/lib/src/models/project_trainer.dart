@@ -145,8 +145,17 @@ abstract class ProjectTrainerEntry with _$ProjectTrainerEntry {
     String? battleBackgroundRelativePath,
     String? characterId,
     String? portraitElementId,
-    String? battleThemeId,
-    String? victoryThemeId,
+
+    /// Musiques du combat contre ce dresseur — BETA-BAT-015.
+    ///
+    /// Chemins relatifs au projet, comme `battleBackgroundRelativePath` :
+    /// même sémantique, même chaîne « explicite > défaut projet > silence ».
+    /// Ces champs s'appelaient `battleThemeId` / `victoryThemeId` alors que
+    /// rien ne les consommait et qu'aucun catalogue ne résolvait ces « id » —
+    /// des chemins qui disent leur nom remplacent des identifiants qui
+    /// mentaient (politique pré-1.0.0 : pas de pont de compatibilité).
+    String? battleMusicPath,
+    String? victoryMusicPath,
 
     /// Récompenses auteur neutres par défaut pour préserver les projets
     /// historiques. Leur application runtime appartient aux lots suivants.

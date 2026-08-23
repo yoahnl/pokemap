@@ -18,7 +18,7 @@ MapMetadata normalizeMapMetadata(MapMetadata input) {
   }
   return input.copyWith(
     displayName: input.displayName.trim(),
-    musicId: _nullIfBlank(input.musicId),
+    musicPath: _nullIfBlank(input.musicPath),
     defaultSpawnId: _nullIfBlank(input.defaultSpawnId),
     tags: ordered,
   );

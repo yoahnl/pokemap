@@ -16736,7 +16736,7 @@
   "mapMetadata": {
     "displayName": "Vieux Phare d'Ecume - Exterieur",
     "mapType": "building",
-    "musicId": null,
+    "musicPath": null,
     "weather": "fog",
     "isIndoor": false,
     "allowEscapeRope": false,

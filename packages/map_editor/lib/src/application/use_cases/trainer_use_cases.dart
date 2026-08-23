@@ -82,8 +82,8 @@ class CreateTrainerUseCase {
     String? battleBackgroundRelativePath,
     String? characterId,
     String? portraitElementId,
-    String? battleThemeId,
-    String? victoryThemeId,
+    String? battleMusicPath,
+    String? victoryMusicPath,
     ProjectTrainerTemplateKind? templateKind,
     ProjectTrainerRematchPolicy? rematchPolicy,
     String? preBattleDialogueId,
@@ -118,11 +118,11 @@ class CreateTrainerUseCase {
       portraitElementId: portraitElementId?.trim().isEmpty == true
           ? null
           : portraitElementId?.trim(),
-      battleThemeId:
-          battleThemeId?.trim().isEmpty == true ? null : battleThemeId?.trim(),
-      victoryThemeId: victoryThemeId?.trim().isEmpty == true
+      battleMusicPath:
+          battleMusicPath?.trim().isEmpty == true ? null : battleMusicPath?.trim(),
+      victoryMusicPath: victoryMusicPath?.trim().isEmpty == true
           ? null
-          : victoryThemeId?.trim(),
+          : victoryMusicPath?.trim(),
       templateKind: templateKind,
       rematchPolicy: rematchPolicy,
       preBattleDialogueId: _normalizeOptionalTrainerId(preBattleDialogueId),
@@ -164,9 +164,9 @@ class UpdateTrainerUseCase {
         const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<String> portraitElementId =
         const TrainerFieldUpdate<String>.keep(),
-    TrainerFieldUpdate<String> battleThemeId =
+    TrainerFieldUpdate<String> battleMusicPath =
         const TrainerFieldUpdate<String>.keep(),
-    TrainerFieldUpdate<String> victoryThemeId =
+    TrainerFieldUpdate<String> victoryMusicPath =
         const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<ProjectTrainerTemplateKind> templateKind =
         const TrainerFieldUpdate<ProjectTrainerTemplateKind>.keep(),
@@ -236,16 +236,16 @@ class UpdateTrainerUseCase {
         portraitElementId: (v == null || v.isEmpty) ? null : v,
       );
     }
-    if (!battleThemeId.isKeep) {
-      final v = battleThemeId.valueOrNull?.trim();
+    if (!battleMusicPath.isKeep) {
+      final v = battleMusicPath.valueOrNull?.trim();
       updatedTrainer = updatedTrainer.copyWith(
-        battleThemeId: (v == null || v.isEmpty) ? null : v,
+        battleMusicPath: (v == null || v.isEmpty) ? null : v,
       );
     }
-    if (!victoryThemeId.isKeep) {
-      final v = victoryThemeId.valueOrNull?.trim();
+    if (!victoryMusicPath.isKeep) {
+      final v = victoryMusicPath.valueOrNull?.trim();
       updatedTrainer = updatedTrainer.copyWith(
-        victoryThemeId: (v == null || v.isEmpty) ? null : v,
+        victoryMusicPath: (v == null || v.isEmpty) ? null : v,
       );
     }
     if (!templateKind.isKeep) {

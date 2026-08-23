@@ -22,7 +22,8 @@ class MapPropertiesPanel extends ConsumerStatefulWidget {
 
 class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
   final _displayNameController = TextEditingController();
-  final _musicIdController = TextEditingController();
+  final _musicPathController = TextEditingController();
+  final _battleMusicPathController = TextEditingController();
   final _tagsController = TextEditingController();
 
   String? _boundFingerprint;
@@ -35,7 +36,8 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
   @override
   void dispose() {
     _displayNameController.dispose();
-    _musicIdController.dispose();
+    _musicPathController.dispose();
+    _battleMusicPathController.dispose();
     _tagsController.dispose();
     super.dispose();
   }
@@ -111,7 +113,7 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Musique (identifiant)',
+          'Musique (chemin projet)',
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w600,
@@ -120,7 +122,22 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
         ),
         const SizedBox(height: 4),
         CupertinoTextField(
-          controller: _musicIdController,
+          controller: _musicPathController,
+          placeholder: 'Optionnel',
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Musique de combat (chemin projet)',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: subtle,
+          ),
+        ),
+        const SizedBox(height: 4),
+        CupertinoTextField(
+          controller: _battleMusicPathController,
           placeholder: 'Optionnel',
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         ),
@@ -234,7 +251,8 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
     _boundFingerprint = fp;
     final md = map.mapMetadata;
     _displayNameController.text = md.displayName;
-    _musicIdController.text = md.musicId ?? '';
+    _musicPathController.text = md.musicPath ?? '';
+    _battleMusicPathController.text = md.battleMusicPath ?? '';
     _tagsController.text = md.tags.join(', ');
     _mapType = md.mapType;
     _weather = md.weather;
@@ -279,11 +297,13 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
         .map((t) => t.trim())
         .where((t) => t.isNotEmpty)
         .toList(growable: false);
-    final music = _musicIdController.text.trim();
+    final music = _musicPathController.text.trim();
+    final battleMusic = _battleMusicPathController.text.trim();
     final metadata = MapMetadata(
       displayName: _displayNameController.text,
       mapType: _mapType,
-      musicId: music.isEmpty ? null : music,
+      musicPath: music.isEmpty ? null : music,
+      battleMusicPath: battleMusic.isEmpty ? null : battleMusic,
       weather: _weather,
       isIndoor: _isIndoor,
       allowEscapeRope: _allowEscapeRope,

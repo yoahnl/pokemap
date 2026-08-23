@@ -476,8 +476,8 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             nameController: _newNameController,
             classController: _newClassController,
             portraitController: _newPortraitController,
-            battleThemeController: _newBattleThemeController,
-            victoryThemeController: _newVictoryThemeController,
+            battleMusicController: _newBattleMusicController,
+            victoryMusicController: _newVictoryMusicController,
             tagsController: _newTagsController,
             rewardMoneyController: _newRewardMoneyController,
             rewardFlagsController: _newRewardFlagsController,
@@ -555,8 +555,8 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             nameController: _editNameController,
             classController: _editClassController,
             portraitController: _editPortraitController,
-            battleThemeController: _editBattleThemeController,
-            victoryThemeController: _editVictoryThemeController,
+            battleMusicController: _editBattleMusicController,
+            victoryMusicController: _editVictoryMusicController,
             tagsController: _editTagsController,
             rewardMoneyController: _editRewardMoneyController,
             rewardFlagsController: _editRewardFlagsController,
@@ -1133,10 +1133,10 @@ class _TrainerStudioIdentityCard extends StatelessWidget {
                   'Character: ${trainer.characterId!.trim()}',
                 if ((trainer.portraitElementId ?? '').trim().isNotEmpty)
                   'Portrait: ${trainer.portraitElementId!.trim()}',
-                if ((trainer.battleThemeId ?? '').trim().isNotEmpty)
-                  'Battle theme: ${trainer.battleThemeId!.trim()}',
-                if ((trainer.victoryThemeId ?? '').trim().isNotEmpty)
-                  'Victory theme: ${trainer.victoryThemeId!.trim()}',
+                if ((trainer.battleMusicPath ?? '').trim().isNotEmpty)
+                  'Battle music: ${trainer.battleMusicPath!.trim()}',
+                if ((trainer.victoryMusicPath ?? '').trim().isNotEmpty)
+                  'Victory music: ${trainer.victoryMusicPath!.trim()}',
                 if (trainer.battleDifficulty != null)
                   'Difficulty: ${trainer.battleDifficulty}/10',
                 if ((trainer.battleBackgroundRelativePath ?? '')
@@ -1150,10 +1150,10 @@ class _TrainerStudioIdentityCard extends StatelessWidget {
                         'Character: ${trainer.characterId!.trim()}',
                       if ((trainer.portraitElementId ?? '').trim().isNotEmpty)
                         'Portrait: ${trainer.portraitElementId!.trim()}',
-                      if ((trainer.battleThemeId ?? '').trim().isNotEmpty)
-                        'Battle theme: ${trainer.battleThemeId!.trim()}',
-                      if ((trainer.victoryThemeId ?? '').trim().isNotEmpty)
-                        'Victory theme: ${trainer.victoryThemeId!.trim()}',
+                      if ((trainer.battleMusicPath ?? '').trim().isNotEmpty)
+                        'Battle music: ${trainer.battleMusicPath!.trim()}',
+                      if ((trainer.victoryMusicPath ?? '').trim().isNotEmpty)
+                        'Victory music: ${trainer.victoryMusicPath!.trim()}',
                       if (trainer.battleDifficulty != null)
                         'Difficulty: ${trainer.battleDifficulty}/10',
                       if ((trainer.battleBackgroundRelativePath ?? '')

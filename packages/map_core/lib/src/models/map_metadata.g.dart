@@ -10,7 +10,8 @@ _MapMetadata _$MapMetadataFromJson(Map<String, dynamic> json) => _MapMetadata(
   displayName: json['displayName'] as String? ?? '',
   mapType:
       $enumDecodeNullable(_$MapTypeEnumMap, json['mapType']) ?? MapType.route,
-  musicId: json['musicId'] as String?,
+  musicPath: json['musicPath'] as String?,
+  battleMusicPath: json['battleMusicPath'] as String?,
   weather:
       $enumDecodeNullable(_$MapWeatherEnumMap, json['weather']) ??
       MapWeather.none,
@@ -26,7 +27,8 @@ Map<String, dynamic> _$MapMetadataToJson(_MapMetadata instance) =>
     <String, dynamic>{
       'displayName': instance.displayName,
       'mapType': _$MapTypeEnumMap[instance.mapType]!,
-      'musicId': instance.musicId,
+      'musicPath': instance.musicPath,
+      'battleMusicPath': instance.battleMusicPath,
       'weather': _$MapWeatherEnumMap[instance.weather]!,
       'isIndoor': instance.isIndoor,
       'allowEscapeRope': instance.allowEscapeRope,

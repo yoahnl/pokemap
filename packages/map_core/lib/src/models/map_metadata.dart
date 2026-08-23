@@ -49,7 +49,20 @@ abstract class MapMetadata with _$MapMetadata {
   const factory MapMetadata({
     @Default('') String displayName,
     @Default(MapType.route) MapType mapType,
-    String? musicId,
+
+    /// Musique d'ambiance de la carte — BETA-BAT-015 (parité RMXP
+    /// `Game_Map#autoplay`). Chemin relatif au projet ; nul = silence.
+    /// S'appelait `musicId` sans catalogue derrière (politique pré-1.0.0 :
+    /// renommage propre, aucun porteur de valeur dans les données).
+    String? musicPath,
+
+    /// Musique de combat des rencontres sur cette carte — BETA-BAT-015.
+    ///
+    /// Chemin relatif au projet. C'est l'analogue déclaratif du « Change
+    /// Battle BGM » persistant de la référence : un écart assumé, parce que ce
+    /// moteur n'a pas d'interpréteur d'événements et que le no-code first
+    /// préfère un champ de carte à un état de sauvegarde invisible.
+    String? battleMusicPath,
     @Default(MapWeather.none) MapWeather weather,
     @Default(false) bool isIndoor,
     @Default(true) bool allowEscapeRope,

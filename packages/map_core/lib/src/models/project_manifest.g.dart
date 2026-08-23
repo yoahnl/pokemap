@@ -135,6 +135,11 @@ _ProjectManifest _$ProjectManifestFromJson(
   settings: json['settings'] == null
       ? const ProjectSettings()
       : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
+  battleAudio: json['battleAudio'] == null
+      ? null
+      : ProjectBattleAudioConfig.fromJson(
+          json['battleAudio'] as Map<String, dynamic>,
+        ),
   pokemon: json['pokemon'] == null
       ? const ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1)
       : ProjectPokemonConfig.fromJson(json['pokemon'] as Map<String, dynamic>),
@@ -222,6 +227,7 @@ Map<String, dynamic> _$ProjectManifestToJson(
     instance.characterStudioCatalog,
   ),
   'settings': instance.settings.toJson(),
+  'battleAudio': ?instance.battleAudio?.toJson(),
   'pokemon': instance.pokemon.toJson(),
   'newGame': instance.newGame.toJson(),
   'presentation': ?instance.presentation?.toJson(),

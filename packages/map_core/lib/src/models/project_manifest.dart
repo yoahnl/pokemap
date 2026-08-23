@@ -6,6 +6,7 @@ import 'badge_definition.dart';
 import 'element_collision_profile.dart';
 import 'environment.dart';
 import 'enums.dart';
+import 'project_battle_audio.dart';
 import 'project_trainer.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
@@ -500,6 +501,9 @@ abstract class ProjectManifest with _$ProjectManifest {
     @JsonKey(toJson: _projectCharacterStudioCatalogToJson, includeIfNull: false)
     ProjectCharacterStudioCatalog characterStudioCatalog,
     @Default(ProjectSettings()) ProjectSettings settings,
+
+    /// Musiques de combat par défaut du projet — BETA-BAT-015.
+    @JsonKey(includeIfNull: false) ProjectBattleAudioConfig? battleAudio,
     @Default(ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1))
     ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,

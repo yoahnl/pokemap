@@ -261,11 +261,11 @@ void main() {
       'Afficher les références optionnelles',
     );
     await tester.enterText(
-      find.byKey(const Key('trainer-library-create-battle-theme-field')),
+      find.byKey(const Key('trainer-library-create-battle-music-field')),
       'battle_misty',
     );
     await tester.enterText(
-      find.byKey(const Key('trainer-library-create-victory-theme-field')),
+      find.byKey(const Key('trainer-library-create-victory-music-field')),
       'victory_misty',
     );
     await tester.enterText(
@@ -279,8 +279,8 @@ void main() {
         container.read(editorNotifierProvider).project!.trainers.single;
     expect(trainer.name, 'Misty');
     expect(trainer.battleDifficulty, isNull);
-    expect(trainer.battleThemeId, 'battle_misty');
-    expect(trainer.victoryThemeId, 'victory_misty');
+    expect(trainer.battleMusicPath, 'battle_misty');
+    expect(trainer.victoryMusicPath, 'victory_misty');
     expect(trainer.tags, <String>['rival', 'gym']);
 
     await tester.tap(

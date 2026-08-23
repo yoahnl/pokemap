@@ -75,8 +75,8 @@ void main() {
                   'assets/battle_backgrounds/mira.png',
               characterId: 'character_1',
               portraitElementId: 'portrait_1',
-              battleThemeId: 'battle_mira',
-              victoryThemeId: 'victory_mira',
+              battleMusicPath: 'battle_mira',
+              victoryMusicPath: 'victory_mira',
             ),
           ],
         ),
@@ -97,8 +97,8 @@ void main() {
       );
       expect(updatedTrainer.characterId, 'character_1');
       expect(updatedTrainer.portraitElementId, 'portrait_1');
-      expect(updatedTrainer.battleThemeId, 'battle_mira');
-      expect(updatedTrainer.victoryThemeId, 'victory_mira');
+      expect(updatedTrainer.battleMusicPath, 'battle_mira');
+      expect(updatedTrainer.victoryMusicPath, 'victory_mira');
     });
 
     test(

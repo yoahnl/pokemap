@@ -44,6 +44,7 @@ import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/player_service_runtime_controller.dart';
 import '../../player/runtime_input_lock_manager.dart';
 import '../../player/runtime_audio_mixer.dart';
+import '../../player/runtime_music_service.dart';
 import '../../player/runtime_world_service_models.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
@@ -109,6 +110,7 @@ import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_overlay_component.dart';
+import 'battle_music_resolver.dart';
 import 'battle_sfx_player.dart';
 import 'battle_background_resolver.dart';
 import 'battle_medicine_target_menu_model.dart';
@@ -253,8 +255,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     this.enableActorContactShadows = true,
     this.enableStaticPlacedElementShadows = true,
     RuntimeAudioMixer? audioMixer,
+    @visibleForTesting RuntimeMusicService? musicService,
     @visibleForTesting double Function()? devicePixelRatioProvider,
   })  : _bundle = bundle,
+        _audioMixer = audioMixer,
+        _injectedMusicService = musicService,
         _gameState = normalizeLoadedGameState(
           initialGameState ??
               (saveData == null
@@ -608,6 +613,69 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   );
   final BattleBackgroundResolver _battleBackgroundResolver =
       const BattleBackgroundResolver();
+
+  /// BETA-BAT-015 : la musique du runtime. Une seule piste à la fois, pilotée
+  /// en état désiré par [_syncRuntimeMusic] ; créée au premier besoin pour ne
+  /// rien coûter aux hôtes de test qui n'authorent aucune musique.
+  final RuntimeAudioMixer? _audioMixer;
+  final RuntimeMusicService? _injectedMusicService;
+  RuntimeMusicService? _musicService;
+  final BattleMusicResolver _battleMusicResolver = const BattleMusicResolver();
+  BattleMusicSelection? _activeBattleMusicSelection;
+  bool _battleVictoryMusicActive = false;
+  bool _trainerEncounterMusicActive = false;
+
+  RuntimeMusicService get _music => _injectedMusicService ??
+      (_musicService ??= RuntimeMusicService(
+        mixer: _audioMixer,
+      ));
+
+  void _clearBattleMusicState() {
+    _activeBattleMusicSelection = null;
+    _battleVictoryMusicActive = false;
+    _trainerEncounterMusicActive = false;
+  }
+
+  /// Projette l'état du runtime vers LA musique courante — BETA-BAT-015.
+  ///
+  /// Déclaratif et idempotent : chaque appelant signale juste « le contexte a
+  /// changé », et cette méthode seule décide de ce qui doit jouer. Priorités :
+  /// 1. combat (thème de victoire une fois l'issue présentée, sinon thème de
+  ///    combat résolu au montage de l'overlay) ;
+  /// 2. rencontre dresseur en cours (l'`eye_bgm` de la référence, du « ! »
+  ///    jusqu'au passage de témoin au combat) ;
+  /// 3. musique de la carte active (parité RMXP `Game_Map#autoplay`).
+  void _syncRuntimeMusic() {
+    String? path;
+    var route = RuntimeAudioRoute.overworld;
+    switch (_flowPhase) {
+      case _RuntimeFlowPhase.battle:
+      case _RuntimeFlowPhase.battleTransition:
+        route = RuntimeAudioRoute.battle;
+        final selection = _activeBattleMusicSelection;
+        path = _battleVictoryMusicActive
+            ? selection?.victoryMusicAbsolutePath
+            : selection?.battleMusicAbsolutePath;
+      case _RuntimeFlowPhase.overworld:
+      case _RuntimeFlowPhase.dialogue:
+      case _RuntimeFlowPhase.blockingInteraction:
+      case _RuntimeFlowPhase.mapTransition:
+        final encounterPath = _trainerEncounterMusicActive
+            ? _battleMusicResolver.resolveEncounterMusicAbsolutePath(
+                bundle: _bundle,
+              )
+            : null;
+        if (encounterPath != null) {
+          route = RuntimeAudioRoute.battle;
+          path = encounterPath;
+        } else {
+          path = _battleMusicResolver.resolveMapMusicAbsolutePath(
+            bundle: _bundle,
+          );
+        }
+    }
+    unawaited(_music.update(route: route, path: path));
+  }
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
       PlacedBehaviorCooldownGate();
   final StoryFlagsManager _storyFlags = const StoryFlagsManager();
@@ -2266,6 +2334,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
     }
     _publishInputAuthoritySnapshot();
+    _syncRuntimeMusic();
   }
 
   void _setCinematicInputLocked(bool locked) {
@@ -2775,6 +2844,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _clearBattleMusicState();
     _postBattleProgressionOverlay?.removeFromParent();
     _postBattleProgressionOverlay = null;
     _setPostBattlePresentationSnapshot(null);
@@ -3574,6 +3644,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _battleFxBundleCache.dispose();
       unawaited(_battleSfxPlayer?.dispose());
       _battleSfxPlayer = null;
+      unawaited(_musicService?.dispose());
+      _musicService = null;
     }
     super.onRemove();
   }
@@ -7590,6 +7662,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay = null;
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _clearBattleMusicState();
     _setBattleCommandOverlaySnapshot(null);
     debugPrint(
       '[battle] transition started requestId=${request.requestId} kind=${request.kind.name}',
@@ -7775,6 +7848,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           bundle: _bundle,
         ),
       );
+      _activeBattleMusicSelection = _traceSync(
+        'battle',
+        'musicResolver',
+        () => _battleMusicResolver.resolve(
+          request: request,
+          bundle: _bundle,
+        ),
+      );
+      _battleVictoryMusicActive = false;
+      _trainerEncounterMusicActive = false;
       final genderResolver = await _traceAsync(
         'battle',
         'genderResolver',
@@ -7815,6 +7898,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'overlay',
         () => BattleOverlayComponent(
           playSfx: (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer()).play,
+          onOutcomePresented: (outcome) {
+            _battleVictoryMusicActive = outcome.isVictory || outcome.isCaptured;
+            _syncRuntimeMusic();
+          },
           motionScale: reducedMotion ? battleReducedMotionSpeedFactor : 1.0,
           textScale: textScale,
           session: _battleSession!,
@@ -7847,6 +7934,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       camera.viewport.add(overlay);
       overlay.setUseFlutterCommandOverlay(_preferBattleFlutterCommandOverlay);
       _battleOverlay = overlay;
+      _syncRuntimeMusic();
       battleStopwatch.stop();
       debugPrint(
           '[perf][battle] total=${battleStopwatch.elapsedMilliseconds}ms');
@@ -7956,6 +8044,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // Ce helper évite qu'un mapping KO laisse le runtime coincé en transition.
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _clearBattleMusicState();
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
@@ -8454,6 +8543,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _clearBattleMusicState();
     _postBattleProgressionOverlay?.removeFromParent();
     _postBattleProgressionOverlay = null;
     _setPostBattlePresentationSnapshot(null);
@@ -8575,6 +8665,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // IMPORTANT: Il faut SUPPRIMER l'overlay du parent, pas juste mettre à null
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _clearBattleMusicState();
     _postBattleProgressionOverlay?.removeFromParent();
     _postBattleProgressionOverlay = null;
     _setPostBattlePresentationSnapshot(null);
@@ -10890,6 +10981,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       cinematicDefaultActorEmoteId,
     );
     _publishInputAuthoritySnapshot();
+    _trainerEncounterMusicActive = true;
+    _syncRuntimeMusic();
     debugPrint('[trainer] spotted entity=${entity.id} stage=exclamation');
   }
 
@@ -11388,6 +11481,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _mapEntityPresencePredicateFor(newBundle.manifest),
       );
       _activeMapId = loadedState.currentMapId;
+      _syncRuntimeMusic();
       _previousMapId = null;
       _resetScriptedNpcMovementController();
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
@@ -11454,6 +11548,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _mapEntityPresencePredicateFor(sourceBundle.manifest),
       );
       _activeMapId = source.activeMapId;
+      _syncRuntimeMusic();
       _previousMapId = source.previousMapId;
       final root = await _mountLoadedMap(
         bundle: sourceBundle,
@@ -11491,6 +11586,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _bundle = source.bundle;
       _world = source.world;
       _activeMapId = source.activeMapId;
+      _syncRuntimeMusic();
       _previousMapId = source.previousMapId;
       _setFlowPhase(source.flowPhase);
       _currentMapActivationId = source.currentMapActivationId;
@@ -11739,6 +11835,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _bundle = newBundle;
       _world = newWorld;
       _activeMapId = newBundle.map.id;
+      _syncRuntimeMusic();
       _previousMapId = null;
       _triggeredTrainerBattles.clear(); // Reset LoS locks on map change
       _resetScriptedNpcMovementController();
@@ -11918,6 +12015,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _bundle = fallbackBundle;
       _world = fallbackWorld;
       _activeMapId = fallbackBundle.map.id;
+      _syncRuntimeMusic();
       _previousMapId = null;
       _resetScriptedNpcMovementController();
       _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
@@ -12090,6 +12188,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = newWorld;
       _previousMapId = _activeMapId;
       _activeMapId = target.bundle.map.id;
+      _syncRuntimeMusic();
       _resetScriptedNpcMovementController();
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       final targetOriginPx = _originPixelsOf(target);
@@ -12227,6 +12326,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay = null;
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _clearBattleMusicState();
     _setBattleCommandOverlaySnapshot(null);
     // Blindage défensif lot 10 :
     // ce reset central est utilisé par plusieurs chemins runtime (load, warp,

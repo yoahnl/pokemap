@@ -2521,9 +2521,9 @@ class MapValidator {
 
   static void _validateMapMetadata(MapData map) {
     final md = map.mapMetadata;
-    if (md.musicId != null && md.musicId!.trim().isEmpty) {
+    if (md.musicPath != null && md.musicPath!.trim().isEmpty) {
       throw ValidationException(
-        'Map metadata musicId must be null or a non-blank string',
+        'Map metadata musicPath must be null or a non-blank string',
       );
     }
     if (md.defaultSpawnId != null && md.defaultSpawnId!.trim().isEmpty) {

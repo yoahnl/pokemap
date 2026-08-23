@@ -3130,7 +3130,7 @@
   "mapMetadata": {
     "displayName": "Maison du Joueur",
     "mapType": "interior",
-    "musicId": null,
+    "musicPath": null,
     "weather": "none",
     "isIndoor": true,
     "allowEscapeRope": false,

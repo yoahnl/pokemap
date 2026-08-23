@@ -3236,7 +3236,7 @@
   "mapMetadata": {
     "displayName": "Cabane du Gardien",
     "mapType": "interior",
-    "musicId": null,
+    "musicPath": null,
     "weather": "none",
     "isIndoor": true,
     "allowEscapeRope": false,

@@ -42,8 +42,8 @@ void main() {
         trainerClass: '  Gym Leader  ',
         battleDifficulty: 7,
         battleBackgroundRelativePath: r' assets\battle_backgrounds\misty.png ',
-        battleThemeId: ' battle_theme ',
-        victoryThemeId: ' victory_theme ',
+        battleMusicPath: ' battle_theme ',
+        victoryMusicPath: ' victory_theme ',
         tags: <String>[' rival ', ' ', ' gym '],
       );
 
@@ -56,8 +56,8 @@ void main() {
         trainer.battleBackgroundRelativePath,
         'assets/battle_backgrounds/misty.png',
       );
-      expect(trainer.battleThemeId, 'battle_theme');
-      expect(trainer.victoryThemeId, 'victory_theme');
+      expect(trainer.battleMusicPath, 'battle_theme');
+      expect(trainer.victoryMusicPath, 'victory_theme');
       expect(trainer.tags, <String>['rival', 'gym']);
       expect(repository.savedProjects.single.trainers.single.name, 'Misty');
     });
@@ -278,8 +278,8 @@ void main() {
                   'assets/battle_backgrounds/misty.png',
               characterId: 'misty_character',
               portraitElementId: 'misty_portrait',
-              battleThemeId: 'misty_theme',
-              victoryThemeId: 'misty_victory',
+              battleMusicPath: 'misty_theme',
+              victoryMusicPath: 'misty_victory',
             ),
           ],
         ),
@@ -296,8 +296,8 @@ void main() {
       );
       expect(trainer.characterId, 'misty_character');
       expect(trainer.portraitElementId, 'misty_portrait');
-      expect(trainer.battleThemeId, 'misty_theme');
-      expect(trainer.victoryThemeId, 'misty_victory');
+      expect(trainer.battleMusicPath, 'misty_theme');
+      expect(trainer.victoryMusicPath, 'misty_victory');
     });
 
     test('add/update trainer pokemon keeps data normalized and stable',

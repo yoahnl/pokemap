@@ -60,8 +60,8 @@ _ProjectTrainerEntry _$ProjectTrainerEntryFromJson(
   battleBackgroundRelativePath: json['battleBackgroundRelativePath'] as String?,
   characterId: json['characterId'] as String?,
   portraitElementId: json['portraitElementId'] as String?,
-  battleThemeId: json['battleThemeId'] as String?,
-  victoryThemeId: json['victoryThemeId'] as String?,
+  battleMusicPath: json['battleMusicPath'] as String?,
+  victoryMusicPath: json['victoryMusicPath'] as String?,
   moneyReward: json['moneyReward'] == null
       ? 0
       : _projectTrainerMoneyRewardFromJson(json['moneyReward']),
@@ -116,8 +116,8 @@ Map<String, dynamic> _$ProjectTrainerEntryToJson(
   'battleBackgroundRelativePath': instance.battleBackgroundRelativePath,
   'characterId': instance.characterId,
   'portraitElementId': instance.portraitElementId,
-  'battleThemeId': instance.battleThemeId,
-  'victoryThemeId': instance.victoryThemeId,
+  'battleMusicPath': instance.battleMusicPath,
+  'victoryMusicPath': instance.victoryMusicPath,
   'moneyReward': instance.moneyReward,
   'rewardItemGrants': instance.rewardItemGrants.map((e) => e.toJson()).toList(),
   'rewardFlagIds': instance.rewardFlagIds,

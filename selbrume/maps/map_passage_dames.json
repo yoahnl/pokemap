@@ -12032,7 +12032,7 @@
   "mapMetadata": {
     "displayName": "Passage des Dames",
     "mapType": "route",
-    "musicId": null,
+    "musicPath": null,
     "weather": "fog",
     "isIndoor": false,
     "allowEscapeRope": false,

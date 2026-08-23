@@ -78,8 +78,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _newNameController = TextEditingController();
   final _newClassController = TextEditingController();
   final _newPortraitController = TextEditingController();
-  final _newBattleThemeController = TextEditingController();
-  final _newVictoryThemeController = TextEditingController();
+  final _newBattleMusicController = TextEditingController();
+  final _newVictoryMusicController = TextEditingController();
   final _newTagsController = TextEditingController();
   final _newRewardMoneyController = TextEditingController(text: '0');
   final _newRewardFlagsController = TextEditingController();
@@ -110,8 +110,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _editNameController = TextEditingController();
   final _editClassController = TextEditingController();
   final _editPortraitController = TextEditingController();
-  final _editBattleThemeController = TextEditingController();
-  final _editVictoryThemeController = TextEditingController();
+  final _editBattleMusicController = TextEditingController();
+  final _editVictoryMusicController = TextEditingController();
   final _editTagsController = TextEditingController();
   final _editRewardMoneyController = TextEditingController(text: '0');
   final _editRewardFlagsController = TextEditingController();
@@ -173,8 +173,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newNameController.dispose();
     _newClassController.dispose();
     _newPortraitController.dispose();
-    _newBattleThemeController.dispose();
-    _newVictoryThemeController.dispose();
+    _newBattleMusicController.dispose();
+    _newVictoryMusicController.dispose();
     _newTagsController.dispose();
     _newRewardMoneyController.dispose();
     _newRewardFlagsController.dispose();
@@ -186,8 +186,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _editNameController.dispose();
     _editClassController.dispose();
     _editPortraitController.dispose();
-    _editBattleThemeController.dispose();
-    _editVictoryThemeController.dispose();
+    _editBattleMusicController.dispose();
+    _editVictoryMusicController.dispose();
     _editTagsController.dispose();
     _editRewardMoneyController.dispose();
     _editRewardFlagsController.dispose();
@@ -424,8 +424,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
       characterId: _newCharacterId,
       portraitElementId: _newPortraitController.text,
-      battleThemeId: _newBattleThemeController.text,
-      victoryThemeId: _newVictoryThemeController.text,
+      battleMusicPath: _newBattleMusicController.text,
+      victoryMusicPath: _newVictoryMusicController.text,
       templateKind: _newTemplateKind,
       rematchPolicy: _newRematchPolicy,
       preBattleDialogueId: _newPreBattleDialogueId,
@@ -491,8 +491,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
       characterId: _editCharacterId,
       portraitElementId: _editPortraitController.text,
-      battleThemeId: _editBattleThemeController.text,
-      victoryThemeId: _editVictoryThemeController.text,
+      battleMusicPath: _editBattleMusicController.text,
+      victoryMusicPath: _editVictoryMusicController.text,
       templateKind: _editTemplateKind,
       rematchPolicy: _editRematchPolicy,
       preBattleDialogueId: _editPreBattleDialogueId,
@@ -641,8 +641,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newNameController.clear();
     _newClassController.clear();
     _newPortraitController.clear();
-    _newBattleThemeController.clear();
-    _newVictoryThemeController.clear();
+    _newBattleMusicController.clear();
+    _newVictoryMusicController.clear();
     _newTagsController.clear();
     _newRewardMoneyController.text = '0';
     _newRewardFlagsController.clear();
@@ -958,8 +958,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _editNameController.text = trainer.name;
       _editClassController.text = trainer.trainerClass;
       _editPortraitController.text = trainer.portraitElementId ?? '';
-      _editBattleThemeController.text = trainer.battleThemeId ?? '';
-      _editVictoryThemeController.text = trainer.victoryThemeId ?? '';
+      _editBattleMusicController.text = trainer.battleMusicPath ?? '';
+      _editVictoryMusicController.text = trainer.victoryMusicPath ?? '';
       _editTagsController.text = trainer.tags.join(', ');
       _editRewardMoneyController.text = trainer.moneyReward.toString();
       _editRewardFlagsController.text = trainer.rewardFlagIds.join(', ');

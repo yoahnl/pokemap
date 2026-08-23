@@ -15,7 +15,17 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MapMetadata {
 
- String get displayName; MapType get mapType; String? get musicId; MapWeather get weather; bool get isIndoor; bool get allowEscapeRope; String? get defaultSpawnId; List<String> get tags;
+ String get displayName; MapType get mapType;/// Musique d'ambiance de la carte — BETA-BAT-015 (parité RMXP
+/// `Game_Map#autoplay`). Chemin relatif au projet ; nul = silence.
+/// S'appelait `musicId` sans catalogue derrière (politique pré-1.0.0 :
+/// renommage propre, aucun porteur de valeur dans les données).
+ String? get musicPath;/// Musique de combat des rencontres sur cette carte — BETA-BAT-015.
+///
+/// Chemin relatif au projet. C'est l'analogue déclaratif du « Change
+/// Battle BGM » persistant de la référence : un écart assumé, parce que ce
+/// moteur n'a pas d'interpréteur d'événements et que le no-code first
+/// préfère un champ de carte à un état de sauvegarde invisible.
+ String? get battleMusicPath; MapWeather get weather; bool get isIndoor; bool get allowEscapeRope; String? get defaultSpawnId; List<String> get tags;
 /// Create a copy of MapMetadata
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +38,16 @@ $MapMetadataCopyWith<MapMetadata> get copyWith => _$MapMetadataCopyWithImpl<MapM
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapMetadata&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.mapType, mapType) || other.mapType == mapType)&&(identical(other.musicId, musicId) || other.musicId == musicId)&&(identical(other.weather, weather) || other.weather == weather)&&(identical(other.isIndoor, isIndoor) || other.isIndoor == isIndoor)&&(identical(other.allowEscapeRope, allowEscapeRope) || other.allowEscapeRope == allowEscapeRope)&&(identical(other.defaultSpawnId, defaultSpawnId) || other.defaultSpawnId == defaultSpawnId)&&const DeepCollectionEquality().equals(other.tags, tags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapMetadata&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.mapType, mapType) || other.mapType == mapType)&&(identical(other.musicPath, musicPath) || other.musicPath == musicPath)&&(identical(other.battleMusicPath, battleMusicPath) || other.battleMusicPath == battleMusicPath)&&(identical(other.weather, weather) || other.weather == weather)&&(identical(other.isIndoor, isIndoor) || other.isIndoor == isIndoor)&&(identical(other.allowEscapeRope, allowEscapeRope) || other.allowEscapeRope == allowEscapeRope)&&(identical(other.defaultSpawnId, defaultSpawnId) || other.defaultSpawnId == defaultSpawnId)&&const DeepCollectionEquality().equals(other.tags, tags));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,displayName,mapType,musicId,weather,isIndoor,allowEscapeRope,defaultSpawnId,const DeepCollectionEquality().hash(tags));
+int get hashCode => Object.hash(runtimeType,displayName,mapType,musicPath,battleMusicPath,weather,isIndoor,allowEscapeRope,defaultSpawnId,const DeepCollectionEquality().hash(tags));
 
 @override
 String toString() {
-  return 'MapMetadata(displayName: $displayName, mapType: $mapType, musicId: $musicId, weather: $weather, isIndoor: $isIndoor, allowEscapeRope: $allowEscapeRope, defaultSpawnId: $defaultSpawnId, tags: $tags)';
+  return 'MapMetadata(displayName: $displayName, mapType: $mapType, musicPath: $musicPath, battleMusicPath: $battleMusicPath, weather: $weather, isIndoor: $isIndoor, allowEscapeRope: $allowEscapeRope, defaultSpawnId: $defaultSpawnId, tags: $tags)';
 }
 
 
@@ -48,7 +58,7 @@ abstract mixin class $MapMetadataCopyWith<$Res>  {
   factory $MapMetadataCopyWith(MapMetadata value, $Res Function(MapMetadata) _then) = _$MapMetadataCopyWithImpl;
 @useResult
 $Res call({
- String displayName, MapType mapType, String? musicId, MapWeather weather, bool isIndoor, bool allowEscapeRope, String? defaultSpawnId, List<String> tags
+ String displayName, MapType mapType, String? musicPath, String? battleMusicPath, MapWeather weather, bool isIndoor, bool allowEscapeRope, String? defaultSpawnId, List<String> tags
 });
 
 
@@ -65,11 +75,12 @@ class _$MapMetadataCopyWithImpl<$Res>
 
 /// Create a copy of MapMetadata
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? displayName = null,Object? mapType = null,Object? musicId = freezed,Object? weather = null,Object? isIndoor = null,Object? allowEscapeRope = null,Object? defaultSpawnId = freezed,Object? tags = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? displayName = null,Object? mapType = null,Object? musicPath = freezed,Object? battleMusicPath = freezed,Object? weather = null,Object? isIndoor = null,Object? allowEscapeRope = null,Object? defaultSpawnId = freezed,Object? tags = null,}) {
   return _then(_self.copyWith(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,mapType: null == mapType ? _self.mapType : mapType // ignore: cast_nullable_to_non_nullable
-as MapType,musicId: freezed == musicId ? _self.musicId : musicId // ignore: cast_nullable_to_non_nullable
+as MapType,musicPath: freezed == musicPath ? _self.musicPath : musicPath // ignore: cast_nullable_to_non_nullable
+as String?,battleMusicPath: freezed == battleMusicPath ? _self.battleMusicPath : battleMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,weather: null == weather ? _self.weather : weather // ignore: cast_nullable_to_non_nullable
 as MapWeather,isIndoor: null == isIndoor ? _self.isIndoor : isIndoor // ignore: cast_nullable_to_non_nullable
 as bool,allowEscapeRope: null == allowEscapeRope ? _self.allowEscapeRope : allowEscapeRope // ignore: cast_nullable_to_non_nullable
@@ -160,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String displayName,  MapType mapType,  String? musicId,  MapWeather weather,  bool isIndoor,  bool allowEscapeRope,  String? defaultSpawnId,  List<String> tags)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String displayName,  MapType mapType,  String? musicPath,  String? battleMusicPath,  MapWeather weather,  bool isIndoor,  bool allowEscapeRope,  String? defaultSpawnId,  List<String> tags)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapMetadata() when $default != null:
-return $default(_that.displayName,_that.mapType,_that.musicId,_that.weather,_that.isIndoor,_that.allowEscapeRope,_that.defaultSpawnId,_that.tags);case _:
+return $default(_that.displayName,_that.mapType,_that.musicPath,_that.battleMusicPath,_that.weather,_that.isIndoor,_that.allowEscapeRope,_that.defaultSpawnId,_that.tags);case _:
   return orElse();
 
 }
@@ -181,10 +192,10 @@ return $default(_that.displayName,_that.mapType,_that.musicId,_that.weather,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String displayName,  MapType mapType,  String? musicId,  MapWeather weather,  bool isIndoor,  bool allowEscapeRope,  String? defaultSpawnId,  List<String> tags)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String displayName,  MapType mapType,  String? musicPath,  String? battleMusicPath,  MapWeather weather,  bool isIndoor,  bool allowEscapeRope,  String? defaultSpawnId,  List<String> tags)  $default,) {final _that = this;
 switch (_that) {
 case _MapMetadata():
-return $default(_that.displayName,_that.mapType,_that.musicId,_that.weather,_that.isIndoor,_that.allowEscapeRope,_that.defaultSpawnId,_that.tags);case _:
+return $default(_that.displayName,_that.mapType,_that.musicPath,_that.battleMusicPath,_that.weather,_that.isIndoor,_that.allowEscapeRope,_that.defaultSpawnId,_that.tags);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +212,10 @@ return $default(_that.displayName,_that.mapType,_that.musicId,_that.weather,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String displayName,  MapType mapType,  String? musicId,  MapWeather weather,  bool isIndoor,  bool allowEscapeRope,  String? defaultSpawnId,  List<String> tags)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String displayName,  MapType mapType,  String? musicPath,  String? battleMusicPath,  MapWeather weather,  bool isIndoor,  bool allowEscapeRope,  String? defaultSpawnId,  List<String> tags)?  $default,) {final _that = this;
 switch (_that) {
 case _MapMetadata() when $default != null:
-return $default(_that.displayName,_that.mapType,_that.musicId,_that.weather,_that.isIndoor,_that.allowEscapeRope,_that.defaultSpawnId,_that.tags);case _:
+return $default(_that.displayName,_that.mapType,_that.musicPath,_that.battleMusicPath,_that.weather,_that.isIndoor,_that.allowEscapeRope,_that.defaultSpawnId,_that.tags);case _:
   return null;
 
 }
@@ -216,12 +227,23 @@ return $default(_that.displayName,_that.mapType,_that.musicId,_that.weather,_tha
 
 @JsonSerializable(explicitToJson: true)
 class _MapMetadata implements MapMetadata {
-  const _MapMetadata({this.displayName = '', this.mapType = MapType.route, this.musicId, this.weather = MapWeather.none, this.isIndoor = false, this.allowEscapeRope = true, this.defaultSpawnId, final  List<String> tags = const []}): _tags = tags;
+  const _MapMetadata({this.displayName = '', this.mapType = MapType.route, this.musicPath, this.battleMusicPath, this.weather = MapWeather.none, this.isIndoor = false, this.allowEscapeRope = true, this.defaultSpawnId, final  List<String> tags = const []}): _tags = tags;
   factory _MapMetadata.fromJson(Map<String, dynamic> json) => _$MapMetadataFromJson(json);
 
 @override@JsonKey() final  String displayName;
 @override@JsonKey() final  MapType mapType;
-@override final  String? musicId;
+/// Musique d'ambiance de la carte — BETA-BAT-015 (parité RMXP
+/// `Game_Map#autoplay`). Chemin relatif au projet ; nul = silence.
+/// S'appelait `musicId` sans catalogue derrière (politique pré-1.0.0 :
+/// renommage propre, aucun porteur de valeur dans les données).
+@override final  String? musicPath;
+/// Musique de combat des rencontres sur cette carte — BETA-BAT-015.
+///
+/// Chemin relatif au projet. C'est l'analogue déclaratif du « Change
+/// Battle BGM » persistant de la référence : un écart assumé, parce que ce
+/// moteur n'a pas d'interpréteur d'événements et que le no-code first
+/// préfère un champ de carte à un état de sauvegarde invisible.
+@override final  String? battleMusicPath;
 @override@JsonKey() final  MapWeather weather;
 @override@JsonKey() final  bool isIndoor;
 @override@JsonKey() final  bool allowEscapeRope;
@@ -247,16 +269,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapMetadata&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.mapType, mapType) || other.mapType == mapType)&&(identical(other.musicId, musicId) || other.musicId == musicId)&&(identical(other.weather, weather) || other.weather == weather)&&(identical(other.isIndoor, isIndoor) || other.isIndoor == isIndoor)&&(identical(other.allowEscapeRope, allowEscapeRope) || other.allowEscapeRope == allowEscapeRope)&&(identical(other.defaultSpawnId, defaultSpawnId) || other.defaultSpawnId == defaultSpawnId)&&const DeepCollectionEquality().equals(other._tags, _tags));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapMetadata&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.mapType, mapType) || other.mapType == mapType)&&(identical(other.musicPath, musicPath) || other.musicPath == musicPath)&&(identical(other.battleMusicPath, battleMusicPath) || other.battleMusicPath == battleMusicPath)&&(identical(other.weather, weather) || other.weather == weather)&&(identical(other.isIndoor, isIndoor) || other.isIndoor == isIndoor)&&(identical(other.allowEscapeRope, allowEscapeRope) || other.allowEscapeRope == allowEscapeRope)&&(identical(other.defaultSpawnId, defaultSpawnId) || other.defaultSpawnId == defaultSpawnId)&&const DeepCollectionEquality().equals(other._tags, _tags));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,displayName,mapType,musicId,weather,isIndoor,allowEscapeRope,defaultSpawnId,const DeepCollectionEquality().hash(_tags));
+int get hashCode => Object.hash(runtimeType,displayName,mapType,musicPath,battleMusicPath,weather,isIndoor,allowEscapeRope,defaultSpawnId,const DeepCollectionEquality().hash(_tags));
 
 @override
 String toString() {
-  return 'MapMetadata(displayName: $displayName, mapType: $mapType, musicId: $musicId, weather: $weather, isIndoor: $isIndoor, allowEscapeRope: $allowEscapeRope, defaultSpawnId: $defaultSpawnId, tags: $tags)';
+  return 'MapMetadata(displayName: $displayName, mapType: $mapType, musicPath: $musicPath, battleMusicPath: $battleMusicPath, weather: $weather, isIndoor: $isIndoor, allowEscapeRope: $allowEscapeRope, defaultSpawnId: $defaultSpawnId, tags: $tags)';
 }
 
 
@@ -267,7 +289,7 @@ abstract mixin class _$MapMetadataCopyWith<$Res> implements $MapMetadataCopyWith
   factory _$MapMetadataCopyWith(_MapMetadata value, $Res Function(_MapMetadata) _then) = __$MapMetadataCopyWithImpl;
 @override @useResult
 $Res call({
- String displayName, MapType mapType, String? musicId, MapWeather weather, bool isIndoor, bool allowEscapeRope, String? defaultSpawnId, List<String> tags
+ String displayName, MapType mapType, String? musicPath, String? battleMusicPath, MapWeather weather, bool isIndoor, bool allowEscapeRope, String? defaultSpawnId, List<String> tags
 });
 
 
@@ -284,11 +306,12 @@ class __$MapMetadataCopyWithImpl<$Res>
 
 /// Create a copy of MapMetadata
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? mapType = null,Object? musicId = freezed,Object? weather = null,Object? isIndoor = null,Object? allowEscapeRope = null,Object? defaultSpawnId = freezed,Object? tags = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? mapType = null,Object? musicPath = freezed,Object? battleMusicPath = freezed,Object? weather = null,Object? isIndoor = null,Object? allowEscapeRope = null,Object? defaultSpawnId = freezed,Object? tags = null,}) {
   return _then(_MapMetadata(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,mapType: null == mapType ? _self.mapType : mapType // ignore: cast_nullable_to_non_nullable
-as MapType,musicId: freezed == musicId ? _self.musicId : musicId // ignore: cast_nullable_to_non_nullable
+as MapType,musicPath: freezed == musicPath ? _self.musicPath : musicPath // ignore: cast_nullable_to_non_nullable
+as String?,battleMusicPath: freezed == battleMusicPath ? _self.battleMusicPath : battleMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,weather: null == weather ? _self.weather : weather // ignore: cast_nullable_to_non_nullable
 as MapWeather,isIndoor: null == isIndoor ? _self.isIndoor : isIndoor // ignore: cast_nullable_to_non_nullable
 as bool,allowEscapeRope: null == allowEscapeRope ? _self.allowEscapeRope : allowEscapeRope // ignore: cast_nullable_to_non_nullable

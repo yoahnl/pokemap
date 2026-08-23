@@ -4646,7 +4646,7 @@
   "mapMetadata": {
     "displayName": "Sommet du Phare",
     "mapType": "interior",
-    "musicId": null,
+    "musicPath": null,
     "weather": "none",
     "isIndoor": true,
     "allowEscapeRope": false,
