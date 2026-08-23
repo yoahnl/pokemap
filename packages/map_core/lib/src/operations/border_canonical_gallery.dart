@@ -165,8 +165,7 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
           coverageChecks: <BorderPublicationCoverageCheck>[
             _masonryCoverageCheck(
               evidence,
-              definition.defaults,
-            ),
+              definition.defaults),
           ],
           structuralRuns: _structuralRuns(
             caseWire: caseWire,
@@ -483,8 +482,7 @@ BorderStrokeGeometry _masonryGeometryFor(
             BorderStroke(
               id: 'primary',
               points: <GridPos>[
-                for (var x = 2; x <= 9; x += 1) GridPos(x: x, y: 5),
-              ],
+                for (var x = 2; x <= 9; x += 1) GridPos(x: x, y: 5)],
               closed: false,
             ),
           ],
@@ -535,8 +533,7 @@ BorderStrokeGeometry _fenceGeometryFor(
             BorderStroke(
               id: 'primary',
               points: <GridPos>[
-                for (var x = 2; x <= 9; x += 1) GridPos(x: x, y: 5),
-              ],
+                for (var x = 2; x <= 9; x += 1) GridPos(x: x, y: 5)],
               closed: false,
             ),
           ],
@@ -605,6 +602,29 @@ BorderStrokeGeometry _fenceGeometryFor(
 BorderStrokeGeometry _connectedLineGeometryFor(
   BorderCanonicalGalleryCase galleryCase,
 ) {
+  if (galleryCase == BorderCanonicalGalleryCase.sBend) {
+    return BorderStrokeGeometry(
+      strokes: <BorderStroke>[
+        BorderStroke(
+          id: 'primary',
+          points: const <GridPos>[
+            GridPos(x: 1, y: 2),
+            GridPos(x: 2, y: 2),
+            GridPos(x: 3, y: 2),
+            GridPos(x: 3, y: 3),
+            GridPos(x: 3, y: 4),
+            GridPos(x: 4, y: 4),
+            GridPos(x: 5, y: 4),
+            GridPos(x: 5, y: 5),
+            GridPos(x: 5, y: 6),
+            GridPos(x: 6, y: 6),
+            GridPos(x: 7, y: 6),
+          ],
+          closed: false,
+        ),
+      ],
+    );
+  }
   if (galleryCase != BorderCanonicalGalleryCase.sharpCorner) {
     return _fenceGeometryFor(galleryCase);
   }
@@ -642,7 +662,8 @@ BorderStrokeGeometry _connectedLineGeometryFor(
 
 BorderStrokeGeometry _stoneChainGeometryFor(
         BorderCanonicalGalleryCase galleryCase,
-        {required int depthRows}) =>
+        {required int depthRows,
+}) =>
     BorderStrokeGeometry(
       alignment: BorderStrokeAlignment.gridEdges,
       strokes: switch (galleryCase) {
@@ -650,15 +671,13 @@ BorderStrokeGeometry _stoneChainGeometryFor(
             BorderStroke(
               id: 'horizontal',
               points: <GridPos>[
-                for (var x = 1; x <= 10; x += 1) GridPos(x: x, y: 3),
-              ],
+                for (var x = 1; x <= 10; x += 1) GridPos(x: x, y: 3)],
               closed: false,
             ),
             BorderStroke(
               id: 'vertical',
               points: <GridPos>[
-                for (var y = 1; y <= 8; y += 1) GridPos(x: 11, y: y),
-              ],
+                for (var y = 1; y <= 8; y += 1) GridPos(x: 11, y: y)],
               closed: false,
             ),
           ],
@@ -950,7 +969,8 @@ _StoneChainPublicationMeasurement _measureStoneChainPublicationEvidence({
       lipConnectedComponentCount: _maximumConnectedComponentsByStroke(lips),
       faceConnectedComponentCount: _maximumConnectedComponentsByStroke(faces),
       combinedConnectedComponentCount:
-          _maximumConnectedComponentsByStroke(placements),
+          _maximumConnectedComponentsByStroke(placements,
+      ),
     ),
     lipCoverage: lipCoverage,
     faceCoverage: faceCoverage,
@@ -1009,7 +1029,8 @@ int _maximumConnectedComponentsByStroke(
   final byStroke = <String, List<_StoneChainPublicationPlacement>>{};
   for (final placement in placements) {
     (byStroke[placement.strokeId] ??= <_StoneChainPublicationPlacement>[])
-        .add(placement);
+        .add(placement,
+    );
   }
   var maximum = 0;
   for (final entry in byStroke.entries) {
@@ -1094,8 +1115,7 @@ List<_StoneChainTopologicalRun> _stoneChainTopologicalRuns({
       final end = stroke.points[(index + 1) % stroke.points.length];
       final tangent = StoneChainAxis(
         dx: end.x - start.x,
-        dy: end.y - start.y,
-      );
+        dy: end.y - start.y);
       edges.add(
         _StoneChainTopologicalEdge(
           start: start,
@@ -1275,8 +1295,7 @@ Map<_StoneChainPublicationRunKey, Set<int>> _stoneChainJointCoordinatesByRun(
 
 Map<_StoneChainPublicationRunKey, List<_StoneChainPublicationPlacement>>
     _stoneChainPublicationRuns(
-  List<_StoneChainPublicationPlacement> placements,
-) {
+  List<_StoneChainPublicationPlacement> placements) {
   final runs =
       <_StoneChainPublicationRunKey, List<_StoneChainPublicationPlacement>>{};
   for (final placement in placements) {
@@ -1485,7 +1504,8 @@ List<BorderPublicationCoverageCheck> _fenceCoverageChecks({
   for (final edge in evidence.edges) {
     edgesByStroke
         .putIfAbsent(
-            edge.strokeId, () => <PostAndRailLineEdgeResolutionEvidence>[])
+            edge.strokeId, () => <PostAndRailLineEdgeResolutionEvidence>[],
+        )
         .add(edge);
   }
   final components = borderCanonicalCoverageComponentsForCase(
@@ -1497,11 +1517,13 @@ List<BorderPublicationCoverageCheck> _fenceCoverageChecks({
       BorderPublicationCoverageCheck(
         component: component,
         longestContiguousGapPx: _maximum(
-          _fenceEdgesForComponent(edgesByStroke, component)
+          _fenceEdgesForComponent(edgesByStroke, component,
+          )
               .map((edge) => edge.longestGapPx),
         ),
         maximumPairwiseOverlapPx: _maximum(
-          _fenceEdgesForComponent(edgesByStroke, component)
+          _fenceEdgesForComponent(edgesByStroke, component,
+          )
               .map((edge) => edge.maximumPairwiseOverlapPx),
         ),
         gapTolerancePx: params.gapTolerancePx,
@@ -1534,11 +1556,11 @@ List<BorderPublicationCoverageCheck> _connectedLineCoverageChecks({
         component: component,
         strokes: switch (component) {
           BorderCanonicalCoverageComponent.leadingStroke => <BorderStroke>[
-              strokesById['leading']!
-            ],
+              strokesById['leading']!,
+          ],
           BorderCanonicalCoverageComponent.trailingStroke => <BorderStroke>[
-              strokesById['trailing']!
-            ],
+              strokesById['trailing']!,
+          ],
           _ => geometry.strokes,
         },
         primary: primary,
@@ -1614,6 +1636,9 @@ BorderPublicationCoverageCheck _connectedLineCoverageCheck({
     final edgeLength = targetEnd - targetStart;
     final projections = <BorderStructuralCoverageProjection>[];
     for (final placement in placements) {
+      if (placement.anchorCell != start && placement.anchorCell != end) {
+        continue;
+      }
       final primitive = primitivesById[placement.primitiveId];
       if (primitive == null) continue;
       final clipped = <BorderCoverageInterval>[];

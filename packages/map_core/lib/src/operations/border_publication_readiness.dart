@@ -24,7 +24,7 @@ const List<BorderPrimitiveRole> _structuralRoles = <BorderPrimitiveRole>[
 final RegExp _candidateFingerprintPattern = RegExp(r'^sha256:[0-9a-f]{64}$');
 
 /// Version of the canonical geometry and evidence-component contract.
-const int borderCanonicalGalleryVersion = 2;
+const int borderCanonicalGalleryVersion = 3;
 
 /// Stable cases that the editor must render for a publication gallery.
 ///
@@ -300,9 +300,11 @@ final class BorderPublicationGallerySample {
     this.primaryStoneChainEvidence,
     this.invertedStoneChainEvidence,
   })  : _coverageChecks =
-            List<BorderPublicationCoverageCheck>.unmodifiable(coverageChecks),
+            List<BorderPublicationCoverageCheck>.unmodifiable(coverageChecks,
+       ),
         _structuralRuns =
-            List<BorderPublicationStructuralRun>.unmodifiable(structuralRuns) {
+            List<BorderPublicationStructuralRun>.unmodifiable(structuralRuns,
+       ) {
     final coverageComponents = <BorderCanonicalCoverageComponent>{};
     for (final check in _coverageChecks) {
       if (!coverageComponents.add(check.component)) {
@@ -434,24 +436,15 @@ String computeBorderPublicationCandidateFingerprint({
   _requirePortableInteger(resolverVersion, 'resolverVersion');
   _requirePortableInteger(
     canonicalGalleryVersion,
-    'canonicalGalleryVersion',
-  );
-  return 'sha256:${narrativeEventCanonicalSha256(
-    _publicationCandidateProjection(
-      blueprintId,
-      definition,
-      resolverVersion: resolverVersion,
-      canonicalGalleryVersion: canonicalGalleryVersion,
-    ),
-  )}';
+    'canonicalGalleryVersion');
+  return 'sha256:${narrativeEventCanonicalSha256(_publicationCandidateProjection(blueprintId, definition, resolverVersion: resolverVersion, canonicalGalleryVersion: canonicalGalleryVersion))}';
 }
 
 /// Deterministic publication gate for one candidate blueprint definition.
 @immutable
 final class BorderPublicationReadinessResult {
   const BorderPublicationReadinessResult._({
-    required this.diagnosticReport,
-  });
+    required this.diagnosticReport});
 
   final BorderDiagnosticsReport diagnosticReport;
 
@@ -496,13 +489,11 @@ BorderPublicationReadinessResult assessBorderPublicationReadiness({
     blueprintId,
     definition,
     project,
-    diagnostics,
-  );
+    diagnostics);
   _diagnoseRequiredRolesAndOrientations(
     blueprintId,
     definition,
-    diagnostics,
-  );
+    diagnostics);
   _diagnosePrimitiveMetrics(blueprintId, definition, diagnostics);
   _diagnoseSnapshotReferences(
     blueprintId,
@@ -515,8 +506,7 @@ BorderPublicationReadinessResult assessBorderPublicationReadiness({
     blueprintId,
     definition,
     project,
-    diagnostics,
-  );
+    diagnostics);
   _diagnoseCanonicalGallery(
     blueprintId,
     definition,
@@ -550,7 +540,8 @@ void _diagnoseTemplatePrimitiveRoles(
         'template': _templateV1WireName(definition.template),
       },
       action: 'border.action.remove_incompatible_role',
-    ));
+    ),
+    );
   }
 }
 
@@ -580,7 +571,8 @@ void _diagnoseTemplateGround(
           'template': _templateV1WireName(definition.template),
         },
         action: 'border.action.remove_ground_from_linear_blueprint',
-      ));
+      ),
+      );
   }
 }
 
@@ -700,7 +692,8 @@ void _diagnoseProjectReferences(
         'sourceElementId': primitive.sourceElementId,
       },
       action: 'border.action.select_existing_source_element',
-    ));
+    ),
+    );
   }
   final ground = definition.ground;
   final smartTilePreset = ground == null
@@ -719,7 +712,8 @@ void _diagnoseProjectReferences(
         'sourceSmartTilePresetId': ground.sourceSmartTilePresetId,
       },
       action: 'border.action.select_published_smart_tile_preset',
-    ));
+    ),
+    );
   }
 }
 
@@ -738,7 +732,8 @@ void _diagnoseDuplicatePrimitiveIds(
         blueprintId: blueprintId,
         parameters: <String, Object?>{'primitiveId': primitive.id},
         action: 'border.action.assign_unique_primitive_ids',
-      ));
+      ),
+      );
     }
   }
 }
@@ -766,7 +761,8 @@ void _diagnoseRequiredRolesAndOrientations(
             ],
           },
           action: 'border.action.add_required_structural_primitive',
-        ));
+        ),
+        );
       } else {
         _diagnoseOrientationGroup(
           blueprintId: blueprintId,
@@ -799,7 +795,8 @@ void _diagnoseRequiredRolesAndOrientations(
               'roles': <String>[borderPrimitiveRoleV1WireName(role)],
             },
             action: 'border.action.add_required_line_primitive',
-          ));
+          ),
+          );
         } else {
           _diagnoseOrientationGroup(
             blueprintId: blueprintId,
@@ -828,7 +825,8 @@ void _diagnoseRequiredRolesAndOrientations(
               'roles': <String>[borderPrimitiveRoleV1WireName(role)],
             },
             action: 'border.action.add_required_connected_line_primitive',
-          ));
+          ),
+          );
           continue;
         }
         final quarterTurns = !definition.defaults.allowAutoRotation
@@ -841,7 +839,8 @@ void _diagnoseRequiredRolesAndOrientations(
             if (eligible.any(
               (primitive) =>
                   primitive.transforms.allowedQuarterTurns
-                      .contains(quarterTurn) &&
+                      .contains(quarterTurn,
+                  ) &&
                   (!flipX || primitive.transforms.allowFlipX),
             )) {
               continue;
@@ -856,7 +855,8 @@ void _diagnoseRequiredRolesAndOrientations(
                 'flipX': flipX,
               },
               action: 'border.action.allow_required_connected_line_transform',
-            ));
+            ),
+            );
           }
         }
       }
@@ -1096,7 +1096,8 @@ void _diagnoseOrientationGroup({
         blueprintId: blueprintId,
         groupName: groupName,
         quarterTurns: quarterTurns,
-      ));
+      ),
+      );
       continue;
     }
     if (requireFlipX &&
@@ -1110,7 +1111,8 @@ void _diagnoseOrientationGroup({
         groupName: groupName,
         quarterTurns: quarterTurns,
         flipX: true,
-      ));
+      ),
+      );
     }
   }
 }
@@ -1162,7 +1164,8 @@ void _diagnosePrimitiveMetrics(
         blueprintId: blueprintId,
         parameters: <String, Object?>{'primitiveId': primitive.id},
         action: 'border.action.place_anchor_inside_asset',
-      ));
+      ),
+      );
     }
 
     bool? hasStructuralOccupancy;
@@ -1184,7 +1187,8 @@ void _diagnosePrimitiveMetrics(
         blueprintId: blueprintId,
         parameters: <String, Object?>{'primitiveId': primitive.id},
         action: 'border.action.reanalyze_asset_occupancy',
-      ));
+      ),
+      );
     }
     if (hasStructuralOccupancy == false) {
       diagnostics.add(_diagnostic(
@@ -1193,7 +1197,8 @@ void _diagnosePrimitiveMetrics(
         blueprintId: blueprintId,
         parameters: <String, Object?>{'primitiveId': primitive.id},
         action: 'border.action.choose_nonempty_asset',
-      ));
+      ),
+      );
     }
   }
 }
@@ -1225,10 +1230,10 @@ void _diagnoseSnapshotReferences(
       scope: BorderDiagnosticScope.visualSnapshot,
       blueprintId: blueprintId,
       parameters: <String, Object?>{
-        'snapshotIds': duplicateSnapshotIds,
-      },
+        'snapshotIds': duplicateSnapshotIds},
       action: 'border.action.remove_duplicate_visual_snapshots',
-    ));
+    ),
+    );
   }
   final snapshotsById = <String, BorderVisualSnapshot>{};
   for (final snapshot in visualSnapshots) {
@@ -1252,7 +1257,8 @@ void _diagnoseSnapshotReferences(
         blueprintId: blueprintId,
         parameters: <String, Object?>{'snapshotId': snapshotId},
         action: 'border.action.restore_or_republish_snapshot',
-      ));
+      ),
+      );
       continue;
     }
     final integrity = snapshotIntegrity[snapshotId];
@@ -1265,7 +1271,8 @@ void _diagnoseSnapshotReferences(
         blueprintId: blueprintId,
         parameters: <String, Object?>{'snapshotId': snapshotId},
         action: 'border.action.restore_or_republish_snapshot',
-      ));
+      ),
+      );
     }
   }
 
@@ -1290,7 +1297,8 @@ void _diagnoseSnapshotReferences(
           'snapshotHeight': frameSize.height,
         },
         action: 'border.action.reanalyze_and_snapshot_asset',
-      ));
+      ),
+      );
     }
   }
 }
@@ -1315,7 +1323,8 @@ void _diagnoseGroundCompleteness(
       blueprintId: blueprintId,
       parameters: <String, Object?>{'roles': missing},
       action: 'border.action.resolve_all_smart_tile_role_snapshots',
-    ));
+    ),
+    );
   }
 }
 
@@ -1339,7 +1348,8 @@ void _diagnoseCanonicalGallery(
         'galleryCanonicalGalleryVersion': report.canonicalGalleryVersion,
       },
       action: 'border.action.regenerate_canonical_gallery',
-    ));
+    ),
+    );
   }
   final expectedFingerprint = computeBorderPublicationCandidateFingerprint(
     blueprintId: blueprintId,
@@ -1356,7 +1366,8 @@ void _diagnoseCanonicalGallery(
         'galleryCandidateFingerprint': report.candidateFingerprint,
       },
       action: 'border.action.regenerate_canonical_gallery',
-    ));
+    ),
+    );
   }
 
   if (report.samples.isEmpty) {
@@ -1365,14 +1376,15 @@ void _diagnoseCanonicalGallery(
       scope: BorderDiagnosticScope.blueprint,
       blueprintId: blueprintId,
       action: 'border.action.generate_canonical_gallery',
-    ));
+    ),
+    );
     return;
   }
   final samples = List<BorderPublicationGallerySample>.of(report.samples)
     ..sort(
-      (left, right) => _galleryCaseRank(left.galleryCase).compareTo(
-        _galleryCaseRank(right.galleryCase),
-      ),
+      (left, right) => _galleryCaseRank(left.galleryCase,
+      ).compareTo(
+        _galleryCaseRank(right.galleryCase)),
     );
   final expectedCases = borderCanonicalGalleryCasesForTemplate(
     definition.template,
@@ -1398,7 +1410,8 @@ void _diagnoseCanonicalGallery(
       blueprintId: blueprintId,
       parameters: <String, Object?>{'cases': duplicateCases},
       action: 'border.action.regenerate_canonical_gallery',
-    ));
+    ),
+    );
   }
   final missingCases = <String>[
     for (final galleryCase in expectedCases)
@@ -1421,18 +1434,18 @@ void _diagnoseCanonicalGallery(
         'unexpectedCases': unexpectedCases,
       },
       action: 'border.action.regenerate_canonical_gallery',
-    ));
+    ),
+    );
   }
 
   for (final sample in samples) {
     final sampleId = borderCanonicalGalleryCaseV1WireName(sample.galleryCase);
     if (!expectedCaseSet.contains(sample.galleryCase)) continue;
     final coverage = List<BorderPublicationCoverageCheck>.of(
-      sample.coverageChecks,
-    )..sort(
-        (left, right) => _coverageComponentRank(left.component).compareTo(
-          _coverageComponentRank(right.component),
-        ),
+      sample.coverageChecks)..sort(
+        (left, right) => _coverageComponentRank(left.component,
+          ).compareTo(
+          _coverageComponentRank(right.component)),
       );
     if (coverage.isEmpty) {
       diagnostics.add(_diagnostic(
@@ -1441,7 +1454,8 @@ void _diagnoseCanonicalGallery(
         blueprintId: blueprintId,
         parameters: <String, Object?>{'sampleId': sampleId},
         action: 'border.action.regenerate_canonical_sample',
-      ));
+      ),
+      );
     }
     final expectedCoverage = borderCanonicalCoverageComponentsForCase(
       template: definition.template,
@@ -1474,11 +1488,13 @@ void _diagnoseCanonicalGallery(
           'unexpectedComponents': unexpectedCoverage,
         },
         action: 'border.action.regenerate_canonical_sample',
-      ));
+      ),
+      );
     }
     for (final check in coverage) {
       final coverageComponent =
-          borderCanonicalCoverageComponentV1WireName(check.component);
+          borderCanonicalCoverageComponentV1WireName(check.component,
+      );
       final expectedGapTolerance = definition.defaults.gapTolerancePx;
       final expectedMaxOverlap = definition.defaults.maxOverlapPx;
       if (check.gapTolerancePx != expectedGapTolerance ||
@@ -1496,12 +1512,20 @@ void _diagnoseCanonicalGallery(
             'expectedMaxOverlapPx': expectedMaxOverlap,
           },
           action: 'border.action.regenerate_canonical_gallery',
-        ));
+        ),
+        );
       }
       if (check.longestContiguousGapPx > expectedGapTolerance) {
+        final connectedLineDisconnected =
+            definition.template == BorderBlueprintTemplate.connectedLine &&
+            sample.galleryCase == BorderCanonicalGalleryCase.sBend;
         diagnostics.add(_diagnostic(
-          code: 'border.publication.coverage_gap_exceeded',
-          severity:
+          code: connectedLineDisconnected
+                ? 'border.publication.connected_line_disconnected'
+                : 'border.publication.coverage_gap_exceeded',
+          severity: connectedLineDisconnected
+                ? BorderDiagnosticSeverity.error
+                :
               definition.template == BorderBlueprintTemplate.connectedLine &&
                       !definition.defaults.allowAutoRotation
                   ? BorderDiagnosticSeverity.warning
@@ -1514,8 +1538,11 @@ void _diagnoseCanonicalGallery(
             'longestContiguousGapPx': check.longestContiguousGapPx,
             'gapTolerancePx': expectedGapTolerance,
           },
-          action: 'border.action.fix_canonical_coverage_gap',
-        ));
+          action: connectedLineDisconnected
+                ? 'border.action.realign_connected_line_anchors'
+                : 'border.action.fix_canonical_coverage_gap',
+        ),
+        );
       }
       if (check.maximumPairwiseOverlapPx > expectedMaxOverlap) {
         diagnostics.add(_diagnostic(
@@ -1530,7 +1557,8 @@ void _diagnoseCanonicalGallery(
             'maxOverlapPx': expectedMaxOverlap,
           },
           action: 'border.action.review_canonical_overlap',
-        ));
+        ),
+        );
       }
     }
 
@@ -1657,8 +1685,7 @@ void _diagnoseStructuralRun({
 }) {
   final expectedPassIndex = _structuralPassIndex(
     definition.template,
-    run.role,
-  );
+    run.role);
   if (expectedPassIndex == null || run.passIndex != expectedPassIndex) {
     diagnostics.add(_diagnostic(
       code: 'border.publication.gallery_run_contract_invalid',
@@ -1673,7 +1700,8 @@ void _diagnoseStructuralRun({
         'expectedPassIndex': expectedPassIndex,
       },
       action: 'border.action.regenerate_canonical_gallery',
-    ));
+    ),
+    );
     return;
   }
   final runEligiblePrimitiveIds = <String>{
@@ -1694,7 +1722,8 @@ void _diagnoseStructuralRun({
         'quarterTurns': run.quarterTurns,
       },
       action: 'border.action.regenerate_canonical_gallery',
-    ));
+    ),
+    );
     return;
   }
   final unknown = run.primitiveIds
@@ -1713,7 +1742,8 @@ void _diagnoseStructuralRun({
         'primitiveIds': unknown,
       },
       action: 'border.action.regenerate_canonical_gallery',
-    ));
+    ),
+    );
     return;
   }
 
@@ -1733,7 +1763,8 @@ void _diagnoseStructuralRun({
           'primitiveId': run.primitiveIds[repeatStart],
         },
         action: 'border.action.review_structural_repetition',
-      ));
+      ),
+      );
     }
   }
   if (runEligiblePrimitiveIds.length >= 3) {
@@ -1756,7 +1787,8 @@ void _diagnoseStructuralRun({
           'minimumDistinct': 3,
         },
         action: 'border.action.review_structural_variety',
-      ));
+      ),
+      );
     }
   }
 }
@@ -1788,8 +1820,7 @@ int? _firstLowVarietyWindowStart(
 
 bool _insideAsset(
   BorderPixelPos point,
-  BorderPrimitiveAssetMetrics metrics,
-) =>
+  BorderPrimitiveAssetMetrics metrics) =>
     point.x >= 0 &&
     point.y >= 0 &&
     point.x < metrics.pixelSize.width &&
@@ -1826,6 +1857,7 @@ List<BorderCanonicalGalleryCase> borderCanonicalGalleryCasesForTemplate(
           BorderCanonicalGalleryCase.sharpCorner,
           BorderCanonicalGalleryCase.endpoint,
           BorderCanonicalGalleryCase.opening,
+    BorderCanonicalGalleryCase.sBend,
         ],
       BorderBlueprintTemplate.stoneChainLine =>
         const <BorderCanonicalGalleryCase>[
@@ -2100,7 +2132,8 @@ void _requireStableId(String value, String field) {
 void _requirePortableInteger(int value, String field) {
   if (BigInt.from(value).abs() > _maximumPortableJsonInteger) {
     throw ValidationException(
-        '$field must fit the portable JSON integer range');
+        '$field must fit the portable JSON integer range',
+    );
   }
 }
 

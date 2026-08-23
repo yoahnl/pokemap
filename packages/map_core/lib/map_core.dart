@@ -142,6 +142,7 @@ export 'src/operations/border_slot_keys.dart';
 export 'src/operations/border_fingerprints.dart';
 export 'src/operations/border_format_version.dart';
 export 'src/operations/border_snapshot_content_fingerprint.dart';
+export 'src/operations/border_primitive_anchor_policy.dart';
 export 'src/operations/border_signed_int64_json_codec.dart';
 export 'src/operations/border_visual_snapshot_json_codec.dart';
 export 'src/operations/border_blueprint_json_codec.dart';

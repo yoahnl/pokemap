@@ -70,6 +70,7 @@ final class BorderProjectElementAssetService {
   Future<BorderPreparedProjectElementAsset> prepare({
     required ProjectManifest manifest,
     required String projectRootPath,
+    BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
     required String sourceElementId,
     required String primitiveId,
     required BorderPrimitiveRole role,
@@ -100,11 +101,14 @@ final class BorderProjectElementAssetService {
     final bytesByTilesetId = <String, Uint8List>{};
     final sourceFrames = <BorderAssetSnapshotSourceFrame>[];
     for (final frame in element.frames) {
-      final tilesetId =
-          frame.tilesetId.isEmpty ? element.tilesetId : frame.tilesetId;
+      final tilesetId = frame.tilesetId.isEmpty
+          ? element.tilesetId
+          : frame.tilesetId;
       final tileset = _findTileset(manifest, tilesetId, sourceElementId);
-      final bytes = bytesByTilesetId[tileset.id] ??=
-          await _readTilesetBytes(root, tileset);
+      final bytes = bytesByTilesetId[tileset.id] ??= await _readTilesetBytes(
+        root,
+        tileset,
+      );
       final source = frame.source;
       sourceFrames.add(
         BorderAssetSnapshotSourceFrame(
@@ -138,7 +142,12 @@ final class BorderProjectElementAssetService {
         role: role,
         authoredOrientation: authoredOrientation,
         weight: weight,
-        anchorPx: anchorPx ?? preparation.metrics.defaultAnchorPx,
+        anchorPx:
+            anchorPx ??
+            recommendedBorderPrimitiveAnchor(
+              template: template,
+              metrics: preparation.metrics,
+            ),
         transforms: transforms,
         currentMetrics: preparation.metrics,
       ),
@@ -150,11 +159,13 @@ final class BorderProjectElementAssetService {
   Future<BorderPreparedProjectElementAsset> reanalyze({
     required ProjectManifest manifest,
     required String projectRootPath,
+    BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
     required BorderPrimitiveDraft primitive,
   }) {
     return prepare(
       manifest: manifest,
       projectRootPath: projectRootPath,
+      template: template,
       sourceElementId: primitive.sourceElementId,
       primitiveId: primitive.id,
       role: primitive.role,
@@ -293,7 +304,9 @@ bool _isSafeProjectRelativePath(String path) {
       path.trim() != path) {
     return false;
   }
-  return path.split('/').every(
+  return path
+      .split('/')
+      .every(
         (segment) => segment.isNotEmpty && segment != '.' && segment != '..',
       );
 }

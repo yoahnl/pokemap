@@ -52,8 +52,7 @@ void main() {
           strokes: <BorderStroke>[
             _stroke(const <GridPos>[
               GridPos(x: 1, y: 1),
-              GridPos(x: 2, y: 1),
-            ]),
+              GridPos(x: 2, y: 1)]),
           ],
         ).request,
       );
@@ -61,14 +60,15 @@ void main() {
       expect(vertical.canApply, isTrue, reason: _diagnostics(vertical));
       expect(
         vertical.materialization!.placements
-            .map((placement) => placement.transform.quarterTurns),
+            .map((placement) => placement.transform.quarterTurns,
+        ),
         <int>[1, 1, 3],
       );
       expect(twoCells.canApply, isTrue, reason: _diagnostics(twoCells));
       expect(
         _primitiveIds(twoCells.materialization!.placements),
-        <String>['cap', 'cap'],
-      );
+        <String>['cap', 'cap',
+      ]);
     });
 
     test('can preserve authored sprite orientation without quarter turns', () {
@@ -89,12 +89,14 @@ void main() {
       expect(result.canApply, isTrue, reason: _diagnostics(result));
       expect(
         result.materialization!.placements
-            .map((placement) => placement.transform.quarterTurns),
+            .map((placement) => placement.transform.quarterTurns,
+        ),
         everyElement(0),
       );
       expect(
         result.materialization!.placements
-            .map((placement) => placement.transform.flipX),
+            .map((placement) => placement.transform.flipX,
+        ),
         everyElement(isTrue),
       );
     });
@@ -192,6 +194,44 @@ void main() {
       }
     });
 
+    test('keeps every repeated stair node on its logical cell', () {
+      final points = const <GridPos>[
+        GridPos(x: 1, y: 2),
+        GridPos(x: 2, y: 2),
+        GridPos(x: 3, y: 2),
+        GridPos(x: 3, y: 3),
+        GridPos(x: 3, y: 4),
+        GridPos(x: 4, y: 4),
+        GridPos(x: 5, y: 4),
+        GridPos(x: 5, y: 5),
+        GridPos(x: 5, y: 6),
+        GridPos(x: 6, y: 6),
+        GridPos(x: 7, y: 6),
+      ];
+      final result = resolveConnectedLineBorder(
+        _Fixture(strokes: <BorderStroke>[_stroke(points)]).request,
+      );
+
+      expect(result.canApply, isTrue, reason: _diagnostics(result));
+      expect(
+        result.materialization!.placements.map((item) => item.anchorCell),
+        orderedEquals(points),
+      );
+      expect(
+        result.materialization!.placements.where(
+          (item) => item.primitiveId == 'corner',
+        ),
+        hasLength(4),
+      );
+      expect(
+        result.materialization!.placements
+            .where((item) => item.primitiveId == 'straight')
+            .map((item) => item.transform.quarterTurns)
+            .toSet(),
+        containsAll(<int>{0, 1}),
+      );
+    });
+
     test('resolves a closed rectangle without caps', () {
       final result = resolveConnectedLineBorder(
         _Fixture(
@@ -207,8 +247,7 @@ void main() {
                 GridPos(x: 1, y: 3),
                 GridPos(x: 1, y: 2),
               ],
-              closed: true,
-            ),
+              closed: true),
           ],
         ).request,
       );
@@ -216,9 +255,11 @@ void main() {
       expect(result.canApply, isTrue, reason: _diagnostics(result));
       expect(result.materialization!.placements, hasLength(8));
       expect(_primitiveIds(result.materialization!.placements),
-          isNot(contains('cap')));
+          isNot(contains('cap')),
+      );
       expect(
-        _primitiveIds(result.materialization!.placements)
+        _primitiveIds(result.materialization!.placements,
+        )
             .where((id) => id == 'corner'),
         hasLength(4),
       );
@@ -235,7 +276,8 @@ void main() {
         _Fixture(strokes: <BorderStroke>[_stroke(points)]).request,
       );
       final reverse = resolveConnectedLineBorder(
-        _Fixture(strokes: <BorderStroke>[_stroke(points.reversed.toList())])
+        _Fixture(strokes: <BorderStroke>[_stroke(points.reversed.toList())],
+        )
             .request,
       );
 
@@ -255,13 +297,17 @@ void main() {
       final first = primary.materialization!.placements;
       final second = inverted.materialization!.placements;
       expect(second.map((placement) => placement.slotKey),
-          first.map((placement) => placement.slotKey));
+          first.map((placement) => placement.slotKey),
+      );
       expect(second.map((placement) => placement.primitiveId),
-          first.map((placement) => placement.primitiveId));
+          first.map((placement) => placement.primitiveId),
+      );
       expect(second.map((placement) => placement.anchorCell),
-          first.map((placement) => placement.anchorCell));
+          first.map((placement) => placement.anchorCell),
+      );
       expect(second.map((placement) => placement.stableOrderKey),
-          first.map((placement) => placement.stableOrderKey));
+          first.map((placement) => placement.stableOrderKey),
+      );
       expect(
         second.map((placement) => placement.transform.flipX),
         everyElement(isTrue),
@@ -276,8 +322,10 @@ void main() {
       final primitives = <BorderPublishedPrimitive>[
         _primitive('cap-z', BorderPrimitiveRole.lineCap, marker: '1'),
         _primitive('cap-a', BorderPrimitiveRole.lineCap, marker: '2'),
-        _primitive('straight-z', BorderPrimitiveRole.lineStraight, marker: '3'),
-        _primitive('straight-a', BorderPrimitiveRole.lineStraight, marker: '4'),
+        _primitive('straight-z', BorderPrimitiveRole.lineStraight, marker: '3',
+          ),
+        _primitive('straight-a', BorderPrimitiveRole.lineStraight, marker: '4',
+          ),
         _primitive('corner-z', BorderPrimitiveRole.lineCorner, marker: '5'),
         _primitive('corner-a', BorderPrimitiveRole.lineCorner, marker: '6'),
       ];
@@ -295,20 +343,24 @@ void main() {
       expect(first.canApply, isTrue, reason: _diagnostics(first));
       expect(
         _primitiveIds(first.materialization!.placements),
-        <String>['cap-a', 'straight-z', 'straight-z', 'straight-z', 'cap-z'],
-      );
-    });
+        <String>['cap-a', 'straight-z', 'straight-z', 'straight-z', 'cap-z',
+        ]);
+    },
+    );
 
     test('zero variation always selects the first compatible variant', () {
       final primitives = <BorderPublishedPrimitive>[
         _primitive('cap-z', BorderPrimitiveRole.lineCap,
-            marker: '1', weight: 1000),
+            marker: '1', weight: 1000,
+        ),
         _primitive('cap-a', BorderPrimitiveRole.lineCap, marker: '2'),
         _primitive('straight-z', BorderPrimitiveRole.lineStraight,
-            marker: '3', weight: 1000),
+            marker: '3', weight: 1000,
+        ),
         _primitive('straight-a', BorderPrimitiveRole.lineStraight, marker: '4'),
         _primitive('corner-z', BorderPrimitiveRole.lineCorner,
-            marker: '5', weight: 1000),
+            marker: '5', weight: 1000,
+        ),
         _primitive('corner-a', BorderPrimitiveRole.lineCorner, marker: '6'),
       ];
       final result = resolveConnectedLineBorder(
@@ -336,20 +388,22 @@ void main() {
           'corner-a',
           'straight-a',
           'cap-a',
-        ],
-      );
+        ]);
     });
 
     test('positive variation is deterministically gated and weighted', () {
       final primitives = <BorderPublishedPrimitive>[
         _primitive('cap-z', BorderPrimitiveRole.lineCap,
-            marker: '1', weight: 1000),
+            marker: '1', weight: 1000,
+        ),
         _primitive('cap-a', BorderPrimitiveRole.lineCap, marker: '2'),
         _primitive('straight-z', BorderPrimitiveRole.lineStraight,
-            marker: '3', weight: 1000),
+            marker: '3', weight: 1000,
+        ),
         _primitive('straight-a', BorderPrimitiveRole.lineStraight, marker: '4'),
         _primitive('corner-z', BorderPrimitiveRole.lineCorner,
-            marker: '5', weight: 1000),
+            marker: '5', weight: 1000,
+        ),
         _primitive('corner-a', BorderPrimitiveRole.lineCorner, marker: '6'),
       ];
       BorderResolutionResult resolveAt(int variationPermille) =>
@@ -358,8 +412,7 @@ void main() {
               primitives: primitives,
               parameters: _parameters(variationPermille: 0),
               paramsOverride: _parameters(
-                variationPermille: variationPermille,
-              ),
+                variationPermille: variationPermille),
             ).request,
           );
 
@@ -421,7 +474,8 @@ void main() {
       expect(result.canApply, isTrue, reason: _diagnostics(result));
       expect(
         result.materialization!.placements
-            .map((placement) => placement.slotKey),
+            .map((placement) => placement.slotKey,
+        ),
         isNot(contains(suppressed.slotKey)),
       );
       final replaced = result.materialization!.placements.singleWhere(
@@ -437,7 +491,8 @@ void main() {
         _Fixture(
           primitives: <BorderPublishedPrimitive>[
             _primitive('straight', BorderPrimitiveRole.lineStraight,
-                marker: 'b'),
+                marker: 'b',
+            ),
             _primitive('corner', BorderPrimitiveRole.lineCorner, marker: 'c'),
           ],
         ).request,
@@ -447,11 +502,14 @@ void main() {
           lineSide: BorderLineSide.inverted,
           primitives: <BorderPublishedPrimitive>[
             _primitive('cap', BorderPrimitiveRole.lineCap,
-                marker: 'a', allowFlipX: false),
+                marker: 'a', allowFlipX: false,
+            ),
             _primitive('straight', BorderPrimitiveRole.lineStraight,
-                marker: 'b', allowFlipX: false),
+                marker: 'b', allowFlipX: false,
+            ),
             _primitive('corner', BorderPrimitiveRole.lineCorner,
-                marker: 'c', allowFlipX: false),
+                marker: 'c', allowFlipX: false,
+            ),
           ],
         ).request,
       );
@@ -469,13 +527,17 @@ void main() {
       );
 
       expect(_codes(missingCap),
-          contains('border.resolution.connected_line_cap_role_missing'));
+          contains('border.resolution.connected_line_cap_role_missing'),
+      );
       expect(_codes(missingFlip),
-          contains('border.resolution.connected_line_transform_unavailable'));
+          contains('border.resolution.connected_line_transform_unavailable'),
+      );
       expect(_codes(region),
-          contains('border.resolution.stroke_geometry_required'));
+          contains('border.resolution.stroke_geometry_required'),
+      );
       expect(_codes(missingSnapshot),
-          contains('border.resolution.visual_snapshot_invalid'));
+          contains('border.resolution.visual_snapshot_invalid'),
+      );
       for (final result in <BorderResolutionResult>[
         missingCap,
         missingFlip,
@@ -504,13 +566,15 @@ void main() {
 
       expect(result.materialization, isNull);
       expect(
-          _codes(result), contains('border.resolution.materialization_empty'));
+          _codes(result), contains('border.resolution.materialization_empty'),
+      );
     });
 
     test('is active through the global resolver dispatcher', () {
       final request = _Fixture().request;
       expect(
-          resolveBorderFeature(request), resolveConnectedLineBorder(request));
+          resolveBorderFeature(request), resolveConnectedLineBorder(request),
+      );
     });
   });
 }
@@ -530,7 +594,8 @@ final class _Fixture {
             <BorderPublishedPrimitive>[
               _primitive('cap', BorderPrimitiveRole.lineCap, marker: 'a'),
               _primitive('straight', BorderPrimitiveRole.lineStraight,
-                  marker: 'b'),
+                  marker: 'b',
+             ),
               _primitive('corner', BorderPrimitiveRole.lineCorner, marker: 'c'),
             ] {
     final snapshots = visualSnapshots ??

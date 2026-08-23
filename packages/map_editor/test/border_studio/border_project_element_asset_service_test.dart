@@ -38,6 +38,7 @@ void main() {
         final result = await const BorderProjectElementAssetService().prepare(
           manifest: manifest,
           projectRootPath: projectRoot.path,
+          template: BorderBlueprintTemplate.organicEdge,
           sourceElementId: 'coast-rock',
           primitiveId: 'structure-large-0',
           role: BorderPrimitiveRole.structureLarge,
@@ -71,6 +72,56 @@ void main() {
         );
       },
     );
+
+    test('uses the connected-line network anchor by default', () async {
+      final atlas = File(
+        p.join(projectRoot.path, 'assets', 'tilesets', 'square.png'),
+      );
+      await atlas.parent.create(recursive: true);
+      await atlas.writeAsBytes(_squareAtlas(), flush: true);
+
+      final result = await const BorderProjectElementAssetService().prepare(
+        manifest: _squareManifest(),
+        projectRootPath: projectRoot.path,
+        template: BorderBlueprintTemplate.connectedLine,
+        sourceElementId: 'square',
+        primitiveId: 'line-straight',
+        role: BorderPrimitiveRole.lineStraight,
+        weight: 1000,
+        transforms: BorderTransformPolicy(
+          allowFlipX: false,
+          allowedQuarterTurns: const <int>[0, 1, 2, 3],
+        ),
+      );
+
+      expect(result.preparation.metrics.defaultAnchorPx.y, 3);
+      expect(result.primitive.anchorPx, const BorderPixelPos(x: 2, y: 2));
+    });
+
+    test('preserves an explicit connected-line anchor', () async {
+      final atlas = File(
+        p.join(projectRoot.path, 'assets', 'tilesets', 'square.png'),
+      );
+      await atlas.parent.create(recursive: true);
+      await atlas.writeAsBytes(_squareAtlas(), flush: true);
+
+      final result = await const BorderProjectElementAssetService().prepare(
+        manifest: _squareManifest(),
+        projectRootPath: projectRoot.path,
+        template: BorderBlueprintTemplate.connectedLine,
+        sourceElementId: 'square',
+        primitiveId: 'line-straight',
+        role: BorderPrimitiveRole.lineStraight,
+        weight: 1000,
+        transforms: BorderTransformPolicy(
+          allowFlipX: false,
+          allowedQuarterTurns: const <int>[0, 1, 2, 3],
+        ),
+        anchorPx: const BorderPixelPos(x: 1, y: 3),
+      );
+
+      expect(result.primitive.anchorPx, const BorderPixelPos(x: 1, y: 3));
+    });
 
     test(
       'reanalyzes changed source pixels after reload and supports explicit removal',
@@ -295,6 +346,32 @@ ProjectManifest _manifest() => ProjectManifest(
   settings: const ProjectSettings(tileWidth: 2, tileHeight: 1),
 );
 
+ProjectManifest _squareManifest() => ProjectManifest(
+  name: 'Connected line anchor test',
+  maps: const <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'square',
+      name: 'Square',
+      relativePath: 'assets/tilesets/square.png',
+    ),
+  ],
+  elements: const <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'square',
+      name: 'Square',
+      tilesetId: 'square',
+      categoryId: 'border',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+        ),
+      ],
+    ),
+  ],
+  settings: const ProjectSettings(tileWidth: 4, tileHeight: 4),
+);
+
 Uint8List _twoTileAtlas() {
   final image = img.Image(width: 4, height: 1, numChannels: 4);
   image
@@ -312,5 +389,11 @@ Uint8List _changedTwoTileAtlas() {
     ..setPixelRgba(1, 0, 10, 20, 30, 255)
     ..setPixelRgba(2, 0, 40, 50, 60, 255)
     ..setPixelRgba(3, 0, 70, 80, 90, 255);
+  return Uint8List.fromList(img.encodePng(image));
+}
+
+Uint8List _squareAtlas() {
+  final image = img.Image(width: 4, height: 4, numChannels: 4);
+  img.fill(image, color: img.ColorRgba8(40, 120, 60, 255));
   return Uint8List.fromList(img.encodePng(image));
 }

@@ -80,10 +80,6 @@ void main() {
         for (final (index, primitive) in imported.indexed)
           _primitiveWithRole(primitive, roles[index]),
       ]);
-      final candidateManifest = controller.saveDraft();
-      final candidateRecord = candidateManifest.borderCatalog.recordById(
-        'connected-cliff',
-      )!;
       const service = BorderProjectElementAssetService();
       final coordinator = BorderStudioPublicationCoordinator(
         prepareProjectElementAsset: service.prepare,
@@ -106,6 +102,10 @@ void main() {
             ),
         publishRequest: (_) async => throw StateError('not used'),
       );
+      final candidateManifest = controller.saveDraft();
+      final candidateRecord = candidateManifest.borderCatalog.recordById(
+        'connected-cliff',
+      )!;
       BorderStudioPublicationPreview? preview;
       await tester.runAsync(() async {
         preview = await coordinator.prepare(
@@ -124,6 +124,250 @@ void main() {
       expect(preview!.canPublish, isTrue);
     },
   );
+
+  testWidgets(
+    'connected-line assets expose and apply the guided anchor repair',
+    (tester) async {
+      final container = await _pumpWorkspace(
+        tester,
+        _emptyManifest(),
+        Directory.systemTemp.path,
+      );
+      final controller =
+          container.read(borderStudioDraftControllerProvider.notifier)
+            ..createBlueprint(
+              id: 'connected-anchor-repair',
+              name: 'Ligne à réparer',
+              template: BorderBlueprintTemplate.connectedLine,
+            )
+            ..replacePrimitives(<BorderPrimitiveDraft>[
+              _connectedLinePrimitive(
+                id: 'cap',
+                role: BorderPrimitiveRole.lineCap,
+                anchorPx: const BorderPixelPos(x: 22, y: 30),
+              ),
+              _connectedLinePrimitive(
+                id: 'straight',
+                role: BorderPrimitiveRole.lineStraight,
+                anchorPx: const BorderPixelPos(x: 16, y: 31),
+              ),
+              _connectedLinePrimitive(
+                id: 'corner',
+                role: BorderPrimitiveRole.lineCorner,
+                anchorPx: const BorderPixelPos(x: 11, y: 31),
+              ),
+            ]);
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-step-Assets')),
+      );
+      await tester.pump();
+
+      final repairButton = find.byKey(
+        const ValueKey<String>('border-studio-realign-connected-line-anchors'),
+      );
+      expect(repairButton, findsOneWidget);
+      expect(find.text('Point de raccord'), findsNWidgets(3));
+      expect(
+        find.text('À réaligner — ancien point de raccord'),
+        findsNWidgets(3),
+      );
+      expect(tester.widget<PokeMapButton>(repairButton).onPressed, isNotNull);
+
+      tester.widget<PokeMapButton>(repairButton).onPressed!();
+      await tester.pump();
+
+      expect(
+        controller.state.workingDraft!.blueprint.definition.primitives.map(
+          (primitive) => primitive.anchorPx,
+        ),
+        everyElement(const BorderPixelPos(x: 16, y: 16)),
+      );
+      expect(find.text('Automatique — centre de la cellule'), findsNWidgets(3));
+      expect(tester.widget<PokeMapButton>(repairButton).onPressed, isNull);
+      expect(
+        find.textContaining('points de raccord ont été recentrés'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'anchor repair refreshes the canonical preview and publication state',
+    (tester) async {
+      final projectRoot = Directory.systemTemp.createTempSync(
+        'pokemap_connected_line_repair_',
+      );
+      addTearDown(() {
+        if (projectRoot.existsSync()) {
+          projectRoot.deleteSync(recursive: true);
+        }
+      });
+      final bytes = _connectedLineNetworkBytes();
+      final atlas = File(
+        p.join(projectRoot.path, 'assets', 'tilesets', 'network.png'),
+      );
+      atlas.parent.createSync(recursive: true);
+      atlas.writeAsBytesSync(bytes, flush: true);
+      final manifest = _manifestWithConnectedLineNetwork();
+      final container = await _pumpWorkspace(
+        tester,
+        manifest,
+        projectRoot.path,
+      );
+      const roles = <(String, String, BorderPrimitiveRole, BorderPixelPos)>[
+        (
+          'cap',
+          'network-cap',
+          BorderPrimitiveRole.lineCap,
+          BorderPixelPos(x: 22, y: 30),
+        ),
+        (
+          'straight',
+          'network-straight',
+          BorderPrimitiveRole.lineStraight,
+          BorderPixelPos(x: 16, y: 31),
+        ),
+        (
+          'corner',
+          'network-corner',
+          BorderPrimitiveRole.lineCorner,
+          BorderPixelPos(x: 11, y: 31),
+        ),
+      ];
+      final primitives = <BorderPrimitiveDraft>[];
+      await tester.runAsync(() async {
+        for (final (id, sourceElementId, role, anchorPx) in roles) {
+          primitives.add(
+            (await const BorderProjectElementAssetService().prepare(
+              manifest: manifest,
+              projectRootPath: projectRoot.path,
+              template: BorderBlueprintTemplate.connectedLine,
+              sourceElementId: sourceElementId,
+              primitiveId: id,
+              role: role,
+              weight: 1000,
+              transforms: BorderTransformPolicy(
+                allowFlipX: true,
+                allowedQuarterTurns: const <int>[0, 1, 2, 3],
+              ),
+              anchorPx: anchorPx,
+            )).primitive,
+          );
+        }
+      });
+      final controller =
+          container.read(borderStudioDraftControllerProvider.notifier)
+            ..createBlueprint(
+              id: 'connected-anchor-preview',
+              name: 'Ligne à certifier',
+              template: BorderBlueprintTemplate.connectedLine,
+            )
+            ..setGenerationParams(
+              BorderGenerationParams(
+                irregularityPermille: 0,
+                detailDensityPermille: 0,
+                variationPermille: 1000,
+                maxOverlapPx: 64,
+                gapTolerancePx: 1,
+                depthRows: 1,
+                allowAutoRotation: false,
+              ),
+            )
+            ..replacePrimitives(primitives);
+      final candidateManifest = controller.saveDraft();
+      final editorNotifier = container.read(editorNotifierProvider.notifier);
+      editorNotifier.state = editorNotifier.state.copyWith(
+        project: candidateManifest,
+      );
+      await tester.pump();
+      final coordinator = container.read(
+        borderStudioPublicationCoordinatorProvider,
+      )!;
+      final blockedRecord = BorderBlueprintRecord(
+        id: controller.state.workingDraft!.id,
+        draft: controller.state.workingDraft!.blueprint,
+      );
+      late BorderStudioPublicationPreview blockedPreview;
+      await tester.runAsync(() async {
+        blockedPreview = await coordinator.prepare(
+          manifest: candidateManifest,
+          projectRootPath: projectRoot.path,
+          draftRecord: blockedRecord,
+        );
+      });
+      expect(blockedPreview.canPublish, isFalse);
+      expect(
+        blockedPreview.diagnostics.diagnostics.map(
+          (diagnostic) => diagnostic.code,
+        ),
+        contains('border.publication.connected_line_disconnected'),
+      );
+
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-step-Assets')),
+      );
+      await tester.pump();
+      final repairButton = tester.widget<PokeMapButton>(
+        find.byKey(
+          const ValueKey<String>(
+            'border-studio-realign-connected-line-anchors',
+          ),
+        ),
+      );
+      await tester.runAsync(() async {
+        repairButton.onPressed!();
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('aperçu et les diagnostics ont été actualisés'),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('border-studio-step-Aperçu et publication'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final publish = find.byKey(
+        const ValueKey<String>('border-studio-publish'),
+      );
+      expect(publish, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(publish).onPressed, isNotNull);
+    },
+  );
+
+  testWidgets('anchor repair stays hidden for other border templates', (
+    tester,
+  ) async {
+    final container = await _pumpWorkspace(
+      tester,
+      _emptyManifest(),
+      Directory.systemTemp.path,
+    );
+    container
+        .read(borderStudioDraftControllerProvider.notifier)
+        .createBlueprint(
+          id: 'organic-border',
+          name: 'Bordure organique',
+          template: BorderBlueprintTemplate.organicEdge,
+        );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Assets')),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-realign-connected-line-anchors'),
+      ),
+      findsNothing,
+    );
+  });
 
   testWidgets('masonry imports authorize the mirrored line side', (
     tester,
@@ -945,6 +1189,55 @@ ProjectManifest _manifestWithAsset() => const ProjectManifest(
   settings: ProjectSettings(tileWidth: 2, tileHeight: 1),
 );
 
+ProjectManifest _manifestWithConnectedLineNetwork() => const ProjectManifest(
+  name: 'Connected line repair UI',
+  version: ProjectVersion.v6,
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'network',
+      name: 'Network',
+      relativePath: 'assets/tilesets/network.png',
+    ),
+  ],
+  elements: <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'network-cap',
+      name: 'Cap',
+      tilesetId: 'network',
+      categoryId: 'border',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+        ),
+      ],
+    ),
+    ProjectElementEntry(
+      id: 'network-straight',
+      name: 'Straight',
+      tilesetId: 'network',
+      categoryId: 'border',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+        ),
+      ],
+    ),
+    ProjectElementEntry(
+      id: 'network-corner',
+      name: 'Corner',
+      tilesetId: 'network',
+      categoryId: 'border',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+        ),
+      ],
+    ),
+  ],
+  settings: ProjectSettings(tileWidth: 32, tileHeight: 32),
+);
+
 ProjectManifest _manifestWithDraft() => ProjectManifest(
   name: 'Border Studio UI',
   version: ProjectVersion.v6,
@@ -1092,6 +1385,18 @@ Uint8List _changedAtlasBytes() {
   return Uint8List.fromList(img.encodePng(image));
 }
 
+Uint8List _connectedLineNetworkBytes() {
+  final image = img.Image(width: 32, height: 32, numChannels: 4);
+  for (var coordinate = 0; coordinate < 32; coordinate += 1) {
+    for (var thickness = 15; thickness <= 17; thickness += 1) {
+      image
+        ..setPixelRgba(thickness, coordinate, 64, 160, 96, 255)
+        ..setPixelRgba(coordinate, thickness, 64, 160, 96, 255);
+    }
+  }
+  return Uint8List.fromList(img.encodePng(image));
+}
+
 BorderPrimitiveDraft _primitiveWithRole(
   BorderPrimitiveDraft primitive,
   BorderPrimitiveRole role,
@@ -1103,4 +1408,27 @@ BorderPrimitiveDraft _primitiveWithRole(
   anchorPx: primitive.anchorPx,
   transforms: primitive.transforms,
   currentMetrics: primitive.currentMetrics,
+);
+
+BorderPrimitiveDraft _connectedLinePrimitive({
+  required String id,
+  required BorderPrimitiveRole role,
+  required BorderPixelPos anchorPx,
+}) => BorderPrimitiveDraft(
+  id: id,
+  sourceElementId: 'coast-rock',
+  role: role,
+  weight: 1000,
+  anchorPx: anchorPx,
+  transforms: BorderTransformPolicy(
+    allowFlipX: true,
+    allowedQuarterTurns: const <int>[0, 1, 2, 3],
+  ),
+  currentMetrics: BorderPrimitiveAssetMetrics(
+    assetFingerprint: 'fingerprint-$id',
+    pixelSize: const GridSize(width: 32, height: 32),
+    opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 32, height: 32),
+    defaultAnchorPx: anchorPx,
+    occupancyMaskRle: '0:1024',
+  ),
 );
