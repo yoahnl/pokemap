@@ -735,4 +735,162 @@ void main() {
       expect(plan.steps.whereType<SpawnFxStep>(), isEmpty);
     });
   });
+
+  // BETA-BAT-011 : le journal parle la langue du joueur.
+  //
+  // Les deux résolveurs de noms alimentaient déjà le HUD et le menu de
+  // commandes ; le plan d'animation les contournait, et le joueur lisait
+  // « machop utilise Low Kick ! » à côté d'un HUD disant « Machoc ». Ces tests
+  // pinnent que le plan les traverse, et que critique et efficacité sont dits
+  // à la place que la référence leur donne.
+  group('BETA-BAT-011 — noms localisés et messages de dégâts', () {
+    BattleAnimationPlan planFor({
+      bool didCrit = false,
+      double effectiveness = 1.0,
+      int damage = 12,
+      BattleTurnSpeciesDisplayName? speciesDisplayName,
+      BattleTurnMoveDisplayName? moveDisplayName,
+    }) {
+      final before = _session(
+        player: _combatant(
+          speciesId: 'froakie',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'water_gun', name: 'Water Gun', type: 'water'),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'machop',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'low_kick', name: 'Low Kick', type: 'fighting'),
+          ],
+        ),
+      );
+      final execution = BattleMoveExecution(
+        attackerSlot: BattleSlotRef.active(BattleSideId.player),
+        move: const BattleMove(
+          id: 'water_gun',
+          name: 'Water Gun',
+          power: 40,
+          target: BattleMoveTarget.opponent,
+        ),
+        targetKind: BattleMoveExecutionTargetKind.combatant,
+        targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+        damage: damage,
+        didHit: true,
+        didCrit: didCrit,
+        typeEffectivenessMultiplier: effectiveness,
+      );
+      final planner = BattleTurnAnimationPlanner(
+        speciesDisplayName: speciesDisplayName ?? _rawSpecies,
+        moveDisplayName: moveDisplayName ?? _rawMove,
+      );
+      return planner.buildForTurn(
+        playerBefore: before.state.player,
+        enemyBefore: before.state.enemy,
+        turnResult: BattleTurnResult(
+          playerAction: BattleActionFight(execution.move, moveIndex: 0),
+          enemyAction: const BattleActionNone(),
+          executions: <BattleMoveExecution>[execution],
+          timeline: <BattleTurnEvent>[BattleTurnExecutionEvent(execution)],
+        ),
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+    }
+
+    List<String> messagesOf(BattleAnimationPlan plan) => plan.steps
+        .whereType<ShowMessageStep>()
+        .map((step) => step.message)
+        .toList(growable: false);
+
+    test('le nom d’espèce et le nom de capacité passent par les résolveurs',
+        () {
+      final plan = planFor(
+        speciesDisplayName: (id) => id == 'froakie' ? 'Grenousse' : 'Machoc',
+        moveDisplayName: (id, fallback) =>
+            id == 'water_gun' ? 'Pistolet à O' : fallback,
+      );
+
+      expect(
+        messagesOf(plan).first,
+        'Grenousse utilise Pistolet à O !',
+        reason: 'le plan doit citer les noms affichables, pas les identifiants',
+      );
+    });
+
+    test('aucun message ne contient un identifiant brut', () {
+      final plan = planFor(
+        damage: 40,
+        speciesDisplayName: (id) => id == 'froakie' ? 'Grenousse' : 'Machoc',
+        moveDisplayName: (id, fallback) =>
+            id == 'water_gun' ? 'Pistolet à O' : fallback,
+      );
+
+      for (final message in messagesOf(plan)) {
+        for (final raw in const <String>[
+          'froakie',
+          'machop',
+          'water_gun',
+          'Water Gun',
+        ]) {
+          expect(
+            message,
+            isNot(contains(raw)),
+            reason: '« $message » laisse passer « $raw »',
+          );
+        }
+      }
+    });
+
+    test('sans résolveur fourni, le texte est inchangé', () {
+      // La compatibilité compte : un appelant qui n'injecte rien doit obtenir
+      // exactement l'ancien message, sinon ce correctif casse des surfaces qui
+      // n'ont pas demandé à changer.
+      expect(messagesOf(planFor()).first, 'froakie utilise Water Gun !');
+    });
+
+    test('un coup critique est annoncé, après les PV et avant le K.O.', () {
+      final plan = planFor(didCrit: true, damage: 40);
+      final kinds = plan.steps
+          .map((step) => step is ShowMessageStep ? step.message : step.runtimeType.toString())
+          .toList(growable: false);
+      final hpIndex = plan.steps.indexWhere((step) => step is HudHpTweenStep);
+      final critIndex = kinds.indexOf('Coup critique !');
+      final koIndex = kinds.indexWhere((label) => label.endsWith('est K.O. !'));
+
+      expect(critIndex, greaterThan(hpIndex));
+      expect(koIndex, greaterThan(critIndex));
+    });
+
+    test('le critique précède l’efficacité', () {
+      final plan = planFor(didCrit: true, effectiveness: 2.0);
+      final messages = messagesOf(plan);
+
+      expect(
+        messages.indexOf('C’est super efficace !'),
+        greaterThan(messages.indexOf('Coup critique !')),
+      );
+    });
+
+    test('une efficacité neutre ne dit rien', () {
+      final messages = messagesOf(planFor(effectiveness: 1.0));
+
+      expect(messages, isNot(contains('C’est super efficace !')));
+      expect(messages, isNot(contains('Ce n’est pas très efficace…')));
+    });
+
+    test('une efficacité faible le dit', () {
+      expect(
+        messagesOf(planFor(effectiveness: 0.5)),
+        contains('Ce n’est pas très efficace…'),
+      );
+    });
+  });
 }
+
+String _rawSpecies(String speciesId) => speciesId;
+
+String _rawMove(String moveId, String fallbackName) => fallbackName;

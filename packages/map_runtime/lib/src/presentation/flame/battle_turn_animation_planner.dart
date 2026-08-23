@@ -6,12 +6,39 @@ import 'battle_move_visual_catalog.dart';
 import 'battle_move_visual_recipe_library.dart';
 import 'battle_move_visual_resolver.dart';
 
+/// Le nom affichable d'une espèce, ou son identifiant faute de mieux.
+typedef BattleTurnSpeciesDisplayName = String Function(String speciesId);
+
+/// Le nom affichable d'une capacité, depuis son identifiant et son libellé
+/// brut.
+typedef BattleTurnMoveDisplayName = String Function(
+  String moveId,
+  String fallbackName,
+);
+
+String _rawSpeciesName(String speciesId) => speciesId;
+
+String _rawMoveName(String moveId, String fallbackName) => fallbackName;
+
 final class BattleTurnAnimationPlanner {
   BattleTurnAnimationPlanner({
     BattleMoveVisualRecipeLibrary? recipeLibrary,
+    this.speciesDisplayName = _rawSpeciesName,
+    this.moveDisplayName = _rawMoveName,
   }) : _recipeLibrary = recipeLibrary ?? BattleMoveVisualRecipeLibrary();
 
   final BattleMoveVisualRecipeLibrary _recipeLibrary;
+
+  /// BETA-BAT-011 : le journal parle la langue du joueur.
+  ///
+  /// Les deux résolveurs existent depuis longtemps et alimentent déjà le HUD et
+  /// le menu de commandes ; le plan d'animation les contournait, donc le joueur
+  /// lisait « machop utilise Low Kick ! » à côté d'un HUD disant « Machoc » et
+  /// d'un menu disant « Tornade ». Ils sont injectés, avec un défaut qui rend
+  /// l'identifiant : un appelant qui n'en fournit pas garde exactement l'ancien
+  /// texte.
+  final BattleTurnSpeciesDisplayName speciesDisplayName;
+  final BattleTurnMoveDisplayName moveDisplayName;
 
   BattleAnimationPlan build({
     required BattleSession previousSession,
@@ -61,9 +88,13 @@ final class BattleTurnAnimationPlanner {
       BattleSideId.player: playerBefore.currentHp,
       BattleSideId.enemy: enemyBefore.currentHp,
     };
-    final trackedSpeciesId = <BattleSideId, String>{
-      BattleSideId.player: playerBefore.speciesId,
-      BattleSideId.enemy: enemyBefore.speciesId,
+    // BETA-BAT-011 : cette map porte le nom AFFICHABLE, pas l'identifiant. Son
+    // ancien nom annonçait un identifiant tout en étant interpolé dans des
+    // messages joueur — c'est précisément le mensonge qui a laissé « machop »
+    // atteindre l'écran.
+    final trackedDisplayName = <BattleSideId, String>{
+      BattleSideId.player: speciesDisplayName(playerBefore.speciesId),
+      BattleSideId.enemy: speciesDisplayName(enemyBefore.speciesId),
     };
     final replacementRequiredSides = turnResult.timeline
         .whereType<BattleTurnSwitchEvent>()
@@ -80,7 +111,7 @@ final class BattleTurnAnimationPlanner {
           steps.add(
             ShowMessageStep(
               message:
-                  '${_presentationCombatantName(execution.attackerSide, trackedSpeciesId)} utilise ${execution.move.name} !',
+                  '${_presentationCombatantName(execution.attackerSide, trackedDisplayName)} utilise ${moveDisplayName(execution.move.id, execution.move.name)} !',
             ),
           );
           final resolvedMove = resolver.resolve(execution.move);
@@ -114,6 +145,18 @@ final class BattleTurnAnimationPlanner {
                 toHp: hpTo,
               ),
             );
+            // BETA-BAT-011 : critique puis efficacité, tous deux APRÈS la
+            // descente des PV et AVANT la séquence de K.O. C'est l'ordre de la
+            // référence, où `hit_criticality_message` précède
+            // `efficent_message` et où les deux sont joués une fois
+            // `show_hp_animations` terminé.
+            if (execution.didCrit) {
+              steps.add(const ShowMessageStep(message: 'Coup critique !'));
+            }
+            if (_effectivenessMessage(execution.typeEffectivenessMultiplier)
+                case final effectiveness?) {
+              steps.add(ShowMessageStep(message: effectiveness));
+            }
             if (hpFrom > 0 && hpTo == 0) {
               if (!replacementRequiredSides.contains(targetSide)) {
                 steps.add(
@@ -126,7 +169,7 @@ final class BattleTurnAnimationPlanner {
               steps.add(
                 ShowMessageStep(
                   message:
-                      '${_presentationCombatantName(targetSide, trackedSpeciesId)} est K.O. !',
+                      '${_presentationCombatantName(targetSide, trackedDisplayName)} est K.O. !',
                 ),
               );
             }
@@ -135,7 +178,7 @@ final class BattleTurnAnimationPlanner {
           steps.add(
             ShowMessageStep(
               message:
-                  '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${event.targetSpeciesId} !',
+                  '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${speciesDisplayName(event.targetSpeciesId)} !',
             ),
           );
           final visibleTargetSide = event.side == BattleSideId.player &&
@@ -148,7 +191,7 @@ final class BattleTurnAnimationPlanner {
           steps.add(
             ShowMessageStep(
               message:
-                  '${event.targetSpeciesId} récupère ${event.healedAmount} PV.',
+                  '${speciesDisplayName(event.targetSpeciesId)} récupère ${event.healedAmount} PV.',
             ),
           );
           if (visibleTargetSide != null && event.healedAmount > 0) {
@@ -162,7 +205,7 @@ final class BattleTurnAnimationPlanner {
             );
           }
         case BattleTurnCaptureAttemptEvent(:final event):
-          final targetName = event.targetSpeciesId;
+          final targetName = speciesDisplayName(event.targetSpeciesId);
           steps.add(
             ShowMessageStep(
               message: 'Une Poké Ball est lancée sur $targetName !',
@@ -348,7 +391,7 @@ final class BattleTurnAnimationPlanner {
               steps.add(
                 ShowMessageStep(
                   message:
-                      '${_presentationCombatantName(targetSide, trackedSpeciesId)} est K.O. !',
+                      '${_presentationCombatantName(targetSide, trackedDisplayName)} est K.O. !',
                 ),
               );
             }
@@ -405,7 +448,7 @@ final class BattleTurnAnimationPlanner {
               steps.add(
                 ShowMessageStep(
                   message:
-                      '${_presentationCombatantName(targetSide, trackedSpeciesId)} est K.O. !',
+                      '${_presentationCombatantName(targetSide, trackedDisplayName)} est K.O. !',
                 ),
               );
             }
@@ -428,7 +471,8 @@ final class BattleTurnAnimationPlanner {
                 durationSeconds: 0.16,
               ),
             );
-            trackedSpeciesId[event.side] = event.toSpeciesId!;
+            trackedDisplayName[event.side] =
+                speciesDisplayName(event.toSpeciesId!);
           } else {
             steps.add(
               FaintCombatantStep(
@@ -485,15 +529,29 @@ List<BattleAnimationStep> _buildOutcomeSteps(BattleOutcome outcome) {
   return <BattleAnimationStep>[ShowMessageStep(message: message)];
 }
 
+/// Le message d'efficacité de type, ou `null` quand il n'y a rien à dire.
+///
+/// La référence ne parle que des cas où le multiplicateur s'écarte de 1 : une
+/// efficacité neutre ne produit AUCUN message. Une immunité n'en produit pas
+/// non plus ici, parce qu'un coup immunisé n'infligeait aucun dégât et
+/// n'atteint donc jamais ce point.
+String? _effectivenessMessage(double multiplier) {
+  if (multiplier > 1.0) return 'C’est super efficace !';
+  if (multiplier > 0.0 && multiplier < 1.0) {
+    return 'Ce n’est pas très efficace…';
+  }
+  return null;
+}
+
 String _presentationCombatantLabel(BattleSideId side) {
   return side == BattleSideId.player ? 'Joueur' : 'Ennemi';
 }
 
 String _presentationCombatantName(
   BattleSideId side,
-  Map<BattleSideId, String> speciesIdBySide,
+  Map<BattleSideId, String> displayNameBySide,
 ) {
-  return speciesIdBySide[side] ?? _presentationCombatantLabel(side);
+  return displayNameBySide[side] ?? _presentationCombatantLabel(side);
 }
 
 String _messageForStatusEvent(BattleStatusEvent event) {

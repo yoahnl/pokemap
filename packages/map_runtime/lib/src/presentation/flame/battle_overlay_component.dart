@@ -160,7 +160,10 @@ List<String> buildBattleNarrationLinesForOverlay(
 
   if (session.state.isFinished && session.state.outcome != null) {
     return List<String>.unmodifiable(<String>[
-      _buildOutcomeHeadline(session.state.outcome!),
+      _buildOutcomeHeadline(
+        session.state.outcome!,
+        resolveSpeciesDisplayName,
+      ),
     ]);
   }
 
@@ -405,14 +408,22 @@ String _overlayPseudoWeatherLabel(BattlePseudoWeatherId pseudoWeather) {
   };
 }
 
-String _buildOutcomeHeadline(BattleOutcome outcome) {
+/// BETA-BAT-011 : le bandeau prend le résolveur en argument.
+///
+/// Il appelait `_battleDisplayName`, qui n'est que le DÉFAUT du champ
+/// injectable — donc un jeu fournissant un vrai résolveur voyait quand même
+/// l'identifiant brut dans son message de capture.
+String _buildOutcomeHeadline(
+  BattleOutcome outcome,
+  BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName,
+) {
   return switch (outcome.type) {
     BattleOutcomeType.victory => 'Tu as gagné le combat !',
     BattleOutcomeType.defeat =>
       'Tu n’as plus de Pokémon en état de combattre !',
     BattleOutcomeType.runaway => 'Tu as pris la fuite !',
     BattleOutcomeType.captured =>
-      '${_battleDisplayName(outcome.finalState.enemy.speciesId)} est capturé !',
+      '${resolveSpeciesDisplayName(outcome.finalState.enemy.speciesId)} est capturé !',
   };
 }
 
@@ -561,8 +572,14 @@ class BattleOverlayComponent extends PositionComponent {
   BattleDebugPanelComponent? _debugPanel;
   TextComponent? _outcomeBanner;
   Future<void>? _pendingVisualSync;
-  final BattleTurnAnimationPlanner _turnAnimationPlanner =
-      BattleTurnAnimationPlanner();
+  // BETA-BAT-011 : le planner reçoit les MÊMES résolveurs que le HUD et le
+  // menu. `late` parce qu'un initialiseur de champ ne peut pas lire `this`, et
+  // c'est exactement pour ça que le plan d'animation s'en passait.
+  late final BattleTurnAnimationPlanner _turnAnimationPlanner =
+      BattleTurnAnimationPlanner(
+    speciesDisplayName: resolveSpeciesDisplayName,
+    moveDisplayName: resolveMoveDisplayName,
+  );
   BattleAnimationRunner? _animationRunner;
   BattleSceneLayout? _sceneLayout;
   BattleAnimationPlan _activeAnimationPlan =
@@ -2311,7 +2328,10 @@ class BattleOverlayComponent extends PositionComponent {
     }
 
     final outcome = _session.state.outcome!;
-    final bannerText = _buildOutcomeHeadline(outcome);
+    final bannerText = _buildOutcomeHeadline(
+      outcome,
+      resolveSpeciesDisplayName,
+    );
     final bannerColor = outcome.isVictory || outcome.isCaptured
         ? const Color(0xFF8AE36A)
         : const Color(0xFFFF8E75);
