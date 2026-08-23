@@ -115,34 +115,81 @@ final class BattleTurnAnimationPlanner {
             ),
           );
           final resolvedMove = resolver.resolve(execution.move);
-          steps.addAll(
-            _recipeLibrary.build(
-              resolvedMove.recipeId,
-              BattleMoveVisualRecipeContext(
-                resolvedMove: resolvedMove,
-                battleMove: execution.move,
-                execution: execution,
-                attackerSide: execution.attackerSide,
-                targetSide: execution.targetSide,
-                damage: execution.damage,
-                didHit: execution.didHit,
-                didCrit: execution.didCrit,
-              ),
-            ),
-          );
+          final recipeSteps = _recipeLibrary
+              .build(
+                resolvedMove.recipeId,
+                BattleMoveVisualRecipeContext(
+                  resolvedMove: resolvedMove,
+                  battleMove: execution.move,
+                  execution: execution,
+                  attackerSide: execution.attackerSide,
+                  targetSide: execution.targetSide,
+                  damage: execution.damage,
+                  didHit: execution.didHit,
+                  didCrit: execution.didCrit,
+                ),
+              )
+              .toList();
+          // BETA-BAT-013 : le clignotement de la cible est une réaction au
+          // DÉGÂT, pas une étape de la chorégraphie du coup. Chez PSDK il vit
+          // dans `show_hp_animations`, pilote par le gestionnaire de dégâts, et
+          // part sur la même frame que la barre de PV.
+          //
+          // La recette garde le droit de déclarer QUE la cible clignote ; c'est
+          // le planner qui décide QUAND, parce que lui seul connaît le dégât.
+          // L'alternative aurait été de retirer l'étape des 112 recettes qui
+          // l'émettent, pour le même résultat et un diff sans rapport avec le
+          // sujet.
+          final targetSideForFlash = execution.targetSide;
+          if (targetSideForFlash != null) {
+            recipeSteps.removeWhere(
+              (step) =>
+                  step is CombatantFlashStep &&
+                  step.side == targetSideForFlash,
+            );
+          }
+          steps.addAll(recipeSteps);
           if (execution.didHit &&
-              execution.damage > 0 &&
               execution.targetKind == BattleMoveExecutionTargetKind.combatant &&
               execution.targetSide != null) {
             final targetSide = execution.targetSide!;
             final hpFrom = trackedHp[targetSide] ?? 0;
             final hpTo = (hpFrom - execution.damage).clamp(0, hpFrom);
             trackedHp[targetSide] = hpTo;
+            final drainSeconds = _hpDrainSeconds(hpFrom - hpTo);
+            // Le clignotement et la barre partent ENSEMBLE : un groupe
+            // parallèle bloque la phase sur le plus long des deux, ce qui est
+            // la sémantique du `Yuki::Animation::Handler` de la référence.
             steps.add(
-              HudHpTweenStep(
-                side: targetSide,
-                fromHp: hpFrom,
-                toHp: hpTo,
+              AnimationGroupStep(
+                mode: BattleAnimationGroupMode.parallel,
+                steps: <BattleAnimationStep>[
+                  // Inconditionnel : la référence joue le clignotement depuis
+                  // le gestionnaire de dégâts, donc il ne dépend pas de ce que
+                  // la recette a déclaré. Un coup à animation RMXP n'en émet
+                  // aucun, et devait quand même faire clignoter sa cible.
+                  CombatantFlashStep(
+                    side: targetSide,
+                    durationSeconds: _damageBlinkSeconds,
+                  ),
+                  HudHpTweenStep(
+                    side: targetSide,
+                    fromHp: hpFrom,
+                    toHp: hpTo,
+                    durationMs: (drainSeconds * 1000).round(),
+                  ),
+                ],
+              ),
+            );
+            // Le maintien après la descente, que la référence impose : court
+            // quand la cible tombe, sinon de quoi compléter environ une
+            // seconde.
+            steps.add(
+              WaitStep(
+                durationSeconds: _postDrainHoldSeconds(
+                  drainSeconds: drainSeconds,
+                  faints: hpFrom > 0 && hpTo == 0,
+                ),
               ),
             );
             // BETA-BAT-011 : critique puis efficacité, tous deux APRÈS la
@@ -162,7 +209,9 @@ final class BattleTurnAnimationPlanner {
                 steps.add(
                   FaintCombatantStep(
                     side: targetSide,
-                    durationSeconds: 0.22,
+                    // BETA-BAT-013 : la chute de la référence est de 0,1 s,
+                    // fondu et descente en parallèle.
+                    durationSeconds: 0.1,
                   ),
                 );
               }
@@ -384,7 +433,9 @@ final class BattleTurnAnimationPlanner {
                 steps.add(
                   FaintCombatantStep(
                     side: targetSide,
-                    durationSeconds: 0.22,
+                    // BETA-BAT-013 : la chute de la référence est de 0,1 s,
+                    // fondu et descente en parallèle.
+                    durationSeconds: 0.1,
                   ),
                 );
               }
@@ -441,7 +492,9 @@ final class BattleTurnAnimationPlanner {
                 steps.add(
                   FaintCombatantStep(
                     side: targetSide,
-                    durationSeconds: 0.22,
+                    // BETA-BAT-013 : la chute de la référence est de 0,1 s,
+                    // fondu et descente en parallèle.
+                    durationSeconds: 0.1,
                   ),
                 );
               }
@@ -541,6 +594,34 @@ String? _effectivenessMessage(double multiplier) {
     return 'Ce n’est pas très efficace…';
   }
   return null;
+}
+
+/// BETA-BAT-013 — les constantes de la référence pour un coup.
+///
+/// Le clignotement est de 3 flashs de 0,2 s. La barre de PV descend à 60 PV par
+/// seconde, bornée en bas comme en haut : un petit dégât ne doit pas être
+/// invisible, un gros ne doit pas immobiliser le tour.
+const double _damageBlinkSeconds = 0.6;
+const double _hpDrainRatePerSecond = 60;
+const double _hpDrainMinimumSeconds = 0.2;
+const double _hpDrainMaximumSeconds = 1.0;
+
+double _hpDrainSeconds(int damage) {
+  if (damage <= 0) {
+    // Un coup sans dégât consomme quand même une seconde pleine chez PSDK :
+    // le joueur voit qu'il s'est passé quelque chose, et le clignotement joue.
+    return _hpDrainMaximumSeconds;
+  }
+  return (damage / _hpDrainRatePerSecond)
+      .clamp(_hpDrainMinimumSeconds, _hpDrainMaximumSeconds);
+}
+
+double _postDrainHoldSeconds({
+  required double drainSeconds,
+  required bool faints,
+}) {
+  if (faints) return 0.1;
+  return (1.0 - drainSeconds).clamp(0.25, 1.0);
 }
 
 String _presentationCombatantLabel(BattleSideId side) {

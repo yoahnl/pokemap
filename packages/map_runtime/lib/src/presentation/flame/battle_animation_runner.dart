@@ -256,15 +256,32 @@ final class BattleAnimationRunner {
     }
 
     var maxDuration = 0.0;
+    var consumed = 0;
     while (_nextStepIndex < plan.steps.length) {
       final step = plan.steps[_nextStepIndex];
       if (!_isAccentStep(step)) {
         break;
       }
+      // BETA-BAT-013 : un groupe PARALLÈLE déclare « ceux-là et eux seuls
+      // partent ensemble ». Le fusionner avec les accents voisins contredirait
+      // cette déclaration : le groupe clignotement + barre de PV se retrouvait
+      // démarré en même temps que le FX d'impact qui le précède, c'est-à-dire
+      // exactement le défaut que ce ticket corrige. Il forme donc sa propre
+      // phase — seul s'il ouvre la suite, sinon il attend la suivante.
+      if (step is AnimationGroupStep &&
+          step.mode == BattleAnimationGroupMode.parallel) {
+        if (consumed > 0) {
+          break;
+        }
+        maxDuration = _scheduleAccentStep(step, startAtSeconds: 0);
+        _nextStepIndex += 1;
+        return maxDuration;
+      }
       maxDuration = math.max(
         maxDuration,
         _scheduleAccentStep(step, startAtSeconds: 0),
       );
+      consumed += 1;
       _nextStepIndex += 1;
     }
     return maxDuration;
@@ -375,6 +392,15 @@ final class BattleAnimationRunner {
       CombatantFlashStep(:final durationSeconds) => () {
           _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
           return startAtSeconds + durationSeconds;
+        }(),
+      // BETA-BAT-013 : la barre de PV est ordonnançable À L'INTÉRIEUR d'un
+      // groupe, pour qu'elle puisse partir sur la même frame que le
+      // clignotement de la cible. Hors groupe elle reste une phase bloquante :
+      // `_isAccentStep` ne la reconnaît pas, donc rien ne change pour les plans
+      // qui l'émettent seule.
+      HudHpTweenStep(:final durationMs) => () {
+          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
+          return startAtSeconds + durationMs / 1000;
         }(),
       CombatantShakeStep(:final durationSeconds) => () {
           _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
@@ -492,12 +518,17 @@ final class BattleAnimationRunner {
         onBarrierPulse(step);
       case SwapCombatantVisualStep(:final side):
         onSwapCombatantVisual(side);
+      case HudHpTweenStep():
+        // Le chemin bloquant renseigne `_currentHpTweenStep`, que l'overlay lit
+        // pour interpoler la barre image par image. Sans lui, la barre recevait
+        // sa cible et y SAUTAIT au lieu de descendre.
+        _currentHpTweenStep = step;
+        onHudHpTween(step);
       case AnimationGroupStep():
       case ShowMessageStep():
       case WaitStep():
       case CombatantMotionStep():
       case FaintCombatantStep():
-      case HudHpTweenStep():
         break;
     }
   }

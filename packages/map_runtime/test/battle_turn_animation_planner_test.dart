@@ -356,7 +356,9 @@ void main() {
       );
 
       expect(plan.steps.whereType<ShowMessageStep>(), isNotEmpty);
-      expect(plan.steps.whereType<HudHpTweenStep>(), hasLength(1));
+      // BETA-BAT-013 : la barre de PV vit désormais dans le groupe parallèle
+      // qui porte aussi le clignotement, donc on la cherche à plat.
+      expect(plan.flattenedSteps.whereType<HudHpTweenStep>(), hasLength(1));
       expect(plan.steps.whereType<PlayRmxpAnimationStep>(), isNotEmpty);
     });
 
@@ -887,6 +889,158 @@ void main() {
         messagesOf(planFor(effectiveness: 0.5)),
         contains('Ce n’est pas très efficace…'),
       );
+    });
+  });
+  // BETA-BAT-013 : la chorégraphie d'un coup suit la référence PSDK.
+  //
+  // Arbitrage de Yoahn du 2026-08-23 : clignotement et barre de PV EN MÊME
+  // TEMPS, comme le `Yuki::Animation::Handler` de la référence, et non l'un
+  // après l'autre.
+  group('BETA-BAT-013 — chorégraphie d’un coup', () {
+    BattleAnimationPlan planFor({
+      int damage = 12,
+      int enemyMaxHp = 40,
+    }) {
+      final before = _session(
+        player: _combatant(
+          speciesId: 'froakie',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'water_gun', name: 'Water Gun', type: 'water'),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'machop',
+          lineupIndex: 0,
+          maxHp: enemyMaxHp,
+          moves: <BattleMoveData>[
+            _move(id: 'low_kick', name: 'Low Kick', type: 'fighting'),
+          ],
+        ),
+      );
+      final execution = BattleMoveExecution(
+        attackerSlot: BattleSlotRef.active(BattleSideId.player),
+        move: const BattleMove(
+          id: 'water_gun',
+          name: 'Water Gun',
+          power: 40,
+          target: BattleMoveTarget.opponent,
+        ),
+        targetKind: BattleMoveExecutionTargetKind.combatant,
+        targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+        damage: damage,
+        didHit: true,
+      );
+      return BattleTurnAnimationPlanner().buildForTurn(
+        playerBefore: before.state.player,
+        enemyBefore: before.state.enemy,
+        turnResult: BattleTurnResult(
+          playerAction: BattleActionFight(execution.move, moveIndex: 0),
+          enemyAction: const BattleActionNone(),
+          executions: <BattleMoveExecution>[execution],
+          timeline: <BattleTurnEvent>[BattleTurnExecutionEvent(execution)],
+        ),
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+    }
+
+    AnimationGroupStep damageGroupOf(BattleAnimationPlan plan) =>
+        plan.steps.whereType<AnimationGroupStep>().firstWhere(
+              (group) => group.steps.any((step) => step is HudHpTweenStep),
+            );
+
+    test('le clignotement et la barre de PV sont dans le MÊME groupe parallèle',
+        () {
+      final group = damageGroupOf(planFor());
+
+      expect(group.mode, BattleAnimationGroupMode.parallel);
+      expect(group.steps.whereType<CombatantFlashStep>(), hasLength(1));
+      expect(group.steps.whereType<HudHpTweenStep>(), hasLength(1));
+    });
+
+    test('plus aucun clignotement de la cible ne traîne hors du groupe', () {
+      // C'est le cœur du ticket : la recette l'émettait dans sa propre suite
+      // d'accents, donc il partait avec l'impact et non avec les PV.
+      final plan = planFor();
+
+      expect(plan.steps.whereType<CombatantFlashStep>(), isEmpty,
+          reason: 'un clignotement de cible hors groupe repartirait avec les FX');
+      expect(
+        damageGroupOf(plan).steps.whereType<CombatantFlashStep>(),
+        hasLength(1),
+      );
+    });
+
+    test('le clignotement dure 0,6 s — 3 flashs de 0,2 s', () {
+      final flash =
+          damageGroupOf(planFor()).steps.whereType<CombatantFlashStep>().single;
+
+      expect(flash.durationSeconds, closeTo(0.6, 1e-9));
+      expect(flash.side, BattleSideId.enemy);
+    });
+
+    test('la descente des PV vaut le dégât divisé par 60, bornée', () {
+      // La durée suit les PV RÉELLEMENT perdus, pas le dégât brut : la cible
+      // reçoit donc assez de PV pour que le plafond soit atteignable.
+      int drainMsFor(int damage) =>
+          damageGroupOf(planFor(damage: damage, enemyMaxHp: 200))
+              .steps
+              .whereType<HudHpTweenStep>()
+              .single
+              .durationMs;
+
+      expect(drainMsFor(30), 500);
+      expect(drainMsFor(6), 200);
+      expect(drainMsFor(90), 1000);
+    });
+
+    test('un maintien suit la descente, court quand la cible tombe', () {
+      final holdSurvives = planFor(damage: 12, enemyMaxHp: 40)
+          .steps
+          .whereType<WaitStep>()
+          .first
+          .durationSeconds;
+      final holdFaints = planFor(damage: 40, enemyMaxHp: 40)
+          .steps
+          .whereType<WaitStep>()
+          .first
+          .durationSeconds;
+
+      expect(holdSurvives, closeTo(0.8, 1e-9));
+      expect(holdFaints, closeTo(0.1, 1e-9));
+    });
+
+    test('un coup à 0 dégât clignote quand même et consomme une seconde', () {
+      // Le bloc entier était sauté quand le dégât valait zéro : ni
+      // clignotement, ni temps, donc un coup encaissé sans dégât ne se voyait
+      // pas du tout.
+      final group = damageGroupOf(planFor(damage: 0));
+
+      expect(group.steps.whereType<CombatantFlashStep>(), hasLength(1));
+      expect(group.steps.whereType<HudHpTweenStep>().single.durationMs, 1000);
+    });
+
+    test('la chute de K.O. dure 0,1 s', () {
+      final faint = planFor(damage: 40, enemyMaxHp: 40)
+          .steps
+          .whereType<FaintCombatantStep>()
+          .single;
+
+      expect(faint.durationSeconds, closeTo(0.1, 1e-9));
+    });
+
+    test('l’ordre reste message, puis dégâts, puis K.O.', () {
+      final plan = planFor(damage: 40, enemyMaxHp: 40);
+      final groupIndex = plan.steps.indexOf(damageGroupOf(plan));
+      final firstMessage =
+          plan.steps.indexWhere((step) => step is ShowMessageStep);
+      final faintIndex =
+          plan.steps.indexWhere((step) => step is FaintCombatantStep);
+
+      expect(firstMessage, lessThan(groupIndex));
+      expect(faintIndex, greaterThan(groupIndex));
     });
   });
 }

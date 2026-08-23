@@ -3305,7 +3305,14 @@ void main() {
         greaterThan(afterTurn.state.enemy.currentHp.toDouble()),
       );
 
-      overlay.updateTree(1.5);
+      // BETA-BAT-013 : la chorégraphie est délibérément plus longue. Le
+      // clignotement de dégât passe de 0,1 s à 0,6 s (3 flashs de 0,2 s, comme
+      // la référence) et un maintien de 0,1 s suit la descente des PV. Le tour
+      // complet vaut donc environ 0,42 (message) + 0,18 (élan) + 0,16
+      // (accents) + 0,60 (groupe clignotement/PV) + 0,10 (maintien) + 0,10
+      // (chute) + 0,42 + 0,42 ≈ 2,40 s, contre 2,14 s auparavant. Le budget
+      // suit, avec de la marge.
+      overlay.updateTree(1.9);
 
       expect(overlay.isTurnPresentationActive, isFalse);
       expect(initialEnemyCombatant.isHitFlashActive, isFalse);

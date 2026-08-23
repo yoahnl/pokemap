@@ -2999,7 +2999,7 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleSession? previousSession,
   }) {
     if (previousSession == null ||
-        !_activeAnimationPlan.steps
+        !_activeAnimationPlan.flattenedSteps
             .whereType<HudHpTweenStep>()
             .any((step) => step.side == side)) {
       return null;
@@ -3018,7 +3018,8 @@ class BattleOverlayComponent extends PositionComponent {
 
   int _hpTweenRevisionFor(HudHpTweenStep targetStep) {
     var revision = 0;
-    for (final step in _activeAnimationPlan.steps.whereType<HudHpTweenStep>()) {
+    for (final step
+        in _activeAnimationPlan.flattenedSteps.whereType<HudHpTweenStep>()) {
       revision += 1;
       if (identical(step, targetStep)) {
         return revision;

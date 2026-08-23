@@ -103,6 +103,26 @@ class BattleAnimationPlan {
 
   final List<BattleAnimationStep> steps;
 
+  /// Toutes les étapes du plan, celles imbriquées dans un groupe comprises.
+  ///
+  /// BETA-BAT-013 : le clignotement de dégât et la barre de PV vivent dans un
+  /// groupe parallèle, donc un consommateur qui parcourt [steps] ne les voit
+  /// plus. Ceux qui cherchent une étape par son type doivent passer par ici —
+  /// un scan de surface renverrait silencieusement rien, et une barre de PV
+  /// introuvable saute au lieu de s'animer.
+  Iterable<BattleAnimationStep> get flattenedSteps => _flatten(steps);
+
+  static Iterable<BattleAnimationStep> _flatten(
+    List<BattleAnimationStep> steps,
+  ) sync* {
+    for (final step in steps) {
+      yield step;
+      if (step is AnimationGroupStep) {
+        yield* _flatten(step.steps);
+      }
+    }
+  }
+
   Set<String> get requiredFxIds => steps.fold(<String>{}, (ids, step) {
         _addRequiredFxIds(ids, step);
         return ids;

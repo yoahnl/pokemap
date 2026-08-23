@@ -775,7 +775,11 @@ class BattleSceneCombatantComponent extends PositionComponent {
     if (_hitFlashRemaining <= 0) {
       return false;
     }
-    return ((_hitFlashRemaining * 18).floor() % 2) == 0;
+    // BETA-BAT-013 : un basculement toutes les 0,1 s, donc un cycle complet de
+    // 0,2 s. Sur la fenêtre de 0,6 s de la référence cela donne exactement 3
+    // flashs. Le multiplicateur valait 18, soit 9 cycles par seconde, et une
+    // fenêtre de 0,6 s aurait produit 5,4 flashs.
+    return ((_hitFlashRemaining * 10).floor() % 2) == 0;
   }
 
   void _updateTone(double dt) {
