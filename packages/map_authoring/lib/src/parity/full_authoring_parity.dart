@@ -1170,6 +1170,7 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
       'palette.',
       'element.',
       'element_category.',
+      'project.visual_grid.',
       'preset.',
     ],
     'test/domains/assets/visual_library_contract_test.dart',

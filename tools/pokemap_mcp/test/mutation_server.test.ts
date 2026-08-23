@@ -5471,7 +5471,7 @@ const tiledMapTmx = `
 </map>
 `;
 
-test("MCP completes a cold-start 34-element visual import", async () => {
+test("MCP completes a cold-start 34-element visual batch import", async () => {
   const fixture = await mutationFixture({ withLegacyAtlasGap: true });
   try {
     const sourcePath = join(fixture.root, "source.png");
@@ -5508,6 +5508,8 @@ test("MCP completes a cold-start 34-element visual import", async () => {
     );
     assert.ok(actionIds.includes("tileset_folder.upsert"));
     assert.ok(actionIds.includes("element_category.upsert"));
+    assert.ok(actionIds.includes("element.batch_upsert"));
+    assert.ok(actionIds.includes("project.visual_grid.update"));
     assert.equal(
       actionIds.some((id) =>
         ["terrain.", "path.", "surface."].some((prefix) => id.startsWith(prefix)),
@@ -5585,34 +5587,40 @@ test("MCP completes a cold-start 34-element visual import", async () => {
       },
       sequence: "tileset",
     });
-
-    for (let index = 0; index < 34; index += 1) {
-      const elementId = `m02-element-${String(index + 1).padStart(2, "0")}`;
-      revision = await applyMutation(fixture.client, {
-        projectHandle,
-        workspaceHandle,
-        expectedRevision: revision,
-        actionId: "element.upsert",
-        parameters: {
-          element: {
-            id: elementId,
-            name: `M02 Element ${index + 1}`,
-            tilesetId: "m02-tileset",
-            categoryId: "m02-elements",
-            frames: [
-              {
-                source: {
-                  x: index % 8,
-                  y: Math.floor(index / 8),
-                },
+    revision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: revision,
+      actionId: "project.visual_grid.update",
+      parameters: {
+        grid: { tileWidth: 16, tileHeight: 16, displayScale: 1.0 },
+      },
+      sequence: "visual-grid",
+    });
+    revision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: revision,
+      actionId: "element.batch_upsert",
+      parameters: {
+        elements: Array.from({ length: 34 }, (_, index) => ({
+          id: `m02-element-${String(index + 1).padStart(2, "0")}`,
+          name: `M02 Element ${index + 1}`,
+          tilesetId: "m02-tileset",
+          categoryId: "m02-elements",
+          frames: [
+            {
+              source: {
+                x: index % 8,
+                y: Math.floor(index / 8),
               },
-            ],
-            sortOrder: index,
-          },
-        },
-        sequence: `element-${String(index + 1).padStart(2, "0")}`,
-      });
-    }
+            },
+          ],
+          sortOrder: index,
+        })),
+      },
+      sequence: "element-batch",
+    });
 
     const folders = await toolData(fixture.client, "pokemap_query", {
       projectHandle,

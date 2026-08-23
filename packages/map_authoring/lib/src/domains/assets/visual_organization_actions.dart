@@ -11,6 +11,11 @@ final class VisualOrganizationActions {
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     visualLibraryDescriptor(
+      'project.visual_grid.update',
+      'Align the project visual grid with every regular atlas',
+      resourceKinds: const ['project', 'tileset'],
+    ),
+    visualLibraryDescriptor(
       'tileset_folder.upsert',
       'Create or replace one tileset library folder',
       resourceKinds: const ['project', 'tilesetFolder'],
@@ -37,6 +42,34 @@ final class VisualOrganizationActions {
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = VisualLibraryParameters(context.request.parameters);
     switch (context.request.actionId) {
+      case 'project.visual_grid.update':
+        parameters.allow(const {'grid'});
+        final grid = parameters.object('grid');
+        const fields = {'tileWidth', 'tileHeight', 'displayScale'};
+        if (grid.keys.any((key) => !fields.contains(key)) ||
+            grid['tileWidth'] is! int ||
+            grid['tileHeight'] is! int ||
+            grid['displayScale'] is! num) {
+          throw VisualLibraryException(
+            'visual.parameter_invalid',
+            'The project visual grid object is invalid.',
+            details: const {'parameter': 'grid'},
+          );
+        }
+        final next = updateProjectVisualGrid(
+          context.snapshot.manifest,
+          tileWidth: grid['tileWidth']! as int,
+          tileHeight: grid['tileHeight']! as int,
+          displayScale: (grid['displayScale']! as num).toDouble(),
+        );
+        return buildVisualManifestDraft(
+          context.snapshot,
+          next,
+          operation: 'project.visual_grid.update',
+          path: '/settings',
+          before: context.snapshot.manifest.settings.toJson(),
+          after: next.settings.toJson(),
+        );
       case 'tileset_folder.upsert':
         parameters.allow(const {'folder'});
         final folder = ProjectTilesetFolder.fromJson(
@@ -185,6 +218,45 @@ final class VisualOrganizationActions {
       elementCategories: manifest.elementCategories
           .where((category) => category.id != categoryId)
           .toList(growable: false),
+    );
+  }
+
+  ProjectManifest updateProjectVisualGrid(
+    ProjectManifest manifest, {
+    required int tileWidth,
+    required int tileHeight,
+    required double displayScale,
+  }) {
+    if (tileWidth <= 0 ||
+        tileHeight <= 0 ||
+        !displayScale.isFinite ||
+        displayScale <= 0) {
+      throw VisualLibraryException(
+        'visual_grid.invalid',
+        'The project visual grid values must be positive.',
+      );
+    }
+    final mismatches = <String>[];
+    for (final tileset in manifest.tilesets) {
+      final source = tileset.source;
+      if (source is ProjectRegularAtlasTilesetSource &&
+          (source.tileWidth != tileWidth || source.tileHeight != tileHeight)) {
+        mismatches.add(tileset.id);
+      }
+    }
+    if (mismatches.isNotEmpty) {
+      throw VisualLibraryException(
+        'visual_grid.tileset_mismatch',
+        'Every regular atlas must use the project visual grid.',
+        details: {'tilesetIds': mismatches..sort()},
+      );
+    }
+    return manifest.copyWith(
+      settings: manifest.settings.copyWith(
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+        displayScale: displayScale,
+      ),
     );
   }
 }

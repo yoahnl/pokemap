@@ -558,6 +558,21 @@ final class VisualLibraryParameters {
     }
     return Map<String, Object?>.from(value);
   }
+
+  List<Map<String, Object?>> objects(String key) {
+    final value = _values[key];
+    if (value is! List || value.any((candidate) => candidate is! Map)) {
+      throw VisualLibraryException(
+        'visual.parameter_invalid',
+        'A required visual library list is invalid.',
+        details: {'parameter': key},
+      );
+    }
+    return [
+      for (final candidate in value)
+        Map<String, Object?>.from(candidate as Map),
+    ];
+  }
 }
 
 void _requireAssetPath(

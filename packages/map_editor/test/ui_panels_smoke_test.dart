@@ -161,8 +161,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('World Tileset'), findsOneWidget);
-      expect(find.text('Tileset image unavailable'), findsOneWidget);
+      expect(find.text('Chargement de l’image du tileset'), findsOneWidget);
+      expect(find.text('Tileset image unavailable'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 

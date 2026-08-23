@@ -429,7 +429,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         final result = imageSnapshot.data;
         final image = result?.image;
         if (image == null) {
-          final failure = result?.failure;
+          if (result == null) {
+            return const PokeMapEmptyState(
+              icon: Icon(CupertinoIcons.hourglass),
+              title: 'Chargement de l’image du tileset',
+              description: 'La palette sera disponible dans un instant.',
+            );
+          }
+          final failure = result.failure;
           return Padding(
             padding: const EdgeInsets.all(12),
             child: Column(

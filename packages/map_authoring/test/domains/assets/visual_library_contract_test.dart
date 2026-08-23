@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -269,6 +271,165 @@ void main() {
       );
     });
 
+    test('element batch upsert merges the complete batch atomically', () {
+      final dynamic actions = const ElementActions();
+
+      final result = actions.upsertMany(
+        _manifest(),
+        elements: const [
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Large Tree',
+            tilesetId: 'world',
+            categoryId: 'nature',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 1, y: 0),
+              ),
+            ],
+          ),
+          ProjectElementEntry(
+            id: 'rock',
+            name: 'Rock',
+            tilesetId: 'world',
+            categoryId: 'nature',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 2, y: 0),
+              ),
+            ],
+          ),
+        ],
+        atlases: const {'world': _worldAtlas},
+      ) as ProjectManifest;
+
+      expect(result.elements.map((element) => element.id), ['rock', 'tree']);
+      expect(
+        result.elements.singleWhere((element) => element.id == 'tree').name,
+        'Large Tree',
+      );
+    });
+
+    test('element batch upsert rejects an empty batch', () {
+      expect(
+        () => const ElementActions().upsertMany(
+          _manifest(),
+          elements: const [],
+          atlases: const {'world': _worldAtlas},
+        ),
+        throwsA(
+          isA<VisualLibraryException>().having(
+            (error) => error.code,
+            'code',
+            'element.batch_empty',
+          ),
+        ),
+      );
+    });
+
+    test('element batch upsert rejects duplicate element identities', () {
+      const rock = ProjectElementEntry(
+        id: 'rock',
+        name: 'Rock',
+        tilesetId: 'world',
+        categoryId: 'nature',
+        frames: [
+          TilesetVisualFrame(
+            source: TilesetSourceRect(x: 2, y: 0),
+          ),
+        ],
+      );
+      expect(
+        () => const ElementActions().upsertMany(
+          _manifest(),
+          elements: const [rock, rock],
+          atlases: const {'world': _worldAtlas},
+        ),
+        throwsA(
+          isA<VisualLibraryException>().having(
+            (error) => error.code,
+            'code',
+            'element.batch_duplicate',
+          ),
+        ),
+      );
+    });
+
+    test('element batch upsert rejects an oversized batch', () {
+      final elements = List.generate(
+        513,
+        (index) => ProjectElementEntry(
+          id: 'element-$index',
+          name: 'Element $index',
+          tilesetId: 'world',
+          categoryId: 'nature',
+          frames: const [
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0),
+            ),
+          ],
+        ),
+      );
+      expect(
+        () => const ElementActions().upsertMany(
+          _manifest(),
+          elements: elements,
+          atlases: const {'world': _worldAtlas},
+        ),
+        throwsA(
+          isA<VisualLibraryException>().having(
+            (error) => error.code,
+            'code',
+            'element.batch_limit_exceeded',
+          ),
+        ),
+      );
+    });
+
+    test('element batch upsert builds one canonical manifest change', () {
+      final snapshot = _snapshot(_manifest());
+      final draft = const ElementActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: AuthoringRequest(
+            requestId: 'request-element-batch-upsert',
+            actionId: 'element.batch_upsert',
+            actionVersion: 1,
+            workspaceHandle: 'workspace-visual-library',
+            expectedRevision: snapshot.revision,
+            idempotencyKey: 'idem-element-batch-upsert',
+            parameters: {
+              'elements': [
+                const ProjectElementEntry(
+                  id: 'rock',
+                  name: 'Rock',
+                  tilesetId: 'world',
+                  categoryId: 'nature',
+                  frames: [
+                    TilesetVisualFrame(
+                      source: TilesetSourceRect(x: 2, y: 0),
+                    ),
+                  ],
+                ).toJson(),
+              ],
+            },
+          ),
+          planId: 'plan-element-batch-upsert',
+          seed: 1,
+        ),
+      );
+
+      final projected = ProjectManifest.fromJson(
+        Map<String, dynamic>.from(
+          jsonDecode(
+            utf8.decode(draft.changeSet.changes.single.afterBytes!),
+          ) as Map,
+        ),
+      );
+      expect(draft.changeSet.changes, hasLength(1));
+      expect(projected.elements.map((element) => element.id), ['rock', 'tree']);
+    });
+
     test('dispatcher exposes canonical visual library mutations', () {
       final ids = MapMutationDispatcher.canonical()
           .descriptors
@@ -285,9 +446,11 @@ void main() {
           'palette.upsert',
           'palette.delete',
           'element.upsert',
+          'element.batch_upsert',
           'element.delete',
           'element_category.upsert',
           'element_category.delete',
+          'project.visual_grid.update',
         }),
       );
       expect(ids.where((id) => id.startsWith('preset.')), isEmpty);
@@ -337,6 +500,87 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('visual grid update aligns project cells with atlas cells', () {
+      final base = _manifest();
+      final manifest = base.copyWith(
+        tilesets: [
+          base.tilesets.single.copyWith(
+            source: const ProjectRegularAtlasTilesetSource(
+              assetId: 'world-atlas',
+              pixelWidth: 64,
+              pixelHeight: 64,
+              tileWidth: 32,
+              tileHeight: 32,
+            ),
+          ),
+        ],
+      );
+      final dynamic actions = const VisualOrganizationActions();
+
+      final result = actions.updateProjectVisualGrid(
+        manifest,
+        tileWidth: 32,
+        tileHeight: 32,
+        displayScale: 1.0,
+      ) as ProjectManifest;
+
+      expect(result.settings.tileWidth, 32);
+      expect(result.settings.tileHeight, 32);
+      expect(result.settings.displayScale, 1.0);
+    });
+
+    test('visual grid update builds one canonical manifest change', () {
+      final base = _manifest();
+      final manifest = base.copyWith(
+        tilesets: [
+          base.tilesets.single.copyWith(
+            source: const ProjectRegularAtlasTilesetSource(
+              assetId: 'world-atlas',
+              pixelWidth: 64,
+              pixelHeight: 64,
+              tileWidth: 32,
+              tileHeight: 32,
+            ),
+          ),
+        ],
+      );
+      final snapshot = _snapshot(manifest);
+      final draft = const VisualOrganizationActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: AuthoringRequest(
+            requestId: 'request-project-visual-grid',
+            actionId: 'project.visual_grid.update',
+            actionVersion: 1,
+            workspaceHandle: 'workspace-visual-library',
+            expectedRevision: snapshot.revision,
+            idempotencyKey: 'idem-project-visual-grid',
+            parameters: const {
+              'grid': {
+                'tileWidth': 32,
+                'tileHeight': 32,
+                'displayScale': 1.0,
+              },
+            },
+          ),
+          planId: 'plan-project-visual-grid',
+          seed: 1,
+        ),
+      );
+
+      final projected = ProjectManifest.fromJson(
+        Map<String, dynamic>.from(
+          jsonDecode(
+            utf8.decode(draft.changeSet.changes.single.afterBytes!),
+          ) as Map,
+        ),
+      );
+      expect(draft.changeSet.changes, hasLength(1));
+      expect(projected.settings.tileWidth, 32);
+      expect(projected.settings.tileHeight, 32);
+      expect(projected.settings.displayScale, 1.0);
     });
   });
 }
@@ -388,3 +632,21 @@ const _worldAtlas = ProjectRegularAtlasTilesetSource(
   tileWidth: 16,
   tileHeight: 16,
 );
+
+ProjectSnapshot _snapshot(ProjectManifest manifest) {
+  final bytes = utf8.encode(jsonEncode(manifest.toJson()));
+  final revision = computeNarrativeProjectFingerprint([
+    NarrativeProjectFingerprintEntry(
+      relativePath: 'project.json',
+      bytes: bytes,
+    ),
+  ]);
+  return ProjectSnapshot(
+    projectHandle: const ProjectHandle('visual-library-project'),
+    revision: revision,
+    manifest: manifest,
+    maps: const [],
+    resourceFingerprints: {'project': revision},
+    resourceBytes: {'project': bytes},
+  );
+}

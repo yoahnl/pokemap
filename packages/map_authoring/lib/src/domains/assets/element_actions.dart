@@ -5,6 +5,8 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'tileset_actions.dart';
 
+const int _elementBatchUpsertLimit = 512;
+
 final class ElementActions {
   const ElementActions();
 
@@ -12,6 +14,10 @@ final class ElementActions {
     visualLibraryDescriptor(
       'element.upsert',
       'Create or replace one validated visual element',
+    ),
+    visualLibraryDescriptor(
+      'element.batch_upsert',
+      'Create or replace a validated batch of visual elements atomically',
     ),
     visualLibraryDescriptor(
       'element.delete',
@@ -39,6 +45,26 @@ final class ElementActions {
           operation: 'element.upsert',
           path: '/elements/${element.id}',
           after: element.toJson(),
+        );
+      case 'element.batch_upsert':
+        parameters.allow(const {'elements'});
+        final elements = [
+          for (final value in parameters.objects('elements'))
+            ProjectElementEntry.fromJson(Map<String, dynamic>.from(value)),
+        ];
+        final next = upsertMany(
+          context.snapshot.manifest,
+          elements: elements,
+          atlases: readTilesetAtlases(context.snapshot.manifest),
+        );
+        return buildVisualManifestDraft(
+          context.snapshot,
+          next,
+          operation: 'element.batch_upsert',
+          path: '/elements',
+          after: {
+            'elementIds': [for (final element in elements) element.id],
+          },
         );
       case 'element.delete':
         parameters.allow(const {'elementId'});
@@ -97,6 +123,45 @@ final class ElementActions {
       element,
     ]..sort((left, right) => left.id.compareTo(right.id));
     return manifest.copyWith(elements: elements);
+  }
+
+  ProjectManifest upsertMany(
+    ProjectManifest manifest, {
+    required Iterable<ProjectElementEntry> elements,
+    required Map<String, ProjectRegularAtlasTilesetSource> atlases,
+  }) {
+    final batch = elements.toList(growable: false);
+    if (batch.isEmpty) {
+      throw VisualLibraryException(
+        'element.batch_empty',
+        'An element batch requires at least one entry.',
+      );
+    }
+    if (batch.length > _elementBatchUpsertLimit) {
+      throw VisualLibraryException(
+        'element.batch_limit_exceeded',
+        'An element batch cannot exceed $_elementBatchUpsertLimit entries.',
+        details: {
+          'limit': _elementBatchUpsertLimit,
+          'actual': batch.length,
+        },
+      );
+    }
+    final ids = <String>{};
+    for (final element in batch) {
+      if (!ids.add(element.id)) {
+        throw VisualLibraryException(
+          'element.batch_duplicate',
+          'An element batch cannot contain duplicate identities.',
+          details: {'elementId': element.id},
+        );
+      }
+    }
+    var result = manifest;
+    for (final element in batch) {
+      result = upsert(result, element: element, atlases: atlases);
+    }
+    return result;
   }
 
   ProjectManifest delete(

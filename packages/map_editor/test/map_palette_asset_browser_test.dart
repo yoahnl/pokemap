@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show Tristate;
 
@@ -520,15 +521,15 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('embedded palette keeps the launcher after an image failure', (
+  testWidgets('embedded palette shows loading before an image failure', (
     tester,
   ) async {
+    final imageCache = _PendingEditorImageCache('pending-project');
     final container = ProviderContainer(
       overrides: <Override>[
         editorImageCacheProvider.overrideWith((ref, projectRoot) {
-          final cache = _FailingEditorImageCache(projectRoot);
-          ref.onDispose(cache.dispose);
-          return cache;
+          ref.onDispose(imageCache.dispose);
+          return imageCache;
         }),
       ],
     );
@@ -561,8 +562,13 @@ void main() {
     );
     notifier.selectTilesetEditorContext('world');
     await tester.pump();
-    await tester.pump();
 
+    expect(find.byKey(MapPaletteAssetBrowserKeys.openButton), findsOneWidget);
+    expect(find.text('Chargement de l’image du tileset'), findsOneWidget);
+    expect(find.text('Tileset image unavailable'), findsNothing);
+
+    imageCache.completeWithFailure();
+    await tester.pump();
     expect(find.byKey(MapPaletteAssetBrowserKeys.openButton), findsOneWidget);
     expect(find.text('Tileset image unavailable'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -700,8 +706,10 @@ const map = MapData(
   ],
 );
 
-class _FailingEditorImageCache extends EditorImageCache {
-  _FailingEditorImageCache(String sessionKey) : super(sessionKey: sessionKey);
+class _PendingEditorImageCache extends EditorImageCache {
+  _PendingEditorImageCache(String sessionKey) : super(sessionKey: sessionKey);
+
+  final _completer = Completer<EditorImageLoadResult>();
 
   @override
   Future<EditorImageLoadResult> load(
@@ -712,11 +720,15 @@ class _FailingEditorImageCache extends EditorImageCache {
     bool allowUpscaling = true,
     EditorImageBytesTransform? transformBytes,
   }) {
-    return Future<EditorImageLoadResult>.value(
-      EditorImageLoadResult.failure(
+    return _completer.future;
+  }
+
+  void completeWithFailure() {
+    _completer.complete(
+      const EditorImageLoadResult.failure(
         EditorImageFailure(
           kind: EditorImageFailureKind.missingFile,
-          path: path ?? '',
+          path: 'pending-project/tileset.png',
           message: 'Synthetic missing image.',
         ),
       ),
