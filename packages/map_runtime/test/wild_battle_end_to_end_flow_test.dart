@@ -1030,6 +1030,21 @@ void main() {
       await game.debugWaitForBattleOverlaySync();
 
       expect(game.debugPsdkBattleSessionActive, isTrue);
+      // BETA-BAT-020 : le pont donnée → combat. Le typing authoré des
+      // species du projet doit arriver jusqu'à la session, sinon toute
+      // l'efficacité (messages, sons hitplus/hitlow) est silencieusement
+      // neutre en jeu réel.
+      final battleState = game.debugBattleSessionSnapshot!.state;
+      expect(
+        battleState.player.typing?.types,
+        contains('grass'),
+        reason: 'sproutle est typé grass dans la donnée du projet',
+      );
+      expect(
+        battleState.enemy.typing?.types,
+        contains('fire'),
+        reason: 'sparkitten est typé fire dans la donnée du projet',
+      );
       final overlay = game.debugBattleOverlayComponent;
       expect(overlay, isNotNull);
       final activeOverlay = overlay!;
