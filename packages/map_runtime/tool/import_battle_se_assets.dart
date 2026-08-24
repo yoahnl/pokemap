@@ -75,6 +75,22 @@ void main(List<String> arguments) {
   const musicEffects = <String, String>{
     'level_up': 'rosa_levelup',
   };
+  // Les sons de Poké Ball de la référence (sound_design_config.json du
+  // projet de test) : le lancer et l'ouverture/rappel — BETA-BAT-022.
+  const ballSounds = <String, String>{
+    'ball_throw': 'fall',
+    'ball_open': 'pokeopen',
+  };
+  for (final entry in ballSounds.entries) {
+    final source = _resolve(seRoot, entry.value);
+    if (source == null) {
+      missing.add(entry.key);
+      continue;
+    }
+    final fileName = source.uri.pathSegments.last.toLowerCase();
+    source.copySync('${targetDirectory.path}/$fileName');
+    manifest[entry.key] = fileName;
+  }
   final meRoot = Directory('${arguments.first}/audio/me');
   for (final entry in musicEffects.entries) {
     final source = meRoot.existsSync() ? _resolve(meRoot, entry.value) : null;

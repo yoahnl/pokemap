@@ -107,4 +107,63 @@ void main() {
           .having((s) => s.message, 'message', startsWith('Vas-y')),
     );
   });
+
+  test(
+      'BETA-BAT-022 : avec une planche de Ball, le joueur sort de sa Poké '
+      'Ball — adversaire d’abord, lancer, ouverture, grossissement', () {
+    final plan = buildBattleIntroAnimationPlan(
+      session: _session(isTrainerBattle: false),
+      slideDistancePx: 1080,
+      playerBallSheetName: 'ball_1',
+    );
+
+    expect(plan.steps[0], isA<WaitStep>());
+    expect(
+      plan.steps[1],
+      isA<CombatantMotionStep>()
+          .having((s) => s.side, 'camp', BattleSideId.enemy)
+          .having((s) => s.motionKind, 'mouvement',
+              BattleCombatantMotionKind.introSlide),
+      reason: 'la référence joue le mouvement adverse PUIS l’envoi joueur '
+          '(create_sprite_move_animation puis create_player_send_animation)',
+    );
+    expect(
+      plan.steps[2],
+      isA<PlayBallSequenceStep>()
+          .having((s) => s.side, 'camp', BattleSideId.player)
+          .having((s) => s.kind, 'emploi', BattleBallSequenceKind.sendOutThrown)
+          .having((s) => s.sheetName, 'planche', 'ball_1')
+          .having((s) => s.durationSeconds, 'durée', 0.6),
+      reason: 'vol en arc 0,5 s + ouverture 0,1 s — la parité de '
+          'actor_ball_animation',
+    );
+    expect(
+      plan.steps[3],
+      isA<CombatantMotionStep>()
+          .having((s) => s.side, 'camp', BattleSideId.player)
+          .having((s) => s.motionKind, 'mouvement',
+              BattleCombatantMotionKind.materializeIn)
+          .having((s) => s.durationSeconds, 'durée', 0.1),
+      reason: 'ya.scalar(0.1, self, :zoom=, 0, sprite_zoom)',
+    );
+  });
+
+  test(
+      'BETA-BAT-022 : sans planche de Ball, l’intro garde le glissement '
+      'historique des deux camps', () {
+    final plan = buildBattleIntroAnimationPlan(
+      session: _session(isTrainerBattle: false),
+      slideDistancePx: 1080,
+    );
+    expect(
+      plan.steps[1],
+      isA<AnimationGroupStep>(),
+      reason: 'critère 4 : la planche absente ne casse jamais l’entrée — '
+          'le repli est le plan BAT-016 inchangé',
+    );
+    expect(
+      plan.steps.whereType<PlayBallSequenceStep>(),
+      isEmpty,
+    );
+  });
 }

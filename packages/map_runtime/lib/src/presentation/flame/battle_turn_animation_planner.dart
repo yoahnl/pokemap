@@ -152,8 +152,7 @@ final class BattleTurnAnimationPlanner {
           if (targetSideForFlash != null) {
             recipeSteps.removeWhere(
               (step) =>
-                  step is CombatantFlashStep &&
-                  step.side == targetSideForFlash,
+                  step is CombatantFlashStep && step.side == targetSideForFlash,
             );
           }
           steps.addAll(recipeSteps);
@@ -527,19 +526,37 @@ final class BattleTurnAnimationPlanner {
         case BattleTurnSwitchEvent(:final event):
           steps.add(ShowMessageStep(message: _messageForSwitchEvent(event)));
           if (event.kind == BattleSwitchEventKind.switched) {
+            // BETA-BAT-022 : le remplacement passe par la Poké Ball, comme
+            // la référence — rappel (la Ball s'ouvre, le Pokémon rétrécit),
+            // échange du visuel, nouvelle Ball posée puis le remplaçant
+            // grandit. Sans planche chargeable côté overlay, les étapes
+            // Ball ne montrent rien et les durées s'écoulent : le
+            // remplacement reste lisible.
+            steps.add(
+              PlayBallSequenceStep(
+                side: event.side,
+                kind: BattleBallSequenceKind.recall,
+              ),
+            );
             steps.add(
               CombatantMotionStep(
                 side: event.side,
-                motionKind: BattleCombatantMotionKind.switchOut,
-                durationSeconds: 0.16,
+                motionKind: BattleCombatantMotionKind.materializeOut,
+                durationSeconds: 0.1,
               ),
             );
             steps.add(SwapCombatantVisualStep(side: event.side));
             steps.add(
+              PlayBallSequenceStep(
+                side: event.side,
+                kind: BattleBallSequenceKind.sendOutHeld,
+              ),
+            );
+            steps.add(
               CombatantMotionStep(
                 side: event.side,
-                motionKind: BattleCombatantMotionKind.switchIn,
-                durationSeconds: 0.16,
+                motionKind: BattleCombatantMotionKind.materializeIn,
+                durationSeconds: 0.1,
               ),
             );
             trackedDisplayName[event.side] =

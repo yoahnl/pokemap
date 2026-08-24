@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui show Image;
+import 'dart:ui' as ui show Image, instantiateImageCodec;
+
+import 'package:flutter/services.dart' show ByteData, rootBundle;
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
@@ -18,6 +20,8 @@ import 'battle_command_panel_component.dart';
 import 'battle_combatant_gender_resolver.dart';
 import 'battle_animation_plan.dart';
 import 'battle_animation_runner.dart';
+import 'battle_ball_manifest.dart';
+import 'battle_ball_throw_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_camera_rig.dart';
 import 'battle_debug_panel_component.dart';
@@ -829,6 +833,75 @@ class BattleOverlayComponent extends PositionComponent {
     return true;
   }
 
+  /// Les planches de Poké Ball chargées pour ce combat — BETA-BAT-022.
+  ///
+  /// Chargées AVANT la construction du plan d'intro : si la planche manque
+  /// ou ne se lit pas, l'intro retombe sur le glissement historique
+  /// (critère 4) et les remplacements gardent leurs mouvements d'origine.
+  final Map<String, ui.Image> _ballSheetImages = <String, ui.Image>{};
+
+  /// La planche utilisée par ce combat. Le lien individu → Ball de capture
+  /// n'existe pas encore dans la donnée : la Poké Ball standard (`ball_1`)
+  /// vaut pour tous, l'id reste un point d'extension.
+  static const String _introBallSheetName = 'ball_1';
+
+  Future<ui.Image?> _loadBallSheet(String sheetName) async {
+    final cached = _ballSheetImages[sheetName];
+    if (cached != null) return cached;
+    final fileName = battleBallSheetManifest[sheetName];
+    if (fileName == null) return null;
+    ByteData? bytes;
+    try {
+      bytes = await rootBundle.load('packages/map_runtime/assets/battle/balls/'
+          '$fileName');
+    } on Object {
+      try {
+        bytes = await rootBundle.load('assets/battle/balls/$fileName');
+      } on Object catch (error) {
+        debugPrint('[battle] ball sheet unavailable ($sheetName): $error');
+        return null;
+      }
+    }
+    try {
+      final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      _ballSheetImages[sheetName] = frame.image;
+      return frame.image;
+    } on Object catch (error) {
+      debugPrint('[battle] ball sheet undecodable ($sheetName): $error');
+      return null;
+    }
+  }
+
+  void _handleBallSequenceStep(PlayBallSequenceStep step) {
+    final sheet = _ballSheetImages[step.sheetName];
+    if (sheet == null) return;
+    final layout = currentSceneLayout;
+    final spriteRect = step.side == BattleSideId.player
+        ? layout.playerSpriteRect
+        : layout.enemySpriteRect;
+    final targetCenter = Offset(
+      spriteRect.center.dx,
+      spriteRect.bottom - spriteRect.height * 0.25,
+    );
+    if (step.kind == BattleBallSequenceKind.sendOutThrown) {
+      playSfx?.call('ball_throw', volume: 100, pitch: 100);
+    }
+    add(
+      BattleBallThrowComponent(
+        sheet: sheet,
+        kind: step.kind,
+        targetCenter: targetCenter,
+        throwStartX: ballThrowStartXFor(
+          side: step.side,
+          viewportWidth: size.x,
+        ),
+        cellSize: spriteRect.height * 0.32,
+        onOpen: () => playSfx?.call('ball_open', volume: 100, pitch: 100),
+      ),
+    );
+  }
+
   /// L'image du dresseur vaincu, préparée par l'hôte — BETA-BAT-017.
   ///
   /// La référence fait réapparaître le dresseur à la place de son Pokémon
@@ -1140,22 +1213,40 @@ class BattleOverlayComponent extends PositionComponent {
       '[perf][battle][real] overlay.playerCombatant=${playerCombatantStopwatch.elapsedMilliseconds}ms',
     );
 
+    // BETA-BAT-022 : la planche de Poké Ball se charge au montage — l'intro
+    // ET les remplacements en vivent. Si elle manque, l'intro retombe sur le
+    // glissement historique et les étapes Ball des remplacements ne montrent
+    // rien (les durées s'écoulent, rien ne casse). Le chargement ne bloque
+    // JAMAIS le chemin sans intro : allonger onLoad d'un tour d'event loop
+    // suffisait à ce qu'un hôte pressé pousse son premier tour avant la
+    // création du runner — le plan tombait dans le vide (recette du
+    // 2026-08-24, capture PSDK muette).
+    final ballSheetFuture = _loadBallSheet(_introBallSheetName);
+    if (!introEnabled) {
+      unawaited(ballSheetFuture);
+    }
     if (introEnabled) {
       // BETA-BAT-016 : les combattants attendent hors écran, à leur position
       // de départ d'intro, AVANT le premier rendu — sous le noir de la
       // pré-transition, personne ne doit apparaître à sa place finale.
       // 360 px sur l'écran 320 de la référence = 1,125 largeur d'écran.
       final introSlideDistancePx = size.x * 1.125;
+      final playerUsesBall = (await ballSheetFuture) != null;
       _enemyCombatant?.holdIntroSlideOffscreen(
         distancePx: introSlideDistancePx,
       );
-      _playerCombatant?.holdIntroSlideOffscreen(
-        distancePx: introSlideDistancePx,
-      );
+      if (playerUsesBall) {
+        _playerCombatant?.holdMaterializeHidden();
+      } else {
+        _playerCombatant?.holdIntroSlideOffscreen(
+          distancePx: introSlideDistancePx,
+        );
+      }
       _pendingIntroPlan = buildBattleIntroAnimationPlan(
         session: _session,
         slideDistancePx: introSlideDistancePx,
         resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+        playerBallSheetName: playerUsesBall ? _introBallSheetName : null,
       );
     }
 
@@ -1176,6 +1267,7 @@ class BattleOverlayComponent extends PositionComponent {
       onHudHpTween: _handleHudHpTweenStep,
       onHudXpTween: _handleHudXpTweenStep,
       onShowDefeatedTrainer: _handleShowDefeatedTrainerStep,
+      onPlayBallSequence: _handleBallSequenceStep,
       onPlaySe: (step) => playSfx?.call(
         step.seName,
         volume: step.volume,
@@ -3134,6 +3226,14 @@ class BattleOverlayComponent extends PositionComponent {
             durationSeconds: step.durationSeconds,
             distancePx: step.distancePx,
           ),
+        );
+      case BattleCombatantMotionKind.materializeIn:
+        unawaited(
+          combatant.playMaterializeIn(durationSeconds: step.durationSeconds),
+        );
+      case BattleCombatantMotionKind.materializeOut:
+        unawaited(
+          combatant.playMaterializeOut(durationSeconds: step.durationSeconds),
         );
     }
   }

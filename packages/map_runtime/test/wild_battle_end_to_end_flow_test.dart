@@ -476,8 +476,12 @@ void main() {
       );
 
       // Le chargement court en PARALLÈLE : la scène se monte sous le noir.
+      // Attendre le onLoad COMPLET : le plan d'intro (et la planche de Ball
+      // de BAT-022) se posent en fin de montage asynchrone.
       await pumpTicks(
-        until: () => game.debugBattleOverlayMounted,
+        until: () =>
+            game.debugBattleOverlayMounted &&
+            game.debugBattleOverlayComponent!.isLoaded,
         maxTicks: 400,
       );
       expect(

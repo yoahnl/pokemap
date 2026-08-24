@@ -22,6 +22,7 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
   BattleSpeciesDisplayNameResolver? resolveSpeciesDisplayName,
   double revealSeconds = 0.25,
   double slideSeconds = 0.8,
+  String? playerBallSheetName,
 }) {
   final openingLines = resolveSpeciesDisplayName == null
       ? buildBattleOpeningNarrationLinesForOverlay(session)
@@ -29,6 +30,36 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
           session,
           resolveSpeciesDisplayName: resolveSpeciesDisplayName,
         );
+  // BETA-BAT-022 : quand la planche de Ball est chargeable, le joueur SORT
+  // de sa Poké Ball — l'adversaire glisse d'abord (0,8 s), puis la Ball vole
+  // et s'ouvre (0,6 s), puis le Pokémon grandit (0,1 s) — la parité
+  // séquentielle de la référence (`create_sprite_move_animation` PUIS
+  // `create_player_send_animation`). Sans planche : le glissement
+  // historique des deux camps, en parallèle.
+  if (playerBallSheetName != null) {
+    return BattleAnimationPlan(
+      steps: <BattleAnimationStep>[
+        WaitStep(durationSeconds: revealSeconds),
+        CombatantMotionStep(
+          side: BattleSideId.enemy,
+          motionKind: BattleCombatantMotionKind.introSlide,
+          durationSeconds: slideSeconds,
+          distancePx: slideDistancePx,
+        ),
+        PlayBallSequenceStep(
+          side: BattleSideId.player,
+          kind: BattleBallSequenceKind.sendOutThrown,
+          sheetName: playerBallSheetName,
+        ),
+        const CombatantMotionStep(
+          side: BattleSideId.player,
+          motionKind: BattleCombatantMotionKind.materializeIn,
+          durationSeconds: 0.1,
+        ),
+        for (final line in openingLines) ShowMessageStep(message: line),
+      ],
+    );
+  }
   return BattleAnimationPlan(
     steps: <BattleAnimationStep>[
       WaitStep(durationSeconds: revealSeconds),

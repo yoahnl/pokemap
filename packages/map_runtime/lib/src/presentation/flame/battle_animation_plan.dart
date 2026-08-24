@@ -99,6 +99,14 @@ enum BattleCombatantMotionKind {
   /// la gauche, le joueur depuis la droite (parité RBY : `x ± 360` → `x`),
   /// opacité pleine du premier au dernier pixel.
   introSlide,
+
+  /// Apparition depuis la Poké Ball — BETA-BAT-022. Le sprite grandit de
+  /// zéro à sa taille (parité `ya.scalar(0.1, self, :zoom=, 0, sprite_zoom)`).
+  materializeIn,
+
+  /// Retour dans la Poké Ball — le sprite rétrécit jusqu'à zéro (parité
+  /// `go_back_ball_animation`).
+  materializeOut,
 }
 
 class BattleAnimationPlan {
@@ -800,6 +808,45 @@ final class HudHpTweenStep extends BattleAnimationStep {
   final int fromHp;
   final int toHp;
   final int durationMs;
+}
+
+/// La Poké Ball d'un envoi ou d'un rappel — BETA-BAT-022.
+///
+/// Parité `100 PokemonSprite.rb` : côté joueur, la Ball est LANCÉE (0,5 s
+/// en arc, cellules de vol 0-3 de la planche, SE de lancer) puis s'ouvre
+/// (0,1 s, cellules 4-5, SE d'ouverture) ; côté adverse et au rappel, elle
+/// s'ouvre sur place après 0,2 s. Le grossissement/rétrécissement du
+/// Pokémon est un [CombatantMotionStep] séparé (materializeIn/Out) — cette
+/// étape ne joue QUE la Ball. Sans planche chargeable, l'étape ne montre
+/// rien et la durée s'écoule quand même : l'entrée ne casse jamais.
+final class PlayBallSequenceStep extends BattleAnimationStep {
+  const PlayBallSequenceStep({
+    required this.side,
+    required this.kind,
+    this.sheetName = 'ball_1',
+  });
+
+  final BattleSideId side;
+  final BattleBallSequenceKind kind;
+  final String sheetName;
+
+  double get durationSeconds => switch (kind) {
+        BattleBallSequenceKind.sendOutThrown => 0.6,
+        BattleBallSequenceKind.sendOutHeld => 0.3,
+        BattleBallSequenceKind.recall => 0.3,
+      };
+}
+
+/// Les trois emplois de la Ball dans la référence.
+enum BattleBallSequenceKind {
+  /// Lancée par le joueur : vol en arc 0,5 s puis ouverture 0,1 s.
+  sendOutThrown,
+
+  /// Posée côté adverse : 0,2 s d'attente puis ouverture 0,1 s.
+  sendOutHeld,
+
+  /// Le rappel : 0,2 s d'attente puis ouverture 0,1 s (le Pokémon rentre).
+  recall,
 }
 
 /// Fait réapparaître le dresseur vaincu à la place de son Pokémon —

@@ -2887,7 +2887,10 @@ void main() {
 
       expect(overlay.currentPlayerHudSpeciesText, equals('sproutle'));
       overlay.updateTree(0.42);
-      overlay.updateTree(0.16);
+      // BETA-BAT-022 : le remplacement passe par la Poké Ball — rappel
+      // 0,3 s + rétrécissement 0,1 s avant l'échange du visuel.
+      overlay.updateTree(0.3);
+      overlay.updateTree(0.12);
       await Future<void>.delayed(Duration.zero);
 
       expect(overlay.currentPlayerHudSpeciesText, equals('benchmate'));
@@ -2957,7 +2960,10 @@ void main() {
 
       expect(overlay.currentPlayerHudSpeciesText, equals('sproutle'));
       overlay.updateTree(0.42);
-      overlay.updateTree(0.16);
+      // BETA-BAT-022 : le remplacement passe par la Poké Ball — rappel
+      // 0,3 s + rétrécissement 0,1 s avant l'échange du visuel.
+      overlay.updateTree(0.3);
+      overlay.updateTree(0.12);
       await Future<void>.delayed(Duration.zero);
 
       expect(overlay.currentPlayerHudSpeciesText, equals('benchmate'));
@@ -3226,7 +3232,10 @@ void main() {
 
       expect(overlay.currentPlayerHudSpeciesText, equals('sproutle ♀'));
       overlay.updateTree(0.42);
-      overlay.updateTree(0.16);
+      // BETA-BAT-022 : le remplacement passe par la Poké Ball — rappel
+      // 0,3 s + rétrécissement 0,1 s avant l'échange du visuel.
+      overlay.updateTree(0.3);
+      overlay.updateTree(0.12);
       await Future<void>.delayed(Duration.zero);
 
       expect(overlay.currentPlayerHudSpeciesText, equals('aquafi ♂'));

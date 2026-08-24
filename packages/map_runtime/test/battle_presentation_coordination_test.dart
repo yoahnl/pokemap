@@ -3,6 +3,7 @@ import 'dart:ui' show Canvas, PictureRecorder;
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_runtime/src/presentation/flame/battle_ball_throw_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 
@@ -214,6 +215,51 @@ void main() {
       if (bytes2.getUint8(i) > 8) opaque2 += 1;
     }
     expect(opaque2, greaterThan(0), reason: 'la scène redevient visible');
+  });
+
+  test(
+      'BETA-BAT-022 : l’intro fait sortir le joueur de sa Poké Ball — '
+      'lancer, ouverture, grossissement', () async {
+    final seLog = <String>[];
+    final overlay = BattleOverlayComponent(
+      session: _fatalSession(),
+      viewportSize: Vector2(960, 540),
+      onPlayerChoice: (_) {},
+      introEnabled: true,
+      playSfx: (name, {required volume, required pitch}) => seLog.add(name),
+    );
+    await overlay.onLoad();
+    await overlay.waitForPendingVisualSync();
+
+    expect(
+      overlay.debugPlayerSpriteOpacity,
+      isNotNull,
+      reason: 'le combattant joueur est monté',
+    );
+    overlay.startIntro();
+    var sawBallComponent = false;
+    for (var i = 0; i < 60; i++) {
+      overlay.updateTree(0.05);
+      await Future<void>.delayed(Duration.zero);
+      sawBallComponent = sawBallComponent ||
+          overlay.children.whereType<BattleBallThrowComponent>().isNotEmpty;
+    }
+    expect(
+      sawBallComponent,
+      isTrue,
+      reason: 'la Ball vole pendant l’intro puis se retire seule',
+    );
+    expect(
+      overlay.children.whereType<BattleBallThrowComponent>(),
+      isEmpty,
+      reason: 'la Ball ne survit pas à son ouverture',
+    );
+    expect(
+      seLog,
+      containsAllInOrder(<String>['ball_throw', 'ball_open']),
+      reason: 'le lancer (fall.wav) puis l’ouverture (pokeopen.wav) — les '
+          'sons configurés de la référence',
+    );
   });
 
   test('la timeline du tour fatal reste dans l’ordre de la référence',

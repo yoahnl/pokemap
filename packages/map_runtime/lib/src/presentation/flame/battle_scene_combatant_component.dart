@@ -340,6 +340,41 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _animationDistancePx = 46;
   }
 
+  /// Apparition depuis la Poké Ball — BETA-BAT-022. Le sprite grandit de
+  /// zéro à sa taille, parité `ya.scalar(0.1, self, :zoom=, 0, sprite_zoom)`.
+  Future<void> playMaterializeIn({required double durationSeconds}) async {
+    _visualScaleX = 0;
+    _visualScaleY = 0;
+    _visualOpacity = 1;
+    _visualOffset = Offset.zero;
+    _applyVisualPresentation();
+    _animation = _CombatantPresentationAnimation.materializeIn;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+  }
+
+  /// Retour dans la Poké Ball — le sprite rétrécit jusqu'à zéro.
+  Future<void> playMaterializeOut({required double durationSeconds}) async {
+    _visualOffset = Offset.zero;
+    _visualOpacity = 1;
+    _applyVisualPresentation();
+    _animation = _CombatantPresentationAnimation.materializeOut;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+  }
+
+  /// Tient le combattant invisible (échelle zéro) avant sa sortie de Ball —
+  /// l'équivalent Ball de [holdIntroSlideOffscreen] : aucune image ne doit
+  /// le montrer avant l'ouverture.
+  void holdMaterializeHidden() {
+    _animation = _CombatantPresentationAnimation.none;
+    _visualScaleX = 0;
+    _visualScaleY = 0;
+    _visualOpacity = 1;
+    _visualOffset = Offset.zero;
+    _applyVisualPresentation();
+  }
+
   /// Pose le combattant hors écran, à sa position de départ d'intro —
   /// BETA-BAT-016. Appelé avant le premier rendu pour qu'aucune image ne le
   /// montre à sa place finale sous le noir de la pré-transition.
@@ -880,6 +915,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
       case _CombatantPresentationAnimation.introSlide:
         _visualOffset = _introSlideOffset(progress: 1 - progress);
         _visualOpacity = 1;
+      case _CombatantPresentationAnimation.materializeIn:
+        _visualScaleX = progress;
+        _visualScaleY = progress;
+        _visualOpacity = 1;
+      case _CombatantPresentationAnimation.materializeOut:
+        _visualScaleX = 1 - progress;
+        _visualScaleY = 1 - progress;
+        _visualOpacity = 1;
       case _CombatantPresentationAnimation.faint:
         _visualOffset = Offset(0, _animationDistancePx * progress);
         _visualOpacity = 1 - progress;
@@ -910,10 +953,15 @@ class BattleSceneCombatantComponent extends PositionComponent {
       case _CombatantPresentationAnimation.shake:
       case _CombatantPresentationAnimation.switchIn:
       case _CombatantPresentationAnimation.introSlide:
+      case _CombatantPresentationAnimation.materializeIn:
         _visualOffset = Offset.zero;
         _visualOpacity = 1;
         _visualScaleX = 1;
         _visualScaleY = 1;
+      case _CombatantPresentationAnimation.materializeOut:
+        _visualScaleX = 0;
+        _visualScaleY = 0;
+        _visualOpacity = 1;
       case _CombatantPresentationAnimation.switchOut:
         _visualOffset = _switchTravelOffset(progress: 1);
         _visualOpacity = 0;
@@ -1006,7 +1054,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Paint _auraPaintFor(Rect auraRect) {
     final alpha = (_visualOpacity.clamp(0.0, 1.0) * 255).round();
     final cached = _auraPaint;
-    if (cached != null && _auraPaintRect == auraRect && _auraPaintAlpha == alpha) {
+    if (cached != null &&
+        _auraPaintRect == auraRect &&
+        _auraPaintAlpha == alpha) {
       return cached;
     }
     final paint = Paint()
@@ -1036,6 +1086,8 @@ enum _CombatantPresentationAnimation {
   switchOut,
   switchIn,
   introSlide,
+  materializeIn,
+  materializeOut,
   faint,
   compress,
   ellipse,

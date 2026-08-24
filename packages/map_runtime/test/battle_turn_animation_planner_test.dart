@@ -147,7 +147,6 @@ void main() {
       expect(plan.isEmpty, isTrue);
     });
 
-
     test('a failed capture plays exactly the transmitted shake count', () {
       // ENC-005 : deux secousses décidées par la formule -> deux
       // CombatantShakeStep entre le lancer et le verdict. Un planner qui
@@ -571,7 +570,24 @@ void main() {
         resolver: _resolver(),
       );
 
-      expect(plan.steps.whereType<CombatantMotionStep>(), hasLength(2));
+      // BETA-BAT-022 : le remplacement passe par la Poké Ball, comme la
+      // référence — rappel, échange du visuel, Ball posée, grossissement.
+      final motions = plan.steps.whereType<CombatantMotionStep>().toList();
+      expect(motions, hasLength(2));
+      expect(
+        motions.first.motionKind,
+        BattleCombatantMotionKind.materializeOut,
+        reason: 'le sortant rétrécit dans sa Ball (go_back_ball_animation)',
+      );
+      expect(
+        motions.last.motionKind,
+        BattleCombatantMotionKind.materializeIn,
+        reason: 'le remplaçant grandit hors de sa Ball',
+      );
+      final balls = plan.steps.whereType<PlayBallSequenceStep>().toList();
+      expect(balls, hasLength(2));
+      expect(balls.first.kind, BattleBallSequenceKind.recall);
+      expect(balls.last.kind, BattleBallSequenceKind.sendOutHeld);
       expect(plan.steps.whereType<SwapCombatantVisualStep>(), hasLength(1));
     });
 
@@ -861,7 +877,9 @@ void main() {
     test('un coup critique est annoncé, après les PV et avant le K.O.', () {
       final plan = planFor(didCrit: true, damage: 40);
       final kinds = plan.steps
-          .map((step) => step is ShowMessageStep ? step.message : step.runtimeType.toString())
+          .map((step) => step is ShowMessageStep
+              ? step.message
+              : step.runtimeType.toString())
           .toList(growable: false);
       final hpIndex = plan.steps.indexWhere((step) => step is HudHpTweenStep);
       final critIndex = kinds.indexOf('Coup critique !');
@@ -970,7 +988,8 @@ void main() {
       final plan = planFor();
 
       expect(plan.steps.whereType<CombatantFlashStep>(), isEmpty,
-          reason: 'un clignotement de cible hors groupe repartirait avec les FX');
+          reason:
+              'un clignotement de cible hors groupe repartirait avec les FX');
       expect(
         damageGroupOf(plan).steps.whereType<CombatantFlashStep>(),
         hasLength(1),
@@ -1195,10 +1214,7 @@ void main() {
             );
 
     test('le son du coup part dans le groupe du clignotement et des PV', () {
-      final se = damageGroupOf(planFor())
-          .steps
-          .whereType<PlaySeStep>()
-          .single;
+      final se = damageGroupOf(planFor()).steps.whereType<PlaySeStep>().single;
 
       expect(se.seName, 'hit');
       expect(se.volume, 100);
