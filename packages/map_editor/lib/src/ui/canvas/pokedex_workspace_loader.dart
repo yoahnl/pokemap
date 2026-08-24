@@ -123,6 +123,6 @@ PokedexEntryLoader createPokedexEntryLoader({
       }
     }
 
-    return databaseIndex.build(workspace);
+    return databaseIndex.build(workspace, project: project);
   };
 }

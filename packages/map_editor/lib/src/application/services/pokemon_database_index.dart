@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import '../../domain/repositories/repositories.dart';
 import '../errors/application_errors.dart';
 import '../models/pokemon_database_index.dart';
@@ -27,14 +29,20 @@ class PokemonDatabaseIndex {
   final ProjectRepository projectRepository;
   final PokemonReadRepository pokemonReadRepository;
 
+  /// Indexes the species declared by [workspace].
+  ///
+  /// Pass [project] when the manifest was already read for this workspace:
+  /// loading it again costs a full project snapshot under the manifest write
+  /// lock, for a configuration string the caller already holds.
   Future<List<PokemonDatabaseIndexEntry>> build(
-    ProjectWorkspace workspace,
-  ) async {
-    final project = await projectRepository.loadProject(
-      workspace.projectManifestPath,
-    );
+    ProjectWorkspace workspace, {
+    ProjectManifest? project,
+  }) async {
+    final manifest =
+        project ??
+        await projectRepository.loadProject(workspace.projectManifestPath);
 
-    final speciesDirectory = project.pokemon.speciesDir.trim();
+    final speciesDirectory = manifest.pokemon.speciesDir.trim();
     if (speciesDirectory.isEmpty) {
       throw const EditorValidationException(
         'Project pokemon speciesDir cannot be empty',

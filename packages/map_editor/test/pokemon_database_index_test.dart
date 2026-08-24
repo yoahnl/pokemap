@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
-import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/services/pokemon_database_index.dart';
+import 'package:map_editor/src/ui/canvas/pokedex_workspace_loader.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
@@ -327,6 +328,32 @@ void main() {
       );
     });
 
+    test('one pokedex load reads the project manifest once', () async {
+      await _createProjectAndSeedDemoData(
+        createProjectUseCase,
+        seedUseCase,
+        workspace,
+        tempProjectRoot.path,
+      );
+      final counting = _CountingProjectRepository();
+      final loader = createPokedexEntryLoader(
+        projectRepository: counting,
+        databaseIndex: PokemonDatabaseIndex(
+          projectRepository: counting,
+          pokemonReadRepository: pokemonReadRepository,
+        ),
+      );
+
+      final entries = await loader(workspace);
+
+      expect(entries, isNotEmpty);
+      expect(
+        counting.loadProjectCalls,
+        1,
+        reason: 'the loader already holds the manifest it read',
+      );
+    });
+
     test('uses the project pokemon speciesDir instead of a hardcoded path',
         () async {
       await _createProjectAndSeedDemoData(
@@ -604,4 +631,14 @@ Future<void> _createProjectAndSeedDemoData(
     projectRootPath,
   );
   await seedUseCase.execute(workspace);
+}
+
+final class _CountingProjectRepository extends FileProjectRepository {
+  int loadProjectCalls = 0;
+
+  @override
+  Future<ProjectManifest> loadProject(String path) {
+    loadProjectCalls++;
+    return super.loadProject(path);
+  }
 }
