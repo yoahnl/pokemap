@@ -17,6 +17,7 @@ import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/narrative_document_session.dart';
 import '../../../application/services/narrative_activity_journal.dart';
 import '../../../application/services/map_lifecycle_transaction_service.dart';
+import '../../../application/services/editor_snapshot_profile_recorder.dart';
 import '../../../application/services/pokemon_project_data_reader.dart';
 import '../../../application/use_cases/execute_narrative_authoring_transaction.dart';
 import '../../../domain/repositories/repositories.dart';
@@ -71,6 +72,13 @@ final authoringSnapshotCacheProvider = Provider<ProjectSnapshotCache>(
   (ref) => ProjectSnapshotCache(),
 );
 
+/// Null unless the session was started with a profile destination, so the
+/// ordinary path resolves this once and never records anything.
+final editorSnapshotProfileRecorderProvider =
+    Provider<EditorSnapshotProfileRecorder?>(
+  (ref) => EditorSnapshotProfileRecorder.resolve(),
+);
+
 final editorAuthoringSessionLifecycleProvider =
     Provider<EditorAuthoringSessionLifecycle>((ref) {
       final lifecycle = EditorAuthoringSessionLifecycle(
@@ -85,6 +93,7 @@ final authoringQueryAdapterProvider = Provider<AuthoringQueryAdapter>((ref) {
     fileReader: ref.watch(editorProjectFileReaderProvider),
     fingerprintCache: ref.watch(authoringFingerprintCacheProvider),
     snapshotCache: ref.watch(authoringSnapshotCacheProvider),
+    profileRecorder: ref.watch(editorSnapshotProfileRecorderProvider),
   );
   ref.watch(editorAuthoringSessionLifecycleProvider).attach(adapter);
   ref.onDispose(adapter.closeAll);
@@ -133,6 +142,7 @@ final authoringMutationAdapterProvider = Provider<AuthoringMutationAdapter>((
     projectRoots: projectFiles,
     fingerprintCache: ref.watch(authoringFingerprintCacheProvider),
     snapshotCache: ref.watch(authoringSnapshotCacheProvider),
+    profileRecorder: ref.watch(editorSnapshotProfileRecorderProvider),
     invalidatePokemonSpeciesSnapshot: ref
         .watch(pokemonProjectDataReaderProvider)
         .invalidateSpeciesSnapshotForProjectRoot,

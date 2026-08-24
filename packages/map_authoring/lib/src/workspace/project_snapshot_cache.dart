@@ -82,6 +82,12 @@ final class ProjectSnapshotCache {
   int identityReads = 0;
   int invalidations = 0;
   int servedBytes = 0;
+
+  /// Mutations projected onto the cached snapshot without reloading it.
+  int adoptions = 0;
+
+  /// Mutations that could not be projected and forced a reload instead.
+  int adoptionRejections = 0;
   int authoringBudgetRejections = 0;
   int assetBudgetRejections = 0;
 
@@ -215,16 +221,16 @@ final class ProjectSnapshotCache {
     required String baseRevision,
     required Iterable<AuthoringResourceChange> changes,
   }) async {
-    if (!access.canReuseSnapshots) return null;
+    if (!access.canReuseSnapshots) return _rejectAdoption();
     final entry = _entryForHandle(projectHandle);
-    if (entry == null || entry.snapshot.revision != baseRevision) return null;
+    if (entry == null || entry.snapshot.revision != baseRevision) return _rejectAdoption();
     final scope = entry.identities['project.json']!.scope;
     final frozenChanges = changes.toList(growable: false);
     final projected = const ProjectSnapshotMapProjector().project(
       entry.snapshot.rebind(projectHandle),
       frozenChanges,
     );
-    if (projected == null) return null;
+    if (projected == null) return _rejectAdoption();
 
     final identities = Map<String, ProjectResourceIdentity>.of(
       entry.identities,
@@ -233,13 +239,13 @@ final class ProjectSnapshotCache {
       final afterBytes = change.afterBytes;
       if (afterBytes == null) {
         invalidateScope(scope);
-        return null;
+        return _rejectAdoption();
       }
       try {
         final identityBefore = await _readIdentity(access, change.storageKey);
         if (identityBefore == null || identityBefore.scope != scope) {
           invalidateScope(scope);
-          return null;
+          return _rejectAdoption();
         }
         final matchesCommittedBytes = await access.matchesResourceBytes(
           change.storageKey,
@@ -248,12 +254,12 @@ final class ProjectSnapshotCache {
         final identityAfter = await _readIdentity(access, change.storageKey);
         if (!matchesCommittedBytes || identityAfter != identityBefore) {
           invalidateScope(scope);
-          return null;
+          return _rejectAdoption();
         }
         identities[change.storageKey] = identityAfter!;
       } on Exception {
         invalidateScope(scope);
-        return null;
+        return _rejectAdoption();
       }
     }
     var authoringBytes = 0;
@@ -277,16 +283,23 @@ final class ProjectSnapshotCache {
     if (!await _matches(access, candidate) ||
         !await _matches(access, candidate)) {
       invalidateScope(scope);
-      return null;
+      return _rejectAdoption();
     }
     final admission = store(
       snapshot: projected,
       identities: identities,
       absentResourcePaths: candidate.absentResourcePaths,
     );
-    return admission == ProjectSnapshotCacheAdmission.admitted
-        ? projected
-        : null;
+    if (admission != ProjectSnapshotCacheAdmission.admitted) {
+      return _rejectAdoption();
+    }
+    adoptions += 1;
+    return projected;
+  }
+
+  Null _rejectAdoption() {
+    adoptionRejections += 1;
+    return null;
   }
 
   void invalidateScope(String scope) {

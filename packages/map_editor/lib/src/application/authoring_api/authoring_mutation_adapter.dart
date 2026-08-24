@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
 import '../services/editor_performance_telemetry.dart';
+import '../services/editor_snapshot_profile_recorder.dart';
 import '../services/tiled_image_collection_raster_codec.dart';
 import 'authoring_query_adapter.dart';
 import 'authoring_session_lifecycle.dart';
@@ -99,6 +100,7 @@ final class AuthoringMutationAdapter
     WorkspaceHandleStore Function()? workspaceHandles,
     ProjectSnapshotFingerprintCache? fingerprintCache,
     ProjectSnapshotCache? snapshotCache,
+    EditorSnapshotProfileRecorder? profileRecorder,
     void Function(String projectRoot)? invalidatePokemonSpeciesSnapshot,
   }) : _fileReader = fileReader,
        _queries = queries,
@@ -107,6 +109,7 @@ final class AuthoringMutationAdapter
        _fingerprintCache =
            fingerprintCache ?? ProjectSnapshotFingerprintCache(),
        _snapshotCache = snapshotCache ?? ProjectSnapshotCache(),
+       _profileRecorder = profileRecorder,
        _invalidatePokemonSpeciesSnapshot =
            invalidatePokemonSpeciesSnapshot ??
            _ignorePokemonSpeciesSnapshotInvalidation;
@@ -117,6 +120,7 @@ final class AuthoringMutationAdapter
   final WorkspaceHandleStore Function() _workspaceHandles;
   final ProjectSnapshotFingerprintCache _fingerprintCache;
   final ProjectSnapshotCache _snapshotCache;
+  final EditorSnapshotProfileRecorder? _profileRecorder;
   final void Function(String projectRoot) _invalidatePokemonSpeciesSnapshot;
   final Map<String, Future<_EditorMutationSession>> _sessions = {};
   final Set<String> _openingRoots = {};
@@ -369,6 +373,7 @@ final class AuthoringMutationAdapter
           : null,
     );
     _lastAppliedReceipt = result.receipt;
+    _profileRecorder?.recordCacheCounters(_snapshotCache);
     _invalidateSpeciesSnapshotIfTouched(session.canonicalRoot, result.receipt);
     await _queries.invalidate(session.canonicalRoot);
     return result;
@@ -602,6 +607,7 @@ final class AuthoringMutationAdapter
         workspaceHandles: _workspaceHandles,
         fingerprintCache: _fingerprintCache,
         snapshotCache: _snapshotCache,
+        profileRecorder: _profileRecorder,
         onOperationDelta: (delta) => _activeOperations += delta,
         onClosed: () => _closeCount++,
       );
@@ -649,6 +655,7 @@ final class _EditorMutationSession {
     required WorkspaceHandleStore Function() workspaceHandles,
     required ProjectSnapshotFingerprintCache fingerprintCache,
     required ProjectSnapshotCache snapshotCache,
+    required EditorSnapshotProfileRecorder? profileRecorder,
     required void Function(int delta) onOperationDelta,
     required void Function() onClosed,
   }) async {
@@ -661,6 +668,7 @@ final class _EditorMutationSession {
       handles: handles,
       fingerprintCache: fingerprintCache,
       snapshotCache: snapshotCache,
+      profileSink: profileRecorder?.sinkFor('mutation'),
     );
     final reads = AuthoringReadApi(
       openService: ProjectOpenService(

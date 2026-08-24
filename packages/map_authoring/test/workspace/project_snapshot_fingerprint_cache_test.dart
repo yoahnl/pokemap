@@ -169,6 +169,57 @@ void main() {
       );
     });
 
+    test('counts adopted projections and the ones it refuses', () async {
+      final harness = await _Harness.create(enableSnapshotCache: true);
+      addTearDown(harness.dispose);
+      final before = await harness.load();
+      final beforeBytes = before.resourceBytes('map:alpha');
+      final afterBytes = _mapJson('Counted').codeUnits;
+      await harness.rewriteMap(name: 'Counted');
+
+      expect(harness.snapshotCache!.adoptions, 0);
+      expect(harness.snapshotCache!.adoptionRejections, 0);
+
+      final adopted = await harness.loader.adoptAppliedChanges(
+        harness.projectHandle,
+        baseRevision: before.revision,
+        changes: [
+          AuthoringResourceChange(
+            resource: AuthoringResourceRef(
+              kind: 'map',
+              id: 'alpha',
+              revision: before.resourceFingerprints['map:alpha'],
+            ),
+            storageKey: 'maps/alpha.json',
+            beforeBytes: beforeBytes,
+            afterBytes: afterBytes,
+          ),
+        ],
+      );
+
+      expect(adopted, isNotNull);
+      expect(harness.snapshotCache!.adoptions, 1);
+      expect(harness.snapshotCache!.adoptionRejections, 0);
+
+      // A stale base revision cannot be projected onto.
+      final refused = await harness.loader.adoptAppliedChanges(
+        harness.projectHandle,
+        baseRevision: before.revision,
+        changes: [
+          AuthoringResourceChange(
+            resource: AuthoringResourceRef(kind: 'map', id: 'alpha'),
+            storageKey: 'maps/alpha.json',
+            beforeBytes: beforeBytes,
+            afterBytes: afterBytes,
+          ),
+        ],
+      );
+
+      expect(refused, isNull);
+      expect(harness.snapshotCache!.adoptions, 1);
+      expect(harness.snapshotCache!.adoptionRejections, 1);
+    });
+
     test('refuses projection when committed bytes were replaced externally',
         () async {
       final harness = await _Harness.create(enableSnapshotCache: true);

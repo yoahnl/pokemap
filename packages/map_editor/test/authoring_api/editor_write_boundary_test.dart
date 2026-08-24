@@ -88,6 +88,9 @@ final RegExp _directWrite = RegExp(
 /// Packaging, settings, imported media and Border artifacts are not PokeMap
 /// structured authoring documents. Their dedicated ports remain legitimate.
 const _platformAndAssetSinks = <String>{
+  // Diagnosis log written outside the project, to a destination the operator
+  // names, and only when they name one. It holds no authoring document.
+  'lib/src/application/services/editor_snapshot_profile_recorder.dart',
   'lib/src/application/tools/export_pokemon_sdk_studio_catalog_cli.dart',
   'lib/src/features/border_studio/infrastructure/filesystem/file_border_asset_snapshot_store.dart',
   'lib/src/features/border_studio/infrastructure/filesystem/file_border_publication_manifest_port.dart',

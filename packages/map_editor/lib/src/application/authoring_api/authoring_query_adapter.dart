@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
+import '../services/editor_snapshot_profile_recorder.dart';
 import 'authoring_session_lifecycle.dart';
 
 /// Opens one coherent Authoring snapshot for the editor's read projections.
@@ -17,14 +18,17 @@ final class AuthoringQueryAdapter
     required ProjectFileReader fileReader,
     ProjectSnapshotFingerprintCache? fingerprintCache,
     ProjectSnapshotCache? snapshotCache,
+    EditorSnapshotProfileRecorder? profileRecorder,
   }) : _fileReader = fileReader,
        _fingerprintCache =
            fingerprintCache ?? ProjectSnapshotFingerprintCache(),
-       _snapshotCache = snapshotCache ?? ProjectSnapshotCache();
+       _snapshotCache = snapshotCache ?? ProjectSnapshotCache(),
+       _profileRecorder = profileRecorder;
 
   final ProjectFileReader _fileReader;
   final ProjectSnapshotFingerprintCache _fingerprintCache;
   final ProjectSnapshotCache _snapshotCache;
+  final EditorSnapshotProfileRecorder? _profileRecorder;
   final Map<String, Future<EditorAuthoringReadSession>> _sessions = {};
   final Set<String> _openingRoots = {};
   String? _retainedRoot;
@@ -176,6 +180,7 @@ final class AuthoringQueryAdapter
       handles: handles,
       fingerprintCache: _fingerprintCache,
       snapshotCache: _snapshotCache,
+      profileSink: _profileRecorder?.sinkFor('read'),
     );
     final api = AuthoringReadApi(
       openService: ProjectOpenService(

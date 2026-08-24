@@ -41,6 +41,10 @@ export 'src/workspace/project_snapshot_cache.dart'
 export 'src/workspace/project_snapshot_fingerprint_cache.dart'
     show ProjectSnapshotFingerprintCache;
 export 'src/workspace/project_snapshot_loader.dart'
-    show ProjectSnapshotLoadPolicy, ProjectSnapshotLoader;
+    show
+        ProjectSnapshotLoadPolicy,
+        ProjectSnapshotLoadProfile,
+        ProjectSnapshotLoadProfileSink,
+        ProjectSnapshotLoader;
 export 'src/workspace/workspace_handle_store.dart' show WorkspaceHandleStore;
 export 'src/workspace/workspace_policy.dart' show WorkspacePolicy;
