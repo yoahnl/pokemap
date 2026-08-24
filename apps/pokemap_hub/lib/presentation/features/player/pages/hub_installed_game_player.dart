@@ -388,13 +388,19 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
               : () async {
                 await presentationRuntime.controller.skipActive();
               },
-      gameSceneBuilder: (_) {
+      gameSceneBuilder: (context) {
         final game = _mountedGame;
-        return game == null
-            ? const SizedBox.expand(
-              key: ValueKey<String>('runtime-game-awaiting-mount'),
-            )
-            : GameWidget(key: ObjectKey(game), game: game, autofocus: false);
+        if (game == null) {
+          return const SizedBox.expand(
+            key: ValueKey<String>('runtime-game-awaiting-mount'),
+          );
+        }
+        // Recette du 2026-08-24 : la scène de combat gère la safe area dans
+        // sa géométrie (le HUD passait sous la notch), mais Flame ne voit pas
+        // MediaQuery. Chaque build — donc chaque rotation — pousse les
+        // insets réels au jeu.
+        game.setViewSafeAreaPadding(MediaQuery.viewPaddingOf(context));
+        return GameWidget(key: ObjectKey(game), game: game, autofocus: false);
       },
     );
   }

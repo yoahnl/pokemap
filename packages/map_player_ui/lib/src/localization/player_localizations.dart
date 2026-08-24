@@ -284,6 +284,7 @@ final class PokeMapPlayerLocalizations {
   String get battleTarget => _fr ? 'CIBLE' : 'TARGET';
   String get battlePokemon => _fr ? 'ÉQUIPE' : 'POKÉMON';
   String get battleContinue => _fr ? 'CONTINUER' : 'CONTINUE';
+  String get battleDecision => _fr ? 'CHOIX' : 'CHOICE';
   String battleMoveType(String typeId) {
     final normalized = typeId.trim().toLowerCase();
     if (!_fr) return normalized.toUpperCase();

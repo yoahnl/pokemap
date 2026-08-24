@@ -72,6 +72,7 @@ BattleCommandOverlaySnapshot _snapshot({
       BattleCommandOverlayMode.bagMedicineTarget => 'TARGET',
       BattleCommandOverlayMode.pokemon => 'POKEMON',
       BattleCommandOverlayMode.continueOnly => 'CONTINUE',
+      BattleCommandOverlayMode.decision => 'CHOIX',
     },
     prompt: 'Choisis une action.',
     narrationLines: const <String>['Les objets indisponibles restent grisés.'],

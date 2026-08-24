@@ -182,6 +182,21 @@ class BattleTransitionOverlayComponent extends PositionComponent {
     }
   }
 
+  /// Saute directement à l'état « noir tenu » et notifie [onBlackHeld] —
+  /// pour les tests qui doivent ouvrir la fenêtre de course entre le noir de
+  /// la pré-transition et la fin du montage de la scène (recette du
+  /// 2026-08-24 : le rideau tombait sur une scène pas encore chargée).
+  @visibleForTesting
+  void debugHoldBlackNowForTest() {
+    if (_blackHeldNotified) return;
+    _phaseIndex = spec.phases.length;
+    _phaseElapsed = 0;
+    _screenColor = const Color(0xFF000000);
+    _visibleSheet = null;
+    _blackHeldNotified = true;
+    Future<void>.microtask(onBlackHeld);
+  }
+
   /// Fond le noir et retire l'overlay. Appelé par le jeu quand la scène de
   /// combat est montée sous le noir. Ignoré tant que le noir n'est pas tenu.
   void revealAndDismiss() {

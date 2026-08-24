@@ -441,6 +441,77 @@ void main() {
       );
     });
 
+    test(
+        'recette 2026-08-24 : le noir TIENT tant que la scène de combat '
+        'n’a pas fini de charger', () async {
+      // Le rideau tombait dès le noir tenu, sur un overlay encore en plein
+      // onLoad : la scène apparaissait complète (menu ouvert, combattants en
+      // place), puis l'intro démarrait en retard par-dessus. Ce test ouvre
+      // exactement cette fenêtre : le noir forcé PENDANT le chargement.
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(_playerState()),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      Future<void> pumpTicks({
+        required bool Function() until,
+        required int maxTicks,
+      }) async {
+        for (var i = 0; i < maxTicks; i++) {
+          if (until()) return;
+          game.update(0.016);
+          await Future<void>.delayed(Duration.zero);
+        }
+        fail('Timed out after $maxTicks ticks.');
+      }
+
+      await pumpTicks(
+        until: () => !game.debugIsMapActivationDispatchInFlight,
+        maxTicks: 240,
+      );
+      game.debugStartBattleHandoffForTest(_wildRequest(manifest, map));
+      await pumpTicks(
+        until: () => game.debugBattleOverlayMounted,
+        maxTicks: 240,
+      );
+      final overlay = game.debugBattleOverlayComponent!;
+      expect(
+        overlay.isLoaded,
+        isFalse,
+        reason: 'la fenêtre de course doit être ouverte : le montage '
+            'asynchrone court encore',
+      );
+
+      game.debugBattleTransitionOverlay!.debugHoldBlackNowForTest();
+      await Future<void>.delayed(Duration.zero);
+      game.update(0.016);
+      expect(
+        game.debugBattleTransitionOverlayMounted,
+        isTrue,
+        reason: 'le rideau ne tombe PAS sur une scène pas prête — c\'était '
+            'le « les Pokémon sont là, puis ils arrivent » de la recette',
+      );
+
+      // Le chargement finit : le rappel de fin de montage révèle la scène et
+      // démarre l'intro — qui existe, au lieu de partir dans le vide.
+      await pumpTicks(until: () => overlay.isLoaded, maxTicks: 600);
+      await pumpTicks(
+        until: () => !game.debugBattleTransitionOverlayMounted,
+        maxTicks: 600,
+      );
+      expect(
+        overlay.isTurnPresentationActive,
+        isTrue,
+        reason: 'l’intro joue après le reveal — le plan n’a pas été consommé '
+            'à vide pendant le chargement',
+      );
+    });
+
     test('BETA-BAT-016 : le vrai handoff traverse la pré-transition', () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();

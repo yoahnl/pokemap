@@ -238,16 +238,33 @@ void main() {
     );
     overlay.startIntro();
     var sawBallComponent = false;
+    double? observedCellSize;
     for (var i = 0; i < 60; i++) {
       overlay.updateTree(0.05);
       await Future<void>.delayed(Duration.zero);
-      sawBallComponent = sawBallComponent ||
-          overlay.children.whereType<BattleBallThrowComponent>().isNotEmpty;
+      final mounted =
+          overlay.children.whereType<BattleBallThrowComponent>().firstOrNull;
+      if (mounted != null) {
+        sawBallComponent = true;
+        observedCellSize = mounted.cellSize;
+      }
     }
     expect(
       sawBallComponent,
       isTrue,
       reason: 'la Ball vole pendant l’intro puis se retire seule',
+    );
+    // Recette du 2026-08-24 : « la pokéball est minuscule ». La parité dessine
+    // la cellule 64×64 au même zoom que le sprite 96×96 : 2/3 de la boîte du
+    // sprite — la Ball opaque (~14 px de cellule) y devient réellement
+    // lisible.
+    expect(
+      observedCellSize,
+      closeTo(
+        overlay.currentSceneLayout.playerSpriteRect.height * (64 / 96),
+        1e-6,
+      ),
+      reason: 'la cellule de la Ball se dessine au zoom de la référence',
     );
     expect(
       overlay.children.whereType<BattleBallThrowComponent>(),

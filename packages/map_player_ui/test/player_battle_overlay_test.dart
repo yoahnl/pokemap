@@ -1075,6 +1075,56 @@ void main() {
     },
   );
 
+  testWidgets(
+    'recette 2026-08-24 : une décision post-combat échappe au remapping des '
+    'commandes personnalisées',
+    (tester) async {
+      // Le même profil que le test du remapping : s'il s'appliquait à la
+      // décision, « Apprendre » s'afficherait « Techniques » et « Ne pas
+      // apprendre » deviendrait « Inventaire » — exactement le bug TestFlight
+      // où le joueur lisait « Attaquer » / « Sac » à la place de ses choix.
+      const profile = ProjectBattlePresentationProfile(
+        commands: <ProjectBattleCommandProfile>[
+          ProjectBattleCommandProfile(
+            id: ProjectBattleCommandId.fight,
+            label: 'Techniques',
+          ),
+          ProjectBattleCommandProfile(
+            id: ProjectBattleCommandId.bag,
+            label: 'Inventaire',
+          ),
+        ],
+      );
+      BattlePresentationCommand? command;
+      await _pumpOverlay(
+        tester,
+        snapshot: _decisionSnapshot(),
+        onCommand: (value) => command = value,
+        theme: PokeMapPlayerTheme.withBattleProfile(
+          PokeMapPlayerTheme.dark(),
+          profile,
+        ),
+      );
+
+      expect(find.text('Apprendre'), findsOneWidget);
+      expect(find.text('Ne pas apprendre'), findsOneWidget);
+      expect(find.text('Techniques'), findsNothing);
+      expect(find.text('Inventaire'), findsNothing);
+
+      await tester.tap(find.text('Ne pas apprendre'));
+      expect(
+        command,
+        isA<BattleSelectEntryCommand>()
+            .having((value) => value.entryIndex, 'index du choix', 1)
+            .having(
+              (value) => value.expectedMode,
+              'mode',
+              BattleCommandOverlayMode.decision,
+            ),
+      );
+    },
+  );
+
   testWidgets('V10 renders radial commands and falls back in compact portrait',
       (
     tester,
@@ -1806,6 +1856,60 @@ BattleCommandOverlaySnapshot _snapshot({
         ],
     interactionsEnabled: true,
     canGoBack: canGoBack,
+  );
+}
+
+/// Recette du 2026-08-24 : la décision post-combat, publiée sous son mode
+/// dédié — jamais `root`, que la personnalisation projet rhabille par index.
+BattleCommandOverlaySnapshot _decisionSnapshot({
+  Size viewportSize = const Size(800, 600),
+}) {
+  final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
+  return BattleCommandOverlaySnapshot(
+    revision: 12,
+    mode: BattleCommandOverlayMode.decision,
+    viewportSize: viewportSize,
+    panelRect: layout.commandPanelRect,
+    enemyHud: _hud(
+      rect: layout.enemyHudRect,
+      owner: 'ENNEMI',
+      species: 'Roucool',
+      hp: 20,
+      maxHp: 20,
+    ),
+    playerHud: _hud(
+      rect: layout.playerHudRect,
+      owner: 'JOUEUR',
+      species: 'Brindibou',
+      hp: 24,
+      maxHp: 30,
+    ),
+    battleLabel: 'COMBAT SAUVAGE',
+    title: 'CHOIX',
+    prompt: 'Brindibou peut apprendre Vive-Attaque.',
+    narrationLines: const <String>[],
+    entries: const <BattleCommandOverlayEntry>[
+      BattleCommandOverlayEntry(
+        index: 0,
+        kind: BattleCommandOverlayEntryKind.decision,
+        primaryLabel: 'Apprendre',
+        secondaryLabel: '',
+        enabled: true,
+        selected: true,
+        tone: BattleCommandOverlayEntryTone.neutral,
+      ),
+      BattleCommandOverlayEntry(
+        index: 1,
+        kind: BattleCommandOverlayEntryKind.decision,
+        primaryLabel: 'Ne pas apprendre',
+        secondaryLabel: '',
+        enabled: true,
+        selected: false,
+        tone: BattleCommandOverlayEntryTone.neutral,
+      ),
+    ],
+    interactionsEnabled: true,
+    canGoBack: false,
   );
 }
 

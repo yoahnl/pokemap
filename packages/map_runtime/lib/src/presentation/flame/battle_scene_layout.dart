@@ -360,10 +360,15 @@ final class BattleSceneLayout {
           (sceneRect.width * 0.44).clamp(176.0, 196.0).toDouble(),
           (sceneRect.height * 0.09).clamp(60.0, 66.0).toDouble(),
         ),
+      // Recette du 2026-08-24 : à 156 px le nom de l'adversaire se tronquait
+      // (« Ratt… ») dès qu'il dépassait six lettres. La largeur rejoint celle
+      // du HUD portrait, qui affiche les mêmes informations sans couper. La
+      // hauteur reste 54 : à 640×360, un pixel de plus mord le dégagement du
+      // sprite joueur (invariant « non occultante » de BETA-BAT-009).
       BattleViewportClass.mediumLandscape => Rect.fromLTWH(
           sceneRect.left + 8,
           sceneRect.top + 8,
-          156,
+          196,
           54,
         ),
       BattleViewportClass.wideDesktop => mapRect(16, 8, 210, 70),

@@ -205,6 +205,15 @@ void main() {
 
     expect(snapshot, isNotNull);
     expect(snapshot!.prompt, 'grenousse peut apprendre Vive-Attaque.');
+    // Recette du 2026-08-24 : publiée en mode root, la décision se faisait
+    // rhabiller par la personnalisation projet du shell joueur — le joueur
+    // lisait « Attaquer » / « Sac » à la place de ses choix. Le mode et le
+    // kind dédiés sont LA protection contre ce remapping par index.
+    expect(snapshot!.mode, BattleCommandOverlayMode.decision);
+    expect(
+      snapshot!.entries.map((entry) => entry.kind).toSet(),
+      <BattleCommandOverlayEntryKind>{BattleCommandOverlayEntryKind.decision},
+    );
     expect(
       snapshot!.interactionsEnabled,
       isTrue,

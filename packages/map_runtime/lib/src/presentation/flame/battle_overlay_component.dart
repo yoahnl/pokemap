@@ -493,6 +493,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.showDebugPanel = false,
     this.motionScale = 1.0,
     this.textScale = 1.0,
+    EdgeInsets safeAreaPadding = EdgeInsets.zero,
     RuntimeMoveCatalog? moveCatalog,
     BattleMoveVisualResolver? moveVisualResolver,
     BattleFxBundleCache? fxBundleCache,
@@ -513,6 +514,7 @@ class BattleOverlayComponent extends PositionComponent {
         _playerExperienceProgressByLineupIndex = Map<int, double>.unmodifiable(
           playerExperienceProgressByLineupIndex,
         ),
+        _safeAreaPadding = safeAreaPadding,
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
@@ -525,6 +527,20 @@ class BattleOverlayComponent extends PositionComponent {
   BattleSession _session;
   GameState _gameState;
   final ItemCapabilityResolver _itemCapabilityResolver;
+
+  /// Recette du 2026-08-24 : « en portrait, le HUD est partiellement caché
+  /// par la notch ». La géométrie de scène connaissait la safe area
+  /// ([BattleSceneLayout.forViewport] la gère depuis toujours) mais personne
+  /// ne la lui donnait. L'hôte la pousse depuis MediaQuery et la met à jour
+  /// aux rotations.
+  EdgeInsets _safeAreaPadding;
+
+  void setSafeAreaPadding(EdgeInsets padding) {
+    if (_safeAreaPadding == padding) return;
+    _safeAreaPadding = padding;
+    _applyViewportLayout(size);
+    _syncPanelsOnly();
+  }
 
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
   final bool Function(
@@ -901,7 +917,12 @@ class BattleOverlayComponent extends PositionComponent {
           side: step.side,
           viewportWidth: size.x,
         ),
-        cellSize: spriteRect.height * 0.32,
+        // Recette du 2026-08-24 : « la pokéball est minuscule ». La cellule
+        // 64×64 de la planche est très paddée — la Ball opaque n'y occupe que
+        // ~14 px. La référence dessine cette cellule au même zoom que le
+        // sprite 96×96 du Pokémon : la cellule vaut donc 2/3 de la boîte du
+        // sprite, et la Ball visible ~22 % — pas les ~7 % du 0.32 initial.
+        cellSize: spriteRect.height * (64 / 96),
         onOpen: () => playSfx?.call('ball_open', volume: 100, pitch: 100),
       ),
     );
@@ -1162,6 +1183,7 @@ class BattleOverlayComponent extends PositionComponent {
       _sceneLayout ??
       BattleSceneLayout.forViewport(
         viewportSize: Size(size.x, size.y),
+        safePadding: _safeAreaPadding,
         textScale: textScale,
       );
 
@@ -1177,6 +1199,7 @@ class BattleOverlayComponent extends PositionComponent {
     await BattleSdkRmxpAnimationCatalog.ensureLoaded();
     final layout = BattleSceneLayout.forViewport(
       viewportSize: Size(size.x, size.y),
+      safePadding: _safeAreaPadding,
       textScale: textScale,
     );
     _sceneLayout = layout;
@@ -1524,6 +1547,7 @@ class BattleOverlayComponent extends PositionComponent {
     size = viewportSize.clone();
     final layout = BattleSceneLayout.forViewport(
       viewportSize: Size(size.x, size.y),
+      safePadding: _safeAreaPadding,
       textScale: textScale,
     );
     _sceneLayout = layout;
@@ -2113,7 +2137,7 @@ class BattleOverlayComponent extends PositionComponent {
       revision: ++_commandOverlayRevision,
       phase: BattlePresentationPhase.choosingCommand,
       forcedReplacement: false,
-      mode: BattleCommandOverlayMode.root,
+      mode: BattleCommandOverlayMode.decision,
       viewportSize: layout.viewportSize,
       panelRect: layout.commandPanelRect,
       enemyHud: _buildHudSnapshot(
@@ -2137,7 +2161,7 @@ class BattleOverlayComponent extends PositionComponent {
         for (var index = 0; index < decision.choices.length; index++)
           BattleCommandOverlayEntry(
             index: index,
-            kind: BattleCommandOverlayEntryKind.root,
+            kind: BattleCommandOverlayEntryKind.decision,
             primaryLabel: decision.choices[index],
             secondaryLabel: '',
             enabled: true,

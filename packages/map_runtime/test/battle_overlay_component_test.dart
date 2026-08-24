@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flame/components.dart';
 import 'package:map_battle/map_battle.dart';
@@ -3851,6 +3852,63 @@ void main() {
 
       expect(overlay.hasWeatherAmbient, isTrue);
       expect(overlay.hasPseudoWeatherAmbient, isTrue);
+    });
+  });
+
+  // Recette du 2026-08-24 : « en portrait, le HUD est partiellement caché
+  // par la notch ». La géométrie de scène savait gérer la safe area, mais
+  // l'overlay ne la lui donnait jamais.
+  group('recette 2026-08-24 — la safe area atteint la géométrie de scène', () {
+    BattleOverlayComponent overlayWith({required EdgeInsets padding}) {
+      return BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'froakie',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'machop',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(390, 844),
+        safeAreaPadding: padding,
+        onPlayerChoice: (_) {},
+      );
+    }
+
+    test('le HUD ennemi descend sous les insets fournis au montage', () async {
+      const padding = EdgeInsets.only(top: 59, bottom: 34);
+      final overlay = overlayWith(padding: padding);
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      expect(
+        overlay.currentSceneLayout.enemyHudRect.top,
+        greaterThanOrEqualTo(padding.top),
+        reason: 'la notch ne doit plus recouvrir la carte de l’adversaire',
+      );
+    });
+
+    test('setSafeAreaPadding recalcule la géométrie à chaud (rotation)',
+        () async {
+      final overlay = overlayWith(padding: EdgeInsets.zero);
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+      final topBefore = overlay.currentSceneLayout.enemyHudRect.top;
+
+      overlay.setSafeAreaPadding(const EdgeInsets.only(top: 59));
+
+      expect(
+        overlay.currentSceneLayout.enemyHudRect.top,
+        greaterThanOrEqualTo(59),
+      );
+      expect(
+        overlay.currentSceneLayout.enemyHudRect.top,
+        greaterThan(topBefore),
+      );
     });
   });
 }

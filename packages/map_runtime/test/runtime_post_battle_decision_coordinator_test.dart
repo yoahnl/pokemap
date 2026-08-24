@@ -6,6 +6,55 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('RuntimePostBattleDecisionCoordinator', () {
+    test(
+        'recette 2026-08-24 : les prompts parlent les noms affichables, pas '
+        'les identifiants', () async {
+      // « Pikachu peut apprendre Quick attack. » — le prompt reformatait
+      // l'identifiant. Les résolveurs de l'hôte donnent les vrais noms.
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _trainerResolutionWithPendingMoveAndEvolution,
+        resolveSpeciesDisplayName: (speciesId) =>
+            speciesId == 'hero' ? 'Pikachu' : speciesId,
+        resolveMoveDisplayName: (moveId) =>
+            moveId == 'quick_attack' ? 'Vive-Attaque' : moveId,
+      );
+      final base = _state(knownMoves: const <String>[
+        'tackle',
+        'growl',
+        'tail_whip',
+        'focus_energy',
+      ]);
+
+      final started = await coordinator.begin(
+        transactionBaseState: base,
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+
+      expect(started.isSuccess, isTrue);
+      final prompt = started.transaction!.messages
+          .firstWhere((message) =>
+              message.kind == RuntimePostBattleMessageKind.moveLearningPrompt)
+          .text;
+      expect(prompt, 'Pikachu peut apprendre Vive-Attaque.');
+
+      final pendingMove = started.transaction!.pendingMoveLearning!;
+      final accepted = coordinator.resolveMoveLearning(
+        transaction: started.transaction!,
+        decision: BattleMoveLearningDecision.learn(
+          opportunityId: pendingMove.opportunityId,
+          partySlot: pendingMove.partySlot,
+          moveId: pendingMove.candidate.moveId,
+        ),
+      );
+      expect(
+        accepted.transaction!.messages.last.text,
+        'Choisissez une capacité à remplacer pour apprendre Vive-Attaque.',
+      );
+    });
+
     test('commits trainer rewards only after move and evolution decisions',
         () async {
       final coordinator = RuntimePostBattleDecisionCoordinator(

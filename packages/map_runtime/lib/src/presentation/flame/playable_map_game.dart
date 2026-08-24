@@ -387,6 +387,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             gameState,
             bundle: bundle,
           ),
+          resolveSpeciesDisplayName: (speciesId) =>
+              _battleSpeciesDisplayNames[speciesId] ?? speciesId,
+          resolveMoveDisplayName: (moveId) =>
+              _resolveBattleMoveDisplayName(moveId, moveId),
         );
     _cinematicRuntimeHost = _PlayableMapCinematicRuntimeHost(this);
     final cinematicFxPlayback = FlameCinematicFxPlaybackAdapter(
@@ -438,6 +442,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// runtime. Bornée dans la scène plutôt qu ici, pour que la borne vive avec le
   /// rendu qui la subit.
   final double textScale;
+
+  /// La safe area réelle du device (notch, barre home), poussée par le shell
+  /// Flutter — recette du 2026-08-24 : le HUD de combat passait sous la
+  /// notch en portrait. Flame ne connaît pas MediaQuery ; le widget hôte
+  /// pousse les insets et les met à jour aux rotations.
+  EdgeInsets _viewSafeAreaPadding = EdgeInsets.zero;
+
+  void setViewSafeAreaPadding(EdgeInsets padding) {
+    if (_viewSafeAreaPadding == padding) return;
+    _viewSafeAreaPadding = padding;
+    _battleOverlay?.setSafeAreaPadding(padding);
+  }
   final MapActivationReason initialMapActivationReason;
   final String runtimeLocale;
 
@@ -2088,7 +2104,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return switch (command) {
       BattleBackCommand() => backFromBattleOverlay(),
       BattleSelectEntryCommand(:final entryIndex) => switch (snapshot.mode) {
-          BattleCommandOverlayMode.root => selectBattleRootEntry(entryIndex),
+          // Le mode decision route par selectRootEntry : l'overlay y détourne
+          // toute entrée vers la décision post-combat active.
+          BattleCommandOverlayMode.root ||
+          BattleCommandOverlayMode.decision =>
+            selectBattleRootEntry(entryIndex),
           BattleCommandOverlayMode.fight ||
           BattleCommandOverlayMode.continueOnly =>
             selectBattleChoiceEntry(entryIndex),
@@ -7755,6 +7775,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (battle == null) {
       return;
     }
+    // Recette du 2026-08-24 : le rideau tombait dès que le noir était tenu,
+    // alors que l'overlay finissait encore son onLoad — la scène apparaissait
+    // complète (combattants en place, menu ouvert), PUIS l'intro démarrait en
+    // retard par-dessus : « les Pokémon sont là, puis ils arrivent ». Le noir
+    // TIENT tant que l'overlay n'a pas fini de charger ; _openBattleOverlay
+    // rappelle ce reveal une fois le chargement et le préchauffage terminés.
+    if (!battle.isLoaded) {
+      return;
+    }
     final transition = _battleTransitionOverlay;
     if (transition == null) {
       battle.startIntro();
@@ -7999,6 +8028,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           },
           motionScale: reducedMotion ? battleReducedMotionSpeedFactor : 1.0,
           textScale: textScale,
+          safeAreaPadding: _viewSafeAreaPadding,
+          // BETA-BAT-017 : la fin de combat se joue DANS la scène — le
+          // bandeau flottant « Tu as pris la fuite ! » doublait les messages
+          // du plan de fin. Le couper ici était prévu au ticket et avait été
+          // oublié ; la vidéo de recette du 2026-08-24 le montre par-dessus
+          // la boîte de dialogue.
+          outcomeBannerEnabled: false,
           session: _battleSession!,
           gameState: _battleRuntimeGameState,
           viewportSize: camera.viewport.size,
@@ -8040,6 +8076,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       overlay.setUseFlutterCommandOverlay(_preferBattleFlutterCommandOverlay);
       _battleOverlay = overlay;
       _syncRuntimeMusic();
+      // Recette du 2026-08-24 : le reveal exige un overlay entièrement chargé
+      // (plan d'intro posé, combattants retenus hors écran). Attendre ici
+      // garantit que le _maybeRevealBattleScene de fin de méthode part sur
+      // une scène prête, même quand le noir est tenu depuis longtemps.
+      //
+      // La phase est déjà passée à `battle` plus haut dans cette méthode :
+      // le prédicat de survie est « le combat est toujours le flux actif »,
+      // pas « encore en transition ».
+      await overlay.loaded;
+      if (!isBattleUiActive || !identical(_battleOverlay, overlay)) {
+        return;
+      }
       // BETA-BAT-018 : le premier usage d'une capacité décodait ses planches
       // à la demande et gelait la scène ~3 s. La fenêtre de noir de la
       // pré-transition est le moment idéal : on y préchauffe les visuels et
@@ -8063,8 +8111,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           precache,
           Future<void>.delayed(battleMoveEffectsPrecacheBudget),
         ]);
-        if (_flowPhase != _RuntimeFlowPhase.battleTransition ||
-            !identical(_battleOverlay, overlay)) {
+        // Recette du 2026-08-24 : la phase est déjà `battle` ici (posée au
+        // setup) — exiger `battleTransition` rendait ce return systématique
+        // et tuait le reveal de rattrapage quand le noir précédait la fin du
+        // montage.
+        if (!isBattleUiActive || !identical(_battleOverlay, overlay)) {
           return;
         }
       }

@@ -160,6 +160,8 @@ final class RuntimePostBattleDecisionCoordinator {
     RuntimePostBattlePlayerPokemonHydrator? hydrateOwnedPlayerPokemon,
     GameStateMutations mutations = const GameStateMutations(),
     StoryFlagsManager storyFlagsManager = const StoryFlagsManager(),
+    this.resolveSpeciesDisplayName,
+    this.resolveMoveDisplayName,
   })  : _resolveReward = resolveReward ??
             (rewardResolver ?? RuntimeBattleRewardResolver()).resolve,
         _hydrateOwnedPlayerPokemon =
@@ -171,6 +173,19 @@ final class RuntimePostBattleDecisionCoordinator {
   final RuntimePostBattlePlayerPokemonHydrator _hydrateOwnedPlayerPokemon;
   final GameStateMutations _mutations;
   final StoryFlagsManager _storyFlagsManager;
+
+  /// Recette du 2026-08-24 : « Pikachu peut apprendre Quick attack. » — les
+  /// prompts parlaient l'identifiant. Ces résolveurs sont des closures de
+  /// l'hôte qui lisent ses catalogues courants ; sans eux, l'identifiant
+  /// reformaté reste le repli.
+  final String Function(String speciesId)? resolveSpeciesDisplayName;
+  final String Function(String moveId)? resolveMoveDisplayName;
+
+  String _speciesName(String speciesId) =>
+      resolveSpeciesDisplayName?.call(speciesId) ?? _displayId(speciesId);
+
+  String _moveName(String moveId) =>
+      resolveMoveDisplayName?.call(moveId) ?? _displayId(moveId);
 
   Future<RuntimePostBattleCoordinatorResult> begin({
     required GameState transactionBaseState,
@@ -244,7 +259,9 @@ final class RuntimePostBattleDecisionCoordinator {
         itemCatalog: itemCatalog,
       );
       final messages = _initialVictoryMessages(
-        resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+        resolveSpeciesDisplayName:
+            resolveSpeciesDisplayName ?? this.resolveSpeciesDisplayName,
+        resolveMoveDisplayName: resolveMoveDisplayName,
         resolution: resolution,
       );
       final transaction = RuntimePostBattleTransaction._(
@@ -315,6 +332,7 @@ final class RuntimePostBattleDecisionCoordinator {
         ..._moveChangeMessages(
           nextProgression.moveLearningChanges
               .skip(progression.moveLearningChanges.length),
+          resolveMoveDisplayName: resolveMoveDisplayName,
         ),
       ];
       final next = RuntimePostBattleTransaction._(
@@ -417,8 +435,8 @@ final class RuntimePostBattleDecisionCoordinator {
                 ? RuntimePostBattleMessageKind.moveLearningPrompt
                 : RuntimePostBattleMessageKind.moveReplacementPrompt,
             text: pendingMove.phase == BattleMoveLearningPhase.awaitingDecision
-                ? '${_displayId(_partySpecies(transaction, pendingMove.partySlot))} peut apprendre ${_displayId(pendingMove.candidate.moveId)}.'
-                : 'Choisissez une capacité à remplacer pour apprendre ${_displayId(pendingMove.candidate.moveId)}.',
+                ? '${_speciesName(_partySpecies(transaction, pendingMove.partySlot))} peut apprendre ${_moveName(pendingMove.candidate.moveId)}.'
+                : 'Choisissez une capacité à remplacer pour apprendre ${_moveName(pendingMove.candidate.moveId)}.',
             partySlot: pendingMove.partySlot,
           ),
         ],
@@ -433,7 +451,7 @@ final class RuntimePostBattleDecisionCoordinator {
           RuntimePostBattleMessage(
             kind: RuntimePostBattleMessageKind.evolutionPrompt,
             text:
-                '${_displayId(pendingEvolution.sourceSpeciesId)} veut évoluer en ${_displayId(pendingEvolution.targetSpeciesId)}.',
+                '${_speciesName(pendingEvolution.sourceSpeciesId)} veut évoluer en ${_speciesName(pendingEvolution.targetSpeciesId)}.',
             partySlot: pendingEvolution.partySlot,
           ),
         ],
@@ -604,6 +622,7 @@ GameState _completeBattleRequest(
 List<RuntimePostBattleMessage> _initialVictoryMessages({
   required RuntimeBattleRewardResolution resolution,
   String Function(String speciesId)? resolveSpeciesDisplayName,
+  String Function(String moveId)? resolveMoveDisplayName,
 }) {
   final messages = <RuntimePostBattleMessage>[
     const RuntimePostBattleMessage(
@@ -640,7 +659,10 @@ List<RuntimePostBattleMessage> _initialVictoryMessages({
     }
   }
   messages.addAll(
-    _moveChangeMessages(resolution.progression.moveLearningChanges),
+    _moveChangeMessages(
+      resolution.progression.moveLearningChanges,
+      resolveMoveDisplayName: resolveMoveDisplayName,
+    ),
   );
   messages.addAll(
     _evolutionChangeMessages(resolution.progression.evolutionChanges),
@@ -649,8 +671,11 @@ List<RuntimePostBattleMessage> _initialVictoryMessages({
 }
 
 List<RuntimePostBattleMessage> _moveChangeMessages(
-  Iterable<BattleMoveLearningChange> changes,
-) {
+  Iterable<BattleMoveLearningChange> changes, {
+  String Function(String moveId)? resolveMoveDisplayName,
+}) {
+  String moveName(String moveId) =>
+      resolveMoveDisplayName?.call(moveId) ?? _displayId(moveId);
   return <RuntimePostBattleMessage>[
     for (final change in changes)
       if (change.kind != BattleMoveLearningChangeKind.replacementRequested)
@@ -670,11 +695,11 @@ List<RuntimePostBattleMessage> _moveChangeMessages(
           text: switch (change.kind) {
             BattleMoveLearningChangeKind.automaticallyLearned ||
             BattleMoveLearningChangeKind.learned =>
-              '${_displayId(change.candidate.moveId)} est apprise.',
+              '${moveName(change.candidate.moveId)} est apprise.',
             BattleMoveLearningChangeKind.replaced =>
-              '${_displayId(change.replacedMoveId ?? '')} est remplacée par ${_displayId(change.candidate.moveId)}.',
+              '${moveName(change.replacedMoveId ?? '')} est remplacée par ${moveName(change.candidate.moveId)}.',
             BattleMoveLearningChangeKind.declined =>
-              '${_displayId(change.candidate.moveId)} n’est pas apprise.',
+              '${moveName(change.candidate.moveId)} n’est pas apprise.',
             BattleMoveLearningChangeKind.replacementRequested => '',
           },
           partySlot: change.partySlot,

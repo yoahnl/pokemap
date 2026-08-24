@@ -16,6 +16,14 @@ enum BattleCommandOverlayMode {
   bagMedicineTarget,
   pokemon,
   continueOnly,
+
+  /// Décision post-combat (apprendre une capacité, remplacer, évoluer).
+  ///
+  /// Recette du 2026-08-24 : publiée en mode `root`, la décision se faisait
+  /// rhabiller par la personnalisation projet — les libellés « Apprendre » /
+  /// « Ne pas apprendre » devenaient « Attaquer » / « Sac » à l'écran. Un
+  /// mode dédié échappe au remapping des commandes racine.
+  decision,
 }
 
 /// Phase de présentation canonique exposée au shell joueur.
@@ -38,6 +46,10 @@ enum BattleCommandOverlayEntryKind {
   bag,
   party,
   medicineTarget,
+
+  /// Choix d'une décision post-combat : un bouton neutre, sans la couleur ni
+  /// l'icône des commandes racine.
+  decision,
   continueAction,
 }
 

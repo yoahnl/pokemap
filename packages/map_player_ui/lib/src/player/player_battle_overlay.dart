@@ -77,6 +77,7 @@ String _localizedBattleTitle(
       BattleCommandOverlayMode.bagMedicineTarget => localizations.battleTarget,
       BattleCommandOverlayMode.pokemon => localizations.battlePokemon,
       BattleCommandOverlayMode.continueOnly => localizations.battleContinue,
+      BattleCommandOverlayMode.decision => localizations.battleDecision,
     };
 
 List<PlayerBattleCommandViewData> _commands(
@@ -139,7 +140,13 @@ PlayerBattlePanelKind _panelKind(BattleCommandOverlaySnapshot snapshot) {
     return PlayerBattlePanelKind.message;
   }
   return switch (snapshot.mode) {
-    BattleCommandOverlayMode.root => PlayerBattlePanelKind.commands,
+    // La décision post-combat rend ses choix comme des commandes, mais sous
+    // son propre mode : le remapping de personnalisation ne s'applique qu'au
+    // mode root et laisse les libellés « Apprendre » / « Ne pas apprendre »
+    // intacts.
+    BattleCommandOverlayMode.root ||
+    BattleCommandOverlayMode.decision =>
+      PlayerBattlePanelKind.commands,
     BattleCommandOverlayMode.fight => PlayerBattlePanelKind.moves,
     BattleCommandOverlayMode.bagMedicineTarget => PlayerBattlePanelKind.target,
     BattleCommandOverlayMode.bag ||
