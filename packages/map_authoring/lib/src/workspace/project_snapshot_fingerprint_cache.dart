@@ -19,6 +19,7 @@ final class ProjectSnapshotFingerprintCache {
   final Map<ProjectResourceIdentity, String> _resourceFingerprints = {};
   final Map<String, String> _revisions = {};
   final Map<ProjectResourceIdentity, Object> _decoded = {};
+  final Set<ProjectResourceIdentity> _certifiedAssetBlobs = {};
 
   int hits = 0;
   int misses = 0;
@@ -54,6 +55,20 @@ final class ProjectSnapshotFingerprintCache {
     _revisions[identityKey] = revision;
   }
 
+  /// A blob store is content-addressed: a blob's name is its own digest, and
+  /// nothing rewrites it in place. Walking those bytes again to reach the
+  /// digest they are already named after only pays off when the file changed,
+  /// which is exactly what identity reports.
+  bool isAssetBlobCertified(ProjectResourceIdentity identity) =>
+      _certifiedAssetBlobs.contains(identity);
+
+  void markAssetBlobCertified(ProjectResourceIdentity identity) {
+    if (_certifiedAssetBlobs.length >= maximumEntries) {
+      _certifiedAssetBlobs.remove(_certifiedAssetBlobs.first);
+    }
+    _certifiedAssetBlobs.add(identity);
+  }
+
   /// Decoded models are pure functions of the bytes and are immutable, so an
   /// unchanged resource can hand back the very same instance.
   T? decoded<T extends Object>(ProjectResourceIdentity identity) {
@@ -77,5 +92,6 @@ final class ProjectSnapshotFingerprintCache {
     _resourceFingerprints.clear();
     _revisions.clear();
     _decoded.clear();
+    _certifiedAssetBlobs.clear();
   }
 }

@@ -32,6 +32,87 @@ void main() {
       );
     });
 
+    test('an unchanged asset blob is verified once, not on every load',
+        () async {
+      final root = await Directory.systemTemp.createTemp('snapshot-blobs-');
+      addTearDown(() => root.delete(recursive: true));
+      final artifact = ContentArtifactRef.fromBytes(
+        _blobBytes,
+        mediaType: 'image/png',
+      );
+      await Directory('${root.path}/maps').create(recursive: true);
+      await File('${root.path}/project.json').writeAsString(
+        jsonEncode(
+          const ProjectManifest(
+            name: 'Asset Blob Reverification',
+            version: ProjectVersion.v6,
+            maps: <ProjectMapEntry>[
+              ProjectMapEntry(
+                id: 'map',
+                name: 'Map',
+                relativePath: 'maps/map.json',
+              ),
+            ],
+            tilesets: <ProjectTilesetEntry>[],
+          ).toJson(),
+        ),
+        flush: true,
+      );
+      final mapFile = File('${root.path}/maps/map.json');
+      await mapFile.writeAsString(
+        jsonEncode(
+          const MapData(
+            id: 'map',
+            name: 'Map',
+            version: ProjectVersion.v6,
+            size: GridSize(width: 1, height: 1),
+          ).toJson(),
+        ),
+        flush: true,
+      );
+      final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+      await catalogFile.parent.create(recursive: true);
+      await catalogFile.writeAsString(
+        jsonEncode(
+          AssetCatalog(
+            records: <AssetRecord>[
+              AssetRecord(
+                id: 'blob-under-test',
+                logicalPath: 'assets/blob.png',
+                artifact: artifact,
+              ),
+            ],
+          ).toJson(),
+        ),
+        flush: true,
+      );
+      final blobFile = File('${root.path}/${assetBlobStorageKey(artifact)}');
+      await blobFile.parent.create(recursive: true);
+      await blobFile.writeAsBytes(_blobBytes, flush: true);
+
+      final profiles = <ProjectSnapshotLoadProfile>[];
+      final harness = await _SnapshotHarness.create(
+        allowedRoot: root.parent,
+        profileSink: profiles.add,
+        fingerprintCache: ProjectSnapshotFingerprintCache(),
+      );
+      final opened = await harness.openService.openProject(root.path);
+
+      await harness.loader.load(opened.projectHandle);
+      expect(profiles.single.assetBlobVerifications, 1);
+
+      // A mutation rewrites one map; the blob store did not move.
+      await mapFile.writeAsString(await mapFile.readAsString(), flush: true);
+      await harness.loader.load(opened.projectHandle);
+
+      expect(profiles, hasLength(2));
+      expect(
+        profiles.last.assetBlobVerifications,
+        0,
+        reason: 'the blob identity was already certified this session',
+      );
+    });
+
     test('optionally profiles snapshot phases without changing the result',
         () async {
       final fixture = _realFixtureDirectory();
@@ -465,6 +546,7 @@ final class _SnapshotHarness {
     required Directory allowedRoot,
     ProjectFileReader reader = const LocalProjectFileReader(),
     ProjectSnapshotLoadProfileSink? profileSink,
+    ProjectSnapshotFingerprintCache? fingerprintCache,
   }) async {
     var token = 0;
     final policy = await WorkspacePolicy.create(
@@ -484,6 +566,7 @@ final class _SnapshotHarness {
       loader: ProjectSnapshotLoader(
         handles: handles,
         profileSink: profileSink,
+        fingerprintCache: fingerprintCache,
       ),
     );
   }
@@ -616,3 +699,8 @@ String _join(
       if (third != null) third,
       if (fourth != null) fourth,
     ].join(Platform.pathSeparator);
+
+final List<int> _blobBytes = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+'
+  'A8AAQUBAScY42YAAAAASUVORK5CYII=',
+);

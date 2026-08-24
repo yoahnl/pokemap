@@ -128,6 +128,7 @@ final class ProjectSnapshotLoadProfile {
     required this.resourceBytes,
     this.cacheHit = false,
     this.cacheIdentityReads = 0,
+    this.assetBlobVerifications = 0,
   });
 
   final int initialReadMicroseconds;
@@ -140,6 +141,13 @@ final class ProjectSnapshotLoadProfile {
   final int resourceBytes;
   final bool cacheHit;
   final int cacheIdentityReads;
+
+  /// Asset blobs whose content digest was recomputed during this load.
+  ///
+  /// A blob store is content-addressed and immutable, so a blob whose disk
+  /// identity is unchanged since it was certified does not need its digest
+  /// walked again.
+  final int assetBlobVerifications;
 }
 
 final class ProjectSnapshotLoader {
@@ -477,19 +485,31 @@ final class ProjectSnapshotLoader {
         final storageKey = assetBlobStorageKey(artifact);
         final assetBlobReadTimer = profiler?.startStage();
         final bytes = await _readRequiredAssetBlob(access, storageKey);
+        final blobIdentity = !identityCachingEnabled
+            ? null
+            : await access.readResourceIdentity(storageKey);
+        if (blobIdentity != null) identities[storageKey] = blobIdentity;
         profiler?.recordInitialRead(assetBlobReadTimer!);
 
         final assetBlobDecodeTimer = profiler?.startStage();
-        final inspected = ContentArtifactRef.fromBytes(
-          bytes.bytes,
-          mediaType: artifact.mediaType,
-        );
-        if (inspected.digest != artifact.digest ||
-            inspected.byteLength != artifact.byteLength) {
-          throw const ProjectSnapshotException(
-            'project.asset_blob_mismatch',
-            'An asset blob does not match its content-addressed catalog entry.',
+        final certified = blobIdentity != null &&
+            (cache?.isAssetBlobCertified(blobIdentity) ?? false);
+        if (!certified) {
+          profiler?.recordAssetBlobVerification();
+          final inspected = ContentArtifactRef.fromBytes(
+            bytes.bytes,
+            mediaType: artifact.mediaType,
           );
+          if (inspected.digest != artifact.digest ||
+              inspected.byteLength != artifact.byteLength) {
+            throw const ProjectSnapshotException(
+              'project.asset_blob_mismatch',
+              'An asset blob does not match its content-addressed catalog entry.',
+            );
+          }
+          if (blobIdentity != null) {
+            cache?.markAssetBlobCertified(blobIdentity);
+          }
         }
         resources.add(
           _LoadedProjectResource(
@@ -922,6 +942,12 @@ final class _ProjectSnapshotLoadProfiler {
     _projectionMicroseconds += _stop(stopwatch);
   }
 
+  var _assetBlobVerifications = 0;
+
+  void recordAssetBlobVerification() {
+    _assetBlobVerifications += 1;
+  }
+
   ProjectSnapshotLoadProfile finish({
     required int resourceCount,
     required int resourceBytes,
@@ -940,6 +966,7 @@ final class _ProjectSnapshotLoadProfiler {
       resourceBytes: resourceBytes,
       cacheHit: cacheHit,
       cacheIdentityReads: cacheIdentityReads,
+      assetBlobVerifications: _assetBlobVerifications,
     );
   }
 }
