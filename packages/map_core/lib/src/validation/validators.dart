@@ -2549,9 +2549,14 @@ class MapValidator {
     if (encounterSourceAmbiguities.isNotEmpty) {
       final ambiguity = encounterSourceAmbiguities.first;
       throw ValidationException(
+        // Recette du 2026-08-25 : l'export refusait le projet sans dire OÙ,
+        // sur une carte de 70x85 et pour trois cases. La position était déjà
+        // dans les details de l'exception, mais personne ne la lisait — et
+        // c'est le message que l'auteur voit.
         'Encounter sources ${ambiguity.sourceIds.join(', ')} overlap with '
         'equal priority ${ambiguity.priority} for '
-        '${ambiguity.encounterKind.name}',
+        '${ambiguity.encounterKind.name} at '
+        '(${ambiguity.position.x}, ${ambiguity.position.y})',
         code: 'encounter.source_ambiguous',
         details: <String, Object?>{
           'sourceIds': ambiguity.sourceIds,
