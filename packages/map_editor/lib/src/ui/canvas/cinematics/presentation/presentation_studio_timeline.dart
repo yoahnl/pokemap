@@ -287,6 +287,9 @@ class _PresentationStudioTimelineState
   int _dragSourceTrackIndex = 0;
   double _trimDeltaX = 0;
   String? _projectionViewportSignature;
+  int? _panZoomPointer;
+  double _panZoomStartScrollOffset = 0;
+  double _panZoomLastScale = 1;
 
   @override
   void initState() {
@@ -526,6 +529,41 @@ class _PresentationStudioTimelineState
     if (horizontal != 0) _viewportController.scrollBy(horizontal);
   }
 
+  // macOS never sends a scroll signal for a trackpad: a two-finger swipe and a
+  // pinch arrive as pan/zoom events. Without these the timeline simply cannot
+  // be scrolled horizontally on a Mac.
+  void _handlePanZoomStart(PointerPanZoomStartEvent event) {
+    _focusNode.requestFocus();
+    _panZoomPointer = event.pointer;
+    _panZoomStartScrollOffset = _viewportController.scrollOffset;
+    _panZoomLastScale = 1;
+  }
+
+  void _handlePanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    if (_panZoomPointer != event.pointer) return;
+    if (event.scale != _panZoomLastScale && event.scale > 0) {
+      final anchor = (event.localPosition.dx - _headerWidth)
+          .clamp(0, _viewportController.viewportWidth)
+          .toDouble();
+      _viewportController.zoomAt(
+        factor: event.scale / _panZoomLastScale,
+        anchorViewportX: anchor,
+      );
+      _panZoomLastScale = event.scale;
+      _panZoomStartScrollOffset = _viewportController.scrollOffset;
+      return;
+    }
+    // Cumulative pan, so a clamped edge does not accumulate drift. Only the
+    // horizontal component: the lane list handles the vertical one itself.
+    _viewportController.scrollTo(_panZoomStartScrollOffset - event.pan.dx);
+  }
+
+  void _handlePanZoomEnd(PointerPanZoomEndEvent event) {
+    if (_panZoomPointer != event.pointer) return;
+    _panZoomPointer = null;
+    _panZoomLastScale = 1;
+  }
+
   @override
   void dispose() {
     widget.selectionController.removeListener(_selectionChanged);
@@ -563,6 +601,9 @@ class _PresentationStudioTimelineState
         },
         onPointerCancel: (_) => _editingController.cancelDrag(),
         onPointerSignal: _handlePointerSignal,
+        onPointerPanZoomStart: _handlePanZoomStart,
+        onPointerPanZoomUpdate: _handlePanZoomUpdate,
+        onPointerPanZoomEnd: _handlePanZoomEnd,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final viewportWidth = math.max(

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -275,6 +276,104 @@ void main() {
     // One second at a hundred pixels per second.
     expect(after.dx - before.dx, closeTo(100, 0.5));
     expect(viewport.playheadUs, 1_000_000);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a trackpad swipe scrolls the timeline horizontally', (
+    tester,
+  ) async {
+    final asset = _largeAsset();
+    final selection = PresentationStudioSelectionController();
+    addTearDown(selection.dispose);
+    final viewport = PresentationTimelineViewportController(
+      durationUs: asset.durationUs,
+      pixelsPerSecond: 100,
+    );
+    addTearDown(viewport.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 960,
+            height: 240,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: selection,
+              onPlayheadChanged: (_) {},
+              viewportController: viewport,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(viewport.scrollOffset, 0);
+
+    // macOS delivers a two-finger swipe as a trackpad pan, never as a scroll
+    // signal. Swiping the content left must move the viewport right.
+    final gesture = await tester.createGesture(
+      kind: PointerDeviceKind.trackpad,
+    );
+    await gesture.panZoomStart(const Offset(500, 120));
+    await tester.pump();
+    await gesture.panZoomUpdate(
+      const Offset(500, 120),
+      pan: const Offset(-240, 0),
+    );
+    await tester.pump();
+    await gesture.panZoomEnd();
+    await tester.pump();
+
+    expect(viewport.scrollOffset, closeTo(240, 0.5));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a trackpad pinch zooms the timeline around the pointer', (
+    tester,
+  ) async {
+    final asset = _largeAsset();
+    final selection = PresentationStudioSelectionController();
+    addTearDown(selection.dispose);
+    final viewport = PresentationTimelineViewportController(
+      durationUs: asset.durationUs,
+      pixelsPerSecond: 100,
+    );
+    addTearDown(viewport.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 960,
+            height: 240,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: selection,
+              onPlayheadChanged: (_) {},
+              viewportController: viewport,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final gesture = await tester.createGesture(
+      kind: PointerDeviceKind.trackpad,
+    );
+    await gesture.panZoomStart(const Offset(500, 120));
+    await tester.pump();
+    await gesture.panZoomUpdate(const Offset(500, 120), scale: 2);
+    await tester.pump();
+    await gesture.panZoomEnd();
+    await tester.pump();
+
+    expect(viewport.pixelsPerSecond, closeTo(200, 0.001));
     expect(tester.takeException(), isNull);
   });
 
