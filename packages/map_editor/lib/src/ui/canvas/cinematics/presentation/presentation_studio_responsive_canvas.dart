@@ -665,6 +665,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
     this.reduceFlashes = false,
     this.showCaptions = true,
     this.asset,
+    this.mediaSink,
     this.onRetry,
     this.onSelectedTextDrag,
   });
@@ -679,6 +680,13 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
   final bool reduceFlashes;
   final bool showCaptions;
   final PresentationCinematicAsset? asset;
+
+  /// What plays the frame's audio and video, when the host has one.
+  ///
+  /// The montage evaluates its own frames, so nothing below it hears the clock
+  /// unless the frame is handed over. Without a sink the canvas is a silent
+  /// still preview — which is exactly what it used to be.
+  final PresentationStudioMediaSink? mediaSink;
   final VoidCallback? onRetry;
   final PresentationSelectedTextDrag? onSelectedTextDrag;
 
@@ -690,6 +698,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
       animation: Listenable.merge([controller, controller.selection]),
       builder: (context, _) {
         final frame = frameBuilder(controller.playheadUs);
+        _publishFrameToMedia(frame);
         final issues = frame == null
             ? const <String>[]
             : _validateBindings(frame, mediaBindings, copy);
@@ -743,6 +752,24 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
           ),
         };
       },
+    );
+  }
+
+  /// Hands the evaluated frame to the media sink.
+  ///
+  /// Called from the frame builder because that is the only place the frame
+  /// exists, and the sink is built for it: [PresentationStudioMediaSink
+  /// .synchronize] never awaits, never notifies synchronously and drops a
+  /// superseded frame, so it is safe to call while the canvas builds.
+  void _publishFrameToMedia(PresentationFrame? frame) {
+    final sink = mediaSink;
+    final currentAsset = asset;
+    if (sink == null || currentAsset == null) return;
+    sink.synchronize(
+      asset: currentAsset,
+      frame: frame,
+      orientation: controller.activeOrientation,
+      running: controller.status == PresentationPlaybackStatus.playing,
     );
   }
 

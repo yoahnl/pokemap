@@ -2870,6 +2870,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _presentationProjectContentController;
   PresentationStudioDiagnostic? _presentationDiagnostic;
   VoidCallback? _presentationDiagnosticAction;
+  PresentationStudioMediaSink? _presentationMediaSink;
+  int _presentationMediaSinkGeneration = 0;
   var _presentationJourneyPreviewOpen = false;
 
   /// Plays the authored journey inside the Studio through the player's own
@@ -2934,6 +2936,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     )..addListener(_onPresentationDocumentChanged);
     _syncPresentationTimelineProjectionController();
     _syncPresentationProjectContentController();
+    _syncPresentationMediaSink();
     _capturePresentationSource();
     _openPresentationDocumentDraft();
   }
@@ -2946,6 +2949,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     _presentationDocumentController
       ..removeListener(_onPresentationDocumentChanged)
       ..dispose();
+    _presentationMediaSinkGeneration += 1;
+    _presentationMediaSink?.dispose();
     _presentationResponsiveCanvasController.dispose();
     super.dispose();
   }
@@ -2958,6 +2963,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _presentationTimelineEditingController?.cancelDrag();
       _presentationDiagnostic = null;
       _presentationDiagnosticAction = null;
+      unawaited(_presentationMediaSink?.release());
       _capturePresentationSource();
     }
     if (oldWidget.projectRootPath != widget.projectRootPath ||
@@ -2966,6 +2972,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     }
     if (oldWidget.projectRootPath != widget.projectRootPath) {
       _syncPresentationProjectContentController();
+      _syncPresentationMediaSink();
     } else if (oldWidget.project != widget.project ||
         oldWidget.documentRoute != widget.documentRoute) {
       _preparePresentationProjectContent();
@@ -2986,6 +2993,42 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
             projectRootPath: projectRootPath,
             gateway: widget.presentationTimelineProjectionGateway,
           );
+  }
+
+  /// Rebuilds the montage media sink for the open project.
+  ///
+  /// The catalog and the blob URIs come from the same loader the standalone
+  /// host and the journey preview use, so the montage cannot resolve a media
+  /// differently from the game. A project without a media catalog simply gets
+  /// no sink, and the canvas stays silent instead of failing.
+  void _syncPresentationMediaSink() {
+    final generation = ++_presentationMediaSinkGeneration;
+    final previous = _presentationMediaSink;
+    _presentationMediaSink = null;
+    previous?.dispose();
+    final projectRootPath = widget.projectRootPath?.trim();
+    if (projectRootPath == null || projectRootPath.isEmpty) return;
+    unawaited(
+      loadProjectDirectoryPresentationMedia(
+        projectRootDirectory: projectRootPath,
+      ).then((media) {
+        if (!mounted ||
+            media == null ||
+            generation != _presentationMediaSinkGeneration) {
+          return;
+        }
+        setState(() {
+          _presentationMediaSink = PresentationStudioMediaSink(
+            catalog: media.catalog,
+            mediaUris: media.mediaUris,
+            targetPlatform: currentPresentationMediaTargetPlatform(),
+          );
+        });
+      }).onError((_, _) {
+        // A montage with unreadable media stays editable and silent; the
+        // timeline lanes already report the per-clip diagnostic.
+      }),
+    );
   }
 
   void _onPresentationDocumentChanged() {
@@ -3194,6 +3237,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         orientationOverrides: _presentationOrientationOverrides(resolvedAsset),
         mediaBindings: _presentationResponsiveMediaBindings(resolvedAsset),
             asset: resolvedAsset,
+            mediaSink: _presentationJourneyPreviewOpen
+                ? null
+                : _presentationMediaSink,
             onRetry: _presentationResponsiveCanvasController.setReady,
             onSelectedTextDrag: _presentationDocumentController.isOpen
                 ? _moveSelectedPresentationText
@@ -3231,10 +3277,16 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               ),
               PokeMapButton(
                 key: const ValueKey('presentation-journey-preview-toggle'),
-                onPressed: () => setState(
-                  () => _presentationJourneyPreviewOpen =
-                      !_presentationJourneyPreviewOpen,
-                ),
+                onPressed: () {
+                  // The journey preview runs its own runtime with its own
+                  // audio: the montage has to go quiet, not just off screen.
+                  unawaited(_presentationMediaSink?.release());
+                  _presentationResponsiveCanvasController.pause();
+                  setState(
+                    () => _presentationJourneyPreviewOpen =
+                        !_presentationJourneyPreviewOpen,
+                  );
+                },
                 child: Text(
                   _presentationJourneyPreviewOpen
                       ? 'Revenir au montage'

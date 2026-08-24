@@ -13,6 +13,62 @@ import 'package:map_player_ui/presentation_renderer.dart';
 import '../../../support/event_builder_v2_visual_harness.dart';
 
 void main() {
+  testWidgets('a playing montage hands its evaluated frame to the media sink',
+      (tester) async {
+    final asset = PresentationCinematicAsset(
+      id: 'opening',
+      title: 'Opening',
+      durationUs: 4_000_000,
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'music',
+          label: 'Musique',
+          kind: PresentationTrackKind.audio,
+          clips: <PresentationClip>[
+            PresentationAudioClip(
+              id: 'music-clip',
+              startUs: 0,
+              durationUs: 4_000_000,
+              resourceId: 'opening-music',
+              audioKind: PresentationAudioKind.music,
+              bus: PresentationAudioBus.music,
+            ),
+          ],
+        ),
+      ],
+    );
+    // An empty catalog: the sink cannot resolve the clip and says so. That
+    // diagnostic is the proof the frame actually reached it — a silent montage
+    // and a montage nobody hands a frame to look identical otherwise.
+    final sink = PresentationStudioMediaSink(
+      catalog: ProjectMediaCatalog(entries: const <ProjectMediaAsset>[]),
+      mediaUris: const <String, Uri>{},
+      targetPlatform: PresentationMediaTargetPlatform.macos,
+    );
+    addTearDown(sink.dispose);
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: asset.durationUs,
+    );
+    addTearDown(controller.dispose);
+  
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (playheadUs) => const PresentationCinematicEvaluator()
+          .evaluate(asset, timeUs: playheadUs),
+      asset: asset,
+      mediaSink: sink,
+    );
+  
+    expect(sink.diagnostic, isNull, reason: 'a stopped clock stays silent');
+  
+    controller.play();
+    await tester.pump();
+    await sink.settled;
+  
+    expect(sink.diagnostic, isNotNull);
+  });
+
   test(
     'controller preserves playhead, selection and orientation viewports',
     () {
@@ -675,6 +731,7 @@ Future<void> _pumpResponsiveCanvas(
   Size surfaceSize = const Size(1280, 800),
   String? fontFamily,
   VoidCallback? onRetry,
+  PresentationStudioMediaSink? mediaSink,
   PresentationSelectedTextDrag? onSelectedTextDrag,
   Locale locale = const Locale('fr'),
   TextScaler textScaler = TextScaler.noScaling,
@@ -718,6 +775,7 @@ Future<void> _pumpResponsiveCanvas(
           reduceFlashes: reduceFlashes,
           showCaptions: showCaptions,
           asset: asset,
+          mediaSink: mediaSink,
           onRetry: onRetry,
           onSelectedTextDrag: onSelectedTextDrag,
         ),
