@@ -486,10 +486,6 @@ class BattleTransitionOverlayComponent extends PositionComponent {
       );
       canvas.restore();
     }
-    final sweepKind = _terrainSweepKind;
-    if (sweepKind != null) {
-      _renderTerrainSweep(canvas, sweepKind, _terrainSweepProgress);
-    }
     if (_dissolveActive) {
       final shader = _dissolveShader;
       final texture = _dissolveTexture;
@@ -531,6 +527,16 @@ class BattleTransitionOverlayComponent extends PositionComponent {
         Rect.fromLTWH(0, 0, size.x, size.y),
         Paint()..color = _screenColor,
       );
+    }
+    // APRÈS le rideau, et c'est tout l'enjeu : recette du 2026-08-24, « je
+    // n'ai pas compris ce que tu veux dire par le balayage de terrain ». Il
+    // ne l'avait jamais vu. La phase tient volontairement l'écran au noir, et
+    // ce noir est peint en dernier : dessiné plus haut, le balayage était
+    // intégralement recouvert à chaque frame. Les tests de BETA-BAT-032
+    // vérifiaient l'état de la phase, jamais un pixel — d'où le silence.
+    final sweepKind = _terrainSweepKind;
+    if (sweepKind != null) {
+      _renderTerrainSweep(canvas, sweepKind, _terrainSweepProgress);
     }
   }
 }

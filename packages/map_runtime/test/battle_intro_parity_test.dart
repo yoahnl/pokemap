@@ -8,6 +8,7 @@ import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_intro_animation_planner.dart';
 import 'package:map_runtime/src/presentation/flame/battle_intro_trainer_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 
 // BETA-BAT-027 — recette du 2026-08-24 (vidéo 18-09-39) : « les deux pokémons
@@ -296,11 +297,22 @@ void main() {
         'place', () async {
       final overlay = await mount(isTrainerBattle: false);
 
+      // La parité `actor_sprites` pose zoom = 0 ; ici l'attente se fait à
+      // l'opacité depuis la recette du 2026-08-24 (« continue à transformer
+      // le pokémon en tout petit »), car une échelle nulle qui remonte
+      // produit la miniature rejetée. L'invariant testé reste le même : rien
+      // ne doit être visible au lever du rideau.
+      expect(
+        overlay.debugPlayerSpriteOpacity,
+        0.0,
+        reason: 'le joueur sort de sa Ball : il attend caché',
+      );
       expect(
         overlay.debugPlayerSpriteScaleX,
-        0.0,
-        reason: 'le joueur sort de sa Ball : il attend caché (parité '
-            'actor_sprites, qui pose zoom = 0)',
+        greaterThanOrEqualTo(
+          BattleSceneCombatantComponent.debugMaterializeFloorScale - 0.001,
+        ),
+        reason: 'et il attend à sa taille, jamais en miniature',
       );
       expect(
         overlay.debugEnemySpriteOffset!.dx,
@@ -317,10 +329,17 @@ void main() {
       );
 
       expect(
-        overlay.debugEnemySpriteScaleX,
+        overlay.debugEnemySpriteOpacity,
         0.0,
         reason: 'parité enemy_sprites : le Pokémon adverse attend dans sa '
             'Ball, c’est le dresseur qu’on voit',
+      );
+      expect(
+        overlay.debugEnemySpriteScaleX,
+        greaterThanOrEqualTo(
+          BattleSceneCombatantComponent.debugMaterializeFloorScale - 0.001,
+        ),
+        reason: 'et il attend à sa taille, jamais en miniature',
       );
       final trainer = overlay.debugIntroTrainerSprite;
       expect(trainer, isNotNull, reason: 'le sprite du dresseur est monté');

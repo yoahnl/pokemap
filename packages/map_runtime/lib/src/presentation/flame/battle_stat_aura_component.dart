@@ -10,8 +10,28 @@ import 'battle_stat_sheet_manifest.dart';
 /// Parité `UI::StatAnimation` : la planche de la référence est une grille de
 /// 12 colonnes × 10 lignes (120 cellules) parcourue dans l'ordre de lecture,
 /// d'un bloc, en 1,5 s. Le sprite est ancré au BAS du Pokémon visé, avec le
-/// décalage de la référence (`x_offset` -2, `y_offset` +10, à l'échelle de la
-/// scène) et son zoom de 0,75.
+/// décalage de la référence (`x_offset` -2, `y_offset` +10).
+///
+/// TAILLE — recette du 2026-08-24 : « l'animation de baisse de stats est
+/// vraiment trop petite et pas à la hauteur ».
+///
+/// Le `zoom = 0.75` de la référence s'applique à sa CELLULE de 200 px, dans
+/// un écran de 320×240 (`display_config.json` du projet PSDK :
+/// gameResolution 320×240, windowScale 2). L'aura y couvre donc 150 px —
+/// une taille ABSOLUE, identique pour les deux camps, qui vaut 62,5 % de la
+/// hauteur de l'écran de la référence.
+///
+/// Ce 62,5 % n'est PAS transposable tel quel : la scène de la référence est
+/// en 4:3 et son Pokémon occupe la moitié de la hauteur, alors qu'ici le
+/// même sprite en occupe un tiers en paysage et un neuvième en portrait —
+/// mesuré. Appliquer la fraction d'écran donnerait 528 px d'aura pour un
+/// Pokémon de 94 px en portrait. L'invariant retenu est donc celui que la
+/// vidéo de recette montre : l'aura ENGLOBE le Pokémon et le dépasse, dans
+/// le rapport de la référence ([_auraToPlayerSpriteRatio]), et elle garde la
+/// même taille des deux côtés. La première version lisait 0,75 comme une
+/// fraction de la hauteur du sprite VISÉ : deux fois trop petite, et l'aura
+/// de l'ennemi rétrécissait avec son sprite sans que la référence ne le
+/// fasse jamais.
 ///
 /// Le composant se retire seul à la dernière cellule.
 class BattleStatAuraComponent extends PositionComponent {
@@ -19,12 +39,23 @@ class BattleStatAuraComponent extends PositionComponent {
     required this.sheet,
     required Rect targetSpriteRect,
     required this.durationSeconds,
+    required this.auraSize,
     int priority = 40,
   })  : _targetSpriteRect = targetSpriteRect,
         super(priority: priority);
 
-  /// Le zoom de la référence.
+  /// Le zoom de la référence, appliqué à sa cellule.
   static const double _referenceZoom = 0.75;
+
+  /// Le côté d'une cellule dans l'écran de la référence.
+  static const double _referenceCellSize = 200;
+
+  /// Le côté de l'aura dans l'écran de la référence : 200 × 0,75.
+  static const double referenceAuraSize = _referenceCellSize * _referenceZoom;
+
+  /// Le rapport entre l'aura et le sprite du joueur, à appliquer par l'hôte.
+  /// L'aura dépasse le Pokémon de moitié, comme dans la vidéo de recette.
+  static const double auraToPlayerSpriteRatio = 1.55;
 
   /// Les décalages d'ancrage de la référence, en pixels de son écran 320×240.
   static const double _referenceOffsetX = -2;
@@ -33,6 +64,11 @@ class BattleStatAuraComponent extends PositionComponent {
   final Image sheet;
   final Rect _targetSpriteRect;
   final double durationSeconds;
+
+  /// Le côté de l'aura à l'écran, en pixels de scène. L'hôte le tire du
+  /// sprite du joueur — jamais du sprite visé, sinon l'aura de l'ennemi
+  /// rétrécit.
+  final double auraSize;
 
   var _elapsed = 0.0;
   var _cellIndex = 0;
@@ -62,14 +98,16 @@ class BattleStatAuraComponent extends PositionComponent {
     final column = _cellIndex % battleStatSheetColumns;
     final row = _cellIndex ~/ battleStatSheetColumns;
 
-    // La planche de la référence est dessinée à la taille du Pokémon visé :
-    // sa cellule couvre la boîte du sprite, au zoom de la référence.
-    final destSize = _targetSpriteRect.height * _referenceZoom;
-    final scale = destSize / cellHeight;
-    final destWidth = cellWidth * scale;
+    // Les décalages de la référence sont en pixels de son écran : ils
+    // suivent la taille de l'aura, pas celle du sprite visé.
+    final destSize = auraSize;
+    final offsetScale = auraSize / referenceAuraSize;
+    final destWidth = destSize * (cellWidth / cellHeight);
     final center = Offset(
-      _targetSpriteRect.center.dx + _referenceOffsetX * scale,
-      _targetSpriteRect.bottom + _referenceOffsetY * scale - destSize / 2,
+      _targetSpriteRect.center.dx + _referenceOffsetX * offsetScale,
+      _targetSpriteRect.bottom +
+          _referenceOffsetY * offsetScale -
+          destSize / 2,
     );
 
     canvas.drawImageRect(
@@ -87,4 +125,8 @@ class BattleStatAuraComponent extends PositionComponent {
 
   @visibleForTesting
   int get debugCellIndex => _cellIndex;
+
+  /// Le côté de l'aura à l'écran, en pixels de scène.
+  @visibleForTesting
+  double get debugAuraSize => auraSize;
 }

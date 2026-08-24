@@ -349,12 +349,20 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _animationDistancePx = 46;
   }
 
-  /// Apparition depuis la Poké Ball — BETA-BAT-022. Le sprite grandit de
-  /// zéro à sa taille, parité `ya.scalar(0.1, self, :zoom=, 0, sprite_zoom)`.
+  /// Apparition depuis la Poké Ball — BETA-BAT-022.
+  ///
+  /// Recette du 2026-08-24 : « l'animation avec les pokéballs continue à
+  /// transformer le pokémon en tout petit mais ça reste visible ». Le
+  /// `ya.scalar(0.1, self, :zoom=, 0, sprite_zoom)` de PSDK part de zéro,
+  /// et une lueur pleine ne sauve pas une forme de quelques pixels : on
+  /// reconnaît le Pokémon en miniature. La vidéo de référence (Platine) ne
+  /// montre jamais ça — la forme d'énergie apparaît À SA TAILLE et prend ses
+  /// couleurs. L'échelle ne descend donc plus sous [_materializeFloorScale] :
+  /// l'apparition est portée par l'opacité et la lueur, pas par la taille.
   Future<void> playMaterializeIn({required double durationSeconds}) async {
-    _visualScaleX = 0;
-    _visualScaleY = 0;
-    _visualOpacity = 1;
+    _visualScaleX = _materializeFloorScale;
+    _visualScaleY = _materializeFloorScale;
+    _visualOpacity = 0;
     _visualOffset = Offset.zero;
     _beginMaterializeGlow();
     _applyVisualPresentation();
@@ -391,6 +399,16 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _toneDuration = 0;
   }
 
+  /// Le plancher d'échelle d'une matérialisation : jamais de miniature.
+  static const double _materializeFloorScale = 0.88;
+
+  static double _materializeScaleAt(double progress) =>
+      _materializeFloorScale +
+      ((1 - _materializeFloorScale) * progress.clamp(0.0, 1.0));
+
+  @visibleForTesting
+  static double get debugMaterializeFloorScale => _materializeFloorScale;
+
   /// Vrai pendant une matérialisation (entrée ou sortie de Ball).
   bool _materializeGlowActive = false;
 
@@ -400,10 +418,15 @@ class BattleSceneCombatantComponent extends PositionComponent {
   @visibleForTesting
   double get debugVisualToneMaxMix => _visualToneMaxMix;
 
-  /// Retour dans la Poké Ball — le sprite rétrécit jusqu'à zéro.
+  /// Retour dans la Poké Ball — la forme se dissout en lumière.
+  ///
+  /// Même raison que [playMaterializeIn] : un rétrécissement jusqu'à zéro
+  /// montre le Pokémon en miniature juste avant qu'il ne disparaisse.
   Future<void> playMaterializeOut({required double durationSeconds}) async {
     _visualOffset = Offset.zero;
     _visualOpacity = 1;
+    _visualScaleX = 1;
+    _visualScaleY = 1;
     _beginMaterializeGlow();
     _applyVisualPresentation();
     _animation = _CombatantPresentationAnimation.materializeOut;
@@ -416,9 +439,11 @@ class BattleSceneCombatantComponent extends PositionComponent {
   /// le montrer avant l'ouverture.
   void holdMaterializeHidden() {
     _animation = _CombatantPresentationAnimation.none;
-    _visualScaleX = 0;
-    _visualScaleY = 0;
-    _visualOpacity = 1;
+    // Caché par l'opacité, pas par l'échelle : une échelle nulle qui remonte
+    // produit exactement la miniature que la recette du 2026-08-24 a rejetée.
+    _visualScaleX = _materializeFloorScale;
+    _visualScaleY = _materializeFloorScale;
+    _visualOpacity = 0;
     _visualOffset = Offset.zero;
     _applyVisualPresentation();
   }
@@ -1005,13 +1030,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
         _visualOffset = _introSlideOffset(progress: 1 - progress);
         _visualOpacity = 1;
       case _CombatantPresentationAnimation.materializeIn:
-        _visualScaleX = progress;
-        _visualScaleY = progress;
-        _visualOpacity = 1;
+        _visualScaleX = _materializeScaleAt(progress);
+        _visualScaleY = _visualScaleX;
+        // L'opacité fait tout le travail d'apparition, sur le premier tiers.
+        _visualOpacity = (progress * 3).clamp(0.0, 1.0);
       case _CombatantPresentationAnimation.materializeOut:
-        _visualScaleX = 1 - progress;
-        _visualScaleY = 1 - progress;
-        _visualOpacity = 1;
+        _visualScaleX = _materializeScaleAt(1 - progress);
+        _visualScaleY = _visualScaleX;
+        _visualOpacity = (1 - progress).clamp(0.0, 1.0);
       case _CombatantPresentationAnimation.faint:
         _visualOffset = Offset(0, _animationDistancePx * progress);
         _visualOpacity = 1 - progress;
@@ -1061,9 +1087,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
         _visualScaleX = 1;
         _visualScaleY = 1;
       case _CombatantPresentationAnimation.materializeOut:
-        _visualScaleX = 0;
-        _visualScaleY = 0;
-        _visualOpacity = 1;
+        _visualScaleX = 1;
+        _visualScaleY = 1;
+        _visualOpacity = 0;
       case _CombatantPresentationAnimation.switchOut:
         _visualOffset = _switchTravelOffset(progress: 1);
         _visualOpacity = 0;

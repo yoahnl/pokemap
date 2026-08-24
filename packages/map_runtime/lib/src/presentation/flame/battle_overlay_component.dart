@@ -785,6 +785,11 @@ class BattleOverlayComponent extends PositionComponent {
   void debugSpawnBallFlashForTest(BattleSideId side) => _spawnBallFlash(side);
 
   @visibleForTesting
+  double? get debugEnemySpriteOpacity =>
+      // ignore: invalid_use_of_visible_for_testing_member
+      _enemyCombatant?.currentVisualOpacity;
+
+  @visibleForTesting
   double? get debugEnemySpriteScaleX =>
       // ignore: invalid_use_of_visible_for_testing_member
       _enemyCombatant?.currentVisualScaleX;
@@ -1036,6 +1041,10 @@ class BattleOverlayComponent extends PositionComponent {
             ? layout.playerSpriteRect
             : layout.enemySpriteRect,
         durationSeconds: step.durationSeconds,
+        // Toujours depuis le sprite du JOUEUR : la référence garde la même
+        // taille d'aura des deux côtés, l'ennemi ne la rétrécit pas.
+        auraSize: layout.playerSpriteRect.height *
+            BattleStatAuraComponent.auraToPlayerSpriteRatio,
         priority: (_combatantForSide(step.side)?.priority ?? 10) + 2,
       ),
     );

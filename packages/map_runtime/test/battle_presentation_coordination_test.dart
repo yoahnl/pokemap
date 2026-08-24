@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_ball_throw_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 
 // Recette du 2026-08-23 (vidéo 18-58-46) : « soucis de coordination entre les
@@ -372,13 +373,21 @@ void main() {
     overlay.updateState(afterTurn);
     await overlay.waitForPendingVisualSync();
 
+    // Recette du 2026-08-24 : « l'animation avec les pokéballs continue à
+    // transformer le pokémon en tout petit mais ça reste visible ». Ce test
+    // exigeait le rétrécissement à zéro (scaleX < 0,05) — c'est exactement ce
+    // que la recette a rejeté. L'absorption se lit désormais sur l'OPACITÉ :
+    // le sauvage s'efface dans la Ball sans jamais devenir une miniature.
     var sawAbsorbedEnemy = false;
+    var smallestScale = 1.0;
     for (var i = 0; i < 90 && overlay.isTurnPresentationActive; i++) {
       overlay.updateTree(0.1);
       await Future<void>.delayed(Duration.zero);
-      if ((overlay.debugEnemySpriteScaleX ?? 1) < 0.05) {
+      if ((overlay.debugEnemySpriteOpacity ?? 1) < 0.05) {
         sawAbsorbedEnemy = true;
       }
+      final scale = overlay.debugEnemySpriteScaleX ?? 1;
+      if (scale < smallestScale) smallestScale = scale;
     }
 
     expect(
@@ -405,12 +414,25 @@ void main() {
     expect(
       sawAbsorbedEnemy,
       isTrue,
-      reason: 'le sauvage rétrécit dans la Ball pendant la tentative',
+      reason: 'le sauvage disparaît dans la Ball pendant la tentative',
+    );
+    expect(
+      smallestScale,
+      greaterThanOrEqualTo(
+        BattleSceneCombatantComponent.debugMaterializeFloorScale - 0.001,
+      ),
+      reason: 'et il n’y passe JAMAIS par la miniature — le défaut exact '
+          'remonté en recette',
     );
     expect(
       overlay.debugEnemySpriteScaleX,
       1.0,
       reason: 'l’échec le libère : il réapparaît en entier',
+    );
+    expect(
+      overlay.debugEnemySpriteOpacity,
+      1.0,
+      reason: 'et il est de nouveau pleinement visible',
     );
   });
 
@@ -476,9 +498,16 @@ void main() {
       reason: 'les secousses visibles d’une capture plafonnent à trois',
     );
     expect(
-      overlay.debugEnemySpriteScaleX,
+      overlay.debugEnemySpriteOpacity,
       lessThan(0.05),
       reason: 'le sauvage capturé reste dans la Ball',
+    );
+    expect(
+      overlay.debugEnemySpriteScaleX,
+      greaterThanOrEqualTo(
+        BattleSceneCombatantComponent.debugMaterializeFloorScale - 0.001,
+      ),
+      reason: 'sans jamais avoir été montré en miniature',
     );
   });
 }
