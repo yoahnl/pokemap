@@ -134,6 +134,14 @@ final class DialoguePortraitResolver {
     return resolved;
   }
 
+  /// Charge le catalogue d'assets si ce n'est pas déjà fait.
+  ///
+  /// Public depuis BETA-BAT-029 : le portrait d'un dresseur sert aussi à la
+  /// mise en scène du COMBAT, et ce chemin n'est pas précédé d'un
+  /// [preload] de dialogue. Sans ce chargement, [resolve] rend null et le
+  /// repli portrait ne se voyait jamais.
+  Future<void> ensureCatalogLoaded() => _ensureCatalogLoaded();
+
   Future<void> _ensureCatalogLoaded() async {
     if (_catalogLoaded) return;
     try {

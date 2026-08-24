@@ -8019,7 +8019,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // BAT-017 — une absence rend null et l'intro retombe sur le
       // glissement du Pokémon.
       final introTrainerImage = request is TrainerBattleStartRequest
-          ? await _loadDefeatedTrainerImage(request.trainerId)
+          ? await _loadTrainerBattleImage(request.trainerId)
           : null;
       if (_flowPhase != _RuntimeFlowPhase.battleTransition &&
           !isBattleUiActive) {
@@ -8788,7 +8788,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         activeBattleContext.request is TrainerBattleStartRequest) {
       final trainerRequest =
           activeBattleContext.request as TrainerBattleStartRequest;
-      final image = await _loadDefeatedTrainerImage(trainerRequest.trainerId);
+      final image = await _loadTrainerBattleImage(trainerRequest.trainerId);
       if (flowDied()) return;
       if (image != null) {
         overlay.prepareDefeatedTrainerVisual(image);
@@ -8943,23 +8943,61 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Même contrat que le fond de combat explicite : un chemin relatif au
   /// projet, et toute absence ou erreur de lecture rend null — le plan de
   /// fin retombe alors sur le message seul, jamais sur une erreur.
-  Future<ui.Image?> _loadDefeatedTrainerImage(String trainerId) async {
+  /// L'image de combat d'un dresseur — son entrée (BETA-BAT-027) comme sa
+  /// réapparition à la défaite (BETA-BAT-017).
+  ///
+  /// Deux sources, dans l'ordre :
+  /// 1. `battleSpriteRelativePath` du dresseur, l'artwork dédié ;
+  /// 2. à défaut, le PORTRAIT neutre de son personnage — BETA-BAT-029.
+  ///
+  /// Le repli existe parce que la donnée réelle ne porte aucun artwork de
+  /// combat (les trois dresseurs du projet du Train ont
+  /// `battleSpriteRelativePath: null`) : sans lui, tout le travail de mise en
+  /// scène du dresseur retombait sur son repli silencieux et ne se voyait
+  /// jamais en jeu. Le portrait est une image de la donnée, déjà résolue par
+  /// le Character Studio.
+  Future<ui.Image?> _loadTrainerBattleImage(String trainerId) async {
     final trainer = _findTrainerEntry(_bundle.manifest, trainerId);
     final relativePath = trainer?.battleSpriteRelativePath?.trim() ?? '';
-    if (relativePath.isEmpty) return null;
-    try {
-      final file = File(
+    if (relativePath.isNotEmpty) {
+      final image = await _decodeProjectImage(
         p.normalize(p.join(_bundle.projectRootDirectory, relativePath)),
+        label: 'trainer battle sprite ($trainerId)',
       );
-      final bytes = await file.readAsBytes();
+      if (image != null) return image;
+    }
+    final characterId = trainer?.characterId?.trim() ?? '';
+    if (characterId.isEmpty) return null;
+    // Le catalogue d'assets n'est chargé que par le préchargement des
+    // dialogues : un combat sans dialogue d'introduction laisserait le
+    // résolveur muet.
+    await _dialoguePortraitResolver.ensureCatalogLoaded();
+    final portrait = _dialoguePortraitResolver.resolve(
+      characterId: characterId,
+      portraitStateId: _trainerBattlePortraitStateId,
+    );
+    if (portrait == null) return null;
+    return _decodeProjectImage(
+      portrait.absoluteFilePath,
+      label: 'trainer portrait fallback ($trainerId, $characterId)',
+    );
+  }
+
+  /// L'état de portrait utilisé quand un dresseur n'a pas d'artwork de
+  /// combat : celui que tout personnage du Character Studio porte.
+  static const String _trainerBattlePortraitStateId = 'neutre';
+
+  Future<ui.Image?> _decodeProjectImage(
+    String absolutePath, {
+    required String label,
+  }) async {
+    try {
+      final bytes = await File(absolutePath).readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
       return frame.image;
     } on Object catch (error) {
-      debugPrint(
-        '[battle] defeated trainer sprite unavailable '
-        '($trainerId, $relativePath): $error',
-      );
+      debugPrint('[battle] $label unavailable ($absolutePath): $error');
       return null;
     }
   }

@@ -49,6 +49,35 @@ void main() {
     expect(diagnostics, isEmpty);
   });
 
+  test(
+      'BETA-BAT-029 : ensureCatalogLoaded ouvre la résolution SANS dialogue '
+      'préalable', () async {
+    // La mise en scène du dresseur en combat résout un portrait, et ce
+    // chemin n'est précédé d'aucun preload de dialogue : sans cette entrée,
+    // resolve() rendait null et le repli portrait ne se voyait jamais.
+    final fixture = await _PortraitFixture.create();
+    addTearDown(fixture.dispose);
+    final resolver = DialoguePortraitResolver(
+      manifest: fixture.manifest,
+      projectRootDirectory: fixture.root.path,
+    );
+
+    expect(
+      resolver.resolve(characterId: 'elia', portraitStateId: 'surprised'),
+      isNull,
+      reason: 'catalogue non chargé : rien à résoudre',
+    );
+
+    await resolver.ensureCatalogLoaded();
+
+    final portrait = resolver.resolve(
+      characterId: 'elia',
+      portraitStateId: 'surprised',
+    );
+    expect(portrait, isNotNull);
+    expect(portrait!.absoluteFilePath, fixture.blob.path);
+  });
+
   test('missing and dangling references diagnose then fall back to text',
       () async {
     final fixture = await _PortraitFixture.create(writeBlob: false);
