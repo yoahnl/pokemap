@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_authoring/map_authoring_local.dart'
     show
         AuthoringPerformanceCounterName,
@@ -469,6 +470,72 @@ void main() {
       expect(await reopened.pruneExpired(), 1);
       expect(await reopened.inspect(scope: scope, request: request), isNull);
       expect(await File(ledgerPath).readAsString(), isEmpty);
+    });
+
+    test('opening an authoring session prunes expired reservations', () async {
+      final root = await Directory.systemTemp.createTemp('idempotency-attach-');
+      addTearDown(() => root.delete(recursive: true));
+      const manifest = ProjectManifest(
+        name: 'Idempotency Attach Fixture',
+        version: ProjectVersion.v6,
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+      );
+      await File('${root.path}/project.json').writeAsString(
+        jsonEncode(manifest.toJson()),
+        flush: true,
+      );
+      final sessionLedgerPath = <String>[
+        root.path,
+        '.pokemap',
+        'authoring',
+        'idempotency.jsonl',
+      ].join(Platform.pathSeparator);
+
+      final scope = _scope();
+      final request = _request(requestId: 'req-attach-expired');
+      final seeding = AuthoringIdempotencyLedger(
+        store: FileIdempotencyStore(filePath: sessionLedgerPath),
+        clock: () => now,
+        completedRetention: const Duration(hours: 1),
+      );
+      await seeding.execute(
+        scope: scope,
+        request: request,
+        operationId: 'operation-attach-expired',
+        apply: () => _receipt(request, 'receipt-attach-expired'),
+      );
+      expect(await File(sessionLedgerPath).readAsString(), isNotEmpty);
+
+      final attachedAt = now.add(const Duration(days: 60));
+      final reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [root.path],
+        fileReader: reader,
+      );
+      final handles = WorkspaceHandleStore();
+      final opened = await ProjectOpenService(
+        policy: policy,
+        fileReader: reader,
+        handles: handles,
+      ).openProject(root.path);
+      final mutations = LocalMapAuthoringMutationApi(
+        policy: policy,
+        snapshotLoader: ProjectSnapshotLoader(handles: handles),
+        clock: () => attachedAt,
+      );
+      await mutations.attachProject(
+        projectRootPath: root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      addTearDown(() => mutations.detachWorkspace(opened.workspaceHandle));
+
+      expect(
+        await File(sessionLedgerPath).readAsString(),
+        isEmpty,
+        reason: 'the completed reservation outlived its retention',
+      );
     });
 
     test('scope validation rejects path-like identities', () {

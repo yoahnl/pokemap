@@ -429,6 +429,15 @@ final class _LocalMapAuthoringSession {
       ),
       clock: clock,
     );
+    // The ledger is append-only, so nothing reclaims a completed reservation
+    // unless maintenance runs. Opening a project is the one moment that is
+    // already off the interactive path; a failure here must not deny the open.
+    try {
+      await idempotency.pruneExpired();
+    } on Object {
+      // Maintenance is best effort: a locked or unreadable ledger is reported
+      // by the first real mutation, not by refusing to open the project.
+    }
     final transaction = JournaledAuthoringTransaction(
       plans: plans,
       gateway: gateway,
