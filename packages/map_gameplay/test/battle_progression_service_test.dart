@@ -51,8 +51,13 @@ void main() {
     });
 
     test('uses a 1.5 trainer multiplier and equal participant split', () {
+      // BETA-BAT-035 : ce test portait un participant à 0 PV, ce qui en fait
+      // testait DEUX choses à la fois — le partage, et l'éligibilité d'un
+      // Pokémon KO. Depuis l'arbitrage du 2026-08-25 le KO ne reçoit plus
+      // rien : les deux participants sont donc vivants ici, et l'exclusion a
+      // son propre test.
       final state = _state(<PlayerPokemon>[
-        _pokemon(id: 'fainted_participant', experience: 125, currentHp: 0),
+        _pokemon(id: 'lead_participant', experience: 125, currentHp: 11),
         _pokemon(id: 'unused', experience: 125, currentHp: 19),
         _pokemon(id: 'switched_participant', experience: 125, currentHp: 18),
       ]);
@@ -88,7 +93,8 @@ void main() {
       );
       expect(result.state.party.members[0].experience, 230);
       expect(result.state.party.members[0].level, 6);
-      expect(result.state.party.members[0].currentHp, 0);
+      // Le passage de niveau ajoute au courant ce qu'il ajoute au maximum.
+      expect(result.state.party.members[0].currentHp, 13);
       expect(result.state.party.members[1], state.party.members[1]);
       expect(result.state.party.members[2].experience, 230);
       expect(result.state.trainerProfile.money, 200);
@@ -97,6 +103,79 @@ void main() {
         result.state.storyFlags.activeFlags,
         contains('trainer_defeated:trainer_iris'),
       );
+    });
+
+    test(
+        'BETA-BAT-035 : un participant tombé au combat ne reçoit rien, et sa '
+        'part revient aux survivants', () {
+      // Arbitrage Yoahn du 2026-08-25 : « si un pokémon est tombé KO pendant
+      // un combat même s'il a participé, il ne reçoit pas d'XP ».
+      //
+      // Le service documentait l'inverse — « a participant remains eligible
+      // after fainting » — et c'était volontaire, mais jamais jugé. Rien ne
+      // figeait cet écart avec les jeux officiels : cette garde le fait.
+      final state = _state(<PlayerPokemon>[
+        _pokemon(id: 'fainted_participant', experience: 125, currentHp: 0),
+        _pokemon(id: 'unused', experience: 125, currentHp: 19),
+        _pokemon(id: 'survivor', experience: 125, currentHp: 18),
+      ]);
+
+      final result = service.apply(
+        state: state,
+        context: _context(
+          participants: const <int>{0, 2},
+          metadata: <BattleProgressionPartySlotMetadata>[
+            _metadata(slot: 0, oldMaxHp: 19),
+            _metadata(slot: 2, oldMaxHp: 19),
+          ],
+        ),
+        reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+      );
+
+      expect(
+        result.appliedReward.experienceGrants,
+        const <BattleExperienceGrant>[
+          BattleExperienceGrant(partySlot: 2, experience: 140),
+        ],
+        reason: 'le survivant touche TOUT : le KO ne consomme pas de part, '
+            'sinon l’XP disparaîtrait au lieu de lui revenir',
+      );
+      expect(
+        result.state.party.members[0].experience,
+        125,
+        reason: 'le Pokémon KO garde son expérience d’avant le combat',
+      );
+      expect(result.state.party.members[0].currentHp, 0);
+      expect(result.state.party.members[2].experience, 265);
+    });
+
+    test(
+        'BETA-BAT-035 : sans aucun participant survivant, rien n’est '
+        'distribué', () {
+      // Cas rare mais atteignable (dégâts de fin de tour simultanés) : sans
+      // cette sortie, le partage diviserait par zéro.
+      final state = _state(<PlayerPokemon>[
+        _pokemon(id: 'fainted_participant', experience: 125, currentHp: 0),
+        _pokemon(id: 'unused', experience: 125, currentHp: 19),
+        _pokemon(id: 'also_fainted', experience: 125, currentHp: 0),
+      ]);
+
+      final result = service.apply(
+        state: state,
+        context: _context(
+          participants: const <int>{0, 2},
+          metadata: <BattleProgressionPartySlotMetadata>[
+            _metadata(slot: 0, oldMaxHp: 19),
+            _metadata(slot: 2, oldMaxHp: 19),
+          ],
+        ),
+        reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+      );
+
+      expect(result.appliedReward.experienceGrants, isEmpty);
+      expect(result.changes, isEmpty);
+      expect(result.state.party.members[0].experience, 125);
+      expect(result.state.party.members[2].experience, 125);
     });
 
     test('discards the split remainder instead of favouring a slot', () {

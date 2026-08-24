@@ -115,7 +115,10 @@ final class BattleProgressionContext {
 ///
 /// Policy:
 /// - only actual participants receive XP; there is no Exp Share;
-/// - a participant remains eligible after fainting;
+/// - a participant that fainted receives nothing, and does not consume a
+///   share either: the split is between the surviving participants only
+///   (arbitrage Yoahn du 2026-08-25, alignement sur les jeux officiels —
+///   la règle inverse était volontaire mais n'avait jamais été jugée) ;
 /// - wild XP is `floor(level * baseExp / 7)`;
 /// - trainer XP uses the classic MVP `1.5` multiplier, calculated exactly as
 ///   `floor(level * baseExp * 3 / 14)`;
@@ -158,8 +161,27 @@ final class BattleProgressionService {
       );
     }
 
-    final participantSlots = context.playerParticipantPartySlots.toList()
+    // BETA-BAT-035 : un Pokémon tombé au combat ne gagne rien, même s'il a
+    // participé. Il ne prend pas non plus de part dans le partage — sinon
+    // l'XP « perdue » disparaîtrait au lieu de revenir aux survivants.
+    final participantSlots = context.playerParticipantPartySlots
+        .where(
+          (slot) =>
+              slot < state.party.members.length &&
+              state.party.members[slot].currentHp > 0,
+        )
+        .toList()
       ..sort();
+    if (participantSlots.isEmpty) {
+      // Aucun survivant parmi les participants : rien à distribuer, et
+      // surtout pas une division par zéro.
+      return BattleProgressionResult(
+        state: state,
+        appliedReward: _emptyRewardLike(reward),
+        changes: const <BattlePokemonProgressionChange>[],
+        ruleset: context.ruleset,
+      );
+    }
     final totalExperience = _totalExperience(
       opponents: context.defeatedOpponents,
       sourceKind: reward.sourceKind,
