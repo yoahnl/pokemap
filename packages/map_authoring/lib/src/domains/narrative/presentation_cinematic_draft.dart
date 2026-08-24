@@ -111,7 +111,13 @@ final class PresentationCinematicDraft {
       );
     }
     final projectBytes = changes.single.afterBytes!;
-    final projected = _decodeProject(projectBytes);
+    // The action already built the projected manifest. Re-parsing the bytes it
+    // just serialised costs a full utf8 + JSON + fromJson pass over the whole
+    // project — hundreds of milliseconds of frozen UI per edit on a real
+    // project. Decoding stays the fallback for an action that only projects
+    // bytes.
+    final projected =
+        draft.projectedProject ?? _decodeProject(projectBytes);
     _snapshot = _snapshotWithProject(
       _snapshot,
       manifest: projected,

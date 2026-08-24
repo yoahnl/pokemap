@@ -42,6 +42,47 @@ void main() {
     expect(draft.manifest, second);
   });
 
+  test('projects a Presentation action without re-decoding project.json', () {
+    final baseline = _manifest();
+    final draft = PresentationCinematicDraft.fromSnapshot(
+      _snapshot(baseline),
+      expectedProject: baseline,
+    );
+
+    final projected = draft.apply(
+      actionId: 'presentationClip.update',
+      parameters: <String, Object?>{
+        'cinematicId': 'opening',
+        'trackId': 'text',
+        'clip': encodePresentationClip(_textClip(content: 'Sans aller-retour')),
+      },
+      operationId: 'edit-1',
+    );
+
+    // The action already holds the projected manifest: the draft must adopt
+    // that instance instead of re-parsing the bytes it just serialised. On a
+    // ten-megabyte project the round trip costs hundreds of milliseconds of
+    // frozen UI per edit.
+    final mutation = const PresentationCinematicActions().build(
+      _planningContext(
+        _snapshot(baseline),
+        actionId: 'presentationClip.update',
+        parameters: <String, Object?>{
+          'cinematicId': 'opening',
+          'trackId': 'text',
+          'clip': encodePresentationClip(
+            _textClip(content: 'Sans aller-retour'),
+          ),
+        },
+        operationId: 'edit-1',
+      ),
+    );
+
+    expect(mutation.projectedProject, isNotNull);
+    expect(mutation.projectedProject, projected);
+    expect(_content(projected), 'Sans aller-retour');
+  });
+
   test('rejects a draft opened from a stale visible project', () {
     final baseline = _manifest();
     final stale = baseline.copyWith(name: 'Projet externe');
@@ -223,3 +264,24 @@ ProjectSnapshot _snapshot(ProjectManifest manifest) {
     resourceStorageKeys: const <String, String>{'project': 'project.json'},
   );
 }
+
+AuthoringPlanningContext _planningContext(
+  ProjectSnapshot snapshot, {
+  required String actionId,
+  required Map<String, Object?> parameters,
+  required String operationId,
+}) =>
+    AuthoringPlanningContext(
+      snapshot: snapshot,
+      request: AuthoringRequest(
+        requestId: operationId,
+        actionId: actionId,
+        actionVersion: 1,
+        workspaceHandle: 'workspace-presentation-draft',
+        parameters: parameters,
+        expectedRevision: snapshot.revision,
+        idempotencyKey: operationId,
+      ),
+      planId: 'plan-$operationId',
+      seed: 0,
+    );

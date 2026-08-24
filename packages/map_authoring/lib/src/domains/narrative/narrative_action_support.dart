@@ -48,6 +48,7 @@ AuthoringMutationDraft narrativeProjectDraft(
     revision: snapshot.resourceFingerprints['project'],
   );
   return AuthoringMutationDraft(
+    projectedProject: projected,
     changeSet: AuthoringChangeSet(
       changes: [
         AuthoringResourceChange(

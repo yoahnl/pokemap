@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
 import '../contracts/json_contract_support.dart';
@@ -138,6 +140,7 @@ final class AuthoringPlan {
 final class AuthoringMutationDraft {
   AuthoringMutationDraft({
     required this.changeSet,
+    this.projectedProject,
     Map<String, Object?> preview = const {},
     Map<String, Object?> referenceImpact = const {},
     Iterable<AuthoringArtifactRef> artifacts = const [],
@@ -152,6 +155,15 @@ final class AuthoringMutationDraft {
   final Map<String, Object?> preview;
   final Map<String, Object?> referenceImpact;
   final List<AuthoringArtifactRef> artifacts;
+
+  /// The manifest the action projected, when the change set carries the whole
+  /// project.
+  ///
+  /// Never part of the plan or the receipt: bytes stay the only contract a
+  /// transaction commits. This is a shortcut for an in-process caller that
+  /// would otherwise re-parse the bytes it just watched being serialised —
+  /// on a large project that round trip is hundreds of milliseconds.
+  final ProjectManifest? projectedProject;
 }
 
 List<AuthoringArtifactRef> _sortedArtifacts(
