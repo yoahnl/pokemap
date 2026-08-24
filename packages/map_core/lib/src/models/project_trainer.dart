@@ -152,6 +152,12 @@ abstract class ProjectTrainerEntry with _$ProjectTrainerEntry {
     /// et le runtime retombe honnêtement sur le message seul quand il est
     /// absent ou illisible.
     @JsonKey(includeIfNull: false) String? battleSpriteRelativePath,
+
+    /// Transition de début de combat de ce dresseur — BETA-BAT-019.
+    ///
+    /// Un id du registre moteur ; gagne sur la zone et le défaut projet.
+    /// Absent ou inconnu = la chaîne continue (zone > projet > moteur).
+    @JsonKey(includeIfNull: false) String? battleTransitionId,
     String? characterId,
     String? portraitElementId,
 

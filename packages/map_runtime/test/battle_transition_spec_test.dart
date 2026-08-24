@@ -14,9 +14,9 @@ ProjectManifest _manifest({ProjectBattleTransitionConfig? battleTransitions}) {
   );
 }
 
-WildBattleStartRequest _wildRequest() {
-  return const WildBattleStartRequest(
-    requestId: 'wild-request',
+WildBattleStartRequest _wildRequest({String requestId = 'wild-request'}) {
+  return WildBattleStartRequest(
+    requestId: requestId,
     createdAtEpochMs: 1,
     returnContext: OverworldReturnContext(
       mapId: 'field_map',
@@ -50,6 +50,29 @@ TrainerBattleStartRequest _trainerRequest() {
     npcEntityId: 'npc_rookie',
     mapId: 'field_map',
     playerPos: GridPos(x: 2, y: 2),
+  );
+}
+
+MapData _mapWithZoneTransitions(List<String> battleTransitionIds) {
+  return MapData(
+    id: 'field_map',
+    name: 'Field Map',
+    size: const GridSize(width: 8, height: 8),
+    layers: const <MapLayer>[],
+    gameplayZones: <MapGameplayZone>[
+      MapGameplayZone(
+        id: 'grass_zone',
+        kind: GameplayZoneKind.encounter,
+        area: const MapRect(
+          pos: GridPos(x: 0, y: 0),
+          size: GridSize(width: 8, height: 8),
+        ),
+        encounter: EncounterZonePayload(
+          encounterTableId: 'grass_table',
+          battleTransitionIds: battleTransitionIds,
+        ),
+      ),
+    ],
   );
 }
 
@@ -179,6 +202,121 @@ void main() {
             .having((p) => p.sheetName, 'planche', 'diamant_perle_trainer_02'),
       );
       expect(phases[5], isA<TransitionHoldBlackPhase>());
+    });
+  });
+
+  group('BETA-BAT-019 — la chaîne dresseur > zone > projet > moteur', () {
+    test(
+        'la zone qui a déclenché la rencontre gagne sur le défaut projet, '
+        'et le tirage est déterministe par requête', () {
+      final manifest = _manifest(
+        battleTransitions: const ProjectBattleTransitionConfig(
+          wildTransitionId: 'rby_wild',
+        ),
+      );
+      final map = _mapWithZoneTransitions(<String>['hgss_wild', 'rs_wild']);
+
+      final first = resolveBattleTransitionSpec(
+        request: _wildRequest(requestId: 'wild:a'),
+        manifest: manifest,
+        map: map,
+      );
+      expect(
+        <String>['hgss_wild', 'rs_wild'],
+        contains(first.id),
+        reason: 'la zone impose son panel, pas le défaut projet',
+      );
+      for (var i = 0; i < 5; i++) {
+        expect(
+          resolveBattleTransitionSpec(
+            request: _wildRequest(requestId: 'wild:a'),
+            manifest: manifest,
+            map: map,
+          ).id,
+          first.id,
+          reason: 'le même requestId rejoue LA même transition — tirage '
+              'déterministe, rejouable en test comme en partie chargée',
+        );
+      }
+
+      final drawn = <String>{first.id};
+      for (var i = 0; i < 40 && drawn.length < 2; i++) {
+        drawn.add(
+          resolveBattleTransitionSpec(
+            request: _wildRequest(requestId: 'wild:$i'),
+            manifest: manifest,
+            map: map,
+          ).id,
+        );
+      }
+      expect(
+        drawn,
+        hasLength(2),
+        reason: 'des requêtes différentes finissent par tirer les deux '
+            'transitions de la zone',
+      );
+    });
+
+    test(
+        'les ids inconnus de la zone sont ignorés ; une liste morte rend '
+        'la main au défaut projet', () {
+      final manifest = _manifest(
+        battleTransitions: const ProjectBattleTransitionConfig(
+          wildTransitionId: 'crystal_wild',
+        ),
+      );
+      final withOneAlive = resolveBattleTransitionSpec(
+        request: _wildRequest(),
+        manifest: manifest,
+        map: _mapWithZoneTransitions(
+            <String>['pas_une_transition', 'gold_wild']),
+      );
+      expect(withOneAlive.id, 'gold_wild',
+          reason: 'l’id inconnu est écarté sans casser l’entrée en combat');
+
+      final allDead = resolveBattleTransitionSpec(
+        request: _wildRequest(),
+        manifest: manifest,
+        map: _mapWithZoneTransitions(<String>['toujours_pas']),
+      );
+      expect(allDead.id, 'crystal_wild',
+          reason: 'liste morte : la chaîne continue vers le défaut projet');
+    });
+
+    test(
+        'la transition authorée du dresseur gagne sur tout, un id inconnu '
+        'rend la main à la chaîne', () {
+      final manifest = ProjectManifest(
+        name: 'battle_transition_spec_test',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        battleTransitions: const ProjectBattleTransitionConfig(
+          trainerTransitionId: 'dpp_trainer',
+        ),
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'rookie',
+            name: 'Rookie',
+            trainerClass: 'Rookie',
+            battleTransitionId: 'hgss_trainer',
+          ),
+          ProjectTrainerEntry(
+            id: 'lost',
+            name: 'Lost',
+            trainerClass: 'Rookie',
+            battleTransitionId: 'transition_fantome',
+          ),
+        ],
+      );
+
+      expect(
+        resolveBattleTransitionSpec(
+          request: _trainerRequest(),
+          manifest: manifest,
+        ).id,
+        'hgss_trainer',
+        reason: 'le dresseur d’abord, comme TRAINER_TRANSITIONS',
+      );
     });
   });
 

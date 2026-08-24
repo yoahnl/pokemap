@@ -39,6 +39,15 @@ abstract class EncounterZonePayload with _$EncounterZonePayload {
     /// Musique de rencontre jouée quand un dresseur repère le joueur dans
     /// cette zone — BETA-BAT-015. Gagne sur le défaut projet ; vide = défaut.
     String? encounterMusicPath,
+
+    /// Transitions de début de combat de cette zone — BETA-BAT-019.
+    ///
+    /// Des ids du registre moteur (`battleTransitionRegistry`). Plusieurs
+    /// valeurs = le runtime en tire une par rencontre (déterministe par
+    /// requête, donc rejouable). Vide = le défaut projet puis le défaut
+    /// moteur ; un id inconnu retombe sur le défaut du type sans jamais
+    /// casser l'entrée en combat.
+    @Default(<String>[]) List<String> battleTransitionIds,
   }) = _EncounterZonePayload;
 
   factory EncounterZonePayload.fromJson(Map<String, dynamic> json) =>
@@ -155,9 +164,7 @@ Map<String, dynamic> migrateMapGameplayZoneJson(Map<String, dynamic> json) {
   final rawMovementMode = out.remove('movementMode');
   if (rawMovementMode is String && rawMovementMode.trim().isNotEmpty) {
     if (out['movement'] == null) {
-      out['movement'] = <String, dynamic>{
-        'requiredMode': rawMovementMode,
-      };
+      out['movement'] = <String, dynamic>{'requiredMode': rawMovementMode};
     }
   }
 
@@ -166,9 +173,7 @@ Map<String, dynamic> migrateMapGameplayZoneJson(Map<String, dynamic> json) {
   if (rawProperties is Map && rawProperties.isNotEmpty) {
     final existing = out['special'] as Map<String, dynamic>?;
     if (existing == null) {
-      out['special'] = <String, dynamic>{
-        'properties': rawProperties,
-      };
+      out['special'] = <String, dynamic>{'properties': rawProperties};
     } else {
       out['special'] = <String, dynamic>{
         ...existing,

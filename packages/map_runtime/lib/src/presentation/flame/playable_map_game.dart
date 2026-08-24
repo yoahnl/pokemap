@@ -7723,6 +7723,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final spec = resolveBattleTransitionSpec(
       request: request,
       manifest: _bundle.manifest,
+      map: _bundle.map,
     );
     final battleStartSePath =
         _bundle.manifest.battleAudio?.battleStartSePath?.trim();

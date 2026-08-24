@@ -30,7 +30,14 @@ mixin _$EncounterZonePayload {
 /// musique de combat de la carte ; vide = la chaîne continue.
  String? get battleMusicPath;/// Musique de rencontre jouée quand un dresseur repère le joueur dans
 /// cette zone — BETA-BAT-015. Gagne sur le défaut projet ; vide = défaut.
- String? get encounterMusicPath;
+ String? get encounterMusicPath;/// Transitions de début de combat de cette zone — BETA-BAT-019.
+///
+/// Des ids du registre moteur (`battleTransitionRegistry`). Plusieurs
+/// valeurs = le runtime en tire une par rencontre (déterministe par
+/// requête, donc rejouable). Vide = le défaut projet puis le défaut
+/// moteur ; un id inconnu retombe sur le défaut du type sans jamais
+/// casser l'entrée en combat.
+ List<String> get battleTransitionIds;
 /// Create a copy of EncounterZonePayload
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -43,16 +50,16 @@ $EncounterZonePayloadCopyWith<EncounterZonePayload> get copyWith => _$EncounterZ
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EncounterZonePayload&&(identical(other.encounterTableId, encounterTableId) || other.encounterTableId == encounterTableId)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.battleBackgroundRelativePath, battleBackgroundRelativePath) || other.battleBackgroundRelativePath == battleBackgroundRelativePath)&&(identical(other.battleMusicPath, battleMusicPath) || other.battleMusicPath == battleMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EncounterZonePayload&&(identical(other.encounterTableId, encounterTableId) || other.encounterTableId == encounterTableId)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.battleBackgroundRelativePath, battleBackgroundRelativePath) || other.battleBackgroundRelativePath == battleBackgroundRelativePath)&&(identical(other.battleMusicPath, battleMusicPath) || other.battleMusicPath == battleMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath)&&const DeepCollectionEquality().equals(other.battleTransitionIds, battleTransitionIds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,encounterTableId,encounterKind,battleBackgroundRelativePath,battleMusicPath,encounterMusicPath);
+int get hashCode => Object.hash(runtimeType,encounterTableId,encounterKind,battleBackgroundRelativePath,battleMusicPath,encounterMusicPath,const DeepCollectionEquality().hash(battleTransitionIds));
 
 @override
 String toString() {
-  return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind, battleBackgroundRelativePath: $battleBackgroundRelativePath, battleMusicPath: $battleMusicPath, encounterMusicPath: $encounterMusicPath)';
+  return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind, battleBackgroundRelativePath: $battleBackgroundRelativePath, battleMusicPath: $battleMusicPath, encounterMusicPath: $encounterMusicPath, battleTransitionIds: $battleTransitionIds)';
 }
 
 
@@ -63,7 +70,7 @@ abstract mixin class $EncounterZonePayloadCopyWith<$Res>  {
   factory $EncounterZonePayloadCopyWith(EncounterZonePayload value, $Res Function(EncounterZonePayload) _then) = _$EncounterZonePayloadCopyWithImpl;
 @useResult
 $Res call({
- String? encounterTableId, EncounterKind encounterKind, String? battleBackgroundRelativePath, String? battleMusicPath, String? encounterMusicPath
+ String? encounterTableId, EncounterKind encounterKind, String? battleBackgroundRelativePath, String? battleMusicPath, String? encounterMusicPath, List<String> battleTransitionIds
 });
 
 
@@ -80,14 +87,15 @@ class _$EncounterZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of EncounterZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? encounterTableId = freezed,Object? encounterKind = null,Object? battleBackgroundRelativePath = freezed,Object? battleMusicPath = freezed,Object? encounterMusicPath = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? encounterTableId = freezed,Object? encounterKind = null,Object? battleBackgroundRelativePath = freezed,Object? battleMusicPath = freezed,Object? encounterMusicPath = freezed,Object? battleTransitionIds = null,}) {
   return _then(_self.copyWith(
 encounterTableId: freezed == encounterTableId ? _self.encounterTableId : encounterTableId // ignore: cast_nullable_to_non_nullable
 as String?,encounterKind: null == encounterKind ? _self.encounterKind : encounterKind // ignore: cast_nullable_to_non_nullable
 as EncounterKind,battleBackgroundRelativePath: freezed == battleBackgroundRelativePath ? _self.battleBackgroundRelativePath : battleBackgroundRelativePath // ignore: cast_nullable_to_non_nullable
 as String?,battleMusicPath: freezed == battleMusicPath ? _self.battleMusicPath : battleMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,encounterMusicPath: freezed == encounterMusicPath ? _self.encounterMusicPath : encounterMusicPath // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,battleTransitionIds: null == battleTransitionIds ? _self.battleTransitionIds : battleTransitionIds // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -172,10 +180,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath,  String? battleMusicPath,  String? encounterMusicPath)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath,  String? battleMusicPath,  String? encounterMusicPath,  List<String> battleTransitionIds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EncounterZonePayload() when $default != null:
-return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath,_that.battleMusicPath,_that.encounterMusicPath);case _:
+return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath,_that.battleMusicPath,_that.encounterMusicPath,_that.battleTransitionIds);case _:
   return orElse();
 
 }
@@ -193,10 +201,10 @@ return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroun
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath,  String? battleMusicPath,  String? encounterMusicPath)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath,  String? battleMusicPath,  String? encounterMusicPath,  List<String> battleTransitionIds)  $default,) {final _that = this;
 switch (_that) {
 case _EncounterZonePayload():
-return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath,_that.battleMusicPath,_that.encounterMusicPath);case _:
+return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath,_that.battleMusicPath,_that.encounterMusicPath,_that.battleTransitionIds);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -213,10 +221,10 @@ return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroun
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath,  String? battleMusicPath,  String? encounterMusicPath)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? encounterTableId,  EncounterKind encounterKind,  String? battleBackgroundRelativePath,  String? battleMusicPath,  String? encounterMusicPath,  List<String> battleTransitionIds)?  $default,) {final _that = this;
 switch (_that) {
 case _EncounterZonePayload() when $default != null:
-return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath,_that.battleMusicPath,_that.encounterMusicPath);case _:
+return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroundRelativePath,_that.battleMusicPath,_that.encounterMusicPath,_that.battleTransitionIds);case _:
   return null;
 
 }
@@ -228,7 +236,7 @@ return $default(_that.encounterTableId,_that.encounterKind,_that.battleBackgroun
 
 @JsonSerializable(explicitToJson: true)
 class _EncounterZonePayload implements EncounterZonePayload {
-  const _EncounterZonePayload({this.encounterTableId, this.encounterKind = EncounterKind.walk, this.battleBackgroundRelativePath, this.battleMusicPath, this.encounterMusicPath});
+  const _EncounterZonePayload({this.encounterTableId, this.encounterKind = EncounterKind.walk, this.battleBackgroundRelativePath, this.battleMusicPath, this.encounterMusicPath, final  List<String> battleTransitionIds = const <String>[]}): _battleTransitionIds = battleTransitionIds;
   factory _EncounterZonePayload.fromJson(Map<String, dynamic> json) => _$EncounterZonePayloadFromJson(json);
 
 /// ID de la [ProjectEncounterTable] du projet (optionnel — zone sans table = inerte).
@@ -251,6 +259,27 @@ class _EncounterZonePayload implements EncounterZonePayload {
 /// Musique de rencontre jouée quand un dresseur repère le joueur dans
 /// cette zone — BETA-BAT-015. Gagne sur le défaut projet ; vide = défaut.
 @override final  String? encounterMusicPath;
+/// Transitions de début de combat de cette zone — BETA-BAT-019.
+///
+/// Des ids du registre moteur (`battleTransitionRegistry`). Plusieurs
+/// valeurs = le runtime en tire une par rencontre (déterministe par
+/// requête, donc rejouable). Vide = le défaut projet puis le défaut
+/// moteur ; un id inconnu retombe sur le défaut du type sans jamais
+/// casser l'entrée en combat.
+ final  List<String> _battleTransitionIds;
+/// Transitions de début de combat de cette zone — BETA-BAT-019.
+///
+/// Des ids du registre moteur (`battleTransitionRegistry`). Plusieurs
+/// valeurs = le runtime en tire une par rencontre (déterministe par
+/// requête, donc rejouable). Vide = le défaut projet puis le défaut
+/// moteur ; un id inconnu retombe sur le défaut du type sans jamais
+/// casser l'entrée en combat.
+@override@JsonKey() List<String> get battleTransitionIds {
+  if (_battleTransitionIds is EqualUnmodifiableListView) return _battleTransitionIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_battleTransitionIds);
+}
+
 
 /// Create a copy of EncounterZonePayload
 /// with the given fields replaced by the non-null parameter values.
@@ -265,16 +294,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EncounterZonePayload&&(identical(other.encounterTableId, encounterTableId) || other.encounterTableId == encounterTableId)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.battleBackgroundRelativePath, battleBackgroundRelativePath) || other.battleBackgroundRelativePath == battleBackgroundRelativePath)&&(identical(other.battleMusicPath, battleMusicPath) || other.battleMusicPath == battleMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EncounterZonePayload&&(identical(other.encounterTableId, encounterTableId) || other.encounterTableId == encounterTableId)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.battleBackgroundRelativePath, battleBackgroundRelativePath) || other.battleBackgroundRelativePath == battleBackgroundRelativePath)&&(identical(other.battleMusicPath, battleMusicPath) || other.battleMusicPath == battleMusicPath)&&(identical(other.encounterMusicPath, encounterMusicPath) || other.encounterMusicPath == encounterMusicPath)&&const DeepCollectionEquality().equals(other._battleTransitionIds, _battleTransitionIds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,encounterTableId,encounterKind,battleBackgroundRelativePath,battleMusicPath,encounterMusicPath);
+int get hashCode => Object.hash(runtimeType,encounterTableId,encounterKind,battleBackgroundRelativePath,battleMusicPath,encounterMusicPath,const DeepCollectionEquality().hash(_battleTransitionIds));
 
 @override
 String toString() {
-  return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind, battleBackgroundRelativePath: $battleBackgroundRelativePath, battleMusicPath: $battleMusicPath, encounterMusicPath: $encounterMusicPath)';
+  return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind, battleBackgroundRelativePath: $battleBackgroundRelativePath, battleMusicPath: $battleMusicPath, encounterMusicPath: $encounterMusicPath, battleTransitionIds: $battleTransitionIds)';
 }
 
 
@@ -285,7 +314,7 @@ abstract mixin class _$EncounterZonePayloadCopyWith<$Res> implements $EncounterZ
   factory _$EncounterZonePayloadCopyWith(_EncounterZonePayload value, $Res Function(_EncounterZonePayload) _then) = __$EncounterZonePayloadCopyWithImpl;
 @override @useResult
 $Res call({
- String? encounterTableId, EncounterKind encounterKind, String? battleBackgroundRelativePath, String? battleMusicPath, String? encounterMusicPath
+ String? encounterTableId, EncounterKind encounterKind, String? battleBackgroundRelativePath, String? battleMusicPath, String? encounterMusicPath, List<String> battleTransitionIds
 });
 
 
@@ -302,14 +331,15 @@ class __$EncounterZonePayloadCopyWithImpl<$Res>
 
 /// Create a copy of EncounterZonePayload
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? encounterTableId = freezed,Object? encounterKind = null,Object? battleBackgroundRelativePath = freezed,Object? battleMusicPath = freezed,Object? encounterMusicPath = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? encounterTableId = freezed,Object? encounterKind = null,Object? battleBackgroundRelativePath = freezed,Object? battleMusicPath = freezed,Object? encounterMusicPath = freezed,Object? battleTransitionIds = null,}) {
   return _then(_EncounterZonePayload(
 encounterTableId: freezed == encounterTableId ? _self.encounterTableId : encounterTableId // ignore: cast_nullable_to_non_nullable
 as String?,encounterKind: null == encounterKind ? _self.encounterKind : encounterKind // ignore: cast_nullable_to_non_nullable
 as EncounterKind,battleBackgroundRelativePath: freezed == battleBackgroundRelativePath ? _self.battleBackgroundRelativePath : battleBackgroundRelativePath // ignore: cast_nullable_to_non_nullable
 as String?,battleMusicPath: freezed == battleMusicPath ? _self.battleMusicPath : battleMusicPath // ignore: cast_nullable_to_non_nullable
 as String?,encounterMusicPath: freezed == encounterMusicPath ? _self.encounterMusicPath : encounterMusicPath // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,battleTransitionIds: null == battleTransitionIds ? _self._battleTransitionIds : battleTransitionIds // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

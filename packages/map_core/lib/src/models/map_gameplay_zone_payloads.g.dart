@@ -16,6 +16,11 @@ _EncounterZonePayload _$EncounterZonePayloadFromJson(
   battleBackgroundRelativePath: json['battleBackgroundRelativePath'] as String?,
   battleMusicPath: json['battleMusicPath'] as String?,
   encounterMusicPath: json['encounterMusicPath'] as String?,
+  battleTransitionIds:
+      (json['battleTransitionIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
 );
 
 Map<String, dynamic> _$EncounterZonePayloadToJson(
@@ -26,6 +31,7 @@ Map<String, dynamic> _$EncounterZonePayloadToJson(
   'battleBackgroundRelativePath': instance.battleBackgroundRelativePath,
   'battleMusicPath': instance.battleMusicPath,
   'encounterMusicPath': instance.encounterMusicPath,
+  'battleTransitionIds': instance.battleTransitionIds,
 };
 
 const _$EncounterKindEnumMap = {

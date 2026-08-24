@@ -344,9 +344,45 @@ const List<String> battleTrainerTransitionIds = <String>[
 BattleTransitionSpec resolveBattleTransitionSpec({
   required BattleStartRequest request,
   required ProjectManifest manifest,
+  MapData? map,
 }) {
   final isTrainerBattle = request is TrainerBattleStartRequest ||
       request is StaticBattleStartRequest;
+
+  // BETA-BAT-019 : le dresseur d'abord — sa transition authorée gagne sur
+  // tout, comme les registres TRAINER_TRANSITIONS de la référence.
+  if (request is TrainerBattleStartRequest) {
+    final trainerId = request.trainerId.trim();
+    for (final trainer in manifest.trainers) {
+      if (trainer.id != trainerId) continue;
+      final authored = trainer.battleTransitionId?.trim() ?? '';
+      final spec = battleTransitionRegistry[authored];
+      if (spec != null) return spec;
+      break;
+    }
+  }
+
+  // BETA-BAT-019 : la ZONE (ou le calque Smart Tile) qui a déclenché la
+  // rencontre sauvage peut porter PLUSIEURS transitions — le runtime en tire
+  // une, déterministe par requête (le même requestId rejoue la même), donc
+  // testable et rejouable. Les ids inconnus sont ignorés sans bruit.
+  if (map != null && request is WildBattleStartRequest) {
+    final source = findEncounterSource(
+      map,
+      kind: request.encounterSourceKind,
+      id: request.encounterSourceId,
+    );
+    final authoredIds =
+        (source?.encounter.battleTransitionIds ?? const <String>[])
+            .map((id) => id.trim())
+            .where(battleTransitionRegistry.containsKey)
+            .toList(growable: false);
+    if (authoredIds.isNotEmpty) {
+      final index = _stableRequestHash(request.requestId) % authoredIds.length;
+      return battleTransitionRegistry[authoredIds[index]]!;
+    }
+  }
+
   final config = manifest.battleTransitions;
   final requestedId =
       (isTrainerBattle ? config?.trainerTransitionId : config?.wildTransitionId)
@@ -357,4 +393,16 @@ BattleTransitionSpec resolveBattleTransitionSpec({
     return fallback;
   }
   return battleTransitionRegistry[requestedId] ?? fallback;
+}
+
+/// FNV-1a sur le requestId : stable entre exécutions et plateformes, là où
+/// `String.hashCode` ne le garantit pas — le tirage d'une transition doit se
+/// rejouer à l'identique dans un test comme dans une partie chargée.
+int _stableRequestHash(String requestId) {
+  var hash = 0x811c9dc5;
+  for (final unit in requestId.codeUnits) {
+    hash ^= unit;
+    hash = (hash * 0x01000193) & 0x7fffffff;
+  }
+  return hash;
 }
