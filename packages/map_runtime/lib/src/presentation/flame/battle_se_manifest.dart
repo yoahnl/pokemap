@@ -112,6 +112,9 @@ const Map<String, String> battleSeManifest = <String, String>{
   'hitplus': 'hitplus.wav',
   'ball_throw': 'fall.wav',
   'ball_open': 'pokeopen.wav',
+  'ball_bounce': 'pokerebond.wav',
+  'ball_shake': 'pokemove.wav',
+  'ball_verdict': 'pokeopenbreak.wav',
   'flee': 'fleee.wav',
   'level_up': 'rosa_levelup.ogg',
 };

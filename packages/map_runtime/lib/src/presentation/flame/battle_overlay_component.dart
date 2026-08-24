@@ -21,6 +21,7 @@ import 'battle_combatant_gender_resolver.dart';
 import 'battle_animation_plan.dart';
 import 'battle_animation_runner.dart';
 import 'battle_ball_manifest.dart';
+import 'battle_ball_capture_component.dart';
 import 'battle_ball_throw_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_camera_rig.dart';
@@ -638,6 +639,10 @@ class BattleOverlayComponent extends PositionComponent {
   BattleAnimationPlan _activeAnimationPlan =
       const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
   Set<BattleSideId> _presentationLockedCombatantSides = <BattleSideId>{};
+
+  /// BETA-BAT-025 : le sauvage capturé reste dans sa Ball jusqu'au démontage
+  /// du combat — la resynchronisation de fin de plan le remettrait debout.
+  bool _capturedEnemyHeldInBall = false;
   BattleCombatant? _displayedEnemyCombatant;
   BattleCombatant? _displayedPlayerCombatant;
   int _presentationGeneration = 0;
@@ -705,6 +710,11 @@ class BattleOverlayComponent extends PositionComponent {
   double? get debugPlayerSpriteOpacity =>
       // ignore: invalid_use_of_visible_for_testing_member
       _playerCombatant?.currentVisualOpacity;
+
+  @visibleForTesting
+  double? get debugEnemySpriteScaleX =>
+      // ignore: invalid_use_of_visible_for_testing_member
+      _enemyCombatant?.currentVisualScaleX;
 
   @visibleForTesting
   bool get narrationPanelMounted => _commandPanel != null;
@@ -891,6 +901,69 @@ class BattleOverlayComponent extends PositionComponent {
     } on Object catch (error) {
       debugPrint('[battle] ball sheet undecodable ($sheetName): $error');
       return null;
+    }
+  }
+
+  /// La séquence de capture — BETA-BAT-025. Le composant pilote la Ball et
+  /// notifie ses moments ; l'hôte joue les sons de la référence et fait
+  /// rétrécir/réapparaître le sauvage. Sans planche chargeable, rien ne se
+  /// monte et les durées s'écoulent : les messages restent lisibles.
+  void _handleBallCaptureSequenceStep(PlayBallCaptureSequenceStep step) {
+    final sheet = _ballSheetImages[step.sheetName];
+    if (sheet == null) return;
+    final layout = currentSceneLayout;
+    final spriteRect = layout.enemySpriteRect;
+    final targetCenter = Offset(
+      spriteRect.center.dx,
+      spriteRect.bottom - spriteRect.height * 0.45,
+    );
+    add(
+      BattleBallCaptureComponent(
+        sheet: sheet,
+        shakes: step.shakes,
+        caught: step.caught,
+        targetCenter: targetCenter,
+        throwStartX: ballThrowStartXFor(
+          side: BattleSideId.player,
+          viewportWidth: size.x,
+        ),
+        // Le zoom de la référence, comme le send-out : la cellule 64 au
+        // même zoom que le sprite 96 (BETA-BAT-024).
+        cellSize: spriteRect.height * (64 / 96),
+        onCue: (cue) {
+          switch (cue) {
+            case BattleBallCaptureCue.absorb:
+              unawaited(
+                _enemyCombatant?.playMaterializeOut(durationSeconds: 0.2) ??
+                    Future<void>.value(),
+              );
+            case BattleBallCaptureCue.close:
+              playSfx?.call('ball_open', volume: 100, pitch: 100);
+            case BattleBallCaptureCue.bounce:
+              playSfx?.call('ball_bounce', volume: 100, pitch: 100);
+            case BattleBallCaptureCue.shake:
+              playSfx?.call('ball_shake', volume: 100, pitch: 100);
+            case BattleBallCaptureCue.verdict:
+              // Parité `catching_ball_se` / `break_ball_se` : le même son,
+              // aigu (pitch 180) pour le clic de verrouillage, normal pour
+              // l'éclatement.
+              playSfx?.call(
+                'ball_verdict',
+                volume: 100,
+                pitch: step.caught ? 180 : 100,
+              );
+            case BattleBallCaptureCue.release:
+              unawaited(
+                _enemyCombatant?.playMaterializeIn(durationSeconds: 0.2) ??
+                    Future<void>.value(),
+              );
+          }
+        },
+      ),
+    );
+    playSfx?.call('ball_throw', volume: 100, pitch: 100);
+    if (step.caught) {
+      _capturedEnemyHeldInBall = true;
     }
   }
 
@@ -1101,6 +1174,12 @@ class BattleOverlayComponent extends PositionComponent {
       'down',
       'level_up',
       'flee',
+      // BETA-BAT-025 : les sons de la Ball — envoi, capture et verdicts.
+      'ball_throw',
+      'ball_open',
+      'ball_bounce',
+      'ball_shake',
+      'ball_verdict',
     };
     try {
       await BattleSdkRmxpAnimationCatalog.ensureLoaded();
@@ -1303,6 +1382,7 @@ class BattleOverlayComponent extends PositionComponent {
       onHudXpTween: _handleHudXpTweenStep,
       onShowDefeatedTrainer: _handleShowDefeatedTrainerStep,
       onPlayBallSequence: _handleBallSequenceStep,
+      onPlayBallCaptureSequence: _handleBallCaptureSequenceStep,
       onPlaySe: (step) => playSfx?.call(
         step.seName,
         volume: step.volume,
@@ -1518,6 +1598,7 @@ class BattleOverlayComponent extends PositionComponent {
     _selectedMedicineAction = null;
     _selectedMedicineTargetIndex = 0;
     _bagFeedbackMessage = null;
+    _capturedEnemyHeldInBall = false;
     _activeAnimationPlan = animationPlan;
     _presentationHeldHp.clear();
     for (final step
@@ -1953,6 +2034,13 @@ class BattleOverlayComponent extends PositionComponent {
     required Set<BattleSideId> preserveDisplayedCombatantSides,
   }) {
     if (preserveDisplayedCombatantSides.contains(side) || combatant.isFainted) {
+      return;
+    }
+    // BETA-BAT-025 : un sauvage CAPTURÉ reste dans sa Ball, comme un K.O.
+    // reste couché — sans quoi il se remettait debout une fraction de
+    // seconde après le clic de verrouillage.
+    if (side == BattleSideId.enemy && _capturedEnemyHeldInBall) {
+      _combatantForSide(side)?.holdMaterializeHidden();
       return;
     }
     _combatantForSide(side)?.snapToBattlePose();
@@ -3610,7 +3698,13 @@ class BattleOverlayComponent extends PositionComponent {
       if (!_isCurrentPresentationGeneration(presentationGeneration)) {
         return;
       }
-      sceneCombatant.snapToBattlePose();
+      // BETA-BAT-025 : même exemption que [_restoreAliveCombatantPoseAfterSync]
+      // — un sauvage capturé reste dans sa Ball.
+      if (side == BattleSideId.enemy && _capturedEnemyHeldInBall) {
+        sceneCombatant.holdMaterializeHidden();
+      } else {
+        sceneCombatant.snapToBattlePose();
+      }
     }
     _hudForSide(side)?.sync(
       combatant: combatant,

@@ -849,6 +849,42 @@ enum BattleBallSequenceKind {
   recall,
 }
 
+/// La séquence de capture complète de la référence — BETA-BAT-025.
+///
+/// Parité `show_catch_animation` (206 Show_stuff.rb) : la Ball vole du côté
+/// joueur vers le sauvage (0,4 s, arc SQUARE010), s'ouvre (0,2 s), le
+/// Pokémon est absorbé (0,2 s), la Ball se referme (0,5 s) puis tombe au sol
+/// avec des rebonds amortis (1 s, trois sons de rebond), attend 0,5 s, joue
+/// [shakes] secousses (0,5 s + 0,5 s de pause chacune, un son par secousse),
+/// et rend son verdict (0,5 s) : le clic de verrouillage qui laisse la Ball
+/// posée, ou l'éclatement qui libère le Pokémon (0,2 s de réapparition).
+///
+/// ENC-005 : [shakes] est le nombre décidé par la formule de capture et
+/// REJOUÉ ici — jamais recalculé, jamais dérivé de [caught]. Étape À DURÉE
+/// (elle tient sa phase pour toute la séquence). Sans planche chargeable,
+/// l'étape ne montre rien et la durée s'écoule : les messages restent
+/// lisibles, comme les autres emplois de la Ball.
+final class PlayBallCaptureSequenceStep extends BattleAnimationStep {
+  const PlayBallCaptureSequenceStep({
+    required this.shakes,
+    required this.caught,
+    this.sheetName = 'ball_1',
+  }) : assert(
+          shakes >= 0 && shakes <= 3,
+          'Capture shakes are the VISIBLE shakes, clamped to 0..3 upstream.',
+        );
+
+  final int shakes;
+  final bool caught;
+  final String sheetName;
+
+  /// Parité des timings de la référence : lancer 0,4 + ouverture 0,2 +
+  /// absorption 0,2 + fermeture 0,5 + chute 1,0 + pause 0,5, puis 1,0 par
+  /// secousse, puis verdict 0,5 — et 0,2 de réapparition sur un échec.
+  double get durationSeconds =>
+      2.8 + shakes * 1.0 + 0.5 + (caught ? 0.0 : 0.2);
+}
+
 /// Fait réapparaître le dresseur vaincu à la place de son Pokémon —
 /// BETA-BAT-017. Accent instantané : l'image a été préparée par l'hôte
 /// ([BattleOverlayComponent.prepareDefeatedTrainerVisual]) ; sans image

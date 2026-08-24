@@ -319,4 +319,166 @@ void main() {
       reason: 'les deux impacts puis le son de K.O., dans cet ordre',
     );
   });
+
+  // BETA-BAT-025 — recette du 2026-08-24 : « je n'ai pas l'animation du
+  // lancé, du pokémon qui rentre dedans, de la pokéball qui bouge, ni la
+  // réussite ou l'échec ». La séquence complète de la référence, de bout en
+  // bout dans la scène : les sons dans l'ordre exact et le sauvage absorbé
+  // par la Ball.
+  test(
+      'BETA-BAT-025 : la capture joue la Ball — lancer, absorption, rebonds, '
+      'secousses, verdict', () async {
+    final seLog = <String>[];
+    final pitchLog = <int>[];
+    final before = _fatalSession();
+    final overlay = BattleOverlayComponent(
+      session: before,
+      viewportSize: Vector2(960, 540),
+      onPlayerChoice: (_) {},
+      playSfx: (name, {required volume, required pitch}) {
+        seLog.add(name);
+        pitchLog.add(pitch);
+      },
+    );
+    await overlay.onLoad();
+    await overlay.waitForPendingVisualSync();
+    // La planche de Ball se charge en fond (chemin sans intro) : lui laisser
+    // ses tours d'event loop avant de pousser le tour de capture.
+    for (var i = 0; i < 20; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    const event = BattleCaptureAttemptEvent(
+      attemptId: 'capture-attempt-1',
+      targetSpeciesId: 'roucool',
+      ballId: canonicalPokeBallItemId,
+      caught: false,
+      shakes: 2,
+    );
+    final afterTurn = before.withRuntimeDisplayState(
+      currentTurn: const BattleTurnResult(
+        playerAction: BattleActionCapture(
+          attemptId: 'capture-attempt-1',
+          itemId: canonicalPokeBallItemId,
+          caught: false,
+          shakes: 2,
+        ),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[],
+        captureAttemptEvents: <BattleCaptureAttemptEvent>[event],
+        timeline: <BattleTurnEvent>[BattleTurnCaptureAttemptEvent(event)],
+      ),
+    );
+    overlay.updateState(afterTurn);
+    await overlay.waitForPendingVisualSync();
+
+    var sawAbsorbedEnemy = false;
+    for (var i = 0; i < 90 && overlay.isTurnPresentationActive; i++) {
+      overlay.updateTree(0.1);
+      await Future<void>.delayed(Duration.zero);
+      if ((overlay.debugEnemySpriteScaleX ?? 1) < 0.05) {
+        sawAbsorbedEnemy = true;
+      }
+    }
+
+    expect(
+      seLog,
+      containsAllInOrder(<String>[
+        'ball_throw',
+        'ball_open',
+        'ball_bounce',
+        'ball_bounce',
+        'ball_bounce',
+        'ball_shake',
+        'ball_shake',
+        'ball_verdict',
+      ]),
+      reason: 'la bande-son exacte de la référence : lancer, fermeture, '
+          'trois rebonds, les deux secousses transmises, l’éclatement',
+    );
+    expect(
+      pitchLog[seLog.indexOf('ball_verdict')],
+      100,
+      reason: 'l’éclatement garde le pitch normal — le clic de capture '
+          'serait à 180',
+    );
+    expect(
+      sawAbsorbedEnemy,
+      isTrue,
+      reason: 'le sauvage rétrécit dans la Ball pendant la tentative',
+    );
+    expect(
+      overlay.debugEnemySpriteScaleX,
+      1.0,
+      reason: 'l’échec le libère : il réapparaît en entier',
+    );
+  });
+
+  test(
+      'BETA-BAT-025 : une capture réussie clique à pitch 180 et garde le '
+      'sauvage dans la Ball', () async {
+    final seLog = <String>[];
+    final pitchLog = <int>[];
+    final before = _fatalSession();
+    final overlay = BattleOverlayComponent(
+      session: before,
+      viewportSize: Vector2(960, 540),
+      onPlayerChoice: (_) {},
+      playSfx: (name, {required volume, required pitch}) {
+        seLog.add(name);
+        pitchLog.add(pitch);
+      },
+    );
+    await overlay.onLoad();
+    await overlay.waitForPendingVisualSync();
+    for (var i = 0; i < 20; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    const event = BattleCaptureAttemptEvent(
+      attemptId: 'capture-attempt-1',
+      targetSpeciesId: 'roucool',
+      ballId: canonicalPokeBallItemId,
+      caught: true,
+      shakes: 4,
+    );
+    final afterTurn = before.withRuntimeDisplayState(
+      currentTurn: const BattleTurnResult(
+        playerAction: BattleActionCapture(
+          attemptId: 'capture-attempt-1',
+          itemId: canonicalPokeBallItemId,
+          caught: true,
+          shakes: 4,
+        ),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[],
+        captureAttemptEvents: <BattleCaptureAttemptEvent>[event],
+        timeline: <BattleTurnEvent>[BattleTurnCaptureAttemptEvent(event)],
+      ),
+    );
+    overlay.updateState(afterTurn);
+    await overlay.waitForPendingVisualSync();
+
+    for (var i = 0; i < 110 && overlay.isTurnPresentationActive; i++) {
+      overlay.updateTree(0.1);
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    expect(seLog, contains('ball_verdict'));
+    expect(
+      pitchLog[seLog.indexOf('ball_verdict')],
+      180,
+      reason: 'parité `catching_ball_se` : le clic de verrouillage est aigu',
+    );
+    expect(
+      seLog.where((name) => name == 'ball_shake'),
+      hasLength(3),
+      reason: 'les secousses visibles d’une capture plafonnent à trois',
+    );
+    expect(
+      overlay.debugEnemySpriteScaleX,
+      lessThan(0.05),
+      reason: 'le sauvage capturé reste dans la Ball',
+    );
+  });
 }

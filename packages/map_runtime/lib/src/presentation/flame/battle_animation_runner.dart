@@ -18,6 +18,7 @@ final class BattleAnimationRunner {
     this.onHudXpTween,
     this.onShowDefeatedTrainer,
     this.onPlayBallSequence,
+    this.onPlayBallCaptureSequence,
     this.onPlaySe,
     required this.onBarrierPulse,
     required this.onSwapCombatantVisual,
@@ -52,6 +53,8 @@ final class BattleAnimationRunner {
   final void Function(HudXpTweenStep step)? onHudXpTween;
   final void Function()? onShowDefeatedTrainer;
   final void Function(PlayBallSequenceStep step)? onPlayBallSequence;
+  final void Function(PlayBallCaptureSequenceStep step)?
+      onPlayBallCaptureSequence;
 
   /// BETA-BAT-014 : un son du plan. Nul chez un hôte sans audio — les
   /// harnais de test et les hôtes silencieux gardent exactement l'ancien
@@ -220,6 +223,15 @@ final class BattleAnimationRunner {
         case PlayBallSequenceStep():
           _nextStepIndex += 1;
           onPlayBallSequence?.call(step);
+          _phaseDuration = step.durationSeconds;
+          onPresentationChanged();
+          if (_phaseDuration <= 0) {
+            continue;
+          }
+          return;
+        case PlayBallCaptureSequenceStep():
+          _nextStepIndex += 1;
+          onPlayBallCaptureSequence?.call(step);
           _phaseDuration = step.durationSeconds;
           onPresentationChanged();
           if (_phaseDuration <= 0) {
@@ -579,6 +591,8 @@ final class BattleAnimationRunner {
         onHudXpTween?.call(step);
       case PlayBallSequenceStep():
         onPlayBallSequence?.call(step);
+      case PlayBallCaptureSequenceStep():
+        onPlayBallCaptureSequence?.call(step);
       case AnimationGroupStep():
       case ShowMessageStep():
       case WaitStep():

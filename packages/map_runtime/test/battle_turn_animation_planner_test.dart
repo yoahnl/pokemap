@@ -198,7 +198,12 @@ void main() {
       );
 
       final steps = plan.steps;
-      expect(steps.whereType<CombatantShakeStep>(), hasLength(2));
+      // BETA-BAT-025 : les secousses décidées par la formule sont désormais
+      // REJOUÉES par la séquence de Ball — le step les porte telles quelles.
+      final capture =
+          steps.whereType<PlayBallCaptureSequenceStep>().single;
+      expect(capture.shakes, 2);
+      expect(capture.caught, isFalse);
       final messages = steps
           .whereType<ShowMessageStep>()
           .map((step) => step.message)
@@ -211,13 +216,15 @@ void main() {
       final verdictIndex = steps.indexWhere(
         (step) => step is ShowMessageStep && step.message.contains('échappe'),
       );
-      for (final (index, step) in steps.indexed) {
-        if (step is CombatantShakeStep) {
-          expect(index, greaterThan(throwIndex));
-          expect(index, lessThan(verdictIndex));
-          expect(step.side, BattleSideId.enemy);
-        }
-      }
+      final captureIndex = steps.indexOf(capture);
+      expect(captureIndex, greaterThan(throwIndex));
+      expect(captureIndex, lessThan(verdictIndex));
+      expect(
+        steps.whereType<CombatantShakeStep>(),
+        isEmpty,
+        reason: 'recette du 2026-08-24 : c’est la BALL qui tremble, plus le '
+            'Pokémon',
+      );
     });
 
     test('a successful capture caps visual shakes at three before the click',
@@ -268,7 +275,15 @@ void main() {
         resolver: _resolver(),
       );
 
-      expect(plan.steps.whereType<CombatantShakeStep>(), hasLength(3));
+      final capture =
+          plan.steps.whereType<PlayBallCaptureSequenceStep>().single;
+      expect(
+        capture.shakes,
+        3,
+        reason: 'la quatrième « secousse » d’une capture est le clic de '
+            'verrouillage, porté par le verdict',
+      );
+      expect(capture.caught, isTrue);
       expect(
         plan.steps
             .whereType<ShowMessageStep>()

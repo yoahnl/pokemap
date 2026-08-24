@@ -78,10 +78,15 @@ void main(List<String> arguments) {
   // Les sons de Poké Ball de la référence (sound_design_config.json du
   // projet de test) : le lancer et l'ouverture/rappel — BETA-BAT-022.
   // La fuite (`escape` → fleee.wav, volume 80, pitch 70) rejoint la même
-  // famille depuis la recette du 2026-08-24.
+  // famille depuis la recette du 2026-08-24, et la capture (BETA-BAT-025)
+  // apporte le rebond au sol, la secousse et le verdict — le même
+  // `pokeopenbreak` sert au clic (pitch 180) et à l'éclatement (pitch 100).
   const ballSounds = <String, String>{
     'ball_throw': 'fall',
     'ball_open': 'pokeopen',
+    'ball_bounce': 'pokerebond',
+    'ball_shake': 'pokemove',
+    'ball_verdict': 'pokeopenbreak',
     'flee': 'fleee',
   };
   for (final entry in ballSounds.entries) {
