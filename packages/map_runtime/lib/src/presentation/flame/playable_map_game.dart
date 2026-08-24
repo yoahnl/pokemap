@@ -7973,7 +7973,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _battleXpProgressAtMount = playerExperienceProgressByLineupIndex;
 
       // Afficher l'overlay de combat avec la session
-      final overlay = _traceSync(
+      late final BattleOverlayComponent overlay;
+      overlay = _traceSync(
         'battle',
         'overlay',
         () => BattleOverlayComponent(
@@ -8006,6 +8007,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           onPlayerChoice: _onPlayerBattleChoice,
           onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
           onCommandOverlaySnapshotChanged: (snapshot) {
+            // Recette 2026-08-24 : après le commit de fin de combat, une
+            // publication tardive de l'overlay démonté (course entre le null
+            // du démontage et un snapshot différé au post-frame) laissait le
+            // panneau « Combat terminé. » et les HUD flotter sur l'overworld
+            // jusqu'au prochain resize. Un overlay qui n'est plus LE combat
+            // actif n'a plus voix au chapitre — seul son null est encore
+            // accepté, jamais un contenu.
+            if (snapshot != null && !identical(_battleOverlay, overlay)) {
+              return;
+            }
             _setBattleCommandOverlaySnapshot(snapshot);
           },
           preferTouchListDragScroll: false,

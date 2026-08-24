@@ -2145,6 +2145,22 @@ void main() {
         isFalse,
         reason: 'le fondu s’ouvre sur l’overworld puis se retire',
       );
+
+      // Recette 2026-08-24 : une publication TARDIVE de l'overlay démonté
+      // (course post-frame sur device) laissait le panneau « Combat
+      // terminé. » et les HUD flotter sur l'overworld jusqu'au prochain
+      // resize. Un overlay zombie qui republie ne doit plus avoir voix au
+      // chapitre.
+      expect(game.battleCommandOverlayListenable.value, isNull);
+      activeOverlay.setPreferTouchListDragScroll(true);
+      activeOverlay.updateTree(0.25);
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        game.battleCommandOverlayListenable.value,
+        isNull,
+        reason: 'le snapshot d’un overlay démonté est ignoré — le panneau de '
+            'combat ne ressuscite pas sur l’overworld',
+      );
     });
 
     test('battle overlay reflows when PlayableMapGame viewport changes',
