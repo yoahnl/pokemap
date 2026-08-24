@@ -35,6 +35,32 @@ final class FlameAudioBattleSfxPlayer {
   final Set<AudioPlayer> _livePlayers = <AudioPlayer>{};
   var _disposed = false;
 
+  /// BETA-BAT-018 : un cache d'assets PARTAGÉ entre tous les lecteurs.
+  ///
+  /// Chaque `play` créait son AudioCache : le fichier était re-préparé à
+  /// chaque coup et une préchauffe n'aurait profité à personne. Le cache
+  /// partagé rend la préchauffe effective et les lectures suivantes chaudes.
+  static final AudioCache _sharedAssetCache = AudioCache(prefix: '');
+
+  /// Prépare les sons nommés AVANT le premier coup — appelé sous le noir de
+  /// la pré-transition. Best-effort : un échec laisse le chemin paresseux
+  /// existant faire son travail, en silence.
+  Future<void> precache(Iterable<String> seNames) async {
+    if (_disposed) return;
+    final assetPaths = seNames
+        .map((seName) => _manifest[seName])
+        .whereType<String>()
+        .map((fileName) => '$_assetPrefix$fileName')
+        .toSet()
+        .toList(growable: false);
+    if (assetPaths.isEmpty) return;
+    try {
+      await _sharedAssetCache.loadAll(assetPaths);
+    } on Object catch (error) {
+      debugPrint('[battle-sfx] precache failed: $error');
+    }
+  }
+
   void play(String seName, {required int volume, required int pitch}) {
     if (_disposed) return;
     final fileName = _manifest[seName];
@@ -44,8 +70,7 @@ final class FlameAudioBattleSfxPlayer {
       }
       return;
     }
-    final player = AudioPlayer()
-      ..audioCache = AudioCache(prefix: '');
+    final player = AudioPlayer()..audioCache = _sharedAssetCache;
     _livePlayers.add(player);
     player.onPlayerComplete.first.whenComplete(() => _release(player));
     () async {
@@ -75,8 +100,7 @@ final class FlameAudioBattleSfxPlayer {
   /// même cycle de vie que les sons nommés, même tolérance aux échecs.
   void playProjectFile(String absolutePath) {
     if (_disposed) return;
-    final player = AudioPlayer()
-      ..audioCache = AudioCache(prefix: '');
+    final player = AudioPlayer()..audioCache = AudioCache(prefix: '');
     _livePlayers.add(player);
     player.onPlayerComplete.first.whenComplete(() => _release(player));
     () async {

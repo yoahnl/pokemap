@@ -498,6 +498,12 @@ void main() {
         isFalse,
         reason: 'la pré-transition ne survit pas au reveal',
       );
+      expect(
+        game.debugBattleFxImageCacheCount,
+        greaterThan(0),
+        reason: 'BETA-BAT-018 : les planches des capacités des deux camps '
+            'sont préchauffées sous le noir — le premier coup ne gèle plus',
+      );
 
       expect(game.debugFlowPhaseName, 'battle');
       expect(game.debugBattleOverlayComponent!.selectRootEntry(0), isTrue);

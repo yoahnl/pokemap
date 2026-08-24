@@ -154,6 +154,11 @@ const double _kViewportTilesY = 11.0;
 const double _kWaterRequiresSurfMessageCooldownMs = 900;
 const bool _kVerboseEncounterLogs = false;
 
+/// BETA-BAT-018 : le temps maximal accordé à la préchauffe des effets de
+/// combat sous le noir de la pré-transition. Au-delà, le reveal part quand
+/// même — jamais de noir éternel — et le chargement finit en arrière-plan.
+const Duration battleMoveEffectsPrecacheBudget = Duration(seconds: 2);
+
 enum _RuntimeFlowPhase {
   overworld,
   blockingInteraction,
@@ -2804,6 +2809,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @visibleForTesting
   bool get debugBattleExitCurtainMounted => _battleExitCurtain != null;
+
+  @visibleForTesting
+  int get debugBattleFxImageCacheCount =>
+      _battleFxBundleCache.debugCachedImageCount;
 
   @visibleForTesting
   bool get debugIsBattleResolving => _isBattleResolving;
@@ -8030,6 +8039,34 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       overlay.setUseFlutterCommandOverlay(_preferBattleFlutterCommandOverlay);
       _battleOverlay = overlay;
       _syncRuntimeMusic();
+      // BETA-BAT-018 : le premier usage d'une capacité décodait ses planches
+      // à la demande et gelait la scène ~3 s. La fenêtre de noir de la
+      // pré-transition est le moment idéal : on y préchauffe les visuels et
+      // les sons des capacités des deux camps, borné par un budget — au-delà,
+      // le reveal part quand même et le chargement finit en fond. Le chemin
+      // sans pré-transition (seams de test) garde le chargement paresseux.
+      if (_battleTransitionOverlay != null) {
+        final precache = _traceAsync(
+          'battle',
+          'precacheMoveEffects',
+          () => Future.wait(<Future<void>>[
+            overlay.precacheBattleMoveEffects(),
+            overlay.collectBattleSeNames().then(
+                  (seNames) =>
+                      _battleSfxPlayer?.precache(seNames) ??
+                      Future<void>.value(),
+                ),
+          ]),
+        );
+        await Future.any(<Future<void>>[
+          precache,
+          Future<void>.delayed(battleMoveEffectsPrecacheBudget),
+        ]);
+        if (_flowPhase != _RuntimeFlowPhase.battleTransition ||
+            !identical(_battleOverlay, overlay)) {
+          return;
+        }
+      }
       _maybeRevealBattleScene();
       battleStopwatch.stop();
       debugPrint(

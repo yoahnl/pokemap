@@ -19,6 +19,10 @@ final class BattleFxBundleCache {
   final Map<String, Future<Sprite>> _spriteFutureByEffectId =
       <String, Future<Sprite>>{};
 
+  /// BETA-BAT-018 : le nombre d'images déjà demandées au cache — la preuve
+  /// observable qu'une préchauffe a bien eu lieu avant le premier coup.
+  int get debugCachedImageCount => _imageFutureByEffectId.length;
+
   Future<ui.Image> loadImage(String effectId) async {
     final normalizedEffectId = effectId.trim();
     final spec = BattleFxCatalog.require(normalizedEffectId);

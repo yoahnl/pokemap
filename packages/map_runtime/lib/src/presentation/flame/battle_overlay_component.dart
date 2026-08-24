@@ -950,6 +950,79 @@ class BattleOverlayComponent extends PositionComponent {
         isPlayerSide: false,
       );
 
+  /// BETA-BAT-018 : préchauffe les visuels des capacités du combat.
+  ///
+  /// Le premier usage d'une capacité décodait ses planches d'animation à la
+  /// demande et gelait la scène plusieurs secondes. L'hôte appelle cette
+  /// préchauffe pendant le noir de la pré-transition, borné par son budget ;
+  /// chaque échec individuel est silencieux — le chargement paresseux
+  /// existant reste le filet de sécurité.
+  Future<void> precacheBattleMoveEffects() async {
+    try {
+      await BattleSdkRmxpAnimationCatalog.ensureLoaded();
+    } on Object catch (error) {
+      debugPrint('[battle] rmxp catalog unavailable for precache: $error');
+      return;
+    }
+    final assetIds = <String>{};
+    for (final move in <BattleMove>[
+      ..._session.state.player.moves,
+      ..._session.state.enemy.moves,
+    ]) {
+      final resolved = _moveVisualResolver.resolve(move);
+      for (final animationId in <int?>[
+        resolved.rmxpUserAnimationId,
+        resolved.rmxpTargetAnimationId,
+      ]) {
+        if (animationId == null) continue;
+        final spec = BattleSdkRmxpAnimationCatalog.byAnimationId[animationId];
+        if (spec != null) assetIds.add(spec.assetId);
+      }
+    }
+    await Future.wait(assetIds.map((assetId) async {
+      try {
+        await _fxBundleCache.loadImage(assetId);
+      } on Object catch (error) {
+        debugPrint('[battle] move effect precache failed for $assetId: '
+            '$error');
+      }
+    }));
+  }
+
+  /// Les noms de sons que ce combat peut jouer — BETA-BAT-018.
+  ///
+  /// Les sons système du tour (impact selon l'efficacité, K.O.), le jingle
+  /// de niveau, et les timings sonores des animations des capacités des
+  /// deux camps. L'hôte les donne à préchauffer à son lecteur.
+  Future<Set<String>> collectBattleSeNames() async {
+    final seNames = <String>{'hit', 'hitplus', 'hitlow', 'down', 'level_up'};
+    try {
+      await BattleSdkRmxpAnimationCatalog.ensureLoaded();
+    } on Object catch (error) {
+      debugPrint('[battle] rmxp catalog unavailable for se precache: $error');
+      return seNames;
+    }
+    for (final move in <BattleMove>[
+      ..._session.state.player.moves,
+      ..._session.state.enemy.moves,
+    ]) {
+      final resolved = _moveVisualResolver.resolve(move);
+      for (final animationId in <int?>[
+        resolved.rmxpUserAnimationId,
+        resolved.rmxpTargetAnimationId,
+      ]) {
+        if (animationId == null) continue;
+        final spec = BattleSdkRmxpAnimationCatalog.byAnimationId[animationId];
+        if (spec == null) continue;
+        for (final timing in spec.timings) {
+          final seName = timing.seName;
+          if (seName != null && seName.isNotEmpty) seNames.add(seName);
+        }
+      }
+    }
+    return seNames;
+  }
+
   Future<void> waitForPendingVisualSync() async {
     await (_pendingVisualSync ?? Future<void>.value());
   }
