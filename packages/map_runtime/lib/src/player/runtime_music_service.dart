@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import 'runtime_audio_mixer.dart';
+import 'runtime_music_loop_points.dart';
 
 /// Joue LA musique courante du runtime — BETA-BAT-015.
 ///
@@ -40,6 +43,7 @@ final class RuntimeMusicService {
 
   Future<void> _pending = Future<void>.value();
   Object? _handle;
+  StreamSubscription<void>? _loopSubscription;
   String? _playingPath;
   double _playingSourceVolume = 0.8;
   String? _desiredPath;
@@ -93,14 +97,33 @@ final class RuntimeMusicService {
     }
     await _stop(fade: true);
     try {
+      // BETA-BAT-026 (recette du 2026-08-24) : « la musique est en boucle
+      // c'est bien, mais on a aussi le jingle de début de combat ». Le
+      // lecteur bouclait le FICHIER ENTIER, donc l'intro du morceau (14 s sur
+      // la piste de combat sauvage du Train) revenait à chaque tour. Quand la
+      // piste porte les points de boucle de la convention RPG Maker, on joue
+      // l'intro UNE fois puis on ne reboucle que sur la région marquée.
+      final loopPoints = readRuntimeMusicLoopPoints(path);
+      final loopDriver = _driver;
+      final usesIntroLoop = loopPoints != null &&
+          loopDriver is FlameCinematicAudioLoopDriver &&
+          loopPoints.start > Duration.zero;
       final handle = await _driver.play(
         path,
         volume: _mixer.mix.volumeFor(
           _desiredRoute,
           sourceVolume: _desiredVolume,
         ),
-        loop: true,
+        loop: !usesIntroLoop,
       );
+      if (usesIntroLoop) {
+        final looping = loopDriver as FlameCinematicAudioLoopDriver;
+        _loopSubscription = looping.onComplete(handle).listen((_) {
+          // La piste s'est terminée : reprendre au point de boucle, jamais au
+          // début — l'intro ne se rejoue plus.
+          unawaited(looping.seekAndResume(handle, loopPoints.start));
+        });
+      }
       _handle = handle;
       _playingPath = path;
       _playingSourceVolume = _desiredVolume;
@@ -122,6 +145,10 @@ final class RuntimeMusicService {
   Future<void> _stop({required bool fade}) async {
     final handle = _handle;
     final fromVolume = _playingSourceVolume;
+    // La boucle à point de reprise meurt avec sa piste : laisser vivre cette
+    // souscription ferait revenir un morceau arrêté.
+    unawaited(_loopSubscription?.cancel());
+    _loopSubscription = null;
     _handle = null;
     _playingPath = null;
     if (handle == null) return;

@@ -18,8 +18,21 @@ abstract interface class FlameCinematicAudioDriver {
   Future<void> stop(Object handle);
 }
 
+/// Capacités de boucle à point de reprise — BETA-BAT-026.
+///
+/// Interface SÉPARÉE et optionnelle : un driver qui ne la porte pas garde la
+/// boucle du fichier entier, et aucune implémentation existante (les faux
+/// drivers des tests) n'a à changer. Le service musique la détecte par `is`.
+abstract interface class FlameCinematicAudioLoopDriver {
+  /// Déplace la lecture, puis reprend là où on vient d'atterrir.
+  Future<void> seekAndResume(Object handle, Duration position);
+
+  /// Notifie la fin de la piste (le moment de revenir au point de boucle).
+  Stream<void> onComplete(Object handle);
+}
+
 final class FlameAudioCinematicRuntimeDriver
-    implements FlameCinematicAudioDriver {
+    implements FlameCinematicAudioDriver, FlameCinematicAudioLoopDriver {
   @override
   Future<Object> play(
     String path, {
@@ -27,10 +40,26 @@ final class FlameAudioCinematicRuntimeDriver
     required bool loop,
   }) async {
     final player = AudioPlayer();
-    await player.setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.release);
+    // `stop` plutôt que `release` quand on gère la boucle nous-mêmes : le
+    // player doit rester vivant à la fin de la piste pour pouvoir revenir au
+    // point de reprise.
+    await player.setReleaseMode(
+      loop ? ReleaseMode.loop : ReleaseMode.stop,
+    );
     await player.play(DeviceFileSource(path), volume: volume);
     return player;
   }
+
+  @override
+  Future<void> seekAndResume(Object handle, Duration position) async {
+    final player = handle as AudioPlayer;
+    await player.seek(position);
+    await player.resume();
+  }
+
+  @override
+  Stream<void> onComplete(Object handle) =>
+      (handle as AudioPlayer).onPlayerComplete;
 
   @override
   Future<void> setVolume(Object handle, double volume) =>
