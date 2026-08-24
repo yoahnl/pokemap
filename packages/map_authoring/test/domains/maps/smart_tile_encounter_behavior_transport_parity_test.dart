@@ -43,6 +43,81 @@ void main() {
     expect(await direct.behavior(), isNull);
     expect(await jsonl.behavior(), isNull);
   });
+
+  group('BETA-BAT-034 : les transitions de combat du calque', () {
+    test('sont persistées telles que choisies', () async {
+      final harness = await _EncounterBehaviorHarness.create('transitions');
+      addTearDown(harness.dispose);
+
+      await harness.executeDirect(
+        battleTransitionIds: <String>[
+          battleWildTransitionIds[2],
+          battleWildTransitionIds[0],
+        ],
+        suffix: 'transitions',
+      );
+
+      expect(
+        (await harness.behavior())?.encounter.battleTransitionIds,
+        <String>[battleWildTransitionIds[0], battleWildTransitionIds[2]],
+        reason: 'validées, dédoublonnées et remises dans l’ordre du contrat '
+            'partagé de map_core',
+      );
+    });
+
+    test('refusent un identifiant inconnu au lieu de l’ignorer', () async {
+      final harness = await _EncounterBehaviorHarness.create('unknown');
+      addTearDown(harness.dispose);
+
+      await expectLater(
+        harness.executeDirect(
+          battleTransitionIds: const <String>['transition_qui_nexiste_pas'],
+          suffix: 'unknown',
+        ),
+        throwsA(anything),
+        reason: 'un id inconnu doit être un refus explicite, jamais un '
+            'silence qui laisse croire au choix',
+      );
+    });
+
+    test('survivent à une mise à jour qui ne parle pas de transitions',
+        () async {
+      // Le payload est reconstruit de zéro à chaque mutation : sans garde,
+      // changer la table de rencontres effaçait les transitions en silence.
+      final harness = await _EncounterBehaviorHarness.create('preserve');
+      addTearDown(harness.dispose);
+
+      await harness.executeDirect(
+        battleTransitionIds: <String>[battleWildTransitionIds[1]],
+        suffix: 'preserve-set',
+      );
+      // Une mise à jour RÉELLE mais muette sur les transitions : sans la
+      // préservation, l'opération changerait aussi les transitions. Le
+      // changement de priorité est là pour que la mutation soit acceptée —
+      // sans lui, l'API répond « changes nothing », ce qui est déjà la preuve
+      // que rien n'est effacé, mais n'exerce pas le chemin d'écriture.
+      await harness.executeDirect(suffix: 'preserve-update', priority: 7);
+
+      expect(
+        (await harness.behavior())?.encounter.battleTransitionIds,
+        <String>[battleWildTransitionIds[1]],
+        reason: 'un appelant qui ignore ce champ ne doit pas détruire ce '
+            'qu’un autre a posé',
+      );
+    });
+
+    test('partent vides quand personne n’en a jamais choisi', () async {
+      final harness = await _EncounterBehaviorHarness.create('empty');
+      addTearDown(harness.dispose);
+
+      await harness.executeDirect(suffix: 'empty');
+
+      expect(
+        (await harness.behavior())?.encounter.battleTransitionIds,
+        isEmpty,
+      );
+    });
+  });
 }
 
 final class _EncounterBehaviorHarness {
@@ -99,7 +174,11 @@ final class _EncounterBehaviorHarness {
     );
   }
 
-  Future<Map<String, Object?>> executeDirect() async {
+  Future<Map<String, Object?>> executeDirect({
+    List<String>? battleTransitionIds,
+    String suffix = 'direct',
+    int priority = 3,
+  }) async {
     final opened = await readApi.openProject(root.path);
     await mutations.attachProject(
       projectRootPath: root.path,
@@ -112,13 +191,15 @@ final class _EncounterBehaviorHarness {
       _request(
         workspaceHandle: opened.workspaceHandle.value,
         revision: snapshot.revision,
-        suffix: 'direct',
+        suffix: suffix,
+        battleTransitionIds: battleTransitionIds,
+        priority: priority,
       ),
     );
     final applied = await mutations.apply(
       opened.projectHandle,
       planId: plan['planId']! as String,
-      operationId: 'smart-tile-encounter-direct',
+      operationId: 'smart-tile-encounter-$suffix',
     );
     return Map<String, Object?>.from(applied['receipt']! as Map);
   }
@@ -197,19 +278,23 @@ final class _EncounterBehaviorHarness {
     required String workspaceHandle,
     required String revision,
     required String suffix,
+    List<String>? battleTransitionIds,
+    int priority = 3,
   }) {
     return AuthoringRequest(
       requestId: 'smart-tile-encounter-$suffix',
       actionId: 'smart_tile.layer.set_encounter_behavior',
       actionVersion: 1,
       workspaceHandle: workspaceHandle,
-      parameters: const <String, Object?>{
+      parameters: <String, Object?>{
         'mapId': 'route',
         'layerId': 'grass',
         'materialId': 'tall_grass',
-        'priority': 3,
+        'priority': priority,
         'encounterTableId': 'route_grass',
         'encounterKind': 'walk',
+        if (battleTransitionIds != null)
+          'battleTransitionIds': battleTransitionIds,
       },
       expectedRevision: revision,
       idempotencyKey: 'smart-tile-encounter-$suffix',

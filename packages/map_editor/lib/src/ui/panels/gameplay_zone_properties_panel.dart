@@ -1123,7 +1123,7 @@ class _GameplayZonePropertiesPanelState
           runSpacing: 6,
           children: [
             for (final transitionId in battleWildTransitionIds)
-              _BattleTransitionChip(
+              PokeMapSelectableChip(
                 key: Key('gameplay-zone-battle-transition-$transitionId'),
                 label:
                     battleTransitionDisplayLabels[transitionId] ?? transitionId,
@@ -1378,54 +1378,6 @@ class _SectionDivider extends StatelessWidget {
           child: Container(height: 1, color: color.withValues(alpha: 0.3)),
         ),
       ],
-    );
-  }
-}
-
-/// Une puce à bascule du panel de transitions — BETA-BAT-019.
-class _BattleTransitionChip extends StatelessWidget {
-  const _BattleTransitionChip({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onToggle,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = EditorChrome.accentCoral;
-    return GestureDetector(
-      onTap: onToggle,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: selected
-              ? accent.withValues(alpha: 0.22)
-              : EditorChrome.islandFill(context),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected
-                ? accent
-                : CupertinoColors.separator.resolveFrom(context),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: selected
-                  ? EditorChrome.primaryLabel(context)
-                  : CupertinoColors.secondaryLabel.resolveFrom(context),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

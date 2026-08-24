@@ -8,13 +8,22 @@ import '../application/smart_tile_to_gameplay_zone_presenter.dart';
 final class SmartTileEncounterBehaviorConfiguration {
   const SmartTileEncounterBehaviorConfiguration.set({
     required this.encounterTableId,
+    this.battleTransitionIds = const <String>[],
   }) : isClear = false;
 
   const SmartTileEncounterBehaviorConfiguration.clear()
     : encounterTableId = '',
+      battleTransitionIds = const <String>[],
       isClear = true;
 
   final String encounterTableId;
+
+  /// Les transitions de début de combat de ce calque — BETA-BAT-034.
+  ///
+  /// Plusieurs sélections = le runtime en tire une par rencontre, de façon
+  /// déterministe ; aucune = le défaut du projet, puis le défaut moteur.
+  final List<String> battleTransitionIds;
+
   final bool isClear;
 }
 
@@ -48,16 +57,20 @@ class SmartTileEncounterBehaviorDialog extends StatefulWidget {
 class _SmartTileEncounterBehaviorDialogState
     extends State<SmartTileEncounterBehaviorDialog> {
   String? _encounterTableId;
+  late List<String> _battleTransitionIds;
 
   @override
   void initState() {
     super.initState();
     final walkTables = _walkTables;
-    final currentTableId =
-        widget.smartTileLayer?.encounterBehavior?.encounter.encounterTableId;
+    final behavior = widget.smartTileLayer?.encounterBehavior;
+    final currentTableId = behavior?.encounter.encounterTableId;
     _encounterTableId = walkTables.any((table) => table.id == currentTableId)
         ? currentTableId
         : walkTables.firstOrNull?.id;
+    _battleTransitionIds = List<String>.of(
+      behavior?.encounter.battleTransitionIds ?? const <String>[],
+    );
   }
 
   @override
@@ -102,6 +115,9 @@ class _SmartTileEncounterBehaviorDialogState
                 ? () => widget.onConfirm(
                     SmartTileEncounterBehaviorConfiguration.set(
                       encounterTableId: _encounterTableId!,
+                      battleTransitionIds: List<String>.unmodifiable(
+                        _battleTransitionIds,
+                      ),
                     ),
                   )
                 : null,
@@ -109,63 +125,132 @@ class _SmartTileEncounterBehaviorDialogState
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'Les rencontres suivront exactement les cellules peintes de ce '
-            'calque. Aucune zone de rencontre séparée ne sera créée.',
-          ),
-          const SizedBox(height: 12),
-          _InfoLine(
-            label: 'Calque',
-            value: widget.smartTileLayer?.name ?? 'Aucun',
-          ),
-          _InfoLine(label: 'Cellules', value: '$sourceCellCount'),
-          const SizedBox(height: 12),
-          if (walkTables.isEmpty)
-            const PokeMapDiagnosticCallout(
-              severity: PokeMapDiagnosticSeverity.info,
-              title: 'Aucune table pour les hautes herbes',
-              message:
-                  'Créez d’abord une table de rencontres à pied dans '
-                  'Encounter Studio.',
-            )
-          else
-            PokeMapDropdownField<String>(
-              key: const Key('smart-tile-encounter-table-picker'),
-              label: 'Table de rencontres',
-              value: _encounterTableId!,
-              items: [
-                for (final table in walkTables)
-                  PokeMapDropdownItem(
-                    value: table.id,
-                    label: '${table.name} (${table.id})',
-                  ),
+      // BETA-BAT-034 : le sélecteur de transitions allonge ce dialogue, et
+      // PokeMapDialog ne défile pas — sur un écran court, le bouton de
+      // validation sortait du cadre. Le contenu défile donc ici, le pied de
+      // dialogue restant toujours atteignable.
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.55,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Les rencontres suivront exactement les cellules peintes de ce '
+                'calque. Aucune zone de rencontre séparée ne sera créée.',
+              ),
+              const SizedBox(height: 12),
+              _InfoLine(
+                label: 'Calque',
+                value: widget.smartTileLayer?.name ?? 'Aucun',
+              ),
+              _InfoLine(label: 'Cellules', value: '$sourceCellCount'),
+              const SizedBox(height: 12),
+              if (walkTables.isEmpty)
+                const PokeMapDiagnosticCallout(
+                  severity: PokeMapDiagnosticSeverity.info,
+                  title: 'Aucune table pour les hautes herbes',
+                  message:
+                      'Créez d’abord une table de rencontres à pied dans '
+                      'Encounter Studio.',
+                )
+              else
+                PokeMapDropdownField<String>(
+                  key: const Key('smart-tile-encounter-table-picker'),
+                  label: 'Table de rencontres',
+                  value: _encounterTableId!,
+                  items: [
+                    for (final table in walkTables)
+                      PokeMapDropdownItem(
+                        value: table.id,
+                        label: '${table.name} (${table.id})',
+                      ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _encounterTableId = value),
+                ),
+              if (walkTables.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildBattleTransitionsPicker(context),
               ],
-              onChanged: (value) => setState(() => _encounterTableId = value),
-            ),
-          if (sourceCellCount == 0) ...[
-            const SizedBox(height: 12),
-            const PokeMapDiagnosticCallout(
-              severity: PokeMapDiagnosticSeverity.error,
-              title: 'Aucune cellule peinte',
-              message:
-                  'Peignez ce matériau sur le calque avant d’ajouter '
-                  'le comportement.',
-            ),
-          ],
-          const SizedBox(height: 12),
-          const PokeMapDiagnosticCallout(
-            severity: PokeMapDiagnosticSeverity.info,
-            title: 'Plusieurs zones de rencontres',
-            message:
-                'Utilisez un calque Smart Tile par table de rencontres. '
-                'Chaque calque peut couvrir une zone différente.',
+              if (sourceCellCount == 0) ...[
+                const SizedBox(height: 12),
+                const PokeMapDiagnosticCallout(
+                  severity: PokeMapDiagnosticSeverity.error,
+                  title: 'Aucune cellule peinte',
+                  message:
+                      'Peignez ce matériau sur le calque avant d’ajouter '
+                      'le comportement.',
+                ),
+              ],
+              const SizedBox(height: 12),
+              const PokeMapDiagnosticCallout(
+                severity: PokeMapDiagnosticSeverity.info,
+                title: 'Plusieurs zones de rencontres',
+                message:
+                    'Utilisez un calque Smart Tile par table de rencontres. '
+                    'Chaque calque peut couvrir une zone différente.',
+              ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  /// BETA-BAT-034 : les transitions se choisissent ICI, sur le calque qui
+  /// porte la rencontre.
+  ///
+  /// Le sélecteur existait sur les zones de gameplay et par dresseur, mais
+  /// depuis BETA-ENC-007 les rencontres vivent sur les calques Smart Tile :
+  /// il était resté là où l'auteur ne passe plus, et les quinze transitions
+  /// de BETA-BAT-019 étaient devenues inatteignables.
+  Widget _buildBattleTransitionsPicker(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Transitions de combat',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final transitionId in battleWildTransitionIds)
+              PokeMapSelectableChip(
+                key: Key('smart-tile-battle-transition-$transitionId'),
+                label:
+                    battleTransitionDisplayLabels[transitionId] ?? transitionId,
+                selected: _battleTransitionIds.contains(transitionId),
+                onToggle: () => setState(() {
+                  final next = List<String>.of(_battleTransitionIds);
+                  if (next.contains(transitionId)) {
+                    next.remove(transitionId);
+                  } else {
+                    next.add(transitionId);
+                  }
+                  _battleTransitionIds = next;
+                }),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _battleTransitionIds.isEmpty
+              ? 'Aucune sélection : le défaut du projet s’applique.'
+              : 'Plusieurs sélections : une transition est tirée à chaque '
+                    'rencontre.',
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
+        ),
+      ],
     );
   }
 
@@ -414,8 +499,9 @@ class _LavaHazardSmartTileGameplayZoneDialogState
         ),
         CupertinoDialogAction(
           isDefaultAction: true,
-          onPressed:
-              preview.canConfirm ? () => widget.onConfirm(preview.plan!) : null,
+          onPressed: preview.canConfirm
+              ? () => widget.onConfirm(preview.plan!)
+              : null,
           child: Text(
             preview.isSynchronization
                 ? 'Synchroniser la zone de lave'
@@ -428,10 +514,7 @@ class _LavaHazardSmartTileGameplayZoneDialogState
 }
 
 class _InfoLine extends StatelessWidget {
-  const _InfoLine({
-    required this.label,
-    required this.value,
-  });
+  const _InfoLine({required this.label, required this.value});
 
   final String label;
   final String value;

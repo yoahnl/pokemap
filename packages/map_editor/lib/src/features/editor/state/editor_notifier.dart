@@ -1251,6 +1251,7 @@ class EditorNotifier extends _$EditorNotifier
     required String encounterTableId,
     EncounterKind encounterKind = EncounterKind.walk,
     int priority = 0,
+    List<String>? battleTransitionIds,
   }) async {
     final projectRootPath = state.projectRootPath;
     if (projectRootPath == null) return false;
@@ -1266,10 +1267,16 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final currentBehavior = currentLayer.encounterBehavior;
+    final transitionsUnchanged = battleTransitionIds == null ||
+        _sameTransitionIds(
+          currentBehavior?.encounter.battleTransitionIds ?? const <String>[],
+          battleTransitionIds,
+        );
     if (currentBehavior?.materialId == materialId &&
         currentBehavior?.priority == priority &&
         currentBehavior?.encounter.encounterTableId == normalizedTableId &&
-        currentBehavior?.encounter.encounterKind == encounterKind) {
+        currentBehavior?.encounter.encounterKind == encounterKind &&
+        transitionsUnchanged) {
       state = state.copyWith(
         statusMessage: 'Comportement de hautes herbes inchangé.',
         errorMessage: null,
@@ -1283,6 +1290,9 @@ class EditorNotifier extends _$EditorNotifier
       'priority': priority,
       'encounterTableId': normalizedTableId,
       'encounterKind': encounterKind.name,
+      // BETA-BAT-034 : absent, le champ n'est pas touché côté authoring.
+      if (battleTransitionIds != null)
+        'battleTransitionIds': List<String>.unmodifiable(battleTransitionIds),
     };
 
     try {
@@ -15705,4 +15715,12 @@ class _TileLayerGeneratedPlacementAddSelection {
   final String areaId;
   final EnvironmentPaletteItem item;
   final ProjectElementEntry element;
+}
+
+bool _sameTransitionIds(List<String> left, List<String> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }

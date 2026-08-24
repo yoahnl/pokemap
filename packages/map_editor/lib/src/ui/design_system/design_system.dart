@@ -40,6 +40,7 @@ export 'pokemap_panel.dart';
 export 'pokemap_progress_bar.dart';
 export 'pokemap_resize_impact_dialog.dart';
 export 'pokemap_search_field.dart';
+export 'pokemap_selectable_chip.dart';
 export 'pokemap_semantic_color_preview.dart';
 export 'pokemap_section_header.dart';
 export 'pokemap_sidebar_item.dart';

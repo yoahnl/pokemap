@@ -627,6 +627,7 @@ final class SmartTileLayerActions {
         'battleBackgroundRelativePath',
         'battleMusicPath',
         'encounterMusicPath',
+        'battleTransitionIds',
       },
     );
     final layerId = context.parameters.string('layerId');
@@ -668,6 +669,13 @@ final class SmartTileLayerActions {
         battleMusicPath: context.parameters.optionalString('battleMusicPath'),
         encounterMusicPath:
             context.parameters.optionalString('encounterMusicPath'),
+        // BETA-BAT-034 : le payload est reconstruit de zéro à chaque mise à
+        // jour. Sans ce champ, non seulement les transitions n'étaient pas
+        // authorables depuis un calque, mais toute modification du
+        // comportement effaçait en silence celles déjà posées.
+        battleTransitionIds: _readBattleTransitionIds(context) ??
+            layer.encounterBehavior?.encounter.battleTransitionIds ??
+            const <String>[],
       ),
     );
     final projected = replaceSmartTileLayer(
@@ -1175,4 +1183,39 @@ void _requireTargetMaterialCompatibility({
       }
     }
   }
+}
+
+/// Les transitions de combat authorées sur un calque — BETA-BAT-034.
+///
+/// Absentes des paramètres, elles ne sont pas touchées : un appelant qui ne
+/// connaît pas ce champ ne doit pas effacer ce qu'un autre a posé. Présentes,
+/// elles sont validées contre le contrat partagé de map_core, dédoublonnées et
+/// remises dans son ordre — un id inconnu est un refus explicite, jamais un
+/// silence.
+List<String>? _readBattleTransitionIds(SemanticMapActionContext context) {
+  if (!context.parameters.contains('battleTransitionIds')) {
+    return null;
+  }
+  final requested = <String>{};
+  for (final entry in context.parameters.list('battleTransitionIds')) {
+    if (entry is! String) {
+      throw invalidSemanticField(
+        'battleTransitionIds',
+        'a list of transition id strings',
+      );
+    }
+    final id = entry.trim();
+    if (id.isEmpty) continue;
+    if (!battleWildTransitionIds.contains(id)) {
+      throw invalidSemanticField(
+        'battleTransitionIds',
+        battleWildTransitionIds.join(', '),
+      );
+    }
+    requested.add(id);
+  }
+  return <String>[
+    for (final id in battleWildTransitionIds)
+      if (requested.contains(id)) id,
+  ];
 }

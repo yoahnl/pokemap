@@ -489,6 +489,132 @@ void main() {
       expect(configuration?.encounterTableId, 'route_1_grass');
       expect(map.gameplayZones, isEmpty);
     });
+
+    testWidgets(
+        'BETA-BAT-034 : le calque porte enfin le choix des transitions de '
+        'combat', (tester) async {
+      // Le sélecteur existait sur les zones de gameplay et par dresseur, mais
+      // depuis BETA-ENC-007 les rencontres vivent sur les calques Smart Tile :
+      // il était resté là où l'auteur ne passe plus, et les quinze transitions
+      // de BETA-BAT-019 étaient devenues inatteignables depuis l'éditeur.
+      SmartTileEncounterBehaviorConfiguration? configuration;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: Scaffold(
+            body: SmartTileEncounterBehaviorDialog(
+              map: _mapWithTallGrassSmartTile(),
+              smartTileLayer: _tallGrassLayer(),
+              smartTilePresetId: 'tall_grass',
+              materialId: 'tall_grass-material',
+              catalog: _smartTileCatalog(
+                presets: [
+                  _smartTilePreset(id: 'tall_grass', name: 'Tall Grass'),
+                ],
+              ),
+              encounterTables: const [
+                ProjectEncounterTable(
+                  id: 'route_1_grass',
+                  name: 'Route 1 Grass',
+                  encounterKind: EncounterKind.walk,
+                ),
+              ],
+              onConfirm: (value) => configuration = value,
+            ),
+          ),
+        ),
+      );
+
+      final firstTransition = battleWildTransitionIds.first;
+      final secondTransition = battleWildTransitionIds[1];
+
+      expect(
+        find.byKey(Key('smart-tile-battle-transition-$firstTransition')),
+        findsOneWidget,
+        reason: 'chaque transition du contrat partagé est proposée',
+      );
+      expect(
+        find.textContaining('le défaut du projet s’applique'),
+        findsOneWidget,
+        reason: 'sans sélection, l’auteur doit savoir ce qui se passe',
+      );
+
+      await tester.tap(
+        find.byKey(Key('smart-tile-battle-transition-$secondTransition')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(Key('smart-tile-battle-transition-$firstTransition')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const Key('smart-tile-encounter-behavior-confirm')),
+      );
+      await tester.pump();
+
+      expect(
+        configuration?.battleTransitionIds,
+        <String>[secondTransition, firstTransition],
+        reason: 'la sélection remonte telle quelle ; c’est l’authoring qui la '
+            'valide et la remet dans l’ordre du contrat',
+      );
+      expect(configuration?.encounterTableId, 'route_1_grass');
+    });
+
+    testWidgets(
+        'BETA-BAT-034 : les transitions déjà posées sur le calque sont '
+        'rechargées', (tester) async {
+      SmartTileEncounterBehaviorConfiguration? configuration;
+      final existing = battleWildTransitionIds[2];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: Scaffold(
+            body: SmartTileEncounterBehaviorDialog(
+              map: _mapWithTallGrassSmartTile(),
+              smartTileLayer: _tallGrassLayer().copyWith(
+                encounterBehavior: SmartTileEncounterBehavior(
+                  materialId: 'tall_grass-material',
+                  priority: 0,
+                  encounter: EncounterZonePayload(
+                    encounterTableId: 'route_1_grass',
+                    battleTransitionIds: <String>[existing],
+                  ),
+                ),
+              ),
+              smartTilePresetId: 'tall_grass',
+              materialId: 'tall_grass-material',
+              catalog: _smartTileCatalog(
+                presets: [
+                  _smartTilePreset(id: 'tall_grass', name: 'Tall Grass'),
+                ],
+              ),
+              encounterTables: const [
+                ProjectEncounterTable(
+                  id: 'route_1_grass',
+                  name: 'Route 1 Grass',
+                  encounterKind: EncounterKind.walk,
+                ),
+              ],
+              onConfirm: (value) => configuration = value,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('smart-tile-encounter-behavior-confirm')),
+      );
+      await tester.pump();
+
+      expect(
+        configuration?.battleTransitionIds,
+        <String>[existing],
+        reason: 'rouvrir le dialogue ne doit pas effacer ce qui est posé',
+      );
+    });
   });
 
   group('SurfableWaterSmartTileGameplayZoneDialog', () {
