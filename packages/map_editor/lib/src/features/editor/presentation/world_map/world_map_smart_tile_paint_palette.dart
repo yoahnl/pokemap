@@ -242,6 +242,37 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                   variant: PokeMapBadgeVariant.warning,
                 ),
               ],
+              // POST-WLD-SMART-002 : le canvas exclut les calques masqués,
+              // mais cette palette acceptait les gestes sans rien dire —
+              // l'auteur peignait dans le vide. On AVERTIT et on offre le
+              // réaffichage en un geste ; on ne réaffiche pas d'office (un
+              // masquage peut être volontaire) et on ne bloque pas le geste
+              // (l'avaler sans raison visible remplacerait un défaut
+              // silencieux par un autre).
+              if (activeLayer != null && !activeLayer.isVisible) ...[
+                const SizedBox(height: 8),
+                PokeMapBadge(
+                  key: ValueKey<String>(
+                    'world-map-smart-tile-${_usage.name}-hidden-layer',
+                  ),
+                  label: 'Calque masqué : vos tracés ne s’afficheront pas.',
+                  variant: PokeMapBadgeVariant.warning,
+                ),
+                const SizedBox(height: 6),
+                PokeMapButton(
+                  key: ValueKey<String>(
+                    'world-map-smart-tile-${_usage.name}-show-layer',
+                  ),
+                  onPressed: () => notifier.setMapLayerVisibility(
+                    activeLayer.id,
+                    true,
+                  ),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.compact,
+                  leading: const Icon(Icons.visibility_outlined),
+                  child: const Text('Réafficher le calque'),
+                ),
+              ],
               const SizedBox(height: 10),
               Row(
                 children: [
