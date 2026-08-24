@@ -22,6 +22,7 @@ import 'battle_animation_plan.dart';
 import 'battle_animation_runner.dart';
 import 'battle_ball_manifest.dart';
 import 'battle_ball_capture_component.dart';
+import 'battle_ball_flash_component.dart';
 import 'battle_ball_throw_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_camera_rig.dart';
@@ -774,6 +775,16 @@ class BattleOverlayComponent extends PositionComponent {
   BattleSceneCombatantComponent? get debugEnemyCombatant => _enemyCombatant;
 
   @visibleForTesting
+  BattleSceneCombatantComponent? get debugPlayerCombatant => _playerCombatant;
+
+  @visibleForTesting
+  void debugHandleBallSequenceForTest(PlayBallSequenceStep step) =>
+      _handleBallSequenceStep(step);
+
+  @visibleForTesting
+  void debugSpawnBallFlashForTest(BattleSideId side) => _spawnBallFlash(side);
+
+  @visibleForTesting
   double? get debugEnemySpriteScaleX =>
       // ignore: invalid_use_of_visible_for_testing_member
       _enemyCombatant?.currentVisualScaleX;
@@ -1107,6 +1118,9 @@ class BattleOverlayComponent extends PositionComponent {
                 pitch: step.caught ? 180 : 100,
               );
             case BattleBallCaptureCue.release:
+              // La Ball éclate : même éclat que la sortie de Ball, puisque
+              // c'est la même chose — un Pokémon qui reprend forme.
+              _spawnBallFlash(BattleSideId.enemy);
               unawaited(
                 _enemyCombatant?.playMaterializeIn(durationSeconds: 0.2) ??
                     Future<void>.value(),
@@ -1150,9 +1164,39 @@ class BattleOverlayComponent extends PositionComponent {
         // sprite 96×96 du Pokémon : la cellule vaut donc 2/3 de la boîte du
         // sprite, et la Ball visible ~22 % — pas les ~7 % du 0.32 initial.
         cellSize: spriteRect.height * (64 / 96),
-        onOpen: () => playSfx?.call('ball_open', volume: 100, pitch: 100),
+        onOpen: () {
+          playSfx?.call('ball_open', volume: 100, pitch: 100);
+          _spawnBallFlash(step.side);
+        },
       ),
     );
+  }
+
+  /// Le flash d'ouverture d'une Ball — BETA-BAT-031.
+  ///
+  /// Recette du 2026-08-24 : « ça manque de l'espèce de flash jolie ». La
+  /// référence (Platine) projette un éclat blanc au point d'apparition juste
+  /// avant que le Pokémon prenne forme.
+  void _spawnBallFlash(BattleSideId side) {
+    final rect = side == BattleSideId.player
+        ? currentSceneLayout.playerSpriteRect
+        : currentSceneLayout.enemySpriteRect;
+    final flash = BattleBallFlashComponent(
+      center: Offset(
+        rect.center.dx,
+        rect.bottom - rect.height * 0.32,
+      ),
+      radiusPx: rect.height * 0.62,
+      priority: (_combatantForSide(side)?.priority ?? 10) + 3,
+    );
+    // En microtask : ce flash naît DANS le `update` du composant de Ball
+    // (son callback d'ouverture), donc en pleine itération updateTree —
+    // ajouter un enfant là mute l'arbre pendant son parcours. Le piège de
+    // BETA-BAT-016, cette fois à l'ajout et non au retrait.
+    Future<void>.microtask(() {
+      if (isRemoved) return;
+      add(flash);
+    });
   }
 
   /// L'image du dresseur vaincu, préparée par l'hôte — BETA-BAT-017.

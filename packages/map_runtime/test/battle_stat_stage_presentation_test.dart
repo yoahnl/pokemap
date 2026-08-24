@@ -275,6 +275,23 @@ void main() {
     });
   });
 
+  // BETA-BAT-031 — CONSTAT À NE PAS PERDRE, recette du 2026-08-24 (« si on
+  // arrive au maximum "la défense de X ne peut pas baisser plus !" ») :
+  //
+  // Le message ci-dessus (amount == 0) EXISTE côté présentation, mais le
+  // moteur ne produit aujourd'hui AUCUN événement quand la borne est
+  // atteinte : `BattleStatChangeHandler` retourne `applied: false` sans
+  // événement, et les appelants filtrent sur `applied`. La branche de la
+  // référence est ailleurs — un move de stat qui ne peut rien appliquer
+  // ÉCHOUE (`move_failed`), et la parité PSDK exige alors qu'aucun
+  // `stat_stage_change` ne soit émis : `psdk_move_families/` le teste
+  // explicitement (s_toxic_thread, s_parting_shot).
+  //
+  // Faire remonter la borne jusqu'au joueur demande donc une RAISON d'échec
+  // dédiée dans le moteur, pas un événement de stat à zéro — j'ai essayé
+  // cette voie et elle casse onze tests de parité. À traiter dans son propre
+  // ticket, avec l'oracle sous les yeux.
+
   group('la scène joue l’aura', () {
     test('le son part avec l’aura et le composant se monte puis se retire',
         () async {
@@ -343,6 +360,7 @@ void main() {
 PsdkBattleCombatantSetup _psdkCombatant({
   required String id,
   required List<PsdkBattleMoveData> moves,
+  int? attackStage,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -359,6 +377,9 @@ PsdkBattleCombatantSetup _psdkCombatant({
       specialDefense: 100,
       speed: 100,
     ),
+    statStages: attackStage == null
+        ? null
+        : PsdkBattleStatStages(values: <String, int>{'atk': attackStage}),
     moves: moves,
   );
 }
@@ -381,7 +402,7 @@ PsdkBattleMoveData _psdkMove({
     currentPp: 15,
     priority: 0,
     battleEngineMethod:
-        category == PsdkBattleMoveCategory.status ? 's_stat' : 's_basic',
+        category == PsdkBattleMoveCategory.status ? 's_status' : 's_basic',
     target: PsdkBattleMoveTarget.adjacentFoe,
     stageMods: stageMods,
   );

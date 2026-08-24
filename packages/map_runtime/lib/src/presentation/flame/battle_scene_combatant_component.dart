@@ -86,6 +86,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
   double _visualScaleY = 1.0;
   Color? _visualToneColor;
   double _visualToneStrength = 0;
+
+  /// Le mélange MAXIMAL de la teinte — BETA-BAT-031.
+  ///
+  /// 0,35 pour les teintes d'état (poison, brûlure) : elles colorent sans
+  /// masquer le sprite. 1,0 pour une SILHOUETTE — l'entrée en ombre du
+  /// sauvage et la matérialisation dans la Ball, où l'on ne doit justement
+  /// plus reconnaître le Pokémon.
+  double _visualToneMaxMix = 0.35;
   double _toneElapsed = 0;
   double _toneDuration = 0;
   _CombatantPresentationAnimation _animation =
@@ -303,6 +311,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }) async {
     _visualToneColor = color;
     _visualToneStrength = 1;
+    _visualToneMaxMix = _defaultToneMaxMix;
     _toneElapsed = 0;
     _toneDuration = durationSeconds;
   }
@@ -347,16 +356,55 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _visualScaleY = 0;
     _visualOpacity = 1;
     _visualOffset = Offset.zero;
+    _beginMaterializeGlow();
     _applyVisualPresentation();
     _animation = _CombatantPresentationAnimation.materializeIn;
     _animationElapsed = 0;
     _animationDuration = durationSeconds;
   }
 
+  /// La lueur de matérialisation — recette du 2026-08-24 : « tu as rendu tout
+  /// petit les pokémons ! mais on le voit quand même ».
+  ///
+  /// Un sprite détaillé réduit à quelques pixels reste un sprite : on
+  /// reconnaît le Pokémon en miniature à côté de sa Ball. La référence
+  /// (Pokémon Platine, vidéo de recette) ne montre jamais ça — le Pokémon
+  /// entre et sort en SILHOUETTE LUMINEUSE, une forme d'énergie qui prend
+  /// ses couleurs à la fin. Une teinte pleine masque les détails et donne
+  /// exactement cette lecture.
+  void _beginMaterializeGlow() {
+    _materializeGlowActive = true;
+    _visualToneColor = const Color(0xFFFFF4C8);
+    _visualToneStrength = 1;
+    _visualToneMaxMix = 1;
+    _toneElapsed = 0;
+    _toneDuration = 0;
+  }
+
+  void _clearMaterializeGlow() {
+    if (!_materializeGlowActive) return;
+    _materializeGlowActive = false;
+    _visualToneColor = null;
+    _visualToneStrength = 0;
+    _visualToneMaxMix = _defaultToneMaxMix;
+    _toneElapsed = 0;
+    _toneDuration = 0;
+  }
+
+  /// Vrai pendant une matérialisation (entrée ou sortie de Ball).
+  bool _materializeGlowActive = false;
+
+  @visibleForTesting
+  bool get debugMaterializeGlowActive => _materializeGlowActive;
+
+  @visibleForTesting
+  double get debugVisualToneMaxMix => _visualToneMaxMix;
+
   /// Retour dans la Poké Ball — le sprite rétrécit jusqu'à zéro.
   Future<void> playMaterializeOut({required double durationSeconds}) async {
     _visualOffset = Offset.zero;
     _visualOpacity = 1;
+    _beginMaterializeGlow();
     _applyVisualPresentation();
     _animation = _CombatantPresentationAnimation.materializeOut;
     _animationElapsed = 0;
@@ -391,6 +439,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
       _introSilhouetteActive = true;
       _visualToneColor = const Color(0xFF000000);
       _visualToneStrength = 1;
+      // Parité `color = [0,0,0,1]` : une VRAIE ombre, pas un sprite
+      // assombri de 35 %.
+      _visualToneMaxMix = 1;
       _toneElapsed = 0;
       _toneDuration = 0;
     }
@@ -408,9 +459,13 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _introSilhouetteActive = false;
     _visualToneColor = null;
     _visualToneStrength = 0;
+    _visualToneMaxMix = _defaultToneMaxMix;
     _toneElapsed = 0;
     _toneDuration = 0;
   }
+
+  /// Le mélange des teintes d'état : elles colorent sans masquer.
+  static const double _defaultToneMaxMix = 0.35;
 
   /// Glissement d'entrée en combat (parité `create_sprite_move_animation`).
   Future<void> playIntroSlide({
@@ -436,8 +491,11 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   void snapToBattlePose() {
-    // Une pose de combat nette n'a plus de silhouette d'entrée en attente.
+    // Une pose de combat nette n'a plus de silhouette d'entrée en attente,
+    // ni de lueur de matérialisation.
     _introSilhouetteActive = false;
+    _materializeGlowActive = false;
+    _visualToneMaxMix = _defaultToneMaxMix;
     _animation = _CombatantPresentationAnimation.none;
     _animationElapsed = 0;
     _animationDuration = 0;
@@ -854,7 +912,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     return Color.lerp(
           color,
           _visualToneColor,
-          0.35 * _visualToneStrength.clamp(0.0, 1.0),
+          _visualToneMaxMix * _visualToneStrength.clamp(0.0, 1.0),
         ) ??
         color;
   }
@@ -876,7 +934,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     }
     // La silhouette d'entrée TIENT jusqu'à sa levée explicite : la laisser
     // décroître donnerait un fondu, là où la référence révèle d'un coup.
-    if (_introSilhouetteActive) return;
+    if (_introSilhouetteActive || _materializeGlowActive) return;
     _toneElapsed += dt;
     final duration = _toneDuration <= 0 ? 0.0001 : _toneDuration;
     final progress = (_toneElapsed / duration).clamp(0.0, 1.0);
@@ -980,6 +1038,13 @@ class BattleSceneCombatantComponent extends PositionComponent {
     // mouvement d'entrée, d'un coup.
     if (_animation == _CombatantPresentationAnimation.introSlide) {
       _clearIntroSilhouette();
+    }
+    // Le Pokémon SORTI de sa Ball reprend ses couleurs ; celui qui vient d'y
+    // rentrer n'a plus rien à montrer (échelle nulle), donc la lueur peut
+    // partir aussi.
+    if (_animation == _CombatantPresentationAnimation.materializeIn ||
+        _animation == _CombatantPresentationAnimation.materializeOut) {
+      _clearMaterializeGlow();
     }
 
     switch (_animation) {
