@@ -3,19 +3,29 @@ import 'package:map_battle/map_battle.dart';
 import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
 
-/// La séquence d'entrée en combat — BETA-BAT-016.
+/// La séquence d'entrée en combat — BETA-BAT-016, portée en parité stricte
+/// par BETA-BAT-027 (recette du 2026-08-24, vidéo 18-09-39).
 ///
-/// Projection du `transition` de la référence, après le fondu du noir :
-/// glissement des combattants vers leurs positions (0,8 s en parallèle,
-/// parité `create_sprite_move_animation`), puis les messages d'ouverture,
-/// un par un. Les textes viennent de la même source que la narration
-/// d'ouverture, donc un combat de dresseur porte sa séquence d'envoi
-/// (« X envoie Y ! ») et un combat sauvage n'en a pas — la parité
-/// `wait(0)` de la référence tombe naturellement du nombre de lignes.
+/// L'oracle est `Transition::Base#transition` et ses trois temps, plus la
+/// version RBY de chacun (`100 RBYWild.rb` / `100 RBYTrainer.rb`) :
 ///
-/// Le plan commence par une attente couvrant le fondu du noir joué par la
-/// pré-transition : le glissement ne démarre qu'écran révélé, comme la
-/// référence enchaîne `create_fade_out_animation` PUIS le mouvement.
+/// 1. `create_sprite_move_animation` (0,8 s) — l'adversaire entre par son
+///    bord. Dans un combat SAUVAGE c'est le Pokémon ; dans un combat de
+///    DRESSEUR c'est le dresseur, son Pokémon restant caché (`enemy_sprites`
+///    pose `zoom = 0` dessus).
+/// 2. `show_appearing_message` — « Un X sauvage apparaît ! » ou
+///    « [Dresseur] te défie ! ». Le message vient AVANT les envois : c'est
+///    l'ordre de la référence, et l'écart le plus visible de notre ancienne
+///    version qui les groupait tous à la fin.
+/// 3. `start_enemy_send_animation` — dresseur uniquement : il quitte l'écran
+///    par la droite (0,8 s) en lançant sa Ball, PUIS son Pokémon apparaît, et
+///    le message « [Dresseur] envoie Y ! » l'accompagne.
+/// 4. `start_actor_send_animation` — la Ball du joueur est lancée en arc, son
+///    Pokémon grandit, et « Vas-y, Z ! » l'accompagne.
+///
+/// Chaque brique a son repli : sans planche de Ball chargeable on retombe sur
+/// le glissement historique, et sans image de dresseur le Pokémon adverse
+/// glisse comme un sauvage. L'intro ne casse jamais.
 BattleAnimationPlan buildBattleIntroAnimationPlan({
   required BattleSession session,
   required double slideDistancePx,
@@ -23,6 +33,8 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
   double revealSeconds = 0.25,
   double slideSeconds = 0.8,
   String? playerBallSheetName,
+  String? enemyBallSheetName,
+  bool hasEnemyTrainerSprite = false,
 }) {
   final openingLines = resolveSpeciesDisplayName == null
       ? buildBattleOpeningNarrationLinesForOverlay(session)
@@ -30,57 +42,111 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
           session,
           resolveSpeciesDisplayName: resolveSpeciesDisplayName,
         );
-  // BETA-BAT-022 : quand la planche de Ball est chargeable, le joueur SORT
-  // de sa Poké Ball — l'adversaire glisse d'abord (0,8 s), puis la Ball vole
-  // et s'ouvre (0,6 s), puis le Pokémon grandit (0,1 s) — la parité
-  // séquentielle de la référence (`create_sprite_move_animation` PUIS
-  // `create_player_send_animation`). Sans planche : le glissement
-  // historique des deux camps, en parallèle.
-  if (playerBallSheetName != null) {
-    return BattleAnimationPlan(
-      steps: <BattleAnimationStep>[
-        WaitStep(durationSeconds: revealSeconds),
-        CombatantMotionStep(
-          side: BattleSideId.enemy,
-          motionKind: BattleCombatantMotionKind.introSlide,
-          durationSeconds: slideSeconds,
-          distancePx: slideDistancePx,
-        ),
+  // Les lignes de la référence, dans l'ordre : l'annonce, l'envoi adverse
+  // (dresseur seulement), l'envoi du joueur. Lire par position serait
+  // fragile ; on prend la première et la dernière, et l'intermédiaire quand
+  // elle existe.
+  final appearingMessage = openingLines.isEmpty ? null : openingLines.first;
+  final playerSendMessage =
+      openingLines.length < 2 ? null : openingLines.last;
+  final enemySendMessage =
+      openingLines.length < 3 ? null : openingLines[openingLines.length - 2];
+
+  final steps = <BattleAnimationStep>[
+    WaitStep(durationSeconds: revealSeconds),
+  ];
+
+  // 1. L'entrée de l'adversaire.
+  final enemyEntersAsTrainer = enemyBallSheetName != null;
+  if (enemyEntersAsTrainer && hasEnemyTrainerSprite) {
+    steps.add(
+      EnemyTrainerIntroStep(
+        motion: BattleIntroTrainerMotionKind.enter,
+        durationSeconds: slideSeconds,
+      ),
+    );
+  } else if (!enemyEntersAsTrainer) {
+    steps.add(
+      CombatantMotionStep(
+        side: BattleSideId.enemy,
+        motionKind: BattleCombatantMotionKind.introSlide,
+        durationSeconds: slideSeconds,
+        distancePx: slideDistancePx,
+      ),
+    );
+  }
+  // Repli d'un combat de dresseur SANS image : rien n'entre, le Pokémon
+  // apparaîtra à son envoi — la durée du glissement est laissée au message.
+
+  // 2. L'annonce.
+  if (appearingMessage != null) {
+    steps.add(ShowMessageStep(message: appearingMessage));
+  }
+
+  // 3. L'envoi de l'adversaire — dresseur uniquement. Son MESSAGE existe dès
+  // que la session est un combat de dresseur (trois lignes d'ouverture) ; les
+  // mouvements, eux, dépendent des assets disponibles. Les conditionner
+  // ensemble faisait disparaître « X envoie Y ! » quand la planche de Ball
+  // manquait.
+  if (enemySendMessage != null) {
+    if (enemyEntersAsTrainer) {
+      if (hasEnemyTrainerSprite) {
+        steps.add(
+          EnemyTrainerIntroStep(
+            motion: BattleIntroTrainerMotionKind.exit,
+            durationSeconds: slideSeconds,
+          ),
+        );
+      }
+      steps.add(
         PlayBallSequenceStep(
-          side: BattleSideId.player,
-          kind: BattleBallSequenceKind.sendOutThrown,
-          sheetName: playerBallSheetName,
+          side: BattleSideId.enemy,
+          kind: BattleBallSequenceKind.sendOutHeld,
+          sheetName: enemyBallSheetName,
         ),
+      );
+      steps.add(
         const CombatantMotionStep(
-          side: BattleSideId.player,
+          side: BattleSideId.enemy,
           motionKind: BattleCombatantMotionKind.materializeIn,
           durationSeconds: 0.1,
         ),
-        for (final line in openingLines) ShowMessageStep(message: line),
-      ],
+      );
+    }
+    steps.add(ShowMessageStep(message: enemySendMessage));
+  }
+
+  // 4. L'envoi du joueur.
+  if (playerBallSheetName != null) {
+    steps.add(
+      PlayBallSequenceStep(
+        side: BattleSideId.player,
+        kind: BattleBallSequenceKind.sendOutThrown,
+        sheetName: playerBallSheetName,
+      ),
+    );
+    steps.add(
+      const CombatantMotionStep(
+        side: BattleSideId.player,
+        motionKind: BattleCombatantMotionKind.materializeIn,
+        durationSeconds: 0.1,
+      ),
+    );
+  } else {
+    steps.add(
+      CombatantMotionStep(
+        side: BattleSideId.player,
+        motionKind: BattleCombatantMotionKind.introSlide,
+        durationSeconds: slideSeconds,
+        distancePx: slideDistancePx,
+      ),
     );
   }
+  if (playerSendMessage != null) {
+    steps.add(ShowMessageStep(message: playerSendMessage));
+  }
+
   return BattleAnimationPlan(
-    steps: <BattleAnimationStep>[
-      WaitStep(durationSeconds: revealSeconds),
-      AnimationGroupStep(
-        mode: BattleAnimationGroupMode.parallel,
-        steps: <BattleAnimationStep>[
-          CombatantMotionStep(
-            side: BattleSideId.enemy,
-            motionKind: BattleCombatantMotionKind.introSlide,
-            durationSeconds: slideSeconds,
-            distancePx: slideDistancePx,
-          ),
-          CombatantMotionStep(
-            side: BattleSideId.player,
-            motionKind: BattleCombatantMotionKind.introSlide,
-            durationSeconds: slideSeconds,
-            distancePx: slideDistancePx,
-          ),
-        ],
-      ),
-      for (final line in openingLines) ShowMessageStep(message: line),
-    ],
+    steps: List<BattleAnimationStep>.unmodifiable(steps),
   );
 }

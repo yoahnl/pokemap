@@ -885,6 +885,28 @@ final class PlayBallCaptureSequenceStep extends BattleAnimationStep {
       2.8 + shakes * 1.0 + 0.5 + (caught ? 0.0 : 0.2);
 }
 
+/// Le dresseur adverse entre en scène, ou en sort en lançant sa Ball —
+/// BETA-BAT-027.
+///
+/// Parité `create_sprite_move_animation` (l'entrée, 0,8 s) et
+/// `create_enemy_send_animation` (la sortie, 0,8 s, après quoi seulement le
+/// Pokémon adverse apparaît). Étape À DURÉE. Sans image de dresseur préparée
+/// par l'hôte, l'étape ne montre rien et la durée s'écoule — l'intro reste
+/// lisible et retombe sur le glissement du Pokémon.
+final class EnemyTrainerIntroStep extends BattleAnimationStep {
+  const EnemyTrainerIntroStep({
+    required this.motion,
+    this.durationSeconds = 0.8,
+  });
+
+  final BattleIntroTrainerMotionKind motion;
+  final double durationSeconds;
+}
+
+/// Les deux mouvements du dresseur adverse, côté plan (le composant a son
+/// propre enum : le plan ne dépend pas de la couche Flame).
+enum BattleIntroTrainerMotionKind { enter, exit }
+
 /// Fait réapparaître le dresseur vaincu à la place de son Pokémon —
 /// BETA-BAT-017. Accent instantané : l'image a été préparée par l'hôte
 /// ([BattleOverlayComponent.prepareDefeatedTrainerVisual]) ; sans image

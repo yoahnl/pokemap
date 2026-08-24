@@ -41,21 +41,27 @@ BattleSession _session({required bool isTrainerBattle}) {
 void main() {
   // BETA-BAT-016, critères 3 et 4 : la séquence complète existe et un combat
   // de dresseur a une séquence d'envoi que le sauvage n'a pas.
-  test('sauvage : fondu, glissement parallèle, apparition, envoi joueur', () {
+  //
+  // BETA-BAT-027 (recette du 2026-08-24) a corrigé l'ORDRE de ce plan : les
+  // messages ne sont plus groupés à la fin, ils ponctuent les temps de la
+  // référence (annonce après l'entrée, envois chacun avec son message). Ce
+  // fichier garde les invariants de CONTRAT (durées, distances, planches) ;
+  // l'ordre lui-même est verrouillé par battle_intro_parity_test.dart.
+  test('sauvage : fondu, entrée de l’adversaire, apparition, envoi joueur',
+      () {
     final plan = buildBattleIntroAnimationPlan(
       session: _session(isTrainerBattle: false),
       slideDistancePx: 1080,
     );
 
-    expect(plan.steps, hasLength(4));
     expect(
-      plan.steps[0],
+      plan.steps.first,
       isA<WaitStep>().having((s) => s.durationSeconds, 'fondu', 0.25),
     );
-    final slide = plan.steps[1] as AnimationGroupStep;
-    expect(slide.mode, BattleAnimationGroupMode.parallel);
+    final slides =
+        plan.steps.whereType<CombatantMotionStep>().toList(growable: false);
     expect(
-      slide.steps,
+      slides,
       everyElement(
         isA<CombatantMotionStep>()
             .having((s) => s.motionKind, 'motion',
@@ -65,20 +71,16 @@ void main() {
       ),
     );
     expect(
-      (slide.steps.first as CombatantMotionStep).side,
-      isNot((slide.steps.last as CombatantMotionStep).side),
-      reason: 'les deux camps glissent',
+      slides.map((step) => step.side).toSet(),
+      <BattleSideId>{BattleSideId.enemy, BattleSideId.player},
+      reason: 'les deux camps entrent, chacun à son temps de la référence',
     );
-    expect(
-      plan.steps[2],
-      isA<ShowMessageStep>()
-          .having((s) => s.message, 'message', contains('sauvage apparaît')),
-    );
-    expect(
-      plan.steps[3],
-      isA<ShowMessageStep>()
-          .having((s) => s.message, 'message', startsWith('Vas-y')),
-    );
+    final messages = plan.steps
+        .whereType<ShowMessageStep>()
+        .map((step) => step.message)
+        .toList(growable: false);
+    expect(messages.first, contains('sauvage apparaît'));
+    expect(messages.last, startsWith('Vas-y'));
   });
 
   test('dresseur : le défi PUIS l’envoi ennemi PUIS l’envoi joueur', () {
@@ -87,25 +89,18 @@ void main() {
       slideDistancePx: 1080,
     );
 
-    expect(plan.steps, hasLength(5));
-    expect(plan.steps[0], isA<WaitStep>());
-    expect(plan.steps[1], isA<AnimationGroupStep>());
+    final messages = plan.steps
+        .whereType<ShowMessageStep>()
+        .map((step) => step.message)
+        .toList(growable: false);
+    expect(messages, hasLength(3));
+    expect(messages[0], contains('te défie'));
     expect(
-      plan.steps[2],
-      isA<ShowMessageStep>()
-          .having((s) => s.message, 'message', contains('te défie')),
-    );
-    expect(
-      plan.steps[3],
-      isA<ShowMessageStep>()
-          .having((s) => s.message, 'message', contains('envoie')),
+      messages[1],
+      contains('envoie'),
       reason: 'critère 4 : le dresseur a une séquence d’envoi ennemi',
     );
-    expect(
-      plan.steps[4],
-      isA<ShowMessageStep>()
-          .having((s) => s.message, 'message', startsWith('Vas-y')),
-    );
+    expect(messages[2], startsWith('Vas-y'));
   });
 
   test(
@@ -116,10 +111,11 @@ void main() {
       slideDistancePx: 1080,
       playerBallSheetName: 'ball_1',
     );
+    final steps = plan.steps;
 
-    expect(plan.steps[0], isA<WaitStep>());
+    expect(steps.first, isA<WaitStep>());
     expect(
-      plan.steps[1],
+      steps[1],
       isA<CombatantMotionStep>()
           .having((s) => s.side, 'camp', BattleSideId.enemy)
           .having((s) => s.motionKind, 'mouvement',
@@ -128,7 +124,7 @@ void main() {
           '(create_sprite_move_animation puis create_player_send_animation)',
     );
     expect(
-      plan.steps[2],
+      steps.whereType<PlayBallSequenceStep>().single,
       isA<PlayBallSequenceStep>()
           .having((s) => s.side, 'camp', BattleSideId.player)
           .having((s) => s.kind, 'emploi', BattleBallSequenceKind.sendOutThrown)
@@ -138,9 +134,11 @@ void main() {
           'actor_ball_animation',
     );
     expect(
-      plan.steps[3],
+      steps
+          .whereType<CombatantMotionStep>()
+          .where((step) => step.side == BattleSideId.player)
+          .single,
       isA<CombatantMotionStep>()
-          .having((s) => s.side, 'camp', BattleSideId.player)
           .having((s) => s.motionKind, 'mouvement',
               BattleCombatantMotionKind.materializeIn)
           .having((s) => s.durationSeconds, 'durée', 0.1),
@@ -156,14 +154,14 @@ void main() {
       slideDistancePx: 1080,
     );
     expect(
-      plan.steps[1],
-      isA<AnimationGroupStep>(),
+      plan.steps
+          .whereType<CombatantMotionStep>()
+          .map((step) => step.motionKind)
+          .toSet(),
+      <BattleCombatantMotionKind>{BattleCombatantMotionKind.introSlide},
       reason: 'critère 4 : la planche absente ne casse jamais l’entrée — '
-          'le repli est le plan BAT-016 inchangé',
+          'les deux camps glissent, comme avant BAT-022',
     );
-    expect(
-      plan.steps.whereType<PlayBallSequenceStep>(),
-      isEmpty,
-    );
+    expect(plan.steps.whereType<PlayBallSequenceStep>(), isEmpty);
   });
 }

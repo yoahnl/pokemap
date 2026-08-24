@@ -29,6 +29,7 @@ import 'battle_debug_panel_component.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_fx_layer_component.dart';
 import 'battle_intro_animation_planner.dart';
+import 'battle_intro_trainer_component.dart';
 import 'battle_medicine_target_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
@@ -643,6 +644,12 @@ class BattleOverlayComponent extends PositionComponent {
   /// BETA-BAT-025 : le sauvage capturé reste dans sa Ball jusqu'au démontage
   /// du combat — la resynchronisation de fin de plan le remettrait debout.
   bool _capturedEnemyHeldInBall = false;
+
+  /// Les côtés dont la pose d'ENTRÉE doit survivre à la synchronisation —
+  /// recette du 2026-08-24. Rempli quand le plan d'intro est armé, vidé au
+  /// démarrage de l'intro : à partir de là, c'est le plan qui pilote les
+  /// sprites, et la sync de fin de plan les remet légitimement en place.
+  Set<BattleSideId> _introHeldCombatantSides = <BattleSideId>{};
   BattleCombatant? _displayedEnemyCombatant;
   BattleCombatant? _displayedPlayerCombatant;
   int _presentationGeneration = 0;
@@ -717,6 +724,21 @@ class BattleOverlayComponent extends PositionComponent {
       _enemyCombatant?.currentVisualScaleX;
 
   @visibleForTesting
+  double? get debugPlayerSpriteScaleX =>
+      // ignore: invalid_use_of_visible_for_testing_member
+      _playerCombatant?.currentVisualScaleX;
+
+  @visibleForTesting
+  Offset? get debugEnemySpriteOffset =>
+      // ignore: invalid_use_of_visible_for_testing_member
+      _enemyCombatant?.currentVisualOffset;
+
+  @visibleForTesting
+  Offset? get debugPlayerSpriteOffset =>
+      // ignore: invalid_use_of_visible_for_testing_member
+      _playerCombatant?.currentVisualOffset;
+
+  @visibleForTesting
   bool get narrationPanelMounted => _commandPanel != null;
 
   @visibleForTesting
@@ -769,6 +791,9 @@ class BattleOverlayComponent extends PositionComponent {
     final plan = _pendingIntroPlan;
     if (plan == null) return;
     _pendingIntroPlan = null;
+    // À partir d'ici c'est le PLAN qui pilote les sprites d'entrée : les
+    // poses retenues n'ont plus à survivre à une synchronisation.
+    _introHeldCombatantSides = <BattleSideId>{};
     _introPlayed = true;
     _animationRunner?.start(plan);
     _handleAnimationPresentationChanged();
@@ -1014,6 +1039,44 @@ class BattleOverlayComponent extends PositionComponent {
   void prepareDefeatedTrainerVisual(ui.Image image) {
     _defeatedTrainerImage = image;
   }
+
+  /// L'image du dresseur adverse pour l'INTRO — BETA-BAT-027.
+  ///
+  /// Même contrat que le dresseur vaincu : l'hôte la charge depuis la donnée
+  /// projet AVANT le montage (elle doit être là quand `onLoad` construit le
+  /// plan d'intro). Sans elle, le Pokémon adverse glisse comme un sauvage.
+  ui.Image? _introTrainerImage;
+  BattleIntroTrainerComponent? _introTrainerSprite;
+
+  void prepareIntroTrainerVisual(ui.Image image) {
+    _introTrainerImage = image;
+  }
+
+  @visibleForTesting
+  BattleIntroTrainerComponent? get debugIntroTrainerSprite =>
+      _introTrainerSprite;
+
+  /// Parité `create_sprite_move_animation` / `create_enemy_send_animation` :
+  /// le dresseur adverse entre, annonce, puis sort en lançant sa Ball. Sans
+  /// sprite monté, l'étape ne fait rien et sa durée s'écoule.
+  void _handleEnemyTrainerIntroStep(EnemyTrainerIntroStep step) {
+    final sprite = _introTrainerSprite;
+    if (sprite == null) return;
+    sprite.play(
+      motion: switch (step.motion) {
+        BattleIntroTrainerMotionKind.enter => BattleIntroTrainerMotion.enter,
+        BattleIntroTrainerMotionKind.exit => BattleIntroTrainerMotion.exit,
+      },
+      durationSeconds: step.durationSeconds,
+    );
+    if (step.motion == BattleIntroTrainerMotionKind.exit) {
+      // Il ne revient pas : le retirer à la fin de sa sortie, en microtask
+      // pour ne pas muter l'arbre pendant son parcours.
+      _introTrainerExitPending = true;
+    }
+  }
+
+  bool _introTrainerExitPending = false;
 
   @visibleForTesting
   bool get debugDefeatedTrainerSpriteMounted => _defeatedTrainerSprite != null;
@@ -1346,9 +1409,25 @@ class BattleOverlayComponent extends PositionComponent {
       // 360 px sur l'écran 320 de la référence = 1,125 largeur d'écran.
       final introSlideDistancePx = size.x * 1.125;
       final playerUsesBall = (await ballSheetFuture) != null;
-      _enemyCombatant?.holdIntroSlideOffscreen(
-        distancePx: introSlideDistancePx,
-      );
+      // Recette du 2026-08-24 : ces poses doivent SURVIVRE à la sync qui
+      // termine onLoad — d'où l'enregistrement des côtés retenus.
+      // Parité `actor_sprites` / `enemy_sprites` de la référence, qui posent
+      // `zoom = 0` sur les Pokémon avant toute animation d'entrée.
+      _introHeldCombatantSides = <BattleSideId>{
+        BattleSideId.enemy,
+        BattleSideId.player,
+      };
+      final enemyUsesBall = playerUsesBall && _session.setup.isTrainerBattle;
+      if (enemyUsesBall) {
+        // Parité `enemy_sprites` : dans un combat de DRESSEUR, le Pokémon
+        // adverse ne glisse pas — c'est le dresseur qui entre, puis sort en
+        // lançant sa Ball. Le Pokémon attend caché.
+        _enemyCombatant?.holdMaterializeHidden();
+      } else {
+        _enemyCombatant?.holdIntroSlideOffscreen(
+          distancePx: introSlideDistancePx,
+        );
+      }
       if (playerUsesBall) {
         _playerCombatant?.holdMaterializeHidden();
       } else {
@@ -1356,11 +1435,24 @@ class BattleOverlayComponent extends PositionComponent {
           distancePx: introSlideDistancePx,
         );
       }
+      final introTrainerImage = _introTrainerImage;
+      if (enemyUsesBall && introTrainerImage != null) {
+        final sprite = BattleIntroTrainerComponent(
+          image: introTrainerImage,
+          spriteRect: layout.enemySpriteRect,
+          offscreenDistancePx: introSlideDistancePx,
+          priority: (_enemyCombatant?.priority ?? 10) + 1,
+        )..holdOffscreen();
+        _introTrainerSprite = sprite;
+        await add(sprite);
+      }
       _pendingIntroPlan = buildBattleIntroAnimationPlan(
         session: _session,
         slideDistancePx: introSlideDistancePx,
         resolveSpeciesDisplayName: resolveSpeciesDisplayName,
         playerBallSheetName: playerUsesBall ? _introBallSheetName : null,
+        enemyBallSheetName: enemyUsesBall ? _introBallSheetName : null,
+        hasEnemyTrainerSprite: _introTrainerImage != null,
       );
     }
 
@@ -1383,6 +1475,7 @@ class BattleOverlayComponent extends PositionComponent {
       onShowDefeatedTrainer: _handleShowDefeatedTrainerStep,
       onPlayBallSequence: _handleBallSequenceStep,
       onPlayBallCaptureSequence: _handleBallCaptureSequenceStep,
+      onEnemyTrainerIntro: _handleEnemyTrainerIntroStep,
       onPlaySe: (step) => playSfx?.call(
         step.seName,
         volume: step.volume,
@@ -1917,6 +2010,15 @@ class BattleOverlayComponent extends PositionComponent {
 
   @override
   void update(double dt) {
+    if (_introTrainerExitPending &&
+        (_introTrainerSprite?.isMotionComplete ?? false)) {
+      _introTrainerExitPending = false;
+      final sprite = _introTrainerSprite;
+      _introTrainerSprite = null;
+      // En microtask : le retrait en pleine itération updateTree muterait
+      // l'arbre pendant son parcours (le piège de BAT-016).
+      Future<void>.microtask(() => sprite?.removeFromParent());
+    }
     // Une seule mise à l'échelle pour toute la scène : le runner, la caméra et
     // les enfants visuels avancent sur la même horloge, donc rien ne se
     // désynchronise. Scaler la seule durée de phase du runner couperait les
@@ -2043,6 +2145,16 @@ class BattleOverlayComponent extends PositionComponent {
       _combatantForSide(side)?.holdMaterializeHidden();
       return;
     }
+    // Recette du 2026-08-24 (vidéo 18-09-39) : « les deux pokémons sont déjà
+    // présents, PUIS il y a l'animation ». Les holds d'entrée posés en fin
+    // d'onLoad étaient écrasés par CETTE restauration, appelée par la sync du
+    // même onLoad : au lever du rideau, les deux combattants étaient debout à
+    // leur place et l'intro rejouait leur arrivée par-dessus. Tant que le
+    // plan d'intro attend son départ, les poses d'entrée tiennent.
+    if (_introHeldCombatantSides.contains(side)) {
+      return;
+    }
+
     _combatantForSide(side)?.snapToBattlePose();
   }
 
@@ -2134,14 +2246,21 @@ class BattleOverlayComponent extends PositionComponent {
                 feedbackMessage: _bagFeedbackMessage,
               )
             : null;
+    // Recette du 2026-08-24 (vidéo 18-09-39) : pendant l'intro, la boîte
+    // affichait « Que doit faire X ? » AVANT les messages d'ouverture — le
+    // menu semblait ouvert alors que la scène entrait encore. Une animation
+    // qui joue sans message ne pose aucune question : la référence laisse sa
+    // boîte muette jusqu'à ce qu'elle ait quelque chose à dire.
     final resolvedPrompt = currentAnimationMessage ??
         medicineTargetPrompt ??
         bagPrompt ??
         partyPrompt ??
-        buildBattleDecisionPromptForSession(
-          _session,
-          resolveSpeciesDisplayName: resolveSpeciesDisplayName,
-        );
+        ((_animationRunner?.isActive ?? false)
+            ? ''
+            : buildBattleDecisionPromptForSession(
+                _session,
+                resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+              ));
     final defaultNarration = _introPlayed &&
             !_session.state.isFinished &&
             _session.state.currentTurn == null

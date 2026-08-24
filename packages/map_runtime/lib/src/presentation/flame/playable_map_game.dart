@@ -8011,6 +8011,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _battleXpProgressAtMount = playerExperienceProgressByLineupIndex;
 
+      // BETA-BAT-027 : le sprite du dresseur adverse pour l'INTRO — recette
+      // du 2026-08-24 : « lorsque l'on est face à un dresseur, lui aussi
+      // lance une pokéball face à nous ». L'image doit être là AVANT le
+      // montage : `onLoad` construit le plan d'intro et décide s'il y a un
+      // dresseur à faire entrer. Même chargeur que le dresseur vaincu de
+      // BAT-017 — une absence rend null et l'intro retombe sur le
+      // glissement du Pokémon.
+      final introTrainerImage = request is TrainerBattleStartRequest
+          ? await _loadDefeatedTrainerImage(request.trainerId)
+          : null;
+      if (_flowPhase != _RuntimeFlowPhase.battleTransition &&
+          !isBattleUiActive) {
+        return;
+      }
+
       // Afficher l'overlay de combat avec la session
       late final BattleOverlayComponent overlay;
       overlay = _traceSync(
@@ -8072,6 +8087,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               playerExperienceProgressByLineupIndex,
         ),
       );
+      if (introTrainerImage != null) {
+        overlay.prepareIntroTrainerVisual(introTrainerImage);
+      }
       camera.viewport.add(overlay);
       overlay.setUseFlutterCommandOverlay(_preferBattleFlutterCommandOverlay);
       _battleOverlay = overlay;
