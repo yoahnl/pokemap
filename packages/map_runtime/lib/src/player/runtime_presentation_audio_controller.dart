@@ -16,11 +16,20 @@ import 'runtime_presentation_media_playback_controller.dart'
 /// releases every handle and clears the ducking, after which stale async
 /// completions are ignored by epoch.
 abstract interface class RuntimePresentationAudioDriver {
+  /// Starts [source].
+  ///
+  /// [mimeType] carries the catalog's declared media type. The media store is
+  /// content-addressed, so every file lands at `<digest>.blob` with no
+  /// extension: AVFoundation cannot infer a container from that name and
+  /// refuses the item outright. The declared type is what lets it open the
+  /// file anyway, and a media without one is played on the platform's own
+  /// sniffing as before.
   Future<Object> play(
     Uri source, {
     required double volume,
     required bool loop,
     required Duration position,
+    String? mimeType,
   });
 
   Future<void> pause(Object handle);
@@ -40,11 +49,12 @@ final class FlameRuntimePresentationAudioDriver
     required double volume,
     required bool loop,
     required Duration position,
+    String? mimeType,
   }) async {
     final player = AudioPlayer();
     await player.setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.release);
     await player.play(
-      DeviceFileSource(source.toFilePath()),
+      DeviceFileSource(source.toFilePath(), mimeType: mimeType),
       volume: volume,
       position: position <= Duration.zero ? null : position,
     );
@@ -241,6 +251,7 @@ final class RuntimePresentationAudioController {
       volume: 0,
       loop: command.loop,
       position: Duration(microseconds: command.positionUs),
+      mimeType: media.technicalMetadata?.mediaType,
     );
     if (_epoch != epoch) {
       await driver.stop(handle);

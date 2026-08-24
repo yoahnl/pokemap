@@ -20,7 +20,7 @@ void main() {
       );
       await sink.settled;
 
-      expect(driver.log, ['play:opening-music@1200000:loop=true']);
+      expect(driver.log, ['play:opening-music@1200000:loop=true:type=audio/ogg']);
       expect(sink.diagnostic, isNull);
     });
 
@@ -92,7 +92,7 @@ void main() {
         await sink.settled;
       }
 
-      expect(driver.log, ['play:opening-music@0:loop=true']);
+      expect(driver.log, ['play:opening-music@0:loop=true:type=audio/ogg']);
     });
 
     test('scrubbing restarts the channel at the new instant', () async {
@@ -119,7 +119,7 @@ void main() {
       );
       await sink.settled;
 
-      expect(driver.log, ['stop', 'play:opening-music@3500000:loop=true']);
+      expect(driver.log, ['stop', 'play:opening-music@3500000:loop=true:type=audio/ogg']);
     });
 
     test('scrubbing while paused releases, so the next play starts there',
@@ -161,7 +161,7 @@ void main() {
         running: true,
       );
       await sink.settled;
-      expect(driver.log, ['stop', 'play:opening-music@5000000:loop=true']);
+      expect(driver.log, ['stop', 'play:opening-music@5000000:loop=true:type=audio/ogg']);
     });
 
     test('releasing stops every channel', () async {
@@ -300,6 +300,31 @@ void main() {
       expect(video.log, ['seek:3000000']);
     });
 
+    test('a source that will not open is not retried on every frame',
+        () async {
+      final driver = _RecordingAudioDriver()
+        ..failWith = StateError('AVPlayerItem.Status.failed');
+      final sink = _sink(driver);
+      addTearDown(sink.dispose);
+      final asset = _asset();
+
+      for (var frame = 0; frame < 30; frame += 1) {
+        sink.synchronize(
+          asset: asset,
+          frame: _frameAt(frame * 16666),
+          orientation: PresentationFrameOrientation.landscape,
+          running: true,
+        );
+        await sink.settled;
+      }
+
+      // One attempt, one diagnostic. Re-planning the same start sixty times a
+      // second hammers the audio device for a file it has already refused.
+      expect(driver.log, isEmpty);
+      expect(sink.diagnostic, isNotNull);
+      expect(sink.unplayableResourceIds, contains('opening-music'));
+    });
+
     test('a media missing from the catalog reports instead of throwing',
         () async {
       final driver = _RecordingAudioDriver();
@@ -419,6 +444,13 @@ PresentationStudioMediaSink _sink(_RecordingAudioDriver driver) =>
             label: 'Musique d’ouverture',
             kind: ProjectMediaKind.audio,
             sourceAssetId: 'asset-opening-music',
+            technicalMetadata: ProjectMediaTechnicalMetadata(
+              mediaType: 'audio/ogg',
+              container: 'ogg',
+              codec: 'vorbis',
+              sizeBytes: 2048,
+              durationMilliseconds: 8000,
+            ),
           ),
         ],
       ),
@@ -458,6 +490,7 @@ PresentationFrame _frameAt(int timeUs) =>
 
 final class _RecordingAudioDriver implements RuntimePresentationAudioDriver {
   final List<String> log = <String>[];
+  Object? failWith;
   var _handles = 0;
 
   @override
@@ -466,10 +499,13 @@ final class _RecordingAudioDriver implements RuntimePresentationAudioDriver {
     required double volume,
     required bool loop,
     required Duration position,
+    String? mimeType,
   }) async {
+    if (failWith != null) throw failWith!;
     log.add(
       'play:${source.pathSegments.last.split('.').first}'
-      '@${position.inMicroseconds}:loop=$loop',
+      '@${position.inMicroseconds}:loop=$loop'
+      '${mimeType == null ? '' : ':type=$mimeType'}',
     );
     return 'handle-${_handles++}';
   }

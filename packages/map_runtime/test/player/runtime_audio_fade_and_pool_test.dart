@@ -372,6 +372,7 @@ final class _RecordingDriver implements RuntimePresentationAudioDriver {
     required double volume,
     required bool loop,
     required Duration position,
+    String? mimeType,
   }) async =>
       'voice-${_next++}';
 

@@ -51,6 +51,7 @@ final class RuntimeSfxPool implements RuntimePresentationAudioDriver {
     required double volume,
     required bool loop,
     required Duration position,
+    String? mimeType,
   }) async {
     if (_disposed) {
       throw StateError('The SFX pool is disposed.');
@@ -62,6 +63,7 @@ final class RuntimeSfxPool implements RuntimePresentationAudioDriver {
         volume: volume,
         loop: true,
         position: position,
+        mimeType: mimeType,
       );
       _unpooled.add(handle);
       return handle;
@@ -93,6 +95,7 @@ final class RuntimeSfxPool implements RuntimePresentationAudioDriver {
       volume: volume,
       loop: false,
       position: position,
+      mimeType: mimeType,
     );
     _allocations += 1;
     final voice = _PooledVoice(key: key, handle: handle);

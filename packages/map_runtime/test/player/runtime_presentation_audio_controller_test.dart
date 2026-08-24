@@ -14,6 +14,121 @@ import 'package:map_runtime/map_runtime.dart';
 /// active duck la musique, un média manquant échoue fermé, et la sortie ne
 /// laisse ni handle ni callback périmé.
 void main() {
+  test('a source declares its media type, because a blob carries no extension',
+      () async {
+    // The blob store is content-addressed: every media lives at
+    // `<digest>.blob`. AVFoundation cannot infer a container from that name,
+    // so without the catalog's media type the player refuses the file and the
+    // cinematic plays silent — in the Studio montage and in the game alike.
+    final driver = _RecordingAudioDriver();
+    final controller = RuntimePresentationAudioController(
+      catalog: ProjectMediaCatalog(
+        entries: <ProjectMediaAsset>[
+          ProjectMediaAsset(
+            id: 'media_theme',
+            label: 'Theme',
+            kind: ProjectMediaKind.audio,
+            sourceAssetId: 'asset_theme',
+            technicalMetadata: ProjectMediaTechnicalMetadata(
+              mediaType: 'audio/mpeg',
+              container: 'mp3',
+              codec: 'mp3',
+              sizeBytes: 649552,
+              durationMilliseconds: 27063,
+            ),
+          ),
+        ],
+      ),
+      resolveUri: (media) => Uri.file('/project/${media.sourceAssetId}.blob'),
+      driver: driver,
+      mixer: RuntimeAudioMixer(),
+    );
+    addTearDown(controller.releaseAll);
+
+    final themed = PresentationCinematicAsset(
+      id: 'opening',
+      title: 'Opening',
+      durationUs: 4000000,
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'music',
+          label: 'Music',
+          kind: PresentationTrackKind.audio,
+          clips: <PresentationClip>[
+            PresentationAudioClip(
+              id: 'theme',
+              startUs: 0,
+              durationUs: 4000000,
+              resourceId: 'media_theme',
+              audioKind: PresentationAudioKind.music,
+              bus: PresentationAudioBus.music,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await controller.synchronize(
+      themed,
+      const PresentationCinematicEvaluator().evaluate(themed, timeUs: 0),
+    );
+
+    expect(driver.handles, hasLength(1));
+    expect(driver.handles.single.mimeType, 'audio/mpeg');
+  });
+
+  test('a media without technical metadata still plays, type unspecified',
+      () async {
+    final driver = _RecordingAudioDriver();
+    final controller = RuntimePresentationAudioController(
+      catalog: ProjectMediaCatalog(
+        entries: <ProjectMediaAsset>[
+          ProjectMediaAsset(
+            id: 'media_theme',
+            label: 'Theme',
+            kind: ProjectMediaKind.audio,
+            sourceAssetId: 'asset_theme',
+          ),
+        ],
+      ),
+      resolveUri: (media) => Uri.file('/project/${media.sourceAssetId}.ogg'),
+      driver: driver,
+      mixer: RuntimeAudioMixer(),
+    );
+    addTearDown(controller.releaseAll);
+
+    final themed = PresentationCinematicAsset(
+      id: 'opening',
+      title: 'Opening',
+      durationUs: 4000000,
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'music',
+          label: 'Music',
+          kind: PresentationTrackKind.audio,
+          clips: <PresentationClip>[
+            PresentationAudioClip(
+              id: 'theme',
+              startUs: 0,
+              durationUs: 4000000,
+              resourceId: 'media_theme',
+              audioKind: PresentationAudioKind.music,
+              bus: PresentationAudioBus.music,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await controller.synchronize(
+      themed,
+      const PresentationCinematicEvaluator().evaluate(themed, timeUs: 0),
+    );
+
+    expect(driver.handles, hasLength(1));
+    expect(driver.handles.single.mimeType, isNull);
+  });
+
   PresentationCinematicAsset asset({bool withVoice = false}) =>
       PresentationCinematicAsset(
         id: 'opening',
@@ -343,11 +458,13 @@ final class _FakeAudioHandle {
     required this.loop,
     required this.positionUs,
     required this.volume,
+    this.mimeType,
   });
 
   final Uri uri;
   final bool loop;
   final int positionUs;
+  final String? mimeType;
   double volume;
   bool paused = false;
   bool stopped = false;
@@ -364,6 +481,7 @@ final class _RecordingAudioDriver implements RuntimePresentationAudioDriver {
     required double volume,
     required bool loop,
     required Duration position,
+    String? mimeType,
   }) async {
     playCalls += 1;
     final gate = playGate;
@@ -373,6 +491,7 @@ final class _RecordingAudioDriver implements RuntimePresentationAudioDriver {
       loop: loop,
       positionUs: position.inMicroseconds,
       volume: volume,
+      mimeType: mimeType,
     );
     handles.add(handle);
     return handle;

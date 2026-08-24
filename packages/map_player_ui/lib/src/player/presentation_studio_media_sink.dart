@@ -69,6 +69,16 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   String? _diagnostic;
   String? _frameDiagnostic;
 
+  /// The audio sources the device has already refused.
+  ///
+  /// The media store is content-addressed, so a file the platform cannot open
+  /// will never become openable. Without this the plan re-issues the same
+  /// start on the next synchronisation — sixty times a second while a preview
+  /// runs — and hammers the audio device for a file it has already rejected.
+  final Set<String> _unplayable = <String>{};
+  String? _refusedAudioSignature;
+  String? _refusedAudioDiagnostic;
+
   /// Completes once every synchronisation asked for so far has been applied.
   Future<void> get settled => _pending;
 
@@ -82,6 +92,9 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     if (active == null || active.resourceId != resourceId) return null;
     return _video.buildVideo(active.handle);
   }
+
+  /// The audio sources this sink has stopped trying to open.
+  Set<String> get unplayableResourceIds => Set<String>.unmodifiable(_unplayable);
 
   /// Why the frame could not be played, when it could not.
   ///
@@ -117,6 +130,8 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     return _enqueue(() async {
       _suspended = false;
       _lastFrameTimeUs = null;
+      _refusedAudioSignature = null;
+      _refusedAudioDiagnostic = null;
       await _releaseVideo();
       await _audio.releaseAll();
     });
@@ -182,6 +197,21 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
       _suspended = false;
       await _guard(_audio.resumeAfterLifecycle);
     }
+    await _synchronizeAudio(request);
+    await _guard(() => _applyVideo(request, scrubbed: scrubbed));
+  }
+
+  Future<void> _synchronizeAudio(_StudioMediaRequest request) async {
+    final signature = _audioSignatureOf(request.frame);
+    if (signature == _refusedAudioSignature) {
+      // The exact same set of sources the device just refused. Asking again
+      // changes nothing, so the frame plays what it can and stays quiet — but
+      // it keeps saying why, otherwise a silent montage looks like a montage
+      // with nothing to play.
+      _frameDiagnostic ??= _refusedAudioDiagnostic;
+      return;
+    }
+    final before = _frameDiagnostic;
     await _guard(
       () => _audio.synchronize(
         request.asset,
@@ -194,8 +224,23 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
         },
       ),
     );
-    await _guard(() => _applyVideo(request, scrubbed: scrubbed));
+    if (identical(before, _frameDiagnostic)) {
+      _refusedAudioSignature = null;
+      _refusedAudioDiagnostic = null;
+      return;
+    }
+    _refusedAudioSignature = signature;
+    _refusedAudioDiagnostic = _frameDiagnostic;
+    _unplayable.addAll(_audioResourcesOf(request.frame));
   }
+
+  Set<String> _audioResourcesOf(PresentationFrame? frame) => <String>{
+        for (final clip in frame?.audio ?? const <PresentationAudioFrameClip>[])
+          clip.resourceId,
+      };
+
+  String _audioSignatureOf(PresentationFrame? frame) =>
+      (_audioResourcesOf(frame).toList()..sort()).join('|');
 
   /// Keeps at most one decoder alive on the frame's topmost video clip.
   ///

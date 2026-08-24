@@ -595,6 +595,7 @@ final class _RecordingCueAudioDriver
     required double volume,
     required bool loop,
     required Duration position,
+    String? mimeType,
   }) async {
     playCalls += 1;
     final handle = _CueFakeAudioHandle(loop: loop);
