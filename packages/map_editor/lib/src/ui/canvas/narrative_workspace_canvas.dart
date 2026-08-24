@@ -3255,8 +3255,12 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
                 unawaited(_applyPresentationLayerCommand(command)),
           ),
           propertiesPanel: AnimatedBuilder(
+            // Never the whole canvas controller: it publishes the playhead
+            // sixty times a second, and the inspector does not move with
+            // time. It watches the focused orientation and the clip
+            // selection, and nothing else.
             animation: Listenable.merge([
-              _presentationResponsiveCanvasController,
+              _presentationResponsiveCanvasController.orientation,
               timelineEditingController,
             ]),
             builder: (context, _) => PresentationStudioPropertiesPanel(
@@ -3321,29 +3325,30 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
                         .selectClip(asset: updated, clipId: result.clipId);
                   },
                 ),
-          timeline: AnimatedBuilder(
-            animation: _presentationResponsiveCanvasController,
-            builder: (context, _) => PresentationStudioTimeline(
-              asset: resolvedAsset,
-              playheadUs: _presentationResponsiveCanvasController.playheadUs,
-              selectionController:
-                  _presentationResponsiveCanvasController.selection,
-              cueViews: presentationCueViews,
-              markerUsageCountById: <String, int>{
-                for (final markerId in presentationCueViews.keys) markerId: 1,
-              },
-              editingController: timelineEditingController,
-              projectionController: _presentationTimelineProjectionController,
-              onPlayheadChanged: _presentationResponsiveCanvasController.seekTo,
-              onCommand: (command) =>
-                  unawaited(_applyPresentationTimelineCommand(command)),
-              mutationPending: !_presentationDocumentController.isOpen ||
-                  _presentationDocumentController.isSaving,
-              canUndo: widget.editorNotifier.canUndoNarrativeDocument,
-              canRedo: widget.editorNotifier.canRedoNarrativeDocument,
-              onUndo: () => unawaited(_undoPresentationDocument()),
-              onRedo: () => unawaited(_redoPresentationDocument()),
-            ),
+          // No AnimatedBuilder on the canvas controller here: the timeline
+          // subscribes to the playhead itself, so a running preview repaints
+          // the ruler and the marker instead of rebuilding every lane.
+          timeline: PresentationStudioTimeline(
+            asset: resolvedAsset,
+            playheadUs: _presentationResponsiveCanvasController.playheadUs,
+            playhead: _presentationResponsiveCanvasController.playhead,
+            selectionController:
+                _presentationResponsiveCanvasController.selection,
+            cueViews: presentationCueViews,
+            markerUsageCountById: <String, int>{
+              for (final markerId in presentationCueViews.keys) markerId: 1,
+            },
+            editingController: timelineEditingController,
+            projectionController: _presentationTimelineProjectionController,
+            onPlayheadChanged: _presentationResponsiveCanvasController.seekTo,
+            onCommand: (command) =>
+                unawaited(_applyPresentationTimelineCommand(command)),
+            mutationPending: !_presentationDocumentController.isOpen ||
+                _presentationDocumentController.isSaving,
+            canUndo: widget.editorNotifier.canUndoNarrativeDocument,
+            canRedo: widget.editorNotifier.canRedoNarrativeDocument,
+            onUndo: () => unawaited(_undoPresentationDocument()),
+            onRedo: () => unawaited(_redoPresentationDocument()),
           ),
         ),
       );

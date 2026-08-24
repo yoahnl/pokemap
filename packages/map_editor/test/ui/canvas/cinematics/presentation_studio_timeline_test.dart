@@ -81,6 +81,35 @@ void main() {
     expect(controller.pixelsPerSecond, 180);
   });
 
+  test('moving the playhead never invalidates the lane layout', () {
+    final controller = PresentationTimelineViewportController(
+      durationUs: const Duration(minutes: 2).inMicroseconds,
+      pixelsPerSecond: 80,
+    )..configureViewport(800);
+
+    var layoutNotifications = 0;
+    var playheadNotifications = 0;
+    controller.addListener(() => layoutNotifications += 1);
+    controller.playhead.addListener(() => playheadNotifications += 1);
+
+    for (var frame = 1; frame <= 60; frame += 1) {
+      controller.seekTo(frame * 16_666);
+    }
+
+    expect(controller.playhead.value, 60 * 16_666);
+    expect(playheadNotifications, 60);
+    // The lanes, the clips and the projections do not move with time. If a
+    // playhead tick invalidated them, playback would rebuild every visible
+    // clip sixty times a second.
+    expect(layoutNotifications, 0);
+
+    controller.scrollTo(120);
+    expect(layoutNotifications, 1);
+    controller.zoomAt(factor: 2, anchorViewportX: 400);
+    expect(layoutNotifications, 2);
+    expect(playheadNotifications, 60);
+  });
+
   test('visible clip query is logarithmic plus the returned window', () {
     final clips = List<PresentationAudioClip>.generate(
       5400,
@@ -197,6 +226,56 @@ void main() {
       find.byType(PokeMapCinematicTimelineClip).evaluate().length,
       lessThan(40),
     );
+  });
+
+  testWidgets('a live playhead moves the marker and the ruler', (tester) async {
+    final asset = _asset();
+    final selection = PresentationStudioSelectionController();
+    addTearDown(selection.dispose);
+    final playhead = ValueNotifier<int>(0);
+    addTearDown(playhead.dispose);
+    final viewport = PresentationTimelineViewportController(
+      durationUs: asset.durationUs,
+      pixelsPerSecond: 100,
+    );
+    addTearDown(viewport.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 260,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              playhead: playhead,
+              selectionController: selection,
+              onPlayheadChanged: (_) {},
+              viewportController: viewport,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final before = tester.getTopLeft(
+      find.byKey(presentationStudioTimelinePlayheadKey),
+    );
+
+    playhead.value = 1_000_000;
+    await tester.pump();
+
+    final after = tester.getTopLeft(
+      find.byKey(presentationStudioTimelinePlayheadKey),
+    );
+
+    // One second at a hundred pixels per second.
+    expect(after.dx - before.dx, closeTo(100, 0.5));
+    expect(viewport.playheadUs, 1_000_000);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('audio selection is forwarded to the shared inspector', (

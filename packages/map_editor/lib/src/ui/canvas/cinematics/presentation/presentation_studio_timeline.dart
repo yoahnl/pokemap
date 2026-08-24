@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +23,9 @@ const presentationStudioTimelineTrackListKey = ValueKey<String>(
 const presentationStudioTimelineHorizontalScrollbarKey = ValueKey<String>(
   'presentation-studio-timeline-horizontal-scrollbar',
 );
+const presentationStudioTimelinePlayheadKey = ValueKey<String>(
+  'presentation-studio-timeline-playhead',
+);
 
 enum PresentationStudioTimelineState { ready, loading, disabled, error }
 
@@ -32,7 +36,7 @@ final class PresentationTimelineViewportController extends ChangeNotifier {
     int playheadUs = 0,
   }) : _durationUs = _validDuration(durationUs),
        _pixelsPerSecond = _validZoom(pixelsPerSecond),
-       _playheadUs = playheadUs.clamp(0, durationUs).toInt();
+       _playhead = ValueNotifier<int>(playheadUs.clamp(0, durationUs).toInt());
 
   static const double minPixelsPerSecond = 16;
   static const double maxPixelsPerSecond = 480;
@@ -41,19 +45,28 @@ final class PresentationTimelineViewportController extends ChangeNotifier {
   double _pixelsPerSecond;
   double _viewportWidth = 0;
   double _scrollOffset = 0;
-  int _playheadUs;
+
+  /// The playhead, published on its own so a tick does not invalidate the
+  /// lanes.
+  ///
+  /// Zoom, scroll, duration and viewport go through [notifyListeners]: they
+  /// change what the lanes lay out. Time does not — only the playhead marker
+  /// and the ruler move with it, and they subscribe here.
+  final ValueNotifier<int> _playhead;
+
+  ValueListenable<int> get playhead => _playhead;
 
   int get durationUs => _durationUs;
   double get pixelsPerSecond => _pixelsPerSecond;
   double get viewportWidth => _viewportWidth;
   double get scrollOffset => _scrollOffset;
-  int get playheadUs => _playheadUs;
+  int get playheadUs => _playhead.value;
   double get contentWidth => _durationUs / 1000000 * _pixelsPerSecond;
   double get maxScrollOffset => math.max(0, contentWidth - _viewportWidth);
   int get visibleStartUs => _timeUsAtContentX(_scrollOffset);
   int get visibleEndUs => _timeUsAtContentX(_scrollOffset + _viewportWidth);
   double get playheadViewportX =>
-      _contentXAtTimeUs(_playheadUs) - _scrollOffset;
+      _contentXAtTimeUs(_playhead.value) - _scrollOffset;
 
   void configureViewport(double width) {
     if (!width.isFinite || width < 0) {
@@ -73,7 +86,7 @@ final class PresentationTimelineViewportController extends ChangeNotifier {
     final duration = _validDuration(value);
     if (_durationUs == duration) return;
     _durationUs = duration;
-    _playheadUs = _playheadUs.clamp(0, duration).toInt();
+    _playhead.value = _playhead.value.clamp(0, duration).toInt();
     _scrollOffset = _clampScroll(_scrollOffset);
     notifyListeners();
   }
@@ -84,13 +97,10 @@ final class PresentationTimelineViewportController extends ChangeNotifier {
   }
 
   void seekTo(int timeUs) {
-    final next = timeUs.clamp(0, _durationUs).toInt();
-    if (_playheadUs == next) return;
-    _playheadUs = next;
-    notifyListeners();
+    _playhead.value = timeUs.clamp(0, _durationUs).toInt();
   }
 
-  void seekBy(int deltaUs) => seekTo(_playheadUs + deltaUs);
+  void seekBy(int deltaUs) => seekTo(_playhead.value + deltaUs);
 
   void scrollTo(double offset) {
     if (!offset.isFinite) {
@@ -133,6 +143,12 @@ final class PresentationTimelineViewportController extends ChangeNotifier {
 
   double _clampScroll(double value) =>
       value.clamp(0, maxScrollOffset).toDouble();
+
+  @override
+  void dispose() {
+    _playhead.dispose();
+    super.dispose();
+  }
 
   static int _validDuration(int value) {
     if (value <= 0) {
@@ -203,6 +219,7 @@ class PresentationStudioTimeline extends StatefulWidget {
     required this.playheadUs,
     required this.selectionController,
     required this.onPlayheadChanged,
+    this.playhead,
     this.editingController,
     this.onCommand,
     this.mutationPending = false,
@@ -222,6 +239,13 @@ class PresentationStudioTimeline extends StatefulWidget {
   final int playheadUs;
   final PresentationStudioSelectionController selectionController;
   final ValueChanged<int> onPlayheadChanged;
+
+  /// The live playhead, when the host publishes one.
+  ///
+  /// A preview advances it sixty times a second. Taking it as a listenable
+  /// keeps that traffic inside the ruler and the playhead marker instead of
+  /// rebuilding the whole timeline through [playheadUs] on every frame.
+  final ValueListenable<int>? playhead;
   final PresentationTimelineEditingController? editingController;
   final ValueChanged<PresentationTimelineClipCommand>? onCommand;
   final bool mutationPending;
@@ -274,6 +298,15 @@ class _PresentationStudioTimelineState
     _horizontalProxyController.addListener(_proxyScrolled);
     _verticalController.addListener(_verticalScrolled);
     widget.projectionController?.addListener(_projectionChanged);
+    widget.playhead?.addListener(_hostPlayheadChanged);
+  }
+
+  /// Mirrors the host clock into the viewport without a rebuild: the ruler and
+  /// the playhead marker subscribe to it themselves.
+  void _hostPlayheadChanged() {
+    final playhead = widget.playhead;
+    if (playhead == null) return;
+    _viewportController.seekTo(playhead.value);
   }
 
   @override
@@ -289,9 +322,13 @@ class _PresentationStudioTimelineState
       if (_ownsEditingController) _editingController.dispose();
       _attachEditingController();
     }
+    if (oldWidget.playhead != widget.playhead) {
+      oldWidget.playhead?.removeListener(_hostPlayheadChanged);
+      widget.playhead?.addListener(_hostPlayheadChanged);
+    }
     _editingController.configureAsset(widget.asset);
     _viewportController.configureDuration(widget.asset.durationUs);
-    _viewportController.seekTo(widget.playheadUs);
+    _viewportController.seekTo(widget.playhead?.value ?? widget.playheadUs);
     if (oldWidget.asset != widget.asset) _rebuildIndexes();
     if (oldWidget.selectionController != widget.selectionController) {
       oldWidget.selectionController.removeListener(_selectionChanged);
@@ -313,7 +350,7 @@ class _PresentationStudioTimelineState
           playheadUs: widget.playheadUs,
         );
     _viewportController.configureDuration(widget.asset.durationUs);
-    _viewportController.seekTo(widget.playheadUs);
+    _viewportController.seekTo(widget.playhead?.value ?? widget.playheadUs);
     _viewportController.addListener(_viewportChanged);
   }
 
@@ -503,6 +540,7 @@ class _PresentationStudioTimelineState
       ..removeListener(_verticalScrolled)
       ..dispose();
     widget.projectionController?.removeListener(_projectionChanged);
+    widget.playhead?.removeListener(_hostPlayheadChanged);
     _focusNode.dispose();
     super.dispose();
   }
@@ -666,14 +704,18 @@ class _PresentationStudioTimelineState
               ),
             ),
           ),
-          PokeMapCinematicTimelineViewportRuler(
-            duration: Duration(microseconds: widget.asset.durationUs),
-            playhead: Duration(microseconds: _viewportController.playheadUs),
-            pixelsPerSecond: _viewportController.pixelsPerSecond,
-            scrollOffset: _viewportController.scrollOffset,
-            width: viewportWidth,
-            semanticLabel: copy.presentationTimeRuler,
-            onSeekAtX: _seekAt,
+          ValueListenableBuilder<int>(
+            valueListenable: _viewportController.playhead,
+            builder: (context, playheadUs, _) =>
+                PokeMapCinematicTimelineViewportRuler(
+                  duration: Duration(microseconds: widget.asset.durationUs),
+                  playhead: Duration(microseconds: playheadUs),
+                  pixelsPerSecond: _viewportController.pixelsPerSecond,
+                  scrollOffset: _viewportController.scrollOffset,
+                  width: viewportWidth,
+                  semanticLabel: copy.presentationTimeRuler,
+                  onSeekAtX: _seekAt,
+                ),
           ),
         ],
       ),
@@ -691,17 +733,35 @@ class _PresentationStudioTimelineState
     return LayoutBuilder(
       builder: (context, constraints) {
         _scheduleProjectionSync(constraints.maxHeight);
-        return ListView.builder(
-          key: presentationStudioTimelineTrackListKey,
-          controller: _verticalController,
-          itemExtent: 52,
-          itemCount: widget.asset.tracks.length,
-          itemBuilder: (context, index) => _trackRow(
-            widget.asset.tracks[index],
-            _clipIndexes[index],
-            viewportWidth,
-            index,
-          ),
+        return Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: ListView.builder(
+                key: presentationStudioTimelineTrackListKey,
+                controller: _verticalController,
+                itemExtent: 52,
+                itemCount: widget.asset.tracks.length,
+                itemBuilder: (context, index) => _trackRow(
+                  widget.asset.tracks[index],
+                  _clipIndexes[index],
+                  viewportWidth,
+                  index,
+                ),
+              ),
+            ),
+            // One marker over the whole lane stack rather than one per row.
+            // Drawn last so it stays above the clips, and hit-transparent so
+            // clip gestures keep working underneath.
+            Positioned(
+              left: _headerWidth,
+              top: 0,
+              bottom: 0,
+              width: viewportWidth,
+              child: IgnorePointer(
+                child: _PlayheadMarker(controller: _viewportController),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -788,7 +848,6 @@ class _PresentationStudioTimelineState
               .compareTo(_editingController.previewClip(right.id).startUs);
           return start != 0 ? start : left.id.compareTo(right.id);
         });
-    final playheadX = _viewportController.playheadViewportX;
     return PokeMapCinematicTrackRow(
       label: track.label,
       icon: _trackIcon(track.kind),
@@ -814,16 +873,6 @@ class _PresentationStudioTimelineState
                     ),
                   ),
                 for (final clip in clips) _clip(clip, trackIndex),
-                if (playheadX >= 0 && playheadX <= viewportWidth)
-                  Positioned(
-                    left: playheadX,
-                    top: 0,
-                    bottom: 0,
-                    child: SizedBox(
-                      width: 2,
-                      child: ColoredBox(color: colors.brandPrimary),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -1084,6 +1133,43 @@ class _PresentationStudioTimelineState
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The playhead line, the only surface in the timeline that moves with time.
+///
+/// Listens to the viewport controller for zoom and scroll, and to its playhead
+/// for the instant. Nothing else in the lane subtree subscribes to time, which
+/// is what keeps a running preview from rebuilding every visible clip.
+class _PlayheadMarker extends StatelessWidget {
+  const _PlayheadMarker({required this.controller});
+
+  final PresentationTimelineViewportController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return AnimatedBuilder(
+      animation: Listenable.merge([controller, controller.playhead]),
+      builder: (context, _) {
+        final x = controller.playheadViewportX;
+        if (x < 0 || x > controller.viewportWidth) {
+          return const SizedBox.shrink();
+        }
+        return Stack(
+          children: <Widget>[
+            Positioned(
+              key: presentationStudioTimelinePlayheadKey,
+              left: x,
+              top: 0,
+              bottom: 0,
+              width: 2,
+              child: ColoredBox(color: colors.brandPrimary),
+            ),
+          ],
+        );
+      },
     );
   }
 }

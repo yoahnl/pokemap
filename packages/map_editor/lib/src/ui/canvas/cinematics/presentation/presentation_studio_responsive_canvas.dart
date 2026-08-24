@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -107,9 +108,12 @@ final class PresentationStudioResponsiveCanvasController
        selection = PresentationStudioSelectionController(
          initialSelection: initialSelection,
        ),
-       _activeOrientation = mode == PresentationStudioCanvasMode.portrait
-           ? PresentationFrameOrientation.portrait
-           : PresentationFrameOrientation.landscape {
+       _playhead = ValueNotifier<int>(playheadUs.clamp(0, durationUs)),
+       _orientation = ValueNotifier<PresentationFrameOrientation>(
+         mode == PresentationStudioCanvasMode.portrait
+             ? PresentationFrameOrientation.portrait
+             : PresentationFrameOrientation.landscape,
+       ) {
     if (playheadUs < 0) {
       throw ArgumentError.value(
         playheadUs,
@@ -124,9 +128,28 @@ final class PresentationStudioResponsiveCanvasController
   final PresentationStudioSelectionController selection;
   final PresentationPlaybackClock _playbackClock;
   PresentationStudioCanvasMode _mode;
-  PresentationFrameOrientation _activeOrientation;
   String? _previewErrorMessage;
   bool _disposed = false;
+
+  /// The playhead alone, so a surface that only tracks time does not have to
+  /// listen to the whole controller.
+  ///
+  /// Playback advances this sixty times a second. Everything that does not
+  /// move with the playhead — the properties panel, the layer tree, the clip
+  /// lanes — must watch [transport], [orientation] or [selection] instead,
+  /// otherwise a preview rebuilds the entire studio on every frame.
+  final ValueNotifier<int> _playhead;
+  final ValueNotifier<PresentationFrameOrientation> _orientation;
+  final _StudioTransportNotifier _transport = _StudioTransportNotifier();
+
+  ValueListenable<int> get playhead => _playhead;
+
+  /// The focused orientation: the mode buttons and a viewport gaining focus.
+  ValueListenable<PresentationFrameOrientation> get orientation => _orientation;
+
+  /// Transport state that is not the playhead: status, loop, duration and the
+  /// preview error.
+  Listenable get transport => _transport;
 
   PresentationStudioCanvasMode get mode => _mode;
   int get durationUs => _playbackClock.durationUs;
@@ -137,15 +160,15 @@ final class PresentationStudioResponsiveCanvasController
       _playbackClock.mediaClockPolicy;
   String? get previewErrorMessage => _previewErrorMessage;
   String? get selectedClipId => selection.value?.clipId;
-  PresentationFrameOrientation get activeOrientation => _activeOrientation;
+  PresentationFrameOrientation get activeOrientation => _orientation.value;
 
   void setMode(PresentationStudioCanvasMode value) {
     if (_mode == value) return;
     _mode = value;
     if (value == PresentationStudioCanvasMode.landscape) {
-      _activeOrientation = PresentationFrameOrientation.landscape;
+      _orientation.value = PresentationFrameOrientation.landscape;
     } else if (value == PresentationStudioCanvasMode.portrait) {
-      _activeOrientation = PresentationFrameOrientation.portrait;
+      _orientation.value = PresentationFrameOrientation.portrait;
     }
     notifyListeners();
   }
@@ -158,20 +181,27 @@ final class PresentationStudioResponsiveCanvasController
     _playbackClock.seekTo(timeUs);
     if (previous == playheadUs) return;
     selection.resetCanvasCycle();
+    _publishPlayhead();
     notifyListeners();
   }
 
   int? play() {
     final previous = status;
     final token = _playbackClock.play();
-    if (previous != status) notifyListeners();
+    if (previous != status) {
+      _transport.notify();
+      notifyListeners();
+    }
     return token;
   }
 
   int? resume() {
     final previous = status;
     final token = _playbackClock.resume();
-    if (previous != status) notifyListeners();
+    if (previous != status) {
+      _transport.notify();
+      notifyListeners();
+    }
     return token;
   }
 
@@ -180,10 +210,11 @@ final class PresentationStudioResponsiveCanvasController
   void stop() {
     final previous = (status, playheadUs);
     _playbackClock.stop();
-    if (previous != (status, playheadUs)) {
-      selection.resetCanvasCycle();
-      notifyListeners();
-    }
+    if (previous == (status, playheadUs)) return;
+    selection.resetCanvasCycle();
+    if (previous.$1 != status) _transport.notify();
+    _publishPlayhead();
+    notifyListeners();
   }
 
   void stepForward() => _applyPlayheadTransport(_playbackClock.stepForward);
@@ -193,6 +224,7 @@ final class PresentationStudioResponsiveCanvasController
   void setLoop(bool value) {
     if (loop == value) return;
     _playbackClock.setLoop(value);
+    _transport.notify();
     notifyListeners();
   }
 
@@ -200,9 +232,12 @@ final class PresentationStudioResponsiveCanvasController
       _applyTransport(_playbackClock.holdForInteraction);
 
   bool advanceBy(int deltaUs, {required int token}) {
+    final previousStatus = status;
     final changed = _playbackClock.advanceBy(deltaUs, token: token);
     if (changed) {
       selection.resetCanvasCycle();
+      if (previousStatus != status) _transport.notify();
+      _publishPlayhead();
       notifyListeners();
     }
     return changed;
@@ -213,6 +248,8 @@ final class PresentationStudioResponsiveCanvasController
     _playbackClock.configureDuration(value);
     if (previous == (durationUs, playheadUs, status)) return;
     selection.resetCanvasCycle();
+    if (previous.$1 != durationUs || previous.$3 != status) _transport.notify();
+    _publishPlayhead();
     if (notify) notifyListeners();
   }
 
@@ -225,7 +262,9 @@ final class PresentationStudioResponsiveCanvasController
     final previous = (status, _previewErrorMessage);
     _previewErrorMessage = message;
     _playbackClock.setError();
-    if (previous != (status, _previewErrorMessage)) notifyListeners();
+    if (previous == (status, _previewErrorMessage)) return;
+    _transport.notify();
+    notifyListeners();
   }
 
   void setReady() {
@@ -234,8 +273,8 @@ final class PresentationStudioResponsiveCanvasController
   }
 
   void focus(PresentationFrameOrientation orientation) {
-    if (_activeOrientation == orientation) return;
-    _activeOrientation = orientation;
+    if (_orientation.value == orientation) return;
+    _orientation.value = orientation;
     notifyListeners();
   }
 
@@ -254,9 +293,10 @@ final class PresentationStudioResponsiveCanvasController
   void _applyTransport(void Function() operation) {
     final previous = (status, playheadUs, mediaClockPolicy);
     operation();
-    if (previous != (status, playheadUs, mediaClockPolicy)) {
-      notifyListeners();
-    }
+    if (previous == (status, playheadUs, mediaClockPolicy)) return;
+    _transport.notify();
+    _publishPlayhead();
+    notifyListeners();
   }
 
   void _applyPlayheadTransport(void Function() operation) {
@@ -264,7 +304,13 @@ final class PresentationStudioResponsiveCanvasController
     operation();
     if (previous == (status, playheadUs)) return;
     selection.resetCanvasCycle();
+    if (previous.$1 != status) _transport.notify();
+    _publishPlayhead();
     notifyListeners();
+  }
+
+  void _publishPlayhead() {
+    if (_playhead.value != playheadUs) _playhead.value = playheadUs;
   }
 
   @override
@@ -275,8 +321,15 @@ final class PresentationStudioResponsiveCanvasController
     landscapeViewport.dispose();
     portraitViewport.dispose();
     selection.dispose();
+    _playhead.dispose();
+    _orientation.dispose();
+    _transport.dispose();
     super.dispose();
   }
+}
+
+final class _StudioTransportNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
 }
 
 class PresentationStudioResponsiveToolbar extends StatefulWidget {
