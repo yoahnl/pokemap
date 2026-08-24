@@ -5,8 +5,9 @@ import 'dart:io';
 /// Même précédent que les 181 planches d'animations et les sons de combat :
 /// les visuels viennent du projet de test PSDK que Yoahn a désigné comme
 /// source le 2026-08-23 (`graphics/transitions/spritesheets/`), et le dépôt
-/// n'embarque que ce que le périmètre bêta consomme : la planche sauvage RBY
-/// (10×3) et les deux planches dresseur Diamant/Perle/Platine (3×4).
+/// n'embarque que ce que le registre moteur consomme : les planches sauvages
+/// (10×3 : RBY, Or, Cristal, HGSS normal et grotte) et les planches dresseur
+/// (3×4 : Diamant/Perle/Platine et HeartGold/SoulSilver) — BETA-BAT-019.
 ///
 /// Usage :
 ///   dart run tool/import_battle_transition_assets.dart \
@@ -32,8 +33,14 @@ void main(List<String> arguments) {
 
   const sheetFileNames = <String>[
     'rby_wild.png',
+    'gold_wild.png',
+    'crystal_wild.png',
+    'heartgold_soulsilver_wild.png',
+    'heartgold_soulsilver_cave_wild.png',
     'diamant_perle_trainer_01.png',
     'diamant_perle_trainer_02.png',
+    'heartgold_soulsilver_trainer_01.png',
+    'heartgold_soulsilver_trainer_02.png',
   ];
 
   final targetDirectory = Directory('assets/transitions');

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/src/presentation/flame/battle_transition_manifest.dart';
 import 'package:map_runtime/src/presentation/flame/battle_transition_spec.dart';
 
 ProjectManifest _manifest({ProjectBattleTransitionConfig? battleTransitions}) {
@@ -178,6 +179,116 @@ void main() {
             .having((p) => p.sheetName, 'planche', 'diamant_perle_trainer_02'),
       );
       expect(phases[5], isA<TransitionHoldBlackPhase>());
+    });
+  });
+
+  group('BETA-BAT-019 — le panel porté de la référence', () {
+    test(
+        'le registre porte les neuf transitions sans shader, réparties par '
+        'type pour le panel d’authoring', () {
+      expect(
+        battleTransitionRegistry.keys,
+        containsAll(<String>[
+          'rby_wild',
+          'gold_wild',
+          'crystal_wild',
+          'hgss_wild',
+          'hgss_cave',
+          'rs_wild',
+          'dpp_wild',
+          'dpp_trainer',
+          'hgss_trainer',
+        ]),
+      );
+      for (final id in battleWildTransitionIds) {
+        expect(battleTransitionRegistry, contains(id),
+            reason: 'chaque id du panel sauvage se résout');
+      }
+      for (final id in battleTrainerTransitionIds) {
+        expect(battleTransitionRegistry, contains(id),
+            reason: 'chaque id du panel dresseur se résout');
+      }
+      for (final entry in battleTransitionRegistry.entries) {
+        expect(entry.value.id, entry.key,
+            reason: 'l’id de la spec et la clé du registre disent pareil');
+      }
+    });
+
+    test(
+        'les sauvages à planche héritent du flash RBY et ne varient que par '
+        'la planche et son tempo (oracle 110/150/151)', () {
+      const expectations = <String, (String, double)>{
+        'gold_wild': ('gold_wild', 1.0),
+        'crystal_wild': ('crystal_wild', 0.5),
+        'hgss_wild': ('heartgold_soulsilver_wild', 1.5),
+        'hgss_cave': ('heartgold_soulsilver_cave_wild', 1.5),
+      };
+      for (final entry in expectations.entries) {
+        final phases = battleTransitionRegistry[entry.key]!.phases;
+        expect(
+          phases.first,
+          isA<TransitionFlashPhase>()
+              .having((p) => p.durationSeconds, 'durée', 1.5)
+              .having((p) => p.factor, 'facteur', 6),
+          reason: '${entry.key} : create_pre_transition_animation de RBYWild '
+              'porte le flash pour tous ses héritiers',
+        );
+        expect(
+          phases[1],
+          isA<TransitionSheetCellsPhase>()
+              .having((p) => p.sheetName, 'planche', entry.value.$1)
+              .having((p) => p.columns, 'colonnes', 10)
+              .having((p) => p.rows, 'lignes', 3)
+              .having((p) => p.durationSeconds, 'tempo', entry.value.$2),
+          reason: '${entry.key} : pre_transition_cells_duration de l’oracle',
+        );
+        expect(phases[2], isA<TransitionHoldBlackPhase>());
+      }
+    });
+
+    test('rs_wild et dpp_wild glissent leurs bandes en 0,7 s (oracle 120)', () {
+      for (final id in <String>['rs_wild', 'dpp_wild']) {
+        final phases = battleTransitionRegistry[id]!.phases;
+        expect(phases.first, isA<TransitionFlashPhase>());
+        expect(
+          phases[1],
+          isA<TransitionInterleavedBandsPhase>()
+              .having((p) => p.durationSeconds, 'durée', 0.7),
+          reason: '$id : ya.move(0.7, …) de RSWild',
+        );
+        expect(phases[2], isA<TransitionHoldBlackPhase>());
+      }
+    });
+
+    test(
+        'hgss_trainer rejoue toute la séquence DPP avec ses planches '
+        '(oracle 154)', () {
+      final phases = battleTransitionRegistry['hgss_trainer']!.phases;
+      expect(phases, hasLength(6));
+      expect(
+        phases[3],
+        isA<TransitionSheetCellsPhase>().having(
+            (p) => p.sheetName, 'planche', 'heartgold_soulsilver_trainer_01'),
+      );
+      expect(
+        phases[4],
+        isA<TransitionSheetCellsPhase>().having(
+            (p) => p.sheetName, 'planche', 'heartgold_soulsilver_trainer_02'),
+      );
+    });
+
+    test('chaque planche du registre est réellement embarquée', () {
+      for (final spec in battleTransitionRegistry.values) {
+        for (final phase
+            in spec.phases.whereType<TransitionSheetCellsPhase>()) {
+          expect(
+            battleTransitionSheetManifest,
+            contains(phase.sheetName),
+            reason: '${spec.id} référence ${phase.sheetName} : la planche '
+                'doit être dans le manifeste embarqué',
+          );
+        }
+      }
     });
   });
 }

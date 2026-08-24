@@ -80,6 +80,28 @@ final class TransitionHoldBlackPhase extends BattleTransitionPhase {
   final double durationSeconds;
 }
 
+/// Bandes noires entrelacées qui envahissent l'écran — BETA-BAT-019.
+///
+/// L'adaptation sans shader de `RSWild`/`DPPWild` : la référence découpe la
+/// capture d'écran en lignes alternées qui glissent hors champ (0,7 s) en
+/// révélant le noir. Notre overlay vit PAR-DESSUS la carte encore rendue :
+/// l'effet inverse est visuellement équivalent — les bandes paires entrent
+/// par la gauche, les impaires par la droite, jusqu'au noir complet.
+final class TransitionInterleavedBandsPhase extends BattleTransitionPhase {
+  const TransitionInterleavedBandsPhase({
+    required this.durationSeconds,
+    this.bandHeight = 3,
+  });
+
+  @override
+  final double durationSeconds;
+
+  /// Hauteur d'une bande en pixels logiques. La référence masque des lignes
+  /// de texture d'un pixel ; à nos résolutions, 3 px gardent le peigne fin
+  /// sans scintiller.
+  final double bandHeight;
+}
+
 /// Fondu progressif transparent → noir — BETA-BAT-017.
 ///
 /// La sortie de combat de la référence : l'écran fond au noir depuis la
@@ -167,12 +189,152 @@ const battleExitFade = BattleTransitionSpec(
   ],
 );
 
-/// Le registre moteur des transitions connues.
-const Map<String, BattleTransitionSpec> battleTransitionRegistry =
+/// Les phases communes aux sauvages à planche — recontrôlées à l'oracle le
+/// 2026-08-24 : `create_pre_transition_animation` de `100 RBYWild.rb` porte
+/// le flash (1,5 s facteur 6) et le noir tenu (0,25 s) pour TOUS ses
+/// héritiers ; seuls la planche et son tempo changent
+/// (`pre_transition_cells_duration`).
+BattleTransitionSpec _wildSheetTransition({
+  required String id,
+  required String sheetName,
+  required double cellsDurationSeconds,
+}) {
+  return BattleTransitionSpec(
+    id: id,
+    phases: <BattleTransitionPhase>[
+      const TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
+      TransitionSheetCellsPhase(
+        sheetName: sheetName,
+        columns: 10,
+        rows: 3,
+        durationSeconds: cellsDurationSeconds,
+      ),
+      const TransitionHoldBlackPhase(durationSeconds: 0.25),
+    ],
+  );
+}
+
+/// La transition sauvage Or — `110 GSCWild.rb` : planche `gold_wild` en 1 s.
+final battleTransitionGoldWild = _wildSheetTransition(
+  id: 'gold_wild',
+  sheetName: 'gold_wild',
+  cellsDurationSeconds: 1,
+);
+
+/// La transition sauvage Cristal — `110 GSCWild.rb` : planche
+/// `crystal_wild` au tempo hérité de RBY (0,5 s).
+final battleTransitionCrystalWild = _wildSheetTransition(
+  id: 'crystal_wild',
+  sheetName: 'crystal_wild',
+  cellsDurationSeconds: 0.5,
+);
+
+/// La transition sauvage HeartGold/SoulSilver — `150 HGSSWild.rb` : planche
+/// `heartgold_soulsilver_wild` en 1,5 s.
+final battleTransitionHgssWild = _wildSheetTransition(
+  id: 'hgss_wild',
+  sheetName: 'heartgold_soulsilver_wild',
+  cellsDurationSeconds: 1.5,
+);
+
+/// La transition grotte HeartGold/SoulSilver — `151 HGSSCave.rb` : planche
+/// `heartgold_soulsilver_cave_wild` en 1,5 s.
+final battleTransitionHgssCave = _wildSheetTransition(
+  id: 'hgss_cave',
+  sheetName: 'heartgold_soulsilver_cave_wild',
+  cellsDurationSeconds: 1.5,
+);
+
+/// La transition sauvage Rubis/Saphir — `120 RSWild.rb` : flash hérité de
+/// RBY puis les lignes de l'écran glissent hors champ en 0,7 s (adaptées en
+/// bandes entrelacées, voir [TransitionInterleavedBandsPhase]), noir tenu.
+const battleTransitionRsWild = BattleTransitionSpec(
+  id: 'rs_wild',
+  phases: <BattleTransitionPhase>[
+    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
+    TransitionInterleavedBandsPhase(durationSeconds: 0.7),
+    TransitionHoldBlackPhase(durationSeconds: 0.25),
+  ],
+);
+
+/// La transition sauvage Diamant/Perle — `140 DPPWild.rb` : la même
+/// mécanique que Rubis/Saphir (seul le shader de découpe diffère dans la
+/// référence, invisible dans notre adaptation) sous son propre id
+/// d'authoring.
+const battleTransitionDppWild = BattleTransitionSpec(
+  id: 'dpp_wild',
+  phases: <BattleTransitionPhase>[
+    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
+    TransitionInterleavedBandsPhase(durationSeconds: 0.7),
+    TransitionHoldBlackPhase(durationSeconds: 0.25),
+  ],
+);
+
+/// La transition dresseur HeartGold/SoulSilver — `154 HGSSTrainer.rb` :
+/// toute la séquence Diamant/Perle/Platine avec les deux planches HGSS.
+const battleTransitionHgssTrainer = BattleTransitionSpec(
+  id: 'hgss_trainer',
+  phases: <BattleTransitionPhase>[
+    TransitionFlashPhase(durationSeconds: 0.7, factor: 2),
+    TransitionSpriteZoomPhase(durationSeconds: 0.4, zoomFrom: 0.2),
+    TransitionSpriteAnglePhase(
+      durationSeconds: 0.4,
+      angleFromDegrees: 90,
+      angleToDegrees: -360,
+    ),
+    TransitionSheetCellsPhase(
+      sheetName: 'heartgold_soulsilver_trainer_01',
+      columns: 3,
+      rows: 4,
+      durationSeconds: 0.2,
+    ),
+    TransitionSheetCellsPhase(
+      sheetName: 'heartgold_soulsilver_trainer_02',
+      columns: 3,
+      rows: 4,
+      durationSeconds: 0.2,
+    ),
+    TransitionHoldBlackPhase(durationSeconds: 0.25),
+  ],
+);
+
+/// Le registre moteur des transitions connues — BETA-BAT-019.
+///
+/// Le panel portable sans shader de la référence. Les transitions à
+/// FragmentShader (RBY/RS dresseur, grottes RS/DPP, mers, Noir/Blanc, XY,
+/// champions d'arène, Red, Team Rocket, Zone de Combat) restent à porter
+/// dans un lot « shaders » dédié.
+final Map<String, BattleTransitionSpec> battleTransitionRegistry =
     <String, BattleTransitionSpec>{
   'rby_wild': battleTransitionRbyWild,
+  'gold_wild': battleTransitionGoldWild,
+  'crystal_wild': battleTransitionCrystalWild,
+  'hgss_wild': battleTransitionHgssWild,
+  'hgss_cave': battleTransitionHgssCave,
+  'rs_wild': battleTransitionRsWild,
+  'dpp_wild': battleTransitionDppWild,
   'dpp_trainer': battleTransitionDppTrainer,
+  'hgss_trainer': battleTransitionHgssTrainer,
 };
+
+/// Les transitions proposables pour une rencontre SAUVAGE, dans l'ordre du
+/// panel d'authoring.
+const List<String> battleWildTransitionIds = <String>[
+  'rby_wild',
+  'gold_wild',
+  'crystal_wild',
+  'hgss_wild',
+  'hgss_cave',
+  'rs_wild',
+  'dpp_wild',
+];
+
+/// Les transitions proposables pour un combat DRESSEUR, dans l'ordre du
+/// panel d'authoring.
+const List<String> battleTrainerTransitionIds = <String>[
+  'dpp_trainer',
+  'hgss_trainer',
+];
 
 /// Résout la transition d'une requête de combat — BETA-BAT-016.
 ///

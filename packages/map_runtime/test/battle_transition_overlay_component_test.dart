@@ -36,7 +36,8 @@ Future<void> _flushMicrotasks() => Future<void>.delayed(Duration.zero);
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('le rideau couvre la scène de combat (97), le post-combat (99) et le '
+  test(
+      'le rideau couvre la scène de combat (97), le post-combat (99) et le '
       'dialogue (100)', () async {
     final overlay = await _loadedOverlay(
       spec: battleTransitionRbyWild,
@@ -126,6 +127,50 @@ void main() {
     await _flushMicrotasks();
     expect(blackHeldCount, 1);
     expect(overlay.isHoldingBlack, isTrue);
+  });
+
+  test(
+      'les bandes entrelacées couvrent la moitié de l’écran à mi-course '
+      'puis laissent le noir arriver', () async {
+    var blackHeldCount = 0;
+    final overlay = await _loadedOverlay(
+      spec: battleTransitionRsWild,
+      onBlackHeld: () => blackHeldCount += 1,
+    );
+
+    Future<int> opaquePixels() async {
+      final recorder = ui.PictureRecorder();
+      overlay.renderTree(ui.Canvas(recorder));
+      final image = await recorder.endRecording().toImage(96, 54);
+      final bytes = await image.toByteData();
+      var opaque = 0;
+      for (var i = 3; i < bytes!.lengthInBytes; i += 4) {
+        if (bytes.getUint8(i) > 200) opaque += 1;
+      }
+      return opaque;
+    }
+
+    overlay.update(1.5);
+    overlay.update(0.35);
+    final atHalf = await opaquePixels();
+    expect(
+      atHalf / (96 * 54),
+      closeTo(0.5, 0.12),
+      reason: 'RSWild adapté : à mi-course des 0,7 s, les bandes couvrent '
+          'la moitié de l’écran',
+    );
+
+    overlay.update(0.35);
+    final atEnd = await opaquePixels();
+    expect(
+      atEnd / (96 * 54),
+      greaterThan(0.95),
+      reason: 'les bandes finissent le travail avant le noir tenu',
+    );
+
+    overlay.update(0.3);
+    await _flushMicrotasks();
+    expect(blackHeldCount, 1, reason: 'le noir tenu arrive comme partout');
   });
 
   test('la séquence dresseur DPP traverse zoom, rotation et deux planches',

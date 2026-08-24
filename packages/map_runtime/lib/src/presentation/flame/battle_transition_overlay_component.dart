@@ -61,6 +61,9 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   var _ready = false;
 
   Color _screenColor = const Color(0x00000000);
+  var _bandsActive = false;
+  var _bandsProgress = 0.0;
+  var _bandsBandHeight = 3.0;
   Image? _visibleSheet;
   int _visibleColumns = 1;
   int _visibleRows = 1;
@@ -198,6 +201,7 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   }
 
   void _applyPhase(BattleTransitionPhase phase, double progress) {
+    _bandsActive = false;
     switch (phase) {
       case TransitionFlashPhase(:final factor):
         // Parité `create_flash_animation` : x parcourt 0 → factor·π, l'écran
@@ -237,6 +241,15 @@ class BattleTransitionOverlayComponent extends PositionComponent {
       case TransitionFadeToBlackPhase():
         _visibleSheet = null;
         _screenColor = Color.fromARGB((255 * progress).round(), 0, 0, 0);
+      case TransitionInterleavedBandsPhase(:final bandHeight):
+        // Parité RSWild/DPPWild adaptée : la référence fait glisser les
+        // lignes de l'écran hors champ en révélant le noir ; ici les bandes
+        // noires entrelacées entrent des deux côtés jusqu'au noir complet.
+        _visibleSheet = null;
+        _screenColor = const Color(0x00000000);
+        _bandsActive = true;
+        _bandsProgress = progress;
+        _bandsBandHeight = bandHeight;
     }
   }
 
@@ -291,6 +304,19 @@ class BattleTransitionOverlayComponent extends PositionComponent {
         Paint()..filterQuality = FilterQuality.none,
       );
       canvas.restore();
+    }
+    if (_bandsActive && _bandsProgress > 0) {
+      final paint = Paint()..color = const Color(0xFF000000);
+      final bandWidth = size.x * _bandsProgress.clamp(0.0, 1.0);
+      final bandHeight = _bandsBandHeight <= 0 ? 3.0 : _bandsBandHeight;
+      var index = 0;
+      for (var y = 0.0; y < size.y; y += bandHeight, index += 1) {
+        final left = index.isEven ? 0.0 : size.x - bandWidth;
+        canvas.drawRect(
+          Rect.fromLTWH(left, y, bandWidth, bandHeight),
+          paint,
+        );
+      }
     }
     if (_screenColor.a > 0) {
       canvas.drawRect(
