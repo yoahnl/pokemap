@@ -34,7 +34,9 @@ class BattleTransitionOverlayComponent extends PositionComponent {
     this.onDismissed,
     this.revealSeconds = 0.25,
     @visibleForTesting Future<Image?> Function(String sheetName)? loadSheet,
+    @visibleForTesting Future<FragmentProgram?> Function()? loadDissolveProgram,
   })  : _loadSheet = loadSheet,
+        _loadDissolveProgram = loadDissolveProgram,
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
@@ -51,6 +53,15 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   final VoidCallback? onDismissed;
   final double revealSeconds;
   final Future<Image?> Function(String sheetName)? _loadSheet;
+  final Future<FragmentProgram?> Function()? _loadDissolveProgram;
+
+  /// Le programme du threshold dissolve, charge une fois pour tout le
+  /// process — BETA-BAT-019 lot shaders. Null tant qu'il n'est pas pret ou
+  /// si la plateforme ne le compile pas : le rendu retombe alors sur un
+  /// fondu noir simple, l'entree en combat ne casse jamais.
+  static Future<FragmentProgram?>? _dissolveProgramFuture;
+  FragmentProgram? _dissolveProgram;
+  FragmentShader? _dissolveShader;
 
   final Map<String, Image> _sheetImages = <String, Image>{};
   var _phaseIndex = 0;
@@ -64,6 +75,10 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   var _bandsActive = false;
   var _bandsProgress = 0.0;
   var _bandsBandHeight = 3.0;
+  var _dissolveActive = false;
+  var _dissolveT = 0.0;
+  var _dissolveFine = false;
+  Image? _dissolveTexture;
   Image? _visibleSheet;
   int _visibleColumns = 1;
   int _visibleRows = 1;
@@ -85,14 +100,48 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     for (final phase in spec.phases) {
-      if (phase is! TransitionSheetCellsPhase) continue;
-      if (_sheetImages.containsKey(phase.sheetName)) continue;
-      final image = await _resolveSheetImage(phase.sheetName);
+      final sheetName = switch (phase) {
+        TransitionSheetCellsPhase(:final sheetName) => sheetName,
+        TransitionThresholdDissolvePhase(:final textureName) => textureName,
+        _ => null,
+      };
+      if (sheetName == null || _sheetImages.containsKey(sheetName)) continue;
+      final image = await _resolveSheetImage(sheetName);
       if (image != null) {
-        _sheetImages[phase.sheetName] = image;
+        _sheetImages[sheetName] = image;
+      }
+    }
+    if (spec.phases.any((p) => p is TransitionThresholdDissolvePhase)) {
+      _dissolveProgram = await _resolveDissolveProgram();
+      if (_dissolveProgram != null) {
+        _dissolveShader = _dissolveProgram!.fragmentShader();
       }
     }
     _ready = true;
+  }
+
+  Future<FragmentProgram?> _resolveDissolveProgram() async {
+    final loader = _loadDissolveProgram;
+    if (loader != null) return loader();
+    // Double essai comme les planches : la cle prefixee `packages/` vaut
+    // quand map_runtime est une dependance, la cle nue quand il est le
+    // paquet hote. Un echec rend null : le fondu simple prend le relais.
+    return _dissolveProgramFuture ??= () async {
+      const candidates = <String>[
+        'packages/map_runtime/shaders/battle_transition_dissolve.frag',
+        'shaders/battle_transition_dissolve.frag',
+      ];
+      for (final assetKey in candidates) {
+        try {
+          return await FragmentProgram.fromAsset(assetKey);
+        } on Object {
+          continue;
+        }
+      }
+      debugPrint('[battle-transition] dissolve shader unavailable, '
+          'falling back to a plain fade');
+      return null;
+    }();
   }
 
   Future<Image?> _resolveSheetImage(String sheetName) async {
@@ -202,6 +251,7 @@ class BattleTransitionOverlayComponent extends PositionComponent {
 
   void _applyPhase(BattleTransitionPhase phase, double progress) {
     _bandsActive = false;
+    _dissolveActive = false;
     switch (phase) {
       case TransitionFlashPhase(:final factor):
         // Parité `create_flash_animation` : x parcourt 0 → factor·π, l'écran
@@ -241,6 +291,18 @@ class BattleTransitionOverlayComponent extends PositionComponent {
       case TransitionFadeToBlackPhase():
         _visibleSheet = null;
         _screenColor = Color.fromARGB((255 * progress).round(), 0, 0, 0);
+      case TransitionThresholdDissolvePhase(
+          :final textureName,
+          :final tFrom,
+          :final tTo,
+          :final fineThreshold,
+        ):
+        _visibleSheet = null;
+        _screenColor = const Color(0x00000000);
+        _dissolveActive = true;
+        _dissolveT = tFrom + (tTo - tFrom) * progress;
+        _dissolveFine = fineThreshold;
+        _dissolveTexture = _sheetImages[textureName];
       case TransitionInterleavedBandsPhase(:final bandHeight):
         // Parité RSWild/DPPWild adaptée : la référence fait glisser les
         // lignes de l'écran hors champ en révélant le noir ; ici les bandes
@@ -304,6 +366,29 @@ class BattleTransitionOverlayComponent extends PositionComponent {
         Paint()..filterQuality = FilterQuality.none,
       );
       canvas.restore();
+    }
+    if (_dissolveActive) {
+      final shader = _dissolveShader;
+      final texture = _dissolveTexture;
+      if (shader != null && texture != null) {
+        shader
+          ..setFloat(0, size.x)
+          ..setFloat(1, size.y)
+          ..setFloat(2, _dissolveT)
+          ..setFloat(3, _dissolveFine ? 1.0 : 0.0)
+          ..setImageSampler(0, texture);
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, size.x, size.y),
+          Paint()..shader = shader,
+        );
+      } else {
+        // Repli sans shader : un fondu noir simple qui suit la meme horloge.
+        final alpha = (_dissolveT.clamp(0.0, 1.0) * 255).round();
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, size.x, size.y),
+          Paint()..color = Color.fromARGB(alpha, 0, 0, 0),
+        );
+      }
     }
     if (_bandsActive && _bandsProgress > 0) {
       final paint = Paint()..color = const Color(0xFF000000);

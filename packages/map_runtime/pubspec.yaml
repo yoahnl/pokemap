@@ -45,6 +45,8 @@ dev_dependencies:
   freezed: ^3.2.5
 
 flutter:
+  shaders:
+    - shaders/battle_transition_dissolve.frag
   assets:
     - assets/audio/
     - assets/audio/battle/se/

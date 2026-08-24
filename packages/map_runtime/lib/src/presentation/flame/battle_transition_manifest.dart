@@ -13,5 +13,11 @@ const Map<String, String> battleTransitionSheetManifest =
   'diamant_perle_trainer_02': 'diamant_perle_trainer_02.png',
   'heartgold_soulsilver_trainer_01': 'heartgold_soulsilver_trainer_01.png',
   'heartgold_soulsilver_trainer_02': 'heartgold_soulsilver_trainer_02.png',
+  'rby_trainer': 'rby_trainer.png',
+  'ruby_saphir_trainer': 'ruby_saphir_trainer.png',
+  'ruby_saphir_wild': 'ruby_saphir_wild.png',
+  'diamant_perle_wild': 'diamant_perle_wild.png',
+  'battle_frontier_vertical': 'battle_frontier_vertical.png',
+  'battle_frontier_horizontal': 'battle_frontier_horizontal.png',
 };
 

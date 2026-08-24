@@ -415,17 +415,66 @@ void main() {
       );
     });
 
-    test('chaque planche du registre est réellement embarquée', () {
+    test(
+        'chaque planche et texture de seuil du registre est réellement '
+        'embarquée', () {
       for (final spec in battleTransitionRegistry.values) {
-        for (final phase
-            in spec.phases.whereType<TransitionSheetCellsPhase>()) {
+        for (final phase in spec.phases) {
+          final name = switch (phase) {
+            TransitionSheetCellsPhase(:final sheetName) => sheetName,
+            TransitionThresholdDissolvePhase(:final textureName) => textureName,
+            _ => null,
+          };
+          if (name == null) continue;
           expect(
             battleTransitionSheetManifest,
-            contains(phase.sheetName),
-            reason: '${spec.id} référence ${phase.sheetName} : la planche '
-                'doit être dans le manifeste embarqué',
+            contains(name),
+            reason: '${spec.id} référence $name : le fichier doit être dans '
+                'le manifeste embarqué',
           );
         }
+      }
+    });
+
+    test('les dissolves du lot shaders portent la parité de l’oracle', () {
+      final rbyTrainer = battleTransitionRegistry['rby_trainer']!.phases;
+      expect(rbyTrainer, hasLength(2),
+          reason: 'RBYTrainer n’a PAS de flash : le rideau part direct');
+      expect(
+        rbyTrainer.first,
+        isA<TransitionThresholdDissolvePhase>()
+            .having((p) => p.textureName, 'texture', 'rby_trainer')
+            .having((p) => p.durationSeconds, 'durée', 2.75)
+            .having((p) => p.fineThreshold, 'seuil fin 16 bits', isTrue),
+        reason: 'oracle 100 RBYTrainer.rb : scalar(2.75, t 0 vers 1), '
+            'rbytrainer.frag lit r + g/256',
+      );
+
+      const dissolves = <String, String>{
+        'rs_trainer': 'ruby_saphir_trainer',
+        'rs_cave': 'ruby_saphir_wild',
+        'dpp_cave': 'diamant_perle_wild',
+        'battle_frontier_v': 'battle_frontier_vertical',
+        'battle_frontier_h': 'battle_frontier_horizontal',
+      };
+      for (final entry in dissolves.entries) {
+        final phases = battleTransitionRegistry[entry.key]!.phases;
+        expect(
+          phases.first,
+          isA<TransitionFlashPhase>()
+              .having((p) => p.durationSeconds, 'durée', 1.5)
+              .having((p) => p.factor, 'facteur', 6),
+          reason: '${entry.key} : le flash RBY précède le dissolve',
+        );
+        expect(
+          phases[1],
+          isA<TransitionThresholdDissolvePhase>()
+              .having((p) => p.textureName, 'texture', entry.value)
+              .having((p) => p.durationSeconds, 'durée', 1)
+              .having((p) => p.fineThreshold, 'seuil 8 bits', isFalse),
+          reason: '${entry.key} : black_to_white.frag, t 0 vers 1 en 1 s',
+        );
+        expect(phases[2], isA<TransitionHoldBlackPhase>());
       }
     });
   });

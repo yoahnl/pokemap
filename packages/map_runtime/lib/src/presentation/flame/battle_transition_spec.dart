@@ -102,6 +102,34 @@ final class TransitionInterleavedBandsPhase extends BattleTransitionPhase {
   final double bandHeight;
 }
 
+/// Le threshold dissolve des pré-transitions à shader — BETA-BAT-019.
+///
+/// La parité des `black_to_white.frag` / `rbytrainer.frag` de la référence :
+/// une texture de seuil plein écran, et chaque pixel devient noir opaque
+/// quand son seuil (canal rouge, plus vert/256 en précision fine) passe sous
+/// `t` — qui parcourt [tFrom, tTo] sur la durée. Le rideau spiral du dresseur
+/// RBY, les dissolves Rubis/Saphir et de la Zone de Combat en découlent.
+/// Sans FragmentShader chargeable, l'overlay retombe sur un fondu noir
+/// simple : l'entrée en combat ne casse jamais.
+final class TransitionThresholdDissolvePhase extends BattleTransitionPhase {
+  const TransitionThresholdDissolvePhase({
+    required this.textureName,
+    required this.durationSeconds,
+    this.tFrom = 0,
+    this.tTo = 1,
+    this.fineThreshold = false,
+  });
+
+  final String textureName;
+  @override
+  final double durationSeconds;
+  final double tFrom;
+  final double tTo;
+
+  /// `true` = seuil 16 bits (rouge + vert/256), la précision du rideau RBY.
+  final bool fineThreshold;
+}
+
 /// Fondu progressif transparent → noir — BETA-BAT-017.
 ///
 /// La sortie de combat de la référence : l'écran fond au noir depuis la
@@ -298,12 +326,97 @@ const battleTransitionHgssTrainer = BattleTransitionSpec(
   ],
 );
 
+/// La transition dresseur Rouge/Bleu/Jaune — `100 RBYTrainer.rb` : le rideau
+/// spiral, un dissolve fin (seuil 16 bits) de 2,75 s sans flash, noir tenu.
+const battleTransitionRbyTrainer = BattleTransitionSpec(
+  id: 'rby_trainer',
+  phases: <BattleTransitionPhase>[
+    TransitionThresholdDissolvePhase(
+      textureName: 'rby_trainer',
+      durationSeconds: 2.75,
+      fineThreshold: true,
+    ),
+    TransitionHoldBlackPhase(durationSeconds: 0.25),
+  ],
+);
+
+/// La transition dresseur Rubis/Saphir — `124 RSTrainer.rb` : flash RBY puis
+/// dissolve `ruby_saphir_trainer` en 1 s, noir tenu.
+const battleTransitionRsTrainer = BattleTransitionSpec(
+  id: 'rs_trainer',
+  phases: <BattleTransitionPhase>[
+    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
+    TransitionThresholdDissolvePhase(
+      textureName: 'ruby_saphir_trainer',
+      durationSeconds: 1,
+    ),
+    TransitionHoldBlackPhase(durationSeconds: 0.25),
+  ],
+);
+
+/// La transition grotte Rubis/Saphir — `121 RSCave.rb` : flash hérité de RBY
+/// puis dissolve `ruby_saphir_wild` en 1 s, noir tenu.
+const battleTransitionRsCave = BattleTransitionSpec(
+  id: 'rs_cave',
+  phases: <BattleTransitionPhase>[
+    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
+    TransitionThresholdDissolvePhase(
+      textureName: 'ruby_saphir_wild',
+      durationSeconds: 1,
+    ),
+    TransitionHoldBlackPhase(durationSeconds: 0.25),
+  ],
+);
+
+/// La transition grotte Diamant/Perle — `141 DPPCave.rb` : le même dissolve
+/// avec sa texture (le zoom ×3 de la capture d'écran de la référence n'a pas
+/// d'équivalent sans capture — adaptation assumée).
+const battleTransitionDppCave = BattleTransitionSpec(
+  id: 'dpp_cave',
+  phases: <BattleTransitionPhase>[
+    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
+    TransitionThresholdDissolvePhase(
+      textureName: 'diamant_perle_wild',
+      durationSeconds: 1,
+    ),
+    TransitionHoldBlackPhase(durationSeconds: 0.25),
+  ],
+);
+
+/// La Zone de Combat, rideau vertical — `300 BattleFrontier.rb` (hérite du
+/// dresseur Rubis/Saphir avec sa texture).
+const battleTransitionBattleFrontierVertical = BattleTransitionSpec(
+  id: 'battle_frontier_v',
+  phases: <BattleTransitionPhase>[
+    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
+    TransitionThresholdDissolvePhase(
+      textureName: 'battle_frontier_vertical',
+      durationSeconds: 1,
+    ),
+    TransitionHoldBlackPhase(durationSeconds: 0.25),
+  ],
+);
+
+/// La Zone de Combat, rideau horizontal — `300 BattleFrontier.rb`.
+const battleTransitionBattleFrontierHorizontal = BattleTransitionSpec(
+  id: 'battle_frontier_h',
+  phases: <BattleTransitionPhase>[
+    TransitionFlashPhase(durationSeconds: 1.5, factor: 6),
+    TransitionThresholdDissolvePhase(
+      textureName: 'battle_frontier_horizontal',
+      durationSeconds: 1,
+    ),
+    TransitionHoldBlackPhase(durationSeconds: 0.25),
+  ],
+);
+
 /// Le registre moteur des transitions connues — BETA-BAT-019.
 ///
-/// Le panel portable sans shader de la référence. Les transitions à
-/// FragmentShader (RBY/RS dresseur, grottes RS/DPP, mers, Noir/Blanc, XY,
-/// champions d'arène, Red, Team Rocket, Zone de Combat) restent à porter
-/// dans un lot « shaders » dédié.
+/// Le panel de la référence : les neuf sans shader, plus les six dissolves
+/// du lot shaders (rideau RBY dresseur, Rubis/Saphir dresseur et grotte,
+/// grotte Diamant/Perle, Zone de Combat V/H). Restent hors périmètre les
+/// transitions qui déforment la capture d'écran (mers, Noir/Blanc) et
+/// celles à images par dresseur (XY, champions d'arène, Red, Team Rocket).
 final Map<String, BattleTransitionSpec> battleTransitionRegistry =
     <String, BattleTransitionSpec>{
   'rby_wild': battleTransitionRbyWild,
@@ -315,6 +428,12 @@ final Map<String, BattleTransitionSpec> battleTransitionRegistry =
   'dpp_wild': battleTransitionDppWild,
   'dpp_trainer': battleTransitionDppTrainer,
   'hgss_trainer': battleTransitionHgssTrainer,
+  'rby_trainer': battleTransitionRbyTrainer,
+  'rs_trainer': battleTransitionRsTrainer,
+  'rs_cave': battleTransitionRsCave,
+  'dpp_cave': battleTransitionDppCave,
+  'battle_frontier_v': battleTransitionBattleFrontierVertical,
+  'battle_frontier_h': battleTransitionBattleFrontierHorizontal,
 };
 
 /// Résout la transition d'une requête de combat — BETA-BAT-016.

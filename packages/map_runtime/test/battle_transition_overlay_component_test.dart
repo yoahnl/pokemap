@@ -19,6 +19,7 @@ Future<BattleTransitionOverlayComponent> _loadedOverlay({
   required void Function() onBlackHeld,
   void Function()? onDismissed,
   Future<ui.Image?> Function(String sheetName)? loadSheet,
+  Future<ui.FragmentProgram?> Function()? loadDissolveProgram,
 }) async {
   final overlay = BattleTransitionOverlayComponent(
     spec: spec,
@@ -26,6 +27,7 @@ Future<BattleTransitionOverlayComponent> _loadedOverlay({
     onBlackHeld: onBlackHeld,
     onDismissed: onDismissed,
     loadSheet: loadSheet ?? (_) async => _tinyImage(),
+    loadDissolveProgram: loadDissolveProgram,
   );
   await overlay.onLoad();
   return overlay;
@@ -171,6 +173,100 @@ void main() {
     overlay.update(0.3);
     await _flushMicrotasks();
     expect(blackHeldCount, 1, reason: 'le noir tenu arrive comme partout');
+  });
+
+  test(
+      'le threshold dissolve noircit exactement les pixels sous le seuil '
+      '(shader réel)', () async {
+    // Texture de seuil synthétique : moitié gauche à seuil 0 (noir), moitié
+    // droite à seuil 1 (blanc). À t = 0,5, seule la gauche doit être noire —
+    // la parité pixel de black_to_white.frag.
+    Future<ui.Image> thresholdTexture() async {
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      canvas.drawRect(
+        const ui.Rect.fromLTWH(0, 0, 8, 16),
+        ui.Paint()..color = const ui.Color(0xFF000000),
+      );
+      canvas.drawRect(
+        const ui.Rect.fromLTWH(8, 0, 8, 16),
+        ui.Paint()..color = const ui.Color(0xFFFFFFFF),
+      );
+      return recorder.endRecording().toImage(16, 16);
+    }
+
+    var blackHeldCount = 0;
+    final overlay = await _loadedOverlay(
+      spec: battleTransitionRsCave,
+      onBlackHeld: () => blackHeldCount += 1,
+      loadSheet: (_) async => thresholdTexture(),
+    );
+
+    Future<double> opaqueRatio() async {
+      final recorder = ui.PictureRecorder();
+      overlay.renderTree(ui.Canvas(recorder));
+      // La scène ENTIÈRE (960×540) : un crop du coin ne verrait que la
+      // moitié à seuil 0 de la texture et mentirait sur le ratio.
+      final image = await recorder.endRecording().toImage(960, 540);
+      final bytes = await image.toByteData();
+      var opaque = 0;
+      for (var i = 3; i < bytes!.lengthInBytes; i += 4) {
+        if (bytes.getUint8(i) > 200) opaque += 1;
+      }
+      return opaque / (960 * 540);
+    }
+
+    overlay.update(1.5);
+    overlay.update(0.5);
+    expect(
+      await opaqueRatio(),
+      closeTo(0.5, 0.08),
+      reason: 'à t = 0,5, la moitié à seuil 0 est noire, la moitié à '
+          'seuil 1 reste transparente — black_to_white.frag au pixel',
+    );
+
+    overlay.update(0.5);
+    overlay.update(0.3);
+    await _flushMicrotasks();
+    expect(blackHeldCount, 1, reason: 'le noir tenu arrive comme partout');
+  });
+
+  test(
+      'sans shader chargeable, le dissolve retombe sur un fondu noir qui '
+      'suit la même horloge', () async {
+    final overlay = await _loadedOverlay(
+      spec: battleTransitionRsCave,
+      onBlackHeld: () {},
+      loadSheet: (_) async => _tinyImage(),
+      loadDissolveProgram: () async => null,
+    );
+
+    Future<double> opaqueRatio() async {
+      final recorder = ui.PictureRecorder();
+      overlay.renderTree(ui.Canvas(recorder));
+      final image = await recorder.endRecording().toImage(48, 27);
+      final bytes = await image.toByteData();
+      var opaque = 0;
+      for (var i = 3; i < bytes!.lengthInBytes; i += 4) {
+        if (bytes.getUint8(i) > 200) opaque += 1;
+      }
+      return opaque / (48 * 27);
+    }
+
+    overlay.update(1.5);
+    overlay.update(0.4);
+    expect(
+      await opaqueRatio(),
+      0,
+      reason: 'à t = 0,4 le fondu de repli est encore translucide',
+    );
+    overlay.update(0.59);
+    expect(
+      await opaqueRatio(),
+      greaterThan(0.95),
+      reason: 'en fin de dissolve le repli est au noir complet : l’entrée '
+          'en combat ne casse jamais, shader ou pas',
+    );
   });
 
   test('la séquence dresseur DPP traverse zoom, rotation et deux planches',

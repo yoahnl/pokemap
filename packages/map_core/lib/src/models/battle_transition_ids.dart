@@ -19,6 +19,8 @@ const List<String> battleWildTransitionIds = <String>[
   'hgss_cave',
   'rs_wild',
   'dpp_wild',
+  'rs_cave',
+  'dpp_cave',
 ];
 
 /// Les transitions proposables pour un combat DRESSEUR, dans l'ordre du
@@ -26,6 +28,10 @@ const List<String> battleWildTransitionIds = <String>[
 const List<String> battleTrainerTransitionIds = <String>[
   'dpp_trainer',
   'hgss_trainer',
+  'rby_trainer',
+  'rs_trainer',
+  'battle_frontier_v',
+  'battle_frontier_h',
 ];
 
 /// Libellés d'authoring, par id — le nom de la génération de la référence.
@@ -39,4 +45,10 @@ const Map<String, String> battleTransitionDisplayLabels = <String, String>{
   'dpp_wild': 'Diamant/Perle/Platine',
   'dpp_trainer': 'Dresseur Diamant/Perle/Platine',
   'hgss_trainer': 'Dresseur HeartGold/SoulSilver',
+  'rs_cave': 'Rubis/Saphir — grotte',
+  'dpp_cave': 'Diamant/Perle — grotte',
+  'rby_trainer': 'Dresseur Rouge/Bleu/Jaune',
+  'rs_trainer': 'Dresseur Rubis/Saphir',
+  'battle_frontier_v': 'Zone de Combat — vertical',
+  'battle_frontier_h': 'Zone de Combat — horizontal',
 };

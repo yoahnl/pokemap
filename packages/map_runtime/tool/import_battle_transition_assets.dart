@@ -30,6 +30,10 @@ void main(List<String> arguments) {
     exitCode = 66;
     return;
   }
+  // Les textures de seuil des dissolves à shader — BETA-BAT-019 lot shaders.
+  final dissolveDirectory = Directory(
+    '${arguments.single}/graphics/transitions/shaders',
+  );
 
   const sheetFileNames = <String>[
     'rby_wild.png',
@@ -42,6 +46,14 @@ void main(List<String> arguments) {
     'heartgold_soulsilver_trainer_01.png',
     'heartgold_soulsilver_trainer_02.png',
   ];
+  const dissolveFileNames = <String>[
+    'rby_trainer.png',
+    'ruby_saphir_trainer.png',
+    'ruby_saphir_wild.png',
+    'diamant_perle_wild.png',
+    'battle_frontier_vertical.png',
+    'battle_frontier_horizontal.png',
+  ];
 
   final targetDirectory = Directory('assets/transitions');
   targetDirectory.createSync(recursive: true);
@@ -51,6 +63,16 @@ void main(List<String> arguments) {
     final source = File('${sourceDirectory.path}/$fileName');
     if (!source.existsSync()) {
       stderr.writeln('Planche absente de la source: $fileName');
+      exitCode = 65;
+      return;
+    }
+    source.copySync('${targetDirectory.path}/$fileName');
+    copied.add(fileName);
+  }
+  for (final fileName in dissolveFileNames) {
+    final source = File('${dissolveDirectory.path}/$fileName');
+    if (!source.existsSync()) {
+      stderr.writeln('Texture de seuil absente de la source: $fileName');
       exitCode = 65;
       return;
     }
