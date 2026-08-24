@@ -433,7 +433,7 @@ class _PresentationTextLayer extends StatelessWidget {
         PresentationTextAlignment.end => Alignment.centerRight,
       },
       child: Text(
-        clip.text,
+        _decodeTextEscapes(clip.text),
         key: ValueKey<String>('presentation-text-${clip.clipId}'),
         maxLines: style.wrapping == PresentationTextWrapping.noWrap ? 1 : null,
         overflow: style.wrapping == PresentationTextWrapping.noWrap
@@ -486,6 +486,36 @@ class _PresentationTextLayer extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Turns the escapes an author can type into the characters they mean.
+///
+/// The inspector commits a text clip on Enter, so a line break cannot be typed
+/// directly: `\n` is how an author writes one. `\\` stays the way to render a
+/// literal backslash, and any other escape is left untouched rather than
+/// silently swallowed.
+String _decodeTextEscapes(String value) {
+  if (!value.contains(r'\')) return value;
+  final decoded = StringBuffer();
+  for (var index = 0; index < value.length; index += 1) {
+    final character = value[index];
+    if (character != r'\' || index == value.length - 1) {
+      decoded.write(character);
+      continue;
+    }
+    final next = value[index + 1];
+    switch (next) {
+      case 'n':
+        decoded.write('\n');
+        index += 1;
+      case r'\':
+        decoded.write(r'\');
+        index += 1;
+      default:
+        decoded.write(character);
+    }
+  }
+  return decoded.toString();
 }
 
 Color _colorFromHex(String value) {

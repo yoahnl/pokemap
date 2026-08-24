@@ -94,6 +94,96 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('an escaped newline becomes a real line break', (tester) async {
+    final frame = PresentationFrame(
+      cinematicId: 'opening',
+      timeUs: 0,
+      durationUs: 1000000,
+      texts: [
+        PresentationTextFrameClip(
+          clipId: 'title',
+          trackId: 'visuals',
+          layerId: 'title-layer',
+          zIndex: 1,
+          // What an author types: the inspector commits on Enter, so a line
+          // break can only be written as an escape.
+          text: r'Le Train\nde 17 h 42',
+          localizationKey: null,
+          style: PresentationTextStyle(fontSize: 24),
+          startUs: 0,
+          durationUs: 1000000,
+          elapsedUs: 0,
+          progress: 0,
+          easedProgress: 0,
+          easing: PresentationEasing.linear,
+          composition: PresentationVisualComposition.identity,
+          reducedMotionComposition: PresentationVisualComposition.identity,
+          reducedFlashOpacity: 1,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        PresentationFrameRenderer(
+          frame: frame,
+          orientation: PresentationFrameOrientation.landscape,
+          contentPort: _ContentPort(),
+        ),
+      ),
+    );
+
+    final text = tester.widget<Text>(
+      find.byKey(const ValueKey<String>('presentation-text-title')),
+    );
+    expect(text.data, 'Le Train\nde 17 h 42');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a doubled backslash keeps a literal escape', (tester) async {
+    final frame = PresentationFrame(
+      cinematicId: 'opening',
+      timeUs: 0,
+      durationUs: 1000000,
+      texts: [
+        PresentationTextFrameClip(
+          clipId: 'title',
+          trackId: 'visuals',
+          layerId: 'title-layer',
+          zIndex: 1,
+          text: r'C:\\nouveau et \\n',
+          localizationKey: null,
+          style: PresentationTextStyle(fontSize: 24),
+          startUs: 0,
+          durationUs: 1000000,
+          elapsedUs: 0,
+          progress: 0,
+          easedProgress: 0,
+          easing: PresentationEasing.linear,
+          composition: PresentationVisualComposition.identity,
+          reducedMotionComposition: PresentationVisualComposition.identity,
+          reducedFlashOpacity: 1,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        PresentationFrameRenderer(
+          frame: frame,
+          orientation: PresentationFrameOrientation.landscape,
+          contentPort: _ContentPort(),
+        ),
+      ),
+    );
+
+    final text = tester.widget<Text>(
+      find.byKey(const ValueKey<String>('presentation-text-title')),
+    );
+    expect(text.data, r'C:\nouveau et \n');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders authored text with its typed style', (tester) async {
     final frame = PresentationFrame(
       cinematicId: 'opening',
