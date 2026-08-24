@@ -529,7 +529,9 @@ RuntimePostBattleTransaction _nonVictoryTransaction({
         ),
       BattleOutcomeType.runaway => const RuntimePostBattleMessage(
           kind: RuntimePostBattleMessageKind.fled,
-          text: 'Vous avez pris la fuite.',
+          // Texte exact de la référence (Data/Text/Dialogs 100018,
+          // « You got away safely! ») — BETA-BAT-030.
+          text: 'Vous prenez la fuite !',
         ),
       BattleOutcomeType.captured => RuntimePostBattleMessage(
           kind: RuntimePostBattleMessageKind.captured,

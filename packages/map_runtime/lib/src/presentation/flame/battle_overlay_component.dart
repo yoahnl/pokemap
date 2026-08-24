@@ -647,6 +647,11 @@ class BattleOverlayComponent extends PositionComponent {
       BattleTurnAnimationPlanner(
     speciesDisplayName: resolveSpeciesDisplayName,
     moveDisplayName: resolveMoveDisplayName,
+    // BETA-BAT-030 : un hôte qui coupe le bandeau d'issue présente la fin de
+    // combat DANS la scène (BETA-BAT-017) et joue déjà les messages du
+    // coordinator. Le plan de tour ne doit alors pas annoncer l'issue une
+    // seconde fois — la recette montrait trois annonces pour une fuite.
+    announcesOutcome: outcomeBannerEnabled,
   );
   BattleAnimationRunner? _animationRunner;
   BattleSceneLayout? _sceneLayout;

@@ -1457,6 +1457,37 @@ void main() {
       expect(messagesOf(plan), contains('Vous n’avez pas réussi à fuir.'));
     });
 
+    test(
+        'BETA-BAT-030 : un hôte qui présente la fin en scène garde le SON de '
+        'la fuite mais PLUS son annonce', () {
+      // La recette du 2026-08-24 montrait trois annonces successives pour une
+      // seule fuite : celle du plan de tour, celle du coordinator, et le
+      // « Combat terminé. » d'attente. Le plan de tour se tait, le son reste.
+      final before = sessionFor();
+      final after = before.applyChoice(const PlayerBattleChoiceRun());
+      final plan = BattleTurnAnimationPlanner(
+        speciesDisplayName: displayName,
+        announcesOutcome: false,
+      ).build(
+        previousSession: before,
+        newSession: after,
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+
+      expect(
+        plan.steps.whereType<PlaySeStep>().single.seName,
+        'flee',
+        reason: 'le son est un accent du tour, pas une annonce',
+      );
+      expect(
+        plan.steps.whereType<ShowMessageStep>(),
+        isEmpty,
+        reason: 'l’annonce revient au coordinator, qui la joue en scène',
+      );
+    });
+
     test('une fuite réussie joue le son de la référence avec son annonce', () {
       final before = sessionFor();
       final after = before.applyChoice(const PlayerBattleChoiceRun());

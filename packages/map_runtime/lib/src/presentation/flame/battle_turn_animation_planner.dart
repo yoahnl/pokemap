@@ -25,7 +25,20 @@ final class BattleTurnAnimationPlanner {
     BattleMoveVisualRecipeLibrary? recipeLibrary,
     this.speciesDisplayName = _rawSpeciesName,
     this.moveDisplayName = _rawMoveName,
+    this.announcesOutcome = true,
   }) : _recipeLibrary = recipeLibrary ?? BattleMoveVisualRecipeLibrary();
+
+  /// Ce plan annonce-t-il lui-même l'issue du combat ?
+  ///
+  /// BETA-BAT-030 : quand l'hôte présente la fin de combat DANS la scène
+  /// (BETA-BAT-017), il joue déjà les messages du coordinator — « Vous avez
+  /// pris la fuite. », « Victoire ! »… Le plan de tour qui annonçait AUSSI
+  /// l'issue faisait donc dire deux fois la même chose : la recette du
+  /// 2026-08-24 montre trois annonces successives pour une seule fuite.
+  ///
+  /// Le SON de la fuite reste attaché ici : c'est un accent du tour, pas une
+  /// annonce.
+  final bool announcesOutcome;
 
   final BattleMoveVisualRecipeLibrary _recipeLibrary;
 
@@ -58,6 +71,7 @@ final class BattleTurnAnimationPlanner {
             outcome,
             isTrainerBattle: newSession.setup.isTrainerBattle,
             speciesDisplayName: speciesDisplayName,
+            announcesOutcome: announcesOutcome,
           ),
         ),
       );
@@ -80,6 +94,7 @@ final class BattleTurnAnimationPlanner {
           outcome,
           isTrainerBattle: newSession.setup.isTrainerBattle,
           speciesDisplayName: speciesDisplayName,
+          announcesOutcome: announcesOutcome,
         ),
       ]),
     );
@@ -710,7 +725,18 @@ List<BattleAnimationStep> _buildOutcomeSteps(
   BattleOutcome outcome, {
   required bool isTrainerBattle,
   required BattleTurnSpeciesDisplayName speciesDisplayName,
+  bool announcesOutcome = true,
 }) {
+  // Le SON de la fuite part même quand l'annonce revient à l'hôte : c'est un
+  // accent du tour (`escape` de la référence), pas un message.
+  final fleeSe = outcome.type == BattleOutcomeType.runaway
+      ? const <BattleAnimationStep>[
+          PlaySeStep(seName: 'flee', volume: 80, pitch: 70),
+        ]
+      : const <BattleAnimationStep>[];
+  if (!announcesOutcome) {
+    return fleeSe;
+  }
   if (!battleOutcomeIsAnnounced(outcome, isTrainerBattle: isTrainerBattle)) {
     return const <BattleAnimationStep>[];
   }
@@ -725,8 +751,7 @@ List<BattleAnimationStep> _buildOutcomeSteps(
   return <BattleAnimationStep>[
     // Recette du 2026-08-24 : la fuite a son propre son chez la référence —
     // `escape` (fleee.wav), volume 80, pitch 70 — joué avec l'annonce.
-    if (outcome.type == BattleOutcomeType.runaway)
-      const PlaySeStep(seName: 'flee', volume: 80, pitch: 70),
+    ...fleeSe,
     ShowMessageStep(message: message),
   ];
 }

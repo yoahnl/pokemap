@@ -2192,8 +2192,17 @@ void main() {
 
       expect(game.debugFlowPhaseName, equals('battle'));
       expect(game.debugBattleOverlayComponent, same(activeOverlay));
-      expect(activeOverlay.isTurnPresentationActive, isTrue);
-      expect(activeOverlay.currentPromptText, equals('Tu as pris la fuite !'));
+      // BETA-BAT-030 : le plan de TOUR n'annonce plus l'issue quand l'hôte
+      // présente la fin dans la scène — il n'en reste que le SON de la fuite.
+      // L'annonce vient du coordinator (« Vous prenez la fuite ! »), et ce
+      // test la vérifie plus bas via `sawSceneFinaleMessage`. Auparavant,
+      // « Tu as pris la fuite ! » s'affichait ICI puis le coordinator disait
+      // la même chose : trois annonces pour une seule fuite en recette.
+      expect(
+        activeOverlay.currentPromptText,
+        isNot(equals('Tu as pris la fuite !')),
+        reason: 'plus de doublon d’annonce entre le tour et la scène',
+      );
 
       // BETA-BAT-017 : le handoff ne passe plus par l'écran plein de
       // progression — la narration finale rend la main aux MESSAGES DU
