@@ -377,8 +377,19 @@ final class PresentationTimelineProjectionController extends ChangeNotifier {
     required PresentationTimelineProjectionGateway gateway,
   }) : _gateway = gateway;
 
+  /// How many resolved projections stay warm behind the viewport.
+  ///
+  /// A waveform is a couple hundred doubles and a lane thumbnail is a few
+  /// hundred pixels wide, so the whole cache is cheap — far cheaper than
+  /// re-reading the media and spawning a decoding isolate every time a clip
+  /// scrolls back into sight.
+  static const int retainedProjections = 192;
+
   final String projectRootPath;
   final PresentationTimelineProjectionGateway _gateway;
+
+  /// Insertion order is the recency order: [_touch] moves a key to the end,
+  /// and [_evict] drops from the front.
   final Map<_ProjectionKey, PresentationTimelineMediaProjection> _projections =
       <_ProjectionKey, PresentationTimelineMediaProjection>{};
   final Map<_ProjectionKey, int> _tokens = <_ProjectionKey, int>{};
@@ -403,19 +414,44 @@ final class PresentationTimelineProjectionController extends ChangeNotifier {
     };
     var changed = false;
     for (final key in _activeKeys.difference(keys)) {
+      // A projection that already resolved outlives the viewport. Only an
+      // in-flight one is cancelled: finishing a decode for a clip nobody
+      // looks at is wasted work, and it would otherwise leave a permanent
+      // pending badge behind.
+      if (!(_projections[key]?.loading ?? false)) continue;
       _tokens[key] = (_tokens[key] ?? 0) + 1;
-      changed = _projections.remove(key) != null || changed;
+      _projections.remove(key);
+      changed = true;
     }
     _activeKeys = Set<_ProjectionKey>.unmodifiable(keys);
     for (final key in keys) {
-      if (_projections.containsKey(key)) continue;
+      if (_projections.containsKey(key)) {
+        _touch(key);
+        continue;
+      }
       _projections[key] = PresentationTimelineMediaProjection.loading(
         mediaId: key.mediaId,
       );
       changed = true;
       _load(key);
     }
+    _evict();
     if (changed) notifyListeners();
+  }
+
+  void _touch(_ProjectionKey key) {
+    final projection = _projections.remove(key);
+    if (projection != null) _projections[key] = projection;
+  }
+
+  void _evict() {
+    if (_projections.length <= retainedProjections) return;
+    for (final key in _projections.keys.toList(growable: false)) {
+      if (_projections.length <= retainedProjections) return;
+      if (_activeKeys.contains(key)) continue;
+      _tokens[key] = (_tokens[key] ?? 0) + 1;
+      _projections.remove(key);
+    }
   }
 
   void invalidateMedia(String mediaId) {
@@ -452,10 +488,12 @@ final class PresentationTimelineProjectionController extends ChangeNotifier {
         diagnostic: 'Aperçu indisponible : $error',
       );
     }
-    if (_disposed || _tokens[key] != token || !_activeKeys.contains(key)) {
-      return;
-    }
+    // Only the token gates a publication: a key that left the viewport while
+    // loading already had its token bumped, and one that is merely warm in
+    // the cache must still receive its result.
+    if (_disposed || _tokens[key] != token) return;
     _projections[key] = projection;
+    _evict();
     notifyListeners();
   }
 

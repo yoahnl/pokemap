@@ -51,6 +51,69 @@ void main() {
     },
   );
 
+  test('a resolved projection survives leaving and re-entering the viewport',
+      () async {
+    final gateway = _ImmediateProjectionGateway();
+    final controller = PresentationTimelineProjectionController(
+      projectRootPath: '/project',
+      gateway: gateway,
+    );
+    addTearDown(controller.dispose);
+    final clip = PresentationAudioClip(
+      id: 'music',
+      startUs: 0,
+      durationUs: 1000000,
+      resourceId: 'opening-music',
+    );
+
+    controller.sync(clips: [clip], pixelsPerSecond: 80);
+    await Future<void>.delayed(Duration.zero);
+    expect(gateway.requests, hasLength(1));
+    expect(
+      controller.projectionFor(clip, pixelsPerSecond: 80)?.available,
+      isTrue,
+    );
+
+    // Scrolling the clip out of sight and back must not re-read the media and
+    // re-spawn a decoding isolate: that is what makes the timeline unusable
+    // while scrolling.
+    controller.sync(clips: const [], pixelsPerSecond: 80);
+    controller.sync(clips: [clip], pixelsPerSecond: 80);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(gateway.requests, hasLength(1));
+    expect(
+      controller.projectionFor(clip, pixelsPerSecond: 80)?.available,
+      isTrue,
+    );
+  });
+
+  test('reimporting a media still drops its cached projection', () async {
+    final gateway = _ImmediateProjectionGateway();
+    final controller = PresentationTimelineProjectionController(
+      projectRootPath: '/project',
+      gateway: gateway,
+    );
+    addTearDown(controller.dispose);
+    final clip = PresentationAudioClip(
+      id: 'music',
+      startUs: 0,
+      durationUs: 1000000,
+      resourceId: 'opening-music',
+    );
+
+    controller.sync(clips: [clip], pixelsPerSecond: 80);
+    await Future<void>.delayed(Duration.zero);
+    controller.invalidateMedia('opening-music');
+
+    expect(controller.projectionFor(clip, pixelsPerSecond: 80), isNull);
+
+    controller.sync(clips: [clip], pixelsPerSecond: 80);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(gateway.requests, hasLength(2));
+  });
+
   test(
     'zoom bucket regenerates a waveform once and shares the result',
     () async {
