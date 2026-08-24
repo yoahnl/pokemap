@@ -14,6 +14,15 @@ abstract interface class EditorProjectRootLocator {
   Future<String> locateForResource(String resourcePath);
 }
 
+/// Security limits for the editor's own local authoring session.
+///
+/// The actor here is the person typing in the editor, not a remote client, so
+/// the rate window that guards the exposed MCP surface does not apply.
+const editorAuthoringSecurityLimits = AuthoringSecurityLimits(
+  maxRequestBytes: 64 << 20,
+  maxOperationsPerWindow: null,
+);
+
 final class EditorAuthoringMutationPlan {
   const EditorAuthoringMutationPlan._({
     required this.projectRootPath,
@@ -672,9 +681,7 @@ final class _EditorMutationSession {
       policy: policy,
       snapshotLoader: snapshots,
       artifactStore: artifactStore,
-      authorizationLimits: const AuthoringSecurityLimits(
-        maxRequestBytes: 64 << 20,
-      ),
+      authorizationLimits: editorAuthoringSecurityLimits,
       tiledImageCollectionRasterCodec:
           const ImagePackageTiledImageCollectionRasterCodec(),
       performanceObserver: const _EditorAuthoringPerformanceObserver(),

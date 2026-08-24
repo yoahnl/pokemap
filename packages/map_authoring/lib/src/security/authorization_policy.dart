@@ -25,11 +25,16 @@ final class AuthoringSecurityLimits {
     this.rateWindow = const Duration(minutes: 1),
   })  : assert(maxRequestBytes > 0),
         assert(maxTouchedResources > 0),
-        assert(maxOperationsPerWindow > 0);
+        assert(maxOperationsPerWindow == null || maxOperationsPerWindow > 0);
 
   final int maxRequestBytes;
   final int maxTouchedResources;
-  final int maxOperationsPerWindow;
+
+  /// Operations allowed per [rateWindow], or `null` for an unmetered actor.
+  ///
+  /// The window guards remote clients of the exposed authoring surface. A
+  /// local session whose actor is the person at the keyboard sets it to `null`.
+  final int? maxOperationsPerWindow;
   final Duration rateWindow;
 }
 
@@ -102,9 +107,10 @@ final class AuthoringAuthorizationPolicy {
     this.limits = const AuthoringSecurityLimits(),
   })  : _confirmations = confirmations,
         _clock = clock {
+    final maxOperations = limits.maxOperationsPerWindow;
     if (limits.maxRequestBytes <= 0 ||
         limits.maxTouchedResources <= 0 ||
-        limits.maxOperationsPerWindow <= 0 ||
+        (maxOperations != null && maxOperations <= 0) ||
         limits.rateWindow <= Duration.zero) {
       throw ArgumentError.value(
         limits,
@@ -202,6 +208,8 @@ final class AuthoringAuthorizationPolicy {
   }
 
   void _recordRate(AuthoringAuthorizationRequest request) {
+    final maxOperations = limits.maxOperationsPerWindow;
+    if (maxOperations == null) return;
     final now = _clock().toUtc();
     final cutoff = now.subtract(limits.rateWindow);
     final key = [
@@ -211,7 +219,7 @@ final class AuthoringAuthorizationPolicy {
     ].join('\u0000');
     final events = _rateBuckets.putIfAbsent(key, () => <DateTime>[])
       ..removeWhere((timestamp) => !timestamp.isAfter(cutoff));
-    if (events.length >= limits.maxOperationsPerWindow) {
+    if (events.length >= maxOperations) {
       throw const AuthoringAuthorizationException(
         code: 'authorization.rate_limited',
         message: 'The authoring operation rate limit was exceeded.',

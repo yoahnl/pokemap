@@ -293,6 +293,52 @@ void main() {
         isA<AuthoringAuthorizationDecision>(),
       );
     });
+
+    test('a null operation window keeps every other limit enforced', () {
+      final policy = AuthoringAuthorizationPolicy(
+        confirmations: confirmations,
+        clock: () => now,
+        limits: const AuthoringSecurityLimits(
+          maxRequestBytes: 32,
+          maxTouchedResources: 2,
+          maxOperationsPerWindow: null,
+        ),
+      );
+      final actor = AuthoringActor(
+        actorId: 'actor-unmetered',
+        permissions: const [AuthoringPermissionScope.projectWrite],
+      );
+
+      for (var i = 0; i < 200; i++) {
+        expect(
+          policy.authorize(
+            _request(actor: actor, operation: AuthoringSecurityOperation.apply),
+          ),
+          isA<AuthoringAuthorizationDecision>(),
+        );
+      }
+
+      expect(
+        () => policy.authorize(
+          _request(
+            actor: actor,
+            operation: AuthoringSecurityOperation.apply,
+            requestBytes: 33,
+          ),
+        ),
+        _throwsAuthorization('authorization.request_too_large'),
+      );
+      expect(
+        () => policy.authorize(
+          _request(
+            actor: actor,
+            operation: AuthoringSecurityOperation.apply,
+            touchedResources: 3,
+          ),
+        ),
+        _throwsAuthorization('authorization.too_many_resources'),
+      );
+    });
   });
 }
 
