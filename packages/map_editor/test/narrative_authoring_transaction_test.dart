@@ -596,6 +596,17 @@ final class _RecordingGateway implements NarrativeAuthoringPersistenceGateway {
     if (!started.isCompleted) started.complete();
     return handler?.call(transaction) ?? Future.value(result);
   }
+
+  @override
+  Future<NarrativeAuthoringPersistenceResult> persistProjectDocument({
+    required String projectPath,
+    required String operationId,
+    required ProjectManifest before,
+    required ProjectManifest after,
+    String? expectedRevision,
+  }) {
+    throw UnsupportedError('Project document persistence is not expected.');
+  }
 }
 
 final class _RecordingProjectRepository implements ProjectRepository {

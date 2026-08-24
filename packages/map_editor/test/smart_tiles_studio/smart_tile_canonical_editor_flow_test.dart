@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
+import 'package:map_editor/src/application/services/narrative_document_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -169,6 +170,128 @@ void main() {
     );
     expect(
       smartTileSemanticCells(diskMap.layers.single as SmartTileLayer),
+      <int>[0, 0, 0, 0, 0, 0],
+    );
+  });
+
+  test(
+      'a narrative conflict does not block or absorb a canonical map erase',
+      () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap_smart_tile_narrative_conflict_',
+    );
+    final container = ProviderContainer();
+    addTearDown(() async {
+      container.dispose();
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+
+    final before = _manifest(cinematicTitle: 'Ouverture');
+    const map = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v6,
+      size: GridSize(width: 3, height: 2),
+      visualStack: MapVisualStackConfig.canonicalV1,
+    );
+    final projectPath = p.join(root.path, 'project.json');
+    final mapPath = p.join(root.path, 'maps', 'map.json');
+    await Directory(p.dirname(mapPath)).create(recursive: true);
+    await FileProjectRepository().saveProject(before, projectPath);
+    await FileMapRepository().saveMap(
+      map,
+      mapPath,
+      projectDialogueContext: before,
+    );
+
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      projectRootPath: root.path,
+      project: before,
+      workspaceMode: EditorWorkspaceMode.map,
+    );
+    await notifier.loadMap('maps/map.json');
+    expect(
+      await notifier.createCanonicalSmartTileLayer(
+        preset: before.smartTileCatalog.presets.single,
+      ),
+      isTrue,
+      reason: notifier.state.errorMessage,
+    );
+    final mutations = container.read(authoringMutationAdapterProvider);
+    notifier.state = notifier.state.copyWith(
+      activeTool: EditorToolType.terrainPaint,
+    );
+    notifier.applyActiveSmartTileSelection(
+      const SmartTileGestureSelection.line(
+        start: GridPos(x: 0, y: 0),
+        end: GridPos(x: 0, y: 0),
+      ),
+    );
+    await _waitUntil(
+      () => mutations.lastAppliedReceipt?.actionId == 'smart_tile.cell.paint',
+      failure: () => notifier.state.errorMessage,
+    );
+
+    final local = _manifest(cinematicTitle: 'Ouverture locale');
+    expect(
+      await notifier.applyNarrativeDocumentEdit(
+        local,
+        operationId: 'smart-tile-conflict-local-edit',
+        label: 'Renommer la cinématique',
+      ),
+      isTrue,
+    );
+    final external = _manifest(cinematicTitle: 'Ouverture externe');
+    await FileProjectRepository().saveProject(external, projectPath);
+    expect(await notifier.saveNarrativeDocument(), isFalse);
+    expect(
+      notifier.narrativeDocumentStatus,
+      NarrativeDocumentSessionStatus.conflicted,
+    );
+    final narrativeConflict = notifier.state.errorMessage;
+    expect(narrativeConflict, isNotNull);
+
+    notifier.updateMapMetadata(
+      notifier.state.activeMap!.mapMetadata.copyWith(
+        displayName: 'Carte modifiée avant la gomme',
+      ),
+    );
+    final receiptBeforeErase = mutations.lastAppliedReceipt!.receiptId;
+    notifier.beginMapStroke();
+    notifier.eraseAt(const GridPos(x: 0, y: 0));
+    notifier.endMapStroke();
+
+    await _waitUntil(
+      () =>
+          mutations.lastAppliedReceipt?.receiptId != receiptBeforeErase &&
+          mutations.lastAppliedReceipt?.actionId == 'smart_tile.cell.erase' &&
+          !notifier.state.isDirty,
+      failure: () => notifier.state.errorMessage == narrativeConflict
+          ? null
+          : notifier.state.errorMessage,
+    );
+    expect(notifier.state.isProjectDirty, isTrue);
+    expect(notifier.state.errorMessage, narrativeConflict);
+    expect(
+      notifier.narrativeDocumentStatus,
+      NarrativeDocumentSessionStatus.conflicted,
+    );
+    expect(notifier.state.project!.cinematics.single.title, 'Ouverture locale');
+    expect(
+      smartTileSemanticCells(
+        notifier.state.activeMap!.layers.single as SmartTileLayer,
+      ),
+      <int>[0, 0, 0, 0, 0, 0],
+    );
+
+    final durableProject =
+        await FileProjectRepository().loadProject(projectPath);
+    expect(durableProject.cinematics.single.title, 'Ouverture externe');
+    final durableMap = await FileMapRepository().loadMap(mapPath);
+    expect(durableMap.mapMetadata.displayName, 'Carte modifiée avant la gomme');
+    expect(
+      smartTileSemanticCells(durableMap.layers.single as SmartTileLayer),
       <int>[0, 0, 0, 0, 0, 0],
     );
   });
@@ -471,7 +594,7 @@ Future<void> _waitUntil(
   fail('Timed out while waiting for the canonical editor gesture.');
 }
 
-ProjectManifest _manifest() => ProjectManifest(
+ProjectManifest _manifest({String cinematicTitle = 'Ouverture'}) => ProjectManifest(
       name: 'Smart Tile editor flow',
       version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[
@@ -486,6 +609,13 @@ ProjectManifest _manifest() => ProjectManifest(
           id: 'tileset',
           name: 'Tileset',
           relativePath: 'assets/tileset.png',
+        ),
+      ],
+      cinematics: <CinematicAsset>[
+        CinematicAsset(
+          id: 'opening',
+          title: cinematicTitle,
+          timeline: CinematicTimeline(),
         ),
       ],
       smartTileCatalog: ProjectSmartTileCatalog(

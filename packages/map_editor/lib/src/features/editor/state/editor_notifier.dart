@@ -1406,6 +1406,12 @@ class EditorNotifier extends _$EditorNotifier
     final activeTool = state.activeTool;
     final activeBrush = state.activeBrush;
     final eraserFootprint = state.eraserFootprint;
+    final preservePendingProject = state.isProjectDirty;
+    final pendingProject = state.project;
+    final pendingProjectError = state.errorMessage ??
+        (preservePendingProject
+            ? _narrativeDocumentErrorMessage(_narrativeDocumentSession?.state)
+            : null);
     final activeStroke = state.mapStrokeStart;
     final activeStrokeBuffer = _mapCellStrokeBuffer;
     final rebaseActiveSmartTileStroke = activeStroke != null &&
@@ -1414,8 +1420,8 @@ class EditorNotifier extends _$EditorNotifier
         activeStrokeBuffer.layerId == layerId;
     state = _projectSessionController.openMapDocument(
       current: state.copyWith(
-        project: manifest,
-        isProjectDirty: false,
+        project: preservePendingProject ? pendingProject : manifest,
+        isProjectDirty: preservePendingProject,
       ),
       document: MapDocumentLoadResult(
         map: map,
@@ -1433,8 +1439,8 @@ class EditorNotifier extends _$EditorNotifier
       eraserFootprint:
           preservePaintTool ? eraserFootprint : state.eraserFootprint,
       isDirty: false,
-      isProjectDirty: false,
-      errorMessage: null,
+      isProjectDirty: preservePendingProject,
+      errorMessage: preservePendingProject ? pendingProjectError : null,
     );
     if (rebaseActiveSmartTileStroke) {
       activeStrokeBuffer.rebaseSmartTileSource(map);
@@ -1956,14 +1962,7 @@ class EditorNotifier extends _$EditorNotifier
     final isSaved = sessionState.status == NarrativeDocumentSessionStatus.saved;
     final isSaving =
         sessionState.status == NarrativeDocumentSessionStatus.saving;
-    final errorMessage = switch (sessionState.status) {
-      NarrativeDocumentSessionStatus.failed =>
-        'Modification narrative locale conservée : '
-            '${sessionState.message ?? sessionState.code ?? 'échec inconnu'}',
-      NarrativeDocumentSessionStatus.conflicted => 'Conflit narratif détecté : '
-          '${sessionState.message ?? 'une version externe existe.'}',
-      _ => null,
-    };
+    final errorMessage = _narrativeDocumentErrorMessage(sessionState);
     final statusMessage = switch (sessionState.status) {
       NarrativeDocumentSessionStatus.dirty =>
         sessionState.message ?? 'Modifications narratives en attente.',
@@ -1984,6 +1983,19 @@ class EditorNotifier extends _$EditorNotifier
       errorMessage: errorMessage,
     );
   }
+
+  String? _narrativeDocumentErrorMessage(
+    NarrativeDocumentSessionState<ProjectManifest>? sessionState,
+  ) =>
+      switch (sessionState?.status) {
+        NarrativeDocumentSessionStatus.failed =>
+          'Modification narrative locale conservée : '
+              '${sessionState!.message ?? sessionState.code ?? 'échec inconnu'}',
+        NarrativeDocumentSessionStatus.conflicted =>
+          'Conflit narratif détecté : '
+              '${sessionState!.message ?? 'une version externe existe.'}',
+        _ => null,
+      };
 
   void _disposeNarrativeDocumentSession() {
     final session = _narrativeDocumentSession;
@@ -6116,7 +6128,7 @@ class EditorNotifier extends _$EditorNotifier
       return;
     }
     state = state.copyWith(
-      errorMessage: null,
+      errorMessage: state.isProjectDirty ? state.errorMessage : null,
       statusMessage: 'Enregistrement automatique avant d’appliquer le tracé…',
     );
     if (!_smartTileAutosaveInProgress) {
@@ -10167,20 +10179,18 @@ class EditorNotifier extends _$EditorNotifier
     return outcome == MapActivationOutcome.activated;
   }
 
-  /// Saves editor-owned data before a canonical Smart Tile action reads disk.
+  /// Saves the active map before a canonical Smart Tile action reads it.
   Future<bool> _flushSessionForCanonicalSmartTileMutation() async {
-    if (state.isProjectDirty && !await saveProjectManifest()) {
-      state = state.copyWith(
-        errorMessage:
-            'Le projet n’a pas pu être enregistré, donc la modification '
-            'Smart Tile n’a pas été appliquée. Corrigez l’erreur, puis '
-            'réessayez.',
-      );
-      return false;
-    }
     if (!state.isDirty) return true;
+    final pendingProjectError =
+        state.isProjectDirty ? state.errorMessage : null;
     final outcome = await saveActiveMap();
-    if (outcome == ActiveMapSaveOutcome.saved) return true;
+    if (outcome == ActiveMapSaveOutcome.saved) {
+      if (pendingProjectError != null && state.isProjectDirty) {
+        state = state.copyWith(errorMessage: pendingProjectError);
+      }
+      return true;
+    }
     // A blocked save has already explained itself (border decision, bulk
     // placement loss, conflict…); only the silent outcomes need a message.
     if (state.errorMessage == null) {

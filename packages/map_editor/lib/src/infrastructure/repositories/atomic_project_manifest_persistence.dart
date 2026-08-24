@@ -78,6 +78,7 @@ final class AtomicProjectManifestPersistence
   ///
   /// Feature-specific gateways must validate their allowed mutation before
   /// calling this method.
+  @override
   Future<NarrativeAuthoringPersistenceResult> persistProjectDocument({
     required String projectPath,
     required String operationId,

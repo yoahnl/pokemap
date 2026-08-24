@@ -6,6 +6,7 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 import '../design_system/pokemap_button.dart';
 import '../design_system/pokemap_dialog.dart';
+import '../../application/services/narrative_document_session.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_toast_replay_provider.dart';
 import '../../features/editor/state/models/editor_workspace_mode.dart';
@@ -108,6 +109,8 @@ class _StatusBarState extends ConsumerState<StatusBar> {
     );
 
     final state = ref.watch(editorNotifierProvider);
+    final narrativeDocumentStatus =
+        ref.read(editorNotifierProvider.notifier).narrativeDocumentStatus;
     final hasIdentityDrafts = ref.watch(
       characterStudioIdentityDraftProvider.select((state) => state.hasDrafts),
     );
@@ -123,8 +126,16 @@ class _StatusBarState extends ConsumerState<StatusBar> {
     final isNarrativeOverview =
         state.workspaceMode == EditorWorkspaceMode.narrativeOverview;
 
-    const pendingProjectSaveMessage =
-        'Projet modifié en mémoire — sauvegardez le projet avec la disquette.';
+    final pendingProjectSaveMessage = switch (narrativeDocumentStatus) {
+      NarrativeDocumentSessionStatus.dirty =>
+        'Brouillon narratif modifié — enregistrez-le depuis le Studio narratif.',
+      NarrativeDocumentSessionStatus.recovered =>
+        'Brouillon narratif récupéré — vérifiez-le puis enregistrez-le depuis le Studio narratif.',
+      NarrativeDocumentSessionStatus.saving =>
+        'Enregistrement du brouillon narratif…',
+      _ =>
+        'Projet modifié en mémoire — sauvegardez le projet avec la disquette.',
+    };
     final hasError = state.errorMessage != null;
     final primaryMessage = hasError
         ? state.errorMessage!

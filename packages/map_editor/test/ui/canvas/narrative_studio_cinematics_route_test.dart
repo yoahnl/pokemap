@@ -948,6 +948,21 @@ final class _SynchronousManifestGateway
     ).writeAsStringSync(jsonEncode(transaction.after.toJson()), flush: true);
     return Future.value(const NarrativeAuthoringPersistenceResult.committed());
   }
+
+  @override
+  Future<NarrativeAuthoringPersistenceResult> persistProjectDocument({
+    required String projectPath,
+    required String operationId,
+    required ProjectManifest before,
+    required ProjectManifest after,
+    String? expectedRevision,
+  }) {
+    calls += 1;
+    File(
+      projectPath,
+    ).writeAsStringSync(jsonEncode(after.toJson()), flush: true);
+    return Future.value(const NarrativeAuthoringPersistenceResult.committed());
+  }
 }
 
 final class _FailingManifestGateway
@@ -958,6 +973,24 @@ final class _FailingManifestGateway
   Future<NarrativeAuthoringPersistenceResult> persist(
     NarrativeAuthoringTransaction transaction,
   ) {
+    calls += 1;
+    return Future.value(
+      const NarrativeAuthoringPersistenceResult(
+        status: NarrativeAuthoringPersistenceStatus.persistenceFailed,
+        code: 'staleProjectRevision',
+        message: 'The project changed externally.',
+      ),
+    );
+  }
+
+  @override
+  Future<NarrativeAuthoringPersistenceResult> persistProjectDocument({
+    required String projectPath,
+    required String operationId,
+    required ProjectManifest before,
+    required ProjectManifest after,
+    String? expectedRevision,
+  }) {
     calls += 1;
     return Future.value(
       const NarrativeAuthoringPersistenceResult(

@@ -7,6 +7,25 @@ import '../../application/models/narrative_event_authoring_session.dart';
 import '../../application/ports/narrative_authoring_persistence_gateway.dart';
 import '../../application/services/narrative_document_session.dart';
 
+final projectManifestNarrativeDocumentRebasePolicy =
+    NarrativeDocumentRebasePolicy<ProjectManifest>(
+      hasSameOwnedContent: _hasSameNarrativeDocumentContent,
+      rebaseOwnedContent: rebaseProjectManifestNarrativeDocument,
+    );
+
+ProjectManifest rebaseProjectManifestNarrativeDocument(
+  ProjectManifest local,
+  ProjectManifest external,
+) {
+  return external.copyWith(
+    cinematics: local.cinematics,
+    cinematicLibraryCatalog: local.cinematicLibraryCatalog,
+    presentationCinematics: local.presentationCinematics,
+    scenes: local.scenes,
+    storylines: local.storylines,
+  );
+}
+
 /// Compare-and-swap adapter for the first document-session pilot.
 ///
 /// NSC-13 deliberately allows only one existing Cinematic to change per save.
@@ -17,8 +36,8 @@ final class ProjectManifestNarrativeDocumentGateway
   ProjectManifestNarrativeDocumentGateway({
     required String projectPath,
     required NarrativeAuthoringPersistenceGateway persistence,
-  })  : projectPath = _requiredText(projectPath, 'projectPath'),
-        _persistence = persistence;
+  }) : projectPath = _requiredText(projectPath, 'projectPath'),
+       _persistence = persistence;
 
   final String projectPath;
   final NarrativeAuthoringPersistenceGateway _persistence;
@@ -52,24 +71,38 @@ final class ProjectManifestNarrativeDocumentGateway
       );
     }
 
-    final mutation = _singleCinematicUpdate(before, after);
-    if (mutation == null) {
+    final cinematicMutation = _singleCinematicUpdate(before, after);
+    final isSupportedDocumentUpdate =
+        cinematicMutation == null &&
+        _isSupportedNarrativeDocumentUpdate(before, after);
+    if (cinematicMutation == null && !isSupportedDocumentUpdate) {
       return const NarrativeDocumentSaveResult<ProjectManifest>.failed(
         code: 'unsupportedDocumentMutation',
-        message: 'This document session can persist exactly one existing '
-            'Cinematic update and no other project change.',
+        message:
+            'This document session can persist only its owned narrative '
+            'fields and no other project change.',
       );
     }
 
     late final NarrativeAuthoringPersistenceResult persistenceResult;
     try {
-      persistenceResult = await _persistence.persist(
-        NarrativeAuthoringTransaction.fromMutation(
+      if (cinematicMutation != null) {
+        persistenceResult = await _persistence.persist(
+          NarrativeAuthoringTransaction.fromMutation(
+            projectPath: projectPath,
+            operationId: operationId,
+            mutation: cinematicMutation,
+          ),
+        );
+      } else {
+        persistenceResult = await _persistence.persistProjectDocument(
           projectPath: projectPath,
           operationId: operationId,
-          mutation: mutation,
-        ),
-      );
+          before: before,
+          after: after,
+          expectedRevision: expectedRevision,
+        );
+      }
     } on Object catch (error) {
       return NarrativeDocumentSaveResult<ProjectManifest>.failed(
         code: 'projectManifestWriteFailed',
@@ -87,7 +120,8 @@ final class ProjectManifestNarrativeDocumentGateway
       if (version.document != after) {
         return const NarrativeDocumentSaveResult<ProjectManifest>.failed(
           code: 'durableDocumentMismatch',
-          message: 'Persistence completed but the durable document does not '
+          message:
+              'Persistence completed but the durable document does not '
               'match the requested Cinematic update.',
         );
       }
@@ -121,6 +155,29 @@ final class ProjectManifestNarrativeDocumentGateway
       );
     }
   }
+}
+
+bool _hasSameNarrativeDocumentContent(
+  ProjectManifest left,
+  ProjectManifest right,
+) {
+  return rebaseProjectManifestNarrativeDocument(left, right) == right;
+}
+
+bool _isSupportedNarrativeDocumentUpdate(
+  ProjectManifest before,
+  ProjectManifest after,
+) {
+  if (before == after || !_sameCinematics(before, after)) return false;
+  return rebaseProjectManifestNarrativeDocument(after, before) == after;
+}
+
+bool _sameCinematics(ProjectManifest left, ProjectManifest right) {
+  if (left.cinematics.length != right.cinematics.length) return false;
+  for (var index = 0; index < left.cinematics.length; index++) {
+    if (left.cinematics[index] != right.cinematics[index]) return false;
+  }
+  return true;
 }
 
 NarrativeAssetUpdated? _singleCinematicUpdate(

@@ -349,6 +349,7 @@ final narrativeProjectDocumentSessionFactoryProvider =
             encodeDocument: (document) => document.toJson(),
             decodeDocument: _decodeRecoveryProjectManifest,
           ),
+          rebasePolicy: projectManifestNarrativeDocumentRebasePolicy,
         );
         final projectRootPath = p.dirname(projectPath);
         final activityRepository = NarrativeActivityJournalRepository(

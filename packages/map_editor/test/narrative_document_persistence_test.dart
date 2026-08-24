@@ -303,6 +303,18 @@ final class _RecordingPersistence
     }
     return const NarrativeAuthoringPersistenceResult.committed();
   }
+
+  @override
+  Future<NarrativeAuthoringPersistenceResult> persistProjectDocument({
+    required String projectPath,
+    required String operationId,
+    required ProjectManifest before,
+    required ProjectManifest after,
+    String? expectedRevision,
+  }) async {
+    calls++;
+    return const NarrativeAuthoringPersistenceResult.committed();
+  }
 }
 
 ProjectManifest _project({

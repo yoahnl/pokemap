@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
@@ -99,6 +103,72 @@ void main() {
 
       expect(
           find.byKey(const Key('status-bar-project-dirty-chip')), findsNothing);
+      expect(
+        find.text(
+          'Projet modifié en mémoire — sauvegardez le projet avec la disquette.',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('identifies a narrative draft instead of a generic project edit',
+        (tester) async {
+      final before = ProjectManifest(
+        name: 'Projet',
+        version: ProjectVersion.v7,
+        maps: const [],
+        tilesets: const [],
+        presentationCinematics: [
+          PresentationCinematicAsset(
+            id: 'opening',
+            title: 'Ouverture',
+            durationUs: 1000000,
+          ),
+        ],
+      );
+      final root = (await tester.runAsync(() async {
+        final directory = await Directory.systemTemp.createTemp(
+          'status-bar-narrative-draft-',
+        );
+        await File('${directory.path}/project.json').writeAsString(
+          jsonEncode(before.toJson()),
+          flush: true,
+        );
+        return directory;
+      }))!;
+      addTearDown(() => tester.runAsync(() => root.delete(recursive: true)));
+      final container = await pumpStatusBarHarness(
+        tester,
+        initialState: EditorState(projectRootPath: root.path, project: before),
+      );
+      final after = before.copyWith(
+        presentationCinematics: [
+          PresentationCinematicAsset(
+            id: 'opening',
+            title: 'Ouverture locale',
+            durationUs: 1000000,
+          ),
+        ],
+      );
+
+      final applied = await tester.runAsync(
+        () => container
+            .read(editorNotifierProvider.notifier)
+            .applyNarrativeDocumentEdit(
+              after,
+              operationId: 'status-bar-presentation-edit',
+              label: 'Modifier les propriétés Presentation',
+            ),
+      );
+      expect(applied, isTrue);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Brouillon narratif modifié — enregistrez-le depuis le Studio narratif.',
+        ),
+        findsOneWidget,
+      );
       expect(
         find.text(
           'Projet modifié en mémoire — sauvegardez le projet avec la disquette.',

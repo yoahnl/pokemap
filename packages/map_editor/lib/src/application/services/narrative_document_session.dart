@@ -132,6 +132,23 @@ typedef NarrativeDocumentAutosaveScheduler = NarrativeDocumentAutosaveHandle
 
 typedef NarrativeDocumentPersistenceGuard<T> = String? Function(T document);
 
+typedef NarrativeDocumentOwnedContentEquality<T> = bool Function(
+    T left, T right);
+
+typedef NarrativeDocumentOwnedContentRebase<T> = T Function(
+    T local, T external);
+
+@immutable
+final class NarrativeDocumentRebasePolicy<T> {
+  const NarrativeDocumentRebasePolicy({
+    required this.hasSameOwnedContent,
+    required this.rebaseOwnedContent,
+  });
+
+  final NarrativeDocumentOwnedContentEquality<T> hasSameOwnedContent;
+  final NarrativeDocumentOwnedContentRebase<T> rebaseOwnedContent;
+}
+
 @immutable
 final class NarrativeDocumentComparison<T> {
   const NarrativeDocumentComparison({
@@ -232,6 +249,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
     this.autosaveDelay = const Duration(seconds: 3),
     NarrativeDocumentAutosaveScheduler? autosaveScheduler,
     NarrativeDocumentPersistenceGuard<T>? persistenceGuard,
+    NarrativeDocumentRebasePolicy<T>? rebasePolicy,
     bool autosaveEnabled = false,
     int historyCapacity = 100,
   })  : assert(historyCapacity > 0),
@@ -240,6 +258,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
         _historyCapacity = historyCapacity,
         _autosaveScheduler = autosaveScheduler ?? _scheduleWithTimer,
         _persistenceGuard = persistenceGuard,
+        _rebasePolicy = rebasePolicy,
         _state = NarrativeDocumentSessionState<T>(
           documentId: _requiredText(documentId, 'documentId'),
           document: initialDocument,
@@ -255,6 +274,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
   final NarrativeDocumentRecoveryStore<T> _recoveryStore;
   final int _historyCapacity;
   final NarrativeDocumentAutosaveScheduler _autosaveScheduler;
+  final NarrativeDocumentRebasePolicy<T>? _rebasePolicy;
   NarrativeDocumentPersistenceGuard<T>? _persistenceGuard;
   final Duration autosaveDelay;
 
@@ -319,6 +339,17 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
         redoEntries: recovery.redoEntries,
         capacity: _historyCapacity,
       );
+      final rebasePolicy = _rebasePolicy;
+      if (rebasePolicy != null) {
+        await _initializeRebasedRecovery(
+          disk: disk,
+          recovery: recovery,
+          history: history,
+          policy: rebasePolicy,
+          generation: generation,
+        );
+        return;
+      }
       if (recovery.baseRevision == disk.revision) {
         _publish(
           _state.copyWith(
@@ -389,7 +420,10 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
         _disposed) {
       return false;
     }
-    if (document == _state.document) return true;
+    final candidateDocument =
+        _rebasePolicy?.rebaseOwnedContent(document, _state.document) ??
+            document;
+    if (candidateDocument == _state.document) return true;
 
     late final NarrativeUndoStack<T> history;
     try {
@@ -397,7 +431,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
         operationId: operationId,
         label: label,
         before: _state.document,
-        after: document,
+        after: candidateDocument,
       );
     } on Object catch (error) {
       _publishFailure(
@@ -407,7 +441,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
       return false;
     }
     final candidate = _state.copyWith(
-      document: document,
+      document: candidateDocument,
       status: NarrativeDocumentSessionStatus.dirty,
       history: history,
       externalVersion: null,
@@ -482,11 +516,13 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
       if (_state.status == NarrativeDocumentSessionStatus.recovered) {
         try {
           await _recoveryStore.clear();
-          _publish(_state.copyWith(
-            status: NarrativeDocumentSessionStatus.saved,
-            code: null,
-            message: null,
-          ));
+          _publish(
+            _state.copyWith(
+              status: NarrativeDocumentSessionStatus.saved,
+              code: null,
+              message: null,
+            ),
+          );
         } on Object catch (error) {
           _publishFailure(
             code: 'recoveryCleanupFailed',
@@ -530,14 +566,12 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
       );
       if (!_canAdopt(generation)) return false;
       return switch (result) {
-        NarrativeDocumentSaved<T>(:final version) =>
-          await _adoptSaved(version, savingSnapshot),
-        NarrativeDocumentSaveFailed<T>(:final code, :final message) =>
-          _adoptSaveFailure(
+        NarrativeDocumentSaved<T>(:final version) => await _adoptSaved(
+            version,
             savingSnapshot,
-            code: code,
-            message: message,
           ),
+        NarrativeDocumentSaveFailed<T>(:final code, :final message) =>
+          _adoptSaveFailure(savingSnapshot, code: code, message: message),
         NarrativeDocumentSaveConflicted<T>(
           :final code,
           :final message,
@@ -572,7 +606,14 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
     try {
       final external = await _gateway.read();
       if (!_canAdopt(generation)) return false;
-      if (external.document != _state.baseline) {
+      final rebasePolicy = _rebasePolicy;
+      final baselineMatchesExternal = rebasePolicy == null
+          ? external.document == _state.baseline
+          : rebasePolicy.hasSameOwnedContent(
+              external.document,
+              _state.baseline,
+            );
+      if (!baselineMatchesExternal) {
         return _adoptConflict(
           _state,
           code: 'staleDocumentRevision',
@@ -584,13 +625,23 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
         _scheduleAutosaveIfNeeded();
         return true;
       }
+      final rebasedDocument = rebasePolicy?.rebaseOwnedContent(
+            _state.document,
+            external.document,
+          ) ??
+          _state.document;
+      final rebasedHistory = rebasePolicy == null
+          ? _state.history
+          : _rebaseHistory(_state.history, external.document, rebasePolicy);
       return await _commitLocalCandidate(
         _state.copyWith(
+          document: rebasedDocument,
           baseline: external.document,
           baselineRevision: external.revision,
-          status: _state.document == external.document
+          status: rebasedDocument == external.document
               ? NarrativeDocumentSessionStatus.saved
               : NarrativeDocumentSessionStatus.dirty,
+          history: rebasedHistory,
           externalVersion: null,
           code: null,
           message: 'The durable revision was refreshed.',
@@ -684,10 +735,21 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
         _disposed) {
       return false;
     }
+    final rebasePolicy = _rebasePolicy;
+    final document =
+        rebasePolicy?.rebaseOwnedContent(_state.document, external.document) ??
+            _state.document;
+    final history = rebasePolicy == null
+        ? _state.history
+        : _rebaseHistory(_state.history, external.document, rebasePolicy);
     final candidate = _state.copyWith(
+      document: document,
       baseline: external.document,
       baselineRevision: external.revision,
-      status: NarrativeDocumentSessionStatus.dirty,
+      status: document == external.document
+          ? NarrativeDocumentSessionStatus.saved
+          : NarrativeDocumentSessionStatus.dirty,
+      history: history,
       externalVersion: null,
       code: null,
       message: 'Local changes kept on top of the external revision.',
@@ -851,6 +913,110 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
         _state.status != NarrativeDocumentSessionStatus.conflicted;
   }
 
+  Future<void> _initializeRebasedRecovery({
+    required NarrativeDocumentVersion<T> disk,
+    required NarrativeDocumentRecoveryRecord<T> recovery,
+    required NarrativeUndoStack<T> history,
+    required NarrativeDocumentRebasePolicy<T> policy,
+    required int generation,
+  }) async {
+    final localChanged = !policy.hasSameOwnedContent(
+      recovery.document,
+      recovery.baseline,
+    );
+    final localMatchesDisk = policy.hasSameOwnedContent(
+      recovery.document,
+      disk.document,
+    );
+    if (!localChanged || localMatchesDisk) {
+      await _recoveryStore.clear();
+      if (!_canAdopt(generation)) return;
+      _publish(
+        _state.copyWith(
+          document: disk.document,
+          baseline: disk.document,
+          baselineRevision: disk.revision,
+          status: NarrativeDocumentSessionStatus.saved,
+          history: NarrativeUndoStack<T>(capacity: _historyCapacity),
+          isInitialized: true,
+          externalVersion: null,
+          code: null,
+          message: null,
+        ),
+      );
+      return;
+    }
+    final externalChanged = !policy.hasSameOwnedContent(
+      disk.document,
+      recovery.baseline,
+    );
+    if (externalChanged) {
+      _publish(
+        _state.copyWith(
+          document: recovery.document,
+          baseline: recovery.baseline,
+          baselineRevision: recovery.baseRevision,
+          status: NarrativeDocumentSessionStatus.conflicted,
+          history: history,
+          isInitialized: true,
+          externalVersion: disk,
+          code: 'externalRevisionConflict',
+          message: 'The project changed after the local recovery snapshot.',
+        ),
+      );
+      return;
+    }
+    final document = policy.rebaseOwnedContent(
+      recovery.document,
+      disk.document,
+    );
+    final rebasedHistory = _rebaseHistory(history, disk.document, policy);
+    final recovered = _state.copyWith(
+      document: document,
+      baseline: disk.document,
+      baselineRevision: disk.revision,
+      status: NarrativeDocumentSessionStatus.recovered,
+      history: rebasedHistory,
+      isInitialized: true,
+      externalVersion: null,
+      code: 'recoveryRebased',
+      message:
+          'Recovered narrative changes were rebased on the current project.',
+    );
+    await _recoveryStore.write(_recordFor(recovered));
+    if (!_canAdopt(generation)) return;
+    _publish(recovered);
+    _scheduleAutosaveIfNeeded();
+  }
+
+  NarrativeUndoStack<T> _rebaseHistory(
+    NarrativeUndoStack<T> history,
+    T external,
+    NarrativeDocumentRebasePolicy<T> policy,
+  ) {
+    List<NarrativeUndoEntry<T>> rebaseEntries(
+      List<NarrativeUndoEntry<T>> entries,
+    ) {
+      return <NarrativeUndoEntry<T>>[
+        for (final entry in entries)
+          if (policy.rebaseOwnedContent(entry.before, external) !=
+              policy.rebaseOwnedContent(entry.after, external))
+            NarrativeUndoEntry<T>(
+              operationId: entry.operationId,
+              label: entry.label,
+              before: policy.rebaseOwnedContent(entry.before, external),
+              after: policy.rebaseOwnedContent(entry.after, external),
+            ),
+      ];
+    }
+
+    return NarrativeUndoStack<T>(
+      undoEntries: rebaseEntries(history.undoEntries),
+      redoEntries: rebaseEntries(history.redoEntries),
+      capacity: history.capacity,
+    );
+  }
+
   Future<bool> _commitLocalCandidate(
     NarrativeDocumentSessionState<T> candidate,
   ) async {
@@ -908,9 +1074,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
     _autosaveHandle = _autosaveScheduler(autosaveDelay, () async {
       _autosaveHandle = null;
       if (_disposed || sequence != _autosaveSequence) return;
-      await save(
-        operationId: 'autosave_${_state.documentId}_$sequence',
-      );
+      await save(operationId: 'autosave_${_state.documentId}_$sequence');
     });
   }
 

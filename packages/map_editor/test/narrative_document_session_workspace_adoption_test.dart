@@ -173,6 +173,168 @@ void main() {
       'Introduction après création',
     );
   });
+
+  test('Presentation recovery rebases over unrelated project changes',
+      () async {
+    final root = await Directory.systemTemp.createTemp(
+      'presentation-recovery-rebase-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final before = _presentationProject(
+      name: 'Projet initial',
+      title: 'Ouverture initiale',
+    );
+    final local = _presentationProject(
+      name: 'Projet initial',
+      title: 'Ouverture locale',
+    );
+    await _writeProject(root, before);
+
+    final firstContainer = ProviderContainer();
+    firstContainer.listen(editorNotifierProvider, (_, _) {});
+    final first = firstContainer.read(editorNotifierProvider.notifier);
+    first.state = EditorState(projectRootPath: root.path, project: before);
+    expect(
+      await first.applyNarrativeDocumentEdit(
+        local,
+        operationId: 'presentation-local-edit',
+        label: 'Modifier les propriétés Presentation',
+      ),
+      isTrue,
+    );
+    firstContainer.dispose();
+
+    final external = _presentationProject(
+      name: 'Projet externe',
+      title: 'Ouverture initiale',
+    );
+    await _writeProject(root, external);
+
+    final secondContainer = ProviderContainer();
+    addTearDown(secondContainer.dispose);
+    secondContainer.listen(editorNotifierProvider, (_, _) {});
+    final second = secondContainer.read(editorNotifierProvider.notifier);
+    second.state = EditorState(projectRootPath: root.path, project: external);
+
+    await second.initializeNarrativeDocumentSession();
+
+    expect(
+      second.narrativeDocumentStatus,
+      NarrativeDocumentSessionStatus.recovered,
+    );
+    expect(second.state.errorMessage, isNull);
+    expect(second.state.project!.name, 'Projet externe');
+    expect(
+      second.state.project!.presentationCinematics.single.title,
+      'Ouverture locale',
+    );
+    expect(second.state.isProjectDirty, isTrue);
+  });
+
+  test('Presentation document saves durably through the narrative session',
+      () async {
+    final root = await Directory.systemTemp.createTemp(
+      'presentation-document-save-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final before = _presentationProject(
+      name: 'Projet',
+      title: 'Ouverture initiale',
+    );
+    final after = _presentationProject(
+      name: 'Projet',
+      title: 'Ouverture enregistrée',
+    );
+    await _writeProject(root, before);
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.listen(editorNotifierProvider, (_, _) {});
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(projectRootPath: root.path, project: before);
+
+    expect(
+      await notifier.applyNarrativeDocumentEdit(
+        after,
+        operationId: 'presentation-title-edit',
+        label: 'Modifier les propriétés Presentation',
+      ),
+      isTrue,
+    );
+
+    expect(await notifier.saveNarrativeDocument(), isTrue);
+    expect(
+      notifier.narrativeDocumentStatus,
+      NarrativeDocumentSessionStatus.saved,
+    );
+    expect(notifier.state.isProjectDirty, isFalse);
+    expect(
+      (await _readProject(root)).presentationCinematics.single.title,
+      'Ouverture enregistrée',
+    );
+    expect(
+      await File('${root.path}/.pokemap/recovery/narrative-cinematics.json')
+          .exists(),
+      isFalse,
+    );
+  });
+
+  test('keep local preserves unrelated external project changes', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'presentation-keep-local-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final before = _presentationProject(
+      name: 'Projet initial',
+      title: 'Ouverture initiale',
+    );
+    final local = _presentationProject(
+      name: 'Projet initial',
+      title: 'Ouverture locale',
+    );
+    await _writeProject(root, before);
+
+    final firstContainer = ProviderContainer();
+    firstContainer.listen(editorNotifierProvider, (_, _) {});
+    final first = firstContainer.read(editorNotifierProvider.notifier);
+    first.state = EditorState(projectRootPath: root.path, project: before);
+    expect(
+      await first.applyNarrativeDocumentEdit(
+        local,
+        operationId: 'presentation-conflicting-local-edit',
+        label: 'Modifier les propriétés Presentation',
+      ),
+      isTrue,
+    );
+    firstContainer.dispose();
+
+    final external = _presentationProject(
+      name: 'Projet externe',
+      title: 'Ouverture externe',
+    );
+    await _writeProject(root, external);
+
+    final secondContainer = ProviderContainer();
+    addTearDown(secondContainer.dispose);
+    secondContainer.listen(editorNotifierProvider, (_, _) {});
+    final second = secondContainer.read(editorNotifierProvider.notifier);
+    second.state = EditorState(projectRootPath: root.path, project: external);
+    await second.initializeNarrativeDocumentSession();
+    expect(
+      second.narrativeDocumentStatus,
+      NarrativeDocumentSessionStatus.conflicted,
+    );
+
+    expect(await second.keepLocalNarrativeDocument(), isTrue);
+    expect(second.state.project!.name, 'Projet externe');
+    expect(
+      second.state.project!.presentationCinematics.single.title,
+      'Ouverture locale',
+    );
+    expect(await second.saveNarrativeDocument(), isTrue);
+    final durable = await _readProject(root);
+    expect(durable.name, 'Projet externe');
+    expect(durable.presentationCinematics.single.title, 'Ouverture locale');
+  });
 }
 
 ProjectManifest _project({required String title}) {
@@ -185,6 +347,25 @@ ProjectManifest _project({required String title}) {
         id: 'cinematic_intro',
         title: title,
         timeline: CinematicTimeline(),
+      ),
+    ],
+  );
+}
+
+ProjectManifest _presentationProject({
+  required String name,
+  required String title,
+}) {
+  return ProjectManifest(
+    name: name,
+    version: ProjectVersion.v7,
+    maps: const [],
+    tilesets: const [],
+    presentationCinematics: [
+      PresentationCinematicAsset(
+        id: 'presentation-opening',
+        title: title,
+        durationUs: 12000000,
       ),
     ],
   );
