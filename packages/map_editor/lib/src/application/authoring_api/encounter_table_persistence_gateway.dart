@@ -17,6 +17,17 @@ abstract interface class EncounterTablePersistenceGateway {
     required ProjectManifest expectedProject,
     required String tableId,
   });
+
+  /// Le défaut de projet des transitions de combat — BETA-BAT-034.
+  ///
+  /// Une chaîne vide efface le défaut d'un côté et rend la main au défaut
+  /// moteur ; un côté non fourni n'est pas touché.
+  Future<ProjectManifest> updateBattleTransitionDefaults({
+    required String projectRootPath,
+    required ProjectManifest expectedProject,
+    String? wildTransitionId,
+    String? trainerTransitionId,
+  });
 }
 
 final class CanonicalEncounterTablePersistenceGateway
@@ -60,6 +71,26 @@ final class CanonicalEncounterTablePersistenceGateway
       parameters: <String, Object?>{'id': tableId},
       operationLabel: 'delete_$tableId',
       requiresConfirmation: true,
+    );
+  }
+
+  @override
+  Future<ProjectManifest> updateBattleTransitionDefaults({
+    required String projectRootPath,
+    required ProjectManifest expectedProject,
+    String? wildTransitionId,
+    String? trainerTransitionId,
+  }) {
+    return _apply(
+      projectRootPath: projectRootPath,
+      expectedProject: expectedProject,
+      actionId: 'project.battle_transitions.update',
+      parameters: <String, Object?>{
+        'wildTransitionId': ?wildTransitionId,
+        'trainerTransitionId': ?trainerTransitionId,
+      },
+      operationLabel: 'battle_transitions',
+      requiresConfirmation: false,
     );
   }
 

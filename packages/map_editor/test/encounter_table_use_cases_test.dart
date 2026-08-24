@@ -264,6 +264,18 @@ class _RecordingEncounterTablePersistenceGateway
   final List<ProjectEncounterTable> upsertedTables = <ProjectEncounterTable>[];
 
   @override
+  Future<ProjectManifest> updateBattleTransitionDefaults({
+    required String projectRootPath,
+    required ProjectManifest expectedProject,
+    String? wildTransitionId,
+    String? trainerTransitionId,
+  }) async {
+    // Ce harnais couvre les use cases de tables ; le défaut projet a sa
+    // propre suite côté map_authoring (BETA-BAT-034, lot 2).
+    throw UnimplementedError();
+  }
+
+  @override
   Future<ProjectManifest> remove({
     required String projectRootPath,
     required ProjectManifest expectedProject,

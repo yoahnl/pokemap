@@ -1188,6 +1188,11 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     ],
     'test/domains/assets/visual_library_contract_test.dart',
   ),
+  // BETA-BAT-034 lot 2 : le défaut de projet des transitions de combat.
+  _ContractEvidenceRule(
+    ['project.battle_transitions.'],
+    'test/domains/project/battle_transition_default_actions_test.dart',
+  ),
   _ContractEvidenceRule(
     ['presentationMedia.import'],
     'test/domains/assets/presentation_media_import_transaction_test.dart',

@@ -55,6 +55,89 @@ void main() {
   }
 
   testWidgets(
+    'BETA-BAT-034 lot 2 : le défaut projet des transitions est réglable et '
+    'persisté',
+    (tester) async {
+      // `manifest.battleTransitions` existait depuis BETA-BAT-019 et n'avait
+      // AUCUN producteur : le runtime le lisait, personne ne l'écrivait. Sans
+      // ce réglage, changer la transition de tous les combats demandait de
+      // passer calque par calque et dresseur par dresseur.
+      final repository = _FakeProjectRepository();
+      final gateway = _FakeEncounterTablePersistenceGateway(repository);
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(gateway),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = const EditorState(
+        projectRootPath: '/tmp/battle_transition_defaults_test',
+        project: ProjectManifest(
+          name: 'battle_transition_defaults_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          encounterTables: <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'route_1_grass',
+              name: 'Route 1 — Hautes herbes',
+              encounterKind: EncounterKind.walk,
+              chancePerStep: 0.12,
+            ),
+          ],
+        ),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('encounter-project-battle-transitions')),
+        findsOneWidget,
+        reason: 'le réglage doit être atteignable depuis l’Encounter Studio',
+      );
+
+      await notifier.updateProjectBattleTransitionDefaults(
+        wildTransitionId: 'dpp_wild',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project
+            ?.battleTransitions
+            ?.wildTransitionId,
+        'dpp_wild',
+      );
+      expect(
+        gateway.battleTransitionCalls.single['trainerTransitionId'],
+        isNull,
+        reason: 'régler le sauvage ne doit pas toucher au dresseur',
+      );
+
+      await notifier.updateProjectBattleTransitionDefaults(
+        trainerTransitionId: 'hgss_trainer',
+      );
+      await tester.pumpAndSettle();
+
+      final config =
+          container.read(editorNotifierProvider).project?.battleTransitions;
+      expect(config?.wildTransitionId, 'dpp_wild');
+      expect(config?.trainerTransitionId, 'hgss_trainer');
+    },
+  );
+
+  testWidgets(
     'filters the encounter library case-insensitively and configures the selected table at 1280',
     (tester) async {
       final repository = _FakeProjectRepository();
@@ -1485,6 +1568,44 @@ class _FakeEncounterTablePersistenceGateway
     await _repository.saveProject(updated, projectRootPath);
     return updated;
   }
+
+
+  @override
+  Future<ProjectManifest> updateBattleTransitionDefaults({
+    required String projectRootPath,
+    required ProjectManifest expectedProject,
+    String? wildTransitionId,
+    String? trainerTransitionId,
+  }) async {
+    final current = expectedProject.battleTransitions;
+    String? resolve(String? requested, String? existing) {
+      if (requested == null) return existing;
+      final id = requested.trim();
+      return id.isEmpty ? null : id;
+    }
+
+    final wild = resolve(wildTransitionId, current?.wildTransitionId);
+    final trainer = resolve(trainerTransitionId, current?.trainerTransitionId);
+    final updated = wild == null && trainer == null
+        ? expectedProject.copyWith(battleTransitions: null)
+        : expectedProject.copyWith(
+            battleTransitions: ProjectBattleTransitionConfig(
+              wildTransitionId: wild,
+              trainerTransitionId: trainer,
+            ),
+          );
+    battleTransitionCalls.add(
+      <String, Object?>{
+        'wildTransitionId': wildTransitionId,
+        'trainerTransitionId': trainerTransitionId,
+      },
+    );
+    await _repository.saveProject(updated, projectRootPath);
+    return updated;
+  }
+
+  final List<Map<String, Object?>> battleTransitionCalls =
+      <Map<String, Object?>>[];
 
   @override
   Future<ProjectManifest> upsert({

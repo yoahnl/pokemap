@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_distribution/map_distribution.dart';
 
 import '../contracts/action_descriptor.dart';
+import '../domains/project/battle_transition_default_actions.dart';
 import '../domains/assets/asset_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/element_actions.dart';
@@ -129,6 +130,7 @@ final class MapMutationDispatcher {
     );
     const tilesets = TilesetActions();
     const visualOrganization = VisualOrganizationActions();
+    const battleTransitionDefaults = BattleTransitionDefaultActions();
     const palettes = PaletteActions();
     const elements = ElementActions();
     const presentation = PresentationActions();
@@ -266,6 +268,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: visualOrganization.build,
+        ),
+      for (final descriptor in BattleTransitionDefaultActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: battleTransitionDefaults.build,
         ),
       for (final descriptor in PaletteActions.descriptors)
         MapMutationActionRegistration(

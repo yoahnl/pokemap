@@ -54,6 +54,9 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   final _newTableTagsController = TextEditingController();
   EncounterKind _newTableKind = EncounterKind.walk;
   bool _showCreateForm = false;
+
+  /// Repli du bloc des transitions par défaut du projet — BETA-BAT-034.
+  bool _showBattleTransitionDefaults = false;
   String? _createTableValidationMessage;
   final _tableSearchController = TextEditingController();
   String _tableSearchQuery = '';

@@ -226,6 +226,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                _buildProjectBattleTransitionDefaults(context, notifier),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
                   child: PokeMapSearchField(
@@ -327,6 +328,77 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
       }
     }
     return widgets;
+  }
+
+  /// Les transitions de combat par défaut du projet — BETA-BAT-034, lot 2.
+  ///
+  /// `manifest.battleTransitions` existait depuis BETA-BAT-019 et n'avait
+  /// aucun producteur : le runtime le lisait, personne ne l'écrivait. Sans
+  /// ce réglage, changer la transition de tous les combats demandait de
+  /// passer calque par calque et dresseur par dresseur.
+  Widget _buildProjectBattleTransitionDefaults(
+    BuildContext context,
+    EditorNotifier notifier,
+  ) {
+    final config = ref.watch(editorNotifierProvider).project?.battleTransitions;
+    const engineDefault = '';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+      child: PokeMapDisclosure(
+        key: const Key('encounter-project-battle-transitions'),
+        label: 'Transitions de combat par défaut',
+        expanded: _showBattleTransitionDefaults,
+        onExpandedChanged: (expanded) => _runLocalStateMutation(() {
+          _showBattleTransitionDefaults = expanded;
+        }),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PokeMapDropdownField<String>(
+              key: const Key('project-battle-transition-wild'),
+              label: 'Rencontres sauvages',
+              value: config?.wildTransitionId ?? engineDefault,
+              items: [
+                const PokeMapDropdownItem(
+                  value: engineDefault,
+                  label: 'Défaut du moteur (Rouge/Bleu/Jaune)',
+                ),
+                for (final id in battleWildTransitionIds)
+                  PokeMapDropdownItem(
+                    value: id,
+                    label: battleTransitionDisplayLabels[id] ?? id,
+                  ),
+              ],
+              onChanged: (value) =>
+                  notifier.updateProjectBattleTransitionDefaults(
+                    wildTransitionId: value,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            PokeMapDropdownField<String>(
+              key: const Key('project-battle-transition-trainer'),
+              label: 'Combats de dresseurs',
+              value: config?.trainerTransitionId ?? engineDefault,
+              items: [
+                const PokeMapDropdownItem(
+                  value: engineDefault,
+                  label: 'Défaut du moteur (Diamant/Perle/Platine)',
+                ),
+                for (final id in battleTrainerTransitionIds)
+                  PokeMapDropdownItem(
+                    value: id,
+                    label: battleTransitionDisplayLabels[id] ?? id,
+                  ),
+              ],
+              onChanged: (value) =>
+                  notifier.updateProjectBattleTransitionDefaults(
+                    trainerTransitionId: value,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildEncounterLibraryItem(

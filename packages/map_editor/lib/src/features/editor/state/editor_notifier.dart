@@ -12902,6 +12902,43 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  /// Le défaut de projet des transitions de combat — BETA-BAT-034, lot 2.
+  ///
+  /// Une chaîne vide efface le défaut d'un côté ; un côté null n'est pas
+  /// touché. La précédence de BETA-BAT-019 reste : dresseur authoré, puis
+  /// source de rencontre, puis ce défaut, puis le défaut moteur.
+  Future<bool> updateProjectBattleTransitionDefaults({
+    String? wildTransitionId,
+    String? trainerTransitionId,
+  }) async {
+    final projectRootPath = state.projectRootPath;
+    final project = state.project;
+    if (projectRootPath == null || project == null) return false;
+    if (wildTransitionId == null && trainerTransitionId == null) return true;
+    try {
+      final gateway = ref.read(encounterTablePersistenceGatewayProvider);
+      final updated = await gateway.updateBattleTransitionDefaults(
+        projectRootPath: projectRootPath,
+        expectedProject: project,
+        wildTransitionId: wildTransitionId,
+        trainerTransitionId: trainerTransitionId,
+      );
+      state = state.copyWith(
+        project: updated,
+        statusMessage: 'Transitions de combat par défaut enregistrées.',
+        errorMessage: null,
+      );
+      return true;
+    } on Object catch (error) {
+      debugPrint('EditorNotifier: battle transition defaults failed: $error');
+      state = state.copyWith(
+        errorMessage:
+            'Impossible d’enregistrer les transitions par défaut : $error',
+      );
+      return false;
+    }
+  }
+
   Future<void> deleteEncounterTable(String tableId) async {
     final fs = _projectWorkspace;
     final project = state.project;
