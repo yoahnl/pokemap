@@ -375,6 +375,31 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
         attempt++;
       }
     }
+    // The apply already loaded the post-mutation snapshot to build its
+    // projection. Reopening a read session here would reload and re-hash the
+    // whole project a second time for the same revision.
+    final projection = applied.projection;
+    if (projection != null) {
+      final projected = projection.mapById(first.mapId);
+      final projectedRevision = projection.resourceRevision(
+        'map:${first.mapId}',
+      );
+      if (projected == null || projectedRevision == null) {
+        throw const EditorAuthoringMutationFailure(
+          code: 'placed_element.snapshot_missing',
+          message: 'La map active est absente du snapshot canonique.',
+        );
+      }
+      return _PublishedPlacedElementBatch(
+        projectRootPath: first.projectRootPath,
+        receiptId: applied.receipt.receiptId,
+        layerId: first.layerId,
+        intent: appliedIntent,
+        manifest: projection.manifest,
+        map: projected,
+        mapRevision: projectedRevision,
+      );
+    }
     final after = await queries.open(first.projectRootPath);
     final map = after.mapById(first.mapId);
     final mapRevision = after.resourceRevision('map:${first.mapId}');

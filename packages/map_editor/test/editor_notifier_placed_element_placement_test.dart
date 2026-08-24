@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/application/models/map_tool_preview.dart';
 import 'package:map_editor/src/application/services/editor_performance_telemetry.dart';
 import 'package:map_editor/src/features/border_map_editing/application/pending_border_save_guard.dart';
@@ -295,6 +296,24 @@ void main() {
     expect(await fixture.notifier.retryPlacedElementPublications(), isTrue);
     expect(fixture.notifier.hasPendingPlacedElementPublications, isFalse);
     expect((await fixture.readPersistedMap()).placedElements, hasLength(1));
+  });
+
+  test('publishing a placement reuses the applied projection', () async {
+    final fixture = await _CanonicalPlacementFixture.create();
+    addTearDown(fixture.dispose);
+    final queries = fixture.container.read(authoringQueryAdapterProvider);
+
+    fixture.notifier.placeSelectedProjectElementAt(const GridPos(x: 3, y: 2));
+    expect(await fixture.notifier.drainPlacedElementPublications(), isTrue);
+
+    expect(
+      queries.diagnostics.liveSessions,
+      0,
+      reason: 'the apply already carries the post-mutation snapshot',
+    );
+    expect((await fixture.readPersistedMap()).placedElements, hasLength(1));
+    expect(fixture.notifier.state.activeMap!.placedElements, hasLength(1));
+    expect(fixture.notifier.state.isDirty, isFalse);
   });
 
   test('save drains a pending placement without publishing it twice', () async {
