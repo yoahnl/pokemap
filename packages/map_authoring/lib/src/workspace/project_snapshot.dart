@@ -118,13 +118,12 @@ final class ProjectSnapshot {
         );
       }
     }
-    for (final entry in _resourceBytes.entries) {
-      if (!this.resourceFingerprints.containsKey(entry.key) ||
-          entry.value.any((byte) => byte < 0 || byte > 255)) {
+    for (final key in _resourceBytes.keys) {
+      if (!this.resourceFingerprints.containsKey(key)) {
         throw ArgumentError.value(
-          entry.key,
+          key,
           'resourceBytes',
-          'keys must identify fingerprinted resources and values must be bytes',
+          'keys must identify fingerprinted resources',
         );
       }
     }
@@ -283,12 +282,21 @@ Map<String, List<int>> _freezeResourceBytes({
     );
   }
   final entries = resourceBytes.isNotEmpty
-      ? resourceBytes.entries.map(
-          (entry) => MapEntry(
-            entry.key,
-            List<int>.unmodifiable(entry.value),
-          ),
-        )
+      // Caller-supplied lists carry no type guarantee, so their range is
+      // checked here, once, while the source is still known.
+      ? resourceBytes.entries.map((entry) {
+          if (entry.value.any((byte) => byte < 0 || byte > 255)) {
+            throw ArgumentError.value(
+              entry.key,
+              'resourceBytes',
+              'values must be bytes',
+            );
+          }
+          return MapEntry(entry.key, List<int>.unmodifiable(entry.value));
+        })
+      // Owned bytes are views over a Uint8List: the range holds by type, and
+      // walking 78 MB element by element to reprove it dominated snapshot
+      // assembly.
       : ownedResourceBytes.entries.map(
           (entry) => MapEntry(entry.key, entry.value.bytes),
         );

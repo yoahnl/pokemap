@@ -576,6 +576,28 @@ void main() {
       );
     });
 
+    test('rejects caller-supplied resource bytes outside the byte range', () {
+      final manifest = ProjectManifest(
+        name: 'Direct Snapshot',
+        maps: const [],
+        tilesets: const [],
+      );
+      ProjectSnapshot build(List<int> bytes) => ProjectSnapshot(
+            projectHandle: const ProjectHandle('prj_direct'),
+            revision: 'sha256:${List.filled(64, 'a').join()}',
+            manifest: manifest,
+            maps: const [],
+            resourceFingerprints: {
+              'project': 'sha256:${List.filled(64, 'b').join()}',
+            },
+            resourceBytes: {'project': bytes},
+          );
+
+      expect(build(const [0, 127, 255]).resourceBytes('project'), hasLength(3));
+      expect(() => build(const [0, 256]), throwsArgumentError);
+      expect(() => build(const [-1, 0]), throwsArgumentError);
+    });
+
     test('rejects duplicate direct snapshot maps and invalid fingerprints', () {
       final map = MapData(
         id: 'same',
