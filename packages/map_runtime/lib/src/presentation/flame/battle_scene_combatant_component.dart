@@ -383,7 +383,33 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _animation = _CombatantPresentationAnimation.none;
     _visualOffset = _introSlideOffset(progress: 1);
     _visualOpacity = 1;
+    // BETA-BAT-028 : parité `create_enemy_sprites` — le Pokémon SAUVAGE
+    // entre en SILHOUETTE noire (shader `color = [0,0,0,1]`) et ne se révèle
+    // qu'à la fin de son glissement. Le joueur n'en a pas : de son côté,
+    // c'est son dresseur qui entre.
+    if (!isPlayerSide) {
+      _introSilhouetteActive = true;
+      _visualToneColor = const Color(0xFF000000);
+      _visualToneStrength = 1;
+      _toneElapsed = 0;
+      _toneDuration = 0;
+    }
     _applyVisualPresentation();
+  }
+
+  /// Vrai tant que la silhouette d'entrée n'a pas été levée — BETA-BAT-028.
+  bool _introSilhouetteActive = false;
+
+  @visibleForTesting
+  bool get debugIntroSilhouetteActive => _introSilhouetteActive;
+
+  void _clearIntroSilhouette() {
+    if (!_introSilhouetteActive) return;
+    _introSilhouetteActive = false;
+    _visualToneColor = null;
+    _visualToneStrength = 0;
+    _toneElapsed = 0;
+    _toneDuration = 0;
   }
 
   /// Glissement d'entrée en combat (parité `create_sprite_move_animation`).
@@ -410,6 +436,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   void snapToBattlePose() {
+    // Une pose de combat nette n'a plus de silhouette d'entrée en attente.
+    _introSilhouetteActive = false;
     _animation = _CombatantPresentationAnimation.none;
     _animationElapsed = 0;
     _animationDuration = 0;
@@ -846,6 +874,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
     if (_visualToneColor == null) {
       return;
     }
+    // La silhouette d'entrée TIENT jusqu'à sa levée explicite : la laisser
+    // décroître donnerait un fondu, là où la référence révèle d'un coup.
+    if (_introSilhouetteActive) return;
     _toneElapsed += dt;
     final duration = _toneDuration <= 0 ? 0.0001 : _toneDuration;
     final progress = (_toneElapsed / duration).clamp(0.0, 1.0);
@@ -943,6 +974,12 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _applyVisualPresentation();
     if (progress < 1) {
       return;
+    }
+
+    // Parité `enemy_discover_animations` : la révélation tombe à la fin du
+    // mouvement d'entrée, d'un coup.
+    if (_animation == _CombatantPresentationAnimation.introSlide) {
+      _clearIntroSilhouette();
     }
 
     switch (_animation) {

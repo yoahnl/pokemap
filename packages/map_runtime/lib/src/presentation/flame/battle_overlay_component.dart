@@ -754,6 +754,9 @@ class BattleOverlayComponent extends PositionComponent {
       _playerCombatant?.currentVisualOpacity;
 
   @visibleForTesting
+  BattleSceneCombatantComponent? get debugEnemyCombatant => _enemyCombatant;
+
+  @visibleForTesting
   double? get debugEnemySpriteScaleX =>
       // ignore: invalid_use_of_visible_for_testing_member
       _enemyCombatant?.currentVisualScaleX;

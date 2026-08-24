@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:ui' show Color;
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -351,6 +352,42 @@ void main() {
         isTrue,
         reason: 'le step ShowTeamInfo les fait entrer pendant l’intro',
       );
+    });
+
+    test(
+        'BETA-BAT-028 : le sauvage entre en silhouette noire et se révèle à '
+        'la fin de son glissement', () async {
+      final overlay = await mount(isTrainerBattle: false);
+      final enemy = overlay.debugEnemyCombatant!;
+
+      expect(
+        enemy.debugIntroSilhouetteActive,
+        isTrue,
+        reason: 'parité create_enemy_sprites : il entre en noir',
+      );
+      expect(enemy.currentVisualToneColor, const Color(0xFF000000));
+
+      await enemy.playIntroSlide(durationSeconds: 0.8, distancePx: 1080);
+      for (var i = 0; i < 10; i++) {
+        enemy.update(0.05);
+      }
+      expect(
+        enemy.debugIntroSilhouetteActive,
+        isTrue,
+        reason: 'elle TIENT pendant le glissement, elle ne s’estompe pas',
+      );
+      expect(enemy.currentVisualToneColor, const Color(0xFF000000));
+
+      for (var i = 0; i < 12; i++) {
+        enemy.update(0.05);
+      }
+      expect(
+        enemy.debugIntroSilhouetteActive,
+        isFalse,
+        reason: 'parité enemy_discover_animations : révélation d’un coup à '
+            'la fin du mouvement',
+      );
+      expect(enemy.currentVisualToneColor, isNull);
     });
 
     test('le dresseur entre, puis sort du champ et se retire', () async {
