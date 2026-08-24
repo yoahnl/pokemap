@@ -31,6 +31,8 @@ const _slowStats = BattleStatsSnapshot(
 BattleSession _session({
   required String moveType,
   required BattleTypingSnapshot enemyTyping,
+  BattleTypingSnapshot playerTyping =
+      const BattleTypingSnapshot(primaryType: 'normal'),
 }) {
   return createBattleSession(
     BattleSetup.pokeMapBetaV1ForTest(
@@ -40,7 +42,7 @@ BattleSession _session({
         maxHp: 40,
         currentHp: 40,
         stats: _stats,
-        typing: const BattleTypingSnapshot(primaryType: 'normal'),
+        typing: playerTyping,
         moves: <BattleMoveData>[
           BattleMoveData(
             id: 'test_move',
@@ -144,5 +146,28 @@ void main() {
       isEmpty,
       reason: 'la référence ne dit rien quand le multiplicateur vaut 1',
     );
+  });
+
+  // Recette du 2026-08-24 : « une attaque spectre sur un pokémon normal n'a
+  // aucun effet, bah il faudrait le dire ! » — l'immunité s'annonce et ne
+  // joue AUCUN son d'impact.
+  test('une immunité annonce « Ça n’affecte pas X… » sans son d’impact',
+      () async {
+    final result = await _playFirstTurn(_session(
+      moveType: 'ghost',
+      enemyTyping: const BattleTypingSnapshot(primaryType: 'normal'),
+    ));
+    expect(
+      result.messages.where((m) => m.startsWith('Ça n’affecte pas')),
+      isNotEmpty,
+      reason: 'le texte de la référence pour un multiplicateur nul',
+    );
+    // La riposte Charge de l'ennemi touche et joue son `hit` légitime — le
+    // coup IMMUNISÉ, lui, n'en joue aucun : exactement un `hit` dans le tour.
+    // (La riposte du moteur legacy applique un multiplicateur 1.0 en dur ;
+    // c'est un écart préexistant de ce moteur de test, le Hub joue en PSDK.)
+    expect(result.seLog.where((se) => se == 'hit'), hasLength(1));
+    expect(result.seLog, isNot(contains('hitplus')));
+    expect(result.seLog, isNot(contains('hitlow')));
   });
 }

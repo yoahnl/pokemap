@@ -152,6 +152,9 @@ enum BattleVolatileEventKind {
   rechargeTurnSpent,
   chargeStarted,
   chargeReleased,
+  confusionApplied,
+  confusionActive,
+  confusionEnded,
 }
 
 /// Trace minimale d'un événement volatile pendant un tour.
@@ -210,6 +213,27 @@ final class BattleVolatileEvent {
     this.chargeStateId,
   })  : kind = BattleVolatileEventKind.chargeReleased,
         targetSlot = null;
+
+  const BattleVolatileEvent.confusionApplied({
+    required this.actorSlot,
+    this.sourceMoveId,
+  })  : kind = BattleVolatileEventKind.confusionApplied,
+        targetSlot = null,
+        chargeStateId = null;
+
+  const BattleVolatileEvent.confusionActive({
+    required this.actorSlot,
+  })  : kind = BattleVolatileEventKind.confusionActive,
+        targetSlot = null,
+        sourceMoveId = null,
+        chargeStateId = null;
+
+  const BattleVolatileEvent.confusionEnded({
+    required this.actorSlot,
+  })  : kind = BattleVolatileEventKind.confusionEnded,
+        targetSlot = null,
+        sourceMoveId = null,
+        chargeStateId = null;
 
   /// Slot qui a provoqué l'événement.
   ///

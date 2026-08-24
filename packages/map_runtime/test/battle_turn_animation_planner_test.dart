@@ -1261,6 +1261,213 @@ void main() {
       expect(seNames, <String>['hit']);
     });
   });
+
+  // Recette du 2026-08-24 — le feedback manquant : une attaque ratée, une
+  // immunité, un move de statut et une fuite ratée devaient tous SE DIRE. Les
+  // textes sont ceux de la référence (Data/Text/Dialogs 100019/100018).
+  group('recette 2026-08-24 — le feedback manquant', () {
+    BattleSession sessionFor() => _session(
+          player: _combatant(
+            speciesId: 'pikachu',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'sweet_kiss', name: 'Doux Baiser', type: 'fairy'),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'machop',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'low_kick', name: 'Low Kick', type: 'fighting'),
+            ],
+          ),
+        );
+
+    String displayName(String speciesId) =>
+        speciesId == 'pikachu' ? 'Pikachu' : 'Machoc';
+
+    BattleAnimationPlan planForTimeline(
+      List<BattleTurnEvent> timeline, {
+      List<BattleMoveExecution> executions = const <BattleMoveExecution>[],
+    }) {
+      final before = sessionFor();
+      return BattleTurnAnimationPlanner(speciesDisplayName: displayName)
+          .buildForTurn(
+        playerBefore: before.state.player,
+        enemyBefore: before.state.enemy,
+        turnResult: BattleTurnResult(
+          playerAction: const BattleActionNone(),
+          enemyAction: const BattleActionNone(),
+          executions: executions,
+          timeline: timeline,
+        ),
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+    }
+
+    List<String> messagesOf(BattleAnimationPlan plan) => <String>[
+          for (final step in plan.flattenedSteps)
+            if (step is ShowMessageStep) step.message,
+        ];
+
+    BattleMoveExecution executionFor({
+      required BattleMove move,
+      required bool didHit,
+      int damage = 0,
+      double typeEffectivenessMultiplier = 1.0,
+    }) {
+      return BattleMoveExecution(
+        attackerSlot: BattleSlotRef.active(BattleSideId.player),
+        move: move,
+        targetKind: BattleMoveExecutionTargetKind.combatant,
+        targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+        damage: damage,
+        didHit: didHit,
+        typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+      );
+    }
+
+    test('une attaque ratée annonce « évite l’attaque ! » sans impact', () {
+      final execution = executionFor(
+        move: const BattleMove(id: 'pound', name: 'Écras’Face', power: 40),
+        didHit: false,
+      );
+      final plan =
+          planForTimeline(<BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
+
+      expect(messagesOf(plan), contains('Machoc évite l’attaque !'));
+      expect(plan.flattenedSteps.whereType<HudHpTweenStep>(), isEmpty);
+      expect(plan.flattenedSteps.whereType<PlaySeStep>(), isEmpty);
+    });
+
+    test('une immunité annonce « Ça n’affecte pas X… » sans son ni barre', () {
+      final execution = executionFor(
+        move: const BattleMove(id: 'lick', name: 'Léchouille', power: 30),
+        didHit: true,
+        typeEffectivenessMultiplier: 0.0,
+      );
+      final plan =
+          planForTimeline(<BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
+
+      expect(messagesOf(plan), contains('Ça n’affecte pas Machoc…'));
+      expect(plan.flattenedSteps.whereType<PlaySeStep>(), isEmpty);
+      expect(plan.flattenedSteps.whereType<HudHpTweenStep>(), isEmpty);
+      expect(plan.flattenedSteps.whereType<CombatantFlashStep>(), isEmpty);
+    });
+
+    test('un move de statut garde son message d’usage mais aucun impact', () {
+      final execution = executionFor(
+        move: const BattleMove(id: 'sweet_kiss', name: 'Doux Baiser', power: 0),
+        didHit: true,
+      );
+      final plan =
+          planForTimeline(<BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
+
+      expect(messagesOf(plan), contains('Pikachu utilise Doux Baiser !'));
+      expect(plan.flattenedSteps.whereType<PlaySeStep>(), isEmpty);
+      expect(plan.flattenedSteps.whereType<HudHpTweenStep>(), isEmpty);
+      expect(plan.flattenedSteps.whereType<CombatantFlashStep>(), isEmpty);
+    });
+
+    test('le self-hit de confusion parle sa langue, pas « utilise effect: »',
+        () {
+      final execution = BattleMoveExecution(
+        attackerSlot: BattleSlotRef.active(BattleSideId.enemy),
+        move: const BattleMove(
+          id: 'effect:confusion',
+          name: 'effect:confusion',
+          power: 40,
+        ),
+        targetKind: BattleMoveExecutionTargetKind.combatant,
+        targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+        damage: 8,
+        didHit: true,
+      );
+      final plan =
+          planForTimeline(<BattleTurnEvent>[BattleTurnExecutionEvent(execution)]);
+      final messages = messagesOf(plan);
+
+      expect(messages, contains('Il se blesse dans sa confusion.'));
+      expect(
+        messages.where((message) => message.contains('utilise')),
+        isEmpty,
+        reason: 'un proc d’effet n’est pas l’usage d’une attaque',
+      );
+      expect(plan.flattenedSteps.whereType<HudHpTweenStep>(), isNotEmpty,
+          reason: 'les dégâts du self-hit restent visibles sur la barre');
+    });
+
+    test('un statut appliqué se dit avec le nom et le texte de la référence',
+        () {
+      final plan = planForTimeline(<BattleTurnEvent>[
+        BattleTurnStatusEvent(
+          BattleStatusEvent.applied(
+            targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+            status: BattleMajorStatusId.psn,
+            sourceMoveId: 'poison_powder',
+          ),
+        ),
+      ]);
+
+      expect(messagesOf(plan), contains('Machoc est empoisonné !'));
+    });
+
+    test('la confusion a ses trois temps : appliquée, active, terminée', () {
+      final actorSlot = BattleSlotRef.active(BattleSideId.enemy);
+      final plan = planForTimeline(<BattleTurnEvent>[
+        BattleTurnVolatileEvent(
+          BattleVolatileEvent.confusionApplied(actorSlot: actorSlot),
+        ),
+        BattleTurnVolatileEvent(
+          BattleVolatileEvent.confusionActive(actorSlot: actorSlot),
+        ),
+        BattleTurnVolatileEvent(
+          BattleVolatileEvent.confusionEnded(actorSlot: actorSlot),
+        ),
+      ]);
+      final messages = messagesOf(plan);
+
+      expect(messages, contains('Ça rend Machoc confus !'));
+      expect(messages, contains('Machoc est confus !'));
+      expect(messages, contains('Machoc n’est plus confus !'));
+    });
+
+    test('une fuite ratée se dit', () {
+      final plan = planForTimeline(<BattleTurnEvent>[
+        const BattleTurnFleeFailedEvent(side: BattleSideId.player),
+      ]);
+
+      expect(messagesOf(plan), contains('Vous n’avez pas réussi à fuir.'));
+    });
+
+    test('une fuite réussie joue le son de la référence avec son annonce', () {
+      final before = sessionFor();
+      final after = before.applyChoice(const PlayerBattleChoiceRun());
+      final plan = BattleTurnAnimationPlanner(speciesDisplayName: displayName)
+          .build(
+        previousSession: before,
+        newSession: after,
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+      final fleeIndex = plan.steps.indexWhere(
+        (step) => step is PlaySeStep && step.seName == 'flee',
+      );
+      final messageIndex = plan.steps.indexWhere(
+        (step) =>
+            step is ShowMessageStep && step.message == 'Tu as pris la fuite !',
+      );
+
+      expect(fleeIndex, greaterThan(-1));
+      final fleeStep = plan.steps[fleeIndex] as PlaySeStep;
+      expect(fleeStep.volume, 80);
+      expect(fleeStep.pitch, 70);
+      expect(messageIndex, greaterThan(fleeIndex));
+    });
+  });
 }
 
 String _rawSpecies(String speciesId) => speciesId;

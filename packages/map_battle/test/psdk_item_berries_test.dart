@@ -277,13 +277,16 @@ void main() {
       expect(player.heldItemId, isNull);
       expect(player.consumedItemId, 'lum_berry');
       expect(_itemEventsFromSecondary(result).single.itemId, 'lum_berry');
-      expect(
-        _effectEventsFromSecondary(result)
-            .where((event) => event.effectId == PsdkBattleEffectIds.confusion)
-            .single
-            .reason,
-        'confuse_ray',
-      );
+      // Recette du 2026-08-24 : l'application de la confusion s'annonce
+      // désormais dans la timeline — les deux temps sont visibles, la pose
+      // puis le retrait immédiat par la baie.
+      final confusionEvents = _effectEventsFromSecondary(result)
+          .where((event) => event.effectId == PsdkBattleEffectIds.confusion)
+          .toList();
+      expect(confusionEvents, hasLength(2));
+      expect(confusionEvents.first.action, 'added');
+      expect(confusionEvents.last.action, 'removed');
+      expect(confusionEvents.last.reason, 'confuse_ray');
     });
 
     test('Lum Berry cures a major status and existing confusion together', () {

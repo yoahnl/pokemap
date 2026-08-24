@@ -172,11 +172,71 @@ final class RuntimePsdkBattleSessionAdapter {
     final executions = <BattleMoveExecution>[];
     final bagHpHealItemEvents = <BattleBagHpHealItemEvent>[];
     final captureAttemptEvents = <BattleCaptureAttemptEvent>[];
+    // Recette du 2026-08-24 : un move qui produit un dégât, un raté ou une
+    // immunité porte déjà son message d'usage via l'exécution traduite. Seule
+    // une déclaration qui ne débouche sur AUCUN de ces trois événements — un
+    // move de statut comme Doux Baiser — doit être traduite elle-même, sinon
+    // le joueur ne voit rien du tout.
+    final coveredMoveUses = <String>{};
+    for (final event in result.timeline.events) {
+      if (event is BattleDamageTimelineEvent) {
+        coveredMoveUses.add(_moveUseKey(event.user, event.moveId));
+      } else if (event is BattleMoveMissedTimelineEvent) {
+        coveredMoveUses.add(_moveUseKey(event.user, event.moveId));
+      } else if (event is BattleMoveImmuneTimelineEvent) {
+        coveredMoveUses.add(_moveUseKey(event.user, event.moveId));
+      }
+    }
     for (final event in result.timeline.events) {
       if (event is BattleDamageTimelineEvent) {
         final execution = _toLegacyDamageExecution(event);
         executions.add(execution);
         timeline.add(BattleTurnExecutionEvent(execution));
+      } else if (event is BattleMoveMissedTimelineEvent) {
+        final execution = _toLegacyMissedExecution(event);
+        executions.add(execution);
+        timeline.add(BattleTurnExecutionEvent(execution));
+      } else if (event is BattleMoveImmuneTimelineEvent) {
+        final execution = _toLegacyImmuneExecution(event);
+        executions.add(execution);
+        timeline.add(BattleTurnExecutionEvent(execution));
+      } else if (event is BattleMoveDeclaredTimelineEvent &&
+          event.targets.isNotEmpty &&
+          !coveredMoveUses.contains(_moveUseKey(event.user, event.moveId))) {
+        final execution = _toLegacyStatusMoveExecution(event);
+        executions.add(execution);
+        timeline.add(BattleTurnExecutionEvent(execution));
+      } else if (event is BattleStatusChangeTimelineEvent) {
+        timeline.add(
+          BattleTurnStatusEvent(
+            BattleStatusEvent.applied(
+              targetSlot:
+                  BattleSlotRef.active(_legacySideForPosition(event.target)),
+              status: _legacyMajorStatusId(event.status),
+              sourceMoveId: event.moveId,
+            ),
+          ),
+        );
+      } else if (event is BattleEffectTimelineEvent &&
+          event.effectId == 'confusion') {
+        final actorSlot =
+            BattleSlotRef.active(_legacySideForPosition(event.target));
+        final volatileEvent = switch (event.kind) {
+          'effect_added' =>
+            BattleVolatileEvent.confusionApplied(actorSlot: actorSlot),
+          'effect_ticked' =>
+            BattleVolatileEvent.confusionActive(actorSlot: actorSlot),
+          'effect_removed' =>
+            BattleVolatileEvent.confusionEnded(actorSlot: actorSlot),
+          _ => null,
+        };
+        if (volatileEvent != null) {
+          timeline.add(BattleTurnVolatileEvent(volatileEvent));
+        }
+      } else if (event is BattleFleeAttemptTimelineEvent &&
+          !event.succeeded &&
+          _samePosition(event.actor, psdkPlayerSlot)) {
+        timeline.add(const BattleTurnFleeFailedEvent(side: BattleSideId.player));
       } else if (event is BattleHealTimelineEvent &&
           event.moveId?.startsWith('item:') == true) {
         final itemEvent = _toLegacyBagHpHealItemEvent(
@@ -234,6 +294,72 @@ final class RuntimePsdkBattleSessionAdapter {
       }
     }
     return const BattleActionNone();
+  }
+
+  String _moveUseKey(BattlePositionRef user, String moveId) {
+    return '${user.bank}:${user.position}:$moveId';
+  }
+
+  BattleMoveExecution _toLegacyMissedExecution(
+      BattleMoveMissedTimelineEvent event) {
+    return BattleMoveExecution(
+      attackerSlot: BattleSlotRef.active(_legacySideForPosition(event.user)),
+      move: _legacyMoveForTimelineMove(
+        user: event.user,
+        moveId: event.moveId,
+        moveName: event.moveId,
+      ),
+      targetKind: BattleMoveExecutionTargetKind.combatant,
+      targetSlot: BattleSlotRef.active(_legacySideForPosition(event.target)),
+      damage: 0,
+      didHit: false,
+    );
+  }
+
+  BattleMoveExecution _toLegacyImmuneExecution(
+      BattleMoveImmuneTimelineEvent event) {
+    return BattleMoveExecution(
+      attackerSlot: BattleSlotRef.active(_legacySideForPosition(event.user)),
+      move: _legacyMoveForTimelineMove(
+        user: event.user,
+        moveId: event.moveId,
+        moveName: event.moveId,
+      ),
+      targetKind: BattleMoveExecutionTargetKind.combatant,
+      targetSlot: BattleSlotRef.active(_legacySideForPosition(event.target)),
+      damage: 0,
+      didHit: true,
+      typeEffectivenessMultiplier: 0.0,
+    );
+  }
+
+  BattleMoveExecution _toLegacyStatusMoveExecution(
+      BattleMoveDeclaredTimelineEvent event) {
+    return BattleMoveExecution(
+      attackerSlot: BattleSlotRef.active(_legacySideForPosition(event.user)),
+      move: _legacyMoveForTimelineMove(
+        user: event.user,
+        moveId: event.moveId,
+        moveName: event.moveName,
+      ),
+      targetKind: BattleMoveExecutionTargetKind.combatant,
+      targetSlot: BattleSlotRef.active(
+        _legacySideForPosition(event.targets.first),
+      ),
+      damage: 0,
+      didHit: true,
+    );
+  }
+
+  BattleMajorStatusId _legacyMajorStatusId(PsdkBattleMajorStatus status) {
+    return switch (status) {
+      PsdkBattleMajorStatus.paralysis => BattleMajorStatusId.par,
+      PsdkBattleMajorStatus.burn => BattleMajorStatusId.brn,
+      PsdkBattleMajorStatus.poison => BattleMajorStatusId.psn,
+      PsdkBattleMajorStatus.toxic => BattleMajorStatusId.tox,
+      PsdkBattleMajorStatus.sleep => BattleMajorStatusId.slp,
+      PsdkBattleMajorStatus.freeze => BattleMajorStatusId.frz,
+    };
   }
 
   BattleMoveExecution _toLegacyDamageExecution(

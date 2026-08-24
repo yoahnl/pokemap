@@ -144,6 +144,14 @@ final class BattleMoveSecondaryEffectResolver {
               ),
             ),
           );
+          events.add(
+            PsdkBattleEffectEvent.added(
+              turn: turn,
+              target: target,
+              effectId: PsdkBattleEffectIds.confusion,
+              remainingTurns: durationRoll.value + 1,
+            ),
+          );
           final postVolatile = nextState
               .battlerAt(target)
               .effects

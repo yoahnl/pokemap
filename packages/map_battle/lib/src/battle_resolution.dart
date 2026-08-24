@@ -207,6 +207,17 @@ final class BattleTurnCaptureAttemptEvent extends BattleTurnEvent {
   final BattleCaptureAttemptEvent event;
 }
 
+/// Tentative de fuite qui a échoué : le tour continue et le joueur doit
+/// savoir pourquoi l'adversaire attaque quand même.
+///
+/// Une fuite réussie n'a pas besoin d'événement : elle termine le combat et
+/// passe par l'issue `runaway`.
+final class BattleTurnFleeFailedEvent extends BattleTurnEvent {
+  const BattleTurnFleeFailedEvent({required this.side});
+
+  final BattleSideId side;
+}
+
 /// Observable legacy-engine capture attempt.
 final class BattleCaptureAttemptEvent {
   const BattleCaptureAttemptEvent({

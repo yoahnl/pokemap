@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../move/battle_move_prevention.dart';
@@ -62,6 +63,13 @@ final class ConfusionEffect extends BattleEffect {
         rng: context.rng,
         prevented: false,
         reason: BattleMoveFailureReason.unusableByUser,
+        events: <PsdkBattleEvent>[
+          PsdkBattleEffectEvent.removed(
+            turn: context.turn,
+            target: context.user,
+            effectId: id,
+          ),
+        ],
       );
     }
 
@@ -81,12 +89,20 @@ final class ConfusionEffect extends BattleEffect {
       ),
     );
 
+    final tickedEvent = PsdkBattleEffectEvent.ticked(
+      turn: context.turn,
+      target: context.user,
+      effectId: id,
+      remainingTurns: remainingConfusionTurns - 1,
+    );
+
     if (!roll.didOccur) {
       return BattleEffectUserMovePreventionResult(
         state: tickedState,
         rng: nextRng,
         prevented: false,
         reason: BattleMoveFailureReason.unusableByUser,
+        events: <PsdkBattleEvent>[tickedEvent],
       );
     }
 
@@ -111,7 +127,7 @@ final class ConfusionEffect extends BattleEffect {
       rng: damaged.rng,
       prevented: true,
       reason: BattleMoveFailureReason.unusableByUser,
-      events: damaged.events,
+      events: <PsdkBattleEvent>[tickedEvent, ...damaged.events],
     );
   }
 

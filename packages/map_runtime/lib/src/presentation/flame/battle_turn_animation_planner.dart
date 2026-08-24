@@ -116,49 +116,97 @@ final class BattleTurnAnimationPlanner {
     for (final event in turnResult.timeline) {
       switch (event) {
         case BattleTurnExecutionEvent(:final execution):
-          steps.add(
-            ShowMessageStep(
-              message:
-                  '${_presentationCombatantName(execution.attackerSide, trackedDisplayName)} utilise ${moveDisplayName(execution.move.id, execution.move.name)} !',
-            ),
-          );
-          final resolvedMove = resolver.resolve(execution.move);
-          final recipeSteps = _recipeLibrary
-              .build(
-                resolvedMove.recipeId,
-                BattleMoveVisualRecipeContext(
-                  resolvedMove: resolvedMove,
-                  battleMove: execution.move,
-                  execution: execution,
-                  attackerSide: execution.attackerSide,
-                  targetSide: execution.targetSide,
-                  damage: execution.damage,
-                  didHit: execution.didHit,
-                  didCrit: execution.didCrit,
+          // Recette du 2026-08-24 : un dégât `effect:*` n'est pas l'usage
+          // d'une attaque — « X utilise effect:confusion ! » mentait au
+          // joueur. La confusion a son texte de parité ; les autres procs
+          // d'effet laissent parler la barre de PV plutôt que d'inventer un
+          // faux message d'usage.
+          final isEffectProc = execution.move.id.startsWith('effect:');
+          if (isEffectProc) {
+            if (execution.move.id == 'effect:confusion') {
+              steps.add(
+                const ShowMessageStep(
+                  message: 'Il se blesse dans sa confusion.',
                 ),
-              )
-              .toList();
-          // BETA-BAT-013 : le clignotement de la cible est une réaction au
-          // DÉGÂT, pas une étape de la chorégraphie du coup. Chez PSDK il vit
-          // dans `show_hp_animations`, pilote par le gestionnaire de dégâts, et
-          // part sur la même frame que la barre de PV.
-          //
-          // La recette garde le droit de déclarer QUE la cible clignote ; c'est
-          // le planner qui décide QUAND, parce que lui seul connaît le dégât.
-          // L'alternative aurait été de retirer l'étape des 112 recettes qui
-          // l'émettent, pour le même résultat et un diff sans rapport avec le
-          // sujet.
-          final targetSideForFlash = execution.targetSide;
-          if (targetSideForFlash != null) {
-            recipeSteps.removeWhere(
-              (step) =>
-                  step is CombatantFlashStep && step.side == targetSideForFlash,
+              );
+            }
+          } else {
+            steps.add(
+              ShowMessageStep(
+                message:
+                    '${_presentationCombatantName(execution.attackerSide, trackedDisplayName)} utilise ${moveDisplayName(execution.move.id, execution.move.name)} !',
+              ),
             );
+            final resolvedMove = resolver.resolve(execution.move);
+            final recipeSteps = _recipeLibrary
+                .build(
+                  resolvedMove.recipeId,
+                  BattleMoveVisualRecipeContext(
+                    resolvedMove: resolvedMove,
+                    battleMove: execution.move,
+                    execution: execution,
+                    attackerSide: execution.attackerSide,
+                    targetSide: execution.targetSide,
+                    damage: execution.damage,
+                    didHit: execution.didHit,
+                    didCrit: execution.didCrit,
+                  ),
+                )
+                .toList();
+            // BETA-BAT-013 : le clignotement de la cible est une réaction au
+            // DÉGÂT, pas une étape de la chorégraphie du coup. Chez PSDK il
+            // vit dans `show_hp_animations`, pilote par le gestionnaire de
+            // dégâts, et part sur la même frame que la barre de PV.
+            //
+            // La recette garde le droit de déclarer QUE la cible clignote ;
+            // c'est le planner qui décide QUAND, parce que lui seul connaît le
+            // dégât. L'alternative aurait été de retirer l'étape des 112
+            // recettes qui l'émettent, pour le même résultat et un diff sans
+            // rapport avec le sujet.
+            final targetSideForFlash = execution.targetSide;
+            if (targetSideForFlash != null) {
+              recipeSteps.removeWhere(
+                (step) =>
+                    step is CombatantFlashStep &&
+                    step.side == targetSideForFlash,
+              );
+            }
+            steps.addAll(recipeSteps);
           }
-          steps.addAll(recipeSteps);
-          if (execution.didHit &&
+          // Recette du 2026-08-24 : une attaque qui rate se dit — la
+          // référence affiche « [cible] évite l'attaque ! » et ne joue ni
+          // impact ni barre.
+          if (!execution.didHit &&
               execution.targetKind == BattleMoveExecutionTargetKind.combatant &&
               execution.targetSide != null) {
+            steps.add(
+              ShowMessageStep(
+                message:
+                    '${_presentationCombatantName(execution.targetSide!, trackedDisplayName)} évite l’attaque !',
+              ),
+            );
+          }
+          if (execution.didHit &&
+              execution.targetKind == BattleMoveExecutionTargetKind.combatant &&
+              execution.targetSide != null &&
+              execution.typeEffectivenessMultiplier == 0.0) {
+            // Recette du 2026-08-24 : une immunité se dit aussi — « Ça
+            // n'affecte pas X… », sans son d'impact, sans clignotement et
+            // sans barre : le coup n'a rien touché.
+            steps.add(
+              ShowMessageStep(
+                message:
+                    'Ça n’affecte pas ${_presentationCombatantName(execution.targetSide!, trackedDisplayName)}…',
+              ),
+            );
+          } else if (execution.didHit &&
+              execution.targetKind == BattleMoveExecutionTargetKind.combatant &&
+              execution.targetSide != null &&
+              // Un move de statut (puissance nulle, aucun dégât) ne joue pas
+              // le bloc d'impact : la référence n'a ni son de coup ni
+              // clignotement pour Doux Baiser. Un move OFFENSIF encaissé à 0
+              // dégât garde son clignotement d'une seconde (BETA-BAT-013).
+              (execution.damage > 0 || execution.move.power > 0)) {
             final targetSide = execution.targetSide!;
             final hpFrom = trackedHp[targetSide] ?? 0;
             final hpTo = (hpFrom - execution.damage).clamp(0, hpFrom);
@@ -301,9 +349,17 @@ final class BattleTurnAnimationPlanner {
             ),
           );
         case BattleTurnStatusEvent(:final event):
-          steps.add(ShowMessageStep(message: _messageForStatusEvent(event)));
+          steps.add(
+            ShowMessageStep(
+              message: _messageForStatusEvent(event, trackedDisplayName),
+            ),
+          );
         case BattleTurnVolatileEvent(:final event):
-          steps.add(ShowMessageStep(message: _messageForVolatileEvent(event)));
+          steps.add(
+            ShowMessageStep(
+              message: _messageForVolatileEvent(event, trackedDisplayName),
+            ),
+          );
           switch (event.kind) {
             case BattleVolatileEventKind.protectActivated:
               steps.add(
@@ -569,6 +625,14 @@ final class BattleTurnAnimationPlanner {
               ),
             );
           }
+        case BattleTurnFleeFailedEvent():
+          // Recette du 2026-08-24 : sans ce texte, l'adversaire attaquait
+          // après une fuite ratée sans que le joueur sache pourquoi.
+          steps.add(
+            const ShowMessageStep(
+              message: 'Vous n’avez pas réussi à fuir.',
+            ),
+          );
       }
     }
 
@@ -640,15 +704,21 @@ List<BattleAnimationStep> _buildOutcomeSteps(
     BattleOutcomeType.captured =>
       '${speciesDisplayName(outcome.finalState.enemy.speciesId)} est capturé !',
   };
-  return <BattleAnimationStep>[ShowMessageStep(message: message)];
+  return <BattleAnimationStep>[
+    // Recette du 2026-08-24 : la fuite a son propre son chez la référence —
+    // `escape` (fleee.wav), volume 80, pitch 70 — joué avec l'annonce.
+    if (outcome.type == BattleOutcomeType.runaway)
+      const PlaySeStep(seName: 'flee', volume: 80, pitch: 70),
+    ShowMessageStep(message: message),
+  ];
 }
 
 /// Le message d'efficacité de type, ou `null` quand il n'y a rien à dire.
 ///
 /// La référence ne parle que des cas où le multiplicateur s'écarte de 1 : une
 /// efficacité neutre ne produit AUCUN message. Une immunité n'en produit pas
-/// non plus ici, parce qu'un coup immunisé n'infligeait aucun dégât et
-/// n'atteint donc jamais ce point.
+/// non plus ici : elle prend sa branche dédiée « Ça n'affecte pas X… » en
+/// amont et le bloc d'impact ne joue jamais à multiplicateur nul.
 /// Le son du coup selon l'efficacité, comme la référence le choisit :
 /// `hit` pour un coup neutre, `hitplus` quand ça porte, `hitlow` quand ça
 /// glisse. La référence n'a AUCUN son de coup critique — le critique est un
@@ -706,34 +776,57 @@ String _presentationCombatantName(
   return displayNameBySide[side] ?? _presentationCombatantLabel(side);
 }
 
-String _messageForStatusEvent(BattleStatusEvent event) {
+String _messageForStatusEvent(
+  BattleStatusEvent event,
+  Map<BattleSideId, String> displayNameBySide,
+) {
+  final target = _presentationCombatantName(event.targetSide, displayNameBySide);
   return switch (event.kind) {
-    BattleStatusEventKind.applied =>
-      '${_presentationCombatantLabel(event.targetSide)} subit ${event.status.name.toUpperCase()} !',
+    // Recette du 2026-08-24 : les textes d'application suivent la référence
+    // (« [X] est empoisonné ! »), avec le nom affichable du Pokémon plutôt
+    // qu'un « Joueur subit PSN ! » technique.
+    BattleStatusEventKind.applied => switch (event.status) {
+        BattleMajorStatusId.par =>
+          '$target est paralysé ! Il aura du mal à attaquer !',
+        BattleMajorStatusId.brn => '$target est brûlé !',
+        BattleMajorStatusId.psn => '$target est empoisonné !',
+        BattleMajorStatusId.tox => '$target est gravement empoisonné !',
+        BattleMajorStatusId.slp => '$target s’est endormi !',
+        BattleMajorStatusId.frz => '$target est gelé !',
+      },
     BattleStatusEventKind.blockedExistingMajorStatus =>
-      '${_presentationCombatantLabel(event.targetSide)} a déjà un statut majeur.',
-    BattleStatusEventKind.preventedAction =>
-      '${_presentationCombatantLabel(event.targetSide)} ne peut pas agir !',
-    BattleStatusEventKind.residualDamage =>
-      '${_presentationCombatantLabel(event.targetSide)} subit des dégâts de ${event.status.name.toUpperCase()} !',
+      '$target a déjà un statut majeur.',
+    BattleStatusEventKind.preventedAction => '$target ne peut pas agir !',
+    BattleStatusEventKind.residualDamage => switch (event.status) {
+        BattleMajorStatusId.brn => '$target souffre de sa brûlure !',
+        BattleMajorStatusId.psn ||
+        BattleMajorStatusId.tox =>
+          '$target souffre du poison !',
+        _ => '$target subit des dégâts !',
+      },
   };
 }
 
-String _messageForVolatileEvent(BattleVolatileEvent event) {
+String _messageForVolatileEvent(
+  BattleVolatileEvent event,
+  Map<BattleSideId, String> displayNameBySide,
+) {
+  final actor = _presentationCombatantName(event.actorSide, displayNameBySide);
   return switch (event.kind) {
-    BattleVolatileEventKind.protectActivated =>
-      '${_presentationCombatantLabel(event.actorSide)} se protège !',
+    BattleVolatileEventKind.protectActivated => '$actor se protège !',
     BattleVolatileEventKind.protectBlocked =>
       'L’attaque est bloquée par Protect !',
     BattleVolatileEventKind.protectBroken => 'La protection est brisée !',
-    BattleVolatileEventKind.rechargeRequired =>
-      '${_presentationCombatantLabel(event.actorSide)} doit se recharger !',
+    BattleVolatileEventKind.rechargeRequired => '$actor doit se recharger !',
     BattleVolatileEventKind.rechargeTurnSpent =>
-      '${_presentationCombatantLabel(event.actorSide)} récupère son souffle.',
-    BattleVolatileEventKind.chargeStarted =>
-      '${_presentationCombatantLabel(event.actorSide)} se charge !',
-    BattleVolatileEventKind.chargeReleased =>
-      '${_presentationCombatantLabel(event.actorSide)} libère son attaque !',
+      '$actor récupère son souffle.',
+    BattleVolatileEventKind.chargeStarted => '$actor se charge !',
+    BattleVolatileEventKind.chargeReleased => '$actor libère son attaque !',
+    // Recette du 2026-08-24 : les trois temps de la confusion, aux textes de
+    // la référence.
+    BattleVolatileEventKind.confusionApplied => 'Ça rend $actor confus !',
+    BattleVolatileEventKind.confusionActive => '$actor est confus !',
+    BattleVolatileEventKind.confusionEnded => '$actor n’est plus confus !',
   };
 }
 

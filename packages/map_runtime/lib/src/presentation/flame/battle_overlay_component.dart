@@ -140,6 +140,8 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
         lines.add(_formatOverlaySpikesEvent(event));
       case BattleTurnSwitchEvent(:final event):
         lines.add(_formatOverlaySwitchEvent(event));
+      case BattleTurnFleeFailedEvent(:final side):
+        lines.add('${_overlayCombatantLabelForSide(side)} échoue à fuir');
     }
   }
 
@@ -354,6 +356,9 @@ String _formatOverlayVolatileEvent(BattleVolatileEvent event) {
       '$actor commence à charger ${event.sourceMoveId ?? 'son attaque'}',
     BattleVolatileEventKind.chargeReleased =>
       '$actor libère ${event.sourceMoveId ?? 'son attaque chargée'}',
+    BattleVolatileEventKind.confusionApplied => '$actor devient confus',
+    BattleVolatileEventKind.confusionActive => '$actor est confus',
+    BattleVolatileEventKind.confusionEnded => '$actor n’est plus confus',
   };
 }
 
@@ -1065,10 +1070,17 @@ class BattleOverlayComponent extends PositionComponent {
   /// Les noms de sons que ce combat peut jouer — BETA-BAT-018.
   ///
   /// Les sons système du tour (impact selon l'efficacité, K.O.), le jingle
-  /// de niveau, et les timings sonores des animations des capacités des
-  /// deux camps. L'hôte les donne à préchauffer à son lecteur.
+  /// de niveau, la fuite, et les timings sonores des animations des capacités
+  /// des deux camps. L'hôte les donne à préchauffer à son lecteur.
   Future<Set<String>> collectBattleSeNames() async {
-    final seNames = <String>{'hit', 'hitplus', 'hitlow', 'down', 'level_up'};
+    final seNames = <String>{
+      'hit',
+      'hitplus',
+      'hitlow',
+      'down',
+      'level_up',
+      'flee',
+    };
     try {
       await BattleSdkRmxpAnimationCatalog.ensureLoaded();
     } on Object catch (error) {
