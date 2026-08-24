@@ -1,5 +1,5 @@
+import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/services/showdown_move_catalog_converter.dart';
-import 'package:test/test.dart';
 
 void main() {
   const converter = ShowdownMoveCatalogConverter();

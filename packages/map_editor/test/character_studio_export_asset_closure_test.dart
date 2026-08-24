@@ -5,8 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/character_studio/application/character_studio_media_resolver.dart';
-import 'package:map_editor/src/features/game_export/application/game_package_export_profile.dart';
-import 'package:map_editor/src/features/game_export/application/runtime_project_projection_builder.dart';
 import 'package:path/path.dart' as p;
 
 void main() {

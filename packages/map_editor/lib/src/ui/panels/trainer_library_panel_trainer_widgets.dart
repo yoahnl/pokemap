@@ -842,9 +842,7 @@ class _TrainerEditorCard extends StatelessWidget {
                                         end: Alignment.bottomRight,
                                       ),
                                     ),
-                                    child:
-                                        battleSpriteExists &&
-                                            battleSpriteFile != null
+                                    child: battleSpriteExists
                                         ? ClipRRect(
                                             borderRadius: BorderRadius.circular(
                                               12,

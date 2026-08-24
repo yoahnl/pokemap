@@ -1,6 +1,6 @@
+import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/seeds/pokemon_move_localized_names.dart';
 import 'package:map_editor/src/application/services/pokemon_move_local_id.dart';
-import 'package:test/test.dart';
 
 void main() {
   group('pokemonMoveLocalizedNames', () {

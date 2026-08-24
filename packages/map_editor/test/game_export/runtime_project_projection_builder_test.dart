@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/game_export.dart';
-import 'package:map_editor/src/features/game_export/application/runtime_project_projection_file_reader.dart';
 import 'package:path/path.dart' as p;
 
 import 'game_export_test_fixture.dart';

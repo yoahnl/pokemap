@@ -6,7 +6,6 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
-import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/application/use_cases/update_pokedex_species_evolution_use_case.dart';
