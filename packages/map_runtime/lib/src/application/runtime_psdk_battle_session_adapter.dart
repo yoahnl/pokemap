@@ -233,6 +233,21 @@ final class RuntimePsdkBattleSessionAdapter {
         if (volatileEvent != null) {
           timeline.add(BattleTurnVolatileEvent(volatileEvent));
         }
+      } else if (event is BattleStatStageChangeTimelineEvent) {
+        // BETA-BAT-021 : le moteur résolvait déjà les changements d'étages,
+        // mais rien ne les portait jusqu'à la présentation — l'aura et le
+        // message de la référence n'avaient aucune source.
+        final stat = _legacyStatId(event.stat);
+        if (stat != null) {
+          timeline.add(
+            BattleTurnStatStageEvent(
+              side: _legacySideForPosition(event.target),
+              stat: stat,
+              amount: event.amount,
+              currentStage: event.currentStage,
+            ),
+          );
+        }
       } else if (event is BattleFleeAttemptTimelineEvent &&
           !event.succeeded &&
           _samePosition(event.actor, psdkPlayerSlot)) {
@@ -349,6 +364,28 @@ final class RuntimePsdkBattleSessionAdapter {
       damage: 0,
       didHit: true,
     );
+  }
+
+  /// La stat legacy correspondante, ou null pour une stat que le contrat de
+  /// présentation ne porte pas (précision et esquive n'ont pas d'étage
+  /// affichable côté legacy) — BETA-BAT-021.
+  ///
+  /// PIÈGE DE VOCABULAIRE, suivi sur la table de `_normalizeStat` du domaine
+  /// PSDK : dans les scripts de la référence, **`spd` désigne la VITESSE** et
+  /// `dfs` la Défense Spéciale. Les intervertir échangerait silencieusement
+  /// deux auras et deux messages.
+  BattleStatId? _legacyStatId(String stat) {
+    final normalized =
+        stat.trim().replaceAll(RegExp(r'[\s_-]'), '').toLowerCase();
+    return switch (normalized) {
+      'atk' || 'attack' => BattleStatId.attack,
+      'def' || 'dfe' || 'defense' => BattleStatId.defense,
+      'ats' || 'spa' || 'spatk' || 'specialattack' =>
+        BattleStatId.specialAttack,
+      'dfs' || 'spdef' || 'specialdefense' => BattleStatId.specialDefense,
+      'spd' || 'spe' || 'speed' => BattleStatId.speed,
+      _ => null,
+    };
   }
 
   BattleMajorStatusId _legacyMajorStatusId(PsdkBattleMajorStatus status) {

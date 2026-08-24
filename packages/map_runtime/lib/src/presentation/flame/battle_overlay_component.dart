@@ -30,6 +30,8 @@ import 'battle_fx_bundle_cache.dart';
 import 'battle_fx_layer_component.dart';
 import 'battle_intro_animation_planner.dart';
 import 'battle_intro_trainer_component.dart';
+import 'battle_stat_aura_component.dart';
+import 'battle_stat_sheet_manifest.dart';
 import 'battle_medicine_target_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
@@ -144,6 +146,16 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
         lines.add(_formatOverlaySwitchEvent(event));
       case BattleTurnFleeFailedEvent(:final side):
         lines.add('${_overlayCombatantLabelForSide(side)} échoue à fuir');
+      case BattleTurnStatStageEvent():
+        final direction = event.amount == 0
+            ? 'ne change pas'
+            : event.amount > 0
+                ? 'monte de ${event.amount}'
+                : 'descend de ${event.amount.abs()}';
+        lines.add(
+          '${_overlayCombatantLabelForSide(event.side)} : '
+          '${event.stat.name} $direction',
+        );
     }
   }
 
@@ -901,6 +913,80 @@ class BattleOverlayComponent extends PositionComponent {
   /// vaut pour tous, l'id reste un point d'extension.
   static const String _introBallSheetName = 'ball_1';
 
+  /// Les planches d'aura de stats chargées pour ce combat — BETA-BAT-021.
+  /// Même contrat que les planches de Ball : chargement paresseux au premier
+  /// besoin, et une planche introuvable ne montre rien sans jamais casser.
+  final Map<String, ui.Image> _statSheetImages = <String, ui.Image>{};
+
+  @visibleForTesting
+  int get debugStatSheetCount => _statSheetImages.length;
+
+  Future<ui.Image?> _loadStatSheet(String sheetName) async {
+    final cached = _statSheetImages[sheetName];
+    if (cached != null) return cached;
+    final fileName = battleStatSheetManifest[sheetName];
+    if (fileName == null) return null;
+    ByteData? bytes;
+    try {
+      bytes = await rootBundle.load('packages/map_runtime/assets/battle/stats/'
+          '$fileName');
+    } on Object {
+      try {
+        bytes = await rootBundle.load('assets/battle/stats/$fileName');
+      } on Object catch (error) {
+        debugPrint('[battle] stat sheet unavailable ($sheetName): $error');
+        return null;
+      }
+    }
+    try {
+      final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      _statSheetImages[sheetName] = frame.image;
+      return frame.image;
+    } on Object catch (error) {
+      debugPrint('[battle] stat sheet undecodable ($sheetName): $error');
+      return null;
+    }
+  }
+
+  /// Parité `change_stat_animation` : le SE part avec l'aura, la planche est
+  /// parcourue en 1,5 s au-dessus de la cible. Sans planche, le SE joue seul
+  /// et la durée s'écoule — le message reste lisible.
+  void _handleStatStageAuraStep(StatStageAuraStep step) {
+    playSfx?.call(step.seName, volume: 100, pitch: 100);
+    final cached = _statSheetImages[step.sheetName];
+    if (cached != null) {
+      _mountStatAura(step: step, sheet: cached);
+      return;
+    }
+    unawaited(
+      _loadStatSheet(step.sheetName).then((sheet) {
+        //  et non  : un overlay chargé mais pas
+        // encore attaché à son jeu (harnais de test, montage différé) doit
+        // pouvoir monter son aura — seul un overlay RETIRÉ doit refuser.
+        if (sheet == null || isRemoved) return;
+        _mountStatAura(step: step, sheet: sheet);
+      }),
+    );
+  }
+
+  void _mountStatAura({
+    required StatStageAuraStep step,
+    required ui.Image sheet,
+  }) {
+    final layout = currentSceneLayout;
+    add(
+      BattleStatAuraComponent(
+        sheet: sheet,
+        targetSpriteRect: step.side == BattleSideId.player
+            ? layout.playerSpriteRect
+            : layout.enemySpriteRect,
+        durationSeconds: step.durationSeconds,
+        priority: (_combatantForSide(step.side)?.priority ?? 10) + 2,
+      ),
+    );
+  }
+
   Future<ui.Image?> _loadBallSheet(String sheetName) async {
     final cached = _ballSheetImages[sheetName];
     if (cached != null) return cached;
@@ -1243,6 +1329,9 @@ class BattleOverlayComponent extends PositionComponent {
       'ball_bounce',
       'ball_shake',
       'ball_verdict',
+      // BETA-BAT-021 : les sons d'aura de stats.
+      'stat_rise_up',
+      'stat_fall_down',
     };
     try {
       await BattleSdkRmxpAnimationCatalog.ensureLoaded();
@@ -1398,6 +1487,13 @@ class BattleOverlayComponent extends PositionComponent {
     // suffisait à ce qu'un hôte pressé pousse son premier tour avant la
     // création du runner — le plan tombait dans le vide (recette du
     // 2026-08-24, capture PSDK muette).
+    // BETA-BAT-021 : les deux planches d'aura (865 Ko chacune) se chargent au
+    // montage, jamais en pleine animation — décoder une image de cette taille
+    // pendant un tour gèlerait la scène, exactement ce que BAT-018 combat.
+    // Le chargement ne bloque pas onLoad : l'aura retombe sur son SE seul si
+    // la planche n'est pas prête.
+    unawaited(_loadStatSheet('stat_up'));
+    unawaited(_loadStatSheet('stat_down'));
     final ballSheetFuture = _loadBallSheet(_introBallSheetName);
     if (!introEnabled) {
       unawaited(ballSheetFuture);
@@ -1476,6 +1572,7 @@ class BattleOverlayComponent extends PositionComponent {
       onPlayBallSequence: _handleBallSequenceStep,
       onPlayBallCaptureSequence: _handleBallCaptureSequenceStep,
       onEnemyTrainerIntro: _handleEnemyTrainerIntroStep,
+      onStatStageAura: _handleStatStageAuraStep,
       onPlaySe: (step) => playSfx?.call(
         step.seName,
         volume: step.volume,

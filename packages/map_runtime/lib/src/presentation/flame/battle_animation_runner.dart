@@ -20,6 +20,7 @@ final class BattleAnimationRunner {
     this.onPlayBallSequence,
     this.onPlayBallCaptureSequence,
     this.onEnemyTrainerIntro,
+    this.onStatStageAura,
     this.onPlaySe,
     required this.onBarrierPulse,
     required this.onSwapCombatantVisual,
@@ -57,6 +58,7 @@ final class BattleAnimationRunner {
   final void Function(PlayBallCaptureSequenceStep step)?
       onPlayBallCaptureSequence;
   final void Function(EnemyTrainerIntroStep step)? onEnemyTrainerIntro;
+  final void Function(StatStageAuraStep step)? onStatStageAura;
 
   /// BETA-BAT-014 : un son du plan. Nul chez un hôte sans audio — les
   /// harnais de test et les hôtes silencieux gardent exactement l'ancien
@@ -243,6 +245,15 @@ final class BattleAnimationRunner {
         case EnemyTrainerIntroStep():
           _nextStepIndex += 1;
           onEnemyTrainerIntro?.call(step);
+          _phaseDuration = step.durationSeconds;
+          onPresentationChanged();
+          if (_phaseDuration <= 0) {
+            continue;
+          }
+          return;
+        case StatStageAuraStep():
+          _nextStepIndex += 1;
+          onStatStageAura?.call(step);
           _phaseDuration = step.durationSeconds;
           onPresentationChanged();
           if (_phaseDuration <= 0) {
@@ -606,6 +617,8 @@ final class BattleAnimationRunner {
         onPlayBallCaptureSequence?.call(step);
       case EnemyTrainerIntroStep():
         onEnemyTrainerIntro?.call(step);
+      case StatStageAuraStep():
+        onStatStageAura?.call(step);
       case AnimationGroupStep():
       case ShowMessageStep():
       case WaitStep():

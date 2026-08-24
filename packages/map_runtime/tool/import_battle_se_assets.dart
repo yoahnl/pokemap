@@ -99,6 +99,25 @@ void main(List<String> arguments) {
     source.copySync('${targetDirectory.path}/$fileName');
     manifest[entry.key] = fileName;
   }
+  // Les sons de changement de stats vivent dans un SOUS-DOSSIER de la
+  // référence (`audio/se/moves/`) — BETA-BAT-021. Config `statRiseUp` /
+  // `statFallDown` du sound_design_config du projet de test.
+  const moveSounds = <String, String>{
+    'stat_rise_up': 'stat_rise_up',
+    'stat_fall_down': 'stat_fall_down',
+  };
+  final moveSeRoot = Directory('${arguments.first}/audio/se/moves');
+  for (final entry in moveSounds.entries) {
+    final source =
+        moveSeRoot.existsSync() ? _resolve(moveSeRoot, entry.value) : null;
+    if (source == null) {
+      missing.add(entry.key);
+      continue;
+    }
+    final fileName = source.uri.pathSegments.last.toLowerCase();
+    source.copySync('${targetDirectory.path}/$fileName');
+    manifest[entry.key] = fileName;
+  }
   final meRoot = Directory('${arguments.first}/audio/me');
   for (final entry in musicEffects.entries) {
     final source = meRoot.existsSync() ? _resolve(meRoot, entry.value) : null;

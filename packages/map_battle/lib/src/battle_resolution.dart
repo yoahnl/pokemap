@@ -207,6 +207,33 @@ final class BattleTurnCaptureAttemptEvent extends BattleTurnEvent {
   final BattleCaptureAttemptEvent event;
 }
 
+/// Changement d'étage de stat réellement appliqué — BETA-BAT-021.
+///
+/// La recette du 2026-08-24 le demandait : « le pokémon du joueur a
+/// intimidation… il y a une animation pour montrer que son attaque est
+/// descendu ». Le moteur PSDK le résolvait déjà, mais aucun événement de
+/// restitution ne le portait jusqu'à la présentation.
+///
+/// Ce contrat reste petit : la cible, quelle stat, de combien d'étages, et
+/// l'étage atteint. Le blocage (« ne peut plus baisser ») est un `amount`
+/// nul, que la présentation sait dire.
+final class BattleTurnStatStageEvent extends BattleTurnEvent {
+  const BattleTurnStatStageEvent({
+    required this.side,
+    required this.stat,
+    required this.amount,
+    required this.currentStage,
+  });
+
+  final BattleSideId side;
+  final BattleStatId stat;
+
+  /// Le nombre d'étages RÉELLEMENT appliqués — négatif à la baisse, nul si
+  /// le changement a été refusé (plancher ou plafond atteint).
+  final int amount;
+  final int currentStage;
+}
+
 /// Tentative de fuite qui a échoué : le tour continue et le joueur doit
 /// savoir pourquoi l'adversaire attaque quand même.
 ///

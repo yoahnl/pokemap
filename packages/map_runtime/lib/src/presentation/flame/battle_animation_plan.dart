@@ -885,6 +885,34 @@ final class PlayBallCaptureSequenceStep extends BattleAnimationStep {
       2.8 + shakes * 1.0 + 0.5 + (caught ? 0.0 : 0.2);
 }
 
+/// L'aura de changement de stat — BETA-BAT-021.
+///
+/// Parité `UI::StatAnimation` + `change_stat_animation` : la planche 12×10 de
+/// la référence (`stat_up` ou `stat_down` selon le signe) est parcourue d'un
+/// bloc en 1,5 s, ancrée au bas du sprite de la cible, avec le SE
+/// correspondant (`statRiseUp` / `statFallDown`) au démarrage. Étape À DURÉE.
+///
+/// Un changement REFUSÉ (plancher ou plafond atteint, `amount` nul) ne joue
+/// aucune aura : la référence n'appelle `show_stat_animation` que sur un
+/// changement réellement appliqué. Le message, lui, se dit quand même.
+final class StatStageAuraStep extends BattleAnimationStep {
+  const StatStageAuraStep({
+    required this.side,
+    required this.isRise,
+    this.durationSeconds = 1.5,
+  });
+
+  final BattleSideId side;
+  final bool isRise;
+  final double durationSeconds;
+
+  /// La planche de la référence pour ce sens.
+  String get sheetName => isRise ? 'stat_up' : 'stat_down';
+
+  /// Le son de la référence pour ce sens.
+  String get seName => isRise ? 'stat_rise_up' : 'stat_fall_down';
+}
+
 /// Le dresseur adverse entre en scène, ou en sort en lançant sa Ball —
 /// BETA-BAT-027.
 ///

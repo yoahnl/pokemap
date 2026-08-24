@@ -625,6 +625,24 @@ final class BattleTurnAnimationPlanner {
               ),
             );
           }
+        case BattleTurnStatStageEvent():
+          // BETA-BAT-021 : le message se dit TOUJOURS (même un refus :
+          // « ne peut plus baisser ! »), l'aura ne joue que sur un
+          // changement réellement appliqué — la référence n'appelle
+          // `show_stat_animation` que dans ce cas.
+          if (event.amount != 0) {
+            steps.add(
+              StatStageAuraStep(
+                side: event.side,
+                isRise: event.amount > 0,
+              ),
+            );
+          }
+          steps.add(
+            ShowMessageStep(
+              message: _messageForStatStageEvent(event, trackedDisplayName),
+            ),
+          );
         case BattleTurnFleeFailedEvent():
           // Recette du 2026-08-24 : sans ce texte, l'adversaire attaquait
           // après une fuite ratée sans que le joueur sache pourquoi.
@@ -774,6 +792,40 @@ String _presentationCombatantName(
   Map<BattleSideId, String> displayNameBySide,
 ) {
   return displayNameBySide[side] ?? _presentationCombatantLabel(side);
+}
+
+/// Les textes de changement d'étage de la référence — BETA-BAT-021.
+///
+/// Parité Data/Text/Dialogs 100019 : le nom de la stat est genré en français
+/// (« L'Attaque … augmente ! », « La Défense … baisse ! »), et l'ampleur suit
+/// le nombre d'étages : 1 « augmente/baisse », 2 « beaucoup », 3 et plus
+/// « énormément ». Un changement refusé dit « ne peut plus … ».
+String _messageForStatStageEvent(
+  BattleTurnStatStageEvent event,
+  Map<BattleSideId, String> displayNameBySide,
+) {
+  final target = _presentationCombatantName(event.side, displayNameBySide);
+  final label = switch (event.stat) {
+    BattleStatId.attack => 'L’Attaque',
+    BattleStatId.defense => 'La Défense',
+    BattleStatId.specialAttack => 'L’Attaque Spéciale',
+    BattleStatId.specialDefense => 'La Défense Spéciale',
+    BattleStatId.speed => 'La Vitesse',
+  };
+  if (event.amount == 0) {
+    // Le sens du refus se lit sur l'étage atteint : au plafond on ne peut
+    // plus monter, au plancher on ne peut plus descendre.
+    return event.currentStage > 0
+        ? '$label de $target ne peut plus augmenter !'
+        : '$label de $target ne peut plus baisser !';
+  }
+  final magnitude = switch (event.amount.abs()) {
+    1 => '',
+    2 => ' beaucoup',
+    _ => ' énormément',
+  };
+  final verb = event.amount > 0 ? 'augmente' : 'baisse';
+  return '$label de $target $verb$magnitude !';
 }
 
 String _messageForStatusEvent(
