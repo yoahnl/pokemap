@@ -58,10 +58,7 @@ final List<int> _trainerLevelValues = List<int>.generate(
 );
 
 class TrainerLibraryPanel extends ConsumerStatefulWidget {
-  const TrainerLibraryPanel({
-    super.key,
-    this.embedded = false,
-  });
+  const TrainerLibraryPanel({super.key, this.embedded = false});
 
   final bool embedded;
 
@@ -88,6 +85,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   String? _newCharacterId;
   int? _newBattleDifficulty;
   String? _newBattleBackgroundRelativePath;
+  String? _newBattleSpriteRelativePath;
   String? _newRewardItemId;
   List<ProjectTrainerItemGrant> _newRewardItemGrants =
       const <ProjectTrainerItemGrant>[];
@@ -119,6 +117,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   String? _editCharacterId;
   int? _editBattleDifficulty;
   String? _editBattleBackgroundRelativePath;
+  String? _editBattleSpriteRelativePath;
   String? _editRewardItemId;
   List<ProjectTrainerItemGrant> _editRewardItemGrants =
       const <ProjectTrainerItemGrant>[];
@@ -144,10 +143,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _pokemonFormController = TextEditingController();
   final _pokemonGenderController = TextEditingController();
   late final List<TextEditingController> _pokemonMoveControllers =
-      List<TextEditingController>.generate(
-    4,
-    (_) => TextEditingController(),
-  );
+      List<TextEditingController>.generate(4, (_) => TextEditingController());
   bool _pokemonShiny = false;
   String? _pokemonValidationMessage;
 
@@ -379,9 +375,10 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     }
 
     final loader = ref.read(pokedexSpeciesDetailLoaderProvider);
-    final future = loader(workspace, speciesId)
-        .then<PokedexSpeciesDetail?>((detail) => detail)
-        .catchError((_) => null);
+    final future = loader(
+      workspace,
+      speciesId,
+    ).then<PokedexSpeciesDetail?>((detail) => detail).catchError((_) => null);
     _speciesDetailFutureCache[speciesId] = future;
     return future;
   }
@@ -400,6 +397,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       trainerClass: _newClassController.text,
       battleDifficulty: _newBattleDifficulty,
       battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
+      battleSpriteRelativePath: _newBattleSpriteRelativePath,
       portraitElementId: _newPortraitController.text,
       rewardMoney: _newRewardMoneyController.text,
       rewardBadgeId: _newRewardBadgeId,
@@ -422,6 +420,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       trainerClass: _newClassController.text,
       battleDifficulty: _newBattleDifficulty,
       battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
+      battleSpriteRelativePath: _newBattleSpriteRelativePath,
       characterId: _newCharacterId,
       portraitElementId: _newPortraitController.text,
       battleMusicPath: _newBattleMusicController.text,
@@ -450,7 +449,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     setState(() {
       _createTrainerValidationMessage =
           ref.read(editorNotifierProvider).errorMessage ??
-              'Failed to create trainer.';
+          'Failed to create trainer.';
     });
   }
 
@@ -465,12 +464,14 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       trainerClass: _editClassController.text,
       battleDifficulty: _editBattleDifficulty,
       battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
+      battleSpriteRelativePath: _editBattleSpriteRelativePath,
       portraitElementId: _editPortraitController.text,
       rewardMoney: _editRewardMoneyController.text,
       rewardBadgeId: _editRewardBadgeId,
       rewardFieldAbilityUnlock: _editRewardFieldAbilityUnlock,
-      rewardFlagIds:
-          _splitCommaSeparatedValues(_editRewardFlagsController.text),
+      rewardFlagIds: _splitCommaSeparatedValues(
+        _editRewardFlagsController.text,
+      ),
       templateKind: _editTemplateKind,
       preBattleDialogueId: _editPreBattleDialogueId,
       victoryDialogueId: _editVictoryDialogueId,
@@ -489,6 +490,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       trainerClass: _editClassController.text,
       battleDifficulty: _editBattleDifficulty,
       battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
+      battleSpriteRelativePath: _editBattleSpriteRelativePath,
       characterId: _editCharacterId,
       portraitElementId: _editPortraitController.text,
       battleMusicPath: _editBattleMusicController.text,
@@ -500,8 +502,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       defeatDialogueId: _editDefeatDialogueId,
       moneyReward: int.parse(_editRewardMoneyController.text.trim()),
       rewardItemGrants: _editRewardItemGrants,
-      rewardFlagIds:
-          _splitCommaSeparatedValues(_editRewardFlagsController.text),
+      rewardFlagIds: _splitCommaSeparatedValues(
+        _editRewardFlagsController.text,
+      ),
       rewardBadgeId: _editRewardBadgeId,
       rewardFieldAbilityUnlock: _editRewardFieldAbilityUnlock,
       tags: _splitCommaSeparatedValues(_editTagsController.text),
@@ -518,7 +521,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     setState(() {
       _editTrainerValidationMessage =
           ref.read(editorNotifierProvider).errorMessage ??
-              'Failed to update trainer.';
+          'Failed to update trainer.';
     });
   }
 
@@ -546,6 +549,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     required String trainerClass,
     required int? battleDifficulty,
     required String? battleBackgroundRelativePath,
+    required String? battleSpriteRelativePath,
     required String portraitElementId,
     required String rewardMoney,
     required String? rewardBadgeId,
@@ -617,17 +621,34 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
         break;
     }
 
-    final normalizedBattleBackgroundPath =
-        _normalizeOptionalField(battleBackgroundRelativePath ?? '');
+    final normalizedBattleBackgroundPath = _normalizeOptionalField(
+      battleBackgroundRelativePath ?? '',
+    );
     if (normalizedBattleBackgroundPath != null) {
-      final normalizedPath =
-          normalizedBattleBackgroundPath.replaceAll(r'\', '/');
+      final normalizedPath = normalizedBattleBackgroundPath.replaceAll(
+        r'\',
+        '/',
+      );
       if (normalizedPath.startsWith('/') ||
           normalizedPath.startsWith('\\') ||
           normalizedPath.contains(':\\') ||
           normalizedPath.contains(':/') ||
           normalizedPath.contains('..')) {
         return 'Battle background image must stay inside the project as a relative path.';
+      }
+    }
+
+    final normalizedBattleSpritePath = _normalizeOptionalField(
+      battleSpriteRelativePath ?? '',
+    );
+    if (normalizedBattleSpritePath != null) {
+      final normalizedPath = normalizedBattleSpritePath.replaceAll(r'\', '/');
+      if (normalizedPath.startsWith('/') ||
+          normalizedPath.startsWith('\\') ||
+          normalizedPath.contains(':\\') ||
+          normalizedPath.contains(':/') ||
+          normalizedPath.contains('..')) {
+        return 'Battle sprite image must stay inside the project as a relative path.';
       }
     }
 
@@ -650,6 +671,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newCharacterId = null;
     _newBattleDifficulty = null;
     _newBattleBackgroundRelativePath = null;
+    _newBattleSpriteRelativePath = null;
     _newRewardItemId = null;
     _newRewardItemGrants = const <ProjectTrainerItemGrant>[];
     _newRewardBadgeId = null;
@@ -690,12 +712,16 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
           _newClassController.text = 'Champion d’Arène';
           _newBattleDifficulty = 7;
           _newTagsController.text = _mergeTrainerTags(
-              _newTagsController.text, const ['gym', 'leader']);
+            _newTagsController.text,
+            const ['gym', 'leader'],
+          );
         case ProjectTrainerTemplateKind.rival:
           _newClassController.text = 'Rival';
           _newBattleDifficulty = 8;
           _newTagsController.text = _mergeTrainerTags(
-              _newTagsController.text, const ['rival', 'story']);
+            _newTagsController.text,
+            const ['rival', 'story'],
+          );
         case null:
           break;
       }
@@ -711,12 +737,16 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
           _editClassController.text = 'Champion d’Arène';
           _editBattleDifficulty ??= 7;
           _editTagsController.text = _mergeTrainerTags(
-              _editTagsController.text, const ['gym', 'leader']);
+            _editTagsController.text,
+            const ['gym', 'leader'],
+          );
         case ProjectTrainerTemplateKind.rival:
           _editClassController.text = 'Rival';
           _editBattleDifficulty ??= 8;
           _editTagsController.text = _mergeTrainerTags(
-              _editTagsController.text, const ['rival', 'story']);
+            _editTagsController.text,
+            const ['rival', 'story'],
+          );
         case null:
           break;
       }
@@ -852,8 +882,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
 
   void _addEditRewardItem() {
     final itemId = _editRewardItemId;
-    final quantity =
-        int.tryParse(_editRewardItemQuantityController.text.trim());
+    final quantity = int.tryParse(
+      _editRewardItemQuantityController.text.trim(),
+    );
     if (itemId == null || itemId.isEmpty) {
       setState(() {
         _editTrainerValidationMessage = 'Sélectionnez un objet de récompense.';
@@ -967,6 +998,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _editCharacterId = trainer.characterId;
       _editBattleDifficulty = trainer.battleDifficulty;
       _editBattleBackgroundRelativePath = trainer.battleBackgroundRelativePath;
+      _editBattleSpriteRelativePath = trainer.battleSpriteRelativePath;
       _editRewardItemId = null;
       _editRewardItemGrants = trainer.rewardItemGrants;
       _editRewardBadgeId = trainer.rewardBadgeId;
@@ -1028,15 +1060,11 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   }
 
   Future<void> _pickCreateBattleBackground() async {
-    await _pickBattleBackgroundImage(
-      createMode: true,
-    );
+    await _pickBattleBackgroundImage(createMode: true);
   }
 
   Future<void> _pickEditBattleBackground() async {
-    await _pickBattleBackgroundImage(
-      createMode: false,
-    );
+    await _pickBattleBackgroundImage(createMode: false);
   }
 
   void _clearCreateBattleBackground() {
@@ -1053,11 +1081,89 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     });
   }
 
-  Future<void> _pickBattleBackgroundImage({
-    required bool createMode,
-  }) async {
-    final projectRootPath =
-        ref.read(editorNotifierProvider).projectRootPath?.trim();
+  Future<void> _pickCreateBattleSprite() async {
+    await _pickBattleSpriteImage(createMode: true);
+  }
+
+  Future<void> _pickEditBattleSprite() async {
+    await _pickBattleSpriteImage(createMode: false);
+  }
+
+  void _clearCreateBattleSprite() {
+    setState(() {
+      _newBattleSpriteRelativePath = null;
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _clearEditBattleSprite() {
+    setState(() {
+      _editBattleSpriteRelativePath = null;
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  /// BETA-BAT-017 : le sprite de combat du dresseur vaincu suit exactement le
+  /// contrat du fond explicite — une image locale du projet, liée par chemin
+  /// relatif, et le runtime retombe sur le message seul si elle disparaît.
+  Future<void> _pickBattleSpriteImage({required bool createMode}) async {
+    final projectRootPath = ref
+        .read(editorNotifierProvider)
+        .projectRootPath
+        ?.trim();
+    if (projectRootPath == null || projectRootPath.isEmpty) {
+      setState(() {
+        if (createMode) {
+          _createTrainerValidationMessage =
+              'A valid project workspace is required before linking a battle sprite image.';
+        } else {
+          _editTrainerValidationMessage =
+              'A valid project workspace is required before linking a battle sprite image.';
+        }
+      });
+      return;
+    }
+
+    final pickedAbsolutePath = await _pickBattleBackgroundAbsolutePath(
+      projectRootPath,
+    );
+    if (pickedAbsolutePath == null) {
+      return;
+    }
+
+    final relativePath = normalizeProjectLocalBattleBackgroundPath(
+      projectRootPath: projectRootPath,
+      pickedAbsolutePath: pickedAbsolutePath,
+    );
+    if (relativePath == null) {
+      setState(() {
+        const message =
+            'This lot only links project-local images. Move the sprite into the project folder, then pick it again.';
+        if (createMode) {
+          _createTrainerValidationMessage = message;
+        } else {
+          _editTrainerValidationMessage = message;
+        }
+      });
+      return;
+    }
+
+    setState(() {
+      if (createMode) {
+        _newBattleSpriteRelativePath = relativePath;
+        _createTrainerValidationMessage = null;
+      } else {
+        _editBattleSpriteRelativePath = relativePath;
+        _editTrainerValidationMessage = null;
+      }
+    });
+  }
+
+  Future<void> _pickBattleBackgroundImage({required bool createMode}) async {
+    final projectRootPath = ref
+        .read(editorNotifierProvider)
+        .projectRootPath
+        ?.trim();
     if (projectRootPath == null || projectRootPath.isEmpty) {
       setState(() {
         if (createMode) {
@@ -1071,8 +1177,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       return;
     }
 
-    final pickedAbsolutePath =
-        await _pickBattleBackgroundAbsolutePath(projectRootPath);
+    final pickedAbsolutePath = await _pickBattleBackgroundAbsolutePath(
+      projectRootPath,
+    );
     if (pickedAbsolutePath == null) {
       return;
     }
@@ -1098,7 +1205,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   }
 
   Future<String?> _pickBattleBackgroundAbsolutePath(
-      String projectRootPath) async {
+    String projectRootPath,
+  ) async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const <String>[
@@ -1145,10 +1253,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   bool get _isAddingPokemon =>
       _activePokemonTrainerId != null && _editingPokemonIndex == null;
 
-  bool _isEditingPokemon(
-    String trainerId,
-    int pokemonIndex,
-  ) {
+  bool _isEditingPokemon(String trainerId, int pokemonIndex) {
     return _activePokemonTrainerId == trainerId &&
         _editingPokemonIndex == pokemonIndex;
   }
@@ -1209,8 +1314,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _pokemonFormController.text = pokemon.formId ?? '';
       _pokemonGenderController.text = pokemon.gender ?? '';
       for (var i = 0; i < _pokemonMoveControllers.length; i++) {
-        _pokemonMoveControllers[i].text =
-            i < pokemon.moves.length ? pokemon.moves[i] : '';
+        _pokemonMoveControllers[i].text = i < pokemon.moves.length
+            ? pokemon.moves[i]
+            : '';
       }
       _pokemonShiny = pokemon.shiny;
       _closeTrainerEditor();
@@ -1229,7 +1335,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     }
 
     final speciesDetail = await _loadSpeciesDetailIfPossible(
-        workspace, _pokemonSpeciesController.text);
+      workspace,
+      _pokemonSpeciesController.text,
+    );
     final validation = _validatePokemonDraft(
       references: references,
       speciesDetail: speciesDetail,
@@ -1287,7 +1395,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     setState(() {
       _pokemonValidationMessage =
           ref.read(editorNotifierProvider).errorMessage ??
-              'Failed to save trainer Pokémon.';
+          'Failed to save trainer Pokémon.';
     });
   }
 
@@ -1341,7 +1449,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
 
     if (references.isSpeciesAvailable &&
         _speciesLookupService.findById(
-                references.speciesEntries, draft.speciesId) ==
+              references.speciesEntries,
+              draft.speciesId,
+            ) ==
             null) {
       return 'Species "${draft.speciesId}" is not present in the local Pokédex.';
     }

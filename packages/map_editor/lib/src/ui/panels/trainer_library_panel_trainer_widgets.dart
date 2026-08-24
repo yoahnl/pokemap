@@ -121,18 +121,16 @@ class _TrainerReferencesBanner extends StatelessWidget {
 }
 
 class _TrainerOperationBanner extends StatelessWidget {
-  const _TrainerOperationBanner({
-    required this.message,
-    required this.isError,
-  });
+  const _TrainerOperationBanner({required this.message, required this.isError});
 
   final String message;
   final bool isError;
 
   @override
   Widget build(BuildContext context) {
-    final accent =
-        isError ? EditorChrome.inspectorJoyCoral : EditorChrome.accentJade;
+    final accent = isError
+        ? EditorChrome.inspectorJoyCoral
+        : EditorChrome.accentJade;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: EditorChrome.chipFill(context),
@@ -183,6 +181,7 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.defeatDialogueId,
     required this.battleDifficulty,
     required this.battleBackgroundRelativePath,
+    required this.battleSpriteRelativePath,
     required this.projectRootPath,
     required this.characters,
     required this.elements,
@@ -195,6 +194,8 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.onClearBattleDifficulty,
     required this.onPickBattleBackground,
     required this.onClearBattleBackground,
+    required this.onPickBattleSprite,
+    required this.onClearBattleSprite,
     required this.onSelectCharacter,
     required this.onSelectRewardItem,
     required this.onAddRewardItem,
@@ -235,6 +236,7 @@ class _TrainerEditorCard extends StatelessWidget {
   final String? defeatDialogueId;
   final int? battleDifficulty;
   final String? battleBackgroundRelativePath;
+  final String? battleSpriteRelativePath;
   final String? projectRootPath;
   final List<ProjectCharacterEntry> characters;
   final List<ProjectElementEntry> elements;
@@ -247,6 +249,8 @@ class _TrainerEditorCard extends StatelessWidget {
   final VoidCallback onClearBattleDifficulty;
   final VoidCallback onPickBattleBackground;
   final VoidCallback onClearBattleBackground;
+  final VoidCallback onPickBattleSprite;
+  final VoidCallback onClearBattleSprite;
   final ValueChanged<String?> onSelectCharacter;
   final ValueChanged<String?> onSelectRewardItem;
   final VoidCallback onAddRewardItem;
@@ -273,22 +277,30 @@ class _TrainerEditorCard extends StatelessWidget {
         (battleBackgroundRelativePath?.trim().isNotEmpty ?? false);
     final absoluteBattleBackgroundPath =
         !hasExplicitBattleBackground || projectRootPath == null
-            ? null
-            : p.join(projectRootPath!, battleBackgroundRelativePath!.trim());
+        ? null
+        : p.join(projectRootPath!, battleBackgroundRelativePath!.trim());
     final battleBackgroundFile = absoluteBattleBackgroundPath == null
         ? null
         : File(absoluteBattleBackgroundPath);
     final battleBackgroundExists =
         battleBackgroundFile != null && battleBackgroundFile.existsSync();
+    final hasExplicitBattleSprite =
+        (battleSpriteRelativePath?.trim().isNotEmpty ?? false);
+    final absoluteBattleSpritePath =
+        !hasExplicitBattleSprite || projectRootPath == null
+        ? null
+        : p.join(projectRootPath!, battleSpriteRelativePath!.trim());
+    final battleSpriteFile = absoluteBattleSpritePath == null
+        ? null
+        : File(absoluteBattleSpritePath);
+    final battleSpriteExists =
+        battleSpriteFile != null && battleSpriteFile.existsSync();
 
     return DecoratedBox(
       decoration: BoxDecoration(
         color: EditorChrome.islandFillElevated(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.22),
-          width: 1,
-        ),
+        border: Border.all(color: accent.withValues(alpha: 0.22), width: 1),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
       child: Padding(
@@ -361,9 +373,7 @@ class _TrainerEditorCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: EditorChrome.islandFillElevated(context),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.18),
-                ),
+                border: Border.all(color: accent.withValues(alpha: 0.18)),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(10),
@@ -419,9 +429,7 @@ class _TrainerEditorCard extends StatelessWidget {
                       onChanged: onBattleDifficultyChanged,
                     ),
                     Text(
-                      _trainerBattleDifficultyPolicySummary(
-                        battleDifficulty,
-                      ),
+                      _trainerBattleDifficultyPolicySummary(battleDifficulty),
                       style: TextStyle(
                         color: subtle,
                         fontSize: 11,
@@ -494,8 +502,10 @@ class _TrainerEditorCard extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               if (!portraitIsKnown)
                 const Padding(
@@ -517,7 +527,8 @@ class _TrainerEditorCard extends StatelessWidget {
                       : 'trainer-library-edit-battle-music-field',
                 ),
                 controller: battleMusicController,
-                placeholder: 'Chemin projet de la musique de combat (optionnel)',
+                placeholder:
+                    'Chemin projet de la musique de combat (optionnel)',
                 decoration: BoxDecoration(
                   color: EditorChrome.islandFill(context),
                   borderRadius: BorderRadius.circular(8),
@@ -526,8 +537,10 @@ class _TrainerEditorCard extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               const SizedBox(height: 6),
               CupertinoTextField(
@@ -537,7 +550,8 @@ class _TrainerEditorCard extends StatelessWidget {
                       : 'trainer-library-edit-victory-music-field',
                 ),
                 controller: victoryMusicController,
-                placeholder: 'Chemin projet de la musique de victoire (optionnel)',
+                placeholder:
+                    'Chemin projet de la musique de victoire (optionnel)',
                 decoration: BoxDecoration(
                   color: EditorChrome.islandFill(context),
                   borderRadius: BorderRadius.circular(8),
@@ -546,8 +560,10 @@ class _TrainerEditorCard extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               const SizedBox(height: 6),
               CupertinoTextField(
@@ -566,17 +582,17 @@ class _TrainerEditorCard extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               const SizedBox(height: 6),
               DecoratedBox(
                 decoration: BoxDecoration(
                   color: EditorChrome.islandFillElevated(context),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: accent.withValues(alpha: 0.18),
-                  ),
+                  border: Border.all(color: accent.withValues(alpha: 0.18)),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(10),
@@ -645,9 +661,9 @@ class _TrainerEditorCard extends StatelessWidget {
                                     child: Icon(
                                       battleBackgroundExists
                                           ? CupertinoIcons
-                                              .photo_fill_on_rectangle_fill
+                                                .photo_fill_on_rectangle_fill
                                           : CupertinoIcons
-                                              .exclamationmark_triangle_fill,
+                                                .exclamationmark_triangle_fill,
                                       color: CupertinoColors.white,
                                       size: 24,
                                     ),
@@ -663,8 +679,8 @@ class _TrainerEditorCard extends StatelessWidget {
                                         Text(
                                           hasExplicitBattleBackground
                                               ? (battleBackgroundExists
-                                                  ? 'Image projet liée'
-                                                  : 'Fichier lié manquant')
+                                                    ? 'Image projet liée'
+                                                    : 'Fichier lié manquant')
                                               : 'Aucune image liée',
                                           style: TextStyle(
                                             color: EditorChrome.primaryLabel(
@@ -678,8 +694,8 @@ class _TrainerEditorCard extends StatelessWidget {
                                         Text(
                                           hasExplicitBattleBackground
                                               ? (battleBackgroundExists
-                                                  ? 'Le runtime tentera d’utiliser cette image spécifique avant le fond contextuel.'
-                                                  : 'Le runtime ignorera ce fichier manquant et se rabattra sur le fond contextuel.')
+                                                    ? 'Le runtime tentera d’utiliser cette image spécifique avant le fond contextuel.'
+                                                    : 'Le runtime ignorera ce fichier manquant et se rabattra sur le fond contextuel.')
                                               : 'Choisissez une image locale du projet pour remplacer le fond de combat contextuel.',
                                           style: TextStyle(
                                             color: subtle,
@@ -752,6 +768,198 @@ class _TrainerEditorCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: EditorChrome.islandFillElevated(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: accent.withValues(alpha: 0.18)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Sprite de combat du dresseur (optionnel)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        hasExplicitBattleSprite
+                            ? battleSpriteRelativePath!.trim()
+                            : 'Aucun sprite spécifique sélectionné.',
+                        style: TextStyle(
+                          color: hasExplicitBattleSprite
+                              ? EditorChrome.primaryLabel(context)
+                              : subtle,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                          key: Key(
+                            createMode
+                                ? 'trainer-library-create-sprite-preview'
+                                : 'trainer-library-edit-sprite-preview',
+                          ),
+                          height: 88,
+                          child: ColoredBox(
+                            color: EditorChrome.islandFillElevated(context),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 54,
+                                    height: 54,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      gradient: LinearGradient(
+                                        colors: battleSpriteExists
+                                            ? <Color>[
+                                                accent.withValues(alpha: 0.85),
+                                                EditorChrome.accentJade
+                                                    .withValues(alpha: 0.72),
+                                              ]
+                                            : <Color>[
+                                                EditorChrome.accentCoral
+                                                    .withValues(alpha: 0.65),
+                                                EditorChrome.accentWarm
+                                                    .withValues(alpha: 0.38),
+                                              ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                    child:
+                                        battleSpriteExists &&
+                                            battleSpriteFile != null
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            child: Image.file(
+                                              battleSpriteFile,
+                                              fit: BoxFit.contain,
+                                              filterQuality: FilterQuality.none,
+                                            ),
+                                          )
+                                        : Icon(
+                                            hasExplicitBattleSprite
+                                                ? CupertinoIcons
+                                                      .exclamationmark_triangle_fill
+                                                : CupertinoIcons.person_fill,
+                                            color: CupertinoColors.white,
+                                            size: 24,
+                                          ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          hasExplicitBattleSprite
+                                              ? (battleSpriteExists
+                                                    ? 'Sprite projet lié'
+                                                    : 'Fichier lié manquant')
+                                              : 'Aucun sprite lié',
+                                          style: TextStyle(
+                                            color: EditorChrome.primaryLabel(
+                                              context,
+                                            ),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          hasExplicitBattleSprite
+                                              ? (battleSpriteExists
+                                                    ? 'Le dresseur vaincu réapparaîtra avec ce sprite à la fin du combat (« Vous avez battu X ! »).'
+                                                    : 'Le runtime ignorera ce fichier manquant : le message de victoire s’affichera seul.')
+                                              : 'Choisissez une image locale du projet pour faire réapparaître le dresseur vaincu en fin de combat.',
+                                          style: TextStyle(
+                                            color: subtle,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            height: 1.35,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          CupertinoButton(
+                            key: Key(
+                              createMode
+                                  ? 'trainer-library-create-sprite-pick-button'
+                                  : 'trainer-library-edit-sprite-pick-button',
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            minimumSize: const Size(1, 28),
+                            onPressed: onPickBattleSprite,
+                            child: const Text(
+                              'Choisir une image',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          CupertinoButton(
+                            key: Key(
+                              createMode
+                                  ? 'trainer-library-create-sprite-clear-button'
+                                  : 'trainer-library-edit-sprite-clear-button',
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            minimumSize: const Size(1, 28),
+                            onPressed: onClearBattleSprite,
+                            child: const Text(
+                              'Effacer',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'BETA-BAT-017 : sans sprite lié, la fin de combat garde simplement le message de victoire — aucun réglage requis.',
+                        style: TextStyle(
+                          color: subtle,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
               Text(
                 'Ces refs optionnelles restent brutes pour le moment. Le fond de combat trainer reste un simple chemin relatif projet qui override le fond contextuel côté runtime ; les musiques de combat et de victoire sont des chemins relatifs projet consommés par le runtime (BETA-BAT-015), les tags restent conservés tels quels.',
                 style: TextStyle(
@@ -779,16 +987,20 @@ class _TrainerEditorCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   minimumSize: const Size(1, 28),
                   onPressed: onCancel,
                   child: const Text('Annuler', style: TextStyle(fontSize: 13)),
                 ),
                 const SizedBox(width: 6),
                 CupertinoButton.filled(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   minimumSize: const Size(1, 28),
                   onPressed: onSubmit,
                   child: Text(

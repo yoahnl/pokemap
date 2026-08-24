@@ -45,9 +45,7 @@ List<ProjectTrainerItemGrant> _normalizeTrainerItemGrants(
   Iterable<ProjectTrainerItemGrant> grants,
 ) {
   return grants
-      .map(
-        (grant) => grant.copyWith(itemId: grant.itemId.trim()),
-      )
+      .map((grant) => grant.copyWith(itemId: grant.itemId.trim()))
       .toList(growable: false);
 }
 
@@ -80,6 +78,7 @@ class CreateTrainerUseCase {
     required String trainerClass,
     int? battleDifficulty,
     String? battleBackgroundRelativePath,
+    String? battleSpriteRelativePath,
     String? characterId,
     String? portraitElementId,
     String? battleMusicPath,
@@ -113,13 +112,18 @@ class CreateTrainerUseCase {
       battleBackgroundRelativePath: _normalizeOptionalTrainerRelativePath(
         battleBackgroundRelativePath,
       ),
-      characterId:
-          characterId?.trim().isEmpty == true ? null : characterId?.trim(),
+      battleSpriteRelativePath: _normalizeOptionalTrainerRelativePath(
+        battleSpriteRelativePath,
+      ),
+      characterId: characterId?.trim().isEmpty == true
+          ? null
+          : characterId?.trim(),
       portraitElementId: portraitElementId?.trim().isEmpty == true
           ? null
           : portraitElementId?.trim(),
-      battleMusicPath:
-          battleMusicPath?.trim().isEmpty == true ? null : battleMusicPath?.trim(),
+      battleMusicPath: battleMusicPath?.trim().isEmpty == true
+          ? null
+          : battleMusicPath?.trim(),
       victoryMusicPath: victoryMusicPath?.trim().isEmpty == true
           ? null
           : victoryMusicPath?.trim(),
@@ -131,14 +135,13 @@ class CreateTrainerUseCase {
       moneyReward: moneyReward,
       rewardItemGrants: _normalizeTrainerItemGrants(rewardItemGrants),
       rewardFlagIds: _normalizeTrainerStringList(rewardFlagIds),
-      rewardBadgeId:
-          rewardBadgeId?.trim().isEmpty == true ? null : rewardBadgeId?.trim(),
+      rewardBadgeId: rewardBadgeId?.trim().isEmpty == true
+          ? null
+          : rewardBadgeId?.trim(),
       rewardFieldAbilityUnlock: rewardFieldAbilityUnlock,
       tags: _normalizeTrainerStringList(tags),
     );
-    final updated = project.copyWith(
-      trainers: [...project.trainers, trainer],
-    );
+    final updated = project.copyWith(trainers: [...project.trainers, trainer]);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
@@ -159,6 +162,8 @@ class UpdateTrainerUseCase {
     TrainerFieldUpdate<int> battleDifficulty =
         const TrainerFieldUpdate<int>.keep(),
     TrainerFieldUpdate<String> battleBackgroundRelativePath =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> battleSpriteRelativePath =
         const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<String> characterId =
         const TrainerFieldUpdate<String>.keep(),
@@ -221,6 +226,13 @@ class UpdateTrainerUseCase {
       updatedTrainer = updatedTrainer.copyWith(
         battleBackgroundRelativePath: _normalizeOptionalTrainerRelativePath(
           battleBackgroundRelativePath.valueOrNull,
+        ),
+      );
+    }
+    if (!battleSpriteRelativePath.isKeep) {
+      updatedTrainer = updatedTrainer.copyWith(
+        battleSpriteRelativePath: _normalizeOptionalTrainerRelativePath(
+          battleSpriteRelativePath.valueOrNull,
         ),
       );
     }
@@ -358,8 +370,9 @@ class AddTrainerPokemonUseCase {
       speciesId: trimmedSpecies,
       level: level,
       moves: _normalizeTrainerStringList(moves),
-      heldItemId:
-          heldItemId?.trim().isEmpty == true ? null : heldItemId?.trim(),
+      heldItemId: heldItemId?.trim().isEmpty == true
+          ? null
+          : heldItemId?.trim(),
       formId: formId?.trim().isEmpty == true ? null : formId?.trim(),
       gender: gender?.trim().isEmpty == true ? null : gender?.trim(),
       shiny: shiny,

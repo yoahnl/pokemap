@@ -104,8 +104,9 @@ const String _editorSessionFileName = 'editor_session_state.json';
 const String _eventBuilderConditionLockedMessage =
     'Cette condition contient une partie avancée préservée. '
     'Elle ne peut pas être éditée partiellement.';
-const MethodChannel _macOsFileAccessChannel =
-    MethodChannel('map_editor/file_access');
+const MethodChannel _macOsFileAccessChannel = MethodChannel(
+  'map_editor/file_access',
+);
 
 String _nextCanonicalSmartTileLayerId(MapData map, String presetId) {
   final normalized = presetId
@@ -136,12 +137,11 @@ final String _smartTileEditorMutationSession =
 String _smartTileEditorMutationIdentity({
   required String purpose,
   required Map<String, Object?> values,
-}) =>
-    smartTileMutationIdentity(
-      purpose: purpose,
-      sessionToken: _smartTileEditorMutationSession,
-      values: values,
-    );
+}) => smartTileMutationIdentity(
+  purpose: purpose,
+  sessionToken: _smartTileEditorMutationSession,
+  values: values,
+);
 
 typedef _NarrativeEventSourceCleanupInterlock = ({
   String projectRootPath,
@@ -359,7 +359,7 @@ class EditorNotifier extends _$EditorNotifier
     implements WorldMapToolActivationHost {
   static const ProjectMapIdPolicy _projectMapIdPolicy = ProjectMapIdPolicy();
   static const ProjectMapManifestIntegrityPolicy
-      _projectMapManifestIntegrityPolicy = ProjectMapManifestIntegrityPolicy();
+  _projectMapManifestIntegrityPolicy = ProjectMapManifestIntegrityPolicy();
 
   EditorState get currentState => state;
 
@@ -368,13 +368,13 @@ class EditorNotifier extends _$EditorNotifier
 
   @override
   WorldMapToolActivationSessionSnapshot
-      get worldMapToolActivationSessionSnapshot => (
-            projectRootPath: state.projectRootPath,
-            activeMapPath: state.activeMapPath,
-            activeMapId: state.activeMap?.id,
-            activeLayerId: state.activeLayerId,
-            activeTool: state.activeTool,
-          );
+  get worldMapToolActivationSessionSnapshot => (
+    projectRootPath: state.projectRootPath,
+    activeMapPath: state.activeMapPath,
+    activeMapId: state.activeMap?.id,
+    activeLayerId: state.activeLayerId,
+    activeTool: state.activeTool,
+  );
 
   MapData? _confirmedBulkPlacementLossBaseline;
   _NarrativeEventSourceCleanupInterlock? _narrativeEventSourceCleanupInterlock;
@@ -438,16 +438,15 @@ class EditorNotifier extends _$EditorNotifier
   // Path-only lookups are used only after that object has become the active
   // document; snapshot activation additionally checks object identity.
   final Map<String, _MapDocumentRevisionAttestation>
-      _mapDocumentRevisionAttestations =
+  _mapDocumentRevisionAttestations =
       <String, _MapDocumentRevisionAttestation>{};
 
   int get projectSessionRevision => _projectSessionRevision;
 
   EditorWorkspaceController get _editorWorkspaceController =>
       ref.read(editorWorkspaceControllerProvider);
-  MapEditingController get _mapEditingController => MapEditingController(
-        mutationCoordinator: _editorMapMutationCoordinator,
-      );
+  MapEditingController get _mapEditingController =>
+      MapEditingController(mutationCoordinator: _editorMapMutationCoordinator);
   MapSelectionController get _mapSelectionController =>
       const MapSelectionController();
   ProjectContentController get _projectContentController =>
@@ -487,8 +486,8 @@ class EditorNotifier extends _$EditorNotifier
   PlacedElementInstanceIndexer get _placedElementInstanceIndexer =>
       ref.read(placedElementInstanceIndexerProvider);
   NarrativeEventSourceDependencyGuard
-      get _narrativeEventSourceDependencyGuard =>
-          const NarrativeEventSourceDependencyGuard();
+  get _narrativeEventSourceDependencyGuard =>
+      const NarrativeEventSourceDependencyGuard();
   BorderFeatureAuthoringController get _borderFeatureAuthoringController =>
       const BorderFeatureAuthoringController();
 
@@ -502,10 +501,12 @@ class EditorNotifier extends _$EditorNotifier
         _personalizationStudioSignal.dispose();
       });
     }
-    final activeBorderFeatureController =
-        ref.read(activeBorderFeatureControllerProvider.notifier);
-    final borderPreviewController =
-        ref.read(borderPreviewControllerProvider.notifier);
+    final activeBorderFeatureController = ref.read(
+      activeBorderFeatureControllerProvider.notifier,
+    );
+    final borderPreviewController = ref.read(
+      borderPreviewControllerProvider.notifier,
+    );
 
     void reconcileBorderState(EditorState next) {
       if (_suppressBorderSelectionReconciliation ||
@@ -584,7 +585,8 @@ class EditorNotifier extends _$EditorNotifier
     }
     // On macOS sandbox, a plain path is not enough after restart.
     // We first ask native code to resolve a security-scoped bookmark if any.
-    final manifestPath = await _resolveLastProjectManifestFromMacOsBookmark() ??
+    final manifestPath =
+        await _resolveLastProjectManifestFromMacOsBookmark() ??
         await getLastOpenedProjectManifestPath();
     if (manifestPath == null) {
       return false;
@@ -692,8 +694,9 @@ class EditorNotifier extends _$EditorNotifier
         await _discardEditorAuthoringSessions(directory);
       }
       debugPrint('EditorNotifier: Error creating project: $e');
-      state =
-          state.copyWith(errorMessage: 'Impossible de créer le projet : $e');
+      state = state.copyWith(
+        errorMessage: 'Impossible de créer le projet : $e',
+      );
       return MapActivationOutcome.failed;
     } finally {
       _endMapDiskMutationLease(lease);
@@ -754,9 +757,7 @@ class EditorNotifier extends _$EditorNotifier
       operationLease = _beginMapDiskMutationLease();
       if (operationLease == null) return MapActivationOutcome.busy;
     } else {
-      if (_rejectMapDiskMutationLease(
-        allowedLeaseToken: mapWriteLeaseToken,
-      )) {
+      if (_rejectMapDiskMutationLease(allowedLeaseToken: mapWriteLeaseToken)) {
         return MapActivationOutcome.busy;
       }
       operationLease = _mapDiskMutationLease;
@@ -781,17 +782,14 @@ class EditorNotifier extends _$EditorNotifier
       final nonCanonicalMapIds = _projectMapIdPolicy.nonCanonicalIds(
         manifest.maps.map((entry) => entry.id),
       );
-      final manifestDiagnostics =
-          _projectMapManifestIntegrityPolicy.diagnostics(
-        _projectWorkspaceFactory.create(projectDir),
-        manifest,
-      );
+      final manifestDiagnostics = _projectMapManifestIntegrityPolicy
+          .diagnostics(_projectWorkspaceFactory.create(projectDir), manifest);
       final projectStatusMessage =
           nonCanonicalMapIds.isEmpty && manifestDiagnostics.isEmpty
-              ? 'Projet « ${manifest.name} » chargé'
-              : 'Projet « ${manifest.name} » chargé en mode protégé : '
-                  '${nonCanonicalMapIds.length} identifiant(s) legacy, '
-                  '${manifestDiagnostics.length} problème(s) de manifeste map.';
+          ? 'Projet « ${manifest.name} » chargé'
+          : 'Projet « ${manifest.name} » chargé en mode protégé : '
+                '${nonCanonicalMapIds.length} identifiant(s) legacy, '
+                '${manifestDiagnostics.length} problème(s) de manifeste map.';
       state = _projectSessionController.openProjectSession(
         current: state,
         session: ProjectSessionLoadResult(
@@ -835,7 +833,8 @@ class EditorNotifier extends _$EditorNotifier
         );
       } else {
         state = state.copyWith(
-            errorMessage: 'Impossible de charger le projet : $e');
+          errorMessage: 'Impossible de charger le projet : $e',
+        );
       }
       return MapActivationOutcome.failed;
     } finally {
@@ -897,9 +896,7 @@ class EditorNotifier extends _$EditorNotifier
 
   Future<File> _sessionStateFile() async {
     final appSupportDir = await getApplicationSupportDirectory();
-    final editorDir = Directory(
-      p.join(appSupportDir.path, 'rpg_map_editor'),
-    );
+    final editorDir = Directory(p.join(appSupportDir.path, 'rpg_map_editor'));
     if (!await editorDir.exists()) {
       await editorDir.create(recursive: true);
     }
@@ -952,8 +949,9 @@ class EditorNotifier extends _$EditorNotifier
       return null;
     }
     try {
-      final path = await _macOsFileAccessChannel
-          .invokeMethod<String>('resolveLastProjectManifestPath');
+      final path = await _macOsFileAccessChannel.invokeMethod<String>(
+        'resolveLastProjectManifestPath',
+      );
       if (path == null) {
         return null;
       }
@@ -969,8 +967,9 @@ class EditorNotifier extends _$EditorNotifier
       return;
     }
     try {
-      await _macOsFileAccessChannel
-          .invokeMethod<void>('clearRememberedProjectPath');
+      await _macOsFileAccessChannel.invokeMethod<void>(
+        'clearRememberedProjectPath',
+      );
     } catch (_) {
       // Ignore cleanup failures.
     }
@@ -987,8 +986,12 @@ class EditorNotifier extends _$EditorNotifier
 
     try {
       final useCase = ref.read(updateProjectSettingsUseCaseProvider);
-      final updated =
-          await useCase.execute(fs, project, name: name, settings: settings);
+      final updated = await useCase.execute(
+        fs,
+        project,
+        name: name,
+        settings: settings,
+      );
       state = state.copyWith(
         project: updated,
         statusMessage: 'Project settings saved',
@@ -1094,9 +1097,7 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (error) {
       debugPrint('EditorNotifier: variant weights publish failed: $error');
-      state = state.copyWith(
-        errorMessage: 'Densité non enregistrée : $error',
-      );
+      state = state.copyWith(errorMessage: 'Densité non enregistrée : $error');
     }
   }
 
@@ -1117,8 +1118,9 @@ class EditorNotifier extends _$EditorNotifier
     // identique (map.no_change), et retomber sur la même table par arrondi
     // n'est pas une erreur d'auteur.
     final activeMap = state.activeMap;
-    final currentLayer =
-        activeMap == null ? null : _findLayerById(activeMap, layerId);
+    final currentLayer = activeMap == null
+        ? null
+        : _findLayerById(activeMap, layerId);
     if (currentLayer is SmartTileLayer &&
         mapEquals(currentLayer.candidateWeights, weights)) {
       state = state.copyWith(
@@ -1135,8 +1137,9 @@ class EditorNotifier extends _$EditorNotifier
     };
 
     try {
-      final before =
-          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      final before = await ref
+          .read(authoringQueryAdapterProvider)
+          .open(projectRootPath);
       final identity = smartTileDensityMutationIdentity(
         revision: before.snapshotRevision,
         parameters: parameters,
@@ -1178,8 +1181,9 @@ class EditorNotifier extends _$EditorNotifier
     final projectRootPath = state.projectRootPath;
     if (projectRootPath == null) return;
     final activeMap = state.activeMap;
-    final currentLayer =
-        activeMap == null ? null : _findLayerById(activeMap, layerId);
+    final currentLayer = activeMap == null
+        ? null
+        : _findLayerById(activeMap, layerId);
     if (currentLayer is! SmartTileLayer ||
         currentLayer.animationActivation == activation) {
       return;
@@ -1195,8 +1199,9 @@ class EditorNotifier extends _$EditorNotifier
     };
 
     try {
-      final before =
-          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      final before = await ref
+          .read(authoringQueryAdapterProvider)
+          .open(projectRootPath);
       final identity = _smartTileEditorMutationIdentity(
         purpose: 'smart-tile-layer-animation-activation',
         values: <String, Object?>{
@@ -1227,8 +1232,10 @@ class EditorNotifier extends _$EditorNotifier
             : 'Animation continue activée.',
       );
     } on Object catch (error) {
-      debugPrint('EditorNotifier: Smart Tile animation activation failed: '
-          '$error');
+      debugPrint(
+        'EditorNotifier: Smart Tile animation activation failed: '
+        '$error',
+      );
       state = state.copyWith(
         errorMessage: canonicalSmartTileFailureMessage(
           EditorAuthoringMutationFailure.capture(error),
@@ -1248,8 +1255,9 @@ class EditorNotifier extends _$EditorNotifier
     final projectRootPath = state.projectRootPath;
     if (projectRootPath == null) return false;
     final activeMap = state.activeMap;
-    final currentLayer =
-        activeMap == null ? null : _findLayerById(activeMap, layerId);
+    final currentLayer = activeMap == null
+        ? null
+        : _findLayerById(activeMap, layerId);
     if (currentLayer is! SmartTileLayer) return false;
     final normalizedTableId = encounterTableId.trim();
     if (!currentLayer.materialPalette.contains(materialId) ||
@@ -1278,8 +1286,9 @@ class EditorNotifier extends _$EditorNotifier
     };
 
     try {
-      final before =
-          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      final before = await ref
+          .read(authoringQueryAdapterProvider)
+          .open(projectRootPath);
       final identity = _smartTileEditorMutationIdentity(
         purpose: 'smart-tile-layer-encounter-behavior',
         values: <String, Object?>{
@@ -1308,8 +1317,10 @@ class EditorNotifier extends _$EditorNotifier
         statusMessage: 'Hautes herbes ajoutées directement au calque.',
       );
     } on Object catch (error) {
-      debugPrint('EditorNotifier: Smart Tile encounter behavior failed: '
-          '$error');
+      debugPrint(
+        'EditorNotifier: Smart Tile encounter behavior failed: '
+        '$error',
+      );
       state = state.copyWith(
         errorMessage: canonicalSmartTileFailureMessage(
           EditorAuthoringMutationFailure.capture(error),
@@ -1326,18 +1337,17 @@ class EditorNotifier extends _$EditorNotifier
     final projectRootPath = state.projectRootPath;
     if (projectRootPath == null) return false;
     final activeMap = state.activeMap;
-    final currentLayer =
-        activeMap == null ? null : _findLayerById(activeMap, layerId);
+    final currentLayer = activeMap == null
+        ? null
+        : _findLayerById(activeMap, layerId);
     if (currentLayer is! SmartTileLayer) return false;
     if (currentLayer.encounterBehavior == null) return true;
-    final parameters = <String, Object?>{
-      'mapId': mapId,
-      'layerId': layerId,
-    };
+    final parameters = <String, Object?>{'mapId': mapId, 'layerId': layerId};
 
     try {
-      final before =
-          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      final before = await ref
+          .read(authoringQueryAdapterProvider)
+          .open(projectRootPath);
       final identity = _smartTileEditorMutationIdentity(
         purpose: 'smart-tile-layer-clear-encounter-behavior',
         values: <String, Object?>{
@@ -1366,8 +1376,10 @@ class EditorNotifier extends _$EditorNotifier
         statusMessage: 'Comportement de hautes herbes retiré du calque.',
       );
     } on Object catch (error) {
-      debugPrint('EditorNotifier: clear Smart Tile encounter behavior failed: '
-          '$error');
+      debugPrint(
+        'EditorNotifier: clear Smart Tile encounter behavior failed: '
+        '$error',
+      );
       state = state.copyWith(
         errorMessage: canonicalSmartTileFailureMessage(
           EditorAuthoringMutationFailure.capture(error),
@@ -1398,7 +1410,8 @@ class EditorNotifier extends _$EditorNotifier
         activeMapPath == null ||
         !map.layers.any((layer) => layer.id == layerId)) {
       state = state.copyWith(
-        errorMessage: 'Le snapshot Smart Tile publié ne correspond plus à '
+        errorMessage:
+            'Le snapshot Smart Tile publié ne correspond plus à '
             'la map active.',
       );
       return false;
@@ -1408,13 +1421,15 @@ class EditorNotifier extends _$EditorNotifier
     final eraserFootprint = state.eraserFootprint;
     final preservePendingProject = state.isProjectDirty;
     final pendingProject = state.project;
-    final pendingProjectError = state.errorMessage ??
+    final pendingProjectError =
+        state.errorMessage ??
         (preservePendingProject
             ? _narrativeDocumentErrorMessage(_narrativeDocumentSession?.state)
             : null);
     final activeStroke = state.mapStrokeStart;
     final activeStrokeBuffer = _mapCellStrokeBuffer;
-    final rebaseActiveSmartTileStroke = activeStroke != null &&
+    final rebaseActiveSmartTileStroke =
+        activeStroke != null &&
         activeStrokeBuffer != null &&
         activeStrokeBuffer.kind == MapCellStrokeLayerKind.smartTile &&
         activeStrokeBuffer.layerId == layerId;
@@ -1426,8 +1441,8 @@ class EditorNotifier extends _$EditorNotifier
       document: MapDocumentLoadResult(
         map: map,
         activeMapPath: activeMapPath,
-        selectedTilesetEditorId:
-            _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
+        selectedTilesetEditorId: _editorMapSessionCoordinator
+            .resolveSelectedTilesetIdForMap(map),
       ),
       statusMessage:
           statusMessage ?? 'Smart Tile publié dans la couche « $layerId ».',
@@ -1436,8 +1451,9 @@ class EditorNotifier extends _$EditorNotifier
       activeLayerId: layerId,
       activeTool: preservePaintTool ? activeTool : state.activeTool,
       activeBrush: preservePaintTool ? activeBrush : state.activeBrush,
-      eraserFootprint:
-          preservePaintTool ? eraserFootprint : state.eraserFootprint,
+      eraserFootprint: preservePaintTool
+          ? eraserFootprint
+          : state.eraserFootprint,
       isDirty: false,
       isProjectDirty: preservePendingProject,
       errorMessage: preservePendingProject ? pendingProjectError : null,
@@ -1478,19 +1494,18 @@ class EditorNotifier extends _$EditorNotifier
     }
     if (state.isProjectDirty) {
       state = state.copyWith(
-        errorMessage: 'Enregistrez les autres modifications du projet avant '
+        errorMessage:
+            'Enregistrez les autres modifications du projet avant '
             'de démarrer une session de personnalisation.',
       );
       return false;
     }
 
     _disposePersonalizationStudioSession();
-    final factory =
-        ref.read(personalizationStudioSessionControllerFactoryProvider);
-    final session = factory(
-      projectPath: projectPath,
-      initialDocument: project,
+    final factory = ref.read(
+      personalizationStudioSessionControllerFactoryProvider,
     );
+    final session = factory(projectPath: projectPath, initialDocument: project);
     _personalizationStudioSession = session;
     _personalizationStudioProjectPath = projectPath;
     _lastPersonalizationStudioProject = project;
@@ -1521,9 +1536,7 @@ class EditorNotifier extends _$EditorNotifier
     _personalizationStudioSignal.removeListener(listener);
   }
 
-  void unregisterPersonalizationStudioPendingEditFlusher(
-    VoidCallback flusher,
-  ) {
+  void unregisterPersonalizationStudioPendingEditFlusher(VoidCallback flusher) {
     if (identical(_personalizationStudioPendingEditFlusher, flusher)) {
       _personalizationStudioPendingEditFlusher = null;
     }
@@ -1536,10 +1549,7 @@ class EditorNotifier extends _$EditorNotifier
   }) => _enqueuePersonalizationStudioMutation(() async {
     if (!await initializePersonalizationStudioSession()) return false;
     final current = _personalizationStudioSession!.state.draftProfile;
-    return _applyPersonalizationStudioProfileNow(
-      update(current),
-      label: label,
-    );
+    return _applyPersonalizationStudioProfileNow(update(current), label: label);
   });
 
   Future<bool> _enqueuePersonalizationStudioMutation(
@@ -1644,7 +1654,8 @@ class EditorNotifier extends _$EditorNotifier
       return true;
     }
     state = state.copyWith(
-      errorMessage: 'Les réglages visuels du projet ont changé ailleurs. '
+      errorMessage:
+          'Les réglages visuels du projet ont changé ailleurs. '
           'Rechargez le Studio avant de continuer.',
     );
     return false;
@@ -1658,14 +1669,14 @@ class EditorNotifier extends _$EditorNotifier
     if (workspace == null || project == null) return false;
     state = state.copyWith(isSaving: true, errorMessage: null);
     try {
-      await ref.read(projectRepositoryProvider).saveProject(
-            project,
-            workspace.projectManifestPath,
-          );
+      await ref
+          .read(projectRepositoryProvider)
+          .saveProject(project, workspace.projectManifestPath);
       if (!identical(state.project, project)) {
         state = state.copyWith(
           isSaving: false,
-          errorMessage: 'Le projet a encore changé pendant la sauvegarde. '
+          errorMessage:
+              'Le projet a encore changé pendant la sauvegarde. '
               'Réessayez pour conserver la dernière version.',
         );
         return false;
@@ -1673,7 +1684,8 @@ class EditorNotifier extends _$EditorNotifier
       if (!await session.refreshCurrentProject()) {
         state = state.copyWith(
           isSaving: false,
-          errorMessage: 'Le projet a été sauvegardé, mais le Studio n’a pas '
+          errorMessage:
+              'Le projet a été sauvegardé, mais le Studio n’a pas '
               'pu se resynchroniser. Vos réglages visuels sont conservés.',
         );
         return false;
@@ -1681,7 +1693,8 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(
         isSaving: false,
         isProjectDirty: true,
-        statusMessage: 'Modifications du projet enregistrées. '
+        statusMessage:
+            'Modifications du projet enregistrées. '
             'Enregistrement des réglages visuels…',
         errorMessage: null,
       );
@@ -1689,7 +1702,8 @@ class EditorNotifier extends _$EditorNotifier
     } on Object catch (error) {
       state = state.copyWith(
         isSaving: false,
-        errorMessage: 'Impossible d’enregistrer les autres modifications du '
+        errorMessage:
+            'Impossible d’enregistrer les autres modifications du '
             'projet : $error',
       );
       return false;
@@ -1767,14 +1781,14 @@ class EditorNotifier extends _$EditorNotifier
     };
     final didFinishSaving =
         sessionState.status == NarrativeDocumentSessionStatus.saved &&
-            previousStatus == NarrativeDocumentSessionStatus.saving;
+        previousStatus == NarrativeDocumentSessionStatus.saving;
     final didResolveConflict =
         previousStatus == NarrativeDocumentSessionStatus.conflicted &&
-            sessionState.status != NarrativeDocumentSessionStatus.conflicted;
+        sessionState.status != NarrativeDocumentSessionStatus.conflicted;
     final didInitializeFromNewerProject =
         previousStatus == null &&
-            sessionState.status == NarrativeDocumentSessionStatus.saved &&
-            visibleProject != sessionState.savedDocument;
+        sessionState.status == NarrativeDocumentSessionStatus.saved &&
+        visibleProject != sessionState.savedDocument;
     final shouldAdoptSavedProject =
         didFinishSaving || didResolveConflict || didInitializeFromNewerProject;
     final nextProject = shouldAdoptSavedProject
@@ -1838,7 +1852,7 @@ class EditorNotifier extends _$EditorNotifier
       _narrativeDocumentSession?.state.autosaveEnabled ?? false;
 
   NarrativeDocumentComparison<ProjectManifest>?
-      get narrativeDocumentComparison => _narrativeDocumentSession?.comparison;
+  get narrativeDocumentComparison => _narrativeDocumentSession?.comparison;
 
   /// Starts or restores the crash-safe Narrative Studio document session.
   ///
@@ -1860,10 +1874,7 @@ class EditorNotifier extends _$EditorNotifier
 
     _disposeNarrativeDocumentSession();
     final factory = ref.read(narrativeProjectDocumentSessionFactoryProvider);
-    final session = factory(
-      projectPath: projectPath,
-      initialDocument: project,
-    );
+    final session = factory(projectPath: projectPath, initialDocument: project);
     _narrativeDocumentSession = session;
     _narrativeDocumentProjectPath = projectPath;
     _lastNarrativeDocument = project;
@@ -1889,7 +1900,8 @@ class EditorNotifier extends _$EditorNotifier
     final session = _narrativeDocumentSession!;
     if (state.project != session.state.document) {
       state = state.copyWith(
-        errorMessage: 'Le projet contient des modifications extérieures à la '
+        errorMessage:
+            'Le projet contient des modifications extérieures à la '
             'session Cinématiques. Enregistrez-les avant de continuer.',
       );
       return false;
@@ -1986,16 +1998,15 @@ class EditorNotifier extends _$EditorNotifier
 
   String? _narrativeDocumentErrorMessage(
     NarrativeDocumentSessionState<ProjectManifest>? sessionState,
-  ) =>
-      switch (sessionState?.status) {
-        NarrativeDocumentSessionStatus.failed =>
-          'Modification narrative locale conservée : '
-              '${sessionState!.message ?? sessionState.code ?? 'échec inconnu'}',
-        NarrativeDocumentSessionStatus.conflicted =>
-          'Conflit narratif détecté : '
-              '${sessionState!.message ?? 'une version externe existe.'}',
-        _ => null,
-      };
+  ) => switch (sessionState?.status) {
+    NarrativeDocumentSessionStatus.failed =>
+      'Modification narrative locale conservée : '
+          '${sessionState!.message ?? sessionState.code ?? 'échec inconnu'}',
+    NarrativeDocumentSessionStatus.conflicted =>
+      'Conflit narratif détecté : '
+          '${sessionState!.message ?? 'une version externe existe.'}',
+    _ => null,
+  };
 
   void _disposeNarrativeDocumentSession() {
     final session = _narrativeDocumentSession;
@@ -2024,10 +2035,7 @@ class EditorNotifier extends _$EditorNotifier
   String _mapDocumentRevisionKey(String path) => p.normalize(p.absolute(path));
 
   @override
-  String? _mapDocumentRevisionFor(
-    String path, {
-    MapData? sourceDocument,
-  }) {
+  String? _mapDocumentRevisionFor(String path, {MapData? sourceDocument}) {
     final attestation =
         _mapDocumentRevisionAttestations[_mapDocumentRevisionKey(path)];
     if (attestation == null) return null;
@@ -2068,7 +2076,8 @@ class EditorNotifier extends _$EditorNotifier
   bool _rejectPendingBorderPreviewMapLifecycleMutation() {
     if (!_hasPendingBorderPreview()) return false;
     state = state.copyWith(
-      errorMessage: 'Appliquez, ignorez ou annulez l’aperçu de bordure avant '
+      errorMessage:
+          'Appliquez, ignorez ou annulez l’aperçu de bordure avant '
           'de modifier la liste des cartes.',
     );
     return true;
@@ -2077,7 +2086,8 @@ class EditorNotifier extends _$EditorNotifier
   bool _rejectPendingBorderPreviewDirectMapWrite() {
     if (!_hasPendingBorderPreview()) return false;
     state = state.copyWith(
-      errorMessage: 'Appliquez, ignorez ou annulez l’aperçu de bordure avant '
+      errorMessage:
+          'Appliquez, ignorez ou annulez l’aperçu de bordure avant '
           'toute autre écriture de la carte.',
     );
     return true;
@@ -2094,7 +2104,8 @@ class EditorNotifier extends _$EditorNotifier
           .map((diagnostic) => diagnostic.message)
           .join(' ');
       state = state.copyWith(
-        errorMessage: 'Cette carte utilise une version de pile visuelle '
+        errorMessage:
+            'Cette carte utilise une version de pile visuelle '
             'inconnue et reste en lecture seule. $detail',
       );
       return true;
@@ -2105,20 +2116,15 @@ class EditorNotifier extends _$EditorNotifier
       final project = state.project;
       if (workspace != null && project != null) {
         final rootPath = state.projectRootPath;
-        final cacheMiss = !identical(
-              _mapManifestIntegrityProjectIdentity,
-              project,
-            ) ||
+        final cacheMiss =
+            !identical(_mapManifestIntegrityProjectIdentity, project) ||
             !_sameNullableNormalizedPath(
               _mapManifestIntegrityRootPath,
               rootPath,
             );
         if (revalidateManifest || cacheMiss) {
-          _mapManifestIntegrityDiagnostics =
-              _projectMapManifestIntegrityPolicy.diagnostics(
-            workspace,
-            project,
-          );
+          _mapManifestIntegrityDiagnostics = _projectMapManifestIntegrityPolicy
+              .diagnostics(workspace, project);
           _mapManifestIntegrityProjectIdentity = project;
           _mapManifestIntegrityRootPath = rootPath;
         }
@@ -2131,7 +2137,8 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     } on EditorValidationException {
       state = state.copyWith(
-        errorMessage: 'La carte ou son manifeste est ouvert en lecture seule. '
+        errorMessage:
+            'La carte ou son manifeste est ouvert en lecture seule. '
             'Corrigez les identifiants et chemins de map avant de la modifier.',
       );
       return true;
@@ -2178,20 +2185,20 @@ class EditorNotifier extends _$EditorNotifier
           MapActivationOutcome.unavailable,
         );
       }
-      final sourceMapMatches =
-          identical(pending.sourceMapIdentity, state.activeMap);
+      final sourceMapMatches = identical(
+        pending.sourceMapIdentity,
+        state.activeMap,
+      );
       final savedDocumentMayAdvanceIdentity =
           dirtyDecision == DirtyMapActivationDecision.save &&
-              !state.isDirty &&
-              !state.isProjectDirty &&
-              !_hasPendingBorderPreview();
-      final matchesPending = pending.targetKey == targetKey &&
+          !state.isDirty &&
+          !state.isProjectDirty &&
+          !_hasPendingBorderPreview();
+      final matchesPending =
+          pending.targetKey == targetKey &&
           identical(pending.projectIdentity, state.project) &&
           (sourceMapMatches || savedDocumentMayAdvanceIdentity) &&
-          _sameNullableNormalizedPath(
-            pending.sourcePath,
-            state.activeMapPath,
-          );
+          _sameNullableNormalizedPath(pending.sourcePath, state.activeMapPath);
       if (!matchesPending) {
         _pendingProjectReplacement = null;
         return _projectReplacementAuthorization(
@@ -2200,9 +2207,7 @@ class EditorNotifier extends _$EditorNotifier
       }
       _pendingProjectReplacement = null;
       if (dirtyDecision == DirtyMapActivationDecision.cancel) {
-        return _projectReplacementAuthorization(
-          MapActivationOutcome.cancelled,
-        );
+        return _projectReplacementAuthorization(MapActivationOutcome.cancelled);
       }
     }
 
@@ -2223,9 +2228,7 @@ class EditorNotifier extends _$EditorNotifier
           MapActivationOutcome.requiresDecision,
         );
       case MapActivationPlan.stay:
-        return _projectReplacementAuthorization(
-          MapActivationOutcome.cancelled,
-        );
+        return _projectReplacementAuthorization(MapActivationOutcome.cancelled);
       case MapActivationPlan.saveThenActivate:
         if (state.activeMap != null &&
             (state.isDirty || _hasPendingBorderPreview())) {
@@ -2248,13 +2251,9 @@ class EditorNotifier extends _$EditorNotifier
             MapActivationOutcome.saveBlocked,
           );
         }
-        return _projectReplacementAuthorization(
-          MapActivationOutcome.activated,
-        );
+        return _projectReplacementAuthorization(MapActivationOutcome.activated);
       case MapActivationPlan.activate:
-        return _projectReplacementAuthorization(
-          MapActivationOutcome.activated,
-        );
+        return _projectReplacementAuthorization(MapActivationOutcome.activated);
     }
   }
 
@@ -2293,10 +2292,7 @@ class EditorNotifier extends _$EditorNotifier
         ) &&
         identical(baseline.projectIdentity, state.project) &&
         identical(baseline.sourceMapIdentity, state.activeMap) &&
-        _sameNullableNormalizedPath(
-          baseline.sourcePath,
-          state.activeMapPath,
-        ) &&
+        _sameNullableNormalizedPath(baseline.sourcePath, state.activeMapPath) &&
         baseline.isDirty == state.isDirty &&
         baseline.isProjectDirty == state.isProjectDirty &&
         baseline.hasPendingPreview ==
@@ -2310,9 +2306,9 @@ class EditorNotifier extends _$EditorNotifier
   /// They are only announced as saved after persistence confirmation. A
   /// conflict or I/O failure deliberately keeps the visible local document.
   Future<NarrativeAuthoringTransactionResult?>
-      executeNarrativeAuthoringMutation(
+  executeNarrativeAuthoringMutation(
     NarrativeAssetMutationResult Function(ProjectManifest project)
-        buildMutation, {
+    buildMutation, {
     required String operationId,
   }) async {
     final workspace = _projectWorkspace;
@@ -2350,7 +2346,7 @@ class EditorNotifier extends _$EditorNotifier
         code: state.isProjectDirty ? 'dirtyProject' : 'transactionBusy',
         message: state.isProjectDirty
             ? 'Enregistrez les modifications projet en attente avant cette '
-                'opération narrative.'
+                  'opération narrative.'
             : 'Une autre sauvegarde est déjà en cours.',
         transaction: transaction,
       );
@@ -2365,9 +2361,9 @@ class EditorNotifier extends _$EditorNotifier
         code: 'unsavedLocalSnapshot',
         message: interlock == null
             ? 'Cette version existe seulement dans les modifications locales '
-                'non enregistrées.'
+                  'non enregistrées.'
             : 'Cette version existe seulement localement après l’échec '
-                '${interlock.code}. Rechargez le projet avant de réessayer.',
+                  '${interlock.code}. Rechargez le projet avant de réessayer.',
         transaction: transaction,
       );
       // A semantic no-op against dirty memory is not a persistence success.
@@ -2391,9 +2387,9 @@ class EditorNotifier extends _$EditorNotifier
       };
       state = switch (result.status) {
         NarrativeAuthoringTransactionStatus.noChange => state.copyWith(
-            statusMessage: 'Aucune modification narrative à enregistrer.',
-            errorMessage: null,
-          ),
+          statusMessage: 'Aucune modification narrative à enregistrer.',
+          errorMessage: null,
+        ),
         _ => state.copyWith(errorMessage: rejectionMessage),
       };
       return result;
@@ -2432,12 +2428,13 @@ class EditorNotifier extends _$EditorNotifier
           _narrativeAuthoringSaveInterlock = null;
           state = state.copyWith(
             isSaving: false,
-            isProjectDirty:
-                exactSnapshotStillVisible ? false : state.isProjectDirty,
+            isProjectDirty: exactSnapshotStillVisible
+                ? false
+                : state.isProjectDirty,
             statusMessage: exactSnapshotStillVisible
                 ? 'Modification narrative enregistrée.'
                 : 'Snapshot narratif enregistré ; des modifications locales '
-                    'plus récentes restent à enregistrer.',
+                      'plus récentes restent à enregistrer.',
             errorMessage: null,
           );
           if (_narrativeDocumentSession != null && exactSnapshotStillVisible) {
@@ -2581,9 +2578,7 @@ class EditorNotifier extends _$EditorNotifier
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) {
-      state = state.copyWith(
-        errorMessage: 'No project open to save.',
-      );
+      state = state.copyWith(errorMessage: 'No project open to save.');
       return false;
     }
     final personalizationSession = _personalizationStudioSession;
@@ -2597,7 +2592,8 @@ class EditorNotifier extends _$EditorNotifier
         narrativeSession.state.status != NarrativeDocumentSessionStatus.saved) {
       if (project != narrativeSession.state.document) {
         state = state.copyWith(
-          errorMessage: 'Sauvegarde bloquée : le projet contient à la fois '
+          errorMessage:
+              'Sauvegarde bloquée : le projet contient à la fois '
               'une session Cinématiques et des modifications extérieures. '
               'Résolvez ou annulez la session narrative avant de continuer.',
         );
@@ -2608,34 +2604,33 @@ class EditorNotifier extends _$EditorNotifier
     final interlock = _narrativeAuthoringSaveInterlock;
     if (interlock != null && interlock.projectPath == fs.projectManifestPath) {
       state = state.copyWith(
-        errorMessage: 'Sauvegarde projet bloquée après un échec narratif '
+        errorMessage:
+            'Sauvegarde projet bloquée après un échec narratif '
             '(${interlock.code}) afin de ne pas écraser une version externe. '
             'Rechargez le projet avant de réessayer. ${interlock.message}',
       );
       return false;
     }
     if (state.isSaving) {
-      state = state.copyWith(
-        errorMessage: 'Une sauvegarde est déjà en cours.',
-      );
+      state = state.copyWith(errorMessage: 'Une sauvegarde est déjà en cours.');
       return false;
     }
     debugPrint('EditorNotifier: saveProjectManifest()');
     state = state.copyWith(isSaving: true, errorMessage: null);
     try {
-      await ref.read(projectRepositoryProvider).saveProject(
-            project,
-            fs.projectManifestPath,
-          );
+      await ref
+          .read(projectRepositoryProvider)
+          .saveProject(project, fs.projectManifestPath);
       final savedSnapshotIsStillCurrent = identical(state.project, project);
       state = state.copyWith(
         isSaving: false,
-        isProjectDirty:
-            savedSnapshotIsStillCurrent ? false : state.isProjectDirty,
+        isProjectDirty: savedSnapshotIsStillCurrent
+            ? false
+            : state.isProjectDirty,
         statusMessage: savedSnapshotIsStillCurrent
             ? 'Projet sauvegardé via le flux projet existant.'
             : 'Snapshot sauvegardé ; des modifications locales plus récentes '
-                'restent à enregistrer.',
+                  'restent à enregistrer.',
         errorMessage: null,
       );
       return true;
@@ -2657,14 +2652,16 @@ class EditorNotifier extends _$EditorNotifier
     if (lease == null) return false;
     _placedElementPublicationMapWriteLeaseToken = lease.token;
     try {
-      final savedRevision =
-          await ref.read(saveMapUseCaseProvider).executeRevisioned(
-                base.map,
-                base.mapPath,
-                expectedRevision: base.mapRevision,
-                projectDialogueContext: base.project,
-              );
-      final canAcceptSave = _ownsMapDiskMutationLease(lease.token) &&
+      final savedRevision = await ref
+          .read(saveMapUseCaseProvider)
+          .executeRevisioned(
+            base.map,
+            base.mapPath,
+            expectedRevision: base.mapRevision,
+            projectDialogueContext: base.project,
+          );
+      final canAcceptSave =
+          _ownsMapDiskMutationLease(lease.token) &&
           _sameNullableNormalizedPath(
             state.projectRootPath,
             base.projectRootPath,
@@ -2677,10 +2674,7 @@ class EditorNotifier extends _$EditorNotifier
         revision: savedRevision,
         sourceDocument: base.map,
       );
-      state = state.copyWith(
-        savedMapSnapshot: base.map,
-        errorMessage: null,
-      );
+      state = state.copyWith(savedMapSnapshot: base.map, errorMessage: null);
       return true;
     } on Object catch (error) {
       if (_ownsMapDiskMutationLease(lease.token)) {
@@ -2717,9 +2711,7 @@ class EditorNotifier extends _$EditorNotifier
       return ActiveMapSaveOutcome.unavailable;
     }
     if (_smartTileCanonicalRecoveryRequired) {
-      state = state.copyWith(
-        errorMessage: editorReloadRequiredMessage,
-      );
+      state = state.copyWith(errorMessage: editorReloadRequiredMessage);
       return ActiveMapSaveOutcome.unavailable;
     }
     // The canvas arbiter still owns this gesture. Saving here would persist a
@@ -2735,7 +2727,9 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     final activeBorderFeature = ref.read(activeBorderFeatureControllerProvider);
-    final preparation = ref.read(pendingBorderSaveGuardProvider).prepare(
+    final preparation = ref
+        .read(pendingBorderSaveGuardProvider)
+        .prepare(
           currentMap: map,
           previewState: ref.read(borderPreviewControllerProvider),
           currentContext: _borderPreviewContext(state),
@@ -2764,7 +2758,8 @@ class EditorNotifier extends _$EditorNotifier
     final savedPlacementCount = state.savedMapSnapshot?.placedElements.length;
     final currentPlacementCount = candidateMap.placedElements.length;
     final confirmedBaseline = _confirmedBulkPlacementLossBaseline;
-    final isBulkPlacementLossConfirmed = confirmBulkPlacementLoss ||
+    final isBulkPlacementLossConfirmed =
+        confirmBulkPlacementLoss ||
         (confirmedBaseline != null &&
             identical(confirmedBaseline, state.savedMapSnapshot));
     if (!isBulkPlacementLossConfirmed &&
@@ -2775,7 +2770,8 @@ class EditorNotifier extends _$EditorNotifier
             savedPlacementCount) {
       state = state.copyWith(
         isSaving: false,
-        errorMessage: 'Sauvegarde bloquée : les placements passeraient de '
+        errorMessage:
+            'Sauvegarde bloquée : les placements passeraient de '
             '$savedPlacementCount à $currentPlacementCount (perte supérieure '
             'à 25 %). Confirmez explicitement cette suppression massive avant '
             'd’enregistrer.',
@@ -2804,14 +2800,15 @@ class EditorNotifier extends _$EditorNotifier
         revision: savedRevision,
         sourceDocument: candidateMap,
       );
-      final authoringReceipt =
-          ref.read(authoringMutationAdapterProvider).lastAppliedReceipt;
+      final authoringReceipt = ref
+          .read(authoringMutationAdapterProvider)
+          .lastAppliedReceipt;
       final receiptMessage = authoringReceipt == null
           ? null
           : ref
-              .read(editorReceiptPresenterProvider)
-              .receipt(authoringReceipt)
-              .message;
+                .read(editorReceiptPresenterProvider)
+                .receipt(authoringReceipt)
+                .message;
       endMapStroke();
       switch (ready.postSaveAction) {
         case PendingBorderPostSaveAction.none:
@@ -2843,7 +2840,8 @@ class EditorNotifier extends _$EditorNotifier
       if (_canAdoptMapDiskMutation(lease)) {
         state = _projectSessionController.markMapSaveFailed(
           current: state,
-          errorMessage: 'La carte a été modifiée en dehors de cet éditeur, '
+          errorMessage:
+              'La carte a été modifiée en dehors de cet éditeur, '
               'ou sa révision locale n’est pas attestée. Vos modifications '
               'locales sont conservées : il faut recharger la carte avant de '
               'réessayer. $e',
@@ -2889,17 +2887,24 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  Future<void> createMap(String id, int width, int height,
-      {String? groupId, MapRole role = MapRole.exterior}) async {
+  Future<void> createMap(
+    String id,
+    int width,
+    int height, {
+    String? groupId,
+    MapRole role = MapRole.exterior,
+  }) async {
     debugPrint(
-        'EditorNotifier: createMap($id, $width, $height) in group $groupId');
+      'EditorNotifier: createMap($id, $width, $height) in group $groupId',
+    );
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
     if (_rejectPendingBorderPreviewMapLifecycleMutation()) return;
     if (state.isDirty) {
       state = state.copyWith(
-        errorMessage: 'Enregistrez ou abandonnez les modifications de la '
+        errorMessage:
+            'Enregistrez ou abandonnez les modifications de la '
             'carte active avant d’en créer une autre.',
       );
       return;
@@ -2916,28 +2921,35 @@ class EditorNotifier extends _$EditorNotifier
 
     try {
       final useCase = ref.read(createMapUseCaseProvider);
-      await useCase.execute(fs, project, id, width, height,
-          groupId: groupId, role: role);
+      await useCase.execute(
+        fs,
+        project,
+        id,
+        width,
+        height,
+        groupId: groupId,
+        role: role,
+      );
       if (!_canAdoptMapDiskMutation(lease)) return;
       final relativePath = fs.getMapRelativePath(id);
-      final persistedDocument =
-          await ref.read(loadMapUseCaseProvider).executeDocument(
-                fs,
-                relativePath,
-              );
+      final persistedDocument = await ref
+          .read(loadMapUseCaseProvider)
+          .executeDocument(fs, relativePath);
       if (!_canAdoptMapDiskMutation(lease)) return;
       final map = persistedDocument.map;
       final mapPath = fs.resolveMapPath(relativePath);
-      final updatedProject = project.copyWith(maps: [
-        ...project.maps,
-        ProjectMapEntry(
-          id: id,
-          name: id,
-          relativePath: fs.getMapRelativePath(id),
-          groupId: groupId,
-          role: role,
-        )
-      ]);
+      final updatedProject = project.copyWith(
+        maps: [
+          ...project.maps,
+          ProjectMapEntry(
+            id: id,
+            name: id,
+            relativePath: fs.getMapRelativePath(id),
+            groupId: groupId,
+            role: role,
+          ),
+        ],
+      );
       final preservedPaletteSession = _rememberActivePaletteContext(state);
       final preservedSelectedTilesetEditorId = state.selectedTilesetEditorId;
       state = _projectSessionController.openMapDocument(
@@ -2948,14 +2960,15 @@ class EditorNotifier extends _$EditorNotifier
         document: MapDocumentLoadResult(
           map: map,
           activeMapPath: mapPath,
-          selectedTilesetEditorId: preservedSelectedTilesetEditorId != null &&
+          selectedTilesetEditorId:
+              preservedSelectedTilesetEditorId != null &&
                   updatedProject.tilesets.any(
                     (tileset) => tileset.id == preservedSelectedTilesetEditorId,
                   )
               ? preservedSelectedTilesetEditorId
               : updatedProject.tilesets.isNotEmpty
-                  ? updatedProject.tilesets.first.id
-                  : null,
+              ? updatedProject.tilesets.first.id
+              : null,
         ),
         statusMessage: 'Carte « $id » créée avec succès',
       );
@@ -2970,8 +2983,9 @@ class EditorNotifier extends _$EditorNotifier
     } catch (e) {
       debugPrint('EditorNotifier: Error creating map: $e');
       if (_canAdoptMapDiskMutation(lease)) {
-        state =
-            state.copyWith(errorMessage: 'Impossible de créer la carte : $e');
+        state = state.copyWith(
+          errorMessage: 'Impossible de créer la carte : $e',
+        );
       }
     } finally {
       _endMapDiskMutationLease(lease);
@@ -3057,20 +3071,22 @@ class EditorNotifier extends _$EditorNotifier
         return MapActivationOutcome.unavailable;
       }
       if (dirtyDecision != null && pending != null) {
-        final sourceMapMatches =
-            identical(pending.sourceMapIdentity, state.activeMap);
+        final sourceMapMatches = identical(
+          pending.sourceMapIdentity,
+          state.activeMap,
+        );
         final savedMapMayAdvanceIdentity =
             dirtyDecision == DirtyMapActivationDecision.save &&
-                !state.isDirty &&
-                !_hasPendingBorderPreview();
+            !state.isDirty &&
+            !_hasPendingBorderPreview();
         final matchesPending =
             p.normalize(pending.targetPath) == p.normalize(targetPath) &&
-                identical(pending.projectIdentity, state.project) &&
-                (sourceMapMatches || savedMapMayAdvanceIdentity) &&
-                _sameNullableNormalizedPath(
-                  pending.sourcePath,
-                  state.activeMapPath,
-                );
+            identical(pending.projectIdentity, state.project) &&
+            (sourceMapMatches || savedMapMayAdvanceIdentity) &&
+            _sameNullableNormalizedPath(
+              pending.sourcePath,
+              state.activeMapPath,
+            );
         if (!matchesPending) {
           _pendingMapActivation = null;
           return MapActivationOutcome.unavailable;
@@ -3084,11 +3100,7 @@ class EditorNotifier extends _$EditorNotifier
 
     final targetEntry = isInternalReload
         ? null
-        : _findMapEntryForPath(
-            state.project,
-            fs,
-            targetPath,
-          );
+        : _findMapEntryForPath(state.project, fs, targetPath);
     if (!isInternalReload && targetEntry == null) {
       state = state.copyWith(
         errorMessage: 'Impossible de charger une carte absente du projet.',
@@ -3130,18 +3142,14 @@ class EditorNotifier extends _$EditorNotifier
     final ownsLease = mapWriteLeaseToken == null;
     final _MapDiskMutationLease? operationLease;
     if (ownsLease) {
-      operationLease = _beginMapDiskMutationLease(
-        allowCleanupInterlock: true,
-      );
+      operationLease = _beginMapDiskMutationLease(allowCleanupInterlock: true);
       if (operationLease == null) {
         return (_mapDiskMutationLease != null || state.isSaving)
             ? MapActivationOutcome.busy
             : MapActivationOutcome.unavailable;
       }
     } else {
-      if (_rejectMapDiskMutationLease(
-        allowedLeaseToken: mapWriteLeaseToken,
-      )) {
+      if (_rejectMapDiskMutationLease(allowedLeaseToken: mapWriteLeaseToken)) {
         return MapActivationOutcome.busy;
       }
       operationLease = _mapDiskMutationLease;
@@ -3178,15 +3186,15 @@ class EditorNotifier extends _$EditorNotifier
       final preservedSelectedTilesetEditorId = state.selectedTilesetEditorId;
       final nextSelectedTilesetEditorId =
           preservedSelectedTilesetEditorId != null &&
-                  preservedSelectedTilesetEditorId.isNotEmpty &&
-                  project != null &&
-                  project.tilesets.any(
-                    (tileset) => tileset.id == preservedSelectedTilesetEditorId,
-                  )
-              ? preservedSelectedTilesetEditorId
-              : project != null && project.tilesets.isNotEmpty
-                  ? project.tilesets.first.id
-                  : null;
+              preservedSelectedTilesetEditorId.isNotEmpty &&
+              project != null &&
+              project.tilesets.any(
+                (tileset) => tileset.id == preservedSelectedTilesetEditorId,
+              )
+          ? preservedSelectedTilesetEditorId
+          : project != null && project.tilesets.isNotEmpty
+          ? project.tilesets.first.id
+          : null;
       state = _projectSessionController.openMapDocument(
         current: state.copyWith(paletteSession: preservedPaletteSession),
         document: MapDocumentLoadResult(
@@ -3202,7 +3210,8 @@ class EditorNotifier extends _$EditorNotifier
       if (visualComposition.requiresReadOnly) {
         state = state.copyWith(
           statusMessage: 'Carte « ${map.id} » ouverte en lecture seule',
-          errorMessage: 'Version de pile visuelle non prise en charge. '
+          errorMessage:
+              'Version de pile visuelle non prise en charge. '
               '${visualComposition.diagnostics.map((diagnostic) => diagnostic.message).join(' ')}',
         );
       }
@@ -3226,8 +3235,9 @@ class EditorNotifier extends _$EditorNotifier
           : _canAdoptMapDiskMutation(operationLease);
       if (!canReportFailure) return MapActivationOutcome.unavailable;
       debugPrint('EditorNotifier: Error loading map: $e');
-      state =
-          state.copyWith(errorMessage: 'Impossible de charger la carte : $e');
+      state = state.copyWith(
+        errorMessage: 'Impossible de charger la carte : $e',
+      );
       return MapActivationOutcome.failed;
     } finally {
       _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
@@ -3279,10 +3289,9 @@ class EditorNotifier extends _$EditorNotifier
 
     try {
       final mapPath = workspace.resolveMapPath(entry.relativePath);
-      final document = await ref.read(loadMapUseCaseProvider).executeDocument(
-            workspace,
-            entry.relativePath,
-          );
+      final document = await ref
+          .read(loadMapUseCaseProvider)
+          .executeDocument(workspace, entry.relativePath);
       _rememberMapDocumentRevision(
         mapPath,
         revision: document.revision,
@@ -3322,11 +3331,7 @@ class EditorNotifier extends _$EditorNotifier
     }
     if (entry == null) return false;
     final mapPath = workspace.resolveMapPath(entry.relativePath);
-    if (_mapDocumentRevisionFor(
-          mapPath,
-          sourceDocument: map,
-        ) ==
-        null) {
+    if (_mapDocumentRevisionFor(mapPath, sourceDocument: map) == null) {
       _forgetMapDocumentRevision(mapPath);
     }
     state = _projectSessionController.openMapDocument(
@@ -3334,8 +3339,8 @@ class EditorNotifier extends _$EditorNotifier
       document: MapDocumentLoadResult(
         map: map,
         activeMapPath: mapPath,
-        selectedTilesetEditorId:
-            _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
+        selectedTilesetEditorId: _editorMapSessionCoordinator
+            .resolveSelectedTilesetIdForMap(map),
       ),
       statusMessage: 'Carte « ${map.name} » ouverte depuis l’Event',
     );
@@ -3446,8 +3451,8 @@ class EditorNotifier extends _$EditorNotifier
         NarrativeEventPhysicalSourceKind.item => MapEntityKind.item,
         NarrativeEventPhysicalSourceKind.invisible => MapEntityKind.custom,
         NarrativeEventPhysicalSourceKind.zone1x1 => throw StateError(
-            'zone1x1 is handled as a MapTrigger before entity creation.',
-          ),
+          'zone1x1 is handled as a MapTrigger before entity creation.',
+        ),
       };
       final added = _entityEditingService.addEntityAt(
         beforeMap,
@@ -3458,11 +3463,7 @@ class EditorNotifier extends _$EditorNotifier
       var entity = added.createdEntity;
       if (kind == NarrativeEventPhysicalSourceKind.invisible) {
         afterMap = _entityEditingService
-            .updateEntity(
-              afterMap,
-              entityId: entity.id,
-              blocksMovement: false,
-            )
+            .updateEntity(afterMap, entityId: entity.id, blocksMovement: false)
             .updatedMap;
         entity = afterMap.entities.firstWhere(
           (candidate) => candidate.id == entity.id,
@@ -3471,10 +3472,7 @@ class EditorNotifier extends _$EditorNotifier
 
       return NarrativeEventCreatedSourceProposal(
         physicalKind: kind,
-        source: NarrativeEventSourceRef.entityInteract(
-          beforeMap.id,
-          entity.id,
-        ),
+        source: NarrativeEventSourceRef.entityInteract(beforeMap.id, entity.id),
         beforeMap: beforeMap,
         afterMap: afterMap,
         bounds: MapRect(pos: entity.pos, size: entity.size),
@@ -3499,9 +3497,7 @@ class EditorNotifier extends _$EditorNotifier
     NarrativeEventCreatedSourceProposal proposal, {
     Object? mapWriteLeaseToken,
   }) {
-    if (_rejectMapDiskMutationLease(
-      allowedLeaseToken: mapWriteLeaseToken,
-    )) {
+    if (_rejectMapDiskMutationLease(allowedLeaseToken: mapWriteLeaseToken)) {
       return false;
     }
     if (!identical(state.activeMap, proposal.beforeMap) ||
@@ -3560,7 +3556,8 @@ class EditorNotifier extends _$EditorNotifier
     if (!allowCleanupInterlock &&
         _narrativeEventSourceCleanupInterlock != null) {
       state = state.copyWith(
-        errorMessage: 'Une map nettoyée doit être rechargée avant toute '
+        errorMessage:
+            'Une map nettoyée doit être rechargée avant toute '
             'nouvelle écriture de map.',
       );
       return null;
@@ -3607,14 +3604,13 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  bool _rejectMapDiskMutationLease({
-    Object? allowedLeaseToken,
-  }) {
+  bool _rejectMapDiskMutationLease({Object? allowedLeaseToken}) {
     final token = _mapDiskMutationLease?.token;
     if (token == null && allowedLeaseToken == null) return false;
     if (token != null && identical(token, allowedLeaseToken)) return false;
     state = state.copyWith(
-      errorMessage: 'Une écriture de map est en cours. '
+      errorMessage:
+          'Une écriture de map est en cours. '
           'Attendez sa fin avant de modifier ou recharger la map.',
     );
     return true;
@@ -3653,10 +3649,7 @@ class EditorNotifier extends _$EditorNotifier
         ) &&
         identical(state.project, lease.project) &&
         identical(state.activeMap, lease.activeMap) &&
-        _sameNullableNormalizedPath(
-          state.activeMapPath,
-          lease.activeMapPath,
-        );
+        _sameNullableNormalizedPath(state.activeMapPath, lease.activeMapPath);
   }
 
   void _endMapDiskMutationLease(_MapDiskMutationLease lease) {
@@ -3770,7 +3763,8 @@ class EditorNotifier extends _$EditorNotifier
     final activeMapPath = state.activeMapPath;
     final expectedProject = state.project;
     final expectedSavedMap = state.savedMapSnapshot;
-    final exactBaselineBeforeLoad = state.projectRootPath != null &&
+    final exactBaselineBeforeLoad =
+        state.projectRootPath != null &&
         p.normalize(state.projectRootPath!) == expectedRoot &&
         activeMapPath != null &&
         p.normalize(activeMapPath) == expectedMapPath &&
@@ -3799,7 +3793,8 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
 
-    final exactBaselineStillCurrent = exactBaselineBeforeLoad &&
+    final exactBaselineStillCurrent =
+        exactBaselineBeforeLoad &&
         state.projectRootPath != null &&
         p.normalize(state.projectRootPath!) == expectedRoot &&
         identical(state.project, expectedProject) &&
@@ -3827,7 +3822,8 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     final currentMap = state.activeMap;
-    final canRebaseCurrentMap = state.projectRootPath != null &&
+    final canRebaseCurrentMap =
+        state.projectRootPath != null &&
         p.normalize(state.projectRootPath!) == expectedRoot &&
         identical(state.project, expectedProject) &&
         state.activeMapPath != null &&
@@ -3978,7 +3974,7 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   static _NarrativeEventSourceCleanupInterlock
-      _narrativeEventSourceCleanupInterlockFor({
+  _narrativeEventSourceCleanupInterlockFor({
     required String expectedProjectRootPath,
     required NarrativeEventSpatialLinkJournal journal,
   }) {
@@ -4042,7 +4038,8 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     state = state.copyWith(
-      errorMessage: 'Cette map a été nettoyée sur disque. Rechargez-la avant '
+      errorMessage:
+          'Cette map a été nettoyée sur disque. Rechargez-la avant '
           'de la modifier ou de l’enregistrer.',
     );
     return true;
@@ -4130,7 +4127,9 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return null;
     final project = state.project;
     final settings = project?.settings;
-    return ref.read(resizeMapUseCaseProvider).plan(
+    return ref
+        .read(resizeMapUseCaseProvider)
+        .plan(
           map,
           width,
           height,
@@ -4156,7 +4155,8 @@ class EditorNotifier extends _$EditorNotifier
       if (project == null && map.layers.any((layer) => layer is BorderLayer)) {
         state = state.copyWith(
           statusMessage: null,
-          errorMessage: 'Impossible de redimensionner une carte avec des '
+          errorMessage:
+              'Impossible de redimensionner une carte avec des '
               'bordures sans les réglages de tuile du projet.',
         );
         return;
@@ -4177,10 +4177,12 @@ class EditorNotifier extends _$EditorNotifier
         if (result.diagnosticReport.hasDiagnostics) {
           ref
               .read(borderResizeFeedbackProvider.notifier)
-              .setFeedback(BorderResizeFeedback(
-                mapIdentity: map,
-                diagnosticReport: result.diagnosticReport,
-              ));
+              .setFeedback(
+                BorderResizeFeedback(
+                  mapIdentity: map,
+                  diagnosticReport: result.diagnosticReport,
+                ),
+              );
         }
         final impactCount = result.plan.impacts.length;
         final diagnosticCount = result.diagnosticReport.errorCount;
@@ -4188,7 +4190,8 @@ class EditorNotifier extends _$EditorNotifier
         final noun = impactCount > 0 ? 'impact' : 'diagnostic';
         state = state.copyWith(
           statusMessage: null,
-          errorMessage: 'Impossible de redimensionner la carte : '
+          errorMessage:
+              'Impossible de redimensionner la carte : '
               '$count $noun${count > 1 ? 's' : ''} '
               'bloquant${count > 1 ? 's' : ''}.',
         );
@@ -4220,7 +4223,8 @@ class EditorNotifier extends _$EditorNotifier
       }
 
       final hovered = state.hoveredTile;
-      final nextHovered = (hovered != null &&
+      final nextHovered =
+          (hovered != null &&
               (hovered.x < 0 ||
                   hovered.y < 0 ||
                   hovered.x >= width ||
@@ -4241,15 +4245,18 @@ class EditorNotifier extends _$EditorNotifier
           result.diagnosticReport.hasDiagnostics) {
         ref
             .read(borderResizeFeedbackProvider.notifier)
-            .setFeedback(BorderResizeFeedback(
-              mapIdentity: activeMap,
-              diagnosticReport: result.diagnosticReport,
-            ));
+            .setFeedback(
+              BorderResizeFeedback(
+                mapIdentity: activeMap,
+                diagnosticReport: result.diagnosticReport,
+              ),
+            );
       }
     } catch (e) {
       debugPrint('EditorNotifier: Error resizing map: $e');
       state = state.copyWith(
-          errorMessage: 'Impossible de redimensionner la carte : $e');
+        errorMessage: 'Impossible de redimensionner la carte : $e',
+      );
     }
   }
 
@@ -4291,7 +4298,8 @@ class EditorNotifier extends _$EditorNotifier
     if (_rejectPendingBorderPreviewMapLifecycleMutation()) return null;
     if (state.isDirty && state.activeMap?.id == oldId) {
       state = state.copyWith(
-        errorMessage: 'Enregistrez ou abandonnez les modifications de cette '
+        errorMessage:
+            'Enregistrez ou abandonnez les modifications de cette '
             'carte avant de la renommer.',
       );
       return null;
@@ -4351,7 +4359,8 @@ class EditorNotifier extends _$EditorNotifier
     if (_rejectPendingBorderPreviewMapLifecycleMutation()) return null;
     if (state.isDirty && state.activeMap?.id == mapId) {
       state = state.copyWith(
-        errorMessage: 'Enregistrez ou abandonnez les modifications de cette '
+        errorMessage:
+            'Enregistrez ou abandonnez les modifications de cette '
             'carte avant de la supprimer.',
       );
       return null;
@@ -4424,8 +4433,11 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  Future<void> createGroup(String name, MapGroupType type,
-      {String? parentId}) async {
+  Future<void> createGroup(
+    String name,
+    MapGroupType type, {
+    String? parentId,
+  }) async {
     debugPrint('EditorNotifier: createGroup($name, $type, parent: $parentId)');
     final fs = _projectWorkspace;
     final project = state.project;
@@ -4433,8 +4445,13 @@ class EditorNotifier extends _$EditorNotifier
 
     try {
       final useCase = ref.read(createGroupUseCaseProvider);
-      final updatedProject =
-          await useCase.execute(fs, project, name, type, parentId: parentId);
+      final updatedProject = await useCase.execute(
+        fs,
+        project,
+        name,
+        type,
+        parentId: parentId,
+      );
       state = state.copyWith(
         project: updatedProject,
         statusMessage: 'Group "$name" created',
@@ -4474,8 +4491,12 @@ class EditorNotifier extends _$EditorNotifier
 
     try {
       final useCase = ref.read(renameGroupUseCaseProvider);
-      final updatedProject =
-          await useCase.execute(fs, project, groupId, newName);
+      final updatedProject = await useCase.execute(
+        fs,
+        project,
+        groupId,
+        newName,
+      );
       state = state.copyWith(
         project: updatedProject,
         statusMessage: 'Group renamed',
@@ -4671,8 +4692,9 @@ class EditorNotifier extends _$EditorNotifier
 
   /// Ouvre Smart Tiles Studio depuis l’explorateur sans cible de carte.
   void selectSmartTilesStudioLibraryWorkspace() {
-    state = _editorWorkspaceController
-        .selectSmartTilesStudioLibraryWorkspace(state);
+    state = _editorWorkspaceController.selectSmartTilesStudioLibraryWorkspace(
+      state,
+    );
   }
 
   /// Bascule vers Environment Studio.
@@ -4682,8 +4704,9 @@ class EditorNotifier extends _$EditorNotifier
 
   /// Ouvre le Personalization Studio sans muter le profil du projet.
   void selectPersonalizationStudioWorkspace() {
-    state =
-        _editorWorkspaceController.selectPersonalizationStudioWorkspace(state);
+    state = _editorWorkspaceController.selectPersonalizationStudioWorkspace(
+      state,
+    );
   }
 
   /// Bascule vers Border Studio sans exiger de carte active.
@@ -4719,8 +4742,9 @@ class EditorNotifier extends _$EditorNotifier
         state.activeMap != null &&
         state.activeLayerId != null) {
       if (tilesetId != null &&
-          !getAssignableTilesetsForActiveMap()
-              .any((tileset) => tileset.id == tilesetId)) {
+          !getAssignableTilesetsForActiveMap().any(
+            (tileset) => tileset.id == tilesetId,
+          )) {
         state = state.copyWith(
           errorMessage: 'Ce tileset n’est pas disponible pour la carte active.',
         );
@@ -4779,8 +4803,10 @@ class EditorNotifier extends _$EditorNotifier
 
       final activeLayer = _findLayerById(map, activeLayerId);
       if (activeLayer is TileLayer) {
-        final layerTilesetId =
-            _assignedTilesetIdForLayer(map, activeLayer)?.trim();
+        final layerTilesetId = _assignedTilesetIdForLayer(
+          map,
+          activeLayer,
+        )?.trim();
         if (layerTilesetId != null && layerTilesetId.isNotEmpty) {
           for (final tileset in project.tilesets) {
             if (tileset.id == layerTilesetId) {
@@ -4896,17 +4922,14 @@ class EditorNotifier extends _$EditorNotifier
   EditorBrush _editorBrush(EditorPaletteBrushMemory brush) {
     return brush.map(
       none: (_) => const EditorBrush.none(),
-      tile: (tile) => EditorBrush.tile(
-        tileId: tile.tileId,
-        tilesetId: tile.tilesetId,
-      ),
+      tile: (tile) =>
+          EditorBrush.tile(tileId: tile.tileId, tilesetId: tile.tilesetId),
       paletteEntry: (entry) => EditorBrush.paletteEntry(
         entryId: entry.entryId,
         tilesetId: entry.tilesetId,
       ),
-      projectElement: (element) => EditorBrush.projectElement(
-        elementId: element.elementId,
-      ),
+      projectElement: (element) =>
+          EditorBrush.projectElement(elementId: element.elementId),
     );
   }
 
@@ -4914,7 +4937,8 @@ class EditorNotifier extends _$EditorNotifier
     final key = _activePaletteContextKey(source);
     if (key == null) return source.paletteSession;
     final assignedTilesetId = _assignedTilesetIdForState(source);
-    final existing = source.paletteSession.contexts[key] ??
+    final existing =
+        source.paletteSession.contexts[key] ??
         EditorLayerPaletteContext(selectedTilesetId: assignedTilesetId);
     final context = existing.copyWith(
       selectedTilesetId: existing.selectedTilesetId ?? assignedTilesetId,
@@ -4975,7 +4999,8 @@ class EditorNotifier extends _$EditorNotifier
     final key = _activePaletteContextKey(state);
     if (project == null || key == null) return;
     var session = _rememberActivePaletteContext(state);
-    final existing = session.contexts[key] ??
+    final existing =
+        session.contexts[key] ??
         EditorLayerPaletteContext(
           selectedTilesetId: _assignedTilesetIdForState(state),
         );
@@ -4996,12 +5021,13 @@ class EditorNotifier extends _$EditorNotifier
 
   void _updateActivePaletteContext(
     EditorLayerPaletteContext Function(EditorLayerPaletteContext current)
-        update,
+    update,
   ) {
     final key = _activePaletteContextKey(state);
     if (key == null) return;
     var session = _rememberActivePaletteContext(state);
-    final current = session.contexts[key] ??
+    final current =
+        session.contexts[key] ??
         EditorLayerPaletteContext(
           selectedTilesetId: _assignedTilesetIdForState(state),
         );
@@ -5010,10 +5036,7 @@ class EditorNotifier extends _$EditorNotifier
       key: key,
       context: update(current),
     );
-    state = state.copyWith(
-      paletteSession: session,
-      errorMessage: null,
-    );
+    state = state.copyWith(paletteSession: session, errorMessage: null);
   }
 
   void setPaletteBrowserQuery(String query) {
@@ -5026,7 +5049,8 @@ class EditorNotifier extends _$EditorNotifier
     final project = state.project;
     if (project == null) return;
     final normalized = folderId?.trim();
-    final valid = normalized == null ||
+    final valid =
+        normalized == null ||
         normalized.isEmpty ||
         normalized == kEditorPaletteUnclassifiedFolderId ||
         project.tilesetFolders.any((folder) => folder.id == normalized);
@@ -5038,8 +5062,9 @@ class EditorNotifier extends _$EditorNotifier
     }
     _updateActivePaletteContext(
       (context) => context.copyWith(
-        browserFolderId:
-            normalized == null || normalized.isEmpty ? null : normalized,
+        browserFolderId: normalized == null || normalized.isEmpty
+            ? null
+            : normalized,
       ),
     );
   }
@@ -5048,7 +5073,8 @@ class EditorNotifier extends _$EditorNotifier
     final project = state.project;
     if (project == null) return;
     final normalized = categoryId?.trim();
-    final valid = normalized == null ||
+    final valid =
+        normalized == null ||
         normalized.isEmpty ||
         project.elementCategories.any((category) => category.id == normalized);
     if (!valid) {
@@ -5059,8 +5085,9 @@ class EditorNotifier extends _$EditorNotifier
     }
     _updateActivePaletteContext(
       (context) => context.copyWith(
-        projectElementCategoryId:
-            normalized == null || normalized.isEmpty ? null : normalized,
+        projectElementCategoryId: normalized == null || normalized.isEmpty
+            ? null
+            : normalized,
       ),
     );
   }
@@ -5303,12 +5330,14 @@ class EditorNotifier extends _$EditorNotifier
     List<ProjectElementEntry> resolved;
     final activeTilesetId = getSelectedTilesetEntry()?.id;
     if (includeAll) {
-      resolved = project.elements.where((element) {
-        if (!acrossAllTilesets && element.tilesetId != activeTilesetId) {
-          return false;
-        }
-        return true;
-      }).toList(growable: false);
+      resolved = project.elements
+          .where((element) {
+            if (!acrossAllTilesets && element.tilesetId != activeTilesetId) {
+              return false;
+            }
+            return true;
+          })
+          .toList(growable: false);
     } else if (globalOnly) {
       resolved = project.elements
           .where(
@@ -5542,11 +5571,7 @@ class EditorNotifier extends _$EditorNotifier
     if (fs == null || project == null) return;
     try {
       final useCase = ref.read(deleteProjectElementUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        elementId: elementId,
-      );
+      final updated = await useCase.execute(fs, project, elementId: elementId);
       final activeBrush = state.activeBrush.maybeMap(
         projectElement: (brush) => brush.elementId == elementId
             ? const EditorBrush.none()
@@ -5695,8 +5720,10 @@ class EditorNotifier extends _$EditorNotifier
     final selectedTileset =
         getSelectedTilesetEntry() ?? getActiveTilesetEntry();
     if (selectedTileset == null) return;
-    final entry =
-        getPaletteEntryById(tilesetId: selectedTileset.id, entryId: entryId);
+    final entry = getPaletteEntryById(
+      tilesetId: selectedTileset.id,
+      entryId: entryId,
+    );
     if (entry == null) return;
     if (!_canUsePaletteTileset(selectedTileset.id)) return;
     state = state.copyWith(
@@ -5803,10 +5830,7 @@ class EditorNotifier extends _$EditorNotifier
       category: category,
       frames: existing == null
           ? [TilesetVisualFrame(source: rect)]
-          : [
-              TilesetVisualFrame(source: rect),
-              ...existing.frames.skip(1),
-            ],
+          : [TilesetVisualFrame(source: rect), ...existing.frames.skip(1)],
       recommendedLayerId: recommendedLayerId,
     );
 
@@ -5825,8 +5849,9 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error updating palette entry: $e');
-      state =
-          state.copyWith(errorMessage: 'Failed to update palette entry: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to update palette entry: $e',
+      );
     }
   }
 
@@ -5879,10 +5904,7 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  void paintActiveSmartTileAt(
-    GridPos pos, {
-    String? materialId,
-  }) {
+  void paintActiveSmartTileAt(GridPos pos, {String? materialId}) {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
     final project = state.project;
@@ -5908,18 +5930,13 @@ class EditorNotifier extends _$EditorNotifier
     }
     final resolvedMaterialId = materialId ?? preset.defaultMaterialId;
     if (!preset.allowedMaterialIds.contains(resolvedMaterialId)) {
-      _setPaintError(
-        'Smart Tile material is not allowed: $resolvedMaterialId',
-      );
+      _setPaintError('Smart Tile material is not allowed: $resolvedMaterialId');
       return;
     }
     paintSmartTileMaterialAt(pos, materialId: resolvedMaterialId);
   }
 
-  void paintSmartTileMaterialAt(
-    GridPos pos, {
-    required String? materialId,
-  }) {
+  void paintSmartTileMaterialAt(GridPos pos, {required String? materialId}) {
     _paintSmartTileMaterialCells(
       <GridPos>[pos],
       materialId: materialId,
@@ -5963,14 +5980,13 @@ class EditorNotifier extends _$EditorNotifier
     if (state.activeTool != EditorToolType.terrainPaint &&
         state.activeTool != EditorToolType.eraser) {
       _setPaintError(
-          'Choose Smart Tile paint or erase before applying a shape');
+        'Choose Smart Tile paint or erase before applying a shape',
+      );
       return;
     }
     if (resolvedMaterialId != null &&
         !preset.allowedMaterialIds.contains(resolvedMaterialId)) {
-      _setPaintError(
-        'Smart Tile material is not allowed: $resolvedMaterialId',
-      );
+      _setPaintError('Smart Tile material is not allowed: $resolvedMaterialId');
       return;
     }
     try {
@@ -6195,10 +6211,7 @@ class EditorNotifier extends _$EditorNotifier
   ///
   /// Context actions use this command instead of [eraseAt], so the current
   /// eraser footprint and active layer cannot widen or redirect the edit.
-  bool eraseCellAt({
-    required String layerId,
-    required GridPos pos,
-  }) {
+  bool eraseCellAt({required String layerId, required GridPos pos}) {
     final map = state.activeMap;
     if (map == null ||
         pos.x < 0 ||
@@ -6265,7 +6278,8 @@ class EditorNotifier extends _$EditorNotifier
                 targetY >= map.size.height) {
               continue;
             }
-            final hasAuthoredValue = partOfStroke &&
+            final hasAuthoredValue =
+                partOfStroke &&
                     buffer != null &&
                     identical(buffer.sourceMap, map) &&
                     buffer.layerId == layerId &&
@@ -6437,19 +6451,11 @@ class EditorNotifier extends _$EditorNotifier
       id: eventId,
       title: eventId,
       position: EventPosition(layerId: layerId, x: pos.x, y: pos.y),
-      pages: const [
-        MapEventPage(
-          pageNumber: 0,
-          message: '',
-        ),
-      ],
+      pages: const [MapEventPage(pageNumber: 0, message: '')],
     );
     try {
       final updated = addMapEventToMap(map, event: created);
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
-      );
+      MapValidator.validate(updated, projectDialogueContext: state.project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -6539,11 +6545,9 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     try {
-      final result = ref.read(addMapLayerUseCaseProvider).execute(
-            map,
-            kind: MapLayerKind.object,
-            name: 'Événements',
-          );
+      final result = ref
+          .read(addMapLayerUseCaseProvider)
+          .execute(map, kind: MapLayerKind.object, name: 'Événements');
       _applyMapMutation(
         previousMap: map,
         updatedMap: result.map,
@@ -6591,10 +6595,7 @@ class EditorNotifier extends _$EditorNotifier
         eventId: eventId,
         title: trimmedTitle,
       );
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
-      );
+      MapValidator.validate(updated, projectDialogueContext: state.project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -6642,15 +6643,8 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     try {
-      final updated = updateMapEventOnMap(
-        map,
-        eventId: eventId,
-        type: type,
-      );
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
-      );
+      final updated = updateMapEventOnMap(map, eventId: eventId, type: type);
+      MapValidator.validate(updated, projectDialogueContext: state.project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -6703,8 +6697,9 @@ class EditorNotifier extends _$EditorNotifier
       );
       return false;
     }
-    final sceneExists =
-        project.scenes.any((scene) => scene.id == trimmedSceneId);
+    final sceneExists = project.scenes.any(
+      (scene) => scene.id == trimmedSceneId,
+    );
     if (!sceneExists) {
       state = state.copyWith(
         errorMessage: 'Scène introuvable : $trimmedSceneId',
@@ -6722,10 +6717,7 @@ class EditorNotifier extends _$EditorNotifier
         pageNumber: pageNumber,
         sceneId: trimmedSceneId,
       );
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: project,
-      );
+      MapValidator.validate(updated, projectDialogueContext: project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -6772,8 +6764,9 @@ class EditorNotifier extends _$EditorNotifier
     // canonique. Les champs sceneTarget/condition/script/message restent
     // volontairement sous la responsabilité des lots dédiés.
     final pageNumber = _eventBuilderAuthorablePageNumber(event);
-    final pageIndex =
-        event.pages.indexWhere((page) => page.pageNumber == pageNumber);
+    final pageIndex = event.pages.indexWhere(
+      (page) => page.pageNumber == pageNumber,
+    );
     final page = event.pages[pageIndex];
     final nextMetadata = Map<String, String>.unmodifiable({
       ...page.metadata,
@@ -6788,10 +6781,7 @@ class EditorNotifier extends _$EditorNotifier
         pageIndex: pageIndex,
         metadata: nextMetadata,
       );
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
-      );
+      MapValidator.validate(updated, projectDialogueContext: state.project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -6837,9 +6827,7 @@ class EditorNotifier extends _$EditorNotifier
     }
     final factExists = project.facts.any((fact) => fact.id == trimmedFactId);
     if (!factExists) {
-      state = state.copyWith(
-        errorMessage: 'Fact introuvable : $trimmedFactId',
-      );
+      state = state.copyWith(errorMessage: 'Fact introuvable : $trimmedFactId');
       return false;
     }
     final event = findMapEventById(map, eventId);
@@ -6878,10 +6866,7 @@ class EditorNotifier extends _$EditorNotifier
         pageNumber: pageNumber,
         conditions: updatedContract.conditions,
       );
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: project,
-      );
+      MapValidator.validate(updated, projectDialogueContext: project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -6968,10 +6953,7 @@ class EditorNotifier extends _$EditorNotifier
         pageNumber: pageNumber,
         conditions: updatedContract.conditions,
       );
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
-      );
+      MapValidator.validate(updated, projectDialogueContext: state.project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -7038,18 +7020,17 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     try {
-      final updatedContract =
-          removeEventBuilderCondition(contract, conditionIndex);
+      final updatedContract = removeEventBuilderCondition(
+        contract,
+        conditionIndex,
+      );
       final updated = _updateEventBuilderPageCondition(
         map: map,
         event: event,
         pageNumber: pageNumber,
         conditions: updatedContract.conditions,
       );
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
-      );
+      MapValidator.validate(updated, projectDialogueContext: state.project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -7070,10 +7051,7 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     if (eventId == null) {
-      state = state.copyWith(
-        selectedMapEventId: null,
-        errorMessage: null,
-      );
+      state = state.copyWith(selectedMapEventId: null, errorMessage: null);
       return;
     }
     final event = findMapEventById(map, eventId);
@@ -7081,10 +7059,7 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(errorMessage: 'Event not found: $eventId');
       return;
     }
-    state = state.copyWith(
-      selectedMapEventId: event.id,
-      errorMessage: null,
-    );
+    state = state.copyWith(selectedMapEventId: event.id, errorMessage: null);
   }
 
   /// Selects the visually uppermost authored object at [position].
@@ -7105,7 +7080,8 @@ class EditorNotifier extends _$EditorNotifier
       position: position,
       editorAnimationTimeMs: editorAnimationTimeMs,
     );
-    final repeatsSameStack = _lastCanvasObjectSelectionMapId == map.id &&
+    final repeatsSameStack =
+        _lastCanvasObjectSelectionMapId == map.id &&
         _lastCanvasObjectSelectionPosition == position &&
         _sameCanvasObjectHitStack(_lastCanvasObjectSelectionHits, hits) &&
         _lastCanvasObjectSelectionTarget != null &&
@@ -7116,12 +7092,13 @@ class EditorNotifier extends _$EditorNotifier
             current: _lastCanvasObjectSelectionTarget,
           )
         : hits.isEmpty
-            ? null
-            : hits.first;
+        ? null
+        : hits.first;
     _lastCanvasObjectSelectionMapId = map.id;
     _lastCanvasObjectSelectionPosition = position;
-    _lastCanvasObjectSelectionHits =
-        List<MapCanvasObjectTarget>.unmodifiable(hits);
+    _lastCanvasObjectSelectionHits = List<MapCanvasObjectTarget>.unmodifiable(
+      hits,
+    );
     _lastCanvasObjectSelectionTarget = target;
     _selectCanvasObjectTarget(target);
     return target;
@@ -7208,8 +7185,9 @@ class EditorNotifier extends _$EditorNotifier
 
     String? eventRevalidationMessage;
     if (target.kind == MapCanvasObjectKind.entity) {
-      final current =
-          map.entities.where((entry) => entry.id == target.id).firstOrNull;
+      final current = map.entities
+          .where((entry) => entry.id == target.id)
+          .firstOrNull;
       final next = candidate.entities
           .where((entry) => entry.id == target.id)
           .firstOrNull;
@@ -7219,21 +7197,22 @@ class EditorNotifier extends _$EditorNotifier
         );
         return false;
       }
-      final dependencyDecision =
-          _narrativeEventSourceDependencyGuard.inspectEntityUpdate(
-        registry: state.project?.eventRegistry,
-        mapId: map.id,
-        current: current,
-        next: next,
-      );
+      final dependencyDecision = _narrativeEventSourceDependencyGuard
+          .inspectEntityUpdate(
+            registry: state.project?.eventRegistry,
+            mapId: map.id,
+            current: current,
+            next: next,
+          );
       if (!dependencyDecision.isAllowed) {
         state = state.copyWith(errorMessage: dependencyDecision.message);
         return false;
       }
       eventRevalidationMessage = dependencyDecision.revalidationMessage;
     } else if (target.kind == MapCanvasObjectKind.trigger) {
-      final current =
-          map.triggers.where((entry) => entry.id == target.id).firstOrNull;
+      final current = map.triggers
+          .where((entry) => entry.id == target.id)
+          .firstOrNull;
       final next = candidate.triggers
           .where((entry) => entry.id == target.id)
           .firstOrNull;
@@ -7243,13 +7222,13 @@ class EditorNotifier extends _$EditorNotifier
         );
         return false;
       }
-      final dependencyDecision =
-          _narrativeEventSourceDependencyGuard.inspectTriggerUpdate(
-        registry: state.project?.eventRegistry,
-        mapId: map.id,
-        current: current,
-        next: next,
-      );
+      final dependencyDecision = _narrativeEventSourceDependencyGuard
+          .inspectTriggerUpdate(
+            registry: state.project?.eventRegistry,
+            mapId: map.id,
+            current: current,
+            next: next,
+          );
       if (!dependencyDecision.isAllowed) {
         state = state.copyWith(errorMessage: dependencyDecision.message);
         return false;
@@ -7258,14 +7237,9 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     try {
-      MapValidator.validate(
-        candidate,
-        projectDialogueContext: state.project,
-      );
+      MapValidator.validate(candidate, projectDialogueContext: state.project);
     } catch (error) {
-      state = state.copyWith(
-        errorMessage: 'Déplacement impossible : $error',
-      );
+      state = state.copyWith(errorMessage: 'Déplacement impossible : $error');
       return false;
     }
 
@@ -7274,15 +7248,20 @@ class EditorNotifier extends _$EditorNotifier
       previousMap: map,
       updatedMap: candidate,
       preferredActiveLayerId: previewTarget.layerId ?? state.activeLayerId,
-      preferredSelectedEntityId:
-          target.kind == MapCanvasObjectKind.entity ? target.id : null,
-      preferredSelectedMapEventId:
-          target.kind == MapCanvasObjectKind.mapEvent ? target.id : null,
-      preferredSelectedWarpId:
-          target.kind == MapCanvasObjectKind.warp ? target.id : null,
-      preferredSelectedTriggerId:
-          target.kind == MapCanvasObjectKind.trigger ? target.id : null,
-      statusMessage: '${_canvasObjectKindLabel(target.kind)} '
+      preferredSelectedEntityId: target.kind == MapCanvasObjectKind.entity
+          ? target.id
+          : null,
+      preferredSelectedMapEventId: target.kind == MapCanvasObjectKind.mapEvent
+          ? target.id
+          : null,
+      preferredSelectedWarpId: target.kind == MapCanvasObjectKind.warp
+          ? target.id
+          : null,
+      preferredSelectedTriggerId: target.kind == MapCanvasObjectKind.trigger
+          ? target.id
+          : null,
+      statusMessage:
+          '${_canvasObjectKindLabel(target.kind)} '
           '« ${target.id} » déplacé en '
           '(${destinationAnchor.x}, ${destinationAnchor.y})',
     );
@@ -7386,26 +7365,30 @@ class EditorNotifier extends _$EditorNotifier
         activeLayerId: activeLayerId,
         selectedPlacedElementInstanceId:
             target?.kind == MapCanvasObjectKind.placedElement
-                ? target?.id
-                : null,
-        selectedEntityId:
-            target?.kind == MapCanvasObjectKind.entity ? target?.id : null,
-        selectedMapEventId:
-            target?.kind == MapCanvasObjectKind.mapEvent ? target?.id : null,
+            ? target?.id
+            : null,
+        selectedEntityId: target?.kind == MapCanvasObjectKind.entity
+            ? target?.id
+            : null,
+        selectedMapEventId: target?.kind == MapCanvasObjectKind.mapEvent
+            ? target?.id
+            : null,
         selectedGameplayZoneId: target?.kind == MapCanvasObjectKind.gameplayZone
             ? target?.id
             : null,
-        selectedTriggerId:
-            target?.kind == MapCanvasObjectKind.trigger ? target?.id : null,
-        selectedWarpId:
-            target?.kind == MapCanvasObjectKind.warp ? target?.id : null,
+        selectedTriggerId: target?.kind == MapCanvasObjectKind.trigger
+            ? target?.id
+            : null,
+        selectedWarpId: target?.kind == MapCanvasObjectKind.warp
+            ? target?.id
+            : null,
         selectedEntityKind: selectedEntityKind,
         selectedEnvironmentAreaId: null,
         npcWaypointPlacementEntityId: null,
         statusMessage: target == null
             ? 'Sélection effacée'
             : '${_canvasObjectKindLabel(target.kind)} « ${target.id} » '
-                'sélectionné en (${target.anchor.x}, ${target.anchor.y})',
+                  'sélectionné en (${target.anchor.x}, ${target.anchor.y})',
         errorMessage: null,
       );
     } finally {
@@ -7468,16 +7451,14 @@ class EditorNotifier extends _$EditorNotifier
         position: position,
         pages: pages,
       );
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
-      );
+      MapValidator.validate(updated, projectDialogueContext: state.project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
         preferredActiveLayerId: state.activeLayerId,
-        preferredSelectedMapEventId:
-            id?.trim().isNotEmpty == true ? id!.trim() : eventId,
+        preferredSelectedMapEventId: id?.trim().isNotEmpty == true
+            ? id!.trim()
+            : eventId,
         statusMessage: 'Event updated',
       );
     } catch (e) {
@@ -7496,14 +7477,8 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final updated = removeMapEventFromMap(
-        map,
-        eventId: eventId,
-      );
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
-      );
+      final updated = removeMapEventFromMap(map, eventId: eventId);
+      MapValidator.validate(updated, projectDialogueContext: state.project);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -7526,24 +7501,14 @@ class EditorNotifier extends _$EditorNotifier
       selectEntity(existing.id);
       return;
     }
-    addEntityAt(
-      pos,
-      kind: state.selectedEntityKind,
-    );
+    addEntityAt(pos, kind: state.selectedEntityKind);
   }
 
-  void addEntityAt(
-    GridPos pos, {
-    required MapEntityKind kind,
-  }) {
+  void addEntityAt(GridPos pos, {required MapEntityKind kind}) {
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final result = _entityEditingService.addEntityAt(
-        map,
-        pos,
-        kind: kind,
-      );
+      final result = _entityEditingService.addEntityAt(map, pos, kind: kind);
       _applyMapMutation(
         previousMap: map,
         updatedMap: result.updatedMap,
@@ -7579,8 +7544,8 @@ class EditorNotifier extends _$EditorNotifier
       selectedEntityKind: entity.kind,
       npcWaypointPlacementEntityId:
           state.npcWaypointPlacementEntityId == entity.id
-              ? state.npcWaypointPlacementEntityId
-              : null,
+          ? state.npcWaypointPlacementEntityId
+          : null,
       errorMessage: null,
     );
   }
@@ -7595,8 +7560,10 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null || selectedEntityId == null || selectedEntityId.isEmpty) {
       return false;
     }
-    final entity =
-        _entityEditingService.findSelectedEntity(map, selectedEntityId);
+    final entity = _entityEditingService.findSelectedEntity(
+      map,
+      selectedEntityId,
+    );
     if (entity == null || entity.kind != MapEntityKind.npc) {
       state = state.copyWith(
         npcWaypointPlacementEntityId: null,
@@ -7664,17 +7631,11 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
 
-    final nextWaypoints = <GridPos>[
-      ...npc.movement.waypoints,
-      position,
-    ];
+    final nextWaypoints = <GridPos>[...npc.movement.waypoints, position];
     final nextNpc = npc.copyWith(
       movement: npc.movement.copyWith(waypoints: nextWaypoints),
     );
-    updateEntity(
-      entityId: entity.id,
-      npc: nextNpc,
-    );
+    updateEntity(entityId: entity.id, npc: nextNpc);
     state = state.copyWith(
       npcWaypointPlacementEntityId: entity.id,
       statusMessage:
@@ -7747,26 +7708,26 @@ class EditorNotifier extends _$EditorNotifier
       String? eventRevalidationMessage;
       final current = _entityEditingService.findSelectedEntity(map, entityId);
       if (current != null) {
-        final dependencyDecision =
-            _narrativeEventSourceDependencyGuard.inspectEntityUpdate(
-          registry: state.project?.eventRegistry,
-          mapId: map.id,
-          current: current,
-          next: current.copyWith(
-            id: id ?? current.id,
-            name: name ?? current.name,
-            kind: kind ?? current.kind,
-            pos: pos ?? current.pos,
-            size: size ?? current.size,
-            properties: properties ?? current.properties,
-            blocksMovement: blocksMovement ?? current.blocksMovement,
-            npc: npc ?? current.npc,
-            sign: sign ?? current.sign,
-            item: item ?? current.item,
-            spawn: spawn ?? current.spawn,
-            editorVisual: editorVisual ?? current.editorVisual,
-          ),
-        );
+        final dependencyDecision = _narrativeEventSourceDependencyGuard
+            .inspectEntityUpdate(
+              registry: state.project?.eventRegistry,
+              mapId: map.id,
+              current: current,
+              next: current.copyWith(
+                id: id ?? current.id,
+                name: name ?? current.name,
+                kind: kind ?? current.kind,
+                pos: pos ?? current.pos,
+                size: size ?? current.size,
+                properties: properties ?? current.properties,
+                blocksMovement: blocksMovement ?? current.blocksMovement,
+                npc: npc ?? current.npc,
+                sign: sign ?? current.sign,
+                item: item ?? current.item,
+                spawn: spawn ?? current.spawn,
+                editorVisual: editorVisual ?? current.editorVisual,
+              ),
+            );
         if (!dependencyDecision.isAllowed) {
           state = state.copyWith(errorMessage: dependencyDecision.message);
           return;
@@ -7819,12 +7780,12 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final dependencyDecision =
-          _narrativeEventSourceDependencyGuard.inspectEntityDelete(
-        registry: state.project?.eventRegistry,
-        mapId: map.id,
-        entityId: entityId,
-      );
+      final dependencyDecision = _narrativeEventSourceDependencyGuard
+          .inspectEntityDelete(
+            registry: state.project?.eventRegistry,
+            mapId: map.id,
+            entityId: entityId,
+          );
       if (!dependencyDecision.isAllowed) {
         state = state.copyWith(errorMessage: dependencyDecision.message);
         return;
@@ -7837,8 +7798,9 @@ class EditorNotifier extends _$EditorNotifier
         previousMap: map,
         updatedMap: updated,
         preferredActiveLayerId: state.activeLayerId,
-        preferredSelectedEntityId:
-            state.selectedEntityId == entityId ? null : state.selectedEntityId,
+        preferredSelectedEntityId: state.selectedEntityId == entityId
+            ? null
+            : state.selectedEntityId,
         preferredSelectedWarpId: state.selectedWarpId,
         preferredSelectedTriggerId: state.selectedTriggerId,
         statusMessage: 'Entity deleted',
@@ -7881,10 +7843,7 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     if (triggerId == null) {
-      state = state.copyWith(
-        selectedTriggerId: null,
-        errorMessage: null,
-      );
+      state = state.copyWith(selectedTriggerId: null, errorMessage: null);
       return;
     }
     final trigger = _triggerEditingService.findSelectedTrigger(map, triggerId);
@@ -7892,10 +7851,7 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(errorMessage: 'Trigger not found: $triggerId');
       return;
     }
-    state = state.copyWith(
-      selectedTriggerId: trigger.id,
-      errorMessage: null,
-    );
+    state = state.copyWith(selectedTriggerId: trigger.id, errorMessage: null);
   }
 
   void updateSelectedTrigger({
@@ -7940,19 +7896,19 @@ class EditorNotifier extends _$EditorNotifier
         triggerId,
       );
       if (current != null) {
-        final dependencyDecision =
-            _narrativeEventSourceDependencyGuard.inspectTriggerUpdate(
-          registry: state.project?.eventRegistry,
-          mapId: map.id,
-          current: current,
-          next: current.copyWith(
-            id: id ?? current.id,
-            name: name ?? current.name,
-            type: type ?? current.type,
-            area: area ?? current.area,
-            properties: properties ?? current.properties,
-          ),
-        );
+        final dependencyDecision = _narrativeEventSourceDependencyGuard
+            .inspectTriggerUpdate(
+              registry: state.project?.eventRegistry,
+              mapId: map.id,
+              current: current,
+              next: current.copyWith(
+                id: id ?? current.id,
+                name: name ?? current.name,
+                type: type ?? current.type,
+                area: area ?? current.area,
+                properties: properties ?? current.properties,
+              ),
+            );
         if (!dependencyDecision.isAllowed) {
           state = state.copyWith(errorMessage: dependencyDecision.message);
           return;
@@ -7994,12 +7950,12 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final dependencyDecision =
-          _narrativeEventSourceDependencyGuard.inspectTriggerDelete(
-        registry: state.project?.eventRegistry,
-        mapId: map.id,
-        triggerId: triggerId,
-      );
+      final dependencyDecision = _narrativeEventSourceDependencyGuard
+          .inspectTriggerDelete(
+            registry: state.project?.eventRegistry,
+            mapId: map.id,
+            triggerId: triggerId,
+          );
       if (!dependencyDecision.isAllowed) {
         state = state.copyWith(errorMessage: dependencyDecision.message);
         return;
@@ -8167,24 +8123,26 @@ class EditorNotifier extends _$EditorNotifier
         previousMap: map,
         updatedMap: updatedMap,
         preferredActiveLayerId: state.activeLayerId,
-        statusMessage: statusMessage ??
+        statusMessage:
+            statusMessage ??
             'Synchronized ${zones.length} gameplay ${zones.length == 1 ? 'zone' : 'zones'}',
       );
 
       final requestedSelection = selectZoneId?.trim();
-      final hasRequestedSelection = requestedSelection != null &&
+      final hasRequestedSelection =
+          requestedSelection != null &&
           requestedSelection.isNotEmpty &&
-          updatedMap.gameplayZones.any(
-            (zone) => zone.id == requestedSelection,
-          );
+          updatedMap.gameplayZones.any((zone) => zone.id == requestedSelection);
       state = state.copyWith(
-        selectedGameplayZoneId:
-            hasRequestedSelection ? requestedSelection : zones.first.id,
+        selectedGameplayZoneId: hasRequestedSelection
+            ? requestedSelection
+            : zones.first.id,
       );
       return true;
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to apply generated zones: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to apply generated zones: $e',
+      );
       return false;
     }
   }
@@ -8199,8 +8157,10 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final updated =
-          _gameplayZoneEditingService.deleteZone(map, zoneId: zoneId);
+      final updated = _gameplayZoneEditingService.deleteZone(
+        map,
+        zoneId: zoneId,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -8233,8 +8193,10 @@ class EditorNotifier extends _$EditorNotifier
     final clampedArea = _clampRectToMap(draft, map.size);
     if (clampedArea == null) return;
     try {
-      final result =
-          _gameplayZoneEditingService.addZoneInRect(map, clampedArea);
+      final result = _gameplayZoneEditingService.addZoneInRect(
+        map,
+        clampedArea,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: result.updatedMap,
@@ -8259,7 +8221,9 @@ class EditorNotifier extends _$EditorNotifier
     final h = rect.size.height.clamp(1, mapSize.height - y);
     if (w <= 0 || h <= 0) return null;
     return MapRect(
-        pos: GridPos(x: x, y: y), size: GridSize(width: w, height: h));
+      pos: GridPos(x: x, y: y),
+      size: GridSize(width: w, height: h),
+    );
   }
 
   void placeOrSelectWarpAt(GridPos pos) {
@@ -8295,10 +8259,7 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     if (warpId == null) {
-      state = state.copyWith(
-        selectedWarpId: null,
-        errorMessage: null,
-      );
+      state = state.copyWith(selectedWarpId: null, errorMessage: null);
       return;
     }
     final warp = _warpEditingService.findSelectedWarp(map, warpId);
@@ -8306,10 +8267,7 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(errorMessage: 'Warp not found: $warpId');
       return;
     }
-    state = state.copyWith(
-      selectedWarpId: warp.id,
-      errorMessage: null,
-    );
+    state = state.copyWith(selectedWarpId: warp.id, errorMessage: null);
   }
 
   void updateSelectedWarp({
@@ -8341,7 +8299,8 @@ class EditorNotifier extends _$EditorNotifier
     final selectedWarpId = state.selectedWarpId;
     if (fs == null) {
       state = state.copyWith(
-          errorMessage: 'Aucun système de fichiers de projet disponible');
+        errorMessage: 'Aucun système de fichiers de projet disponible',
+      );
       return;
     }
     if (project == null) {
@@ -8366,13 +8325,16 @@ class EditorNotifier extends _$EditorNotifier
     if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
     _MapDiskMutationLease? lease;
     try {
-      final selectedWarp =
-          _warpEditingService.requireSelectedWarp(sourceMap, selectedWarpId);
+      final selectedWarp = _warpEditingService.requireSelectedWarp(
+        sourceMap,
+        selectedWarpId,
+      );
       try {
         _projectMapIdPolicy.requireValid(selectedWarp.targetMapId);
       } on EditorValidationException {
         state = state.copyWith(
-          errorMessage: 'La carte cible legacy '
+          errorMessage:
+              'La carte cible legacy '
               '« ${selectedWarp.targetMapId} » est en lecture seule. '
               'Migrez-la vers un identifiant canonique avant de créer le '
               'warp retour.',
@@ -8409,8 +8371,9 @@ class EditorNotifier extends _$EditorNotifier
       }
     } catch (e) {
       if (lease == null || _canAdoptMapDiskMutation(lease)) {
-        state =
-            state.copyWith(errorMessage: 'Failed to create return warp: $e');
+        state = state.copyWith(
+          errorMessage: 'Failed to create return warp: $e',
+        );
       }
     } finally {
       if (lease != null) _endMapDiskMutationLease(lease);
@@ -8465,16 +8428,14 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      final updated = _warpEditingService.deleteWarp(
-        map,
-        warpId: warpId,
-      );
+      final updated = _warpEditingService.deleteWarp(map, warpId: warpId);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
         preferredActiveLayerId: state.activeLayerId,
-        preferredSelectedWarpId:
-            state.selectedWarpId == warpId ? null : state.selectedWarpId,
+        preferredSelectedWarpId: state.selectedWarpId == warpId
+            ? null
+            : state.selectedWarpId,
         statusMessage: 'Warp deleted',
       );
     } catch (e) {
@@ -8508,9 +8469,7 @@ class EditorNotifier extends _$EditorNotifier
         dirtyDecision: dirtyDecision,
       );
     } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to open connected map: $e',
-      );
+      state = state.copyWith(errorMessage: 'Failed to open connected map: $e');
       return MapActivationOutcome.failed;
     }
   }
@@ -8614,8 +8573,9 @@ class EditorNotifier extends _$EditorNotifier
     }
     final map = state.activeMap;
     final layerId = state.activeLayerId;
-    final activeLayer =
-        map == null || layerId == null ? null : _findLayerById(map, layerId);
+    final activeLayer = map == null || layerId == null
+        ? null
+        : _findLayerById(map, layerId);
     if (activeLayer is SmartTileLayer && _smartTileCanonicalRecoveryRequired) {
       state = state.copyWith(
         errorMessage:
@@ -8671,13 +8631,12 @@ class EditorNotifier extends _$EditorNotifier
           project: project,
           resolvePlacedElements:
               project != null && buffer.kind == MapCellStrokeLayerKind.tile
-                  ? (layer) =>
-                      _placedElementInstanceIndexer.resolveLayerInstances(
-                        map: buffer.sourceMap,
-                        project: project,
-                        layer: layer,
-                      )
-                  : null,
+              ? (layer) => _placedElementInstanceIndexer.resolveLayerInstances(
+                  map: buffer.sourceMap,
+                  project: project,
+                  layer: layer,
+                )
+              : null,
           validate: EditorPerformanceTelemetry.validateMapDelta,
         );
         _applyMapMutation(
@@ -8725,10 +8684,9 @@ class EditorNotifier extends _$EditorNotifier
     var gesture = _pendingSmartTileGesture;
     if (gesture == null) {
       final rollbackState = state.mapStrokeStart == null
-          ? _mapEditingController.undo(state)?.copyWith(
-              mapRedoStack: const [],
-              canRedoMap: false,
-            )
+          ? _mapEditingController
+                .undo(state)
+                ?.copyWith(mapRedoStack: const [], canRedoMap: false)
           : _mapEditingController.cancelStroke(state);
       if (rollbackState == null) {
         state = state.copyWith(
@@ -8748,7 +8706,8 @@ class EditorNotifier extends _$EditorNotifier
         gesture.layerId != layerId ||
         gesture.materialId != materialId) {
       state = state.copyWith(
-        errorMessage: 'Un geste Smart Tile ne peut viser qu’une seule couche '
+        errorMessage:
+            'Un geste Smart Tile ne peut viser qu’une seule couche '
             'et un seul matériau.',
       );
       return;
@@ -8822,10 +8781,7 @@ class EditorNotifier extends _$EditorNotifier
         idempotencyKey: identity,
         requestId: identity,
       );
-      applied = await mutations.apply(
-        plan,
-        operationId: '$identity-apply',
-      );
+      applied = await mutations.apply(plan, operationId: '$identity-apply');
       final historyEntry = _CanonicalSmartTileHistoryEntry(
         projectRootPath: projectRootPath,
         receiptId: applied.receipt.receiptId,
@@ -8878,41 +8834,41 @@ class EditorNotifier extends _$EditorNotifier
     required String? materialId,
     required Iterable<GridPos> cells,
     SmartTileGestureSelection? selection,
-  }) =>
-      <String, Object?>{
-        'mapId': mapId,
-        'layerId': layerId,
-        'materialId': ?materialId,
-        if (selection == null)
-          'cells': <Map<String, int>>[
-            for (final cell in cells) <String, int>{'x': cell.x, 'y': cell.y},
-          ]
-        else
-          'selection': _smartTileGestureSelectionParameters(selection),
-      };
+  }) => <String, Object?>{
+    'mapId': mapId,
+    'layerId': layerId,
+    'materialId': ?materialId,
+    if (selection == null)
+      'cells': <Map<String, int>>[
+        for (final cell in cells) <String, int>{'x': cell.x, 'y': cell.y},
+      ]
+    else
+      'selection': _smartTileGestureSelectionParameters(selection),
+  };
 
   Map<String, Object?> _smartTileGestureSelectionParameters(
     SmartTileGestureSelection selection,
-  ) =>
-      switch (selection.kind) {
-        SmartTileGestureSelectionKind.line => <String, Object?>{
-            'kind': 'line',
-            'start': _smartTileGestureCoordinate(selection.start),
-            'end': _smartTileGestureCoordinate(selection.end!),
-          },
-        SmartTileGestureSelectionKind.rectangle => <String, Object?>{
-            'kind': 'rectangle',
-            'start': _smartTileGestureCoordinate(selection.start),
-            'end': _smartTileGestureCoordinate(selection.end!),
-          },
-        SmartTileGestureSelectionKind.floodFill => <String, Object?>{
-            'kind': 'floodFill',
-            'seed': _smartTileGestureCoordinate(selection.start),
-          },
-      };
+  ) => switch (selection.kind) {
+    SmartTileGestureSelectionKind.line => <String, Object?>{
+      'kind': 'line',
+      'start': _smartTileGestureCoordinate(selection.start),
+      'end': _smartTileGestureCoordinate(selection.end!),
+    },
+    SmartTileGestureSelectionKind.rectangle => <String, Object?>{
+      'kind': 'rectangle',
+      'start': _smartTileGestureCoordinate(selection.start),
+      'end': _smartTileGestureCoordinate(selection.end!),
+    },
+    SmartTileGestureSelectionKind.floodFill => <String, Object?>{
+      'kind': 'floodFill',
+      'seed': _smartTileGestureCoordinate(selection.start),
+    },
+  };
 
-  Map<String, int> _smartTileGestureCoordinate(GridPos cell) =>
-      <String, int>{'x': cell.x, 'y': cell.y};
+  Map<String, int> _smartTileGestureCoordinate(GridPos cell) => <String, int>{
+    'x': cell.x,
+    'y': cell.y,
+  };
 
   void paintActiveSmartTilePattern(
     SmartTilePatternSelection selection, {
@@ -8928,12 +8884,8 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  void eraseActiveSmartTilePattern(
-    SmartTileGestureSelection selection,
-  ) {
-    unawaited(
-      _commitCanonicalSmartTilePattern(eraseSelection: selection),
-    );
+  void eraseActiveSmartTilePattern(SmartTileGestureSelection selection) {
+    unawaited(_commitCanonicalSmartTilePattern(eraseSelection: selection));
   }
 
   Future<void> _commitCanonicalSmartTilePattern({
@@ -8944,8 +8896,9 @@ class EditorNotifier extends _$EditorNotifier
   }) async {
     final erase = eraseSelection != null;
     if (erase == (paintSelection != null) || erase == (patternId != null)) {
-      state =
-          state.copyWith(errorMessage: 'smart_tile.pattern.request_invalid');
+      state = state.copyWith(
+        errorMessage: 'smart_tile.pattern.request_invalid',
+      );
       return;
     }
     if (_rejectNonCanonicalActiveMapAuthoring() ||
@@ -8960,8 +8913,8 @@ class EditorNotifier extends _$EditorNotifier
         errorMessage: _smartTileCanonicalRecoveryRequired
             ? 'smart_tile.pattern.reload_required'
             : _smartTileGestureCommitInProgress
-                ? 'smart_tile.pattern.commit_in_progress'
-                : 'smart_tile.pattern.save_map_first',
+            ? 'smart_tile.pattern.commit_in_progress'
+            : 'smart_tile.pattern.save_map_first',
       );
       return;
     }
@@ -8973,8 +8926,9 @@ class EditorNotifier extends _$EditorNotifier
         map == null ||
         layerId == null ||
         project == null) {
-      state =
-          state.copyWith(errorMessage: 'smart_tile.pattern.context_missing');
+      state = state.copyWith(
+        errorMessage: 'smart_tile.pattern.context_missing',
+      );
       return;
     }
     final layer = _findLayerById(map, layerId);
@@ -8994,8 +8948,9 @@ class EditorNotifier extends _$EditorNotifier
 
     _smartTileGestureCommitInProgress = true;
     final sequence = ++_smartTileGestureSequence;
-    final actionId =
-        erase ? 'smart_tile.pattern.erase' : 'smart_tile.pattern.paint';
+    final actionId = erase
+        ? 'smart_tile.pattern.erase'
+        : 'smart_tile.pattern.paint';
     final identity = _smartTileEditorMutationIdentity(
       purpose: erase ? 'smart-tile-pattern-erase' : 'smart-tile-pattern-paint',
       values: <String, Object?>{
@@ -9041,8 +8996,9 @@ class EditorNotifier extends _$EditorNotifier
         expectedSnapshotRevision: applied.snapshotRevision,
         mapId: map.id,
         layerId: layer.id,
-        statusMessage:
-            erase ? 'Motif Smart Tile effacé.' : 'Motif Smart Tile appliqué.',
+        statusMessage: erase
+            ? 'Motif Smart Tile effacé.'
+            : 'Motif Smart Tile appliqué.',
       );
       _canonicalSmartTileUndoStack.add(historyEntry);
       _canonicalSmartTileRedoStack.clear();
@@ -9064,23 +9020,22 @@ class EditorNotifier extends _$EditorNotifier
 
   Map<String, Object?> _smartTilePatternSelectionParameters(
     SmartTilePatternSelection selection,
-  ) =>
-      switch (selection.kind) {
-        SmartTilePatternSelectionKind.stamp => <String, Object?>{
-            'kind': 'stamp',
-            'anchor': _smartTileGestureCoordinate(selection.start),
-          },
-        SmartTilePatternSelectionKind.line => <String, Object?>{
-            'kind': 'line',
-            'start': _smartTileGestureCoordinate(selection.start),
-            'end': _smartTileGestureCoordinate(selection.end!),
-          },
-        SmartTilePatternSelectionKind.rectangle => <String, Object?>{
-            'kind': 'rectangle',
-            'start': _smartTileGestureCoordinate(selection.start),
-            'end': _smartTileGestureCoordinate(selection.end!),
-          },
-      };
+  ) => switch (selection.kind) {
+    SmartTilePatternSelectionKind.stamp => <String, Object?>{
+      'kind': 'stamp',
+      'anchor': _smartTileGestureCoordinate(selection.start),
+    },
+    SmartTilePatternSelectionKind.line => <String, Object?>{
+      'kind': 'line',
+      'start': _smartTileGestureCoordinate(selection.start),
+      'end': _smartTileGestureCoordinate(selection.end!),
+    },
+    SmartTilePatternSelectionKind.rectangle => <String, Object?>{
+      'kind': 'rectangle',
+      'start': _smartTileGestureCoordinate(selection.start),
+      'end': _smartTileGestureCoordinate(selection.end!),
+    },
+  };
 
   Future<bool> _adoptCanonicalSmartTileSnapshot({
     required String projectRootPath,
@@ -9100,8 +9055,9 @@ class EditorNotifier extends _$EditorNotifier
       map = projection.mapById(mapId);
       mapRevision = projection.resourceRevision('map:$mapId');
     } else {
-      final canonical =
-          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      final canonical = await ref
+          .read(authoringQueryAdapterProvider)
+          .open(projectRootPath);
       snapshotRevision = canonical.snapshotRevision;
       manifest = canonical.manifest;
       map = canonical.mapById(mapId);
@@ -9232,8 +9188,7 @@ class EditorNotifier extends _$EditorNotifier
         delta: MapMutationDelta.smartTileCells(
           layerId: layerId,
           cellIndices: <int>{
-            for (final cell in cells)
-              cell.y * before.size.width + cell.x,
+            for (final cell in cells) cell.y * before.size.width + cell.x,
           },
         ),
       ),
@@ -9260,11 +9215,13 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   void _syncCanonicalSmartTileHistoryFlags() {
-    final canUndoCanonical = _canonicalSmartTileUndoStack.isNotEmpty &&
+    final canUndoCanonical =
+        _canonicalSmartTileUndoStack.isNotEmpty &&
         _canonicalSmartTileHistoryMatchesActiveMap(
           _canonicalSmartTileUndoStack.last,
         );
-    final canRedoCanonical = _canonicalSmartTileRedoStack.isNotEmpty &&
+    final canRedoCanonical =
+        _canonicalSmartTileRedoStack.isNotEmpty &&
         _canonicalSmartTileHistoryMatchesActiveMap(
           _canonicalSmartTileRedoStack.last,
         );
@@ -9323,12 +9280,14 @@ class EditorNotifier extends _$EditorNotifier
     }
     final initialState = state;
     final historyReadyState = _mapEditingController.endStroke(initialState);
-    final outgoingPaletteSession =
-        _rememberActivePaletteContext(historyReadyState);
+    final outgoingPaletteSession = _rememberActivePaletteContext(
+      historyReadyState,
+    );
     final restored = _mapEditingController.undo(historyReadyState);
     if (restored == null) {
       state = historyReadyState;
-      final canUndoCanonical = !state.isDirty &&
+      final canUndoCanonical =
+          !state.isDirty &&
           _canonicalSmartTileUndoStack.isNotEmpty &&
           _canonicalSmartTileHistoryMatchesActiveMap(
             _canonicalSmartTileUndoStack.last,
@@ -9343,22 +9302,22 @@ class EditorNotifier extends _$EditorNotifier
     final currentMap = historyReadyState.activeMap;
     final candidateMap = restored.activeMap;
     if (currentMap != null && candidateMap != null) {
-      final dependencyDecision =
-          _narrativeEventSourceDependencyGuard.inspectMapTransition(
-        registry: historyReadyState.project?.eventRegistry,
-        current: currentMap,
-        candidate: candidateMap,
-        operation: 'undo de la map ${currentMap.id}',
-      );
+      final dependencyDecision = _narrativeEventSourceDependencyGuard
+          .inspectMapTransition(
+            registry: historyReadyState.project?.eventRegistry,
+            current: currentMap,
+            candidate: candidateMap,
+            operation: 'undo de la map ${currentMap.id}',
+          );
       if (!dependencyDecision.isAllowed) {
         state = initialState.copyWith(errorMessage: dependencyDecision.message);
         return;
       }
     }
-    final adopted =
-        _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
-      restored.copyWith(paletteSession: outgoingPaletteSession),
-    );
+    final adopted = _mapSelectionController
+        .coerceActiveToolIfIncompatibleWithLayer(
+          restored.copyWith(paletteSession: outgoingPaletteSession),
+        );
     state = _activatePaletteContext(adopted);
     _syncCanonicalSmartTileHistoryFlags();
   }
@@ -9378,12 +9337,14 @@ class EditorNotifier extends _$EditorNotifier
     }
     final initialState = state;
     final historyReadyState = _mapEditingController.endStroke(initialState);
-    final outgoingPaletteSession =
-        _rememberActivePaletteContext(historyReadyState);
+    final outgoingPaletteSession = _rememberActivePaletteContext(
+      historyReadyState,
+    );
     final restored = _mapEditingController.redo(historyReadyState);
     if (restored == null) {
       state = historyReadyState;
-      final canRedoCanonical = !state.isDirty &&
+      final canRedoCanonical =
+          !state.isDirty &&
           _canonicalSmartTileRedoStack.isNotEmpty &&
           _canonicalSmartTileHistoryMatchesActiveMap(
             _canonicalSmartTileRedoStack.last,
@@ -9398,22 +9359,22 @@ class EditorNotifier extends _$EditorNotifier
     final currentMap = historyReadyState.activeMap;
     final candidateMap = restored.activeMap;
     if (currentMap != null && candidateMap != null) {
-      final dependencyDecision =
-          _narrativeEventSourceDependencyGuard.inspectMapTransition(
-        registry: historyReadyState.project?.eventRegistry,
-        current: currentMap,
-        candidate: candidateMap,
-        operation: 'redo de la map ${currentMap.id}',
-      );
+      final dependencyDecision = _narrativeEventSourceDependencyGuard
+          .inspectMapTransition(
+            registry: historyReadyState.project?.eventRegistry,
+            current: currentMap,
+            candidate: candidateMap,
+            operation: 'redo de la map ${currentMap.id}',
+          );
       if (!dependencyDecision.isAllowed) {
         state = initialState.copyWith(errorMessage: dependencyDecision.message);
         return;
       }
     }
-    final adopted =
-        _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
-      restored.copyWith(paletteSession: outgoingPaletteSession),
-    );
+    final adopted = _mapSelectionController
+        .coerceActiveToolIfIncompatibleWithLayer(
+          restored.copyWith(paletteSession: outgoingPaletteSession),
+        );
     state = _activatePaletteContext(adopted);
     _syncCanonicalSmartTileHistoryFlags();
   }
@@ -9437,7 +9398,9 @@ class EditorNotifier extends _$EditorNotifier
     );
     EditorAuthoringMutationResult? applied;
     try {
-      applied = await ref.read(authoringMutationAdapterProvider).undo(
+      applied = await ref
+          .read(authoringMutationAdapterProvider)
+          .undo(
             entry.projectRootPath,
             entryId: entry.receiptId,
             idempotencyKey: identity,
@@ -9502,10 +9465,7 @@ class EditorNotifier extends _$EditorNotifier
         idempotencyKey: identity,
         requestId: identity,
       );
-      applied = await mutations.apply(
-        plan,
-        operationId: '$identity-apply',
-      );
+      applied = await mutations.apply(plan, operationId: '$identity-apply');
       final adopted = await _adoptCanonicalSmartTileSnapshot(
         projectRootPath: entry.projectRootPath,
         expectedSnapshotRevision: applied.snapshotRevision,
@@ -9626,7 +9586,8 @@ class EditorNotifier extends _$EditorNotifier
       if (tilesetId.isEmpty) {
         if (emitErrors) {
           _setPaintError(
-              'Selected palette brush does not have a valid tileset');
+            'Selected palette brush does not have a valid tileset',
+          );
         }
         return null;
       }
@@ -9661,9 +9622,7 @@ class EditorNotifier extends _$EditorNotifier
     return null;
   }
 
-  _ResolvedBrushFootprint? _resolveEraserFootprint({
-    required bool emitErrors,
-  }) {
+  _ResolvedBrushFootprint? _resolveEraserFootprint({required bool emitErrors}) {
     final configured = state.eraserFootprint;
     final size = configured.size;
     if (!_isValidEraserFootprintSize(size)) {
@@ -9697,8 +9656,9 @@ class EditorNotifier extends _$EditorNotifier
   }) {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
-    final activeLayer =
-        map == null || layerId == null ? null : _findLayerById(map, layerId);
+    final activeLayer = map == null || layerId == null
+        ? null
+        : _findLayerById(map, layerId);
     if (activeLayer is TileLayer) {
       return _resolveBrushFootprint(emitErrors: emitErrors);
     }
@@ -9729,9 +9689,7 @@ class EditorNotifier extends _$EditorNotifier
     return _resolveBrushFootprint(emitErrors: emitErrors);
   }
 
-  _ResolvedBrushFootprint? _resolveBrushFootprint({
-    required bool emitErrors,
-  }) {
+  _ResolvedBrushFootprint? _resolveBrushFootprint({required bool emitErrors}) {
     final brush = state.activeBrush;
     if (brush is NoEditorBrush) {
       return const _ResolvedBrushFootprint(
@@ -9881,11 +9839,7 @@ class EditorNotifier extends _$EditorNotifier
       final project = state.project;
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(eraseTileOnMapUseCaseProvider);
-        final erased = useCase.execute(
-          map,
-          layerId: layerId,
-          pos: pos,
-        );
+        final erased = useCase.execute(map, layerId: layerId, pos: pos);
         final committed = project == null
             ? erased
             : _placedElementInstanceIndexer.syncLayer(
@@ -9953,11 +9907,7 @@ class EditorNotifier extends _$EditorNotifier
       }
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(paintCollisionOnMapUseCaseProvider);
-        final painted = useCase.execute(
-          map,
-          layerId: layerId,
-          pos: pos,
-        );
+        final painted = useCase.execute(map, layerId: layerId, pos: pos);
         _applyMapMutation(
           previousMap: map,
           updatedMap: painted,
@@ -10013,11 +9963,7 @@ class EditorNotifier extends _$EditorNotifier
       }
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(eraseCollisionOnMapUseCaseProvider);
-        final erased = useCase.execute(
-          map,
-          layerId: layerId,
-          pos: pos,
-        );
+        final erased = useCase.execute(map, layerId: layerId, pos: pos);
         _applyMapMutation(
           previousMap: map,
           updatedMap: erased,
@@ -10070,7 +10016,8 @@ class EditorNotifier extends _$EditorNotifier
     if (activeLayer is! TileLayer) {
       if (emitErrors) {
         _setPaintError(
-            'Active layer "${activeLayer.name}" is not a tile layer');
+          'Active layer "${activeLayer.name}" is not a tile layer',
+        );
       }
       return null;
     }
@@ -10102,7 +10049,8 @@ class EditorNotifier extends _$EditorNotifier
     if (activeLayer is! CollisionLayer) {
       if (emitErrors) {
         _setPaintError(
-            'Active layer "${activeLayer.name}" is not a collision layer');
+          'Active layer "${activeLayer.name}" is not a collision layer',
+        );
       }
       return null;
     }
@@ -10113,10 +10061,7 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  void addMapLayer({
-    required MapLayerKind kind,
-    required String name,
-  }) {
+  void addMapLayer({required MapLayerKind kind, required String name}) {
     final map = state.activeMap;
     if (map == null) return;
     try {
@@ -10182,8 +10127,9 @@ class EditorNotifier extends _$EditorNotifier
   /// Saves the active map before a canonical Smart Tile action reads it.
   Future<bool> _flushSessionForCanonicalSmartTileMutation() async {
     if (!state.isDirty) return true;
-    final pendingProjectError =
-        state.isProjectDirty ? state.errorMessage : null;
+    final pendingProjectError = state.isProjectDirty
+        ? state.errorMessage
+        : null;
     final outcome = await saveActiveMap();
     if (outcome == ActiveMapSaveOutcome.saved) {
       if (pendingProjectError != null && state.isProjectDirty) {
@@ -10262,10 +10208,7 @@ class EditorNotifier extends _$EditorNotifier
             idempotencyKey: identity,
             requestId: identity,
           );
-          applied = await mutations.apply(
-            plan,
-            operationId: '$identity-apply',
-          );
+          applied = await mutations.apply(plan, operationId: '$identity-apply');
           break;
         } on Object catch (error) {
           final failure = EditorAuthoringMutationFailure.capture(error);
@@ -10423,9 +10366,7 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  void createEnvironmentAreaForActiveTileLayer({
-    required String presetId,
-  }) {
+  void createEnvironmentAreaForActiveTileLayer({required String presetId}) {
     final map = state.activeMap;
     final project = state.project;
     if (map == null || project == null) {
@@ -10557,7 +10498,7 @@ class EditorNotifier extends _$EditorNotifier
   void _updateEnvironmentAreaSettingsForActiveTileLayer({
     required String statusMessage,
     required MapData Function(MapData map, String layerId, String areaId)
-        update,
+    update,
   }) {
     final map = state.activeMap;
     if (map == null) return;
@@ -10660,13 +10601,13 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     try {
-      final result =
-          GenerateTileLayerEnvironmentAreaPlacementsUseCase().execute(
-        map,
-        manifest: manifest,
-        tileLayerId: layerId,
-        areaId: areaId,
-      );
+      final result = GenerateTileLayerEnvironmentAreaPlacementsUseCase()
+          .execute(
+            map,
+            manifest: manifest,
+            tileLayerId: layerId,
+            areaId: areaId,
+          );
       if (result.generatedPlacementCount == 0) {
         state = state.copyWith(
           activeLayerId: result.tileLayerId,
@@ -10733,12 +10674,8 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     try {
-      final result =
-          ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase().execute(
-        map,
-        tileLayerId: layerId,
-        areaId: areaId,
-      );
+      final result = ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase()
+          .execute(map, tileLayerId: layerId, areaId: areaId);
       if (result.clearedReferenceCount == 0) {
         state = state.copyWith(
           activeLayerId: result.tileLayerId,
@@ -10752,7 +10689,8 @@ class EditorNotifier extends _$EditorNotifier
 
       final removedIds = result.removedPlacementIds.toSet();
       final selectionBefore = state.selectedPlacedElementInstanceId?.trim();
-      final clearSelection = selectionBefore != null &&
+      final clearSelection =
+          selectionBefore != null &&
           selectionBefore.isNotEmpty &&
           removedIds.contains(selectionBefore);
 
@@ -10765,8 +10703,9 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(
         activeLayerId: result.tileLayerId,
         selectedEnvironmentAreaId: result.areaId,
-        selectedPlacedElementInstanceId:
-            clearSelection ? null : state.selectedPlacedElementInstanceId,
+        selectedPlacedElementInstanceId: clearSelection
+            ? null
+            : state.selectedPlacedElementInstanceId,
         environmentMaskEditMode: null,
         errorMessage: null,
       );
@@ -10860,7 +10799,8 @@ class EditorNotifier extends _$EditorNotifier
 
       final removedIds = result.removedPlacementIds.toSet();
       final selectionBefore = state.selectedPlacedElementInstanceId?.trim();
-      final clearSelection = selectionBefore != null &&
+      final clearSelection =
+          selectionBefore != null &&
           selectionBefore.isNotEmpty &&
           removedIds.contains(selectionBefore);
 
@@ -10876,8 +10816,9 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(
         activeLayerId: result.tileLayerId,
         selectedEnvironmentAreaId: result.areaId,
-        selectedPlacedElementInstanceId:
-            clearSelection ? null : state.selectedPlacedElementInstanceId,
+        selectedPlacedElementInstanceId: clearSelection
+            ? null
+            : state.selectedPlacedElementInstanceId,
         environmentMaskEditMode: null,
         errorMessage: null,
       );
@@ -11094,14 +11035,14 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     try {
-      final result =
-          DeleteTileLayerEnvironmentGeneratedPlacementAtUseCase().execute(
-        map,
-        manifest: state.project,
-        tileLayerId: layerId,
-        areaId: areaId,
-        pos: pos,
-      );
+      final result = DeleteTileLayerEnvironmentGeneratedPlacementAtUseCase()
+          .execute(
+            map,
+            manifest: state.project,
+            tileLayerId: layerId,
+            areaId: areaId,
+            pos: pos,
+          );
       if (!result.removed) {
         state = state.copyWith(
           activeLayerId: result.tileLayerId,
@@ -11116,7 +11057,8 @@ class EditorNotifier extends _$EditorNotifier
 
       final removedId = result.removedPlacementId!;
       final selectionBefore = state.selectedPlacedElementInstanceId?.trim();
-      final clearSelection = selectionBefore != null &&
+      final clearSelection =
+          selectionBefore != null &&
           selectionBefore.isNotEmpty &&
           selectionBefore == removedId;
       _applyMapMutation(
@@ -11128,8 +11070,9 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(
         activeLayerId: result.tileLayerId,
         selectedEnvironmentAreaId: result.areaId,
-        selectedPlacedElementInstanceId:
-            clearSelection ? null : state.selectedPlacedElementInstanceId,
+        selectedPlacedElementInstanceId: clearSelection
+            ? null
+            : state.selectedPlacedElementInstanceId,
         environmentMaskEditMode: EnvironmentMaskEditMode.generatedDelete,
         errorMessage: null,
       );
@@ -11218,15 +11161,15 @@ class EditorNotifier extends _$EditorNotifier
         requireGeneratedPlacements: true,
         allowImplicitSelection: true,
       );
-      final result =
-          AddTileLayerEnvironmentGeneratedPlacementAtUseCase().execute(
-        map,
-        manifest: selection.project,
-        tileLayerId: selection.tileLayerId,
-        areaId: selection.areaId,
-        elementId: selection.item.elementId,
-        pos: pos,
-      );
+      final result = AddTileLayerEnvironmentGeneratedPlacementAtUseCase()
+          .execute(
+            map,
+            manifest: selection.project,
+            tileLayerId: selection.tileLayerId,
+            areaId: selection.areaId,
+            elementId: selection.item.elementId,
+            pos: pos,
+          );
       _applyMapMutation(
         previousMap: map,
         updatedMap: result.map,
@@ -11512,9 +11455,11 @@ class EditorNotifier extends _$EditorNotifier
       return;
     }
 
-    final removedIds =
-        result.clearedPlacements.map((c) => c.placedElementId).toSet();
-    final clearSelection = selectionBefore != null &&
+    final removedIds = result.clearedPlacements
+        .map((c) => c.placedElementId)
+        .toSet();
+    final clearSelection =
+        selectionBefore != null &&
         selectionBefore.isNotEmpty &&
         removedIds.contains(selectionBefore);
 
@@ -11598,9 +11543,7 @@ class EditorNotifier extends _$EditorNotifier
       }
     }
     if (area == null) {
-      state = state.copyWith(
-        errorMessage: 'Impossible : zone introuvable.',
-      );
+      state = state.copyWith(errorMessage: 'Impossible : zone introuvable.');
       return;
     }
 
@@ -11712,9 +11655,9 @@ class EditorNotifier extends _$EditorNotifier
         preferredActiveLayerId: envId,
         statusMessage: shuffle
             ? 'Mélangé : seed mise à jour ; aucun nouveau placement pour la '
-                'zone « $aid » (effacement des placements précédents effectué).'
+                  'zone « $aid » (effacement des placements précédents effectué).'
             : 'Les placements générés ont été effacés ; aucun nouveau placement '
-                'n’a été généré pour la zone « $aid ».',
+                  'n’a été généré pour la zone « $aid ».',
       );
       state = state.copyWith(
         selectedEnvironmentAreaId: aid,
@@ -11736,7 +11679,8 @@ class EditorNotifier extends _$EditorNotifier
         orElse: () => apply.issues.first,
       );
       state = state.copyWith(
-        errorMessage: 'Impossible d’appliquer après '
+        errorMessage:
+            'Impossible d’appliquer après '
             '${shuffle ? 'mélange' : 'régénération'} : '
             '${_environmentApplyIssueMessage(first)}',
       );
@@ -11760,10 +11704,7 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   /// Lot Environment-22 : applique paint ou erase selon [environmentMaskEditMode].
-  void paintEnvironmentAreaMaskAt(
-    GridPos pos, {
-    bool partOfStroke = false,
-  }) {
+  void paintEnvironmentAreaMaskAt(GridPos pos, {bool partOfStroke = false}) {
     final map = state.activeMap;
     if (map == null) return;
     final layerId = state.activeLayerId;
@@ -11817,11 +11758,7 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return;
     try {
       final useCase = ref.read(renameMapLayerUseCaseProvider);
-      final updated = useCase.execute(
-        map,
-        layerId: layerId,
-        name: name,
-      );
+      final updated = useCase.execute(map, layerId: layerId, name: name);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -11829,8 +11766,9 @@ class EditorNotifier extends _$EditorNotifier
         statusMessage: 'Calque renommé',
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Impossible de renommer le calque : $e');
+      state = state.copyWith(
+        errorMessage: 'Impossible de renommer le calque : $e',
+      );
     }
   }
 
@@ -11864,15 +11802,17 @@ class EditorNotifier extends _$EditorNotifier
       // deletion has already accepted that loss, so carry the confirmation
       // over instead of blocking the save with no way out.
       if (removedPlacements) {
-        _confirmedBulkPlacementLossBaseline =
-            confirmBulkPlacementLoss ? state.savedMapSnapshot : null;
+        _confirmedBulkPlacementLossBaseline = confirmBulkPlacementLoss
+            ? state.savedMapSnapshot
+            : null;
       }
       _coerceEnvironmentMaskSelectionAfterMapChange();
     } on EditorValidationException catch (e) {
       state = state.copyWith(errorMessage: e.message);
     } catch (e) {
       state = state.copyWith(
-          errorMessage: 'Impossible de supprimer le calque : $e');
+        errorMessage: 'Impossible de supprimer le calque : $e',
+      );
     }
   }
 
@@ -11887,33 +11827,29 @@ class EditorNotifier extends _$EditorNotifier
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
-        preferredActiveLayerId:
-            _editorMapSessionCoordinator.resolveActiveLayerId(updated),
+        preferredActiveLayerId: _editorMapSessionCoordinator
+            .resolveActiveLayerId(updated),
         statusMessage: 'Tous les calques supprimés',
       );
       if (removedPlacements) {
-        _confirmedBulkPlacementLossBaseline =
-            confirmBulkPlacementLoss ? state.savedMapSnapshot : null;
+        _confirmedBulkPlacementLossBaseline = confirmBulkPlacementLoss
+            ? state.savedMapSnapshot
+            : null;
       }
       _coerceEnvironmentMaskSelectionAfterMapChange();
     } catch (e) {
       state = state.copyWith(
-          errorMessage: 'Impossible de supprimer tous les calques : $e');
+        errorMessage: 'Impossible de supprimer tous les calques : $e',
+      );
     }
   }
 
   void moveMapLayerGroupUp(String layerId) {
-    _moveMapLayerGroup(
-      layerId,
-      MapLayerGroupMoveDirection.up,
-    );
+    _moveMapLayerGroup(layerId, MapLayerGroupMoveDirection.up);
   }
 
   void moveMapLayerGroupDown(String layerId) {
-    _moveMapLayerGroup(
-      layerId,
-      MapLayerGroupMoveDirection.down,
-    );
+    _moveMapLayerGroup(layerId, MapLayerGroupMoveDirection.down);
   }
 
   void _moveMapLayerGroup(
@@ -11933,10 +11869,7 @@ class EditorNotifier extends _$EditorNotifier
         state = state.copyWith(errorMessage: null);
         return;
       }
-      _validateLayerGroupReorder(
-        previousMap: map,
-        updatedMap: updated,
-      );
+      _validateLayerGroupReorder(previousMap: map, updatedMap: updated);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -11945,7 +11878,8 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (error) {
       state = state.copyWith(
-        errorMessage: 'Impossible de réorganiser le groupe de calques : '
+        errorMessage:
+            'Impossible de réorganiser le groupe de calques : '
             '$error',
       );
     }
@@ -11969,10 +11903,7 @@ class EditorNotifier extends _$EditorNotifier
         state = state.copyWith(errorMessage: null);
         return;
       }
-      _validateLayerGroupReorder(
-        previousMap: map,
-        updatedMap: updated,
-      );
+      _validateLayerGroupReorder(previousMap: map, updatedMap: updated);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -11981,7 +11912,8 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (error) {
       state = state.copyWith(
-        errorMessage: 'Impossible de réorganiser le groupe de calques : '
+        errorMessage:
+            'Impossible de réorganiser le groupe de calques : '
             '$error',
       );
     }
@@ -12044,7 +11976,8 @@ class EditorNotifier extends _$EditorNotifier
       }
     } catch (e) {
       state = state.copyWith(
-          errorMessage: 'Impossible de réorganiser le calque : $e');
+        errorMessage: 'Impossible de réorganiser le calque : $e',
+      );
     }
   }
 
@@ -12070,7 +12003,8 @@ class EditorNotifier extends _$EditorNotifier
       }
     } catch (e) {
       state = state.copyWith(
-          errorMessage: 'Impossible de réorganiser le calque : $e');
+        errorMessage: 'Impossible de réorganiser le calque : $e',
+      );
     }
   }
 
@@ -12101,7 +12035,8 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (e) {
       state = state.copyWith(
-          errorMessage: 'Impossible de mettre à jour le calque : $e');
+        errorMessage: 'Impossible de mettre à jour le calque : $e',
+      );
     }
   }
 
@@ -12114,11 +12049,7 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return;
     try {
       final useCase = ref.read(setMapLayerOpacityUseCaseProvider);
-      final updated = useCase.execute(
-        map,
-        layerId: layerId,
-        opacity: opacity,
-      );
+      final updated = useCase.execute(map, layerId: layerId, opacity: opacity);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -12127,8 +12058,8 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (e) {
       state = state.copyWith(
-          errorMessage:
-              'Impossible de mettre à jour l\'opacité du calque : $e');
+        errorMessage: 'Impossible de mettre à jour l\'opacité du calque : $e',
+      );
     }
   }
 
@@ -12153,7 +12084,9 @@ class EditorNotifier extends _$EditorNotifier
         preferredActiveLayerId: layerId,
         statusMessage: 'Bordure « ${result.feature.name} » créée',
       );
-      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
+      ref
+          .read(activeBorderFeatureControllerProvider.notifier)
+          .selectFeature(
             map: result.map,
             layerId: layerId,
             featureId: result.feature.id,
@@ -12172,11 +12105,9 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     try {
-      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
-            map: map,
-            layerId: layerId,
-            featureId: featureId,
-          );
+      ref
+          .read(activeBorderFeatureControllerProvider.notifier)
+          .selectFeature(map: map, layerId: layerId, featureId: featureId);
       _resetCanvasObjectSelectionCycle();
       state = state.copyWith(
         selectedPlacedElementInstanceId: null,
@@ -12277,14 +12208,14 @@ class EditorNotifier extends _$EditorNotifier
         preferredActiveLayerId: layerId,
         statusMessage: 'Bordure supprimée',
       );
-      ref.read(activeBorderFeatureControllerProvider.notifier).reconcile(
-            map: updated,
-            activeLayerId: layerId,
-          );
+      ref
+          .read(activeBorderFeatureControllerProvider.notifier)
+          .reconcile(map: updated, activeLayerId: layerId);
       if (state.activeTool == EditorToolType.borderPaint ||
           state.activeTool == EditorToolType.borderErase) {
-        final activeFeature =
-            ref.read(activeBorderFeatureControllerProvider).activeFeatureId;
+        final activeFeature = ref
+            .read(activeBorderFeatureControllerProvider)
+            .activeFeatureId;
         if (activeFeature == null) {
           state = state.copyWith(activeTool: EditorToolType.selection);
         }
@@ -12311,7 +12242,9 @@ class EditorNotifier extends _$EditorNotifier
         preferredActiveLayerId: preview.layerId,
         statusMessage: 'Blueprint de bordure modifié',
       );
-      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
+      ref
+          .read(activeBorderFeatureControllerProvider.notifier)
+          .selectFeature(
             map: updated,
             layerId: preview.layerId,
             featureId: preview.featureId,
@@ -12328,18 +12261,17 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return;
     try {
       _assertBorderBlueprintPreviewCatalogCurrent(preview);
-      final updated =
-          _borderFeatureAuthoringController.resetFeatureForBlueprintChange(
-        map: map,
-        preview: preview,
-      );
+      final updated = _borderFeatureAuthoringController
+          .resetFeatureForBlueprintChange(map: map, preview: preview);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
         preferredActiveLayerId: preview.layerId,
         statusMessage: 'Bordure remise à zéro pour le nouveau blueprint',
       );
-      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
+      ref
+          .read(activeBorderFeatureControllerProvider.notifier)
+          .selectFeature(
             map: updated,
             layerId: preview.layerId,
             featureId: preview.featureId,
@@ -12365,23 +12297,26 @@ class EditorNotifier extends _$EditorNotifier
       return;
     }
     try {
-      final targetBlueprint =
-          _publishedBorderBlueprint(preview.afterBlueprintId);
-      _assertBorderBlueprintPreviewCatalogCurrent(preview);
-      final result =
-          _borderFeatureAuthoringController.createFeatureFromBlueprintChange(
-        map: map,
-        preview: preview,
-        targetBlueprint: targetBlueprint,
-        name: normalizedName,
+      final targetBlueprint = _publishedBorderBlueprint(
+        preview.afterBlueprintId,
       );
+      _assertBorderBlueprintPreviewCatalogCurrent(preview);
+      final result = _borderFeatureAuthoringController
+          .createFeatureFromBlueprintChange(
+            map: map,
+            preview: preview,
+            targetBlueprint: targetBlueprint,
+            name: normalizedName,
+          );
       _applyMapMutation(
         previousMap: map,
         updatedMap: result.map,
         preferredActiveLayerId: preview.layerId,
         statusMessage: 'Bordure « ${result.feature.name} » créée séparément',
       );
-      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
+      ref
+          .read(activeBorderFeatureControllerProvider.notifier)
+          .selectFeature(
             map: result.map,
             layerId: preview.layerId,
             featureId: result.feature.id,
@@ -12416,10 +12351,7 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   void selectTool(EditorToolType tool) {
-    state = _mapSelectionController.selectTool(
-      current: state,
-      tool: tool,
-    );
+    state = _mapSelectionController.selectTool(current: state, tool: tool);
   }
 
   @override
@@ -12430,8 +12362,9 @@ class EditorNotifier extends _$EditorNotifier
     final preflight = assessWorldMapToolActivation(
       source: worldMapToolActivationSourceFromState(source),
       request: request,
-      activeBorderFeatureId:
-          ref.read(activeBorderFeatureControllerProvider).activeFeatureId,
+      activeBorderFeatureId: ref
+          .read(activeBorderFeatureControllerProvider)
+          .activeFeatureId,
     );
     if (preflight.rejectionReason case final reason?) {
       return WorldMapToolActivationResult(
@@ -12586,7 +12519,9 @@ class EditorNotifier extends _$EditorNotifier
         throw StateError('Bordure introuvable : $layerId/$featureId');
       }
       final record = project.borderCatalog.recordById(feature.blueprintId);
-      ref.read(borderPreviewControllerProvider.notifier).beginUpdatePreview(
+      ref
+          .read(borderPreviewControllerProvider.notifier)
+          .beginUpdatePreview(
             map: map,
             layerId: layerId,
             featureId: featureId,
@@ -12700,14 +12635,17 @@ class EditorNotifier extends _$EditorNotifier
       final preview = ref.read(borderPreviewControllerProvider.notifier);
       final previewState = preview.current;
       final transaction = previewState.transaction;
-      final refinesCurrentPreview = transaction?.layerId == layerId &&
+      final refinesCurrentPreview =
+          transaction?.layerId == layerId &&
           transaction?.featureId == featureId &&
           (previewState.phase == BorderPreviewPhase.resolved ||
               previewState.phase == BorderPreviewPhase.invalid);
-      final source =
-          refinesCurrentPreview ? transaction!.proposedFeature : feature;
-      final draft =
-          _borderFeatureAuthoringController.previewLineSideToggle(source);
+      final source = refinesCurrentPreview
+          ? transaction!.proposedFeature
+          : feature;
+      final draft = _borderFeatureAuthoringController.previewLineSideToggle(
+        source,
+      );
       if (!refinesCurrentPreview) {
         return previewBorderFeatureDraft(
           layerId: layerId,
@@ -12913,8 +12851,9 @@ class EditorNotifier extends _$EditorNotifier
         errorMessage: null,
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to create encounter table: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to create encounter table: $e',
+      );
     }
   }
 
@@ -12947,8 +12886,9 @@ class EditorNotifier extends _$EditorNotifier
         errorMessage: null,
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to update encounter table: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to update encounter table: $e',
+      );
     }
   }
 
@@ -12965,8 +12905,9 @@ class EditorNotifier extends _$EditorNotifier
         errorMessage: null,
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to delete encounter table: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to delete encounter table: $e',
+      );
     }
   }
 
@@ -13020,13 +12961,13 @@ class EditorNotifier extends _$EditorNotifier
     required String dialogueId,
     required List<DialogueDeclaredOutcome> declaredOutcomes,
   }) async {
-    state =
-        await _projectContentController.updateProjectDialogueDeclaredOutcomes(
-      current: state,
-      workspace: _projectWorkspace,
-      dialogueId: dialogueId,
-      declaredOutcomes: declaredOutcomes,
-    );
+    state = await _projectContentController
+        .updateProjectDialogueDeclaredOutcomes(
+          current: state,
+          workspace: _projectWorkspace,
+          dialogueId: dialogueId,
+          declaredOutcomes: declaredOutcomes,
+        );
     if (state.errorMessage != null) {
       return false;
     }
@@ -13055,13 +12996,13 @@ class EditorNotifier extends _$EditorNotifier
     required String dialogueId,
     required String? defaultStartNode,
   }) async {
-    state =
-        await _projectContentController.updateProjectDialogueDefaultStartNode(
-      current: state,
-      workspace: _projectWorkspace,
-      dialogueId: dialogueId,
-      defaultStartNode: defaultStartNode,
-    );
+    state = await _projectContentController
+        .updateProjectDialogueDefaultStartNode(
+          current: state,
+          workspace: _projectWorkspace,
+          dialogueId: dialogueId,
+          defaultStartNode: defaultStartNode,
+        );
     if (state.errorMessage != null) return false;
     for (final dialogue
         in state.project?.dialogues ?? const <ProjectDialogueEntry>[]) {
@@ -13253,8 +13194,9 @@ class EditorNotifier extends _$EditorNotifier
         errorMessage: null,
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to update encounter entry: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to update encounter entry: $e',
+      );
     }
   }
 
@@ -13279,8 +13221,9 @@ class EditorNotifier extends _$EditorNotifier
         errorMessage: null,
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to delete encounter entry: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to delete encounter entry: $e',
+      );
     }
   }
 
@@ -13357,10 +13300,7 @@ class EditorNotifier extends _$EditorNotifier
     return true;
   }
 
-  bool setCustomEraserFootprint({
-    required int width,
-    required int height,
-  }) {
+  bool setCustomEraserFootprint({required int width, required int height}) {
     final size = GridSize(width: width, height: height);
     if (!_isValidEraserFootprintSize(size)) {
       _setPaintError(
@@ -13406,10 +13346,7 @@ class EditorNotifier extends _$EditorNotifier
     if (state.tilesElementsPanelMode == mode) {
       return;
     }
-    state = state.copyWith(
-      tilesElementsPanelMode: mode,
-      errorMessage: null,
-    );
+    state = state.copyWith(tilesElementsPanelMode: mode, errorMessage: null);
     _syncActivePaletteContext();
   }
 
@@ -13448,8 +13385,9 @@ class EditorNotifier extends _$EditorNotifier
     if (trimmedId.isEmpty) {
       return;
     }
-    final index =
-        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    final index = map.placedElements.indexWhere(
+      (entry) => entry.id == trimmedId,
+    );
     if (index < 0) {
       state = state.copyWith(
         errorMessage: 'Placed element instance not found: $trimmedId',
@@ -13516,9 +13454,7 @@ class EditorNotifier extends _$EditorNotifier
   ///
   /// The delta is normalized before addition so the intermediate remains
   /// portable on Dart native and JavaScript even for a very large exact input.
-  bool rotateSelectedPlacedElement({
-    required int deltaQuarterTurns,
-  }) {
+  bool rotateSelectedPlacedElement({required int deltaQuarterTurns}) {
     final selectedId = state.selectedPlacedElementInstanceId?.trim() ?? '';
     MapPlacedElement? selected;
     for (final instance
@@ -13584,8 +13520,9 @@ class EditorNotifier extends _$EditorNotifier
     if (trimmedId.isEmpty) {
       return;
     }
-    final index =
-        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    final index = map.placedElements.indexWhere(
+      (entry) => entry.id == trimmedId,
+    );
     if (index < 0) {
       state = state.copyWith(
         errorMessage: 'Placed element instance not found: $trimmedId',
@@ -13623,8 +13560,9 @@ class EditorNotifier extends _$EditorNotifier
     if (trimmedId.isEmpty) {
       return;
     }
-    final index =
-        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    final index = map.placedElements.indexWhere(
+      (entry) => entry.id == trimmedId,
+    );
     if (index < 0) {
       state = state.copyWith(
         errorMessage: 'Placed element instance not found: $trimmedId',
@@ -13662,8 +13600,9 @@ class EditorNotifier extends _$EditorNotifier
     if (trimmedId.isEmpty) {
       return;
     }
-    final index =
-        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    final index = map.placedElements.indexWhere(
+      (entry) => entry.id == trimmedId,
+    );
     if (index < 0) {
       state = state.copyWith(
         errorMessage: 'Placed element instance not found: $trimmedId',
@@ -13701,8 +13640,9 @@ class EditorNotifier extends _$EditorNotifier
     if (trimmedId.isEmpty) {
       return;
     }
-    final index =
-        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    final index = map.placedElements.indexWhere(
+      (entry) => entry.id == trimmedId,
+    );
     if (index < 0) {
       state = state.copyWith(
         errorMessage: 'Placed element instance not found: $trimmedId',
@@ -13744,8 +13684,9 @@ class EditorNotifier extends _$EditorNotifier
     if (trimmedId.isEmpty) {
       return;
     }
-    final index =
-        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    final index = map.placedElements.indexWhere(
+      (entry) => entry.id == trimmedId,
+    );
     if (index < 0) {
       state = state.copyWith(
         errorMessage: 'Placed element instance not found: $trimmedId',
@@ -13784,10 +13725,7 @@ class EditorNotifier extends _$EditorNotifier
     final origin = instance.properties[pokemapPlacementOriginProperty]?.trim();
     if (origin != pokemapPlacementOriginTileIndex) {
       try {
-        final updated = removeMapPlacedElement(
-          map,
-          instanceId: trimmedId,
-        );
+        final updated = removeMapPlacedElement(map, instanceId: trimmedId);
         MapValidator.validate(updated, projectDialogueContext: state.project);
         _applyMapMutation(
           previousMap: map,
@@ -14136,10 +14074,7 @@ class EditorNotifier extends _$EditorNotifier
             mask: area.mask,
             seed: area.seed,
             paramsOverride: area.paramsOverride,
-            generatedPlacementIds: [
-              ...area.generatedPlacementIds,
-              placed.id,
-            ],
+            generatedPlacementIds: [...area.generatedPlacementIds, placed.id],
           ),
         );
       }
@@ -14161,10 +14096,7 @@ class EditorNotifier extends _$EditorNotifier
 
     return map.copyWith(
       layers: updatedLayers,
-      placedElements: [
-        ...map.placedElements,
-        placed,
-      ],
+      placedElements: [...map.placedElements, placed],
     );
   }
 
@@ -14240,7 +14172,7 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   _TileLayerGeneratedPlacementAddSelection
-      _resolveGeneratedPlacementAddSelectionForTileLayer({
+  _resolveGeneratedPlacementAddSelectionForTileLayer({
     String? requestedElementId,
     required bool requireGeneratedPlacements,
     required bool allowImplicitSelection,
@@ -14292,9 +14224,10 @@ class EditorNotifier extends _$EditorNotifier
       throw const EditorValidationException('Preset introuvable.');
     }
 
-    final selectedId = (requestedElementId ??
-            ref.read(environmentGeneratedPlacementAddElementProvider))
-        ?.trim();
+    final selectedId =
+        (requestedElementId ??
+                ref.read(environmentGeneratedPlacementAddElementProvider))
+            ?.trim();
     if (selectedId != null && selectedId.isNotEmpty) {
       for (final item in preset.palette) {
         if (item.elementId != selectedId) continue;
@@ -14319,9 +14252,7 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     if (!allowImplicitSelection) {
-      throw const EditorValidationException(
-        'Choisissez un élément à ajouter.',
-      );
+      throw const EditorValidationException('Choisissez un élément à ajouter.');
     }
 
     final available =
@@ -14332,9 +14263,7 @@ class EditorNotifier extends _$EditorNotifier
       available.add((item: item, element: element));
     }
     if (available.length != 1) {
-      throw const EditorValidationException(
-        'Choisissez un élément à ajouter.',
-      );
+      throw const EditorValidationException('Choisissez un élément à ajouter.');
     }
     final implicit = available.single;
     return _TileLayerGeneratedPlacementAddSelection(
@@ -14431,40 +14360,24 @@ class EditorNotifier extends _$EditorNotifier
 
   void pan(Offset delta) {
     setMapViewport(
-      MapViewport(
-        zoom: state.zoom,
-        panOffset: state.panOffset + delta,
-      ),
+      MapViewport(zoom: state.zoom, panOffset: state.panOffset + delta),
     );
   }
 
   void setNarrativeEventMapPanOffset(Offset value) {
-    setMapViewport(
-      MapViewport(
-        zoom: state.zoom,
-        panOffset: value,
-      ),
-    );
+    setMapViewport(MapViewport(zoom: state.zoom, panOffset: value));
   }
 
   void setMapViewport(MapViewport viewport) {
     if (state.zoom == viewport.zoom && state.panOffset == viewport.panOffset) {
       return;
     }
-    state = state.copyWith(
-      zoom: viewport.zoom,
-      panOffset: viewport.panOffset,
-    );
+    state = state.copyWith(zoom: viewport.zoom, panOffset: viewport.panOffset);
   }
 
   void zoom(double delta) {
     final newZoom = (state.zoom + delta).clamp(0.1, 5.0);
-    setMapViewport(
-      MapViewport(
-        zoom: newZoom,
-        panOffset: state.panOffset,
-      ),
-    );
+    setMapViewport(MapViewport(zoom: newZoom, panOffset: state.panOffset));
   }
 
   @override
@@ -14486,9 +14399,7 @@ class EditorNotifier extends _$EditorNotifier
   }) {
     if (_rejectNonCanonicalActiveMapAuthoring() ||
         _rejectNarrativeEventSourceCleanupMapMutation() ||
-        _rejectMapDiskMutationLease(
-          allowedLeaseToken: mapWriteLeaseToken,
-        )) {
+        _rejectMapDiskMutationLease(allowedLeaseToken: mapWriteLeaseToken)) {
       return;
     }
     final outgoingPaletteSession = _rememberActivePaletteContext(state);
@@ -14508,10 +14419,10 @@ class EditorNotifier extends _$EditorNotifier
       updateHoveredTile: updateHoveredTile,
       statusMessage: statusMessage,
     );
-    var adopted =
-        _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
-      next.copyWith(paletteSession: outgoingPaletteSession),
-    );
+    var adopted = _mapSelectionController
+        .coerceActiveToolIfIncompatibleWithLayer(
+          next.copyWith(paletteSession: outgoingPaletteSession),
+        );
     final incomingPaletteKey = _activePaletteContextKey(adopted);
     final layerIdentityChanged = !listEquals(
       previousMap.layers.map((layer) => layer.id).toList(growable: false),
@@ -14572,8 +14483,9 @@ class EditorNotifier extends _$EditorNotifier
         'Event Builder authoring scope.',
       );
     }
-    final pageIndex =
-        event.pages.indexWhere((page) => page.pageNumber == pageNumber);
+    final pageIndex = event.pages.indexWhere(
+      (page) => page.pageNumber == pageNumber,
+    );
     if (pageIndex < 0) {
       throw ValidationException(
         'Map event page not found: event=${event.id} pageNumber=$pageNumber',
@@ -14606,11 +14518,9 @@ class EditorNotifier extends _$EditorNotifier
       EventBuilderConditionKind.factIsTrue ||
       EventBuilderConditionKind.factIsFalse ||
       EventBuilderConditionKind.eventConsumed ||
-      EventBuilderConditionKind.eventNotConsumed =>
-        true,
+      EventBuilderConditionKind.eventNotConsumed => true,
       EventBuilderConditionKind.storyStepCompleted ||
-      EventBuilderConditionKind.storyStepNotCompleted =>
-        false,
+      EventBuilderConditionKind.storyStepNotCompleted => false,
     };
   }
 
@@ -14618,8 +14528,7 @@ class EditorNotifier extends _$EditorNotifier
     return switch (type) {
       MapEventType.actor ||
       MapEventType.object ||
-      MapEventType.triggerZone =>
-        true,
+      MapEventType.triggerZone => true,
       MapEventType.effect => false,
     };
   }
@@ -14713,8 +14622,9 @@ class EditorNotifier extends _$EditorNotifier
       );
       state = state.copyWith(
         project: updated,
-        selectedCharacterId:
-            updated.characters.isNotEmpty ? updated.characters.last.id : null,
+        selectedCharacterId: updated.characters.isNotEmpty
+            ? updated.characters.last.id
+            : null,
         isSaving: false,
         statusMessage: 'Character created',
         errorMessage: null,
@@ -14774,11 +14684,7 @@ class EditorNotifier extends _$EditorNotifier
     if (fs == null || project == null) return null;
     try {
       final useCase = ref.read(previewDeleteCharacterUseCaseProvider);
-      final plan = await useCase.execute(
-        fs,
-        project,
-        characterId: characterId,
-      );
+      final plan = await useCase.execute(fs, project, characterId: characterId);
       state = state.copyWith(errorMessage: null);
       return plan;
     } catch (e) {
@@ -14956,12 +14862,7 @@ class EditorNotifier extends _$EditorNotifier
     try {
       final updated = await ref
           .read(createAnimationDefinitionUseCaseProvider)
-          .execute(
-            workspace,
-            project,
-            displayName: displayName,
-            mode: mode,
-          );
+          .execute(workspace, project, displayName: displayName, mode: mode);
       state = state.copyWith(
         project: updated,
         isSaving: false,
@@ -15439,6 +15340,7 @@ class EditorNotifier extends _$EditorNotifier
     required String trainerClass,
     int? battleDifficulty,
     String? battleBackgroundRelativePath,
+    String? battleSpriteRelativePath,
     String? characterId,
     String? portraitElementId,
     String? battleMusicPath,
@@ -15468,6 +15370,7 @@ class EditorNotifier extends _$EditorNotifier
         trainerClass: trainerClass,
         battleDifficulty: battleDifficulty,
         battleBackgroundRelativePath: battleBackgroundRelativePath,
+        battleSpriteRelativePath: battleSpriteRelativePath,
         characterId: characterId,
         portraitElementId: portraitElementId,
         battleMusicPath: battleMusicPath,
@@ -15486,8 +15389,9 @@ class EditorNotifier extends _$EditorNotifier
       );
       state = state.copyWith(
         project: updated,
-        selectedTrainerId:
-            updated.trainers.isNotEmpty ? updated.trainers.last.id : null,
+        selectedTrainerId: updated.trainers.isNotEmpty
+            ? updated.trainers.last.id
+            : null,
         statusMessage: 'Trainer created',
         errorMessage: null,
       );
@@ -15504,6 +15408,7 @@ class EditorNotifier extends _$EditorNotifier
     String? trainerClass,
     Object? battleDifficulty = _trainerUnset,
     Object? battleBackgroundRelativePath = _trainerUnset,
+    Object? battleSpriteRelativePath = _trainerUnset,
     Object? characterId = _trainerUnset,
     Object? portraitElementId = _trainerUnset,
     Object? battleMusicPath = _trainerUnset,
@@ -15532,16 +15437,22 @@ class EditorNotifier extends _$EditorNotifier
         name: name,
         trainerClass: trainerClass,
         battleDifficulty: _trainerFieldUpdate<int>(battleDifficulty),
-        battleBackgroundRelativePath:
-            _trainerFieldUpdate<String>(battleBackgroundRelativePath),
+        battleBackgroundRelativePath: _trainerFieldUpdate<String>(
+          battleBackgroundRelativePath,
+        ),
+        battleSpriteRelativePath: _trainerFieldUpdate<String>(
+          battleSpriteRelativePath,
+        ),
         characterId: _trainerFieldUpdate<String>(characterId),
         portraitElementId: _trainerFieldUpdate<String>(portraitElementId),
         battleMusicPath: _trainerFieldUpdate<String>(battleMusicPath),
         victoryMusicPath: _trainerFieldUpdate<String>(victoryMusicPath),
-        templateKind:
-            _trainerFieldUpdate<ProjectTrainerTemplateKind>(templateKind),
-        rematchPolicy:
-            _trainerFieldUpdate<ProjectTrainerRematchPolicy>(rematchPolicy),
+        templateKind: _trainerFieldUpdate<ProjectTrainerTemplateKind>(
+          templateKind,
+        ),
+        rematchPolicy: _trainerFieldUpdate<ProjectTrainerRematchPolicy>(
+          rematchPolicy,
+        ),
         preBattleDialogueId: _trainerFieldUpdate<String>(preBattleDialogueId),
         victoryDialogueId: _trainerFieldUpdate<String>(victoryDialogueId),
         defeatDialogueId: _trainerFieldUpdate<String>(defeatDialogueId),
@@ -15549,8 +15460,9 @@ class EditorNotifier extends _$EditorNotifier
         rewardItemGrants: rewardItemGrants,
         rewardFlagIds: rewardFlagIds,
         rewardBadgeId: _trainerFieldUpdate<String>(rewardBadgeId),
-        rewardFieldAbilityUnlock:
-            _trainerFieldUpdate<FieldAbility>(rewardFieldAbilityUnlock),
+        rewardFieldAbilityUnlock: _trainerFieldUpdate<FieldAbility>(
+          rewardFieldAbilityUnlock,
+        ),
         tags: tags,
       );
       state = state.copyWith(
@@ -15571,11 +15483,7 @@ class EditorNotifier extends _$EditorNotifier
     if (fs == null || project == null) return false;
     try {
       final useCase = ref.read(deleteTrainerUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        trainerId: trainerId,
-      );
+      final updated = await useCase.execute(fs, project, trainerId: trainerId);
       state = state.copyWith(
         project: updated,
         selectedTrainerId: state.selectedTrainerId == trainerId
@@ -15725,10 +15633,7 @@ final class _PersonalizationStudioSignal extends ChangeNotifier {
 }
 
 class _PaintPattern {
-  const _PaintPattern({
-    required this.size,
-    required this.tiles,
-  });
+  const _PaintPattern({required this.size, required this.tiles});
 
   final GridSize size;
   final List<TileLayerPaletteEntry?> tiles;

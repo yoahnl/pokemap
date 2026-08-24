@@ -32,7 +32,8 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
       children: [
         EditorSidebarListRow(
           key: const Key('trainer-library-studio-entry'),
-          selected: state.workspaceMode == EditorWorkspaceMode.encounter &&
+          selected:
+              state.workspaceMode == EditorWorkspaceMode.encounter &&
               state.encounterStudioSection == EncounterStudioSection.trainers,
           onTap: openStudio,
           leading: const MacosIcon(CupertinoIcons.person_3_fill),
@@ -69,7 +70,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
                   selectedTrainer == null
                       ? 'Aucun dresseur sélectionné pour le moment. Ouvrez Encounter Studio pour créer votre premier dresseur.'
                       : 'Sélection actuelle : ${selectedTrainer.name} • ${selectedTrainer.trainerClass}\n'
-                          '${_buildRosterPreview(selectedTrainer, references)}',
+                            '${_buildRosterPreview(selectedTrainer, references)}',
                   style: TextStyle(
                     color: subtle,
                     fontSize: 11,
@@ -135,14 +136,15 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
                   references: references,
                   onRefresh: () => _refreshReferenceData(state),
                 ),
-                operationBanner: (state.errorMessage ?? '').trim().isEmpty &&
+                operationBanner:
+                    (state.errorMessage ?? '').trim().isEmpty &&
                         (state.statusMessage ?? '').trim().isEmpty
                     ? null
                     : _TrainerOperationBanner(
                         message:
                             (state.errorMessage?.trim().isNotEmpty ?? false)
-                                ? state.errorMessage!.trim()
-                                : state.statusMessage!.trim(),
+                            ? state.errorMessage!.trim()
+                            : state.statusMessage!.trim(),
                         isError:
                             (state.errorMessage?.trim().isNotEmpty ?? false),
                       ),
@@ -219,13 +221,13 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
     final detailHeight = _showCreateForm || _editingTrainerId != null
         ? 560.0
         : visibleTrainer == null
-            ? 320.0
-            : 500.0;
+        ? 320.0
+        : 500.0;
     final editorHeight = _activePokemonTrainerId == visibleTrainer?.id
         ? 760.0
         : visibleTrainer == null
-            ? 260.0
-            : 320.0;
+        ? 260.0
+        : 320.0;
 
     return ListView(
       children: [
@@ -300,17 +302,11 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               child: Row(
                 children: [
-                  Icon(
-                    CupertinoIcons.search,
-                    color: subtle,
-                    size: 14,
-                  ),
+                  Icon(CupertinoIcons.search, color: subtle, size: 14),
                   const SizedBox(width: 8),
                   Expanded(
                     child: CupertinoTextField.borderless(
-                      key: const Key(
-                        'trainer-library-roster-search-field',
-                      ),
+                      key: const Key('trainer-library-roster-search-field'),
                       controller: _trainerSearchController,
                       placeholder: 'Rechercher par nom, classe, ID ou tag',
                       padding: EdgeInsets.zero,
@@ -447,13 +443,16 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
     if (trainer.team.isEmpty) {
       return 'Aucun Pokémon assigné pour le moment';
     }
-    final preview = trainer.team.take(3).map((pokemon) {
-      final species = _speciesLookupService.findById(
-        references.speciesEntries,
-        pokemon.speciesId,
-      );
-      return species?.primaryName ?? pokemon.speciesId;
-    }).join(', ');
+    final preview = trainer.team
+        .take(3)
+        .map((pokemon) {
+          final species = _speciesLookupService.findById(
+            references.speciesEntries,
+            pokemon.speciesId,
+          );
+          return species?.primaryName ?? pokemon.speciesId;
+        })
+        .join(', ');
     final suffix = trainer.team.length > 3 ? '…' : '';
     return '$preview$suffix';
   }
@@ -496,6 +495,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             defeatDialogueId: _newDefeatDialogueId,
             battleDifficulty: _newBattleDifficulty,
             battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
+            battleSpriteRelativePath: _newBattleSpriteRelativePath,
             projectRootPath: ref.read(editorNotifierProvider).projectRootPath,
             characters: project.characters,
             elements: project.elements,
@@ -508,6 +508,8 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             onClearBattleDifficulty: _clearNewBattleDifficulty,
             onPickBattleBackground: _pickCreateBattleBackground,
             onClearBattleBackground: _clearCreateBattleBackground,
+            onPickBattleSprite: _pickCreateBattleSprite,
+            onClearBattleSprite: _clearCreateBattleSprite,
             onSelectCharacter: _setNewCharacterId,
             onSelectRewardItem: _selectNewRewardItem,
             onAddRewardItem: _addNewRewardItem,
@@ -520,10 +522,8 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             onSelectVictoryDialogue: _selectNewVictoryDialogue,
             onSelectDefeatDialogue: _selectNewDefeatDialogue,
             onCancel: _cancelCreateTrainerDraft,
-            onSubmit: () => _handleCreateTrainer(
-              notifier: notifier,
-              project: project,
-            ),
+            onSubmit: () =>
+                _handleCreateTrainer(notifier: notifier, project: project),
           ),
         ],
       );
@@ -575,6 +575,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             defeatDialogueId: _editDefeatDialogueId,
             battleDifficulty: _editBattleDifficulty,
             battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
+            battleSpriteRelativePath: _editBattleSpriteRelativePath,
             projectRootPath: ref.read(editorNotifierProvider).projectRootPath,
             characters: project.characters,
             elements: project.elements,
@@ -587,6 +588,8 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             onClearBattleDifficulty: _clearEditBattleDifficulty,
             onPickBattleBackground: _pickEditBattleBackground,
             onClearBattleBackground: _clearEditBattleBackground,
+            onPickBattleSprite: _pickEditBattleSprite,
+            onClearBattleSprite: _clearEditBattleSprite,
             onSelectCharacter: _setEditCharacterId,
             onSelectRewardItem: _selectEditRewardItem,
             onAddRewardItem: _addEditRewardItem,
@@ -629,7 +632,8 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             ),
             CupertinoButton(
               key: Key(
-                  'trainer-library-add-pokemon-button-${visibleTrainer.id}'),
+                'trainer-library-add-pokemon-button-${visibleTrainer.id}',
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               minimumSize: const Size(1, 32),
               onPressed: () {
@@ -669,7 +673,10 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             moveCatalogView: references.movesCatalogView,
             itemCatalogView: references.itemsCatalogView,
             onEdit: () => _startEditingPokemon(
-                visibleTrainer.id, i, visibleTrainer.team[i]),
+              visibleTrainer.id,
+              i,
+              visibleTrainer.team[i],
+            ),
             onDelete: () => _handleDeletePokemon(
               notifier: notifier,
               trainerId: visibleTrainer.id,
@@ -1005,10 +1012,7 @@ class _TrainerStudioRosterCard extends StatelessWidget {
 }
 
 class _TrainerStudioMiniBadge extends StatelessWidget {
-  const _TrainerStudioMiniBadge({
-    required this.label,
-    required this.selected,
-  });
+  const _TrainerStudioMiniBadge({required this.label, required this.selected});
 
   final String label;
   final bool selected;
@@ -1129,21 +1133,21 @@ class _TrainerStudioIdentityCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               [
-                if ((trainer.characterId ?? '').trim().isNotEmpty)
-                  'Character: ${trainer.characterId!.trim()}',
-                if ((trainer.portraitElementId ?? '').trim().isNotEmpty)
-                  'Portrait: ${trainer.portraitElementId!.trim()}',
-                if ((trainer.battleMusicPath ?? '').trim().isNotEmpty)
-                  'Battle music: ${trainer.battleMusicPath!.trim()}',
-                if ((trainer.victoryMusicPath ?? '').trim().isNotEmpty)
-                  'Victory music: ${trainer.victoryMusicPath!.trim()}',
-                if (trainer.battleDifficulty != null)
-                  'Difficulty: ${trainer.battleDifficulty}/10',
-                if ((trainer.battleBackgroundRelativePath ?? '')
-                    .trim()
-                    .isNotEmpty)
-                  'Background: ${trainer.battleBackgroundRelativePath!.trim()}',
-              ].isEmpty
+                    if ((trainer.characterId ?? '').trim().isNotEmpty)
+                      'Character: ${trainer.characterId!.trim()}',
+                    if ((trainer.portraitElementId ?? '').trim().isNotEmpty)
+                      'Portrait: ${trainer.portraitElementId!.trim()}',
+                    if ((trainer.battleMusicPath ?? '').trim().isNotEmpty)
+                      'Battle music: ${trainer.battleMusicPath!.trim()}',
+                    if ((trainer.victoryMusicPath ?? '').trim().isNotEmpty)
+                      'Victory music: ${trainer.victoryMusicPath!.trim()}',
+                    if (trainer.battleDifficulty != null)
+                      'Difficulty: ${trainer.battleDifficulty}/10',
+                    if ((trainer.battleBackgroundRelativePath ?? '')
+                        .trim()
+                        .isNotEmpty)
+                      'Background: ${trainer.battleBackgroundRelativePath!.trim()}',
+                  ].isEmpty
                   ? 'No optional refs configured yet. You can still author a complete battle team right away.'
                   : [
                       if ((trainer.characterId ?? '').trim().isNotEmpty)
@@ -1176,9 +1180,7 @@ class _TrainerStudioIdentityCard extends StatelessWidget {
 }
 
 class _TrainerMetaChip extends StatelessWidget {
-  const _TrainerMetaChip({
-    required this.label,
-  });
+  const _TrainerMetaChip({required this.label});
 
   final String label;
 
@@ -1196,10 +1198,7 @@ class _TrainerMetaChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
           label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -1232,10 +1231,7 @@ class _TrainerStudioEmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
