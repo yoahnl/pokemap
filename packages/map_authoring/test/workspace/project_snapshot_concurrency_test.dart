@@ -74,11 +74,20 @@ void main() {
         final snapshot =
             await harness.loader.load(harness.opened.projectHandle);
 
+        // The revision folds the per-resource fingerprints, so each entry
+        // contributes the fingerprint of its own bytes rather than the bytes.
         final canonicalResources = fixture.resourcesByIdentity.entries
             .map(
               (entry) => NarrativeProjectFingerprintEntry(
                 relativePath: entry.value.relativePath,
-                bytes: entry.value.bytes,
+                bytes: utf8.encode(
+                  computeNarrativeProjectFingerprint([
+                    NarrativeProjectFingerprintEntry(
+                      relativePath: entry.value.relativePath,
+                      bytes: entry.value.bytes,
+                    ),
+                  ]),
+                ),
               ),
             )
             .toList(growable: false);

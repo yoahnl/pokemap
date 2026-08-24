@@ -129,6 +129,7 @@ final class ProjectSnapshotLoadProfile {
     this.cacheHit = false,
     this.cacheIdentityReads = 0,
     this.assetBlobVerifications = 0,
+    this.revisionHashedBytes = 0,
   });
 
   final int initialReadMicroseconds;
@@ -148,6 +149,13 @@ final class ProjectSnapshotLoadProfile {
   /// identity is unchanged since it was certified does not need its digest
   /// walked again.
   final int assetBlobVerifications;
+
+  /// Bytes folded into the global revision.
+  ///
+  /// A revision derived from the per-resource fingerprints folds one short
+  /// fingerprint per resource instead of the resource itself, so this stays
+  /// proportional to the resource count rather than to the project size.
+  final int revisionHashedBytes;
 }
 
 final class ProjectSnapshotLoader {
@@ -597,23 +605,8 @@ final class ProjectSnapshotLoader {
               ..endEntry())
             .close();
 
-    var revision = identityKey == null ? null : cache!.revision(identityKey);
-    if (revision == null) {
-      final revisionBuilder = NarrativeProjectFingerprintBuilder();
-      for (final resource in resources) {
-        revisionBuilder
-          ..startEntry(
-            relativePath: resource.relativePath,
-            byteLength: resource.bytes.typedBytes.length,
-          )
-          ..addBytes(resource.bytes.typedBytes)
-          ..endEntry();
-      }
-      revision = revisionBuilder.close();
-      if (identityKey != null) cache!.storeRevision(identityKey, revision);
-    }
-
     final resourceFingerprints = <String, String>{};
+    final orderedFingerprints = <String>[];
     for (final resource in resources) {
       final identity = identities[resource.relativePath];
       final reused =
@@ -623,6 +616,30 @@ final class ProjectSnapshotLoader {
         cache?.storeResourceFingerprint(identity, fingerprint);
       }
       resourceFingerprints[resource.identity] = fingerprint;
+      orderedFingerprints.add(fingerprint);
+    }
+
+    // The revision stands for the ordered set of resources. Each fingerprint
+    // already covers the bytes of its own resource, so folding the
+    // fingerprints identifies the same state as folding the bytes — and an
+    // unchanged resource contributes a value the cache already held.
+    var revision = identityKey == null ? null : cache!.revision(identityKey);
+    if (revision == null) {
+      final revisionBuilder = NarrativeProjectFingerprintBuilder();
+      for (var index = 0; index < resources.length; index++) {
+        final resource = resources[index];
+        final fingerprintBytes = utf8.encode(orderedFingerprints[index]);
+        profiler?.recordRevisionHashedBytes(fingerprintBytes.length);
+        revisionBuilder
+          ..startEntry(
+            relativePath: resource.relativePath,
+            byteLength: fingerprintBytes.length,
+          )
+          ..addBytes(fingerprintBytes)
+          ..endEntry();
+      }
+      revision = revisionBuilder.close();
+      if (identityKey != null) cache!.storeRevision(identityKey, revision);
     }
     profiler?.recordFingerprint(fingerprintTimer!);
 
@@ -943,9 +960,14 @@ final class _ProjectSnapshotLoadProfiler {
   }
 
   var _assetBlobVerifications = 0;
+  var _revisionHashedBytes = 0;
 
   void recordAssetBlobVerification() {
     _assetBlobVerifications += 1;
+  }
+
+  void recordRevisionHashedBytes(int byteLength) {
+    _revisionHashedBytes += byteLength;
   }
 
   ProjectSnapshotLoadProfile finish({
@@ -967,6 +989,7 @@ final class _ProjectSnapshotLoadProfiler {
       cacheHit: cacheHit,
       cacheIdentityReads: cacheIdentityReads,
       assetBlobVerifications: _assetBlobVerifications,
+      revisionHashedBytes: _revisionHashedBytes,
     );
   }
 }

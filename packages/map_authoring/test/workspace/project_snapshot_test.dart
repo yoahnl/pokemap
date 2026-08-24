@@ -113,6 +113,85 @@ void main() {
       );
     });
 
+    test('the revision follows resource content, not resource identity',
+        () async {
+      final root = await Directory.systemTemp.createTemp('snapshot-revision-');
+      addTearDown(() => root.delete(recursive: true));
+      await Directory('${root.path}/maps').create(recursive: true);
+      await File('${root.path}/project.json').writeAsString(
+        jsonEncode(
+          const ProjectManifest(
+            name: 'Revision Content Binding',
+            version: ProjectVersion.v6,
+            maps: <ProjectMapEntry>[
+              ProjectMapEntry(
+                id: 'map',
+                name: 'Map',
+                relativePath: 'maps/map.json',
+              ),
+            ],
+            tilesets: <ProjectTilesetEntry>[],
+          ).toJson(),
+        ),
+        flush: true,
+      );
+      final mapFile = File('${root.path}/maps/map.json');
+      Future<void> writeMap(String name) => mapFile.writeAsString(
+            jsonEncode(
+              MapData(
+                id: 'map',
+                name: name,
+                version: ProjectVersion.v6,
+                size: const GridSize(width: 1, height: 1),
+              ).toJson(),
+            ),
+            flush: true,
+          );
+
+      await writeMap('AAAA');
+      final harness = await _SnapshotHarness.create(
+        allowedRoot: root.parent,
+        fingerprintCache: ProjectSnapshotFingerprintCache(),
+      );
+      final opened = await harness.openService.openProject(root.path);
+      final first = await harness.loader.load(opened.projectHandle);
+
+      // Same byte length, different content: only a content-derived revision
+      // moves.
+      await writeMap('BBBB');
+      final second = await harness.loader.load(opened.projectHandle);
+
+      expect(first.revision, matches(r'^sha256:[0-9a-f]{64}$'));
+      expect(second.revision, isNot(first.revision));
+
+      await writeMap('AAAA');
+      final third = await harness.loader.load(opened.projectHandle);
+      expect(third.revision, first.revision);
+    });
+
+    test('the revision is built from fingerprints, not from resource bytes',
+        () async {
+      final fixture = _realFixtureDirectory();
+      final profiles = <ProjectSnapshotLoadProfile>[];
+      final harness = await _SnapshotHarness.create(
+        allowedRoot: fixture.parent,
+        profileSink: profiles.add,
+        fingerprintCache: ProjectSnapshotFingerprintCache(),
+      );
+      final opened = await harness.openService.openProject(fixture.path);
+
+      await harness.loader.load(opened.projectHandle);
+
+      final profile = profiles.single;
+      expect(profile.resourceBytes, greaterThan(0));
+      expect(
+        profile.revisionHashedBytes,
+        profile.resourceCount * _fingerprintLength,
+        reason: 'the revision folds one fingerprint per resource',
+      );
+      expect(profile.revisionHashedBytes, lessThan(profile.resourceBytes));
+    });
+
     test('optionally profiles snapshot phases without changing the result',
         () async {
       final fixture = _realFixtureDirectory();
@@ -704,3 +783,6 @@ final List<int> _blobBytes = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+'
   'A8AAQUBAScY42YAAAAASUVORK5CYII=',
 );
+
+/// `sha256:` followed by 64 hexadecimal characters.
+const _fingerprintLength = 71;

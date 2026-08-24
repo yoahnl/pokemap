@@ -72,6 +72,9 @@ void main() {
         projectHandle: opened.projectHandle,
       );
 
+      // The planner compares against the snapshot revision, which covers every
+      // declared resource. The open fingerprint only covers project.json.
+      final snapshot = await snapshotLoader.load(opened.projectHandle);
       final importPlan = await api.plan(
         opened.projectHandle,
         AuthoringRequest(
@@ -85,7 +88,7 @@ void main() {
             'logicalPath': 'images/dialogue/portrait.txt',
             'usages': const ['legacy-import'],
           },
-          expectedRevision: opened.fingerprint,
+          expectedRevision: snapshot.revision,
           idempotencyKey: 'idem-asset-import',
         ),
       );
@@ -314,6 +317,9 @@ void main() {
         projectHandle: opened.projectHandle,
       );
 
+      // The planner compares against the snapshot revision, which covers every
+      // declared resource. The open fingerprint only covers project.json.
+      final snapshot = await snapshots.load(opened.projectHandle);
       final plan = await api.plan(
         opened.projectHandle,
         AuthoringRequest(
@@ -326,7 +332,7 @@ void main() {
             'expectedArtifactHandle': expected.reference.handle,
             'replacementArtifactHandle': replacement.reference.handle,
           },
-          expectedRevision: opened.fingerprint,
+          expectedRevision: snapshot.revision,
           idempotencyKey: 'idem-raw-asset-replace',
         ),
       );

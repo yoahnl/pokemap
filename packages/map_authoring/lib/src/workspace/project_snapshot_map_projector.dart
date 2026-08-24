@@ -51,12 +51,14 @@ final class ProjectSnapshotMapProjector {
     ];
     final resources = snapshot.resourceStorageKeys.entries.toList()
       ..sort((left, right) => left.value.compareTo(right.value));
+    // Same rule as ProjectSnapshotLoader: the revision folds the per-resource
+    // fingerprints, not the resources themselves. Both paths must agree, so
+    // they must fold the same values.
     final revision = computeNarrativeProjectFingerprint([
       for (final resource in resources)
         NarrativeProjectFingerprintEntry(
           relativePath: resource.value,
-          bytes: replacements[resource.key] ??
-              snapshot.resourceBytes(resource.key),
+          bytes: utf8.encode(fingerprints[resource.key]!),
         ),
     ]);
     return snapshot.projectMapResources(
