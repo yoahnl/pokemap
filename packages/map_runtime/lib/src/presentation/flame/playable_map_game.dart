@@ -7740,7 +7740,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // parallèle. La scène est révélée quand les DEUX sont prêts — le noir
     // tient tant que le mapping n'a pas fini, exactement comme un vrai jeu
     // masque son chargement derrière sa transition.
-    final spec = resolveBattleTransitionSpec(
+    // BETA-BAT-032 : la transition choisie, PLUS le balayage du terrain
+    // d'où sort le Pokémon (herbe, eau, poussière) — la recette du
+    // 2026-08-24 le demandait, et la référence le joue après le noir.
+    final spec = resolveBattleTransitionSpecWithTerrain(
       request: request,
       manifest: _bundle.manifest,
       map: _bundle.map,

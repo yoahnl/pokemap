@@ -76,6 +76,10 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   var _bandsProgress = 0.0;
   var _bandsBandHeight = 3.0;
   var _dissolveActive = false;
+
+  /// Le balayage de terrain en cours — BETA-BAT-032.
+  BattleTerrainSweepKind? _terrainSweepKind;
+  var _terrainSweepProgress = 0.0;
   var _dissolveT = 0.0;
   var _dissolveFine = false;
   Image? _dissolveTexture;
@@ -182,6 +186,97 @@ class BattleTransitionOverlayComponent extends PositionComponent {
     }
   }
 
+  /// Dessine le balayage de terrain — BETA-BAT-032.
+  ///
+  /// Trois brassées de « lames » qui montent du bas de l'écran, s'écartent en
+  /// éventail et s'effacent : l'herbe qu'on dérange, les gerbes d'eau, la
+  /// poussière d'une grotte. Le motif est le même, la palette et la courbure
+  /// changent — c'est ce qui rend les trois terrains lisibles d'un coup d'œil
+  /// sans un asset par terrain.
+  void _renderTerrainSweep(
+    Canvas canvas,
+    BattleTerrainSweepKind kind,
+    double progress,
+  ) {
+    // Les lames poussent sur les deux premiers tiers puis se dissipent : sans
+    // cette sortie, le balayage se couperait net au reveal.
+    final rise = (progress / 0.66).clamp(0.0, 1.0);
+    final fade = progress <= 0.66 ? 1.0 : 1 - ((progress - 0.66) / 0.34);
+    if (fade <= 0) return;
+
+    final palette = switch (kind) {
+      BattleTerrainSweepKind.grass => <Color>[
+          const Color(0xFF7FC24A),
+          const Color(0xFF4E9A2F),
+          const Color(0xFFB4E06A),
+        ],
+      BattleTerrainSweepKind.water => <Color>[
+          const Color(0xFF7FD3F2),
+          const Color(0xFF2F86C4),
+          const Color(0xFFD6F3FF),
+        ],
+      BattleTerrainSweepKind.dust => <Color>[
+          const Color(0xFFC9A87C),
+          const Color(0xFF8A6B45),
+          const Color(0xFFE6D3B3),
+        ],
+    };
+    // La courbure d'une lame : l'herbe se plie, l'eau s'évase plus large, la
+    // poussière part presque droit.
+    final bend = switch (kind) {
+      BattleTerrainSweepKind.grass => 0.42,
+      BattleTerrainSweepKind.water => 0.68,
+      BattleTerrainSweepKind.dust => 0.18,
+    };
+
+    const bladeCount = 26;
+    final maxHeight = size.y * 0.92;
+    for (var i = 0; i < bladeCount; i++) {
+      // Réparti sans aléa : la transition doit se rejouer à l'identique (même
+      // exigence que le tirage seedé de BETA-BAT-019).
+      final t = (i + 0.5) / bladeCount;
+      final phase = (i % 3) / 3;
+      final grow = (rise - phase * 0.22).clamp(0.0, 1.0);
+      if (grow <= 0) continue;
+      final height = maxHeight * grow * (0.55 + 0.45 * ((i * 37) % 11) / 10);
+      final baseX = size.x * t;
+      final sway = (t - 0.5) * size.x * bend * grow;
+      final width = size.x / bladeCount * 0.62;
+
+      final path = Path()
+        ..moveTo(baseX - width / 2, size.y)
+        ..quadraticBezierTo(
+          baseX + sway * 0.35,
+          size.y - height * 0.55,
+          baseX + sway,
+          size.y - height,
+        )
+        ..quadraticBezierTo(
+          baseX + sway * 0.35 + width * 0.5,
+          size.y - height * 0.55,
+          baseX + width / 2,
+          size.y,
+        )
+        ..close();
+
+      final color = palette[i % palette.length];
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = Color.fromARGB(
+            (fade * 235).round().clamp(0, 255),
+            (color.r * 255).round(),
+            (color.g * 255).round(),
+            (color.b * 255).round(),
+          )
+          ..style = PaintingStyle.fill,
+      );
+    }
+  }
+
+  @visibleForTesting
+  BattleTerrainSweepKind? get debugTerrainSweepKind => _terrainSweepKind;
+
   /// Saute directement à l'état « noir tenu » et notifie [onBlackHeld] —
   /// pour les tests qui doivent ouvrir la fenêtre de course entre le noir de
   /// la pré-transition et la fin du montage de la scène (recette du
@@ -267,6 +362,7 @@ class BattleTransitionOverlayComponent extends PositionComponent {
   void _applyPhase(BattleTransitionPhase phase, double progress) {
     _bandsActive = false;
     _dissolveActive = false;
+    _terrainSweepKind = null;
     switch (phase) {
       case TransitionFlashPhase(:final factor):
         // Parité `create_flash_animation` : x parcourt 0 → factor·π, l'écran
@@ -327,6 +423,14 @@ class BattleTransitionOverlayComponent extends PositionComponent {
         _bandsActive = true;
         _bandsProgress = progress;
         _bandsBandHeight = bandHeight;
+      case TransitionTerrainSweepPhase(:final kind):
+        // BETA-BAT-032 : le balayage joue PAR-DESSUS le noir tenu — la
+        // référence montre l'herbe sur fond sombre avant de révéler la
+        // scène, elle ne rouvre pas l'overworld.
+        _visibleSheet = null;
+        _screenColor = const Color(0xFF000000);
+        _terrainSweepKind = kind;
+        _terrainSweepProgress = progress;
     }
   }
 
@@ -381,6 +485,10 @@ class BattleTransitionOverlayComponent extends PositionComponent {
         Paint()..filterQuality = FilterQuality.none,
       );
       canvas.restore();
+    }
+    final sweepKind = _terrainSweepKind;
+    if (sweepKind != null) {
+      _renderTerrainSweep(canvas, sweepKind, _terrainSweepProgress);
     }
     if (_dissolveActive) {
       final shader = _dissolveShader;

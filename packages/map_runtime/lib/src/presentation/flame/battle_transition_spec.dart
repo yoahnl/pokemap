@@ -80,6 +80,40 @@ final class TransitionHoldBlackPhase extends BattleTransitionPhase {
   final double durationSeconds;
 }
 
+/// Le terrain d'où sort le Pokémon sauvage — BETA-BAT-032.
+///
+/// Recette du 2026-08-24 : « il y a la transition, mais aussi une belle
+/// animation avec des herbes etc… enfin ça dépend du type de terrain ».
+/// Observé dans la vidéo de référence (Pokémon Platine) : après le noir, des
+/// brins d'herbe remplissent l'écran et se dispersent avant que la scène
+/// n'apparaisse.
+///
+/// Aucune planche de balayage plein écran n'existe dans les assets, et PSDK
+/// n'a pas cette animation (c'est une spécificité DS) : la phase est donc
+/// dessinée, paramétrée par le terrain.
+enum BattleTerrainSweepKind {
+  /// Brins d'herbe qui montent et se dispersent — hautes herbes, forêt.
+  grass,
+
+  /// Gerbes d'eau — surf et pêche.
+  water,
+
+  /// Poussière et éclats de roche — grotte.
+  dust,
+}
+
+final class TransitionTerrainSweepPhase extends BattleTransitionPhase {
+  const TransitionTerrainSweepPhase({
+    required this.kind,
+    this.durationSeconds = 0.65,
+  });
+
+  final BattleTerrainSweepKind kind;
+
+  @override
+  final double durationSeconds;
+}
+
 /// Bandes noires entrelacées qui envahissent l'écran — BETA-BAT-019.
 ///
 /// L'adaptation sans shader de `RSWild`/`DPPWild` : la référence découpe la
@@ -156,6 +190,57 @@ final class BattleTransitionSpec {
 
   double get totalSeconds =>
       phases.fold(0, (sum, phase) => sum + phase.durationSeconds);
+
+  /// La même transition, suivie d'un balayage de terrain — BETA-BAT-032.
+  ///
+  /// La phase est ajoutée à la spec RÉSOLUE et jamais au registre : les 15
+  /// transitions de BETA-BAT-019 gardent leur définition et leurs tests
+  /// pixel au bit près.
+  BattleTransitionSpec withTerrainSweep(BattleTerrainSweepKind kind) {
+    return BattleTransitionSpec(
+      id: '$id+${kind.name}',
+      phases: List<BattleTransitionPhase>.unmodifiable(
+        <BattleTransitionPhase>[
+          ...phases,
+          TransitionTerrainSweepPhase(kind: kind),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le terrain d'une rencontre sauvage, ou null quand rien ne le justifie —
+/// BETA-BAT-032.
+///
+/// La donnée réelle porte deux signaux : COMMENT la rencontre s'est produite
+/// (`EncounterKind` : à pied, en surf, à la canne) et OÙ (`mapType`). L'eau
+/// gagne sur le lieu — on pêche depuis une berge — puis la grotte, puis
+/// l'herbe par défaut d'une rencontre à pied.
+///
+/// Un combat de dresseur n'en a pas : il ne sort de nulle part.
+BattleTerrainSweepKind? resolveBattleTerrainSweepKind({
+  required BattleStartRequest request,
+  MapData? map,
+}) {
+  if (request is! WildBattleStartRequest) return null;
+  switch (request.encounterKind) {
+    case EncounterKind.surf:
+    case EncounterKind.oldRod:
+    case EncounterKind.goodRod:
+    case EncounterKind.superRod:
+      return BattleTerrainSweepKind.water;
+    case EncounterKind.walk:
+    case EncounterKind.headbutt:
+      break;
+    case EncounterKind.gift:
+    case EncounterKind.special:
+      // Une rencontre scriptée n'est pas une rencontre de terrain.
+      return null;
+  }
+  return switch (map?.mapMetadata.mapType) {
+    MapType.cave => BattleTerrainSweepKind.dust,
+    _ => BattleTerrainSweepKind.grass,
+  };
 }
 
 /// La transition sauvage RBY — recontrôlée sur `100 RBYWild.rb` le
@@ -493,6 +578,25 @@ BattleTransitionSpec resolveBattleTransitionSpec({
     return fallback;
   }
   return battleTransitionRegistry[requestedId] ?? fallback;
+}
+
+/// La transition à jouer, balayage de terrain compris — BETA-BAT-032.
+///
+/// Séparé de [resolveBattleTransitionSpec], qui ne fait qu'un choix parmi le
+/// registre : le contrat de ce choix est verrouillé par les tests de
+/// BETA-BAT-019, et la composition du terrain est une étape distincte.
+BattleTransitionSpec resolveBattleTransitionSpecWithTerrain({
+  required BattleStartRequest request,
+  required ProjectManifest manifest,
+  MapData? map,
+}) {
+  final spec = resolveBattleTransitionSpec(
+    request: request,
+    manifest: manifest,
+    map: map,
+  );
+  final terrain = resolveBattleTerrainSweepKind(request: request, map: map);
+  return terrain == null ? spec : spec.withTerrainSweep(terrain);
 }
 
 /// FNV-1a sur le requestId : stable entre exécutions et plateformes, là où

@@ -478,4 +478,100 @@ void main() {
       }
     });
   });
+
+  // BETA-BAT-032 — recette du 2026-08-24 : « il y a la transition, mais aussi
+  // une belle animation avec des herbes etc… ça dépend du type de terrain ».
+  group('le balayage de terrain', () {
+    test('une rencontre à pied ajoute un balayage d’herbe APRÈS les phases',
+        () {
+      final spec = resolveBattleTransitionSpecWithTerrain(
+        request: _wildRequest(),
+        manifest: _manifest(),
+      );
+
+      final sweep = spec.phases.whereType<TransitionTerrainSweepPhase>().single;
+      expect(sweep.kind, BattleTerrainSweepKind.grass);
+      expect(
+        spec.phases.last,
+        same(sweep),
+        reason: 'la référence montre l’herbe APRÈS le noir, juste avant que '
+            'la scène n’apparaisse',
+      );
+    });
+
+    test('surf et cannes donnent de l’eau', () {
+      for (final kind in <EncounterKind>[
+        EncounterKind.surf,
+        EncounterKind.oldRod,
+        EncounterKind.goodRod,
+        EncounterKind.superRod,
+      ]) {
+        expect(
+          resolveBattleTerrainSweepKind(
+            request: _wildRequestWithKind(kind),
+          ),
+          BattleTerrainSweepKind.water,
+          reason: 'on pêche depuis une berge : l’eau gagne sur le lieu',
+        );
+      }
+    });
+
+    test('un combat de DRESSEUR n’en joue aucun', () {
+      final spec = resolveBattleTransitionSpecWithTerrain(
+        request: _trainerRequest(),
+        manifest: _manifest(),
+      );
+
+      expect(
+        spec.phases.whereType<TransitionTerrainSweepPhase>(),
+        isEmpty,
+        reason: 'un dresseur ne sort pas des herbes',
+      );
+    });
+
+    test('une rencontre scriptée (don, spécial) n’en joue aucun', () {
+      for (final kind in <EncounterKind>[
+        EncounterKind.gift,
+        EncounterKind.special,
+      ]) {
+        expect(
+          resolveBattleTerrainSweepKind(request: _wildRequestWithKind(kind)),
+          isNull,
+        );
+      }
+    });
+
+    test(
+        'le registre des 15 transitions reste INTACT — la phase vit sur la '
+        'spec résolue', () {
+      for (final entry in battleTransitionRegistry.entries) {
+        expect(
+          entry.value.phases.whereType<TransitionTerrainSweepPhase>(),
+          isEmpty,
+          reason: '${entry.key} : les tests pixel de BAT-019 dépendent de ces '
+              'définitions au bit près',
+        );
+      }
+    });
+  });
+}
+
+WildBattleStartRequest _wildRequestWithKind(EncounterKind kind) {
+  final base = _wildRequest();
+  return WildBattleStartRequest(
+    requestId: base.requestId,
+    createdAtEpochMs: base.createdAtEpochMs,
+    returnContext: base.returnContext,
+    mapId: base.mapId,
+    encounterSourceId: base.encounterSourceId,
+    encounterSourceKind: base.encounterSourceKind,
+    tableId: base.tableId,
+    encounterKind: kind,
+    speciesId: base.speciesId,
+    level: base.level,
+    minLevel: base.minLevel,
+    maxLevel: base.maxLevel,
+    weight: base.weight,
+    playerPos: base.playerPos,
+  );
 }
