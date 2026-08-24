@@ -11,25 +11,70 @@ import 'package:map_authoring/map_authoring_local.dart';
 /// a scenario someone imagined; this answers it for the session the author
 /// actually had.
 ///
-/// Nothing is recorded unless [destinationVariable] names a file, so the
-/// production path pays one map lookup at startup and nothing afterwards.
+/// Nothing is recorded unless [destinationVariable] is set, so the production
+/// path pays one map lookup at startup and nothing afterwards.
 final class EditorSnapshotProfileRecorder {
   EditorSnapshotProfileRecorder._(this._destination);
 
   static const destinationVariable = 'POKEMAP_SNAPSHOT_PROFILE';
 
+  static const _fallbackFileName = 'pokemap-snapshot-profile.jsonl';
+
+  /// Resolves a destination that can actually be written to.
+  ///
+  /// The editor ships sandboxed, so a path the operator types on the command
+  /// line — `/tmp/...` above all — is usually denied. Falling back to a
+  /// directory the sandbox does grant keeps the recording, and [announce]
+  /// reports where it landed: a diagnosis tool that silently writes nowhere is
+  /// worse than none, because the empty file reads as "nothing happened".
   static EditorSnapshotProfileRecorder? resolve({
     Map<String, String>? environment,
+    Directory? fallbackDirectory,
+    void Function(String message)? announce,
   }) {
-    final destination =
+    final requested =
         (environment ?? Platform.environment)[destinationVariable]?.trim();
-    if (destination == null || destination.isEmpty) return null;
-    return EditorSnapshotProfileRecorder._(File(destination));
+    if (requested == null || requested.isEmpty) return null;
+    final report = announce ?? _announceOnStderr;
+
+    final candidates = <File>[
+      File(requested),
+      File(
+        '${(fallbackDirectory ?? Directory.systemTemp).path}'
+        '${Platform.pathSeparator}$_fallbackFileName',
+      ),
+    ];
+    for (final candidate in candidates) {
+      if (!_isWritable(candidate)) continue;
+      report(
+        'Snapshot profile recording to ${candidate.path}',
+      );
+      return EditorSnapshotProfileRecorder._(candidate);
+    }
+    report(
+      'Snapshot profile requested but no writable destination was found; '
+      'tried ${candidates.map((file) => file.path).join(', ')}',
+    );
+    return null;
   }
+
+  static bool _isWritable(File file) {
+    try {
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync('', mode: FileMode.append, flush: true);
+      return true;
+    } on Object {
+      return false;
+    }
+  }
+
+  static void _announceOnStderr(String message) => stderr.writeln(message);
 
   final File _destination;
   Future<void> _pending = Future<void>.value();
   var _failed = false;
+
+  String get destinationPath => _destination.path;
 
   ProjectSnapshotLoadProfileSink sinkFor(String session) {
     return (profile) => _append(<String, Object?>{
@@ -79,16 +124,19 @@ final class EditorSnapshotProfileRecorder {
     _pending = _pending.then((_) async {
       if (_failed) return;
       try {
-        await _destination.parent.create(recursive: true);
         await _destination.writeAsString(
           line,
           mode: FileMode.append,
           flush: true,
         );
-      } on Object {
-        // Diagnosis must never take the editor down with it. One failure is
-        // enough to know the destination is unusable for this session.
+      } on Object catch (error) {
+        // Diagnosis must never take the editor down with it, but it must not
+        // go quiet either: a recording that stops without a word is read as an
+        // editor that did no work.
         _failed = true;
+        _announceOnStderr(
+          'Snapshot profile recording stopped: $error',
+        );
       }
     });
   }

@@ -29,21 +29,7 @@ void main() {
       );
 
       expect(recorder, isNotNull);
-      recorder!.sinkFor('read')(
-        const ProjectSnapshotLoadProfile(
-          initialReadMicroseconds: 1000,
-          decodeModelMicroseconds: 2000,
-          secondObservationMicroseconds: 3000,
-          fingerprintMicroseconds: 4000,
-          projectionMicroseconds: 5000,
-          totalMicroseconds: 15000,
-          resourceCount: 441,
-          resourceBytes: 78800000,
-          cacheHit: false,
-          assetBlobVerifications: 393,
-          revisionHashedBytes: 31311,
-        ),
-      );
+      recorder!.sinkFor('read')(_profile);
 
       await recorder.flush();
       final lines = await File(destination).readAsLines();
@@ -57,6 +43,33 @@ void main() {
       expect(entry['assetBlobVerifications'], 393);
       expect(entry['revisionHashedBytes'], 31311);
       expect(entry['cacheHit'], false);
+    });
+
+    test('falls back to a writable directory when the destination is refused',
+        () async {
+      final fallback = await Directory.systemTemp.createTemp('profile-fb-');
+      addTearDown(() => fallback.delete(recursive: true));
+      final announcements = <String>[];
+
+      final recorder = EditorSnapshotProfileRecorder.resolve(
+        environment: <String, String>{
+          // A path under an existing file can never be created.
+          EditorSnapshotProfileRecorder.destinationVariable:
+              '/etc/hosts/refused/profile.jsonl',
+        },
+        fallbackDirectory: fallback,
+        announce: announcements.add,
+      );
+
+      expect(recorder, isNotNull);
+      expect(recorder!.destinationPath, startsWith(fallback.path));
+      expect(announcements, hasLength(1));
+      expect(announcements.single, contains(recorder.destinationPath));
+
+      recorder.sinkFor('read')(_profile);
+      await recorder.flush();
+
+      expect(await File(recorder.destinationPath).readAsLines(), hasLength(1));
     });
 
     test('a real project open through the query adapter records a load',
@@ -99,3 +112,17 @@ void main() {
     });
   });
 }
+
+const _profile = ProjectSnapshotLoadProfile(
+  initialReadMicroseconds: 1000,
+  decodeModelMicroseconds: 2000,
+  secondObservationMicroseconds: 3000,
+  fingerprintMicroseconds: 4000,
+  projectionMicroseconds: 5000,
+  totalMicroseconds: 15000,
+  resourceCount: 441,
+  resourceBytes: 78800000,
+  cacheHit: false,
+  assetBlobVerifications: 393,
+  revisionHashedBytes: 31311,
+);
