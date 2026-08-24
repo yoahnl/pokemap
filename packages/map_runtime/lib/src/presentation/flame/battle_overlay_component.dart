@@ -2409,8 +2409,11 @@ class BattleOverlayComponent extends PositionComponent {
     final bagMenuModel = _currentBagMenuModel();
     final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
     final currentAnimationMessage = _animationRunner?.currentMessage;
+    // BETA-BAT-033 : `_presentationPendingOrRunning` couvre aussi la fenêtre
+    // entre la pose du plan et son démarrage — le trou que BETA-BAT-012 avait
+    // documenté puis bouché pour le seul bandeau d'issue.
     final isPresenting =
-        (_animationRunner?.isActive ?? false) || !_acceptsPlayerCommands;
+        _presentationPendingOrRunning || !_acceptsPlayerCommands;
     final partyPrompt = menuModel.mode == BattleCommandMenuMode.pokemon
         ? buildBattlePartyPromptForOverlay(partyMenuModel)
         : null;
@@ -2598,9 +2601,13 @@ class BattleOverlayComponent extends PositionComponent {
       return;
     }
     final layout = currentSceneLayout;
+    // La garde sur `_effectiveMenuMode` couvre déjà la bascule automatique ;
+    // celle-ci reste pour le cas où le joueur avait laissé le menu POKÉMON
+    // ouvert avant de soumettre — le mode vient alors de lui, pas du KO.
     final isForcedReplacement =
         partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement &&
-            menuModel.mode == BattleCommandMenuMode.pokemon;
+            menuModel.mode == BattleCommandMenuMode.pokemon &&
+            !_presentationPendingOrRunning;
     final snapshot = BattleCommandOverlaySnapshot(
       revision: ++_commandOverlayRevision,
       phase: isForcedReplacement
@@ -3099,7 +3106,13 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCommandMenuMode _effectiveMenuMode() {
     final partyMenuModel = _currentPartyMenuModel();
     if (partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement &&
-        partyMenuModel.hasSelectableEntries) {
+        partyMenuModel.hasSelectableEntries &&
+        // BETA-BAT-033 : le moteur résout le tour ENTIER à la soumission, donc
+        // il sait que l'actif tombe avant que le premier coup ne soit joué.
+        // Sans cette garde, choisir une attaque ouvrait immédiatement la liste
+        // de l'équipe : le KO était annoncé avant d'avoir eu lieu. Même
+        // horloge que le bandeau d'issue de BETA-BAT-012.
+        !_presentationPendingOrRunning) {
       return BattleCommandMenuMode.pokemon;
     }
     if (_menuMode == BattleCommandMenuMode.bagMedicineTarget &&
