@@ -86,6 +86,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   int? _newBattleDifficulty;
   String? _newBattleBackgroundRelativePath;
   String? _newBattleSpriteRelativePath;
+  String? _newBattleTransitionId;
   String? _newRewardItemId;
   List<ProjectTrainerItemGrant> _newRewardItemGrants =
       const <ProjectTrainerItemGrant>[];
@@ -118,6 +119,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   int? _editBattleDifficulty;
   String? _editBattleBackgroundRelativePath;
   String? _editBattleSpriteRelativePath;
+  String? _editBattleTransitionId;
   String? _editRewardItemId;
   List<ProjectTrainerItemGrant> _editRewardItemGrants =
       const <ProjectTrainerItemGrant>[];
@@ -421,6 +423,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       battleDifficulty: _newBattleDifficulty,
       battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
       battleSpriteRelativePath: _newBattleSpriteRelativePath,
+      battleTransitionId: _newBattleTransitionId,
       characterId: _newCharacterId,
       portraitElementId: _newPortraitController.text,
       battleMusicPath: _newBattleMusicController.text,
@@ -491,6 +494,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       battleDifficulty: _editBattleDifficulty,
       battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
       battleSpriteRelativePath: _editBattleSpriteRelativePath,
+      battleTransitionId: _editBattleTransitionId,
       characterId: _editCharacterId,
       portraitElementId: _editPortraitController.text,
       battleMusicPath: _editBattleMusicController.text,
@@ -672,6 +676,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newBattleDifficulty = null;
     _newBattleBackgroundRelativePath = null;
     _newBattleSpriteRelativePath = null;
+    _newBattleTransitionId = null;
     _newRewardItemId = null;
     _newRewardItemGrants = const <ProjectTrainerItemGrant>[];
     _newRewardBadgeId = null;
@@ -999,6 +1004,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _editBattleDifficulty = trainer.battleDifficulty;
       _editBattleBackgroundRelativePath = trainer.battleBackgroundRelativePath;
       _editBattleSpriteRelativePath = trainer.battleSpriteRelativePath;
+      _editBattleTransitionId = trainer.battleTransitionId;
       _editRewardItemId = null;
       _editRewardItemGrants = trainer.rewardItemGrants;
       _editRewardBadgeId = trainer.rewardBadgeId;
@@ -1094,6 +1100,14 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _newBattleSpriteRelativePath = null;
       _createTrainerValidationMessage = null;
     });
+  }
+
+  void _selectNewBattleTransition(String? transitionId) {
+    setState(() => _newBattleTransitionId = transitionId);
+  }
+
+  void _selectEditBattleTransition(String? transitionId) {
+    setState(() => _editBattleTransitionId = transitionId);
   }
 
   void _clearEditBattleSprite() {

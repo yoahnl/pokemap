@@ -44,6 +44,7 @@ void main() {
         battleDifficulty: 7,
         battleBackgroundRelativePath: r' assets\battle_backgrounds\misty.png ',
         battleSpriteRelativePath: r' assets\trainers\misty_battle.png ',
+        battleTransitionId: ' hgss_trainer ',
         battleMusicPath: ' battle_theme ',
         victoryMusicPath: ' victory_theme ',
         tags: <String>[' rival ', ' ', ' gym '],
@@ -64,6 +65,13 @@ void main() {
         reason:
             'BETA-BAT-017 : le sprite du dresseur vaincu suit le même '
             'contrat de chemin relatif normalisé que le fond',
+      );
+      expect(
+        trainer.battleTransitionId,
+        'hgss_trainer',
+        reason:
+            'BETA-BAT-019 : la transition authorée du dresseur est '
+            'normalisée et persistée',
       );
       expect(trainer.battleMusicPath, 'battle_theme');
       expect(trainer.victoryMusicPath, 'victory_theme');
@@ -236,6 +244,9 @@ void main() {
           battleSpriteRelativePath: const TrainerFieldUpdate<String>.set(
             'assets/trainers/misty_battle.png',
           ),
+          battleTransitionId: const TrainerFieldUpdate<String>.set(
+            'dpp_trainer',
+          ),
         );
 
         final authoredTrainer = updated.trainers.single;
@@ -248,6 +259,7 @@ void main() {
           authoredTrainer.battleSpriteRelativePath,
           'assets/trainers/misty_battle.png',
         );
+        expect(authoredTrainer.battleTransitionId, 'dpp_trainer');
 
         final cleared = await useCase.execute(
           workspace,
@@ -258,12 +270,14 @@ void main() {
             '',
           ),
           battleSpriteRelativePath: const TrainerFieldUpdate<String>.set(''),
+          battleTransitionId: const TrainerFieldUpdate<String>.set(''),
         );
 
         final clearedTrainer = cleared.trainers.single;
         expect(clearedTrainer.battleDifficulty, isNull);
         expect(clearedTrainer.battleBackgroundRelativePath, isNull);
         expect(clearedTrainer.battleSpriteRelativePath, isNull);
+        expect(clearedTrainer.battleTransitionId, isNull);
       },
     );
 

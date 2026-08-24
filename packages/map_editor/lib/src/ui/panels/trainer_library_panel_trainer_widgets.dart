@@ -182,6 +182,7 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.battleDifficulty,
     required this.battleBackgroundRelativePath,
     required this.battleSpriteRelativePath,
+    required this.battleTransitionId,
     required this.projectRootPath,
     required this.characters,
     required this.elements,
@@ -196,6 +197,7 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.onClearBattleBackground,
     required this.onPickBattleSprite,
     required this.onClearBattleSprite,
+    required this.onSelectBattleTransition,
     required this.onSelectCharacter,
     required this.onSelectRewardItem,
     required this.onAddRewardItem,
@@ -237,6 +239,7 @@ class _TrainerEditorCard extends StatelessWidget {
   final int? battleDifficulty;
   final String? battleBackgroundRelativePath;
   final String? battleSpriteRelativePath;
+  final String? battleTransitionId;
   final String? projectRootPath;
   final List<ProjectCharacterEntry> characters;
   final List<ProjectElementEntry> elements;
@@ -251,6 +254,7 @@ class _TrainerEditorCard extends StatelessWidget {
   final VoidCallback onClearBattleBackground;
   final VoidCallback onPickBattleSprite;
   final VoidCallback onClearBattleSprite;
+  final ValueChanged<String?> onSelectBattleTransition;
   final ValueChanged<String?> onSelectCharacter;
   final ValueChanged<String?> onSelectRewardItem;
   final VoidCallback onAddRewardItem;
@@ -960,6 +964,70 @@ class _TrainerEditorCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: EditorChrome.islandFillElevated(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: accent.withValues(alpha: 0.18)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Transition de début de combat (optionnelle)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _TrainerTransitionChip(
+                            key: Key(
+                              createMode
+                                  ? 'trainer-library-create-transition-default'
+                                  : 'trainer-library-edit-transition-default',
+                            ),
+                            label: 'Défaut du projet',
+                            selected: battleTransitionId == null,
+                            onTap: () => onSelectBattleTransition(null),
+                          ),
+                          for (final transitionId in battleTrainerTransitionIds)
+                            _TrainerTransitionChip(
+                              key: Key(
+                                createMode
+                                    ? 'trainer-library-create-transition-$transitionId'
+                                    : 'trainer-library-edit-transition-$transitionId',
+                              ),
+                              label:
+                                  battleTransitionDisplayLabels[transitionId] ??
+                                  transitionId,
+                              selected: battleTransitionId == transitionId,
+                              onTap: () =>
+                                  onSelectBattleTransition(transitionId),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'BETA-BAT-019 : la transition de ce dresseur gagne sur la zone et sur le défaut du projet.',
+                        style: TextStyle(
+                          color: subtle,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
               Text(
                 'Ces refs optionnelles restent brutes pour le moment. Le fond de combat trainer reste un simple chemin relatif projet qui override le fond contextuel côté runtime ; les musiques de combat et de victoire sont des chemins relatifs projet consommés par le runtime (BETA-BAT-015), les tags restent conservés tels quels.',
                 style: TextStyle(
@@ -1069,6 +1137,54 @@ class _TrainerCharacterPicker extends StatelessWidget {
           onSelected(picked?.id);
         },
         child: Text('Personnage : $label'),
+      ),
+    );
+  }
+}
+
+/// Une puce à bascule du choix de transition dresseur — BETA-BAT-019.
+class _TrainerTransitionChip extends StatelessWidget {
+  const _TrainerTransitionChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = EditorChrome.accentCoral;
+    return GestureDetector(
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected
+              ? accent.withValues(alpha: 0.22)
+              : EditorChrome.islandFill(context),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? accent
+                : CupertinoColors.separator.resolveFrom(context),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: selected
+                  ? EditorChrome.primaryLabel(context)
+                  : CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
+          ),
+        ),
       ),
     );
   }

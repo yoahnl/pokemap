@@ -317,25 +317,6 @@ final Map<String, BattleTransitionSpec> battleTransitionRegistry =
   'hgss_trainer': battleTransitionHgssTrainer,
 };
 
-/// Les transitions proposables pour une rencontre SAUVAGE, dans l'ordre du
-/// panel d'authoring.
-const List<String> battleWildTransitionIds = <String>[
-  'rby_wild',
-  'gold_wild',
-  'crystal_wild',
-  'hgss_wild',
-  'hgss_cave',
-  'rs_wild',
-  'dpp_wild',
-];
-
-/// Les transitions proposables pour un combat DRESSEUR, dans l'ordre du
-/// panel d'authoring.
-const List<String> battleTrainerTransitionIds = <String>[
-  'dpp_trainer',
-  'hgss_trainer',
-];
-
 /// Résout la transition d'une requête de combat — BETA-BAT-016.
 ///
 /// Choisie par la donnée (`ProjectBattleTransitionConfig`), avec un défaut

@@ -16,15 +16,13 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 const _zone = MapGameplayZone(
   id: 'grass_zone',
   kind: GameplayZoneKind.encounter,
-  area: MapRect(
-    pos: GridPos(x: 1, y: 1),
-    size: GridSize(width: 3, height: 3),
-  ),
+  area: MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 3, height: 3)),
   encounter: EncounterZonePayload(
     encounterTableId: 'grass_table',
     battleBackgroundRelativePath: 'assets/battle_backgrounds/grass.png',
     battleMusicPath: 'assets/audio/music/zone_battle.ogg',
     encounterMusicPath: 'assets/audio/music/zone_spotted.ogg',
+    battleTransitionIds: <String>['hgss_wild'],
   ),
 );
 
@@ -56,7 +54,10 @@ EditorState _stateWithZone() {
   );
 }
 
-Future<void> _pumpPanel(WidgetTester tester, ProviderContainer container) async {
+Future<void> _pumpPanel(
+  WidgetTester tester,
+  ProviderContainer container,
+) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1400, 2400);
   addTearDown(() {
@@ -87,22 +88,17 @@ Future<void> _pumpPanel(WidgetTester tester, ProviderContainer container) async 
 }
 
 void main() {
-  testWidgets('affiche les musiques de la zone et les préserve au save',
-      (tester) async {
+  testWidgets('affiche les musiques de la zone et les préserve au save', (
+    tester,
+  ) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     container.read(editorNotifierProvider.notifier).state = _stateWithZone();
 
     await _pumpPanel(tester, container);
 
-    expect(
-      find.text('assets/audio/music/zone_battle.ogg'),
-      findsOneWidget,
-    );
-    expect(
-      find.text('assets/audio/music/zone_spotted.ogg'),
-      findsOneWidget,
-    );
+    expect(find.text('assets/audio/music/zone_battle.ogg'), findsOneWidget);
+    expect(find.text('assets/audio/music/zone_spotted.ogg'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Save Zone'));
     await tester.tap(find.text('Save Zone'));
@@ -118,14 +114,53 @@ void main() {
     expect(saved.battleMusicPath, 'assets/audio/music/zone_battle.ogg');
     expect(saved.encounterMusicPath, 'assets/audio/music/zone_spotted.ogg');
     expect(
+      saved.battleTransitionIds,
+      <String>['hgss_wild'],
+      reason: 'BETA-BAT-019 : le save ne doit pas effacer les transitions',
+    );
+    expect(
       saved.battleBackgroundRelativePath,
       'assets/battle_backgrounds/grass.png',
       reason: 'le save ne doit effacer aucun champ voisin',
     );
   });
 
-  testWidgets('zone sans musique : le panneau montre le défaut effectif',
-      (tester) async {
+  testWidgets('BETA-BAT-019 : basculer une transition de zone et sauvegarder '
+      'met à jour la liste', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = _stateWithZone();
+
+    await _pumpPanel(tester, container);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('gameplay-zone-battle-transition-rs_wild')),
+    );
+    await tester.tap(
+      find.byKey(const Key('gameplay-zone-battle-transition-rs_wild')),
+    );
+    await tester.pump();
+
+    await tester.ensureVisible(find.text('Save Zone'));
+    await tester.tap(find.text('Save Zone'));
+    await tester.pump();
+
+    final saved = container
+        .read(editorNotifierProvider)
+        .activeMap!
+        .gameplayZones
+        .single
+        .encounter!;
+    expect(
+      saved.battleTransitionIds,
+      <String>['hgss_wild', 'rs_wild'],
+      reason: 'la chip bascule et le save persiste l’ordre de sélection',
+    );
+  });
+
+  testWidgets('zone sans musique : le panneau montre le défaut effectif', (
+    tester,
+  ) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final base = _stateWithZone();
@@ -157,9 +192,7 @@ void main() {
     await tester.ensureVisible(
       find.byKey(const Key('gameplay-zone-battle-music-clear')),
     );
-    await tester.tap(
-      find.byKey(const Key('gameplay-zone-battle-music-clear')),
-    );
+    await tester.tap(find.byKey(const Key('gameplay-zone-battle-music-clear')));
     await tester.pump();
     await tester.ensureVisible(find.text('Save Zone'));
     await tester.tap(find.text('Save Zone'));

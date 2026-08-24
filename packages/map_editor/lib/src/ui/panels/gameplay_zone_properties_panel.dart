@@ -15,10 +15,7 @@ import '../shared/editor_paint_palette.dart';
 import '../shared/inspector_embedded_widgets.dart';
 
 class GameplayZonePropertiesPanel extends ConsumerStatefulWidget {
-  const GameplayZonePropertiesPanel({
-    super.key,
-    this.embedded = false,
-  });
+  const GameplayZonePropertiesPanel({super.key, this.embedded = false});
 
   final bool embedded;
 
@@ -46,6 +43,7 @@ class _GameplayZonePropertiesPanelState
   String? _zoneBattleMusicPath;
   String? _zoneBattleMusicMessage;
   String? _zoneEncounterMusicPath;
+  List<String> _zoneBattleTransitionIds = <String>[];
   String? _zoneEncounterMusicMessage;
 
   // movement
@@ -106,8 +104,9 @@ class _GameplayZonePropertiesPanelState
                   child: Text(
                     'No gameplay zones on this map.\nSelect the Zone tool and draw a rectangle to add one.',
                     style: TextStyle(
-                      color:
-                          CupertinoColors.placeholderText.resolveFrom(context),
+                      color: CupertinoColors.placeholderText.resolveFrom(
+                        context,
+                      ),
                       fontSize: 12,
                     ),
                   ),
@@ -132,8 +131,9 @@ class _GameplayZonePropertiesPanelState
                               : EditorChrome.editorIslandRim(context),
                           width: 1,
                         ),
-                        boxShadow:
-                            EditorChrome.inspectorTileHardShadows(context),
+                        boxShadow: EditorChrome.inspectorTileHardShadows(
+                          context,
+                        ),
                       ),
                       child: CupertinoButton(
                         padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
@@ -161,7 +161,8 @@ class _GameplayZonePropertiesPanelState
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: labelColor,
-                                      fontWeight: zone.id ==
+                                      fontWeight:
+                                          zone.id ==
                                               state.selectedGameplayZoneId
                                           ? FontWeight.w600
                                           : FontWeight.w500,
@@ -170,8 +171,10 @@ class _GameplayZonePropertiesPanelState
                                   const SizedBox(height: 2),
                                   Text(
                                     '${_kindLabel(zone.kind)} | ${zone.id} | (${zone.area.pos.x},${zone.area.pos.y}) ${zone.area.size.width}×${zone.area.size.height}',
-                                    style:
-                                        TextStyle(fontSize: 11, color: subtle),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: subtle,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -223,8 +226,9 @@ class _GameplayZonePropertiesPanelState
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color:
-                          CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color: CupertinoColors.secondaryLabel.resolveFrom(
+                        context,
+                      ),
                     ),
                   ),
                 ),
@@ -283,8 +287,9 @@ class _GameplayZonePropertiesPanelState
             ),
             onSelected: (id) {
               setState(() {
-                _selectedKind =
-                    GameplayZoneKind.values.firstWhere((k) => k.name == id);
+                _selectedKind = GameplayZoneKind.values.firstWhere(
+                  (k) => k.name == id,
+                );
               });
             },
             tooltip: 'Zone kind',
@@ -310,10 +315,7 @@ class _GameplayZonePropertiesPanelState
         if (_selectedKind == GameplayZoneKind.encounter) ...[
           const _SectionDivider('Encounter'),
           const SizedBox(height: 8),
-          _buildEncounterTablePicker(
-            notifier,
-            encounterTableOptions,
-          ),
+          _buildEncounterTablePicker(notifier, encounterTableOptions),
           const SizedBox(height: 8),
           _buildEncounterKindDropdown(context, coral),
           const SizedBox(height: 8),
@@ -362,6 +364,8 @@ class _GameplayZonePropertiesPanelState
             }),
           ),
           const SizedBox(height: 8),
+          _buildBattleTransitionsPicker(context),
+          const SizedBox(height: 8),
         ],
 
         if (_selectedKind == GameplayZoneKind.movement) ...[
@@ -405,7 +409,8 @@ class _GameplayZonePropertiesPanelState
             controller:
                 TextEditingController(text: _hazardDamagePerStep.toString())
                   ..selection = TextSelection.collapsed(
-                      offset: _hazardDamagePerStep.toString().length),
+                    offset: _hazardDamagePerStep.toString().length,
+                  ),
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             onChanged: (v) {
@@ -523,9 +528,8 @@ class _GameplayZonePropertiesPanelState
           label: 'Table de rencontres',
           value: selectedValue,
           items: items,
-          onChanged: (id) => setState(
-            () => _encounterTableId = id.isEmpty ? null : id,
-          ),
+          onChanged: (id) =>
+              setState(() => _encounterTableId = id.isEmpty ? null : id),
           compact: widget.embedded,
         ),
         if (missingTableId != null) ...[
@@ -552,9 +556,8 @@ class _GameplayZonePropertiesPanelState
             alignment: Alignment.centerLeft,
             child: PokeMapButton(
               key: const Key('gameplay-zone-open-encounter-table'),
-              onPressed: () => notifier.selectWildEncounterTableWorkspace(
-                selectedTable!.id,
-              ),
+              onPressed: () =>
+                  notifier.selectWildEncounterTableWorkspace(selectedTable!.id),
               variant: PokeMapButtonVariant.secondary,
               size: PokeMapButtonSize.small,
               leading: const Icon(CupertinoIcons.arrow_up_right_square),
@@ -615,8 +618,8 @@ class _GameplayZonePropertiesPanelState
     final statusLabel = !hasExplicitPath
         ? 'none'
         : exists
-            ? 'linked'
-            : 'missing';
+        ? 'linked'
+        : 'missing';
     final statusColor = switch (statusLabel) {
       'linked' => EditorChrome.accentJade,
       'missing' => EditorChrome.inspectorJoyCoral,
@@ -639,9 +642,7 @@ class _GameplayZonePropertiesPanelState
           decoration: BoxDecoration(
             color: EditorChrome.islandFillElevated(context),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: EditorChrome.editorIslandRim(context),
-            ),
+            border: Border.all(color: EditorChrome.editorIslandRim(context)),
           ),
           child: Padding(
             padding: const EdgeInsets.all(10),
@@ -739,8 +740,7 @@ class _GameplayZonePropertiesPanelState
     if (mapPath != null && mapPath.isNotEmpty) {
       return 'Default: ${p.basename(mapPath)} (map)';
     }
-    final projectPath =
-        state.project?.battleAudio?.wildBattleMusicPath?.trim();
+    final projectPath = state.project?.battleAudio?.wildBattleMusicPath?.trim();
     if (projectPath != null && projectPath.isNotEmpty) {
       return 'Default: ${p.basename(projectPath)} (project, wild)';
     }
@@ -748,8 +748,12 @@ class _GameplayZonePropertiesPanelState
   }
 
   String _zoneEncounterMusicFallbackLabel() {
-    final projectPath =
-        ref.read(editorNotifierProvider).project?.battleAudio?.encounterMusicPath?.trim();
+    final projectPath = ref
+        .read(editorNotifierProvider)
+        .project
+        ?.battleAudio
+        ?.encounterMusicPath
+        ?.trim();
     if (projectPath != null && projectPath.isNotEmpty) {
       return 'Default: ${p.basename(projectPath)} (project)';
     }
@@ -779,8 +783,8 @@ class _GameplayZonePropertiesPanelState
     final statusLabel = !hasExplicitPath
         ? 'default'
         : exists
-            ? 'linked'
-            : 'missing';
+        ? 'linked'
+        : 'missing';
     final statusColor = switch (statusLabel) {
       'linked' => EditorChrome.accentJade,
       'missing' => EditorChrome.inspectorJoyCoral,
@@ -803,9 +807,7 @@ class _GameplayZonePropertiesPanelState
           decoration: BoxDecoration(
             color: EditorChrome.islandFillElevated(context),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: EditorChrome.editorIslandRim(context),
-            ),
+            border: Border.all(color: EditorChrome.editorIslandRim(context)),
           ),
           child: Padding(
             padding: const EdgeInsets.all(10),
@@ -961,8 +963,9 @@ class _GameplayZonePropertiesPanelState
           MovementEffectZoneKind.values.firstWhere((k) => k.name == id),
         ),
         onSelected: (id) => setState(() {
-          _movementEffectKind =
-              MovementEffectZoneKind.values.firstWhere((k) => k.name == id);
+          _movementEffectKind = MovementEffectZoneKind.values.firstWhere(
+            (k) => k.name == id,
+          );
         }),
         tooltip: 'Movement effect kind',
       );
@@ -979,9 +982,7 @@ class _GameplayZonePropertiesPanelState
         );
         if (picked != null) setState(() => _movementEffectKind = picked);
       },
-      child: Text(
-        'Effect: ${_movementEffectKindLabel(_movementEffectKind)}',
-      ),
+      child: Text('Effect: ${_movementEffectKindLabel(_movementEffectKind)}'),
     );
   }
 
@@ -994,9 +995,8 @@ class _GameplayZonePropertiesPanelState
         orderedIds: HazardKind.values.map((k) => k.name).toList(),
         selectedMenuValue: _hazardKind.name,
         selectedIdForCheck: _hazardKind.name,
-        idToLabel: (id) => _hazardKindLabel(
-          HazardKind.values.firstWhere((k) => k.name == id),
-        ),
+        idToLabel: (id) =>
+            _hazardKindLabel(HazardKind.values.firstWhere((k) => k.name == id)),
         onSelected: (id) => setState(() {
           _hazardKind = HazardKind.values.firstWhere((k) => k.name == id);
         }),
@@ -1056,14 +1056,15 @@ class _GameplayZonePropertiesPanelState
     final fingerprint = zone == null
         ? 'none'
         : '${zone.id}|${zone.name}|${zone.kind.name}'
-            '|${zone.area.pos.x}|${zone.area.pos.y}'
-            '|${zone.area.size.width}|${zone.area.size.height}'
-            '|${zone.priority}'
-            '|${zone.encounter?.encounterTableId}|${zone.encounter?.encounterKind.name}|${zone.encounter?.battleBackgroundRelativePath}'
-            '|${zone.movement?.requiredMode.name}'
-            '|${zone.movementEffect?.effectKind.name}|${zone.movementEffect?.movementCost}'
-            '|${zone.hazard?.hazardKind.name}|${zone.hazard?.damagePerStep}'
-            '|${zone.special?.scriptKey}';
+              '|${zone.area.pos.x}|${zone.area.pos.y}'
+              '|${zone.area.size.width}|${zone.area.size.height}'
+              '|${zone.priority}'
+              '|${zone.encounter?.encounterTableId}|${zone.encounter?.encounterKind.name}|${zone.encounter?.battleBackgroundRelativePath}'
+              '|${zone.encounter?.battleTransitionIds.join(',')}'
+              '|${zone.movement?.requiredMode.name}'
+              '|${zone.movementEffect?.effectKind.name}|${zone.movementEffect?.movementCost}'
+              '|${zone.hazard?.hazardKind.name}|${zone.hazard?.damagePerStep}'
+              '|${zone.special?.scriptKey}';
     if (_boundFingerprint == fingerprint) return;
     _boundFingerprint = fingerprint;
 
@@ -1082,6 +1083,9 @@ class _GameplayZonePropertiesPanelState
     _zoneBattleMusicMessage = null;
     _zoneEncounterMusicPath = zone?.encounter?.encounterMusicPath;
     _zoneEncounterMusicMessage = null;
+    _zoneBattleTransitionIds = List<String>.of(
+      zone?.encounter?.battleTransitionIds ?? const [],
+    );
 
     // movement
     _movementMode = zone?.movement?.requiredMode ?? MovementMode.walk;
@@ -1097,6 +1101,67 @@ class _GameplayZonePropertiesPanelState
 
     // special
     _scriptKey = zone?.special?.scriptKey ?? '';
+  }
+
+  /// BETA-BAT-019 : les transitions de début de combat de la zone.
+  ///
+  /// Plusieurs sélections = le runtime en tire une par rencontre ; aucune =
+  /// le défaut du projet, puis le défaut moteur. Les libellés et l'ordre
+  /// viennent du contrat partagé de map_core.
+  Widget _buildBattleTransitionsPicker(BuildContext context) {
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Transitions de combat',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final transitionId in battleWildTransitionIds)
+              _BattleTransitionChip(
+                key: Key('gameplay-zone-battle-transition-$transitionId'),
+                label:
+                    battleTransitionDisplayLabels[transitionId] ?? transitionId,
+                selected: _zoneBattleTransitionIds.contains(transitionId),
+                onToggle: () => setState(() {
+                  if (_zoneBattleTransitionIds.contains(transitionId)) {
+                    _zoneBattleTransitionIds = List<String>.of(
+                      _zoneBattleTransitionIds,
+                    )..remove(transitionId);
+                  } else {
+                    _zoneBattleTransitionIds = List<String>.of(
+                      _zoneBattleTransitionIds,
+                    )..add(transitionId);
+                  }
+                }),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _zoneBattleTransitionIds.isEmpty
+              ? 'Aucune sélection : la transition par défaut du projet '
+                    's’applique.'
+              : _zoneBattleTransitionIds.length == 1
+              ? 'Les rencontres de cette zone utiliseront cette '
+                    'transition.'
+              : 'Le jeu tirera l’une de ces '
+                    '${_zoneBattleTransitionIds.length} transitions à '
+                    'chaque rencontre.',
+          style: TextStyle(
+            color: subtle,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _save(BuildContext context, EditorNotifier notifier) async {
@@ -1121,6 +1186,9 @@ class _GameplayZonePropertiesPanelState
           ),
           encounterMusicPath: _normalizeOptionalProjectRelativePath(
             _zoneEncounterMusicPath,
+          ),
+          battleTransitionIds: List<String>.unmodifiable(
+            _zoneBattleTransitionIds,
           ),
         );
       case GameplayZoneKind.movement:
@@ -1307,8 +1375,57 @@ class _SectionDivider extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Expanded(
-            child: Container(height: 1, color: color.withValues(alpha: 0.3))),
+          child: Container(height: 1, color: color.withValues(alpha: 0.3)),
+        ),
       ],
+    );
+  }
+}
+
+/// Une puce à bascule du panel de transitions — BETA-BAT-019.
+class _BattleTransitionChip extends StatelessWidget {
+  const _BattleTransitionChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = EditorChrome.accentCoral;
+    return GestureDetector(
+      onTap: onToggle,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected
+              ? accent.withValues(alpha: 0.22)
+              : EditorChrome.islandFill(context),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? accent
+                : CupertinoColors.separator.resolveFrom(context),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: selected
+                  ? EditorChrome.primaryLabel(context)
+                  : CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -79,6 +79,7 @@ class CreateTrainerUseCase {
     int? battleDifficulty,
     String? battleBackgroundRelativePath,
     String? battleSpriteRelativePath,
+    String? battleTransitionId,
     String? characterId,
     String? portraitElementId,
     String? battleMusicPath,
@@ -115,6 +116,7 @@ class CreateTrainerUseCase {
       battleSpriteRelativePath: _normalizeOptionalTrainerRelativePath(
         battleSpriteRelativePath,
       ),
+      battleTransitionId: _normalizeOptionalTrainerId(battleTransitionId),
       characterId: characterId?.trim().isEmpty == true
           ? null
           : characterId?.trim(),
@@ -164,6 +166,8 @@ class UpdateTrainerUseCase {
     TrainerFieldUpdate<String> battleBackgroundRelativePath =
         const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<String> battleSpriteRelativePath =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> battleTransitionId =
         const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<String> characterId =
         const TrainerFieldUpdate<String>.keep(),
@@ -233,6 +237,13 @@ class UpdateTrainerUseCase {
       updatedTrainer = updatedTrainer.copyWith(
         battleSpriteRelativePath: _normalizeOptionalTrainerRelativePath(
           battleSpriteRelativePath.valueOrNull,
+        ),
+      );
+    }
+    if (!battleTransitionId.isKeep) {
+      updatedTrainer = updatedTrainer.copyWith(
+        battleTransitionId: _normalizeOptionalTrainerId(
+          battleTransitionId.valueOrNull,
         ),
       );
     }

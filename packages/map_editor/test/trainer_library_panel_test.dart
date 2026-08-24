@@ -829,6 +829,65 @@ void main() {
     );
   });
 
+  testWidgets('shows the trainer battle transition chips and selects one '
+      '(BETA-BAT-019)', (tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(_FakeProjectRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      project: ProjectManifest(
+        name: 'trainer_transition_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'mira',
+            name: 'Mira',
+            trainerClass: 'Rookie',
+            battleTransitionId: 'hgss_trainer',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await settleTrainerUi(tester);
+    await tester.tap(find.text('Modifier').first);
+    await settleTrainerUi(tester);
+    await pressCupertinoButtonWithText(
+      tester,
+      'Afficher les références optionnelles',
+    );
+
+    final hgssChip = find.byKey(
+      const Key('trainer-library-edit-transition-hgss_trainer'),
+    );
+    final dppChip = find.byKey(
+      const Key('trainer-library-edit-transition-dpp_trainer'),
+    );
+    await tester.ensureVisible(hgssChip);
+    expect(hgssChip, findsOneWidget);
+    expect(dppChip, findsOneWidget);
+    expect(
+      find.byKey(const Key('trainer-library-edit-transition-default')),
+      findsOneWidget,
+      reason: 'le retour au défaut du projet reste toujours proposé',
+    );
+
+    await tester.tap(dppChip);
+    await settleTrainerUi(tester);
+    expect(
+      find.text(
+        'BETA-BAT-019 : la transition de ce dresseur gagne sur la zone et sur le défaut du projet.',
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets(
     'keeps the active species selection stable while the dropdown search changes',
     (tester) async {
