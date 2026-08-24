@@ -500,6 +500,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.genderResolver,
     this.resolveMoveDisplayName = _defaultBattleMoveDisplayName,
     this.playSfx,
+    this.playCry,
     this.onOutcomePresented,
     this.introEnabled = false,
     this.outcomeBannerEnabled = true,
@@ -664,6 +665,17 @@ class BattleOverlayComponent extends PositionComponent {
   /// révélation — tout autre chemin (pas d'intro, tours suivants) les garde
   /// visibles.
   bool _teamInfoRevealed = true;
+
+  /// Joue le cri d'une espèce — BETA-BAT-028.
+  ///
+  /// Fourni par l'hôte, qui seul sait résoudre un fichier de la DONNÉE (les
+  /// cris ne sont pas des assets embarqués). Nul chez un hôte sans banque de
+  /// cris : l'étape ne fait alors rien.
+  final void Function(String speciesId)? playCry;
+
+  void _handlePlayCryStep(PlayCryStep step) {
+    playCry?.call(step.speciesId);
+  }
 
   void _handleShowTeamInfoStep() {
     if (_teamInfoRevealed) return;
@@ -1604,6 +1616,7 @@ class BattleOverlayComponent extends PositionComponent {
       onEnemyTrainerIntro: _handleEnemyTrainerIntroStep,
       onStatStageAura: _handleStatStageAuraStep,
       onShowTeamInfo: _handleShowTeamInfoStep,
+      onPlayCry: _handlePlayCryStep,
       onPlaySe: (step) => playSfx?.call(
         step.seName,
         volume: step.volume,

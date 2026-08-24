@@ -22,6 +22,7 @@ final class BattleAnimationRunner {
     this.onEnemyTrainerIntro,
     this.onStatStageAura,
     this.onShowTeamInfo,
+    this.onPlayCry,
     this.onPlaySe,
     required this.onBarrierPulse,
     required this.onSwapCombatantVisual,
@@ -61,6 +62,7 @@ final class BattleAnimationRunner {
   final void Function(EnemyTrainerIntroStep step)? onEnemyTrainerIntro;
   final void Function(StatStageAuraStep step)? onStatStageAura;
   final void Function()? onShowTeamInfo;
+  final void Function(PlayCryStep step)? onPlayCry;
 
   /// BETA-BAT-014 : un son du plan. Nul chez un hôte sans audio — les
   /// harnais de test et les hôtes silencieux gardent exactement l'ancien
@@ -386,6 +388,7 @@ final class BattleAnimationRunner {
       PlayRmxpAnimationStep() => true,
       CombatantFlashStep() => true,
       PlaySeStep() => true,
+      PlayCryStep() => true,
       CombatantShakeStep() => true,
       CombatantToneStep() => true,
       CombatantCompressStep() => true,
@@ -478,6 +481,10 @@ final class BattleAnimationRunner {
           return startAtSeconds + durationSeconds;
         }(),
       PlaySeStep() => () {
+          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
+          return startAtSeconds;
+        }(),
+      PlayCryStep() => () {
           _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
           return startAtSeconds;
         }(),
@@ -594,6 +601,8 @@ final class BattleAnimationRunner {
         onCombatantFlash(step);
       case PlaySeStep():
         onPlaySe?.call(step);
+      case PlayCryStep():
+        onPlayCry?.call(step);
       case CombatantShakeStep():
         onCombatantShake(step);
       case CombatantToneStep():

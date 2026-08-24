@@ -885,6 +885,21 @@ final class PlayBallCaptureSequenceStep extends BattleAnimationStep {
       2.8 + shakes * 1.0 + 0.5 + (caught ? 0.0 : 0.2);
 }
 
+/// Le cri d'un Pokémon — BETA-BAT-028.
+///
+/// Parité : la référence le joue à l'entrée du sauvage (`cries_animations`,
+/// après la révélation de sa silhouette) et à chaque sortie de Ball
+/// (`regular_go_in_animation` appelle `:cry`). Accent instantané : le cri se
+/// superpose à ce qui joue, il ne tient pas la phase.
+///
+/// Sans banque de cris dans le projet, l'étape ne fait rien — c'est un
+/// fichier de la donnée, pas un asset embarqué.
+final class PlayCryStep extends BattleAnimationStep {
+  const PlayCryStep({required this.speciesId});
+
+  final String speciesId;
+}
+
 /// Les barres d'info entrent en scène — BETA-BAT-028.
 ///
 /// Parité `show_team_info` : la référence les fait glisser APRÈS le message

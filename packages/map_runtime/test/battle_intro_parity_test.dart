@@ -187,6 +187,60 @@ void main() {
       );
     });
 
+    test(
+        'BETA-BAT-028 : le sauvage crie à son entrée, et chaque Pokémon qui '
+        'sort de sa Ball crie aussi', () {
+      final wild = buildBattleIntroAnimationPlan(
+        session: _session(isTrainerBattle: false),
+        slideDistancePx: 1080,
+        playerBallSheetName: 'ball_1',
+      );
+      final wildSteps = wild.steps;
+      final slideIndex = wildSteps.indexWhere(
+        (step) =>
+            step is CombatantMotionStep &&
+            step.side == BattleSideId.enemy &&
+            step.motionKind == BattleCombatantMotionKind.introSlide,
+      );
+      final enemyCryIndex = wildSteps.indexWhere(
+        (step) => step is PlayCryStep && step.speciesId == 'pikachu',
+      );
+      final playerCryIndex = wildSteps.indexWhere(
+        (step) => step is PlayCryStep && step.speciesId == 'grenousse',
+      );
+
+      expect(
+        enemyCryIndex,
+        greaterThan(slideIndex),
+        reason: 'parité cries_animations : il crie quand sa silhouette se '
+            'révèle, à la fin du glissement',
+      );
+      expect(
+        playerCryIndex,
+        greaterThan(enemyCryIndex),
+        reason: 'parité regular_go_in_animation : le joueur crie en sortant '
+            'de sa Ball',
+      );
+
+      // Dans un combat de dresseur, l'adverse crie aussi en sortant de sa
+      // Ball — mais il n'a pas de cri d'entrée, puisque c'est le dresseur
+      // qui entre.
+      final trainer = buildBattleIntroAnimationPlan(
+        session: _session(isTrainerBattle: true),
+        slideDistancePx: 1080,
+        playerBallSheetName: 'ball_1',
+        enemyBallSheetName: 'ball_1',
+        hasEnemyTrainerSprite: true,
+      );
+      expect(
+        trainer.steps
+            .whereType<PlayCryStep>()
+            .where((step) => step.speciesId == 'pikachu'),
+        hasLength(1),
+        reason: 'un seul cri : celui de sa sortie de Ball',
+      );
+    });
+
     test('sans planche de Ball, le glissement historique des deux camps tient',
         () {
       final plan = buildBattleIntroAnimationPlan(

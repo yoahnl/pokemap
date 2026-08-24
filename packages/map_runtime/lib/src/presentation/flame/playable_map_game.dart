@@ -8037,6 +8037,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           // montent la scène immédiatement jouable, comme avant BAT-016.
           introEnabled: _battleTransitionOverlay != null,
           playSfx: (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer()).play,
+          // BETA-BAT-028 : les cris viennent de la DONNÉE du projet
+          // (assets/pokemon/cries/<espèce>.ogg, 721 fichiers dans le Train),
+          // pas des assets embarqués — d'où le chemin projet. Un cri absent
+          // ne joue rien.
+          playCry: _playBattleCry,
           onOutcomePresented: (outcome) {
             _battleVictoryMusicActive = outcome.isVictory || outcome.isCaptured;
             _syncRuntimeMusic();
@@ -8157,6 +8162,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             'Impossible de démarrer le combat avec les données locales du projet.',
         debugDetails: '$error\n$stackTrace',
       );
+    }
+  }
+
+  /// Joue le cri d'une espèce depuis la donnée du projet — BETA-BAT-028.
+  ///
+  /// Convention de la banque du projet : `assets/pokemon/cries/<id>.<ext>`.
+  /// Les extensions sont essayées dans l'ordre de la référence ; un fichier
+  /// absent ne joue rien et n'est signalé qu'une fois par le lecteur.
+  void _playBattleCry(String speciesId) {
+    final normalized = speciesId.trim().toLowerCase();
+    if (normalized.isEmpty) return;
+    for (final extension in const <String>['.ogg', '.mp3', '.wav']) {
+      final path = p.normalize(
+        p.join(
+          _bundle.projectRootDirectory,
+          'assets',
+          'pokemon',
+          'cries',
+          '$normalized$extension',
+        ),
+      );
+      if (File(path).existsSync()) {
+        (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer())
+            .playProjectFile(path);
+        return;
+      }
     }
   }
 

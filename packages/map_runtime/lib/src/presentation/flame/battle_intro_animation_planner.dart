@@ -74,6 +74,11 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
         distancePx: slideDistancePx,
       ),
     );
+    // Parité `cries_animations` : le sauvage crie quand sa silhouette se
+    // révèle, à la fin de son glissement.
+    steps.add(
+      PlayCryStep(speciesId: session.state.enemy.speciesId),
+    );
   }
   // Repli d'un combat de dresseur SANS image : rien n'entre, le Pokémon
   // apparaîtra à son envoi — la durée du glissement est laissée au message.
@@ -116,6 +121,9 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
           durationSeconds: 0.1,
         ),
       );
+      // Parité `regular_go_in_animation` : tout Pokémon qui sort de sa Ball
+      // crie.
+      steps.add(PlayCryStep(speciesId: session.state.enemy.speciesId));
     }
     steps.add(ShowMessageStep(message: enemySendMessage));
   }
@@ -136,6 +144,7 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
         durationSeconds: 0.1,
       ),
     );
+    steps.add(PlayCryStep(speciesId: session.state.player.speciesId));
   } else {
     steps.add(
       CombatantMotionStep(
