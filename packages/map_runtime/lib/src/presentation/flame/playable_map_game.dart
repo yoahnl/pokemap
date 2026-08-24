@@ -111,6 +111,7 @@ import 'battle_bag_item_icon_resolver.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
+import 'post_battle_scene_plan_builder.dart';
 import 'battle_music_resolver.dart';
 import 'battle_sfx_player.dart';
 import 'battle_background_resolver.dart';
@@ -8630,6 +8631,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ? 0.0
         : (_battleXpProgressAtMount[activeLineupIndex] ?? 0.0);
 
+    // Parité référence : le dresseur vaincu réapparaît à la place de son
+    // Pokémon avec « Vous avez battu X ! » — quand la donnée fournit un
+    // sprite ; sans lui, le message seul fait l'annonce (fallback demandé).
+    var defeatedTrainerVisualReady = false;
+    if (outcome.isVictory &&
+        activeBattleContext.request is TrainerBattleStartRequest) {
+      final trainerRequest =
+          activeBattleContext.request as TrainerBattleStartRequest;
+      final image = await _loadDefeatedTrainerImage(trainerRequest.trainerId);
+      if (flowDied()) return;
+      if (image != null) {
+        overlay.prepareDefeatedTrainerVisual(image);
+        defeatedTrainerVisualReady = true;
+      }
+    }
+
     while (true) {
       final segmentMessages = currentTransaction.messages
           .skip(playedMessageCount)
@@ -8641,11 +8658,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         activeLineupIndex: activeLineupIndex,
       );
       if (flowDied()) return;
-      final segment = _buildPostBattleSceneSegmentPlan(
+      final segment = buildPostBattleScenePlanSegment(
         messages: segmentMessages,
         activePartySlot: activePartySlot,
         fromXpProgress: currentXpProgress,
         targetXpProgress: targetXpProgress,
+        showDefeatedTrainerVisual: defeatedTrainerVisualReady,
       );
       currentXpProgress = segment.endXpProgress;
       if (!segment.plan.isEmpty) {
@@ -8771,63 +8789,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  /// Le plan d'un segment de fin de combat : chaque message devient une
-  /// phase lisible, et les gains d'Exp. du combattant affiché remplissent la
-  /// barre — jusqu'au plein + remise à zéro à chaque niveau gagné, puis
-  /// jusqu'au reliquat exact. Retourne aussi la progression affichée en fin
-  /// de segment, pour enchaîner le segment suivant après une décision.
-  ({BattleAnimationPlan plan, double endXpProgress})
-      _buildPostBattleSceneSegmentPlan({
-    required List<RuntimePostBattleMessage> messages,
-    required int? activePartySlot,
-    required double fromXpProgress,
-    required double? targetXpProgress,
-  }) {
-    var pendingLevelUps = messages
-        .where((message) =>
-            message.kind == RuntimePostBattleMessageKind.levelUp &&
-            message.partySlot == activePartySlot)
-        .length;
-    var xpProgress = fromXpProgress;
-    var xpBarFull = false;
-    final steps = <BattleAnimationStep>[];
-    for (final message in messages) {
-      final concernsDisplayedPokemon =
-          activePartySlot != null && message.partySlot == activePartySlot;
-      if (message.kind == RuntimePostBattleMessageKind.levelUp &&
-          concernsDisplayedPokemon &&
-          xpBarFull) {
-        steps.add(ShowMessageStep(message: message.text));
-        steps.add(
-          const HudXpTweenStep(fromProgress: 1, toProgress: 0, durationMs: 0),
-        );
-        final target = pendingLevelUps > 1 ? 1.0 : (targetXpProgress ?? 1.0);
-        steps.add(HudXpTweenStep(fromProgress: 0, toProgress: target));
-        xpProgress = target;
-        xpBarFull = pendingLevelUps > 1;
-        pendingLevelUps -= 1;
-        steps.add(const WaitStep(durationSeconds: 0.35));
-        continue;
-      }
-      steps.add(ShowMessageStep(message: message.text));
-      if (message.kind == RuntimePostBattleMessageKind.experience &&
-          concernsDisplayedPokemon &&
-          targetXpProgress != null) {
-        final target = pendingLevelUps > 0 ? 1.0 : targetXpProgress;
-        steps.add(
-          HudXpTweenStep(fromProgress: xpProgress, toProgress: target),
-        );
-        xpProgress = target;
-        xpBarFull = pendingLevelUps > 0;
-        steps.add(const WaitStep(durationSeconds: 0.35));
-        continue;
-      }
-      steps.add(const WaitStep(durationSeconds: 0.9));
+  /// Charge le sprite de combat du dresseur depuis la donnée projet.
+  ///
+  /// Même contrat que le fond de combat explicite : un chemin relatif au
+  /// projet, et toute absence ou erreur de lecture rend null — le plan de
+  /// fin retombe alors sur le message seul, jamais sur une erreur.
+  Future<ui.Image?> _loadDefeatedTrainerImage(String trainerId) async {
+    final trainer = _findTrainerEntry(_bundle.manifest, trainerId);
+    final relativePath = trainer?.battleSpriteRelativePath?.trim() ?? '';
+    if (relativePath.isEmpty) return null;
+    try {
+      final file = File(
+        p.normalize(p.join(_bundle.projectRootDirectory, relativePath)),
+      );
+      final bytes = await file.readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } on Object catch (error) {
+      debugPrint(
+        '[battle] defeated trainer sprite unavailable '
+        '($trainerId, $relativePath): $error',
+      );
+      return null;
     }
-    return (
-      plan: BattleAnimationPlan(steps: List.unmodifiable(steps)),
-      endXpProgress: xpProgress,
-    );
   }
 
   /// Pose une décision post-combat dans le panneau de la scène et attend le

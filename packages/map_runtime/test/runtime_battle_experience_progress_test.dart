@@ -45,6 +45,12 @@ void main() {
 
     expect(progress[0], 1);
     expect(progress[1], closeTo(25 / 91, 0.000001));
-    expect(progress.containsKey(2), isFalse);
+    expect(
+      progress[2],
+      0.0,
+      reason: 'BETA-BAT-017 : un Pokémon sans champ experience est au '
+          'plancher de son niveau — la barre existe, vide, dès le premier '
+          'combat, au lieu de disparaître jusqu’au premier gain commité',
+    );
   });
 }

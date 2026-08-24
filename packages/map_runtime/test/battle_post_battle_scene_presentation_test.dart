@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
@@ -65,6 +67,15 @@ Future<void> _pumpUntilIdle(BattleOverlayComponent overlay) async {
     await Future<void>.delayed(Duration.zero);
   }
   await overlay.waitForTurnPresentationComplete();
+}
+
+Future<ui.Image> _trainerImage() async {
+  final recorder = ui.PictureRecorder();
+  ui.Canvas(recorder).drawRect(
+    const ui.Rect.fromLTWH(0, 0, 8, 16),
+    ui.Paint()..color = const ui.Color(0xFF2266AA),
+  );
+  return recorder.endRecording().toImage(8, 16);
 }
 
 void main() {
@@ -229,6 +240,51 @@ void main() {
       reason: 'décision retirée : le gate post-combat reprend la main',
     );
     expect(overlay.selectRootEntry(0), isFalse);
+  });
+
+  test(
+      'le dresseur vaincu réapparaît au step quand son image est préparée, '
+      'et le step sans image ne fait rien', () async {
+    final overlay = BattleOverlayComponent(
+      session: _session(),
+      viewportSize: Vector2(960, 540),
+      onPlayerChoice: (_) {},
+    );
+    await overlay.onLoad();
+    await overlay.waitForPendingVisualSync();
+
+    // Fallback demandé : sans image préparée, le step est un no-op et le
+    // message seul fait l'annonce.
+    overlay.presentPostBattlePlan(
+      const BattleAnimationPlan(
+        steps: <BattleAnimationStep>[
+          ShowDefeatedTrainerStep(),
+          ShowMessageStep(message: 'Vous avez battu Gamin Chuk !'),
+        ],
+      ),
+    );
+    await _pumpUntilIdle(overlay);
+    expect(overlay.debugDefeatedTrainerSpriteMounted, isFalse);
+
+    overlay.prepareDefeatedTrainerVisual(await _trainerImage());
+    overlay.presentPostBattlePlan(
+      const BattleAnimationPlan(
+        steps: <BattleAnimationStep>[
+          ShowDefeatedTrainerStep(),
+          ShowMessageStep(message: 'Vous avez battu Gamin Chuk !'),
+        ],
+      ),
+    );
+    await _pump(overlay, 0.3);
+    expect(
+      overlay.debugDefeatedTrainerSpriteMounted,
+      isTrue,
+      reason: 'le sprite du dresseur vaincu se monte à la place de son '
+          'Pokémon, ancré sur « Vous avez battu X ! »',
+    );
+    expect(
+        overlay.debugCurrentAnimationMessage, 'Vous avez battu Gamin Chuk !');
+    await _pumpUntilIdle(overlay);
   });
 
   test('une montée de niveau remet la barre à zéro entre deux remplissages',

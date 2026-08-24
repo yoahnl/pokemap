@@ -11,10 +11,6 @@ Future<Map<int, double>> buildRuntimeBattleExperienceProgressByLineupIndex({
   final progressByLineupIndex = <int, double>{};
   for (final entry in playerLineup.lineupPartyIndices.asMap().entries) {
     final pokemon = gameState.party.members[entry.value];
-    final experience = pokemon.experience;
-    if (experience == null) {
-      continue;
-    }
     if (pokemon.level >= 100) {
       progressByLineupIndex[entry.key] = 1;
       continue;
@@ -23,6 +19,10 @@ Future<Map<int, double>> buildRuntimeBattleExperienceProgressByLineupIndex({
       await loadGrowthRateId(pokemon.speciesId),
     );
     final currentLevelExperience = curve.totalExperienceForLevel(pokemon.level);
+    // Un Pokémon sans champ experience est au plancher de son niveau : la
+    // barre existe, vide — comme la référence — au lieu de disparaître
+    // jusqu'au premier gain commité.
+    final experience = pokemon.experience ?? currentLevelExperience;
     final nextLevelExperience =
         curve.totalExperienceForLevel(pokemon.level + 1);
     progressByLineupIndex[entry.key] = ((experience - currentLevelExperience) /

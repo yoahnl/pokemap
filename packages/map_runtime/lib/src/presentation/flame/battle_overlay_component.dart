@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' as ui show Image;
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
@@ -827,6 +829,36 @@ class BattleOverlayComponent extends PositionComponent {
     return true;
   }
 
+  /// L'image du dresseur vaincu, préparée par l'hôte — BETA-BAT-017.
+  ///
+  /// La référence fait réapparaître le dresseur à la place de son Pokémon
+  /// avec « Vous avez battu X ! ». L'hôte charge l'image (chemin projet,
+  /// peut échouer) AVANT le plan de fin ; le [ShowDefeatedTrainerStep] du
+  /// plan la monte. Sans image préparée, le step ne fait rien et le message
+  /// seul fait l'annonce — le fallback demandé.
+  ui.Image? _defeatedTrainerImage;
+  PositionComponent? _defeatedTrainerSprite;
+
+  void prepareDefeatedTrainerVisual(ui.Image image) {
+    _defeatedTrainerImage = image;
+  }
+
+  @visibleForTesting
+  bool get debugDefeatedTrainerSpriteMounted => _defeatedTrainerSprite != null;
+
+  void _handleShowDefeatedTrainerStep() {
+    final image = _defeatedTrainerImage;
+    if (image == null || _defeatedTrainerSprite != null) return;
+    final rect = currentSceneLayout.enemySpriteRect;
+    final sprite = _DefeatedTrainerSpriteComponent(
+      image: image,
+      spriteRect: rect,
+      priority: (_enemyCombatant?.priority ?? 10) + 1,
+    );
+    _defeatedTrainerSprite = sprite;
+    add(sprite);
+  }
+
   /// L'XP présentée du combattant joueur actif — BETA-BAT-017.
   ///
   /// La table `_playerExperienceProgressByLineupIndex` est figée au montage
@@ -1070,6 +1102,7 @@ class BattleOverlayComponent extends PositionComponent {
       onFaintCombatant: _handleFaintCombatantStep,
       onHudHpTween: _handleHudHpTweenStep,
       onHudXpTween: _handleHudXpTweenStep,
+      onShowDefeatedTrainer: _handleShowDefeatedTrainerStep,
       onPlaySe: (step) => playSfx?.call(
         step.seName,
         volume: step.volume,
@@ -3538,6 +3571,44 @@ String _overlayMedicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
     return 'OK';
   }
   return 'Unavailable';
+}
+
+/// Le dresseur vaincu, dessiné dans le cadre du sprite ennemi : ajusté en
+/// hauteur, centré, les pieds au bas du cadre — là où son Pokémon se tenait.
+final class _DefeatedTrainerSpriteComponent extends PositionComponent {
+  _DefeatedTrainerSpriteComponent({
+    required this.image,
+    required Rect spriteRect,
+    required int priority,
+  }) : super(
+          position: Vector2(spriteRect.left, spriteRect.top),
+          size: Vector2(spriteRect.width, spriteRect.height),
+          priority: priority,
+        );
+
+  final ui.Image image;
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    final scale = math.min(
+      size.x / image.width,
+      size.y / image.height,
+    );
+    final destWidth = image.width * scale;
+    final destHeight = image.height * scale;
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromLTWH(
+        (size.x - destWidth) / 2,
+        size.y - destHeight,
+        destWidth,
+        destHeight,
+      ),
+      Paint()..filterQuality = FilterQuality.none,
+    );
+  }
 }
 
 final class _PostBattleDecisionRequest {

@@ -802,6 +802,14 @@ final class HudHpTweenStep extends BattleAnimationStep {
   final int durationMs;
 }
 
+/// Fait réapparaître le dresseur vaincu à la place de son Pokémon —
+/// BETA-BAT-017. Accent instantané : l'image a été préparée par l'hôte
+/// ([BattleOverlayComponent.prepareDefeatedTrainerVisual]) ; sans image
+/// préparée, le step est ignoré et le message seul fait l'annonce.
+final class ShowDefeatedTrainerStep extends BattleAnimationStep {
+  const ShowDefeatedTrainerStep();
+}
+
 /// Remplit la barre d'XP du joueur dans le HUD — BETA-BAT-017.
 ///
 /// Étape À DURÉE (elle tient sa phase) : la référence anime la barre pendant

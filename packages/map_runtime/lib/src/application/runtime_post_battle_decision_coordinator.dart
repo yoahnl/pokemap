@@ -459,8 +459,8 @@ final class RuntimePostBattleDecisionCoordinator {
       trainerMessages.add(
         RuntimePostBattleMessage(
           kind: RuntimePostBattleMessageKind.trainerDefeated,
-          text: '${_trainerDisplayName(transaction.bundle, request.trainerId)} '
-              'est maintenant vaincu.',
+          text: 'Vous avez battu '
+              '${_trainerDisplayName(transaction.bundle, request.trainerId)} !',
         ),
       );
     }
@@ -475,8 +475,10 @@ final class RuntimePostBattleDecisionCoordinator {
       messages: List<RuntimePostBattleMessage>.unmodifiable(
         <RuntimePostBattleMessage>[
           ...transaction.messages,
-          ...rewardMessages,
+          // Parité référence : « Vous avez battu X ! » (le sprite du dresseur
+          // vaincu s'y ancre) PUIS le gain d'argent.
           ...trainerMessages,
+          ...rewardMessages,
         ],
       ),
       pendingMoveLearning: null,

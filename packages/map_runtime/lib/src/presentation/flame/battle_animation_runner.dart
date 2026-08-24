@@ -16,6 +16,7 @@ final class BattleAnimationRunner {
     required this.onFaintCombatant,
     required this.onHudHpTween,
     this.onHudXpTween,
+    this.onShowDefeatedTrainer,
     this.onPlaySe,
     required this.onBarrierPulse,
     required this.onSwapCombatantVisual,
@@ -48,6 +49,7 @@ final class BattleAnimationRunner {
   final void Function(FaintCombatantStep step) onFaintCombatant;
   final void Function(HudHpTweenStep step) onHudHpTween;
   final void Function(HudXpTweenStep step)? onHudXpTween;
+  final void Function()? onShowDefeatedTrainer;
 
   /// BETA-BAT-014 : un son du plan. Nul chez un hôte sans audio — les
   /// harnais de test et les hôtes silencieux gardent exactement l'ancien
@@ -336,6 +338,7 @@ final class BattleAnimationRunner {
       BattleCameraMoveStep() => true,
       BattleCameraResetStep() => true,
       SwapCombatantVisualStep() => true,
+      ShowDefeatedTrainerStep() => true,
       BarrierPulseStep() => true,
       AnimationGroupStep() => true,
       _ => false,
@@ -419,6 +422,10 @@ final class BattleAnimationRunner {
           return startAtSeconds + durationSeconds;
         }(),
       PlaySeStep() => () {
+          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
+          return startAtSeconds;
+        }(),
+      ShowDefeatedTrainerStep() => () {
           _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
           return startAtSeconds;
         }(),
@@ -549,6 +556,8 @@ final class BattleAnimationRunner {
         onBarrierPulse(step);
       case SwapCombatantVisualStep(:final side):
         onSwapCombatantVisual(side);
+      case ShowDefeatedTrainerStep():
+        onShowDefeatedTrainer?.call();
       case HudHpTweenStep():
         // Le chemin bloquant renseigne `_currentHpTweenStep`, que l'overlay lit
         // pour interpoler la barre image par image. Sans lui, la barre recevait

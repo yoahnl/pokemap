@@ -121,10 +121,13 @@ void main() {
             .map((message) => message.kind),
         <RuntimePostBattleMessageKind>[
           RuntimePostBattleMessageKind.evolutionAccepted,
+          // BETA-BAT-017 : parité référence — « Vous avez battu X ! »
+          // s'annonce AVANT les récompenses (le sprite du dresseur vaincu
+          // s'ancre sur ce message).
+          RuntimePostBattleMessageKind.trainerDefeated,
           RuntimePostBattleMessageKind.money,
           RuntimePostBattleMessageKind.item,
           RuntimePostBattleMessageKind.flag,
-          RuntimePostBattleMessageKind.trainerDefeated,
         ],
       );
     });
@@ -213,10 +216,13 @@ void main() {
           RuntimePostBattleMessageKind.levelUp,
           RuntimePostBattleMessageKind.levelUp,
           RuntimePostBattleMessageKind.moveAutomaticallyLearned,
+          // BETA-BAT-017 : parité référence — « Vous avez battu X ! »
+          // s'annonce AVANT les récompenses (le sprite du dresseur vaincu
+          // s'ancre sur ce message).
+          RuntimePostBattleMessageKind.trainerDefeated,
           RuntimePostBattleMessageKind.money,
           RuntimePostBattleMessageKind.item,
           RuntimePostBattleMessageKind.flag,
-          RuntimePostBattleMessageKind.trainerDefeated,
         ],
       );
     });

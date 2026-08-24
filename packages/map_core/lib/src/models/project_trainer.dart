@@ -143,6 +143,15 @@ abstract class ProjectTrainerEntry with _$ProjectTrainerEntry {
     /// - s'il est absent ou inutilisable, le runtime retombe honnêtement sur
     ///   sa chaîne `explicite > contextuel > fallback`.
     String? battleBackgroundRelativePath,
+
+    /// Sprite de combat du dresseur — BETA-BAT-017.
+    ///
+    /// La référence fait réapparaître le dresseur vaincu à la place de son
+    /// Pokémon avec « Vous avez battu X ! ». Même contrat que
+    /// [battleBackgroundRelativePath] : un chemin relatif au projet, optionnel,
+    /// et le runtime retombe honnêtement sur le message seul quand il est
+    /// absent ou illisible.
+    @JsonKey(includeIfNull: false) String? battleSpriteRelativePath,
     String? characterId,
     String? portraitElementId,
 
