@@ -149,6 +149,13 @@ final class ProjectSnapshotCache {
     return entry.snapshot.rebind(projectHandle);
   }
 
+  static Set<String> _contentAddressedPathsOf(ProjectSnapshot snapshot) {
+    return <String>{
+      for (final entry in snapshot.resourceStorageKeys.entries)
+        if (entry.key.startsWith('assetBlob:')) entry.value,
+    };
+  }
+
   ProjectSnapshotCacheAdmission store({
     required ProjectSnapshot snapshot,
     required Map<String, ProjectResourceIdentity> identities,
@@ -198,6 +205,7 @@ final class ProjectSnapshotCache {
     final entry = _ProjectSnapshotCacheEntry(
       snapshot: snapshot,
       identities: Map.unmodifiable(Map.of(identities)),
+      contentAddressedPaths: _contentAddressedPathsOf(snapshot),
       absentResourcePaths: Set.unmodifiable(absentResourcePaths.toSet()),
       authoringBytes: authoringBytes,
       assetBlobBytes: assetBlobBytes,
@@ -275,6 +283,7 @@ final class ProjectSnapshotCache {
     final candidate = _ProjectSnapshotCacheEntry(
       snapshot: projected,
       identities: Map.unmodifiable(identities),
+      contentAddressedPaths: _contentAddressedPathsOf(projected),
       absentResourcePaths: entry.absentResourcePaths,
       authoringBytes: authoringBytes,
       assetBlobBytes: assetBlobBytes,
@@ -329,6 +338,7 @@ final class ProjectSnapshotCache {
     _ProjectSnapshotCacheEntry entry,
   ) async {
     for (final expected in entry.identities.entries) {
+      if (entry.contentAddressedPaths.contains(expected.key)) continue;
       final observed = await _readIdentity(access, expected.key);
       if (observed != expected.value) return false;
     }
@@ -356,6 +366,7 @@ final class _ProjectSnapshotCacheEntry {
   const _ProjectSnapshotCacheEntry({
     required this.snapshot,
     required this.identities,
+    required this.contentAddressedPaths,
     required this.absentResourcePaths,
     required this.authoringBytes,
     required this.assetBlobBytes,
@@ -364,6 +375,12 @@ final class _ProjectSnapshotCacheEntry {
 
   final ProjectSnapshot snapshot;
   final Map<String, ProjectResourceIdentity> identities;
+
+  /// Storage paths whose name is their own content digest.
+  ///
+  /// Their bytes cannot change without the file changing name, so observing
+  /// them again on every cache hit asks a question their own path answers.
+  final Set<String> contentAddressedPaths;
   final Set<String> absentResourcePaths;
   final int authoringBytes;
   final int assetBlobBytes;

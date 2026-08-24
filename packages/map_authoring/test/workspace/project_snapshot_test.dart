@@ -113,6 +113,110 @@ void main() {
       );
     });
 
+    test('a canonical cache hit does not re-stat immutable asset blobs',
+        () async {
+      final root = await Directory.systemTemp.createTemp('snapshot-stats-');
+      addTearDown(() => root.delete(recursive: true));
+      final artifacts = <ContentArtifactRef>[
+        for (var index = 0; index < 8; index++)
+          ContentArtifactRef.fromBytes(
+            <int>[..._blobBytes, index],
+            mediaType: 'image/png',
+          ),
+      ];
+      await Directory('${root.path}/maps').create(recursive: true);
+      await File('${root.path}/project.json').writeAsString(
+        jsonEncode(
+          const ProjectManifest(
+            name: 'Blob Stat Budget',
+            version: ProjectVersion.v6,
+            maps: <ProjectMapEntry>[
+              ProjectMapEntry(
+                id: 'map',
+                name: 'Map',
+                relativePath: 'maps/map.json',
+              ),
+            ],
+            tilesets: <ProjectTilesetEntry>[],
+          ).toJson(),
+        ),
+        flush: true,
+      );
+      await File('${root.path}/maps/map.json').writeAsString(
+        jsonEncode(
+          const MapData(
+            id: 'map',
+            name: 'Map',
+            version: ProjectVersion.v6,
+            size: GridSize(width: 1, height: 1),
+          ).toJson(),
+        ),
+        flush: true,
+      );
+      final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+      await catalogFile.parent.create(recursive: true);
+      await catalogFile.writeAsString(
+        jsonEncode(
+          AssetCatalog(
+            records: <AssetRecord>[
+              for (final (index, artifact) in artifacts.indexed)
+                AssetRecord(
+                  id: 'blob-$index',
+                  logicalPath: 'assets/blob-$index.png',
+                  artifact: artifact,
+                ),
+            ],
+          ).toJson(),
+        ),
+        flush: true,
+      );
+      for (final (index, artifact) in artifacts.indexed) {
+        final blobFile = File('${root.path}/${assetBlobStorageKey(artifact)}');
+        await blobFile.parent.create(recursive: true);
+        await blobFile.writeAsBytes(<int>[..._blobBytes, index], flush: true);
+      }
+
+      final cache = ProjectSnapshotCache();
+      final harness = await _SnapshotHarness.create(
+        allowedRoot: root.parent,
+        fingerprintCache: ProjectSnapshotFingerprintCache(),
+        snapshotCache: cache,
+      );
+      final opened = await harness.openService.openProject(root.path);
+      await harness.loader.load(opened.projectHandle);
+
+      final before = cache.identityReads;
+      final hit = await harness.loader.load(opened.projectHandle);
+      final statsForHit = cache.identityReads - before;
+
+      expect(hit, isNotNull);
+      expect(cache.canonicalHits, 1);
+      // project.json, the map and the asset catalog are mutable and observed
+      // twice; the eight blobs are named by their own digest.
+      expect(
+        statsForHit,
+        lessThanOrEqualTo(8),
+        reason: 'stat count must not scale with the blob store',
+      );
+
+      // Skipping the blobs must not blind the cache to real edits: a mutable
+      // resource still invalidates the entry.
+      await File('${root.path}/maps/map.json').writeAsString(
+        jsonEncode(
+          const MapData(
+            id: 'map',
+            name: 'Renamed',
+            version: ProjectVersion.v6,
+            size: GridSize(width: 1, height: 1),
+          ).toJson(),
+        ),
+        flush: true,
+      );
+      final afterEdit = await harness.loader.load(opened.projectHandle);
+      expect(afterEdit.mapById('map')!.name, 'Renamed');
+      expect(cache.canonicalHits, 1, reason: 'the edit must miss the cache');
+    });
+
     test('the revision follows resource content, not resource identity',
         () async {
       final root = await Directory.systemTemp.createTemp('snapshot-revision-');
@@ -648,6 +752,7 @@ final class _SnapshotHarness {
     ProjectFileReader reader = const LocalProjectFileReader(),
     ProjectSnapshotLoadProfileSink? profileSink,
     ProjectSnapshotFingerprintCache? fingerprintCache,
+    ProjectSnapshotCache? snapshotCache,
   }) async {
     var token = 0;
     final policy = await WorkspacePolicy.create(
@@ -668,6 +773,7 @@ final class _SnapshotHarness {
         handles: handles,
         profileSink: profileSink,
         fingerprintCache: fingerprintCache,
+        snapshotCache: snapshotCache,
       ),
     );
   }
