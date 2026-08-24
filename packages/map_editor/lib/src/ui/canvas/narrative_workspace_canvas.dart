@@ -3017,12 +3017,14 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
             generation != _presentationMediaSinkGeneration) {
           return;
         }
+        final sink = PresentationStudioMediaSink(
+          catalog: media.catalog,
+          mediaUris: media.mediaUris,
+          targetPlatform: currentPresentationMediaTargetPlatform(),
+        );
         setState(() {
-          _presentationMediaSink = PresentationStudioMediaSink(
-            catalog: media.catalog,
-            mediaUris: media.mediaUris,
-            targetPlatform: currentPresentationMediaTargetPlatform(),
-          );
+          _presentationMediaSink = sink;
+          _presentationProjectContentController?.mediaSink = sink;
         });
       }).onError((_, _) {
         // A montage with unreadable media stays editable and silent; the
@@ -3068,6 +3070,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
             projectRootPath: projectRootPath,
             mediaReader: widget.presentationMediaReader,
             projectionGateway: widget.presentationTimelineProjectionGateway,
+            mediaSink: _presentationMediaSink,
           );
     _preparePresentationProjectContent();
   }
@@ -3249,7 +3252,12 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       final presentationCanvas = projectContentController == null
           ? buildPresentationCanvas(const _PresentationStudioContentPort())
           : AnimatedBuilder(
-              animation: projectContentController,
+              // The sink too: it is what publishes the live video surface,
+              // and the content port only reports it once it exists.
+              animation: Listenable.merge([
+                projectContentController,
+                ?_presentationMediaSink,
+              ]),
               builder: (context, _) =>
                   buildPresentationCanvas(projectContentController),
             );

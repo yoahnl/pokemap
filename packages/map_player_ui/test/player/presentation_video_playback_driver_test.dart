@@ -61,6 +61,10 @@ final class _RecordingController implements PresentationVideoController {
   Future<void> pause() async => events.add('pause');
 
   @override
+  Future<void> seek(Duration position) async =>
+      events.add('seek:${position.inMicroseconds}');
+
+  @override
   Future<void> setVolume(double volume) async {
     events.add('volume:$volume');
     if (failVolume) throw StateError('volume failed');

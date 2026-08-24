@@ -9,6 +9,69 @@ import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_st
 import 'package:map_player_ui/presentation_renderer.dart';
 
 void main() {
+  test('the live video replaces the poster of its clip', () async {
+    final playback = _StubVideoPlayback();
+    final sink = PresentationStudioMediaSink(
+      catalog: ProjectMediaCatalog(
+        entries: <ProjectMediaAsset>[
+          ProjectMediaAsset(
+            id: 'intro-video',
+            label: 'Vidéo d’intro',
+            kind: ProjectMediaKind.video,
+            sourceAssetId: 'asset-intro-video',
+          ),
+        ],
+      ),
+      mediaUris: <String, Uri>{'intro-video': Uri.file('/project/intro.mp4')},
+      targetPlatform: PresentationMediaTargetPlatform.macos,
+      videoPlayback: playback,
+    );
+    addTearDown(sink.dispose);
+    final controller = PresentationStudioProjectContentController(
+      projectRootPath: '/project',
+      mediaReader: _MediaReader(
+        <String, PresentationTimelineProjectionMedia>{},
+      ),
+      projectionGateway: _ProjectionGateway(
+        <String, PresentationTimelineMediaProjection>{},
+      ),
+      mediaSink: sink,
+    );
+    addTearDown(controller.dispose);
+
+    final videoAsset = _videoAsset();
+    final clip = const PresentationCinematicEvaluator()
+        .evaluate(videoAsset, timeUs: 1500000)
+        .visuals
+        .single;
+
+    // Nothing decoded yet: the clip falls back to what the reader has, which
+    // here is nothing at all.
+    expect(
+      controller.resolveVisual(
+        clip: clip,
+        orientation: PresentationFrameOrientation.landscape,
+      ),
+      isA<PresentationVisualUnavailable>(),
+    );
+
+    sink.synchronize(
+      asset: videoAsset,
+      frame: const PresentationCinematicEvaluator()
+          .evaluate(videoAsset, timeUs: 1500000),
+      orientation: PresentationFrameOrientation.landscape,
+      running: true,
+    );
+    await sink.settled;
+
+    final resolved = controller.resolveVisual(
+      clip: clip,
+      orientation: PresentationFrameOrientation.landscape,
+    );
+    expect(resolved, isA<PresentationVisualReady>());
+    expect((resolved as PresentationVisualReady).child.key, _videoSurfaceKey);
+  });
+
   testWidgets(
     'loads responsive project media and caption segments before rendering',
     (tester) async {
@@ -263,4 +326,57 @@ final class _SequencedMediaReader
       _image(mediaId, <int>[2]),
     );
   }
+}
+
+const _videoSurfaceKey = ValueKey<String>('montage-video-surface');
+
+PresentationCinematicAsset _videoAsset() => PresentationCinematicAsset(
+  id: 'opening',
+  title: 'Opening',
+  durationUs: 8000000,
+  layers: <PresentationLayer>[
+    PresentationLayer(id: 'picture', label: 'Image', zIndex: 0),
+  ],
+  tracks: <PresentationTrack>[
+    PresentationTrack(
+      id: 'visuals',
+      label: 'Visuels',
+      kind: PresentationTrackKind.visual,
+      clips: <PresentationClip>[
+        PresentationVisualClip(
+          id: 'video-clip',
+          startUs: 1000000,
+          durationUs: 4000000,
+          layerId: 'picture',
+          resourceId: 'intro-video',
+          mediaKind: PresentationVisualMediaKind.video,
+        ),
+      ],
+    ),
+  ],
+);
+
+final class _StubVideoPlayback implements PresentationStudioVideoPlayback {
+  @override
+  Future<Object> prepare(Uri source, {required double initialVolume}) async =>
+      Object();
+
+  @override
+  Future<void> play(Object handle) async {}
+
+  @override
+  Future<void> pause(Object handle) async {}
+
+  @override
+  Future<void> seek(Object handle, Duration position) async {}
+
+  @override
+  Future<void> setVolume(Object handle, double volume) async {}
+
+  @override
+  Widget buildVideo(Object handle) =>
+      const SizedBox.shrink(key: _videoSurfaceKey);
+
+  @override
+  Future<void> dispose(Object handle) async {}
 }

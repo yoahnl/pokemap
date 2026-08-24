@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
@@ -182,6 +183,123 @@ void main() {
       expect(driver.log, ['stop']);
     });
 
+    test('a video clip entering the frame prepares and seeks its decoder',
+        () async {
+      final video = _RecordingVideoPlayback();
+      final sink = _videoSink(video);
+      addTearDown(sink.dispose);
+      final asset = _videoAsset();
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(500000),
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+      expect(video.log, isEmpty, reason: 'the clip has not started yet');
+      expect(sink.videoFor('intro-video'), isNull);
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(1500000),
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+
+      expect(video.log, ['prepare:intro.mp4', 'seek:500000', 'play']);
+      expect(sink.videoFor('intro-video'), isNotNull);
+    });
+
+    test('leaving the clip disposes the decoder and takes back the picture',
+        () async {
+      final video = _RecordingVideoPlayback();
+      final sink = _videoSink(video);
+      addTearDown(sink.dispose);
+      final asset = _videoAsset();
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(1500000),
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+      video.log.clear();
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(6000000),
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+
+      expect(video.log, ['dispose']);
+      expect(sink.videoFor('intro-video'), isNull);
+    });
+
+    test('pausing pauses the picture, resuming resyncs it', () async {
+      final video = _RecordingVideoPlayback();
+      final sink = _videoSink(video);
+      addTearDown(sink.dispose);
+      final asset = _videoAsset();
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(1500000),
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+      video.log.clear();
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(1516666),
+        orientation: PresentationFrameOrientation.landscape,
+        running: false,
+      );
+      await sink.settled;
+      expect(video.log, ['pause']);
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(1516666),
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+      expect(video.log, ['pause', 'seek:516666', 'play']);
+    });
+
+    test('scrubbing inside the clip seeks the picture', () async {
+      final video = _RecordingVideoPlayback();
+      final sink = _videoSink(video);
+      addTearDown(sink.dispose);
+      final asset = _videoAsset();
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(1500000),
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+      video.log.clear();
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(4000000),
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+
+      expect(video.log, ['seek:3000000']);
+    });
+
     test('a media missing from the catalog reports instead of throwing',
         () async {
       final driver = _RecordingAudioDriver();
@@ -206,6 +324,91 @@ void main() {
     });
   });
 }
+
+final class _RecordingVideoPlayback
+    implements PresentationStudioVideoPlayback {
+  final List<String> log = <String>[];
+  var _handles = 0;
+
+  @override
+  Future<Object> prepare(Uri source, {required double initialVolume}) async {
+    log.add('prepare:${source.pathSegments.last}');
+    return 'video-${_handles++}';
+  }
+
+  @override
+  Future<void> play(Object handle) async => log.add('play');
+
+  @override
+  Future<void> pause(Object handle) async => log.add('pause');
+
+  @override
+  Future<void> seek(Object handle, Duration position) async =>
+      log.add('seek:${position.inMicroseconds}');
+
+  @override
+  Future<void> setVolume(Object handle, double volume) async {}
+
+  @override
+  Widget buildVideo(Object handle) => const SizedBox.shrink(key: _videoKey);
+
+  @override
+  Future<void> dispose(Object handle) async => log.add('dispose');
+}
+
+const _videoKey = ValueKey<String>('video-surface');
+
+ProjectMediaCatalog _videoCatalog() => ProjectMediaCatalog(
+      entries: <ProjectMediaAsset>[
+        ProjectMediaAsset(
+          id: 'intro-video',
+          label: 'Vidéo d’intro',
+          kind: ProjectMediaKind.video,
+          sourceAssetId: 'asset-intro-video',
+        ),
+      ],
+    );
+
+PresentationCinematicAsset _videoAsset() => PresentationCinematicAsset(
+      id: 'opening',
+      title: 'Opening',
+      durationUs: 8000000,
+      layers: <PresentationLayer>[
+        PresentationLayer(id: 'picture', label: 'Image', zIndex: 0),
+      ],
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'visuals',
+          label: 'Visuels',
+          kind: PresentationTrackKind.visual,
+          clips: <PresentationClip>[
+            PresentationVisualClip(
+              id: 'video-clip',
+              startUs: 1000000,
+              durationUs: 4000000,
+              layerId: 'picture',
+              resourceId: 'intro-video',
+              mediaKind: PresentationVisualMediaKind.video,
+            ),
+          ],
+        ),
+      ],
+    );
+
+PresentationStudioMediaSink _videoSink(_RecordingVideoPlayback video) =>
+    PresentationStudioMediaSink(
+      catalog: _videoCatalog(),
+      mediaUris: <String, Uri>{
+        'intro-video': Uri.file('/project/intro.mp4'),
+      },
+      targetPlatform: PresentationMediaTargetPlatform.macos,
+      audioDriver: _RecordingAudioDriver(),
+      videoPlayback: video,
+    );
+
+PresentationFrame _videoFrameAt(int timeUs) =>
+    const PresentationCinematicEvaluator()
+        .evaluate(_videoAsset(), timeUs: timeUs);
 
 PresentationStudioMediaSink _sink(_RecordingAudioDriver driver) =>
     PresentationStudioMediaSink(

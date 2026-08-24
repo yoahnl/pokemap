@@ -15,14 +15,41 @@ abstract interface class PresentationVideoController {
 
   Future<void> pause();
 
+  /// Moves the decoder to [position].
+  ///
+  /// The runtime never seeks — it plays a cinematic straight through. A
+  /// montage does nothing else: the author scrubs, steps and restarts, and
+  /// the picture has to follow the playhead.
+  Future<void> seek(Duration position);
+
   Future<void> dispose();
 }
 
 typedef PresentationVideoControllerFactory = PresentationVideoController
     Function(Uri source);
 
+/// A video decoder a montage can drive: the runtime contract plus the seek and
+/// the widget the Studio needs to show the picture where the playhead is.
+abstract interface class PresentationStudioVideoPlayback {
+  Future<Object> prepare(Uri source, {required double initialVolume});
+
+  Future<void> play(Object handle);
+
+  Future<void> pause(Object handle);
+
+  Future<void> seek(Object handle, Duration position);
+
+  Future<void> setVolume(Object handle, double volume);
+
+  Widget buildVideo(Object handle);
+
+  Future<void> dispose(Object handle);
+}
+
 final class VideoPlayerPresentationPlaybackDriver
-    implements RuntimePresentationVideoPlaybackDriver {
+    implements
+        RuntimePresentationVideoPlaybackDriver,
+        PresentationStudioVideoPlayback {
   VideoPlayerPresentationPlaybackDriver({
     PresentationVideoControllerFactory? controllerFactory,
   }) : _controllerFactory =
@@ -62,6 +89,11 @@ final class VideoPlayerPresentationPlaybackDriver
   Future<void> setVolume(Object handle, double volume) =>
       _require(handle).setVolume(volume);
 
+  @override
+  Future<void> seek(Object handle, Duration position) =>
+      _require(handle).seek(position);
+
+  @override
   Widget buildVideo(Object handle) => _require(handle).buildVideo();
 
   @override
@@ -100,6 +132,9 @@ final class _VideoPlayerPresentationController
 
   @override
   Future<void> pause() => _controller.pause();
+
+  @override
+  Future<void> seek(Duration position) => _controller.seekTo(position);
 
   @override
   Future<void> dispose() => _controller.dispose();

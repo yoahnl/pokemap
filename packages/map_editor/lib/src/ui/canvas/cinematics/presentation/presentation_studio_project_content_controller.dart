@@ -11,12 +11,26 @@ final class PresentationStudioProjectContentController extends ChangeNotifier
     required this.projectRootPath,
     required PresentationTimelineProjectionMediaReader mediaReader,
     required PresentationTimelineProjectionGateway projectionGateway,
+    PresentationStudioMediaSink? mediaSink,
   }) : _mediaReader = mediaReader,
-       _projectionGateway = projectionGateway;
+       _projectionGateway = projectionGateway,
+       _mediaSink = mediaSink;
 
   final String projectRootPath;
   final PresentationTimelineProjectionMediaReader _mediaReader;
   final PresentationTimelineProjectionGateway _projectionGateway;
+
+  /// What plays the montage's live video, when the host has a sink.
+  ///
+  /// Without one a video clip resolves to its poster — a still frame, which
+  /// is what the montage showed before there was any playback at all.
+  PresentationStudioMediaSink? _mediaSink;
+
+  set mediaSink(PresentationStudioMediaSink? value) {
+    if (identical(_mediaSink, value)) return;
+    _mediaSink = value;
+    notifyListeners();
+  }
 
   Map<String, _PresentationStudioVisualContent> _visuals =
       const <String, _PresentationStudioVisualContent>{};
@@ -102,6 +116,10 @@ final class PresentationStudioProjectContentController extends ChangeNotifier
     required PresentationVisualFrameClip clip,
     required PresentationFrameOrientation orientation,
   }) {
+    // A moving picture wins over its poster: the poster only ever existed
+    // because nothing decoded the video in the montage.
+    final video = _mediaSink?.videoFor(clip.resourceId);
+    if (video != null) return PresentationVisualReady(child: video);
     final content = _visuals[clip.resourceId];
     if (content == null) {
       return PresentationVisualUnavailable(

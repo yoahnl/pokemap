@@ -1,10 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'presentation_frame_renderer.dart';
+import 'presentation_video_playback_driver.dart';
 
 /// Plays the media of an evaluated Presentation frame under a montage clock.
 ///
@@ -29,9 +30,11 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     required this.targetPlatform,
     RuntimePresentationAudioDriver? audioDriver,
     RuntimeAudioMixer? audioMixer,
+    PresentationStudioVideoPlayback? videoPlayback,
     this.continuityToleranceUs = 400000,
   })  : mediaUris = Map<String, Uri>.unmodifiable(mediaUris),
-        _mixer = audioMixer ?? RuntimeAudioMixer() {
+        _mixer = audioMixer ?? RuntimeAudioMixer(),
+        _video = videoPlayback ?? VideoPlayerPresentationPlaybackDriver() {
     _audio = RuntimePresentationAudioController(
       catalog: catalog,
       resolveUri: _resolveMediaUri,
@@ -54,7 +57,9 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   final int continuityToleranceUs;
 
   final RuntimeAudioMixer _mixer;
+  final PresentationStudioVideoPlayback _video;
   late final RuntimePresentationAudioController _audio;
+  _StudioActiveVideo? _activeVideo;
 
   Future<void> _pending = Future<void>.value();
   _StudioMediaRequest? _queued;
@@ -62,9 +67,21 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   bool _suspended = false;
   bool _disposed = false;
   String? _diagnostic;
+  String? _frameDiagnostic;
 
   /// Completes once every synchronisation asked for so far has been applied.
   Future<void> get settled => _pending;
+
+  /// The picture of [resourceId], when that media is the montage's live video.
+  ///
+  /// A montage shows at most one moving picture at a time, like the runtime.
+  /// Every other visual keeps its poster, which is what the content port
+  /// resolves on its own.
+  Widget? videoFor(String resourceId) {
+    final active = _activeVideo;
+    if (active == null || active.resourceId != resourceId) return null;
+    return _video.buildVideo(active.handle);
+  }
 
   /// Why the frame could not be played, when it could not.
   ///
@@ -100,6 +117,7 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     return _enqueue(() async {
       _suspended = false;
       _lastFrameTimeUs = null;
+      await _releaseVideo();
       await _audio.releaseAll();
     });
   }
@@ -112,7 +130,10 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     }
     _disposed = true;
     _queued = null;
-    _enqueue(_audio.dispose);
+    _enqueue(() async {
+      await _releaseVideo();
+      await _audio.dispose();
+    });
     super.dispose();
   }
 
@@ -125,7 +146,11 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
       final current = _queued;
       if (current == null) return;
       _queued = null;
+      // One verdict per frame: audio and video are applied together, and a
+      // later success must not erase what an earlier failure reported.
+      _frameDiagnostic = null;
       await _apply(current);
+      _setDiagnostic(_frameDiagnostic);
     });
   }
 
@@ -135,6 +160,7 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     _lastFrameTimeUs = timeUs;
 
     if (!request.running) {
+      await _guard(() => _applyVideo(request, scrubbed: scrubbed));
       // Scrubbing while paused makes the suspended sources worthless: they
       // hold a position the author has left. Releasing them means the next
       // play starts the frame where the playhead now is.
@@ -168,6 +194,90 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
         },
       ),
     );
+    await _guard(() => _applyVideo(request, scrubbed: scrubbed));
+  }
+
+  /// Keeps at most one decoder alive on the frame's topmost video clip.
+  ///
+  /// The runtime allows a single active decoder and the montage holds to that:
+  /// an author must not discover in game that two simultaneous videos stutter.
+  Future<void> _applyVideo(
+    _StudioMediaRequest request, {
+    required bool scrubbed,
+  }) async {
+    final clip = _videoClipOf(request.frame);
+    if (clip == null) {
+      await _releaseVideo();
+      return;
+    }
+    final active = _activeVideo;
+    if (active == null || active.resourceId != clip.resourceId) {
+      await _releaseVideo();
+      final media = catalog.find(clip.resourceId);
+      if (media == null) return;
+      final handle = await _video.prepare(
+        _resolveMediaUri(media),
+        initialVolume: _mixer.mix.volumeFor(RuntimeAudioRoute.cinematicMusic),
+      );
+      _activeVideo = _StudioActiveVideo(
+        resourceId: clip.resourceId,
+        clipId: clip.clipId,
+        handle: handle,
+        playing: false,
+      );
+      await _video.seek(handle, Duration(microseconds: clip.elapsedUs));
+      await _setVideoPlaying(request.running);
+      _notifyPicture();
+      return;
+    }
+    // A decoder runs on the same wall clock as the montage, so it only has to
+    // be told where to jump: entering the clip, scrubbing, or resuming after
+    // a pause that let the playhead move on without it.
+    if (scrubbed || (request.running && !active.playing)) {
+      await _video.seek(
+        active.handle,
+        Duration(microseconds: clip.elapsedUs),
+      );
+    }
+    await _setVideoPlaying(request.running);
+  }
+
+  Future<void> _setVideoPlaying(bool playing) async {
+    final active = _activeVideo;
+    if (active == null || active.playing == playing) return;
+    active.playing = playing;
+    await (playing ? _video.play(active.handle) : _video.pause(active.handle));
+  }
+
+  Future<void> _releaseVideo() async {
+    final active = _activeVideo;
+    if (active == null) return;
+    _activeVideo = null;
+    _notifyPicture();
+    try {
+      await _video.dispose(active.handle);
+    } on Object {
+      // Losing a decoder must never take the montage down with it.
+    }
+  }
+
+  /// The clip whose picture the montage shows: the topmost active video.
+  PresentationVisualFrameClip? _videoClipOf(PresentationFrame? frame) {
+    if (frame == null) return null;
+    PresentationVisualFrameClip? candidate;
+    for (final clip in frame.visuals) {
+      if (catalog.find(clip.resourceId)?.kind != ProjectMediaKind.video) {
+        continue;
+      }
+      if (candidate == null || clip.zIndex >= candidate.zIndex) {
+        candidate = clip;
+      }
+    }
+    return candidate;
+  }
+
+  void _notifyPicture() {
+    if (!_disposed) notifyListeners();
   }
 
   /// Whether the playhead jumped rather than elapsed.
@@ -184,12 +294,11 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   Future<void> _guard(Future<void> Function() operation) async {
     try {
       await operation();
-      _setDiagnostic(null);
     } on RuntimePresentationAudioFailure catch (failure) {
-      _setDiagnostic(failure.diagnosticCode);
+      _frameDiagnostic ??= failure.diagnosticCode;
       await _audio.releaseAll().onError((_, __) {});
     } on Object catch (error) {
-      _setDiagnostic('$error');
+      _frameDiagnostic ??= '$error';
       await _audio.releaseAll().onError((_, __) {});
     }
   }
@@ -213,6 +322,20 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     }
     return uri;
   }
+}
+
+final class _StudioActiveVideo {
+  _StudioActiveVideo({
+    required this.resourceId,
+    required this.clipId,
+    required this.handle,
+    required this.playing,
+  });
+
+  final String resourceId;
+  final String clipId;
+  final Object handle;
+  bool playing;
 }
 
 final class _StudioMediaRequest {
