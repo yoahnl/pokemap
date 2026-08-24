@@ -15,6 +15,13 @@ import 'battle_text_paint_cache.dart';
 /// - on n'ouvre pas de nouveau système d'UI générique ;
 /// - on reformate seulement des informations déjà vraies dans `BattleSession`.
 class BattleSceneHudComponent extends PositionComponent {
+  /// BETA-BAT-028 : la barre est-elle entrée en scène ?
+  ///
+  /// Le panneau Flame de l'hôte développeur n'anime pas le glissement de la
+  /// référence, mais il respecte le même moment : rien à l'écran avant que
+  /// `show_team_info` ne l'ait révélée.
+  bool isVisibleInScene = true;
+
   BattleSceneHudComponent({
     required Vector2 position,
     required Vector2 size,
@@ -231,6 +238,7 @@ class BattleSceneHudComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (!isVisibleInScene) return;
     super.render(canvas);
     _ensurePanelGeometry();
 

@@ -78,10 +78,14 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
   // Repli d'un combat de dresseur SANS image : rien n'entre, le Pokémon
   // apparaîtra à son envoi — la durée du glissement est laissée au message.
 
-  // 2. L'annonce.
+  // 2. L'annonce, puis l'entrée des barres d'info — parité
+  // `show_appearing_message` suivi de `show_team_info` dans le même temps de
+  // la référence (BETA-BAT-028 : elles n'étaient pas censées être à l'écran
+  // au lever du rideau).
   if (appearingMessage != null) {
     steps.add(ShowMessageStep(message: appearingMessage));
   }
+  steps.add(const ShowTeamInfoStep());
 
   // 3. L'envoi de l'adversaire — dresseur uniquement. Son MESSAGE existe dès
   // que la session est un combat de dresseur (trois lignes d'ouverture) ; les

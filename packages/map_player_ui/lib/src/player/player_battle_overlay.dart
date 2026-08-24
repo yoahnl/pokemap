@@ -158,6 +158,7 @@ PlayerBattlePanelKind _panelKind(BattleCommandOverlaySnapshot snapshot) {
 
 PlayerBattleHudViewData _hud(BattleCommandOverlayHudSnapshot snapshot) =>
     PlayerBattleHudViewData(
+      isRevealed: snapshot.isRevealed,
       ownerLabel: snapshot.ownerLabel,
       speciesLabel: snapshot.speciesLabel,
       level: snapshot.level,

@@ -306,6 +306,53 @@ void main() {
       );
     });
 
+    test(
+        'BETA-BAT-028 : les barres d’info n’entrent qu’APRÈS l’annonce',
+        () async {
+      // Parité `show_team_info` : la référence les fait glisser dans le même
+      // temps que le message d'apparition, pas au lever du rideau.
+      final snapshots = <BattleCommandOverlaySnapshot?>[];
+      final overlay = BattleOverlayComponent(
+        session: _session(isTrainerBattle: false),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+        introEnabled: true,
+        onCommandOverlaySnapshotChanged: snapshots.add,
+      );
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+      overlay.setUseFlutterCommandOverlay(true);
+      overlay.startIntro();
+
+      var sawHidden = false;
+      var sawRevealed = false;
+      for (var i = 0; i < 120 && overlay.isTurnPresentationActive; i++) {
+        overlay.updateTree(0.05);
+        await Future<void>.delayed(Duration.zero);
+        final last = snapshots.whereType<BattleCommandOverlaySnapshot>().isEmpty
+            ? null
+            : snapshots.whereType<BattleCommandOverlaySnapshot>().last;
+        if (last == null) continue;
+        if (!last.enemyHud.isRevealed) {
+          sawHidden = true;
+        } else if (sawHidden) {
+          sawRevealed = true;
+          break;
+        }
+      }
+
+      expect(
+        sawHidden,
+        isTrue,
+        reason: 'au lever du rideau, les barres ne sont pas encore là',
+      );
+      expect(
+        sawRevealed,
+        isTrue,
+        reason: 'le step ShowTeamInfo les fait entrer pendant l’intro',
+      );
+    });
+
     test('le dresseur entre, puis sort du champ et se retire', () async {
       final overlay = await mount(
         isTrainerBattle: true,

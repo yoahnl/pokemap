@@ -156,7 +156,16 @@ class BattleCommandOverlayHudSnapshot {
     this.experienceProgressTarget,
     this.xpTweenDurationMs,
     this.xpTweenRevision = 0,
+    this.isRevealed = true,
   });
+
+  /// BETA-BAT-028 : la barre d'info est-elle entrée en scène ?
+  ///
+  /// Parité `show_team_info` : la référence fait GLISSER les barres après le
+  /// message d'apparition — l'ennemi depuis le haut, le joueur depuis le bas,
+  /// en 0,2 s. Elles ne sont donc pas à l'écran au lever du rideau. Vrai par
+  /// défaut : tout appelant qui l'ignore garde l'ancien comportement.
+  final bool isRevealed;
 
   final Rect rect;
   final String ownerLabel;
@@ -223,7 +232,11 @@ class BattleCommandOverlayHudSnapshot {
         other.experienceProgress == experienceProgress &&
         other.experienceProgressTarget == experienceProgressTarget &&
         other.xpTweenDurationMs == xpTweenDurationMs &&
-        other.xpTweenRevision == xpTweenRevision;
+        other.xpTweenRevision == xpTweenRevision &&
+        // Sans ce champ dans l'égalité, la révélation des barres ne
+        // produirait aucun nouveau snapshot : le notifier compare avant de
+        // publier, et l'apparition ne serait jamais notifiée.
+        other.isRevealed == isRevealed;
   }
 
   @override
@@ -239,6 +252,7 @@ class BattleCommandOverlayHudSnapshot {
         targetDisplayedHp,
         hpTweenDurationMs,
         hpTweenRevision,
+        isRevealed,
         genderSymbol,
         statusLabel,
         experienceProgress,

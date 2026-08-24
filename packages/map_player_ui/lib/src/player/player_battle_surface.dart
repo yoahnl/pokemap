@@ -77,7 +77,13 @@ final class PlayerBattleHudViewData {
     this.experienceProgressTarget,
     this.xpTweenDuration,
     this.xpTweenRevision = 0,
+    this.isRevealed = true,
   });
+
+  /// BETA-BAT-028 : la barre est-elle entrée en scène ? Pendant l'intro, la
+  /// référence les fait glisser après le message d'apparition — l'ennemi
+  /// depuis le haut, le joueur depuis le bas.
+  final bool isRevealed;
 
   final String ownerLabel;
   final String speciesLabel;
@@ -251,29 +257,45 @@ class PlayerBattleSurface extends StatelessWidget {
           children: <Widget>[
             Positioned.fromRect(
               rect: layout.enemyHudRect,
-              child: GestureDetector(
-                key: const ValueKey<String>('battle-hud-target-enemy'),
-                behavior: HitTestBehavior.opaque,
-                onTap: onHudTargeted,
-                child: _BattleHud(
-                  data: data.enemy,
-                  sideId: 'enemy',
-                  profile: battle,
-                  dense: true,
+              // BETA-BAT-028 : parité `show_team_info` — la barre glisse en
+              // 0,2 s après le message d'apparition, l'ennemi depuis le haut.
+              child: AnimatedSlide(
+                offset: data.enemy.isRevealed
+                    ? Offset.zero
+                    : const Offset(0, -2),
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                child: GestureDetector(
+                  key: const ValueKey<String>('battle-hud-target-enemy'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onHudTargeted,
+                  child: _BattleHud(
+                    data: data.enemy,
+                    sideId: 'enemy',
+                    profile: battle,
+                    dense: true,
+                  ),
                 ),
               ),
             ),
             Positioned.fromRect(
               rect: layout.playerHudRect,
-              child: GestureDetector(
-                key: const ValueKey<String>('battle-hud-target-player'),
-                behavior: HitTestBehavior.opaque,
-                onTap: onHudTargeted,
-                child: _BattleHud(
-                  data: data.player,
-                  sideId: 'player',
-                  profile: battle,
-                  dense: true,
+              // Le joueur glisse depuis le BAS, comme la référence.
+              child: AnimatedSlide(
+                offset:
+                    data.player.isRevealed ? Offset.zero : const Offset(0, 2),
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                child: GestureDetector(
+                  key: const ValueKey<String>('battle-hud-target-player'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onHudTargeted,
+                  child: _BattleHud(
+                    data: data.player,
+                    sideId: 'player',
+                    profile: battle,
+                    dense: true,
+                  ),
                 ),
               ),
             ),

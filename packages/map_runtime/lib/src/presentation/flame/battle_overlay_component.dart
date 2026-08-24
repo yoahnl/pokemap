@@ -657,6 +657,29 @@ class BattleOverlayComponent extends PositionComponent {
   /// du combat — la resynchronisation de fin de plan le remettrait debout.
   bool _capturedEnemyHeldInBall = false;
 
+  /// BETA-BAT-028 : les barres d'info sont-elles entrées en scène ?
+  ///
+  /// Parité `show_team_info` : la référence les fait glisser APRÈS le message
+  /// d'apparition. Faux seulement pendant l'intro, avant son step de
+  /// révélation — tout autre chemin (pas d'intro, tours suivants) les garde
+  /// visibles.
+  bool _teamInfoRevealed = true;
+
+  void _handleShowTeamInfoStep() {
+    if (_teamInfoRevealed) return;
+    _teamInfoRevealed = true;
+    _applyTeamInfoVisibility();
+    _syncPanelsOnly();
+  }
+
+  /// Le panneau Flame (hôte développeur) n'a pas d'animation de glissement :
+  /// il suit la même règle en visibilité, pour ne pas montrer des barres que
+  /// le shell joueur cache encore.
+  void _applyTeamInfoVisibility() {
+    _enemyHud?.isVisibleInScene = _teamInfoRevealed;
+    _playerHud?.isVisibleInScene = _teamInfoRevealed;
+  }
+
   /// Les côtés dont la pose d'ENTRÉE doit survivre à la synchronisation —
   /// recette du 2026-08-24. Rempli quand le plan d'intro est armé, vidé au
   /// démarrage de l'intro : à partir de là, c'est le plan qui pilote les
@@ -1513,6 +1536,10 @@ class BattleOverlayComponent extends PositionComponent {
         BattleSideId.enemy,
         BattleSideId.player,
       };
+      // Parité `show_team_info` : les barres entrent APRÈS l'annonce.
+      _teamInfoRevealed = false;
+
+      _applyTeamInfoVisibility();
       final enemyUsesBall = playerUsesBall && _session.setup.isTrainerBattle;
       if (enemyUsesBall) {
         // Parité `enemy_sprites` : dans un combat de DRESSEUR, le Pokémon
@@ -1573,6 +1600,7 @@ class BattleOverlayComponent extends PositionComponent {
       onPlayBallCaptureSequence: _handleBallCaptureSequenceStep,
       onEnemyTrainerIntro: _handleEnemyTrainerIntroStep,
       onStatStageAura: _handleStatStageAuraStep,
+      onShowTeamInfo: _handleShowTeamInfoStep,
       onPlaySe: (step) => playSfx?.call(
         step.seName,
         volume: step.volume,
@@ -2557,6 +2585,7 @@ class BattleOverlayComponent extends PositionComponent {
         : combatant.majorStatus?.id.name.toUpperCase();
     return BattleCommandOverlayHudSnapshot(
       rect: rect,
+      isRevealed: _teamInfoRevealed,
       ownerLabel: ownerLabel,
       speciesLabel: resolveSpeciesDisplayName(combatant.speciesId),
       level: combatant.level,

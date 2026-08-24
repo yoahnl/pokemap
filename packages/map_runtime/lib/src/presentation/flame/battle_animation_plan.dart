@@ -885,6 +885,18 @@ final class PlayBallCaptureSequenceStep extends BattleAnimationStep {
       2.8 + shakes * 1.0 + 0.5 + (caught ? 0.0 : 0.2);
 }
 
+/// Les barres d'info entrent en scène — BETA-BAT-028.
+///
+/// Parité `show_team_info` : la référence les fait glisser APRÈS le message
+/// d'apparition — l'ennemi depuis le haut, le joueur depuis le bas, en 0,2 s.
+/// Avant ce step, elles ne sont pas à l'écran. Étape à durée (le glissement),
+/// jouée une fois par intro.
+final class ShowTeamInfoStep extends BattleAnimationStep {
+  const ShowTeamInfoStep({this.durationSeconds = 0.2});
+
+  final double durationSeconds;
+}
+
 /// L'aura de changement de stat — BETA-BAT-021.
 ///
 /// Parité `UI::StatAnimation` + `change_stat_animation` : la planche 12×10 de
