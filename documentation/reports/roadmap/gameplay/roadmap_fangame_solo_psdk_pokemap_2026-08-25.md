@@ -1,10 +1,10 @@
 # PokeMap solo — réaudit PSDK et roadmap fonctionnelle complète
 
-Date de l'audit : 2026-08-25  
-Rapport relu : `documentation/reports/gameplay/audit_parite_fonctionnelle_psdk_pokemap_2026-08-24.md`  
-Révision PokeMap de fin de vérification : `2143385093b7458539c0621d5c8aa590b63dbec6`  
-Référence PSDK locale : build `6711` (version décodée `26.55`), dépôt sans métadonnées Git exploitables  
-Nature du document : audit de code, critique du rapport existant et roadmap technique de produit  
+Date de l'audit : 2026-08-25
+Rapport relu : `documentation/reports/gameplay/audit_parite_fonctionnelle_psdk_pokemap_2026-08-24.md`
+Révision fonctionnelle PokeMap auditée : `2143385093b7458539c0621d5c8aa590b63dbec6`
+Référence PSDK locale : build `6711` (version décodée `26.55`), dépôt sans métadonnées Git exploitables
+Nature du document : audit de code, critique du rapport existant et roadmap technique de produit
 Statut : proposition hors Notion, sans création de ticket et sans modification du code produit
 
 ## 1. Verdict exécutif
@@ -58,7 +58,7 @@ La cible est un fangame Pokémon solo, orienté aventure scénarisée, avec :
 
 Les fonctionnalités suivantes sont classées `OUT OF SCOPE`. Elles ne comptent ni comme manque, ni comme dette de parité, ni comme critère de sortie :
 
-- combats doubles, triples et hordes ;
+- combats doubles ;
 - concours et mini-jeux ;
 - plantation et croissance des baies ;
 - pension, daycare multiples, reproduction, compatibilité de reproduction, héritages et œufs ;
@@ -73,6 +73,7 @@ Les fonctionnalités suivantes sont classées `OUT OF SCOPE`. Elles ne comptent 
 - rencontres Rock Smash ;
 - Pokémon errants ;
 - historique et chaînes de rencontres ;
+- rencontres doubles, triples et hordes ;
 - shiny, Shiny Charm et chaîne de pêche shiny ;
 - Pokerus.
 
@@ -104,20 +105,20 @@ La répétition de Nuzlocke dans la demande est interprétée comme une confirma
 
 Un replay automatisé a résolu les 212 occurrences de références `chemin:ligne` vérifiées par le validateur du rapport, sans fichier absent ni ligne hors limites. Un second parseur plus strict a trouvé 211 jetons distincts, eux aussi valides. La différence vient du mode de tokenisation, pas d'une référence cassée.
 
-### 3.2 Ce qu'il faut corriger
+### 3.2 Delta de périmètre et d'actualité
 
 | Point du rapport historique | Correction 2026-08-25 |
 |---|---|
 | Les doubles sont une priorité | Ils sont hors scope et déjà désactivés par le profil canonique. |
 | L'élevage et les œufs sont une priorité | Ils sont hors scope ; seules quelques métadonnées résiduelles restent à nettoyer ou à reloger. |
 | Les baies à cultiver, concours, Safari, Nuzlocke et mini-jeux sont des manques | Ils sont hors produit et sortent du dénominateur de parité. |
-| Shiny est une capacité à compléter | Shiny est déjà partiellement implémenté ; la décision correcte est de le retirer proprement si l'exclusion est ferme. |
+| Le rapport inventorie les modèles Shiny et recommande un audit ciblé | Le nouveau périmètre rend cet audit fonctionnel inutile ; seule reste la décision séparée entre code dormant non découvrable et retrait physique. |
 | Headbutt et rencontres Rock Smash sont des chantiers | Headbutt sort du contrat ; Rock Smash ne reste que comme obstacle éventuel. |
-| Le shell Player est essentiellement absent | Titre, Nouveau jeu, Continue, Options, chargement et crédits ont désormais des surfaces et tests ciblés. |
+| Le rapport reconnaît déjà une forte tranche New Game/reprise mais sous-estime le shell visible courant | Titre, Nouveau jeu, Continue, Options, chargement et crédits ont désormais davantage de surfaces et tests ciblés. |
 | Les cris n'ont pas de consommateur runtime | Le runtime appelle désormais `playCry`, avec test d'ordre d'introduction. |
-| Les transitions de combat sont à peine configurables | Quinze transitions sont authorables ; la validation installée reste néanmoins incomplète. |
-| Les FG-010–016 et FG-140–143 sont `TODO` | Le code fournit déjà une partie substantielle de ces lots ; ils nécessitent un réaudit de statut. |
-| Les transports Items sont absents | Les actions existent sur plusieurs transports ; ce sont les receipts globaux injectés et la certification complète qui manquent. |
+| Le rapport constatait déjà des transitions présentes sans couverture installée certifiée | Le code courant en rend quinze authorables ; la progression est réelle, tandis que la validation installée reste incomplète. |
+| La plupart des statuts du roadmap racine autour de FG-010–016 et FG-140–143 restent `TODO`/`DEFERRED` malgré le code | Les exceptions existent déjà — FG-014 est `DONE` à `pokemap_roadmap_mecaniques_fangame.md:373-379`, FG-142 est `DEFERRED` à `pokemap_roadmap_mecaniques_fangame.md:1686-1689` — et chaque lot doit être réaudité individuellement. |
+| Le rapport constate des projections globales de transports Items vides | Les adaptateurs et actions existent sur plusieurs transports ; le manque exact reste le bundle de receipts et la certification complète. |
 
 ### 3.3 Verdict documentaire
 
@@ -136,7 +137,7 @@ Il faut donc conserver le rapport comme photographie historique, pas le réécri
 
 ### 4.1 Snapshots
 
-L'inspection a commencé sur `ff304411177b1df43179e2b6e704be1a7aead756`. Le checkout a avancé pendant l'audit via quatre commits concurrents :
+L'inspection a commencé sur `ff304411177b1df43179e2b6e704be1a7aead756`. Le checkout a avancé pendant la fenêtre fonctionnelle auditée via cinq commits concurrents :
 
 - `de243e33e` — lecture audio de Presentation ;
 - `e96a5ab81` — enregistrement de profil Presentation ;
@@ -144,7 +145,7 @@ L'inspection a commencé sur `ff304411177b1df43179e2b6e704be1a7aead756`. Le chec
 - `d33ebcdcc` — présentation visuelle de combat ;
 - `214338509` — ordre de présentation du KO et du remplacement forcé.
 
-Ces commits ne modifient pas les contrats de périmètre, d'authoring ou le roadmap cités dans ce document. La vérification finale a été refaite à `2143385093b7458539c0621d5c8aa590b63dbec6` ; le dernier commit renforce la présentation du remplacement forcé sans fermer à lui seul le lot de combat correspondant.
+Ces commits ne modifient pas les contrats de périmètre, d'authoring ou le roadmap cités dans ce document. Les conclusions fonctionnelles sont gelées à `2143385093b7458539c0621d5c8aa590b63dbec6` ; le dernier commit de cette fenêtre renforce la présentation du remplacement forcé sans fermer à lui seul le lot de combat correspondant. Les commits ultérieurs sont consignés comme dérive concurrente en section 13, pas silencieusement absorbés dans le snapshot fonctionnel.
 
 ### 4.2 Grille de certification
 
@@ -159,7 +160,7 @@ Une fonctionnalité n'est considérée complète que si les six couches applicab
 | E — Player | Un joueur peut-il la déclencher et l'observer sans seam de debug ? |
 | F — Transports | Direct API, JSONL/CLI, Editor et MCP prouvent-ils la même sémantique ? |
 
-Légende : `DONE` = preuve fraîche et applicable ; `PARTIAL` = tranche réelle mais incomplète ; `NOMINAL` = vocabulaire ou surface sans consommation ; `MISSING` = absent ; `N/A` = couche non applicable. Les systèmes `OOS` sont exclus de cette matrice plutôt que déguisés en couches inapplicables.
+Légende : `DONE` = tranche jugée complète dans la couche avec preuve ciblée identifiée ; `PARTIAL` = tranche réelle mais incomplète ; `NOMINAL` = vocabulaire ou surface sans consommation ; `MISSING` = absent ; `N/A` = couche non applicable. Seules les preuves listées en section 12 ont été fraîchement rejouées pendant cet audit. Les systèmes `OOS` sont exclus de cette matrice plutôt que déguisés en couches inapplicables.
 
 ## 5. État réel de PokeMap
 
@@ -169,17 +170,19 @@ Légende : `DONE` = preuve fraîche et applicable ; `PARTIAL` = tranche réelle 
 |---|---:|---:|---:|---:|---:|---:|---|
 | Nouvelle partie / starter | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Fonction réelle, parcours installé humain absent |
 | Titre / Continue / Options / crédits | DONE | N/A | DONE | DONE | PARTIAL | N/A | Plus avancé que le rapport historique |
-| Maps / warps / connections | DONE | DONE | DONE | DONE | PARTIAL | DONE | Solide, validation humaine à renouveler |
+| Maps / warps / connections | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Solide, receipts quatre transports non fermés globalement |
 | Terrains riches | PARTIAL | PARTIAL | PARTIAL | NOMINAL | MISSING | PARTIAL | Le mouvement ne produit pas encore les effets attendus |
 | Dialogues / événements / narration | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Catalogue riche, receipts incomplets |
-| Common Events | MISSING | MISSING | MISSING | MISSING | MISSING | MISSING | Aucun contrat de production canonique trouvé |
+| PNJ overworld / présence / déplacement | DONE | DONE | DONE | PARTIAL | PARTIAL | PARTIAL | Présence et `moveNpc` existent ; choreography et scheduler restent à fermer |
+| Équivalent Common Events — SceneAsset/NarrativeEvent | DONE | DONE | PARTIAL | DONE | PARTIAL | PARTIAL | Socle réutilisable réel ; paramètres/appels imbriqués et receipts restent à évaluer |
 | Quêtes | PARTIAL | DONE | DONE | PARTIAL | MISSING | PARTIAL | Storylines oui, Quest Book joueur non |
-| Rencontres walk / surf | DONE | DONE | DONE | DONE | PARTIAL | DONE | Tranche réelle |
+| Rencontres walk / surf | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Tranche réelle, certification transport incomplète |
 | Pêche simple | NOMINAL | PARTIAL | PARTIAL | MISSING | MISSING | PARTIAL | Trois enums de cannes ne font toujours pas mordre un Magicarpe |
 | Repel | PARTIAL | DONE | PARTIAL | MISSING | MISSING | PARTIAL | Authorable mais explicitement inerte |
-| Rencontres statiques / cadeaux | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Consommation et idempotence à certifier globalement |
+| Rencontres statiques | DONE | DONE | DONE | PARTIAL | PARTIAL | PARTIAL | `StaticBattleStartRequest` interdit encore capture et fuite |
+| Pokémon cadeaux | DONE | DONE | DONE | PARTIAL | PARTIAL | PARTIAL | Idempotence réelle, mais `partyFull` n'achemine pas encore vers le PC |
 | Field abilities | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | Surf seul est signé |
-| Dresseurs / rivaux / rematch | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Roadmap historique en retard sur le code |
+| Dresseurs / rivaux / rematch | DONE | DONE | PARTIAL | DONE | PARTIAL | PARTIAL | Lifecycle réel, pickers Editor actuellement rouges |
 | Party / PC | DONE | PARTIAL | PARTIAL | DONE | PARTIAL | PARTIAL | PC et Summary encore à fermer |
 | Bag / items | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Régression Golden Item actuelle |
 | Shops / healing | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Bon socle, preuve Player à consolider |
@@ -188,8 +191,9 @@ Légende : `DONE` = preuve fraîche et applicable ; `PARTIAL` = tranche réelle 
 | Moves / statuts / abilities / held items | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | Large couverture, pas exhaustivité démontrée |
 | IA de combat | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | NOMINAL | Profils et scores existent, cible fermée à définir |
 | XP / niveau / évolution / move learning | DONE | PARTIAL | DONE | DONE | PARTIAL | NOMINAL | Exécution réelle, transports de progression non certifiés |
-| Argent / récompenses / badges | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Régression Editor sur les items de récompense |
-| Pokédex | DONE | DONE | DONE | DONE | PARTIAL | DONE | Projection inconnue/vue/capturée réelle |
+| Services moves / échange PNJ local | PARTIAL | PARTIAL | PARTIAL | MISSING | MISSING | PARTIAL | Données learnset/origine présentes ; services Player et transaction PNJ absents |
+| Argent / récompenses / badges | DONE | DONE | PARTIAL | DONE | PARTIAL | PARTIAL | Régression Editor sur les items de récompense |
+| Pokédex | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Projection inconnue/vue/capturée réelle, receipts globaux non fermés |
 | Carte du monde | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Projection Player réelle et volontairement consultative |
 | Voyage rapide / Fly | MISSING | MISSING | MISSING | MISSING | MISSING | MISSING | Graphe réutilisable, mais aucune commande de voyage |
 | Sauvegarde / reprise / slots | DONE | N/A | N/A | PARTIAL | PARTIAL | N/A | Continue réel ; atomicité non uniforme selon le host |
@@ -197,7 +201,35 @@ Légende : `DONE` = preuve fraîche et applicable ; `PARTIAL` = tranche réelle 
 | Jour / nuit | MISSING | MISSING | MISSING | MISSING | MISSING | MISSING | À concevoir sans horloge machine |
 | Météo overworld | PARTIAL | PARTIAL | DONE | MISSING | MISSING | PARTIAL | Métadonnée de map sans consommateur runtime |
 | Follower Pokémon | MISSING | MISSING | MISSING | MISSING | MISSING | MISSING | Le test `followCharacter` concerne un PNJ leader |
-| Packaging / readiness / export | DONE | DONE | DONE | DONE | PARTIAL | DONE | Pipeline fail-closed substantiel |
+| Corpus Pokémon cible | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | Inventaire large, cible génération/provenance et disponibilité réelle à figer |
+| Authoring no-code / import / validation | DONE | PARTIAL | PARTIAL | N/A | N/A | PARTIAL | Socle très large, couverture sémantique et receipts non fermés |
+| Packaging / readiness / export | DONE | DONE | DONE | DONE | PARTIAL | PARTIAL | Pipeline fail-closed substantiel, quatre receipts non certifiés globalement |
+
+#### Index des preuves structurantes
+
+| Groupe de systèmes | Source ou test d'ancrage |
+|---|---|
+| Nouvelle partie / starter | `packages/map_gameplay/lib/src/new_game_state_builder.dart:58-180`; `packages/map_runtime/test/playable_map_game_project_new_game_boot_test.dart:1-169` |
+| Shell / Continue / crédits | `packages/map_runtime/test/player/runtime_player_coordinator_launch_test.dart:84-136`, `:325-345`; `packages/map_player_ui/test/player/pokemap_player_session_view_test.dart:427-457` |
+| Maps / pas / warps / connections | `packages/map_runtime/test/playable_map_game_input_test.dart:877-1316` |
+| Terrains riches | `packages/map_gameplay/test/gameplay_movement_effect_test.dart:173-214` |
+| Narration / PNJ | `packages/map_core/lib/src/read_models/narrative_command_catalog.dart:3-29`, `:89-431` |
+| Événements réutilisables | `packages/map_core/lib/src/models/narrative_event_definition.dart:48`, `:547-655`; `packages/map_core/lib/src/operations/narrative_event_dispatch_authority.dart:178-244`, `:328-343`, `:402-429`; `packages/map_runtime/test/scene_event_runtime_hook_test.dart:94-217` |
+| Storylines / absence Quest Book | `packages/map_core/lib/src/models/storyline_asset.dart:9-205`; recherches négatives de la section 12.3 |
+| Walk/Surf / pêche nominale | `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart:4753-4779`; `packages/map_core/lib/src/models/enums.dart:388-406` |
+| Repel | `packages/map_editor/test/item_effect_editor_unsupported_test.dart:8-17`, `:58-72` |
+| Statiques / cadeaux | `packages/map_runtime/lib/src/application/battle_start_request.dart:196-201`; `packages/map_runtime/lib/src/application/scene_runtime/scene_consequence_runtime_writer.dart:345-423` |
+| Field abilities | `packages/map_gameplay/lib/src/field_action.dart:15-22`, `:69-200` |
+| Trainers | `packages/map_core/lib/src/models/project_trainer.dart:20-28`, `:81-191`; `packages/map_runtime/lib/src/application/runtime_trainer_lifecycle_policy.dart:26-87` |
+| Party / PC | `packages/map_gameplay/test/player_storage_operations_test.dart:8-198`; `packages/map_runtime/test/player/runtime_pc_service_test.dart:6-577` |
+| Bag / shops / heal | `packages/map_gameplay/test/bag_operations_test.dart:9-164`; `packages/map_gameplay/test/shop_operations_test.dart:113-491`; `packages/map_runtime/test/player/runtime_heal_service_test.dart:33-195` |
+| Battle single / IA / effets | `packages/map_battle/lib/src/data/battle_parity_target.dart:75-183`; tests ciblés de la section 12.1 |
+| Capture / progression | `packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart:810-963`; `packages/map_runtime/test/playable_map_game_post_battle_progression_integration_test.dart:90-248` |
+| Dex / world map | `packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart:99-209`; `packages/map_runtime/lib/src/player/runtime_player_pause_data_builder.dart:116-165` |
+| Save / whiteout | `packages/map_runtime/lib/src/infrastructure/file_game_save_repository.dart:46-143`; `packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart:19-102` |
+| Services moves / trade | `packages/map_core/lib/src/models/pokemon_project_data.dart:821-887`; `packages/map_editor/lib/src/ui/canvas/pokedex_workspace/pokedex_learnset_panel.dart:32-147` |
+| Weather / clock / follower | `packages/map_core/lib/src/models/map_metadata.dart:27-74`; recherches de consommation négatives de la section 12.3 |
+| Packaging | `packages/map_authoring/lib/src/domains/distribution/game_package_export_service.dart:88-153`, `:323-375`; `packages/map_authoring/lib/src/domains/distribution/game_package_gameplay_readiness_gate.dart:184-310` |
 
 ### 5.2 Capacités déjà solides
 
@@ -206,7 +238,7 @@ Légende : `DONE` = preuve fraîche et applicable ; `PARTIAL` = tranche réelle 
 - Le seed de nouvelle partie et le starter sont projetés par `packages/map_gameplay/lib/src/new_game_state_builder.dart:58-180`.
 - L'orchestration Player vit dans `packages/map_runtime/lib/src/player/runtime_player_coordinator.dart:830-1023`.
 - `campaign.new_game.update` est une action canonique dans `packages/map_authoring/lib/src/domains/gameplay/campaign_content_actions.dart:145-177`.
-- Titre, Continue, Nouveau jeu, Options et crédits sont exercés dans `packages/map_player_ui/test/player/player_runtime_startup_shell_test.dart:290-375` et `:529-625`.
+- Le shell titre/Nouveau jeu/Options est exercé dans `packages/map_player_ui/test/player/player_runtime_startup_shell_test.dart:290-375` et `:529-625`. Continue est disponible et dispatché dans `packages/map_runtime/test/player/runtime_player_coordinator_launch_test.dart:116-136` et `:325-345`; les crédits sont couverts par le coordinator à `:84-114` et par la surface Player dans `packages/map_player_ui/test/player/pokemap_player_session_view_test.dart:427-457`.
 - `packages/map_runtime/lib/src/infrastructure/file_game_save_repository.dart:46-143` fournit une implémentation atomique, mais le host Player standalone actif passe encore par `StandalonePlayerSaveGateway.commit` dans `examples/playable_runtime_host/lib/src/runtime_startup_host.dart:396-409`. L'atomicité n'est donc pas prouvée uniformément pour tous les hosts.
 - Les checkpoints et courses sauvegarde/Continue sont testés dans `packages/map_runtime/test/player/runtime_player_save_race_test.dart:10-146`.
 - La défaite produit un whiteout complet dans `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart:9598-9671`, validé par `packages/map_runtime/test/playable_map_game_whiteout_lite_test.dart:19-102`.
@@ -215,7 +247,9 @@ Légende : `DONE` = preuve fraîche et applicable ; `PARTIAL` = tranche réelle 
 
 Le catalogue narratif expose 24 commandes dans `packages/map_core/lib/src/read_models/narrative_command_catalog.dart:3-29`, puis leurs contrats jusqu'à `:431`. Il couvre notamment dialogue, faits, étapes de scénario, items, argent, Pokémon, starter configuré, warp, boutique, soin, PC, combat de dresseur, rencontre statique, cinématique, heal, badge, field ability, fin de jeu, présence et déplacement de PNJ.
 
-La faiblesse n'est pas l'absence de commandes. C'est l'absence d'une projection joueur de quêtes, d'un Common Event réutilisable assez typé et de receipts uniformes sur les quatre transports.
+La faiblesse n'est pas l'absence de commandes ni de ressource événementielle réutilisable. `NarrativeEventDefinition` porte source, conditions, `sceneId`, reuse policy, priorité et ordre dans `packages/map_core/lib/src/models/narrative_event_definition.dart:48` et `:547-655`; quatre sources typées vivent dans `packages/map_core/lib/src/models/narrative_event_source_ref.dart:15-20` et `:74-194`; `SceneAsset` est global et sérialisé dans `packages/map_core/lib/src/models/scene_asset.dart:261-378`. Les actions Scene sont exposées par `packages/map_authoring/lib/src/domains/narrative/scene_actions.dart:21-95`, puis le dispatch déterministe et la reuse policy sont résolus dans `packages/map_core/lib/src/operations/narrative_event_dispatch_authority.dart:178-244`, `:328-343` et `:402-429`.
+
+Ce socle forme déjà l'équivalent canonique de nombreux Common Events. Le delta réel porte sur le Quest Book, les éventuels paramètres/appels imbriqués bornés requis par les scénarios retenus, l'authoring guidé de ces usages et les receipts uniformes sur les quatre transports.
 
 #### Dresseurs, combat et progression
 
@@ -227,7 +261,7 @@ La faiblesse n'est pas l'absence de commandes. C'est l'absence d'une projection 
 
 #### Packaging
 
-L'export `.avelunegame`, la validation fail-closed et la réouverture sont implémentés dans `packages/map_authoring/lib/src/domains/distribution/game_package_export_service.dart:88-153` et `:323-375`. La readiness vérifie notamment nouvelle partie, starter et fin atteignable dans `packages/map_authoring/lib/src/domains/distribution/game_package_gameplay_readiness_gate.dart:184-310`. JSONL et MCP exposent l'export via `packages/map_authoring/lib/src/tooling/jsonl_worker.dart:475-480` et `tools/pokemap_mcp/src/tools/game_export.ts:12-50`.
+L'export `.avelunegame`, la validation fail-closed et la réouverture sont implémentés dans `packages/map_authoring/lib/src/domains/distribution/game_package_export_service.dart:88-153` et `:323-375`. La readiness vérifie notamment nouvelle partie, starter et fin atteignable dans `packages/map_authoring/lib/src/domains/distribution/game_package_gameplay_readiness_gate.dart:184-310`. JSONL et MCP exposent l'export via `packages/map_authoring/lib/src/tooling/jsonl_worker.dart:475-490` et `tools/pokemap_mcp/src/tools/game_export.ts:12-50`.
 
 ### 5.3 Manques fonctionnels confirmés
 
@@ -243,6 +277,10 @@ Le socle sait nommer plusieurs comportements, mais `packages/map_gameplay/test/g
 
 Le modèle et l'authoring existent, mais `packages/map_editor/test/item_effect_editor_unsupported_test.dart:8-17` et `:58-72` documentent explicitement que l'effet runtime n'est pas supporté.
 
+#### Statiques et cadeaux
+
+`packages/map_runtime/lib/src/application/battle_start_request.dart:196-201` interdit encore capture et fuite pour un `StaticBattleStartRequest`. Pour les cadeaux, `packages/map_runtime/lib/src/application/scene_runtime/scene_consequence_runtime_writer.dart:345-353` et `:417-423` assurent l'idempotence, mais `:393-399` retourne `partyFull` au lieu d'acheminer l'individu vers le PC. Les deux tranches sont donc runtime `PARTIAL`, pour des raisons différentes.
+
 #### Field abilities
 
 `packages/map_gameplay/lib/src/field_action.dart:15-22` et `:69-105` montrent que Surf est la seule capacité signée ; Cut, Strength, Flash, Rock Smash obstacle, Waterfall et Dive renvoient encore `FieldActionUnsupported`. Fly n'appartient pas à cet enum : le voyage rapide nécessite un contrat séparé, aujourd'hui absent.
@@ -250,6 +288,10 @@ Le modèle et l'authoring existent, mais `packages/map_editor/test/item_effect_e
 #### Quêtes
 
 `StorylineAsset` et ses actions d'authoring sont riches, mais aucune projection Player ne forme un Quest Book avec états actif, terminé, échoué, objectifs et récompenses observables.
+
+#### Services de capacités et échange local
+
+Le manque porte sur le service exécutable, pas sur toutes les données. `PokemonLearnset` contient déjà `relearnMoves` et `tutor` dans `packages/map_core/lib/src/models/pokemon_project_data.dart:821-887`; l'Editor les expose dans `packages/map_editor/lib/src/ui/canvas/pokedex_workspace/pokedex_learnset_panel.dart:32-147`; `PlayerPokemonOriginKind.trade` existe dans `packages/map_core/lib/src/models/save_data.dart:118`. Aucun parcours Player relearner/deleter/tutor ni transaction atomique d'échange PNJ n'a cependant été trouvé.
 
 #### Carte du monde, météo, jour/nuit et follower
 
@@ -282,15 +324,15 @@ Il reste cependant des surfaces incohérentes avec le nouveau contrat :
 
 | Résidu | État actuel | Décision recommandée |
 |---|---|---|
-| Shiny | Modèle de policy, générateur, contrôles Editor, données Trainer et surfaces Player existent | Retirer le contrat public, la génération et les contrôles si l'exclusion est définitive ; aucun bridge pré-1.0 |
-| Headbutt | Enum et vocabulaire de table existent, sans déclencheur runtime | Supprimer de la sémantique d'encounter |
+| Shiny | Modèle de policy, générateur, contrôles Editor, données Trainer et surfaces Player existent | Le rendre non découvrable dans le profil solo ; un retrait physique ultérieur reste une maintenance séparée, sans bridge pré-1.0 |
+| Headbutt | Enum et vocabulaire de table existent, sans déclencheur runtime | Le rendre non sélectionnable dans le profil solo ; suppression physique optionnelle |
 | Breeding metadata | `eggGroups`, `hatchCycles` et `genderRatio` cohabitent | Garder `genderRatio` dans une métadonnée d'espèce neutre ; retirer le reste si inutilisé |
 | Rock Smash encounters | Pas de kind canonique complet | Ne jamais l'ajouter ; conserver seulement l'obstacle si souhaité |
 | Doubles | Désactivés mais branches historiques peuvent subsister | Simplifier les chemins touchés vers le single, sans migration de compatibilité |
 | Assets Voltorb | Occurrences d'animation de combat | Ne pas les confondre avec le mini-jeu Voltorb Flip |
 | Berries | Objets et effets de combat | Conserver l'objet ; ne pas créer de plantation ni croissance |
 
-Cette épuration est une rupture de schéma acceptable avant 1.0.0, mais elle n'est pas un gate de complétude du fangame solo : les fonctionnalités concernées sont déjà sorties du score et du chemin critique. Si Yoahn choisit ultérieurement de les enlever du produit plutôt que de les laisser dormantes, le nettoyage devra être un lot de maintenance séparé, explicite et non bloquant, avec rejet clair des anciennes données — pas une collection de fallbacks qui finirait par ressembler à un vide-grenier hanté.
+Un éventuel retrait physique serait une rupture de schéma acceptable avant 1.0.0, mais il ne serait pas un gate de complétude du fangame solo : les fonctionnalités concernées sont déjà sorties du score et du chemin critique. Si Yoahn choisit ultérieurement de les enlever du produit plutôt que de les laisser dormantes, le nettoyage devra être un lot de maintenance séparé, explicite et non bloquant, avec rejet clair des anciennes données — pas une collection de fallbacks qui finirait par ressembler à un vide-grenier hanté.
 
 ## 6. Ce qu'il faut reprendre de PSDK
 
@@ -298,7 +340,7 @@ Cette épuration est une rupture de schéma acceptable avant 1.0.0, mais elle n'
 
 PSDK est l'oracle local pour décrire ce que fait PSDK : ordre de scène, choreography, feedback, conditions historiques et cas limites. Il ne décide pas automatiquement de la règle cible PokeMap. Le profil de génération PokeMap reste l'autorité pour les formules qui changent selon les générations, notamment critiques, speed ties, types, dégâts et apprentissages. PSDK ne doit devenir ni une dépendance, ni un format runtime, ni une architecture à translittérer.
 
-À reprendre : invariants compatibles avec la génération cible, séquences, conditions, priorités, contrats UX et cas limites.  
+À reprendre : invariants compatibles avec la génération cible, séquences, conditions, priorités, contrats UX et cas limites.
 À ne pas reprendre : Ruby dynamique, `send`, variables globales, singletons mutables, tags numériques magiques, bytecode RMXP, `Marshal`, XOR de sauvegarde, couplage à la frame et branches multi-combat hors scope.
 
 Politique de source :
@@ -318,7 +360,7 @@ Politique de source :
 | P0 | Interpréteur : `scripts/1 RMXP Scripts/024 Interpreter_1.rb:9-15`, `:45-52`, `:75-145` | File de commandes, attente, branchement et reprise | Hiérarchie scellée `EventCommand`, contexte immuable et résultats typés |
 | P0 | Commandes : `scripts/1 RMXP Scripts/026 Interpreter_3.rb:4-60`, `:95-214`, `:216-294` et `scripts/1 RMXP Scripts/027 Interpreter_4.rb:3-178` | Dialogues, conditions, Common Events, switches, variables, mutations et contrôle de flux | `StoryPredicate` et commandes canoniques, sans `send` ni IDs opaques |
 | P0 | Commandes monde : `scripts/1 RMXP Scripts/028 Interpreter_5.rb:48-194`, `:195-320`, `:321-385` | Déplacement, routes, attente, transitions, écran et audio | Effets publiés vers runtime, horloge testable et annulation explicite |
-| P0 | Common Events : `scripts/1 RMXP Scripts/013 Game_CommonEvent.rb:23-67` | Ressource réutilisable, trigger, condition et exécution persistante | `CommonEventAsset` paramétré, action authoring et projection Player |
+| P0 | Common Events : `scripts/1 RMXP Scripts/013 Game_CommonEvent.rb:23-67` | Ressource réutilisable, trigger, condition et exécution persistante | Étendre `SceneAsset`/`NarrativeEventDefinition` uniquement pour les paramètres ou appels manquants ; ne pas créer une seconde architecture |
 | P0 | Quêtes : `scripts/4 Systems/800 Quest/1 PFM/001 PFM Quests.rb:10-42`, `:59-72`, `:75-180`, `:237-320` | Activation, états, objectifs, récompenses et requêtes | Reducer de quête pur, événements de progression et read model |
 | P0 | Objet de quête : `scripts/4 Systems/800 Quest/1 PFM/002 PFM Quests Quest.rb:11-35`, `:42-111`, `:125-135`, `:152-278`, `:318-360`, `:392-401` | Objectifs, récompenses, visibilité et hooks de vérification ; les getters PSDK peuvent muter l'état | Snapshot typé, commandes et receipts ; aucune mutation pendant une lecture |
 | P0 | Save config : `scripts/4 Systems/106 Save Load/001 Configs.rb:3-29` et `scripts/4 Systems/106 Save Load/3 GamePlay/402 Save logic.rb:96-102` | Slots, header, clé, nom de fichier, versions et politique d'écrasement | Schéma PokeMap actuel uniquement, slots explicites et diagnostics |
@@ -331,23 +373,23 @@ Politique de source :
 | P1 | Rencontre : `scripts/4 Systems/999 Wild/100 Wild Battle (manager).rb:57-102`, `:169-217`, `:335-349` | Sélection, table, niveau, filtre et branches multi explicites à rejeter | Resolver pur à RNG injecté, verrouillé à zéro ou une rencontre ; aucune branche double, roaming, history ou shiny |
 | P1 | Compteur : `scripts/4 Systems/999 Wild/102 Encounter Count.rb:12-68` | Pas avant nouvelle tentative et reset | État explicite dans la session, test déterministe |
 | P1 | Dresseur : `scripts/2 PSDK Event Interpreter/100 Interpreter_Environnement.rb:9-68`, `:78-140` | Vision et détection ; guards Safari à ne pas importer | Lifecycle typé et choreography runtime |
-| P1 | Séquences : `scripts/2 PSDK Event Interpreter/130 Interpreter_Sequences.rb:44-76`, `:165-199` | Approche, dialogue, pré-combat, défaite et reprise de map | Commande narrative + transaction d'outcome |
-| P1 | Fin de combat : `scripts/5 Battle/04 Logic/1 Handlers/111 BattleEndHandler.rb:38-77`, `:123-181`, `:282-327` | Ordre des récompenses, callbacks et retour monde | Un seul `BattleOutcomeReceipt`, appliqué idempotemment |
+| P1 | Séquences : `scripts/2 PSDK Event Interpreter/130 Interpreter_Sequences.rb:44-76`, `:165-199` | Approche, dialogue, pré-combat, callback d'outcome et restauration BGM | Commande narrative + transaction d'outcome |
+| P1 | Fin de combat : `scripts/5 Battle/04 Logic/1 Handlers/111 BattleEndHandler.rb:38-77`, `:123-181`, `:282-327` | Perte/gain d'argent, outcome switches, transition de fin, blackout et mises à jour Pokédex/quêtes | Un seul `BattleOutcomeReceipt`, appliqué idempotemment |
 | P1 | Scene battle : `scripts/5 Battle/04 Logic/0 Battle Info/001 Battle_Info.rb:59-81`, `:169-212` et `scripts/5 Battle/01 Scene/103 Scene Battle Phase.rb:34-49` | Participants, configuration, phase et transition | Contrat battle simple, sans `vs_type` 2/3 |
 | P1 | Choix : `scripts/5 Battle/01 Scene/101 Scene Choice.rb:35-179`, `:234-290`, `:317-334` | Fight, Bag, Pokémon, Run et invalidations | Commandes typées et raisons UI, reducer pur |
 | P1 | Actions : `scripts/5 Battle/04 Logic/102 Actions.rb:24-56`, `:91-112` | Priorité, ordre et validation | Queue d'actions déterministe et event log |
 | P1 | Attaque : `scripts/5 Battle/05 Actions/002 Attack.rb:37-103`, `scripts/5 Battle/10 Move/120 Procedure.rb:35-137`, `:285-294`, `:476-487` et `scripts/5 Battle/10 Move/130 Move Prevention.rb:7-25` | Cible, PP, préventions, échecs et résolution | `BattleCommand` → événements, sans mutation UI |
 | P1 | Item/Switch : `scripts/5 Battle/05 Actions/004 Item.rb:24-45`, `scripts/5 Battle/05 Actions/005 Switch.rb:22-60` et `scripts/5 Battle/01 Scene/101 Scene Choice.rb:135-150`, `:260-274` | Réservation/consommation, remboursement, invalidation et remplacement | Transaction unique avec sortie persistable |
 | P1 | Dégâts : `scripts/5 Battle/10 Move/101 Damage_Calc.rb:3-67` | Ordre des modificateurs et arrondis de la génération PSDK, à comparer au profil PokeMap | Pipeline PokeMap nommé, tests de génération cible et traces explicatives |
-| P1 | Effets : `scripts/5 Battle/10 Move/120 Procedure.rb:35-160`, `scripts/5 Battle/04 Logic/1 Handlers/103 StatusChangeHandler.rb:5-72`, `:105-125` | Déclencheurs, blocages, ordre et fin de tour | Registres typés, manifeste de couverture et événements |
+| P1 | Effets : `scripts/5 Battle/10 Move/120 Procedure.rb:35-160`, `scripts/5 Battle/04 Logic/1 Handlers/103 StatusChangeHandler.rb:5-72`, `:105-125` | Déclencheurs, blocages et ordre des statuts | Registres typés, manifeste de couverture et événements |
 | P1 | Abilities/items : `scripts/5 Battle/06 Effects/04 Ability Effects/001 AbilityBase.rb:14-45`, `scripts/5 Battle/06 Effects/05 Item Effects/001 ItemBase.rb:11-41`, `scripts/5 Battle/04 Logic/1 Handlers/106 EndTurnHandler.rb:13-24` | Hooks et ordre communs | Interfaces fermées et ordonnancement central, pas de plugin public |
 | P1 | IA : `scripts/5 Battle/30 AI/100 Base.rb:16-59`, `:75-138`, `scripts/5 Battle/30 AI/101 MoveActionFor.rb:20-99`, `scripts/5 Battle/30 AI/200 GenericAI.rb:4-119` | Connaissance, candidats, score, risque et choix | Profils purs, RNG injecté et trace explicative testable |
 | P1 | Capture : `scripts/5 Battle/04 Logic/1 Handlers/109 CatchHandler.rb:5-45`, `:47-149`, `:153-225` et `scripts/5 Battle/01 Scene/101 Scene Choice.rb:181-204`, `:317-334` | Calcul, shakes, réussite, destination party/PC et fin ; branche Nuzlocke exclue | Résultat typé puis transaction capture/party/PC/save |
 | P1 | Progression : `scripts/5 Battle/04 Logic/1 Handlers/200 ExpHandler.rb:15-43`, `:53-123`, `scripts/5 Battle/01 Scene/0 BattleUI/050 ExpDistributionAbstraction.rb:52-80` et `scripts/5 Battle/04 Logic/1 Handlers/111 BattleEndHandler.rb:261-280` | Distribution XP, level-up, apprentissage et évolution post-combat | Un `ProgressionOutcome` idempotent par participant |
 | P2 | Pêche : `scripts/4 Systems/999 Wild/100 Wild Battle (manager).rb:78-102`, `:256-277` et `scripts/4 Systems/003 Map Engine/2 Logic/50 RMXP/460 Game_Player_state.rb:165-205` | Canne, état, animation et table ; délais/bite/échec viennent des Common Events des cannes | State machine finie, sans historique ni chaîne shiny |
 | P2 | Repel : `scripts/4 Systems/999 Wild/100 Wild Battle (manager).rb:337-349`, `scripts/4 Systems/999 Wild/101 Wild Battle (configuration).rb:43-57`, `:145-173`, `:208-217`, `scripts/4 Systems/000 General/3 GameState/200 Accessors.rb:50-66`, `:284-291`, `:394-405`, `scripts/4 Systems/003 Map Engine/2 Logic/101 EventTasks.rb:115` et `scripts/4 Systems/003 Map Engine/3 GamePlay/200 Scene_Map.rb:55-65` | Filtre de niveau, pas restants, cooldown et expiration | Effet d'item persistant, feedback et resolver pur |
-| P2 | Field process : `scripts/4 Systems/000 General/1 PFM/1 Helpers/310 SkillProcess.rb:32-57` | Évaluer, confirmer, exécuter | Généraliser le pattern Surf existant |
-| P2 | Passabilité : `scripts/4 Systems/003 Map Engine/2 Logic/50 RMXP/405 Game_Player_passable.rb:52-84` | Direction, terrain, véhicule et blocage | `FieldActionEvaluation` et `MovementDecision` purs |
+| P2 | Field process : `scripts/4 Systems/000 General/1 PFM/1 Helpers/310 SkillProcess.rb:32-57` | Évaluer, bloquer ou différer, exécuter ; confirmation Surf portée par le Common Event | Généraliser le pattern Surf existant |
+| P2 | Passabilité : `scripts/4 Systems/003 Map Engine/2 Logic/50 RMXP/405 Game_Player_passable.rb:1-84` | Direction, terrain, véhicule et blocage | `FieldActionEvaluation` et `MovementDecision` purs |
 | P2 | Pokédex : `scripts/4 Systems/101 Dex/001 Pokedex.rb:86-127`, `:208-255`, `:276-374` et `scripts/4 Systems/101 Dex/100 Dex.rb:94-200` | Seen/caught, formes et pages UX | Read model Player, sans shiny |
 | P2 | World map : `scripts/4 Systems/206 TownMap/400 WorldMap.rb:287-300`, `:419-445`, `:548-566` et `scripts/4 Systems/202 Environment/120 Environnement.rb:80-99`, `:172-198` | Nœuds, découverte, sélection et voyage, sans roaming | Graphe validé, `FastTravelCommand` et confirmation |
 | P2 | Options : `scripts/4 Systems/105 Options/1 PFM/500 Options.rb:7-60`, `:62-130`, `scripts/4 Systems/105 Options/3 GamePlay/048 KeyBinding.rb:4-14`, `:64-119`, `:141-202` et `scripts/4 Systems/105 Options/3 GamePlay/049 KeyBinding_LS.rb:55-70` | Valeurs, contraintes, persistance des options et des touches | Profil local versionné, remapping avec conflits guidés |
@@ -380,8 +422,8 @@ La conversion cible est :
 ```text
 Common Event PSDK
 → scénario comportemental documenté
-→ commande et prédicats typés PokeMap
-→ template no-code paramétrable
+→ SceneAsset + NarrativeEventDefinition existants
+→ commande/prédicats typés et template no-code si nécessaire
 → test de reducer
 → test runtime
 → receipt Player
@@ -425,11 +467,22 @@ Une sémantique visible ne doit jamais apparaître uniquement dans l'Editor ou d
 5. Toute action no-code a des références guidées, des erreurs lisibles et un aperçu lorsque pertinent.
 6. Toute action user-visible évalue la parité Direct API, JSONL, Editor et MCP.
 7. Les registres de moves, abilities et items restent internes et typés ; ils ne deviennent pas une API de plugins.
-8. Les fonctionnalités hors scope sont supprimées ou rejetées clairement, jamais laissées comme boutons fantômes.
+8. Les fonctionnalités hors scope ne sont ni promises, ni scorées, ni sélectionnables dans le profil solo ; un code interne dormant peut subsister jusqu'à un nettoyage séparé, mais aucune surface cible ne doit le présenter comme requis.
 
 ## 8. Roadmap complète
 
-Les identifiants `SOLO-*` ci-dessous sont des ancres de planification documentaire. Ils ne créent aucun ticket Notion, ne modifient pas le backlog bêta gelé et ne constituent pas un nouveau grand domaine.
+Les identifiants `SOLO-*` ci-dessous sont des ancres d'analyse non suivies. Ils ne créent aucun ticket Notion, ne modifient pas le backlog bêta gelé, ne constituent pas un nouveau grand domaine et ne deviennent jamais une seconde source de vérité. Avant implémentation, chaque tranche devra être rattachée à exactement un lot FG/Post-Bêta canonique existant ou à un nouveau lot explicitement autorisé.
+
+### 8.1 Priorité des gaps PokeMap
+
+La priorité mesure le risque produit, pas le numéro de phase : un lot P2 peut être préparé en parallèle, mais il ne déplace pas un P0 du chemin critique.
+
+| Priorité | Gaps | Ancres principales |
+|---|---|---|
+| P0 — vérité bloquante | Compilation Golden Item, pickers Trainer rouges, statuts FG faux, receipts gameplay incomplets, absence de parcours Player installé sans seam | SOLO-000–006 |
+| P1 — boucle solo requise | Atomicité save uniforme, terrains/navigation, pêche/Repel, field abilities, extensions événementielles strictement nécessaires/Quest Book, combat single, capture/progression, party/PC/économie/services | SOLO-103, SOLO-200–208, SOLO-300–305, SOLO-400–406, SOLO-500–506, SOLO-600–608 |
+| P2 — complétude produit | Options avancées, présentation battle certifiée, jour/nuit, météo, corpus/authoring/import et certification de release | SOLO-104, SOLO-507, SOLO-700–702, SOLO-800–805, SOLO-900–905 |
+| P3 — extension tardive | Follower cosmétique et décisions encore ouvertes sur gimmicks, Battle Frontier, UX IV/EV/nature avancée et full-modern Dex | SOLO-703, FG-201, FG-205–207 |
 
 ### Phase 0 — vérité, scope et rouges actuels
 
@@ -442,7 +495,7 @@ Objectif : rendre les preuves fiables avant d'ajouter du produit.
 | SOLO-002 | Réparer les pickers Items du Trainer Studio | Aucune | Trainer Studio, repository de catalogues locaux, `trainer_library_panel_test.dart` | Held items et récompenses listent le catalogue attendu ; 17/17 tests ciblés verts |
 | SOLO-003 | Réauditer les statuts FG devenus faux | SOLO-000, SOLO-001, SOLO-002 | `pokemap_roadmap_mecaniques_fangame.md` et preuves citées ici | Chaque lot concerné est classé TODO/PARTIAL/TO REVIEW proposé avec preuve fraîche ; aucun `DONE` automatique |
 | SOLO-004 | Générer une matrice A–F vivante | SOLO-003 | `map_authoring` parity catalog, receipts, roadmap dashboard | Une entrée par capacité, SHA, fichier, commande et date ; aucun compteur de registration présenté comme E2E |
-| SOLO-005 | Fermer le contrat de receipts transport | SOLO-004 | parity catalog, Direct API, JSONL, Editor, MCP | Chaque action applicable publie les quatre receipts ou une justification N/A ; conformance live verte |
+| SOLO-005 | Fermer le contrat de receipts des sémantiques gameplay incluses | SOLO-004 | parity catalog, Direct API, JSONL, Editor, MCP | Chaque action gameplay applicable au périmètre solo publie les quatre receipts ou une justification N/A ; les 336 actions globales ne deviennent pas un gate hors domaine |
 | SOLO-006 | Produire le harness Player installé sans seam debug | SOLO-001, SOLO-004 | installed host, input driver, receipt validator | Parcours visible uniquement par inputs Player ; aucun `debugOpenBattleForTest`, mutation GameState ou receipt synthétique |
 
 Vérification minimale :
@@ -493,21 +546,21 @@ Objectif : un pipeline unique, single-only et sans fonctions exclues.
 
 | ID | Lot | Dépendances | Zones de départ | Critère de sortie |
 |---|---|---|---|---|
-| SOLO-300 | Nettoyer le contrat Encounter | SOLO-000 | `EncounterKind`, tables, conditions, serializer | Kinds aléatoires retenus : walk, surf et old/good/super rod ; les statiques restent un contrat narratif séparé ; headbutt/shiny/roaming/multi absents |
+| SOLO-300 | Nettoyer le contrat Encounter cible | SOLO-000 | `EncounterKind`, tables, conditions, serializer | Kinds aléatoires sélectionnables dans le profil solo : walk, surf et old/good/super rod ; statiques séparés ; headbutt/shiny/roaming/multi non découvrables, sans imposer leur suppression physique |
 | SOLO-301 | Recertifier walk et surf | SOLO-300, SOLO-204 | resolver gameplay, runtime steps | RNG injecté, cooldown, filtre terrain, niveau, zéro ou une rencontre, save/reload et Player receipt |
 | SOLO-302 | Implémenter la pêche simple | SOLO-300 | rod item/use, Player input, encounter resolver | Equip/use canne, lancer, bite/échec, annulation, table par canne et combat simple ; aucune chaîne shiny |
 | SOLO-303 | Implémenter Repel | SOLO-301 | item effects, save state, encounter resolver | Compteur de pas persistant, filtre niveau, expiration, feedback et renouvellement explicite |
 | SOLO-304 | Fermer statiques et cadeaux | SOLO-300 | narrative commands, consumed IDs, party/PC | Précondition, déclenchement, capture/acceptation, destination et non-répétition après reload |
 | SOLO-305 | Conditions d'environnement et gate encounters | SOLO-301, SOLO-302, SOLO-303, SOLO-304 | encounter conditions, clock/weather futures | Tous les lots 300–304 sont verts ; conditions typées map/terrain/time/weather sans scripts opaques, prévisualisées et explicables |
 
-### Phase 4 — événements, Common Events et quêtes
+### Phase 4 — événements réutilisables et quêtes
 
 Objectif : passer d'un catalogue riche à un système de scénario jouable et observable.
 
 | ID | Lot | Dépendances | Zones de départ | Critère de sortie |
 |---|---|---|---|---|
 | SOLO-400 | Certifier les 24 commandes narratives | SOLO-005 | narrative catalog, dispatcher, Editor | Chaque commande a validation, preview ou feedback, runtime, persistance, Direct/JSONL/Editor/MCP |
-| SOLO-401 | Créer `CommonEventAsset` typé | SOLO-400 | `map_core`, authoring narrative | Paramètres, conditions, trigger, appel imbriqué borné et identité stable ; aucun bytecode RMXP |
+| SOLO-401 | Étendre le socle SceneAsset/NarrativeEvent sans le dupliquer | SOLO-400 | `narrative_event_definition.dart`, `scene_asset.dart`, `scene_actions.dart` | Delta d'usage démontré ; paramètres ou appels imbriqués bornés ajoutés seulement si requis ; reuse policy et identité stable conservées ; aucun `CommonEventAsset` parallèle |
 | SOLO-402 | Scheduler déterministe d'événements | SOLO-401 | runtime event queue, waits, map triggers | Ordre action/touch/map, waits, annulation, changement de map et reload sans double exécution |
 | SOLO-403 | Reducer de quête | SOLO-400 | Storyline models, progression projection | États inactive/active/completed/failed, objectifs, visibilité et récompenses idempotentes |
 | SOLO-404 | Quest Book Player | SOLO-403 | pause menu, player read models | Liste, détail, progression, objectifs masqués/révélés, empty/error states et notification non bloquante |
@@ -537,10 +590,10 @@ Objectif : rendre chaque victoire utile et chaque état durable.
 
 | ID | Lot | Dépendances | Zones de départ | Critère de sortie |
 |---|---|---|---|---|
-| SOLO-600 | XP, niveau et apprentissage | SOLO-505 | progression rules, move learning UI | Distribution, level-up multiples, choix remplacer/refuser, PP et save/reload idempotents |
+| SOLO-600 | XP, niveau, stats et apprentissage | SOLO-505 | progression rules, stat calculation, move learning UI | Distribution, level-up multiples, nature/IV/EV selon profil, choix remplacer/refuser, PP et save/reload idempotents |
 | SOLO-601 | Évolution | SOLO-600 | evolution catalog, runtime presentation | Niveau, item, échange local substitué si retenu, amitié et conditions monde ; cancel et reprise sûrs |
 | SOLO-602 | Amitié et compteurs de pas | SOLO-600 | Pokémon instance state, step events | Gains/pertes bornés et persistants, utilisables pour évolution ; aucun egg cycle ni Pokerus |
-| SOLO-603 | Party et PC complets | SOLO-600 | storage policy, Player menus | Dépôt/retrait/déplacement, box full, party minimale, Summary, recherche et save/reload |
+| SOLO-603 | Party et PC complets | SOLO-600 | storage policy, Player menus | Dépôt/retrait/déplacement, box full, party minimale, Summary avec politique d'affichage nature/IV/EV, recherche et save/reload |
 | SOLO-604 | Bag contextuel | SOLO-600 | item capabilities, bag Player | Poches, tri, quantité, use/give/toss selon contexte, raisons d'indisponibilité et atomicité |
 | SOLO-605 | Boutiques et soin | SOLO-604 | shop quote/actions, heal transaction | Achat/vente/quantité/argent/capacité, Centre et items partagent le même soin cohérent |
 | SOLO-606 | Récompenses, argent et badges | SOLO-505 | trainer outcomes, profile UI | Récompenses une fois, défaite/whiteout, badge et field unlock visibles et persistants |
@@ -607,7 +660,7 @@ SOLO-800..805 ─┘
 
 ### 9.2 Ce qui peut être parallélisé
 
-- Après `SOLO-000`, réparations Golden Item et Trainer Studio sont indépendantes.
+- `SOLO-000`, `SOLO-001` et `SOLO-002` démarrent en parallèle ; `SOLO-003` les rejoint ensuite.
 - Terrain, rencontres et quest model peuvent avancer en parallèle après fixation des contrats.
 - Battle engine et Player battle presentation peuvent avancer en parallèle si l'event log est figé avant l'intégration.
 - Corpus/import et transport receipts peuvent suivre chaque domaine en continu ; ils ne doivent pas attendre une « grande phase authoring » finale.
@@ -616,35 +669,40 @@ SOLO-800..805 ─┘
 ### 9.3 Les cinq prochains mouvements
 
 1. `SOLO-001` et `SOLO-002` : revenir à une baseline ciblée verte.
-2. `SOLO-000` et `SOLO-003` : nettoyer le périmètre et rebaseliner les statuts trompeurs.
+2. `SOLO-000` et `SOLO-003` : figer le périmètre, neutraliser la découvrabilité OOS et rebaseliner les statuts trompeurs.
 3. `SOLO-006` : remplacer les preuves synthétiques par un vrai parcours Player installé.
 4. `SOLO-200`, `SOLO-300`, `SOLO-302`, `SOLO-303`, `SOLO-205` : fermer exploration, pêche, Repel et field actions.
 5. `SOLO-500` puis `SOLO-501..507` : fermer explicitement le combat simple au lieu d'accumuler des enregistrements.
 
 ## 10. Correspondance avec le roadmap FG existant
 
-Le roadmap racine reste une source d'identifiants, mais ses statuts ne doivent pas être pris comme vérité courante avant réaudit.
+`pokemap_roadmap_mecaniques_fangame.md` reste la source canonique de suivi mécanique. Les ancres `SOLO-*` ne sont qu'une décomposition analytique ; ses statuts FG doivent toutefois être réaudités contre le code avant toute mise à jour.
 
 | Lots FG | Lecture 2026-08-25 | Action proposée |
 |---|---|---|
-| FG-010–016 | Nouvelle partie, shell et pause plus avancés que `TODO` | Réauditer avec SOLO-100–103 |
+| FG-010–016 | Statuts mixtes ; plusieurs lots sont plus avancés que leur texte, FG-014 est déjà `DONE` | Réauditer lot par lot avec SOLO-100–103 |
 | FG-020–030 | Party/PC et projections réelles mais fermeture Player incomplète | Aligner sur SOLO-603 |
 | FG-040–053 | Combat/progression substantiels, plusieurs axes explicitement `partial` | Figer cible via SOLO-500 puis fermer par manifeste |
-| FG-060–079 | Items/shop/heal largement présents ; Golden Item rouge | Réparer SOLO-001 puis certifier SOLO-604–605 |
-| FG-080–094 | Catalogue narratif riche ; Common Events et Quest Book incomplets | SOLO-400–406 |
-| FG-100–108 | Walk/Surf réels ; pêche et Repel absents | SOLO-300–305 ; FG-105 Headbutt devient OOS |
+| FG-060–064, FG-066–079 | Items/shop/heal largement présents ; Golden Item rouge | Réparer SOLO-001 puis certifier SOLO-604–605 |
+| FG-065 | Repel authorable mais sans effet runtime | SOLO-303 |
+| FG-080–094 | Catalogue, SceneAsset et NarrativeEvent riches ; Quest Book et certains usages réutilisables/receipts incomplets | SOLO-400–406 |
+| FG-100–108 | Walk/Surf réels ; pêche absente | SOLO-300–305 ; FG-105 Headbutt devient OOS |
 | FG-120–129 | Surf réel ; autres field abilities non supportées | SOLO-204–208 ; Rock Smash uniquement obstacle |
 | FG-140–147 | Trainer lifecycle/rematch/rewards déjà livrés en partie | Réaudit de statut, puis SOLO-506/606 |
 | FG-160–165 | Player shell, menus et Dex plus avancés que le texte | Rebaseliner avec SOLO-100–104/607 |
 | FG-180–185 | Harness fort mais Player humain réel non prouvé | SOLO-900–905 |
 | FG-200 | Combats doubles | OOS |
+| FG-201 | Gimmicks modernes | `DEFERRED/UNDECIDED` : désactivés aujourd'hui, mais Yoahn ne les a pas classés OOS dans cette demande |
 | FG-202 | Daycare, reproduction et œufs | OOS |
 | FG-203 | Online et multijoueur | OOS |
 | FG-204 | Concours et mini-jeux | OOS |
+| FG-205 | Battle Frontier | `UNDECIDED` : hors chemin critique actuel, décision produit explicite requise |
+| FG-206 | UX IV/EV/nature avancée | Socle de calcul inclus via SOLO-600 ; exposition avancée `DEFERRED/UNDECIDED` au-delà du Summary minimal |
+| FG-207 | Full Pokédex modern parity | Workflow Dex inclus via SOLO-607 ; volume full-modern `UNDECIDED`, corpus strictement borné par SOLO-800 |
 
 Nuzlocke est OOS par décision produit, mais ne correspond pas à FG-204 dans le roadmap canonique.
 
-Le roadmap pointe encore MVP-01/MVP-02 vers `packages/map_runtime/test/selbrume_new_game_starter_integration_test.dart`, fichier absent à HEAD. Ce lien doit être corrigé lors de `SOLO-003`, pas masqué par un nouveau test portant un nom de convenance.
+Le roadmap pointe encore MVP-01/MVP-02 vers `packages/map_runtime/test/selbrume_new_game_starter_integration_test.dart` à `pokemap_roadmap_mecaniques_fangame.md:2116-2117`, fichier absent à la révision auditée. Ce lien doit être corrigé lors de `SOLO-003`, pas masqué par un nouveau test portant un nom de convenance.
 
 Jour/nuit, météo overworld et follower n'ont pas de lots FG assez nets. Ils devront devenir de futurs lots Post Bêta distincts uniquement lorsqu'une mise à jour Notion sera autorisée ; ils ne doivent pas gonfler rétroactivement un ticket bêta existant.
 
@@ -666,6 +724,8 @@ Chaque lot implémenté devra fournir :
 
 ### 11.1 Gates package par package
 
+Pour un lot ordinaire, seuls les packages réellement affectés et leurs consommateurs directs sont testés/analyzés. La matrice complète ci-dessous est réservée aux gates de phase, à `SOLO-900` et à `SOLO-905`; elle n'est pas une taxe cross-repo imposée à chaque changement de trois lignes.
+
 ```bash
 cd packages/map_core && dart test && dart analyze
 cd packages/map_gameplay && dart test && dart analyze
@@ -681,6 +741,8 @@ cd tools/pokemap_mcp && npm run check && npm test
 Les commandes Flutter restent séquentielles. Les harnesses `flutter_tester`, `frontend_server_aot` et `flutter_tools.snapshot test` doivent être reapés après chaque suite. Les parcours longs et soaks restent locaux et opt-in.
 
 ## 12. Vérifications fraîches de cet audit
+
+Les commandes ci-dessous ont été lancées pendant la fenêtre `d33ebcdcc` → `214338509`. Les commits de cette fenêtre ne modifiaient pas les contrats fonctionnels ciblés ; les commits postérieurs à `214338509` ne sont pas absorbés dans cette preuve.
 
 ### 12.1 Tests verts
 
@@ -705,9 +767,39 @@ Total ciblé vert : 144 tests.
 
 Le rouge Host n'est pas un simple renommage à supprimer : `WildBattleStartRequest` attend les champs canoniques `encounterSourceId` et `encounterSourceKind`. La correction doit préserver cette provenance.
 
-### 12.3 Limites de vérification
+### 12.3 Recherches structurelles et validation documentaire
 
-- Aucun full test/analyze de tous les packages n'a été lancé ; les suites ciblées ne certifient pas la santé globale.
+| Contrôle | Commande ou méthode | Résultat frais |
+|---|---|---|
+| Équivalent canonique des Common Events | Inspection de `NarrativeEventDefinition`, `NarrativeEventSourceRef`, `SceneAsset`, actions Scene, dispatcher et bridges runtime | Socle présent de A à D ; le `rg` littéral `CommonEvent` à 0 occurrence ne prouve que le choix de vocabulaire PokeMap |
+| Consommateur météo runtime | `rg -n 'MapWeather' packages/map_runtime/lib` | Exit 1, 0 occurrence |
+| Horloge monde | `rg -n 'WorldClock\|TimeOfDay\|DayNight\|dayNight\|timeOfDay'` sur core/gameplay/authoring/editor/runtime/player | 32 occurrences, limitées au convertisseur d'évolution et aux ombres projetées ; aucun `WorldClock` ni consommateur runtime jour/nuit |
+| Quest Book / journal | `rg -n -i 'QuestBook\|QuestJournal\|quest book\|quest journal'` sur les six packages production | Exit 1, 0 occurrence |
+| Références du rapport historique | Deux parseurs Node indépendants des jetons `chemin:ligne` | 212 occurrences résolues par le replay ; 211 jetons distincts par le parseur strict ; 0 chemin/plage invalide |
+| Références PSDK de la section 6 | `wc -l`, `nl -ba`, `rg` et résolution sous les racines engine/demo | 42 lignes de conversion revues ; toutes les sources et plages finales existent |
+| Références du présent rapport | Validateur Node sur `.dart`, `.rb`, `.ts`, `.md` et `.yml`, avec racines repo/PSDK/demo | 165 occurrences à chemin complet, 141 distinctes, plus 91 plages abrégées ; 256 ancres validées, 0 invalide |
+| Lots documentaires | Parse des premières cellules `SOLO-*` et du DAG | 69 lignes, 69 identifiants uniques, 123 arcs, 0 dépendance inconnue, 0 cycle, 69/69 ancêtres de `SOLO-905` |
+| Structure Markdown | Parse des cellules, recherche des espaces finaux, `git diff --check` et hygiene script | 0 tableau cassé, 0 espace final, exit 0, hygiene `PASS` |
+
+Après chaque suite Flutter, les commandes suivantes ont été exécutées :
+
+```bash
+pkill -9 -f flutter_tester; pkill -9 -f frontend_server_aot; pkill -9 -f 'flutter_tools.snapshot test'
+```
+
+Elles ont retourné 0 lorsqu'un harness restait présent et 1 lorsqu'il n'en restait aucun ; aucun processus de test résiduel n'a été conservé par cet audit.
+
+La passe finale exécute également :
+
+```bash
+git diff --check -- documentation/reports/roadmap/gameplay/roadmap_fangame_solo_psdk_pokemap_2026-08-25.md
+POKEMAP_MARKDOWN_MAX_NEW=1 bash tools/scripts/check_markdown_hygiene.sh
+```
+
+### 12.4 Limites de vérification
+
+- Aucun `dart analyze` ni `flutter analyze`, ciblé ou global, n'a été lancé ; les suites ciblées ne certifient pas la santé statique globale.
+- Aucun build n'a été lancé : N/A pour cet audit documentaire, et précisément insuffisant pour une preuve Player installée.
 - Aucun Player installé n'a été piloté manuellement pendant cet audit.
 - Aucun benchmark ou soak n'a été exécuté.
 - Les références PSDK ont été inspectées localement ; PSDK ne fournit pas de SHA Git.
@@ -719,25 +811,72 @@ Le rouge Host n'est pas un simple renommage à supprimer : `WildBattleStartReque
 
 HEAD initial : `ff304411177b1df43179e2b6e704be1a7aead756`.
 
-Le worktree contenait déjà cinq suppressions de rapports, plusieurs modifications Presentation/editor/runtime, des tests et fichiers de configuration non suivis ainsi qu'un lock d'authoring préexistant. Aucun de ces changements n'a été réinitialisé, stashé, formaté ou ajouté à Git.
+État exact observé avant la première écriture :
 
-### 13.2 Fichier créé par cet audit
+```text
+ D documentation/reports/gameplay/audit_exhaustif_mecaniques_pokemon_pokemap_2026-08-02.md
+ D documentation/reports/gameplay/beta_enc_007_smart_tile_native_gameplay_behavior_audit_2026-08-23.md
+ D documentation/reports/gameplay/fg_017_runtime_startup_intro_title_audit_2026-08-08.md
+ D documentation/reports/gameplay/fg_184_roadmap_status_dashboard_generator_v0_2026-08-20.md
+ D documentation/reports/gameplay/item_system_v1_final_target_audit_2026-08-12.md
+ M packages/map_editor/lib/src/ui/canvas/cinematics/presentation/presentation_studio_responsive_canvas.dart
+ M packages/map_editor/lib/src/ui/canvas/narrative_workspace_canvas.dart
+ M packages/map_editor/test/application/editor_snapshot_profile_recorder_test.dart
+ M packages/map_player_ui/lib/presentation_renderer.dart
+ M packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+ M packages/map_runtime/lib/src/presentation/flame/battle_scene_combatant_component.dart
+ M packages/map_runtime/lib/src/presentation/flame/battle_stat_aura_component.dart
+ M packages/map_runtime/lib/src/presentation/flame/battle_transition_overlay_component.dart
+?? examples/playable_runtime_host/p3_narrative_smoke_slice/.pokemap/authoring/idempotency.jsonl.lock
+?? packages/map_editor/devtools_options.yaml
+?? packages/map_player_ui/lib/src/player/presentation_studio_media_sink.dart
+?? packages/map_player_ui/test/player/presentation_studio_media_sink_test.dart
+?? packages/map_runtime/test/battle_stat_aura_scale_test.dart
+?? packages/map_runtime/test/battle_terrain_sweep_pixels_test.dart
+?? packages/map_runtime/test/tmp_sweep_preview_test.dart
+?? tools/pokemap_product_certification/devtools_options.yaml
+```
+
+Aucun de ces changements n'a été réinitialisé, stashé, formaté ou ajouté à Git par cet audit.
+
+### 13.2 Fichier produit et provenance concurrente
 
 - `documentation/reports/roadmap/gameplay/roadmap_fangame_solo_psdk_pokemap_2026-08-25.md` — totalité du présent audit, de la matrice et de la roadmap.
 
 Les deux locks vides créés par les suites ciblées dans `golden_fangame_slice` et `golden_personalization_v3` ont été supprimés après vérification. Le lock préexistant de `p3_narrative_smoke_slice` a été conservé.
 
+Après le gel fonctionnel à `214338509`, HEAD a encore avancé par travail concurrent :
+
+- `711e32501` — cache de snapshot authoring content-addressed, sans changement de statut fonctionnel dans la présente matrice ;
+- `f00247749` — sélection de transition de combat pour Smart Tile encounters, ce qui renforce l'authoring concerné sans justifier une promotion A–F non réauditée.
+- `d59b5a327` — déclaration du type de source cinématique au runtime, hors snapshot fonctionnel du présent audit.
+
+Le commit concurrent `f002477496e9c83e09b7a733f94a70cce4751c3e` a embarqué une version intermédiaire du présent rapport, les cinq suppressions Markdown préexistantes et d'autres changements Smart Tile/editor. Cet audit n'a exécuté ni `git add`, ni commit, ni push, et n'attribue pas ce commit à son travail. Le document a continué d'être corrigé après ce commit et apparaît donc modifié dans l'état final.
+
 ### 13.3 État final
 
-L'état final exact est enregistré après validation du présent document dans la section 15.
+HEAD et worktree observés après validation à `2026-08-25 01:21:07 CEST` : `d59b5a327e267cad21745d920c0f055dff2d87d9`.
+
+```text
+ M documentation/reports/roadmap/gameplay/roadmap_fangame_solo_psdk_pokemap_2026-08-25.md
+ M packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart
+ M packages/map_editor/lib/src/application/authoring_api/encounter_table_persistence_gateway.dart
+ M packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+ M packages/map_editor/lib/src/ui/panels/encounter_tables_panel_workspace.dart
+?? packages/map_authoring/lib/src/domains/project/battle_transition_default_actions.dart
+?? packages/map_authoring/test/domains/project/battle_transition_default_actions_test.dart
+```
+
+Seule la modification du rapport est attribuable à cet audit. Les six changements authoring/editor ont évolué concurremment et n'ont été ni lus comme base fonctionnelle, ni modifiés, ni indexés par cette tâche. Le timestamp est la borne de l'observation, car le worktree continuait de bouger pendant la clôture.
 
 ## 14. Verdict des passes indépendantes
 
 | Passe | Verdict |
 |---|---|
 | Critique du rapport | `PASS documentaire avec réserves`; `FAIL` comme base de priorisation courante |
-| Audit PSDK | Les invariants sont réutilisables ; la structure Ruby/RMXP ne doit pas être transposée |
-| Audit PokeMap | Cœur solo substantiel ; plusieurs vocabulaires ne sont pas consommés ; preuve Player globale partielle |
+| Critique finale du présent rapport | `PASS` ; 256 ancres valides, tableaux propres, DAG 69/69, diff et hygiene verts |
+| Audit PSDK | `PASS` après correction des chemins, plages et sémantiques ; la structure Ruby/RMXP ne doit pas être transposée |
+| Audit PokeMap | `PASS documentaire` ; cœur solo substantiel, vocabulaires nominaux isolés et preuve Player globale partielle |
 | Architecture | Les frontières de packages sont adaptées à la conversion proposée |
 | Authoring/MCP | Catalogue très large, receipts et simulation battle/progression incomplets |
 | Runtime/E2E | Tranche verticale solide ; aucun receipt humain installé versionné à HEAD |
@@ -751,7 +890,7 @@ L'état final exact est enregistré après validation du présent document dans 
 3. **Faux positif par catalogue** : une action déclarée ou un adaptateur MCP ne prouve pas les quatre transports.
 4. **Roadmap drift** : plusieurs statuts FG sont déjà plus vieux que leur code.
 5. **Exhaustivité combat** : les grands compteurs PSDK peuvent créer une illusion de couverture.
-6. **Nettoyage OOS** : retirer shiny/breeding/headbutt touche schéma, Editor, runtime, fixtures et catalogues ; le lot doit rester ciblé malgré son ampleur.
+6. **Nettoyage OOS** : si un retrait physique de shiny/breeding/headbutt est décidé, il touchera schéma, Editor, runtime, fixtures et catalogues ; ce chantier séparé ne doit pas redevenir un gate de la boucle solo.
 7. **Concurrent work** : HEAD et worktree ont changé pendant l'audit ; toute implémentation devra repartir d'un SHA et d'un status frais.
 8. **Assets/licences** : les recettes PSDK peuvent inspirer ; le code Ruby ne doit pas être copié et les assets doivent passer par des imports rerunnables avec provenance.
 
@@ -765,6 +904,6 @@ Les statuts proposés ne sont pas des clôtures. Aucun lot FG n'est marqué `DON
 
 La bonne stratégie n'est ni de courir après toute la surface historique de PSDK, ni de considérer PokeMap presque vide. Il faut reprendre de PSDK les règles et séquences qui rendent une aventure solo cohérente, les reformuler en contrats purs PokeMap, les authorer par les transports canoniques, puis les prouver dans le Player installé.
 
-Le produit peut ignorer sans regret les doubles, l'élevage, les shiny, les chaînes, les mini-jeux, le réseau et le reste du périmètre exclu. Ce retrait ne réduit pas l'ambition : il libère assez de temps pour finir correctement ce qui compte vraiment — explorer, raconter, rencontrer, combattre, progresser, sauvegarder et terminer une aventure.
+Le produit peut ignorer sans regret les doubles, l'élevage, les shiny, les chaînes, les mini-jeux, le réseau et le reste du périmètre exclu. Cette exclusion ne réduit pas l'ambition : elle libère assez de temps pour finir correctement ce qui compte vraiment — explorer, raconter, rencontrer, combattre, progresser, sauvegarder et terminer une aventure.
 
-État final après création et validation du rapport : à renseigner par la passe de vérification finale.
+État final : rapport validé `PASS`, 69 lots reliés jusqu'à `SOLO-905`, 256 ancres locales valides, aucun write Git exécuté par cet audit et aucune modification Notion conformément à la demande.
