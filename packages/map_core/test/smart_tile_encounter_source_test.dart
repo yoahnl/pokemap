@@ -35,6 +35,11 @@ void main() {
           'battleBackgroundRelativePath': 'assets/battle/forest.png',
           'battleMusicPath': null,
           'encounterMusicPath': null,
+          // BETA-BAT-019 a ajouté ce champ au payload de rencontre ; cette
+          // attente n'avait jamais suivi. La convention du modèle est de
+          // sérialiser aussi le vide — les trois champs nuls au-dessus le
+          // sont — donc c'est bien l'attente qui était périmée.
+          'battleTransitionIds': <String>[],
         },
       });
     });
