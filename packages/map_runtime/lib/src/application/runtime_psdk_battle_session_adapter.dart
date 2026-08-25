@@ -374,19 +374,7 @@ final class RuntimePsdkBattleSessionAdapter {
   /// PSDK : dans les scripts de la référence, **`spd` désigne la VITESSE** et
   /// `dfs` la Défense Spéciale. Les intervertir échangerait silencieusement
   /// deux auras et deux messages.
-  BattleStatId? _legacyStatId(String stat) {
-    final normalized =
-        stat.trim().replaceAll(RegExp(r'[\s_-]'), '').toLowerCase();
-    return switch (normalized) {
-      'atk' || 'attack' => BattleStatId.attack,
-      'def' || 'dfe' || 'defense' => BattleStatId.defense,
-      'ats' || 'spa' || 'spatk' || 'specialattack' =>
-        BattleStatId.specialAttack,
-      'dfs' || 'spdef' || 'specialdefense' => BattleStatId.specialDefense,
-      'spd' || 'spe' || 'speed' => BattleStatId.speed,
-      _ => null,
-    };
-  }
+  BattleStatId? _legacyStatId(String stat) => runtimeBattleStatIdFor(stat);
 
   BattleMajorStatusId _legacyMajorStatusId(PsdkBattleMajorStatus status) {
     return switch (status) {
@@ -872,4 +860,30 @@ final class RuntimePsdkBattleSessionAdapter {
     }
     return int.tryParse(id.substring(separator + 1)) ?? 0;
   }
+}
+
+
+/// La traduction d'un nom de stat du moteur vers la présentation.
+///
+/// Top-level parce que c'est EXACTEMENT ce maillon qui jetait les baisses de
+/// précision (recette du 2026-08-25, Jet de Sable) : une stat non traduite
+/// rend `null`, et l'événement est alors écarté sans bruit avant d'atteindre
+/// l'écran. Il mérite donc son test, sans monter tout un combat.
+///
+/// PIÈGE PSDK, déjà mordu une fois : `spd` est la VITESSE et `dfs` la Défense
+/// Spéciale. Les intervertir échangerait silencieusement deux auras et deux
+/// messages.
+BattleStatId? runtimeBattleStatIdFor(String stat) {
+  final normalized =
+      stat.trim().replaceAll(RegExp(r'[\s_-]'), '').toLowerCase();
+  return switch (normalized) {
+    'atk' || 'attack' => BattleStatId.attack,
+    'def' || 'dfe' || 'defense' => BattleStatId.defense,
+    'ats' || 'spa' || 'spatk' || 'specialattack' => BattleStatId.specialAttack,
+    'dfs' || 'spdef' || 'specialdefense' => BattleStatId.specialDefense,
+    'spd' || 'spe' || 'speed' => BattleStatId.speed,
+    'acc' || 'accuracy' => BattleStatId.accuracy,
+    'eva' || 'evasion' => BattleStatId.evasion,
+    _ => null,
+  };
 }

@@ -936,6 +936,14 @@ class BattleStatStages {
           specialDefense: specialDefense,
           speed: _clampStage(speed + change.stages),
         );
+      case BattleStatId.accuracy:
+      case BattleStatId.evasion:
+        // Le modèle legacy ne porte pas ces deux étages. Le moteur PSDK, lui,
+        // les applique bien : c'est LUI qui tourne en jeu, et l'ajout de ces
+        // valeurs à BattleStatId sert justement à ce que ses événements
+        // arrivent jusqu'à la présentation (BETA-BAT-021, recette du
+        // 2026-08-25 : Jet de Sable ne montrait rien).
+        return this;
     }
   }
 
@@ -957,6 +965,8 @@ class BattleStatStages {
       BattleStatId.specialAttack => specialAttack,
       BattleStatId.specialDefense => specialDefense,
       BattleStatId.speed => speed,
+      // Non modélisées côté legacy : neutre plutôt que faux.
+      BattleStatId.accuracy || BattleStatId.evasion => 0,
     };
     if (stage >= 0) {
       return (2 + stage) / 2;

@@ -1101,9 +1101,12 @@ class BattleOverlayComponent extends PositionComponent {
           side: BattleSideId.player,
           viewportWidth: size.x,
         ),
-        // Le zoom de la référence, comme le send-out : la cellule 64 au
-        // même zoom que le sprite 96 (BETA-BAT-024).
-        cellSize: spriteRect.height * (64 / 96),
+        // Toujours depuis le sprite du JOUEUR — recette du 2026-08-25 : « la
+        // pokéball que l'on lance pour attraper un pokémon sauvage est trop
+        // petite ». C'est la même Ball, lancée par la même main : elle n'a
+        // aucune raison de rétrécir parce que la cible est plus loin. Se
+        // baser sur le sprite VISÉ la faisait perdre 30 % côté ennemi.
+        cellSize: _ballCellSize,
         onCue: (cue) {
           switch (cue) {
             case BattleBallCaptureCue.absorb:
@@ -1167,12 +1170,7 @@ class BattleOverlayComponent extends PositionComponent {
           side: step.side,
           viewportWidth: size.x,
         ),
-        // Recette du 2026-08-24 : « la pokéball est minuscule ». La cellule
-        // 64×64 de la planche est très paddée — la Ball opaque n'y occupe que
-        // ~14 px. La référence dessine cette cellule au même zoom que le
-        // sprite 96×96 du Pokémon : la cellule vaut donc 2/3 de la boîte du
-        // sprite, et la Ball visible ~22 % — pas les ~7 % du 0.32 initial.
-        cellSize: spriteRect.height * (64 / 96),
+        cellSize: _ballCellSize,
         onOpen: () {
           playSfx?.call('ball_open', volume: 100, pitch: 100);
           _spawnBallFlash(step.side);
@@ -1180,6 +1178,23 @@ class BattleOverlayComponent extends PositionComponent {
       ),
     );
   }
+
+  /// La taille d'une cellule de Ball à l'écran.
+  ///
+  /// Recette du 2026-08-24 : « la pokéball est minuscule ». La cellule 64×64
+  /// de la planche est très paddée — la Ball opaque n'y occupe que ~14 px. La
+  /// référence dessine cette cellule au même zoom que le sprite 96×96 du
+  /// Pokémon : la cellule vaut donc 2/3 de la boîte du sprite.
+  ///
+  /// Recette du 2026-08-25 : elle se mesure sur le sprite du JOUEUR, jamais
+  /// sur la cible. C'est la même Ball lancée par la même main ; la faire
+  /// rétrécir de 30 % parce que le sauvage est plus loin la rendait à nouveau
+  /// minuscule à la capture.
+  double get _ballCellSize =>
+      currentSceneLayout.playerSpriteRect.height * (64 / 96);
+
+  @visibleForTesting
+  double get debugBallCellSize => _ballCellSize;
 
   /// Le flash d'ouverture d'une Ball — BETA-BAT-031.
   ///
@@ -3318,11 +3333,6 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _syncOutcomeBanner() {
-    if (!outcomeBannerEnabled) {
-      _outcomeBanner?.removeFromParent();
-      _outcomeBanner = null;
-      return;
-    }
     final outcome = _session.state.outcome;
     // BETA-BAT-012 : deux horloges. L'issue est décidée dès que le tour est
     // CALCULÉ, bien avant d'être JOUÉ, et ce bandeau ne regardait que la
@@ -3336,9 +3346,20 @@ class BattleOverlayComponent extends PositionComponent {
     final outcomePresented = _session.state.isFinished &&
         outcome != null &&
         !_presentationPendingOrRunning;
+    // Recette du 2026-08-25 : « la musique de fin de combat s'est fait la
+    // malle ». Cette notification vivait DERRIÈRE le garde
+    // `outcomeBannerEnabled`, et couper le bandeau doublon (BETA-BAT-030) l'a
+    // donc coupée avec — alors qu'elle ne pilote pas un affichage mais la
+    // musique de victoire de l'hôte. Elle passe désormais quel que soit le
+    // sort du bandeau : une issue PRÉSENTÉE est un fait, pas une décoration.
     if (outcomePresented && !_outcomePresentedNotified) {
       _outcomePresentedNotified = true;
       onOutcomePresented?.call(outcome);
+    }
+    if (!outcomeBannerEnabled) {
+      _outcomeBanner?.removeFromParent();
+      _outcomeBanner = null;
+      return;
     }
     if (!outcomePresented ||
         !battleOutcomeIsAnnounced(

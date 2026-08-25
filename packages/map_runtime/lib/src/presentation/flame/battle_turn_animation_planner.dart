@@ -836,6 +836,8 @@ String _messageForStatStageEvent(
     BattleStatId.specialAttack => 'L’Attaque Spéciale',
     BattleStatId.specialDefense => 'La Défense Spéciale',
     BattleStatId.speed => 'La Vitesse',
+    BattleStatId.accuracy => 'La Précision',
+    BattleStatId.evasion => 'L’Esquive',
   };
   if (event.amount == 0) {
     // Le sens du refus se lit sur l'étage atteint : au plafond on ne peut

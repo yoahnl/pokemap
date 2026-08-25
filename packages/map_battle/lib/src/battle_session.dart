@@ -1830,6 +1830,13 @@ class BattleSession {
       BattleStatId.specialAttack => snapshot.specialAttack,
       BattleStatId.specialDefense => snapshot.specialDefense,
       BattleStatId.speed => snapshot.speed,
+      // La précision et l'esquive ne sont PAS des stats de combat : ce sont
+      // des multiplicateurs de jet, et le modèle legacy ne les porte pas.
+      // Les demander ici serait un bug d'appel, pas un cas à traiter — d'où
+      // l'échec bruyant plutôt qu'une valeur inventée.
+      BattleStatId.accuracy || BattleStatId.evasion => throw StateError(
+          'La stat ${stat.name} n’a pas de valeur dans un snapshot de combat.',
+        ),
     };
   }
 

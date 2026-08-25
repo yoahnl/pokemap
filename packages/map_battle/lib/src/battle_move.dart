@@ -102,6 +102,14 @@ enum BattleStatId {
   specialAttack,
   specialDefense,
   speed,
+
+  /// Recette du 2026-08-25 : Jet de Sable ne montrait RIEN. Le moteur PSDK
+  /// connaît `accuracy` et `evasion` depuis toujours, mais cette énumération
+  /// de présentation s'arrêtait aux cinq stats de combat : l'adaptateur
+  /// n'avait donc rien vers quoi traduire, et jetait l'événement — pas
+  /// d'aura, pas de message.
+  accuracy,
+  evasion,
 }
 
 /// Changement d'étage de stat appliqué pendant le combat.

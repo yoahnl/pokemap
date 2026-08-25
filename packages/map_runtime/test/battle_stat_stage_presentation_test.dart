@@ -90,6 +90,52 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('le plan dit et montre les changements d’étage', () {
+    test(
+        'recette du 2026-08-25 : une baisse de PRÉCISION se voit et se dit',
+        () {
+      // « il manque toujours d'animation de perte de précision par exemple
+      // avec l'attaque Jet de Sable ». Le moteur PSDK appliquait bien la
+      // baisse — il connaît `accuracy` et `evasion` — mais BattleStatId
+      // s'arrêtait aux cinq stats de combat : l'adaptateur n'avait rien vers
+      // quoi traduire et JETAIT l'événement. Ni aura, ni message.
+      final plan = _planFor(<BattleTurnEvent>[
+        const BattleTurnStatStageEvent(
+          side: BattleSideId.enemy,
+          stat: BattleStatId.accuracy,
+          amount: -1,
+          currentStage: -1,
+        ),
+      ]);
+
+      final aura = plan.steps.whereType<StatStageAuraStep>().single;
+      expect(aura.side, BattleSideId.enemy);
+      expect(aura.isRise, isFalse);
+      expect(
+        _messagesOf(plan),
+        contains(contains('La Précision')),
+        reason: 'la stat doit être nommée, pas passée sous silence',
+      );
+    });
+
+    test('recette du 2026-08-25 : une hausse d’ESQUIVE se voit et se dit', () {
+      final plan = _planFor(<BattleTurnEvent>[
+        const BattleTurnStatStageEvent(
+          side: BattleSideId.player,
+          stat: BattleStatId.evasion,
+          amount: 2,
+          currentStage: 2,
+        ),
+      ]);
+
+      final aura = plan.steps.whereType<StatStageAuraStep>().single;
+      expect(aura.isRise, isTrue);
+      expect(aura.sheetName, 'stat_up');
+      expect(
+        _messagesOf(plan),
+        contains(contains('L’Esquive')),
+      );
+    });
+
     test('une baisse joue l’aura descendante AVANT son message', () {
       final plan = _planFor(<BattleTurnEvent>[
         const BattleTurnStatStageEvent(
