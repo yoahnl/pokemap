@@ -229,6 +229,50 @@ void main() {
       );
     });
 
+    test(
+        'recette du 2026-08-25 : la boucle repart à la fin de la RÉGION, pas '
+        'à la fin du fichier', () async {
+      // « la boucle fonctionne presque mais elle MORD au moment de la
+      // boucle ». Attendre `onComplete`, c'est attendre la fin du FICHIER —
+      // or la région s'arrête à LOOPSTART+LOOPLENGTH, avant. Mesuré sur le
+      // Train : 473 ms de queue jouée en trop sur la piste sauvage, 1,19 s
+      // sur celle de dresseur.
+      final driver = _FakeLoopDriver();
+      final service = RuntimeMusicService(
+        driver: driver,
+        mixer: RuntimeAudioMixer(),
+      );
+      final path = writeTrack(
+        name: 'wild.ogg',
+        loopStart: 630812,
+        loopLength: 1745886,
+      );
+
+      await service.update(route: RuntimeAudioRoute.battle, path: path);
+      expect(driver.seeks, isEmpty, reason: 'rien avant la fin de région');
+
+      // Le retour est programmé sur la fin de la RÉGION — 630812 + 1745886
+      // = 2376698 échantillons à 44,1 kHz, soit 53,894 s — et non sur la fin
+      // du FICHIER, qui dure 54,366 s. C'est cette différence, 473 ms de
+      // queue, que la recette entendait mordre.
+      expect(
+        service.debugLoopReturnDelay?.inMilliseconds,
+        closeTo(53894, 2),
+        reason: 'la première passe joue l’intro PUIS la région',
+      );
+
+      // Le filet `onComplete` reste branché : si la piste va au bout malgré
+      // tout, la boucle repart au lieu de mourir.
+      driver.completeTrack(driver.lastHandle);
+      await Future<void>.delayed(Duration.zero);
+      expect(driver.seeks.single.inMilliseconds, closeTo(14304, 2));
+      expect(
+        service.debugLoopReturnDelay?.inMilliseconds,
+        closeTo(39590, 2),
+        reason: 'les tours suivants ne durent que LOOPLENGTH, sans l’intro',
+      );
+    });
+
     test('une piste sans tags garde la boucle du fichier entier', () async {
       final driver = _FakeLoopDriver();
       final service = RuntimeMusicService(
