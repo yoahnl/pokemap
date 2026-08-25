@@ -178,6 +178,8 @@ final class RuntimePsdkBattleSessionAdapter {
     // move de statut comme Doux Baiser — doit être traduite elle-même, sinon
     // le joueur ne voit rien du tout.
     final coveredMoveUses = <String>{};
+    // L'espèce qui quitte le terrain, en attente de son `switch_in`.
+    final pendingSwitchOutSpecies = <BattleSideId, String?>{};
     for (final event in result.timeline.events) {
       if (event is BattleDamageTimelineEvent) {
         coveredMoveUses.add(_moveUseKey(event.user, event.moveId));
@@ -265,6 +267,41 @@ final class RuntimePsdkBattleSessionAdapter {
         );
         bagHpHealItemEvents.add(itemEvent);
         timeline.add(BattleTurnBagHpHealItemEvent(itemEvent));
+      } else if (event is BattleSwitchOutTimelineEvent) {
+        // BETA-BAT-036 : ce maillon n'existait PAS. Le moteur émettait bien
+        // ses `switch_out` / `switch_in` — remplacement volontaire du joueur
+        // comme remplacement automatique de l'adversaire — mais rien ne les
+        // traduisait, donc :
+        //   * le planner n'atteignait jamais sa séquence de Ball (BAT-022),
+        //     écrite et inatteignable ;
+        //   * et surtout le gel du sprite, calculé sur les étapes de swap du
+        //     plan, restait VIDE : le remplaçant apparaissait avant même que
+        //     le KO qui le provoque ait été joué.
+        //
+        // L'espèce sortante est retenue ici et consommée par le `switch_in`
+        // qui suit : les deux événements forment une paire, et c'est le
+        // second qui porte l'animation complète.
+        pendingSwitchOutSpecies[_legacySideForPosition(event.battler)] =
+            event.speciesId;
+      } else if (event is BattleSwitchInTimelineEvent) {
+        final side = _legacySideForPosition(event.battler);
+        final fromSpeciesId = pendingSwitchOutSpecies.remove(side);
+        final toSpeciesId = event.speciesId;
+        if (fromSpeciesId != null && toSpeciesId != null) {
+          timeline.add(
+            BattleTurnSwitchEvent(
+              BattleSwitchEvent.switched(
+                side: side,
+                fromSpeciesId: fromSpeciesId,
+                toSpeciesId: toSpeciesId,
+                // Un remplacement d'adversaire après K.O. est forcé ; un
+                // switch demandé par le joueur ne l'est pas.
+                wasForced: side == BattleSideId.enemy ||
+                    decision is! BattleSwitchDecision,
+              ),
+            ),
+          );
+        }
       } else if (event is BattleCaptureAttemptTimelineEvent) {
         final captureEvent = BattleCaptureAttemptEvent(
           attemptId: event.attemptId,

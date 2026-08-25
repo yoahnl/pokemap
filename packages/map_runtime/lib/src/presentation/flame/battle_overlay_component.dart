@@ -3441,7 +3441,12 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   Set<BattleSideId> _lockedCombatantSidesFor(BattleAnimationPlan plan) {
-    return plan.steps
+    // `flattenedSteps`, jamais `steps` : le contrat du plan prévient qu'un
+    // scan de surface « renverrait silencieusement rien » pour une étape
+    // imbriquée dans un groupe. Ici le prix d'un tel silence est un sprite
+    // qui bascule avant que le K.O. ait été joué — le défaut exact de la
+    // recette du 2026-08-25.
+    return plan.flattenedSteps
         .whereType<SwapCombatantVisualStep>()
         .map((step) => step.side)
         .toSet();

@@ -949,15 +949,25 @@ final class BattleSwitchOutTimelineEvent extends BattleTimelineEvent {
   const BattleSwitchOutTimelineEvent({
     int? turn,
     required this.battler,
+    this.speciesId,
   }) : super(kind: 'switch_out', turn: turn);
 
   final BattlePositionRef battler;
+
+  /// L'espèce qui QUITTE le terrain — BETA-BAT-036.
+  ///
+  /// L'événement ne portait que la position, ce qui suffit au moteur mais pas
+  /// à la présentation : sans espèce, l'adaptateur ne peut ni nommer le
+  /// Pokémon rappelé, ni décider quel sprite garder à l'écran le temps que
+  /// l'animation de rappel se joue.
+  final String? speciesId;
 
   @override
   Map<String, Object?> toJson() {
     return <String, Object?>{
       ...baseJson(),
       'battler': _slotJson(battler),
+      if (speciesId != null) 'speciesId': speciesId,
     };
   }
 
@@ -969,15 +979,24 @@ final class BattleSwitchInTimelineEvent extends BattleTimelineEvent {
   const BattleSwitchInTimelineEvent({
     int? turn,
     required this.battler,
+    this.speciesId,
   }) : super(kind: 'switch_in', turn: turn);
 
   final BattlePositionRef battler;
+
+  /// L'espèce qui ENTRE sur le terrain — BETA-BAT-036.
+  ///
+  /// Portée par l'événement plutôt que déduite de l'état final : un tour peut
+  /// enchaîner plusieurs remplacements, et l'état final ne dit alors que le
+  /// dernier.
+  final String? speciesId;
 
   @override
   Map<String, Object?> toJson() {
     return <String, Object?>{
       ...baseJson(),
       'battler': _slotJson(battler),
+      if (speciesId != null) 'speciesId': speciesId,
     };
   }
 

@@ -109,10 +109,15 @@ final class BattleTurnRunner {
           decision: decision,
         );
       }
+      // BETA-BAT-036 : les espèces se lisent DE PART ET D'AUTRE de
+      // `applyStateAndRng` — celle qui sort avant, celle qui entre après.
+      // Les déduire plus tard de l'état final serait faux dès qu'un tour
+      // enchaîne deux remplacements.
       timeline.add(
         BattleSwitchOutTimelineEvent(
           turn: _context.turnNumber,
           battler: _fromPsdkSlot(psdkPlayerSlot),
+          speciesId: _context.state.battlerAt(psdkPlayerSlot).speciesId,
         ),
       );
       _context.applyStateAndRng(
@@ -124,6 +129,7 @@ final class BattleTurnRunner {
           BattleSwitchInTimelineEvent(
             turn: _context.turnNumber,
             battler: _fromPsdkSlot(psdkPlayerSlot),
+            speciesId: _context.state.battlerAt(psdkPlayerSlot).speciesId,
           ),
         )
         ..addPsdkAll(switched.events);
@@ -841,6 +847,7 @@ final class BattleTurnRunner {
         BattleSwitchOutTimelineEvent(
           turn: _context.turnNumber,
           battler: _fromPsdkSlot(psdkOpponentSlot),
+          speciesId: _context.state.battlerAt(psdkOpponentSlot).speciesId,
         ),
       );
       _context.applyStateAndRng(
@@ -851,6 +858,7 @@ final class BattleTurnRunner {
         BattleSwitchInTimelineEvent(
           turn: _context.turnNumber,
           battler: _fromPsdkSlot(psdkOpponentSlot),
+          speciesId: _context.state.battlerAt(psdkOpponentSlot).speciesId,
         ),
       );
       timeline.addPsdkAll(switched.events);

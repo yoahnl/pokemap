@@ -27,6 +27,45 @@ void main() {
       );
     });
 
+    test(
+        'BETA-BAT-036 : un remplacement d’adversaire produit un événement de '
+        'changement pour la présentation', () {
+      // Le moteur émettait déjà `switch_out` / `switch_in`, mais RIEN ne les
+      // traduisait : le planner n'atteignait jamais sa séquence de Ball, et
+      // surtout le gel du sprite restait vide — le remplaçant apparaissait
+      // avant que le K.O. qui le provoque ait été joué.
+      final session =
+          RuntimePsdkBattleSessionAdapter.fromSetup(_setupWithOpponentReserve());
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      final display = session.createLegacyDisplaySession(
+        isTrainerBattle: true,
+      );
+      final turn = display.state.currentTurn;
+
+      final switches = turn!.timeline.whereType<BattleTurnSwitchEvent>().toList();
+      expect(
+        switches,
+        hasLength(1),
+        reason: 'le K.O. du premier adversaire déclenche son remplacement',
+      );
+      final event = switches.single.event;
+      expect(event.side, BattleSideId.enemy);
+      expect(event.kind, BattleSwitchEventKind.switched);
+      expect(
+        event.fromSpeciesId,
+        'lead_foe',
+        reason: 'l’espèce sortante est lue AVANT l’application de l’état',
+      );
+      expect(
+        event.toSpeciesId,
+        'reserve_foe',
+        reason: 'et l’entrante APRÈS — les déduire de l’état final serait '
+            'faux dès qu’un tour enchaîne deux remplacements',
+      );
+      expect(event.wasForced, isTrue);
+    });
+
     test('uses PSDK AI by default so opponents can choose a damaging move', () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(_setup());
 
@@ -664,6 +703,34 @@ GameState _applySinglePlayerOutcome({
       playerPartyIndex: 0,
     ),
     outcome: session.createLegacyOutcome(isTrainerBattle: false),
+  );
+}
+
+PsdkBattleSetup _setupWithOpponentReserve() {
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+    player: _combatant(
+      id: 'player',
+      hp: 200,
+      moves: <PsdkBattleMoveData>[_move(id: 'tackle', power: 250)],
+    ),
+    opponent: _combatant(
+      id: 'lead_foe',
+      hp: 1,
+      moves: <PsdkBattleMoveData>[_move(id: 'tackle', power: 1)],
+    ),
+    opponentReserves: <PsdkBattleCombatantSetup>[
+      _combatant(
+        id: 'reserve_foe',
+        hp: 120,
+        moves: <PsdkBattleMoveData>[_move(id: 'tackle', power: 1)],
+      ),
+    ],
+    rngSeeds: const PsdkBattleRngSeeds(
+      moveDamage: 1,
+      moveCritical: 99999,
+      moveAccuracy: 1,
+      generic: 1,
+    ),
   );
 }
 
