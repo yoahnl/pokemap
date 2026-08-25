@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
+import 'package:path/path.dart' as p;
 
 import '../../app/providers/core_providers.dart';
 import '../../application/services/narrative_activity_journal.dart';
@@ -2871,6 +2873,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   PresentationStudioDiagnostic? _presentationDiagnostic;
   VoidCallback? _presentationDiagnosticAction;
   PresentationStudioMediaSink? _presentationMediaSink;
+  String? _presentationMediaSinkFailure;
   int _presentationMediaSinkGeneration = 0;
   var _presentationJourneyPreviewOpen = false;
 
@@ -2950,7 +2953,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       ..removeListener(_onPresentationDocumentChanged)
       ..dispose();
     _presentationMediaSinkGeneration += 1;
-    _presentationMediaSink?.dispose();
+    _presentationMediaSink
+      ?..removeListener(_onPresentationMediaSinkChanged)
+      ..dispose();
     _presentationResponsiveCanvasController.dispose();
     super.dispose();
   }
@@ -3005,7 +3010,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     final generation = ++_presentationMediaSinkGeneration;
     final previous = _presentationMediaSink;
     _presentationMediaSink = null;
-    previous?.dispose();
+    _presentationMediaSinkFailure = null;
+    previous
+      ?..removeListener(_onPresentationMediaSinkChanged)
+      ..dispose();
     final projectRootPath = widget.projectRootPath?.trim();
     if (projectRootPath == null || projectRootPath.isEmpty) return;
     unawaited(
@@ -3021,16 +3029,65 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           catalog: media.catalog,
           mediaUris: media.mediaUris,
           targetPlatform: currentPresentationMediaTargetPlatform(),
+          aliases: PresentationMediaAliasStore(
+            root: Directory(
+              p.join(Directory.systemTemp.path, 'pokemap-presentation-media'),
+            ),
+          ),
         );
+        sink.addListener(_onPresentationMediaSinkChanged);
         setState(() {
+          _presentationMediaSinkFailure = null;
           _presentationMediaSink = sink;
           _presentationProjectContentController?.mediaSink = sink;
         });
-      }).onError((_, _) {
-        // A montage with unreadable media stays editable and silent; the
-        // timeline lanes already report the per-clip diagnostic.
+      }).onError((error, _) {
+        if (!mounted || generation != _presentationMediaSinkGeneration) return;
+        // Never silent. A montage whose media cannot be catalogued plays
+        // nothing at all, and "nothing plays" with no explanation is
+        // indistinguishable from "the media is fine and the studio is
+        // broken" — which is exactly how this went unnoticed.
+        setState(() => _presentationMediaSinkFailure = '$error');
       }),
     );
+  }
+
+  /// Why the montage plays nothing, when it plays nothing.
+  ///
+  /// Two distinct silences: the media catalog could not be read at all, so
+  /// there is no sink; or the sink has one and the device refused a source.
+  /// Both used to be invisible, which made a broken reference look exactly
+  /// like a working studio with nothing to play.
+  PresentationStudioDiagnostic? _presentationMediaDiagnostic() {
+    final failure = _presentationMediaSinkFailure;
+    if (failure != null) {
+      return PresentationStudioDiagnostic(
+        code: PresentationDiagnosticCodes.mediaMissing,
+        severity: PresentationDiagnosticSeverity.error,
+        title: 'Le montage ne peut rien jouer',
+        cause: failure,
+        impact:
+            'Aucun son ni aucune vidéo ne sortira du montage tant que le '
+            'catalogue média du projet reste illisible.',
+        actionLabel: 'Réessayer',
+      );
+    }
+    final sinkDiagnostic = _presentationMediaSink?.diagnostic;
+    if (sinkDiagnostic == null) return null;
+    return PresentationStudioDiagnostic(
+      code: PresentationDiagnosticCodes.playbackFailed,
+      severity: PresentationDiagnosticSeverity.error,
+      title: 'Une source du montage n’a pas pu être ouverte',
+      cause: sinkDiagnostic,
+      impact:
+          'Le reste de la frame continue de jouer ; cette source-là reste '
+          'muette jusqu’à la prochaine ouverture.',
+      actionLabel: 'Réessayer',
+    );
+  }
+
+  void _onPresentationMediaSinkChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onPresentationDocumentChanged() {
@@ -3192,13 +3249,17 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         widget.editorNotifier,
         narrativeStatus,
       );
-      final activeDiagnostic = _presentationDiagnostic ?? documentDiagnostic;
+      final mediaDiagnostic = _presentationMediaDiagnostic();
+      final activeDiagnostic =
+          _presentationDiagnostic ?? mediaDiagnostic ?? documentDiagnostic;
       final activeDiagnosticAction =
           _presentationDiagnosticAction ??
-          _presentationDocumentDiagnosticAction(
-            widget.editorNotifier,
-            narrativeStatus,
-          );
+          (mediaDiagnostic != null
+              ? _syncPresentationMediaSink
+              : _presentationDocumentDiagnosticAction(
+                  widget.editorNotifier,
+                  narrativeStatus,
+                ));
       final draftStatus = _presentationDocumentController.status;
       final documentState = switch (draftStatus) {
         PresentationStudioDocumentStatus.opening =>

@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   group('presentation studio media sink', () {
@@ -325,6 +328,55 @@ void main() {
       expect(sink.unplayableResourceIds, contains('opening-music'));
     });
 
+    test('plays from a path the platform can open, not from the raw blob',
+        () async {
+      final store = Directory.systemTemp.createTempSync('pokemap-sink-store');
+      addTearDown(() => store.deleteSync(recursive: true));
+      final aliasRoot = Directory.systemTemp.createTempSync('pokemap-sink-alias');
+      addTearDown(() => aliasRoot.deleteSync(recursive: true));
+      final blob = File(p.join(store.path, '${'a' * 64}.blob'))
+        ..writeAsBytesSync(<int>[1, 2, 3]);
+
+      final driver = _RecordingAudioDriver();
+      final sink = PresentationStudioMediaSink(
+        catalog: ProjectMediaCatalog(
+          entries: <ProjectMediaAsset>[
+            ProjectMediaAsset(
+              id: 'opening-music',
+              label: 'Musique',
+              kind: ProjectMediaKind.audio,
+              sourceAssetId: 'asset-opening-music',
+              technicalMetadata: ProjectMediaTechnicalMetadata(
+                mediaType: 'audio/mpeg',
+                container: 'mp3',
+                codec: 'mp3',
+                sizeBytes: 3,
+              ),
+            ),
+          ],
+        ),
+        mediaUris: <String, Uri>{'opening-music': blob.uri},
+        targetPlatform: PresentationMediaTargetPlatform.macos,
+        audioDriver: driver,
+        aliases: PresentationMediaAliasStore(root: aliasRoot),
+      );
+      addTearDown(sink.dispose);
+
+      sink.synchronize(
+        asset: _asset(),
+        frame: _frameAt(0),
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+
+      // The store is content-addressed, so the file on disk has no extension.
+      // AVFoundation reads the container off the path, so what reaches the
+      // device must be the alias.
+      expect(driver.sources, hasLength(1));
+      expect(p.extension(driver.sources.single.toFilePath()), '.mp3');
+    });
+
     test('a media missing from the catalog reports instead of throwing',
         () async {
       final driver = _RecordingAudioDriver();
@@ -490,6 +542,7 @@ PresentationFrame _frameAt(int timeUs) =>
 
 final class _RecordingAudioDriver implements RuntimePresentationAudioDriver {
   final List<String> log = <String>[];
+  final List<Uri> sources = <Uri>[];
   Object? failWith;
   var _handles = 0;
 
@@ -502,6 +555,7 @@ final class _RecordingAudioDriver implements RuntimePresentationAudioDriver {
     String? mimeType,
   }) async {
     if (failWith != null) throw failWith!;
+    sources.add(source);
     log.add(
       'play:${source.pathSegments.last.split('.').first}'
       '@${position.inMicroseconds}:loop=$loop'

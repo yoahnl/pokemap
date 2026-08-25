@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'presentation_frame_renderer.dart';
+import 'presentation_media_alias_store.dart';
 import 'presentation_video_playback_driver.dart';
 
 /// Plays the media of an evaluated Presentation frame under a montage clock.
@@ -31,8 +32,10 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     RuntimePresentationAudioDriver? audioDriver,
     RuntimeAudioMixer? audioMixer,
     PresentationStudioVideoPlayback? videoPlayback,
+    PresentationMediaAliasStore? aliases,
     this.continuityToleranceUs = 400000,
   })  : mediaUris = Map<String, Uri>.unmodifiable(mediaUris),
+        _aliases = aliases,
         _mixer = audioMixer ?? RuntimeAudioMixer(),
         _video = videoPlayback ?? VideoPlayerPresentationPlaybackDriver() {
     _audio = RuntimePresentationAudioController(
@@ -58,6 +61,13 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
 
   final RuntimeAudioMixer _mixer;
   final PresentationStudioVideoPlayback _video;
+
+  /// Renames content-addressed blobs so a media framework can open them.
+  ///
+  /// Optional: without it the players receive the raw `<digest>.blob` path and
+  /// have to sniff the container, which AVFoundation refuses to do.
+  final PresentationMediaAliasStore? _aliases;
+  final Map<String, Uri> _playablePaths = <String, Uri>{};
   late final RuntimePresentationAudioController _audio;
   _StudioActiveVideo? _activeVideo;
 
@@ -170,6 +180,7 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   }
 
   Future<void> _apply(_StudioMediaRequest request) async {
+    await _prepareAliases(request.frame);
     final timeUs = request.frame?.timeUs;
     final scrubbed = _scrubbed(timeUs);
     _lastFrameTimeUs = timeUs;
@@ -360,8 +371,27 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     return result;
   }
 
+  /// Makes every media the frame needs openable before anything plays.
+  ///
+  /// Resolved once per media: an alias is a link into a content-addressed
+  /// store, so it can never go stale.
+  Future<void> _prepareAliases(PresentationFrame? frame) async {
+    final store = _aliases;
+    if (store == null || frame == null) return;
+    for (final mediaId in <String>{
+      ..._audioResourcesOf(frame),
+      for (final clip in frame.visuals) clip.resourceId,
+    }) {
+      if (_playablePaths.containsKey(mediaId)) continue;
+      final media = catalog.find(mediaId);
+      final blob = mediaUris[mediaId];
+      if (media == null || blob == null) continue;
+      _playablePaths[mediaId] = await store.resolve(media, blob);
+    }
+  }
+
   Uri _resolveMediaUri(ProjectMediaAsset media) {
-    final uri = mediaUris[media.id];
+    final uri = _playablePaths[media.id] ?? mediaUris[media.id];
     if (uri == null || uri.scheme != 'file') {
       throw StateError('Presentation media ${media.id} is missing.');
     }
