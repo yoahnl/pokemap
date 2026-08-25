@@ -11,6 +11,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/misc.dart' show Override;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/main.dart' show MapEditorApp;
+import 'package:map_player_ui/presentation_renderer.dart';
+import 'package:path/path.dart' as p;
 import 'package:map_editor/src/debug/marionette_project_bootstrap.dart';
 import 'package:map_editor/src/debug/marionette_personalization_qa_seed.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_feature_authoring_controller.dart';
@@ -196,6 +198,83 @@ Future<void> main() async {
       return MarionetteExtensionResult.success(
         openCharacterStudioForMarionette(container: container),
       );
+    },
+  );
+  registerMarionetteExtension(
+    name: 'pokemap.probePresentationMedia',
+    description:
+        'Plays one instant of a Presentation cinematic through the montage '
+        'media sink and reports what the device did with it.',
+    callback: (parameters) async {
+      final timeUs = int.tryParse(parameters['timeUs']?.toString() ?? '') ?? 0;
+      final holdMilliseconds =
+          int.tryParse(parameters['holdMilliseconds']?.toString() ?? '') ??
+              2000;
+      final editor = container.read(editorNotifierProvider);
+      final asset = editor.project?.presentationCinematics.firstOrNull;
+      final projectRootPath = editor.projectRootPath;
+      if (asset == null || projectRootPath == null) {
+        return MarionetteExtensionResult.success(<String, Object?>{
+          'played': false,
+          'reason': 'The project holds no Presentation cinematic.',
+        });
+      }
+      final ProjectDirectoryPresentationMedia? media;
+      try {
+        media = await loadProjectDirectoryPresentationMedia(
+          projectRootDirectory: projectRootPath,
+        );
+      } on Object catch (error) {
+        return MarionetteExtensionResult.success(<String, Object?>{
+          'played': false,
+          'reason': 'The media catalog could not be read: $error',
+        });
+      }
+      if (media == null) {
+        return MarionetteExtensionResult.success(<String, Object?>{
+          'played': false,
+          'reason': 'The project declares no media catalog.',
+        });
+      }
+      final sink = PresentationStudioMediaSink(
+        catalog: media.catalog,
+        mediaUris: media.mediaUris,
+        targetPlatform: currentPresentationMediaTargetPlatform(),
+        aliases: PresentationMediaAliasStore(
+          root: Directory(
+            p.join(Directory.systemTemp.path, 'pokemap-presentation-media'),
+          ),
+        ),
+      );
+      final frame = const PresentationCinematicEvaluator()
+          .evaluate(asset, timeUs: timeUs);
+      sink.synchronize(
+        asset: asset,
+        frame: frame,
+        orientation: PresentationFrameOrientation.landscape,
+        running: true,
+      );
+      await sink.settled;
+      await Future<void>.delayed(Duration(milliseconds: holdMilliseconds));
+      final diagnostic = sink.diagnostic;
+      final unplayable = sink.unplayableResourceIds.toList()..sort();
+      final picture = sink.videoFor(
+        frame.visuals.isEmpty ? '' : frame.visuals.last.resourceId,
+      );
+      await sink.release();
+      sink.dispose();
+      return MarionetteExtensionResult.success(<String, Object?>{
+        'played': diagnostic == null,
+        'diagnostic': diagnostic,
+        'unplayableResourceIds': unplayable,
+        'audioResourceIds': <String>[
+          for (final clip in frame.audio) clip.resourceId,
+        ],
+        'visualResourceIds': <String>[
+          for (final clip in frame.visuals) clip.resourceId,
+        ],
+        'hasLiveVideoSurface': picture != null,
+      });
     },
   );
   registerMarionetteExtension(
