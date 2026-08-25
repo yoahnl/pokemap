@@ -9,11 +9,13 @@ final class SmartTileEncounterBehaviorConfiguration {
   const SmartTileEncounterBehaviorConfiguration.set({
     required this.encounterTableId,
     this.battleTransitionIds = const <String>[],
+    this.priority = 0,
   }) : isClear = false;
 
   const SmartTileEncounterBehaviorConfiguration.clear()
     : encounterTableId = '',
       battleTransitionIds = const <String>[],
+      priority = 0,
       isClear = true;
 
   final String encounterTableId;
@@ -23,6 +25,12 @@ final class SmartTileEncounterBehaviorConfiguration {
   /// Plusieurs sélections = le runtime en tire une par rencontre, de façon
   /// déterministe ; aucune = le défaut du projet, puis le défaut moteur.
   final List<String> battleTransitionIds;
+
+  /// Qui gagne quand deux calques se recouvrent — BETA-ENC-008.
+  ///
+  /// À priorité égale sur des cases communes, l'export refuse le projet : le
+  /// moteur ne saurait pas quelle table de rencontres appliquer.
+  final int priority;
 
   final bool isClear;
 }
@@ -58,6 +66,7 @@ class _SmartTileEncounterBehaviorDialogState
     extends State<SmartTileEncounterBehaviorDialog> {
   String? _encounterTableId;
   late List<String> _battleTransitionIds;
+  late int _priority;
 
   @override
   void initState() {
@@ -71,6 +80,7 @@ class _SmartTileEncounterBehaviorDialogState
     _battleTransitionIds = List<String>.of(
       behavior?.encounter.battleTransitionIds ?? const <String>[],
     );
+    _priority = behavior?.priority ?? 0;
   }
 
   @override
@@ -118,6 +128,7 @@ class _SmartTileEncounterBehaviorDialogState
                       battleTransitionIds: List<String>.unmodifiable(
                         _battleTransitionIds,
                       ),
+                      priority: _priority,
                     ),
                   )
                 : null,
@@ -174,6 +185,8 @@ class _SmartTileEncounterBehaviorDialogState
                 ),
               if (walkTables.isNotEmpty) ...[
                 const SizedBox(height: 16),
+                _buildPriorityPicker(context),
+                const SizedBox(height: 16),
                 _buildBattleTransitionsPicker(context),
               ],
               if (sourceCellCount == 0) ...[
@@ -198,6 +211,52 @@ class _SmartTileEncounterBehaviorDialogState
           ),
         ),
       ),
+    );
+  }
+
+  /// BETA-ENC-008 : qui gagne quand deux calques se recouvrent.
+  ///
+  /// À priorité égale sur des cases communes, l'export REFUSE le projet — le
+  /// moteur ne saurait pas quelle table appliquer. Avant ce réglage, la
+  /// priorité arrivait toujours à zéro depuis l'éditeur et la seule issue
+  /// était la gomme : un recouvrement délibéré, un sous-bois dans une
+  /// clairière, était impossible à authorer.
+  Widget _buildPriorityPicker(BuildContext context) {
+    // Une valeur posée hors de cette échelle — par le MCP, par exemple —
+    // reste sélectionnable : le menu ne doit pas la faire disparaître.
+    final levels = <int>{0, 1, 2, 3, _priority}.toList()..sort();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PokeMapDropdownField<int>(
+          key: const Key('smart-tile-encounter-priority'),
+          label: 'Priorité de la rencontre',
+          value: _priority,
+          items: [
+            for (final level in levels)
+              PokeMapDropdownItem(
+                value: level,
+                label: switch (level) {
+                  0 => 'Normale (0)',
+                  1 => 'Au-dessus (1)',
+                  2 => 'Prioritaire (2)',
+                  3 => 'Maximale (3)',
+                  _ => 'Niveau $level',
+                },
+              ),
+          ],
+          onChanged: (value) => setState(() => _priority = value),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Deux calques qui se recouvrent doivent avoir des priorités '
+          'différentes, sinon l’export est refusé.',
+          style: TextStyle(
+            fontSize: 11,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
+        ),
+      ],
     );
   }
 

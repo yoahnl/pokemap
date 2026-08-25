@@ -540,13 +540,20 @@ void main() {
         reason: 'sans sélection, l’auteur doit savoir ce qui se passe',
       );
 
-      await tester.tap(
-        find.byKey(Key('smart-tile-battle-transition-$secondTransition')),
-      );
+      // Le contenu du dialogue défile (BETA-BAT-034), et le réglage de
+      // priorité de BETA-ENC-008 pousse les pastilles plus bas : il faut les
+      // amener à l'écran, exactement comme l'auteur le ferait.
+      final secondChip =
+          find.byKey(Key('smart-tile-battle-transition-$secondTransition'));
+      final firstChip =
+          find.byKey(Key('smart-tile-battle-transition-$firstTransition'));
+      await tester.ensureVisible(secondChip);
       await tester.pump();
-      await tester.tap(
-        find.byKey(Key('smart-tile-battle-transition-$firstTransition')),
-      );
+      await tester.tap(secondChip);
+      await tester.pump();
+      await tester.ensureVisible(firstChip);
+      await tester.pump();
+      await tester.tap(firstChip);
       await tester.pump();
       await tester.tap(
         find.byKey(const Key('smart-tile-encounter-behavior-confirm')),
@@ -560,6 +567,69 @@ void main() {
             'valide et la remet dans l’ordre du contrat',
       );
       expect(configuration?.encounterTableId, 'route_1_grass');
+    });
+
+    testWidgets(
+        'BETA-ENC-008 : la priorité se règle et se recharge depuis le calque',
+        (tester) async {
+      // À priorité égale sur des cases communes, l'export REFUSE le projet.
+      // La priorité arrivait toujours à 0 depuis l'éditeur (dialogue muet,
+      // menu muet, notifier à 0 en dur) : la seule issue était la gomme.
+      SmartTileEncounterBehaviorConfiguration? configuration;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: Scaffold(
+            body: SmartTileEncounterBehaviorDialog(
+              map: _mapWithTallGrassSmartTile(),
+              smartTileLayer: _tallGrassLayer().copyWith(
+                encounterBehavior: const SmartTileEncounterBehavior(
+                  materialId: 'tall_grass-material',
+                  priority: 2,
+                  encounter: EncounterZonePayload(
+                    encounterTableId: 'route_1_grass',
+                  ),
+                ),
+              ),
+              smartTilePresetId: 'tall_grass',
+              materialId: 'tall_grass-material',
+              catalog: _smartTileCatalog(
+                presets: [
+                  _smartTilePreset(id: 'tall_grass', name: 'Tall Grass'),
+                ],
+              ),
+              encounterTables: const [
+                ProjectEncounterTable(
+                  id: 'route_1_grass',
+                  name: 'Route 1 Grass',
+                  encounterKind: EncounterKind.walk,
+                ),
+              ],
+              onConfirm: (value) => configuration = value,
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('smart-tile-encounter-priority')),
+        findsOneWidget,
+        reason: 'le réglage doit exister là où l’auteur configure la '
+            'rencontre',
+      );
+
+      await tester.tap(
+        find.byKey(const Key('smart-tile-encounter-behavior-confirm')),
+      );
+      await tester.pump();
+
+      expect(
+        configuration?.priority,
+        2,
+        reason: 'rouvrir puis valider ne doit pas remettre la priorité à '
+            'zéro — c’est ce qui recréait le chevauchement bloquant',
+      );
     });
 
     testWidgets(

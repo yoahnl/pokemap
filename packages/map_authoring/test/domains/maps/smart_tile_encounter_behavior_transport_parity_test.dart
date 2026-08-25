@@ -106,6 +106,32 @@ void main() {
       );
     });
 
+    test(
+        'BETA-ENC-008 : la priorité survit à une mise à jour qui n’en parle '
+        'pas', () async {
+      // Le payload est reconstruit de zéro à chaque mutation, et la priorité
+      // retombait sur `?? 0`. Rouvrir le dialogue des hautes herbes et
+      // valider remettait donc la priorité à zéro EN SILENCE — ce qui
+      // recréait exactement le chevauchement à priorité égale qui bloque
+      // l'export (recette du 2026-08-25).
+      final harness = await _EncounterBehaviorHarness.create('priority');
+      addTearDown(harness.dispose);
+
+      await harness.executeDirect(suffix: 'priority-set', priority: 5);
+      await harness.executeDirect(
+        suffix: 'priority-untouched',
+        priority: null,
+        battleTransitionIds: <String>[battleWildTransitionIds.first],
+      );
+
+      expect(
+        (await harness.behavior())?.priority,
+        5,
+        reason: 'un appelant qui ignore la priorité ne doit pas la remettre '
+            'à zéro',
+      );
+    });
+
     test('partent vides quand personne n’en a jamais choisi', () async {
       final harness = await _EncounterBehaviorHarness.create('empty');
       addTearDown(harness.dispose);
@@ -177,7 +203,7 @@ final class _EncounterBehaviorHarness {
   Future<Map<String, Object?>> executeDirect({
     List<String>? battleTransitionIds,
     String suffix = 'direct',
-    int priority = 3,
+    int? priority = 3,
   }) async {
     final opened = await readApi.openProject(root.path);
     await mutations.attachProject(
@@ -279,7 +305,7 @@ final class _EncounterBehaviorHarness {
     required String revision,
     required String suffix,
     List<String>? battleTransitionIds,
-    int priority = 3,
+    int? priority = 3,
   }) {
     return AuthoringRequest(
       requestId: 'smart-tile-encounter-$suffix',
@@ -290,7 +316,7 @@ final class _EncounterBehaviorHarness {
         'mapId': 'route',
         'layerId': 'grass',
         'materialId': 'tall_grass',
-        'priority': priority,
+        if (priority != null) 'priority': priority,
         'encounterTableId': 'route_grass',
         'encounterKind': 'walk',
         if (battleTransitionIds != null)

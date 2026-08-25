@@ -660,7 +660,14 @@ final class SmartTileLayerActions {
     }
     final behavior = SmartTileEncounterBehavior(
       materialId: materialId,
-      priority: context.parameters.optionalInteger('priority') ?? 0,
+      // BETA-ENC-008 : même piège que les transitions ci-dessous — le payload
+      // est reconstruit de zéro, et ce `?? 0` remettait la priorité à zéro
+      // dès qu'un appelant n'en parlait pas. Rouvrir le dialogue des hautes
+      // herbes et valider suffisait donc à recréer le chevauchement à
+      // priorité égale qui bloque l'export.
+      priority: context.parameters.optionalInteger('priority') ??
+          layer.encounterBehavior?.priority ??
+          0,
       encounter: EncounterZonePayload(
         encounterTableId: context.parameters.string('encounterTableId'),
         encounterKind: encounterKinds.first,

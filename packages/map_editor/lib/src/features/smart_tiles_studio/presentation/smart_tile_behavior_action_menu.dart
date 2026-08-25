@@ -120,6 +120,7 @@ class SmartTileBehaviorActionMenu extends StatelessWidget {
       encounterTableId: configuration.encounterTableId,
       encounterKind: EncounterKind.walk,
       battleTransitionIds: configuration.battleTransitionIds,
+      priority: configuration.priority,
     );
   }
 

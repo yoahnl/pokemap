@@ -1250,7 +1250,10 @@ class EditorNotifier extends _$EditorNotifier
     required String materialId,
     required String encounterTableId,
     EncounterKind encounterKind = EncounterKind.walk,
-    int priority = 0,
+    // BETA-ENC-008 : null veut dire « ne touche pas à la priorité en place ».
+    // Cette valeur était `0` en dur, donc toute mise à jour du comportement
+    // remettait la priorité à zéro sans le dire.
+    int? priority,
     List<String>? battleTransitionIds,
   }) async {
     final projectRootPath = state.projectRootPath;
@@ -1267,13 +1270,15 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final currentBehavior = currentLayer.encounterBehavior;
+    final priorityUnchanged =
+        priority == null || currentBehavior?.priority == priority;
     final transitionsUnchanged = battleTransitionIds == null ||
         _sameTransitionIds(
           currentBehavior?.encounter.battleTransitionIds ?? const <String>[],
           battleTransitionIds,
         );
     if (currentBehavior?.materialId == materialId &&
-        currentBehavior?.priority == priority &&
+        priorityUnchanged &&
         currentBehavior?.encounter.encounterTableId == normalizedTableId &&
         currentBehavior?.encounter.encounterKind == encounterKind &&
         transitionsUnchanged) {
@@ -1287,7 +1292,7 @@ class EditorNotifier extends _$EditorNotifier
       'mapId': mapId,
       'layerId': layerId,
       'materialId': materialId,
-      'priority': priority,
+      'priority': ?priority,
       'encounterTableId': normalizedTableId,
       'encounterKind': encounterKind.name,
       // BETA-BAT-034 : absent, le champ n'est pas touché côté authoring.
