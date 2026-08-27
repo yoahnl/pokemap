@@ -159,7 +159,9 @@ PlayerPokemon? _resolveStarter(
 ) {
   final normalizedStarterOptionId = starterOptionId?.trim();
   if (normalizedStarterOptionId == null || normalizedStarterOptionId.isEmpty) {
-    if (config.starterOptions.isNotEmpty) {
+    final preSessionSceneId = config.preSessionSceneId?.trim();
+    if (config.starterOptions.isNotEmpty &&
+        (preSessionSceneId == null || preSessionSceneId.isEmpty)) {
       throw NewGameSeedProjectionException(
         code: NewGameSeedProjectionIssueCode.starterRequired,
         field: 'starterOptionId',

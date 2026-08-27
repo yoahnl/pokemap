@@ -366,7 +366,7 @@ void main() {
     expect(harness.adapters, hasLength(1));
   });
 
-  test('clears a resolved preSession request while its runner continues',
+  test('keeps a resolved preSession request visible while its runner continues',
       () async {
     final release = Completer<void>();
     final harness = RuntimePlayerTestHarness(
@@ -402,7 +402,12 @@ void main() {
 
     expect(resolution.status, RuntimePlayerCommandStatus.accepted);
     expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.preSession);
-    expect(harness.coordinator.snapshot.preSessionRequest, isNull);
+    expect(harness.coordinator.snapshot.preSessionRequest, same(request));
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.resolvePreSessionInteraction),
+      isFalse,
+    );
 
     release.complete();
     expect((await launch).status, RuntimePlayerCommandStatus.accepted);

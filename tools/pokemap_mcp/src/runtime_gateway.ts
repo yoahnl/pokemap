@@ -1,12 +1,16 @@
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
+  mkdtemp,
   readFile,
   readdir,
   realpath,
+  rm,
   stat,
+  writeFile,
 } from "node:fs/promises";
-import { dirname, extname, relative, resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { dirname, extname, join, relative, resolve } from "node:path";
 
 import type { JsonRecord, ProjectRootResolver } from "./authoring_client.js";
 import type { MemoryArtifactReader } from "./artifacts.js";
@@ -74,6 +78,7 @@ export interface LocalRuntimeGatewayOptions {
   runtimeHostRoot: string;
   repositoryRoot: string;
   dartExecutable?: string;
+  flutterExecutable?: string;
   renderExecutor?: RenderExecutor;
   playtestExecutor?: PlaytestExecutor;
   playtestProjectionFactory?: PlaytestProjectionFactory;
@@ -127,7 +132,7 @@ export class LocalRuntimeGateway implements RuntimeGateway {
       options.renderExecutor ??
       createLocalRenderExecutor({
         artifacts: options.artifacts,
-        dartExecutable: options.dartExecutable ?? "dart",
+        flutterExecutable: options.flutterExecutable ?? "flutter",
         runtimePackageRoot: options.runtimePackageRoot,
       });
     this.#playtestExecutor =
@@ -394,7 +399,7 @@ export class LocalRuntimeGateway implements RuntimeGateway {
 
 interface RenderExecutorOptions {
   artifacts: MemoryArtifactReader;
-  dartExecutable: string;
+  flutterExecutable: string;
   runtimePackageRoot: string;
 }
 
@@ -402,21 +407,53 @@ function createLocalRenderExecutor(
   options: RenderExecutorOptions,
 ): RenderExecutor {
   return async (projectRoot, request) => {
-    const result = await runProcess(
-      options.dartExecutable,
-      ["run", "bin/pokemap_render.dart", "--root", projectRoot],
-      options.runtimePackageRoot,
-      JSON.stringify({
-        mapId: request.mapId,
-        ...(request.region ? { region: request.region } : {}),
-        layerIds: request.layerIds,
-        overlays: request.overlays,
-        cellPixelSize: request.cellPixelSize,
-      }),
-      undefined,
-      30_000,
-    );
-    const decoded = decodeRecord(result.stdout, "render.response_invalid");
+    const temporaryRoot = await mkdtemp(join(tmpdir(), "pokemap-render-"));
+    const requestPath = join(temporaryRoot, "request.json");
+    const responsePath = join(temporaryRoot, "response.json");
+    let decoded: JsonRecord;
+    try {
+      await writeFile(
+        requestPath,
+        JSON.stringify({
+          projectRoot,
+          request: {
+            mapId: request.mapId,
+            ...(request.region ? { region: request.region } : {}),
+            layerIds: request.layerIds,
+            overlays: request.overlays,
+            cellPixelSize: request.cellPixelSize,
+          },
+        }),
+        "utf8",
+      );
+      const execution = await runProcess(
+        options.flutterExecutable,
+        [
+          "test",
+          "tool/pokemap_render_worker_test.dart",
+          "--reporter=compact",
+          `--dart-define=POKEMAP_RENDER_REQUEST_PATH=${requestPath}`,
+          `--dart-define=POKEMAP_RENDER_RESPONSE_PATH=${responsePath}`,
+        ],
+        options.runtimePackageRoot,
+        undefined,
+        undefined,
+        120_000,
+      );
+      if (execution.exitCode !== 0) {
+        throw new PokeMapToolError(
+          "render.worker_failed",
+          "The Flutter map render worker did not complete successfully.",
+          true,
+        );
+      }
+      decoded = decodeRecord(
+        await readFile(responsePath, "utf8"),
+        "render.response_invalid",
+      );
+    } finally {
+      await rm(temporaryRoot, { recursive: true, force: true });
+    }
     if (decoded.status !== "success") {
       const error = isRecord(decoded.error) ? decoded.error : {};
       throw new PokeMapToolError(

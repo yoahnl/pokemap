@@ -470,7 +470,8 @@ void main() {
       final catalog = AuthoringFullParityCatalog.canonical();
       final repositoryRoot = Directory.current.parent.parent;
       final renderWorker = File(
-        '${repositoryRoot.path}/packages/map_runtime/bin/pokemap_render.dart',
+        '${repositoryRoot.path}/packages/map_runtime/lib/src/application/'
+        'authoring_preview/runtime_authoring_asset_render_worker.dart',
       ).readAsStringSync();
       final playtestWorker = File(
         '${repositoryRoot.path}/examples/playable_runtime_host/lib/src/'

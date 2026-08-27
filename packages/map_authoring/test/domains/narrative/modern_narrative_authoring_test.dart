@@ -124,6 +124,83 @@ void main() {
       expect(projected.eventRegistry?.legacyClaims, isEmpty);
     });
 
+    test('an incomplete v2Only migration can recover dualRead', () {
+      final project = _manifest(
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            NarrativeEventRecord.draft(
+              NarrativeEventDraft(
+                id: 'evt_018f0f8c-7b8a-7def-8000-000000000003',
+                name: 'Owned event',
+                conditions: const [],
+                priority: 0,
+                order: 0,
+              ),
+            ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+
+      final projected = const EventV2Actions().setRegistryMode(
+        project,
+        maps: const [],
+        mode: EventSystemMode.dualRead,
+      );
+
+      expect(projected.eventRegistry?.mode, EventSystemMode.dualRead);
+      expect(projected.eventRegistry?.records, hasLength(1));
+    });
+
+    test('v2Only recovery refuses legacy-owned migration state', () {
+      final source = NarrativeEventSourceRef.mapEnter('map_legacy');
+      final provenance = LegacySourceRef.mapEvent('map_legacy', 'legacy_event');
+      final member = LegacySourceClaimMember(
+        provenance: provenance,
+        sourceFingerprint:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      );
+      final project = _manifest(
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: const [],
+          legacyClaims: [
+            LegacySourceClaim(
+              cohortId: computeLegacySourceCohortId(source, [provenance]),
+              source: source,
+              members: [member],
+              cohortFingerprint: computeLegacySourceCohortFingerprint(
+                computeLegacySourceCohortId(source, [provenance]),
+                [member],
+              ),
+              targetEventIds: const [
+                'evt_018f0000-0000-7000-8000-000000000002',
+              ],
+              migrationReceiptId: 'evmr_018f0000-0000-7000-8000-000000000001',
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        () => const EventV2Actions().setRegistryMode(
+          project,
+          maps: const [],
+          mode: EventSystemMode.dualRead,
+        ),
+        throwsA(
+          isA<NarrativeAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'event_v2.registry_mode_unsafe',
+          ),
+        ),
+      );
+    });
+
     test('Event V2 only mode refuses owned migration state', () {
       final project = _manifest(
         eventRegistry: NarrativeEventRegistry(

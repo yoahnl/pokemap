@@ -224,6 +224,31 @@ void main() {
       expect(completed.validate(), isEmpty);
     });
 
+    test('allows a configured pre-session to defer starter selection', () {
+      final draft = NewGameDraft.start(
+        draftId: 'draft-deferred-starter',
+        projectRevision: 'project-r1',
+        slotId: 'slot-1',
+        config: ProjectNewGameConfig(
+          preSessionSceneId: 'scene-pre-session',
+          starterOptions: <ProjectStarterOption>[
+            ProjectStarterOption(
+              id: 'starter-leaf',
+              label: 'Leaf',
+              pokemon: _pokemon('leafmon'),
+            ),
+            ProjectStarterOption(
+              id: 'starter-fire',
+              label: 'Fire',
+              pokemon: _pokemon('firemon'),
+            ),
+          ],
+        ),
+      );
+
+      expect(draft.validate(), isEmpty);
+    });
+
     test('cancel and retry never mutate project configuration', () {
       final config = ProjectNewGameConfig(
         playerName: 'Ari',

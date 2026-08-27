@@ -13,6 +13,8 @@ final class RuntimePlayerTestHarness {
     GameSessionSavePolicy savePolicy = const GameSessionSavePolicy(),
     RuntimePlayerLoadSlot? defaultSaveSlot,
     Set<ProjectPauseActionId>? defaultVisiblePauseActions,
+    ProjectNewGameConfig? newGameConfig,
+    List<SceneAsset> scenes = const <SceneAsset>[],
   })  : source = MemoryRuntimeGameSource(
           descriptorGate: descriptorGate,
           descriptorError: descriptorError,
@@ -23,6 +25,8 @@ final class RuntimePlayerTestHarness {
     newGameFlow = MemoryRuntimeNewGameFlowPort(
       preparationGate: newGamePreparationGate,
       preSessionRunner: preSessionRunner,
+      newGameConfig: newGameConfig,
+      scenes: scenes,
     );
     saves = MemoryPlayerSaveGateway(
       identity: source.identity,
@@ -149,6 +153,8 @@ final class MemoryRuntimeNewGameFlowPort implements RuntimeNewGameFlowPort {
   MemoryRuntimeNewGameFlowPort({
     this.preparationGate,
     RuntimeNewGamePreSessionRunner? preSessionRunner,
+    ProjectNewGameConfig? newGameConfig,
+    List<SceneAsset> scenes = const <SceneAsset>[],
   }) {
     project = ProjectManifest(
       name: 'Runtime Player Test',
@@ -161,10 +167,12 @@ final class MemoryRuntimeNewGameFlowPort implements RuntimeNewGameFlowPort {
         ),
       ],
       tilesets: const <ProjectTilesetEntry>[],
-      newGame: const ProjectNewGameConfig(
-        enabled: true,
-        startMapId: 'start_map',
-      ),
+      scenes: scenes,
+      newGame: newGameConfig ??
+          const ProjectNewGameConfig(
+            enabled: true,
+            startMapId: 'start_map',
+          ),
     );
     preparation = RuntimeNewGamePreparation(
       projectRevision: 'sha256:runtime-player-test',

@@ -17,6 +17,7 @@ import '../models/scene_interactive_command.dart';
 import '../models/script_conditions.dart';
 import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
+import 'linked_asset_public_contracts.dart';
 
 /// Canonical namespaces used by Narrative Studio dependency consumers.
 enum NarrativeDependencyTargetKind {
@@ -539,6 +540,17 @@ final class _NarrativeDependencyIndexBuilder {
         scene.id,
         scene.name,
         path: 'scenes[${scene.id}]',
+      );
+    }
+    for (final battle in buildBattlePublicContracts(project)) {
+      if (battle.status != LinkedAssetContractStatus.available) continue;
+      _definition(
+        NarrativeDependencyTargetKind.sourceMap,
+        battle.battleRefId,
+        battle.label,
+        path: 'trainers[${battle.trainerId}]',
+        scope: 'synthetic',
+        sourceKind: 'battle',
       );
     }
     for (final cinematic in project.cinematics) {
@@ -1240,9 +1252,10 @@ final class _NarrativeDependencyIndexBuilder {
           owner: owner,
           path: '$prefix.outcome.producerId#${outcome.outcomeId}',
           criticality: NarrativeDependencyCriticality.runtimeBlocking,
-          resolution: outcome.producerKind == NarrativeOutcomeProducerKind.scene
-              ? null
-              : NarrativeDependencyResolution.legacyExternal,
+          resolution: outcome.producerKind ==
+                  NarrativeOutcomeProducerKind.legacyScenario
+              ? NarrativeDependencyResolution.legacyExternal
+              : null,
         );
       },
     );

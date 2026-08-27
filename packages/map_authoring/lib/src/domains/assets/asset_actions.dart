@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+
 import '../../contracts/artifact_ref.dart';
 import '../../contracts/action_descriptor.dart';
 import '../../contracts/authoring_diff.dart';
@@ -11,6 +13,7 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
+import '../maps/map_lifecycle_adapter.dart';
 import 'asset_store.dart';
 
 final class AssetActionException implements Exception {
@@ -99,6 +102,126 @@ final class AssetImportProjector {
   }
 }
 
+final class MapGraphicsResetProjection {
+  MapGraphicsResetProjection({
+    required this.manifest,
+    required Iterable<MapData> maps,
+    required this.assets,
+    required Iterable<String> removedAssetIds,
+    required Iterable<String> removedAssetPaths,
+    required Iterable<String> removedTilesetPaths,
+  })  : maps = List.unmodifiable(maps),
+        removedAssetIds = List.unmodifiable(removedAssetIds),
+        removedAssetPaths = List.unmodifiable(removedAssetPaths),
+        removedTilesetPaths = List.unmodifiable(removedTilesetPaths);
+
+  final ProjectManifest manifest;
+  final List<MapData> maps;
+  final AssetCatalog assets;
+  final List<String> removedAssetIds;
+  final List<String> removedAssetPaths;
+  final List<String> removedTilesetPaths;
+}
+
+final class MapGraphicsResetProjector {
+  const MapGraphicsResetProjector();
+
+  MapGraphicsResetProjection project({
+    required ProjectManifest manifest,
+    required Iterable<MapData> maps,
+    required AssetCatalog assets,
+  }) {
+    final characterTilesetIds = {
+      for (final character in manifest.characters)
+        if (character.tilesetId.trim().isNotEmpty) character.tilesetId,
+    };
+    final retainedTilesets = [
+      for (final tileset in manifest.tilesets)
+        if (characterTilesetIds.contains(tileset.id)) tileset,
+    ];
+    final retainedFolderIds = _requiredTilesetFolderIds(
+      manifest.tilesetFolders,
+      retainedTilesets,
+    );
+    final removedTilesetPaths = {
+      for (final tileset in manifest.tilesets)
+        if (!characterTilesetIds.contains(tileset.id)) tileset.relativePath,
+    };
+    final retainedTilesetPaths = {
+      for (final tileset in retainedTilesets) tileset.relativePath,
+    };
+    final projectedManifest = manifest.copyWith(
+      tilesetFolders: [
+        for (final folder in manifest.tilesetFolders)
+          if (retainedFolderIds.contains(folder.id)) folder,
+      ],
+      tilesets: retainedTilesets,
+      elementCategories: const [],
+      elements: const [],
+      environmentPresets: const [],
+      smartTileCatalog: const ProjectSmartTileCatalog.empty(),
+      borderCatalog: const ProjectBorderCatalog.empty(),
+      shadowCatalog: const ProjectShadowCatalog.empty(),
+      projectedBuildingShadowCatalog:
+          const ProjectBuildingShadowPresetCatalog.empty(),
+    );
+    final projectedMaps = [
+      for (final map in maps)
+        map.copyWith(
+          tilesetId: '',
+          layers: [
+            for (final layer in map.layers)
+              if (layer is CollisionLayer) layer,
+          ],
+          placedElements: const [],
+        ),
+    ];
+    final removedAssets = [
+      for (final asset in assets.records)
+        if (!retainedTilesetPaths.contains(asset.logicalPath) &&
+            (_isRemovedTilesetAsset(
+                  asset.logicalPath,
+                  removedTilesetPaths,
+                ) ||
+                asset.logicalPath.startsWith('previews/') ||
+                _hasMapGraphicsUsage(asset.usages)))
+          asset,
+    ];
+    final removedAssetIds = removedAssets.map((asset) => asset.id).toSet();
+    return MapGraphicsResetProjection(
+      manifest: projectedManifest,
+      maps: projectedMaps,
+      assets: AssetCatalog(
+        records: [
+          for (final asset in assets.records)
+            if (!removedAssetIds.contains(asset.id)) asset,
+        ],
+      ),
+      removedAssetIds: removedAssetIds.toList()..sort(),
+      removedAssetPaths:
+          removedAssets.map((asset) => asset.logicalPath).toList()..sort(),
+      removedTilesetPaths: removedTilesetPaths.toList()..sort(),
+    );
+  }
+}
+
+bool _isRemovedTilesetAsset(String logicalPath, Set<String> tilesetPaths) {
+  for (final tilesetPath in tilesetPaths) {
+    if (logicalPath == tilesetPath || logicalPath.startsWith('$tilesetPath/')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _hasMapGraphicsUsage(List<String> usages) => usages.any(
+      (usage) =>
+          usage == 'tileset' ||
+          usage == 'tileset-library' ||
+          usage == 'smart-tiles-studio' ||
+          usage.startsWith('tileset:'),
+    );
+
 /// Pure asset catalog operations. Durable filesystem application is left to
 /// the Phase-3 transaction boundary so these methods cannot bypass recovery.
 final class AssetActions {
@@ -121,6 +244,18 @@ final class AssetActions {
         'asset.move', 'Move one logical asset path', AuthoringRiskLevel.low),
     _descriptor('asset.delete', 'Delete one unreferenced asset',
         AuthoringRiskLevel.high),
+    _descriptor(
+      'asset.map_graphics.reset',
+      'Remove map graphics while preserving gameplay and narrative data',
+      AuthoringRiskLevel.high,
+      resourceKinds: const [
+        'project',
+        'map',
+        'assetCatalog',
+        'assetBlob',
+        'asset',
+      ],
+    ),
   ]);
 
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
@@ -135,6 +270,19 @@ final class AssetActions {
     }
     final state = _catalogState(context.snapshot);
     final parameters = _AssetParameters(context.request.parameters);
+    if (context.request.actionId == 'asset.map_graphics.reset') {
+      parameters.allow(const {});
+      final projection = const MapGraphicsResetProjector().project(
+        manifest: context.snapshot.manifest,
+        maps: context.snapshot.maps,
+        assets: state.catalog,
+      );
+      return _mapGraphicsResetDraft(
+        context.snapshot,
+        state,
+        projection,
+      );
+    }
     if (context.request.actionId == 'asset.raw.replace') {
       parameters.allow(const {
         'logicalPath',
@@ -347,6 +495,240 @@ final class AssetActions {
       rollbackBlobBytes: deletesBlob ? blobBytes : null,
     );
   }
+}
+
+Set<String> _requiredTilesetFolderIds(
+  List<ProjectTilesetFolder> folders,
+  List<ProjectTilesetEntry> tilesets,
+) {
+  final foldersById = {for (final folder in folders) folder.id: folder};
+  final required = <String>{};
+  for (final tileset in tilesets) {
+    var folderId = tileset.folderId;
+    while (folderId != null && required.add(folderId)) {
+      folderId = foldersById[folderId]?.parentFolderId;
+    }
+  }
+  return required;
+}
+
+AuthoringMutationDraft _mapGraphicsResetDraft(
+  ProjectSnapshot snapshot,
+  _AssetCatalogState state,
+  MapGraphicsResetProjection projection,
+) {
+  try {
+    ProjectValidator.validate(projection.manifest);
+    for (final map in projection.maps) {
+      MapValidator.validate(
+        map,
+        projectDialogueContext: projection.manifest,
+      );
+    }
+  } on Object catch (error) {
+    throw AssetActionException(
+      'asset.map_graphics.projected_state_invalid',
+      'Resetting map graphics would invalidate preserved project data.',
+      details: {'validationType': error.runtimeType.toString()},
+    );
+  }
+
+  final changes = <AuthoringResourceChange>[];
+  final diff = <AuthoringDiffEntry>[];
+  final projectBefore = snapshot.resourceBytes('project');
+  final projectAfter =
+      encodeProjectAuthoringDocument(snapshot, projection.manifest);
+  if (!_sameBytes(projectBefore, projectAfter)) {
+    final resource = AuthoringResourceRef(
+      kind: 'project',
+      id: 'project',
+      revision: snapshot.resourceFingerprints['project'],
+    );
+    changes.add(
+      AuthoringResourceChange(
+        resource: resource,
+        storageKey: 'project.json',
+        beforeBytes: projectBefore,
+        afterBytes: projectAfter,
+      ),
+    );
+    diff.add(
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.replace,
+        resource: resource,
+        path: '/mapGraphics',
+        before: _mapGraphicsManifestSummary(snapshot.manifest),
+        after: _mapGraphicsManifestSummary(projection.manifest),
+      ),
+    );
+  }
+
+  final entriesById = {
+    for (final entry in snapshot.manifest.maps) entry.id: entry,
+  };
+  for (final map in projection.maps) {
+    final beforeBytes = snapshot.resourceBytes('map:${map.id}');
+    final afterBytes = encodeMapAuthoringDocument(map);
+    if (_sameBytes(beforeBytes, afterBytes)) continue;
+    final resource = AuthoringResourceRef(
+      kind: 'map',
+      id: map.id,
+      revision: snapshot.resourceFingerprints['map:${map.id}'],
+    );
+    changes.add(
+      AuthoringResourceChange(
+        resource: resource,
+        storageKey: entriesById[map.id]!.relativePath,
+        beforeBytes: beforeBytes,
+        afterBytes: afterBytes,
+      ),
+    );
+    final before = snapshot.mapById(map.id)!;
+    diff.add(
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.replace,
+        resource: resource,
+        path: '/graphics',
+        before: _mapGraphicsMapSummary(before),
+        after: _mapGraphicsMapSummary(map),
+      ),
+    );
+  }
+
+  final catalogAfter = _encodeCatalog(projection.assets);
+  if (!_sameOptionalBytes(state.bytes, catalogAfter)) {
+    final resource = AuthoringResourceRef(
+      kind: 'assetCatalog',
+      id: 'project',
+      revision: snapshot.resourceFingerprints[assetCatalogResourceIdentity],
+    );
+    changes.add(
+      AuthoringResourceChange(
+        resource: resource,
+        storageKey: assetCatalogStorageKey,
+        beforeBytes: state.bytes,
+        afterBytes: catalogAfter,
+      ),
+    );
+    diff.add(
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.remove,
+        resource: resource,
+        path: '/mapGraphics',
+        before: {'assetIds': projection.removedAssetIds},
+        after: const {'assetIds': <String>[]},
+      ),
+    );
+  }
+
+  final removedAssetIds = projection.removedAssetIds.toSet();
+  final removedAssets = [
+    for (final asset in state.catalog.records)
+      if (removedAssetIds.contains(asset.id)) asset,
+  ];
+  final retainedDigests = {
+    for (final asset in projection.assets.records) asset.artifact.digest,
+  };
+  final deletedDigests = <String>{};
+  for (final asset in removedAssets) {
+    final artifact = asset.artifact;
+    if (retainedDigests.contains(artifact.digest) ||
+        !deletedDigests.add(artifact.digest)) {
+      continue;
+    }
+    final bytes = snapshot.findResourceBytes(
+      assetBlobResourceIdentity(artifact.digest),
+    );
+    if (bytes == null) {
+      throw AssetActionException(
+        'asset.rollback_blob_required',
+        'Removing a map graphic requires its exact rollback blob.',
+        details: {'assetId': asset.id},
+      );
+    }
+    final resource = AuthoringResourceRef(
+      kind: 'assetBlob',
+      id: artifact.digest,
+      revision: snapshot
+          .resourceFingerprints[assetBlobResourceIdentity(artifact.digest)],
+    );
+    changes.add(
+      AuthoringResourceChange(
+        resource: resource,
+        storageKey: assetBlobStorageKey(artifact),
+        beforeBytes: bytes,
+        afterBytes: null,
+      ),
+    );
+    diff.add(
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.remove,
+        resource: resource,
+        path: '/',
+        before: artifact.toJson(),
+      ),
+    );
+  }
+
+  if (changes.isEmpty) {
+    throw AssetActionException(
+      'asset.no_change',
+      'The project already contains no removable map graphics.',
+    );
+  }
+  return AuthoringMutationDraft(
+    changeSet: AuthoringChangeSet(
+      changes: changes,
+      diff: AuthoringDiff(diff),
+    ),
+    preview: {
+      'operation': 'mapGraphicsReset',
+      'removedTilesetCount': projection.removedTilesetPaths.length,
+      'removedTilesetPaths': projection.removedTilesetPaths,
+      'removedAssetCount': projection.removedAssetIds.length,
+      'removedAssetIds': projection.removedAssetIds,
+      'orphanedLogicalPaths': projection.removedAssetPaths,
+      'preservedCharacterTilesetCount': projection.manifest.tilesets.length,
+      'mapCount': projection.maps.length,
+    },
+    referenceImpact: {
+      'preservedCharacters': projection.manifest.characters.length,
+      'preservedMaps': projection.manifest.maps.length,
+      'removedMapAssets': projection.removedAssetIds.length,
+    },
+  );
+}
+
+Map<String, Object?> _mapGraphicsManifestSummary(ProjectManifest manifest) => {
+      'tilesetFolderCount': manifest.tilesetFolders.length,
+      'tilesetCount': manifest.tilesets.length,
+      'elementCategoryCount': manifest.elementCategories.length,
+      'elementCount': manifest.elements.length,
+      'environmentPresetCount': manifest.environmentPresets.length,
+      'smartTileAtlasCount': manifest.smartTileCatalog.atlases.length,
+      'borderBlueprintCount': manifest.borderCatalog.recordCount,
+      'shadowProfileCount': manifest.shadowCatalog.profileCount,
+      'buildingShadowPresetCount':
+          manifest.projectedBuildingShadowCatalog.length,
+    };
+
+Map<String, Object?> _mapGraphicsMapSummary(MapData map) => {
+      'tilesetId': map.tilesetId,
+      'layerCount': map.layers.length,
+      'placedElementCount': map.placedElements.length,
+    };
+
+bool _sameOptionalBytes(List<int>? left, List<int>? right) {
+  if (left == null || right == null) return left == right;
+  return _sameBytes(left, right);
+}
+
+bool _sameBytes(List<int> left, List<int> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 AuthoringMutationDraft _draft(

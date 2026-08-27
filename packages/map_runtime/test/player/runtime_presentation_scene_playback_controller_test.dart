@@ -160,6 +160,102 @@ void main() {
     );
     expect(frames, <int>[0, 600000, 1000000]);
   });
+
+  test('excludes interaction wait time from system presentation deltas',
+      () async {
+    final execution = RuntimePresentationExecutionController(
+      mediaController: RuntimePresentationMediaPlaybackController(
+        catalog: ProjectMediaCatalog(),
+        targetPlatform: PresentationMediaTargetPlatform.macos,
+        resolveUri: (_) => Uri(),
+        videoDriver: _UnusedVideoDriver(),
+      ),
+    );
+    final frames = <PresentationFrame>[];
+    final cueReached = Completer<void>();
+    final releaseCue = Completer<void>();
+    final player = RuntimePresentationScenePlaybackController(
+      executionController: execution,
+      onFrame: (_, frame) {
+        if (frame != null) frames.add(frame);
+      },
+    );
+    addTearDown(player.dispose);
+
+    final terminal = player.playPresentationCinematic(
+      ScenePresentationCinematicRuntimeRequest(
+        requestId: 'runtime:opening:real-time-cue',
+        createdAtEpochMs: 1,
+        projectRevision:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        contentHash:
+            'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        presentationCinematicId: 'opening',
+        interactionCueMarkerIds: const <String>{'ask_name'},
+        onInteractionCue: (_) async {
+          cueReached.complete();
+          await releaseCue.future;
+          return const PresentationInteractionOutcome.continueTimeline();
+        },
+        asset: PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 800000,
+          layers: [
+            PresentationLayer(
+              id: 'background',
+              label: 'Background',
+              zIndex: 0,
+            ),
+          ],
+          tracks: [
+            PresentationTrack(
+              id: 'visuals',
+              label: 'Visuals',
+              kind: PresentationTrackKind.visual,
+              clips: [
+                PresentationVisualClip(
+                  id: 'platform',
+                  startUs: 0,
+                  durationUs: 800000,
+                  layerId: 'background',
+                  resourceId: 'platform-image',
+                ),
+              ],
+            ),
+            PresentationTrack(
+              id: 'markers',
+              label: 'Markers',
+              kind: PresentationTrackKind.marker,
+              clips: [
+                PresentationMarkerClip(
+                  id: 'ask_name',
+                  startUs: 10000,
+                  label: 'Ask name',
+                  markerKind: PresentationMarkerKind.interactionCue,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await cueReached.future;
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    releaseCue.complete();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(player.isPlaying, isTrue);
+    expect(frames.last.timeUs, lessThan(800000));
+    expect(frames.last.visuals, isNotEmpty);
+
+    await player.skipActive();
+    expect(
+      (await terminal).result,
+      RuntimePresentationExecutionResult.skipped,
+    );
+  });
 }
 
 final class _UnusedVideoDriver

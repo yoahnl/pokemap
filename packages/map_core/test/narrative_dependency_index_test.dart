@@ -3064,6 +3064,78 @@ void main() {
       expect(status(publishedId), 'published');
       expect(status(inactiveId), 'inactive');
     });
+
+    test('resolves qualified trainer battle outcome sources internally', () {
+      const trainer = ProjectTrainerEntry(
+        id: 'rival',
+        name: 'Rival',
+        trainerClass: 'Rival',
+        team: [ProjectTrainerPokemonEntry(speciesId: 'sprout', level: 5)],
+      );
+      final outcome = NarrativeOutcomeRef(
+        producerKind: NarrativeOutcomeProducerKind.battle,
+        producerId: 'trainer:rival',
+        outcomeId: 'victory',
+      );
+      final index = buildNarrativeDependencyIndex(
+        project: _project(
+          trainers: const [trainer],
+          scenes: [_emptyScene('scene.after-battle')],
+          eventRegistry: _registry([
+            _event(
+              id: _eventA,
+              sceneId: 'scene.after-battle',
+              source: NarrativeEventSourceRef.outcomeReceived(outcome),
+            ),
+          ]),
+        ),
+      );
+      const battleKey = NarrativeDependencyKey.synthetic(
+        sourceKind: 'battle',
+        sourceId: 'trainer:rival',
+      );
+
+      expect(index.definitionsFor(battleKey), hasLength(1));
+      expect(
+        index.usagesFor(battleKey).single.resolution,
+        NarrativeDependencyResolution.resolved,
+      );
+      expect(index.issues.where((issue) => issue.target == battleKey), isEmpty);
+    });
+
+    test('reports an unknown qualified trainer battle outcome as missing', () {
+      final outcome = NarrativeOutcomeRef(
+        producerKind: NarrativeOutcomeProducerKind.battle,
+        producerId: 'trainer:missing',
+        outcomeId: 'victory',
+      );
+      final index = buildNarrativeDependencyIndex(
+        project: _project(
+          scenes: [_emptyScene('scene.after-battle')],
+          eventRegistry: _registry([
+            _event(
+              id: _eventA,
+              sceneId: 'scene.after-battle',
+              source: NarrativeEventSourceRef.outcomeReceived(outcome),
+            ),
+          ]),
+        ),
+      );
+      const battleKey = NarrativeDependencyKey.synthetic(
+        sourceKind: 'battle',
+        sourceId: 'trainer:missing',
+      );
+
+      expect(index.definitionsFor(battleKey), isEmpty);
+      expect(
+        index.usagesFor(battleKey).single.resolution,
+        NarrativeDependencyResolution.missing,
+      );
+      expect(
+        index.issues.where((issue) => issue.target == battleKey),
+        hasLength(1),
+      );
+    });
   });
 }
 
@@ -3077,6 +3149,7 @@ ProjectManifest _project({
   List<CinematicAsset> cinematics = const <CinematicAsset>[],
   List<WorldRuleDefinition> worldRules = const <WorldRuleDefinition>[],
   List<ScenarioAsset> scenarios = const <ScenarioAsset>[],
+  List<ProjectTrainerEntry> trainers = const <ProjectTrainerEntry>[],
   NarrativeEventRegistry? eventRegistry,
   ProjectNewGameConfig newGame = const ProjectNewGameConfig(),
 }) {
@@ -3092,11 +3165,11 @@ ProjectManifest _project({
     cinematics: cinematics,
     worldRules: worldRules,
     scenarios: scenarios,
+    trainers: trainers,
     eventRegistry: eventRegistry,
     newGame: newGame,
   );
 }
-
 const _eventA = 'evt_00000000-0000-7000-8000-000000000001';
 const _eventB = 'evt_00000000-0000-7000-8000-000000000002';
 

@@ -1059,7 +1059,6 @@ final class RuntimePlayerCoordinator {
     if (resolution.status == SceneInteractionResolutionStatus.accepted) {
       _publish(
         _snapshot.next(
-          clearPreSessionRequest: true,
           actions: _cancelActions,
         ),
       );

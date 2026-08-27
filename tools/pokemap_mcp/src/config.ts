@@ -10,6 +10,7 @@ export interface PokeMapMcpConfig {
   runtimePackageRoot: string;
   runtimeHostRoot: string;
   dartExecutable: string;
+  flutterExecutable: string;
 }
 
 export class PokeMapMcpConfigError extends Error {
@@ -27,6 +28,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   let runtimePackageRoot: string | undefined;
   let runtimeHostRoot: string | undefined;
   let dartExecutable = "dart";
+  let flutterExecutable = "flutter";
   for (let index = 0; index < args.length; index += 1) {
     const option = args[index];
     const value = args[index + 1];
@@ -46,6 +48,9 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
         break;
       case "--dart":
         dartExecutable = value;
+        break;
+      case "--flutter":
+        flutterExecutable = value;
         break;
       case "--repository-root":
         repositoryRoot = resolve(value);
@@ -72,7 +77,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
     runtimePackageRoot ?? resolve(repository, "packages/map_runtime");
   const runtimeHost =
     runtimeHostRoot ?? resolve(repository, "examples/playable_runtime_host");
-  if (!existsSync(resolve(runtimePackage, "bin/pokemap_render.dart"))) {
+  if (!existsSync(resolve(runtimePackage, "tool/pokemap_render_worker_test.dart"))) {
     throw new PokeMapMcpConfigError("The map_runtime render worker is unavailable.");
   }
   if (!existsSync(resolve(runtimeHost, "tool/pokemap_eval.dart"))) {
@@ -86,6 +91,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
     runtimePackageRoot: runtimePackage,
     runtimeHostRoot: runtimeHost,
     dartExecutable,
+    flutterExecutable,
   };
 }
 

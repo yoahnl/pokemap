@@ -37,6 +37,7 @@ function start(config: PokeMapMcpConfig): void {
     runtimeHostRoot: config.runtimeHostRoot,
     repositoryRoot: config.repositoryRoot,
     dartExecutable: config.dartExecutable,
+    flutterExecutable: config.flutterExecutable,
     playtestProjectionFactory: createLocalPlaytestProjectionFactory({
       authoring,
       authoringPackageRoot: config.authoringPackageRoot,

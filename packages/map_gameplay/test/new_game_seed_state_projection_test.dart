@@ -151,6 +151,17 @@ void main() {
       );
     });
 
+    test('defers the starter when a pre-session is configured', () {
+      final state = createNewGameStateFromSeed(
+        project: _project(preSessionSceneId: 'scene-pre-session'),
+        startMap: _startMap(),
+        seed: _seed(starterOptionId: null),
+        currentProjectRevision: 'project-r1',
+      );
+
+      expect(state.party.members, isEmpty);
+    });
+
     test('rejects an unknown starter option', () {
       expect(
         () => createNewGameStateFromSeed(
@@ -289,6 +300,7 @@ NewGameSeed _seed({
 
 ProjectManifest _project({
   bool enabled = true,
+  String? preSessionSceneId,
   List<PlayerPokemon> initialParty = const <PlayerPokemon>[],
   List<ProjectStarterOption> starterOptions = const <ProjectStarterOption>[
     ProjectStarterOption(
@@ -306,6 +318,7 @@ ProjectManifest _project({
 }) {
   return ProjectManifest(
     name: 'Seed projection fixture',
+    version: preSessionSceneId == null ? ProjectVersion.v6 : ProjectVersion.v7,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map_start',
@@ -344,10 +357,36 @@ ProjectManifest _project({
         initialValue: const NarrativeValue.string('normal'),
       ),
     ],
+    scenes: preSessionSceneId == null
+        ? const <SceneAsset>[]
+        : <SceneAsset>[
+            SceneAsset(
+              id: preSessionSceneId,
+              name: 'Pre-session',
+              executionProfile: SceneExecutionProfile.preSession,
+              graph: SceneGraph(
+                startNodeId: 'start',
+                nodes: <SceneNode>[
+                  SceneNode(id: 'start', kind: SceneNodeKind.start),
+                  SceneNode(id: 'end', kind: SceneNodeKind.end),
+                ],
+                edges: <SceneEdge>[
+                  SceneEdge(
+                    id: 'start-end',
+                    fromNodeId: 'start',
+                    fromPortId: 'completed',
+                    toNodeId: 'end',
+                    kind: SceneEdgeKind.defaultFlow,
+                  ),
+                ],
+              ),
+            ),
+          ],
     newGame: ProjectNewGameConfig(
       enabled: enabled,
       startMapId: 'map_start',
       startSpawnId: 'spawn_authored',
+      preSessionSceneId: preSessionSceneId,
       playerName: 'Player',
       playerAvatarCharacterIds: const <String>['hero_a', 'hero_b'],
       initialParty: initialParty,

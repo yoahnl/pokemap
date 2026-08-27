@@ -242,6 +242,110 @@ void main() {
     expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.playing);
   });
 
+  test('launches with starter options deferred to an authored pre-session',
+      () async {
+    final harness = RuntimePlayerTestHarness(
+      scenes: <SceneAsset>[
+        SceneAsset(
+          id: 'scene-pre-session',
+          name: 'Deferred starter pre-session',
+          executionProfile: SceneExecutionProfile.preSession,
+          graph: SceneGraph(
+            startNodeId: 'start',
+            nodes: <SceneNode>[
+              SceneNode(id: 'start', kind: SceneNodeKind.start),
+              SceneNode(id: 'end', kind: SceneNodeKind.end),
+            ],
+            edges: <SceneEdge>[
+              SceneEdge(
+                id: 'start-end',
+                fromNodeId: 'start',
+                fromPortId: 'completed',
+                toNodeId: 'end',
+                kind: SceneEdgeKind.defaultFlow,
+              ),
+            ],
+          ),
+        ),
+      ],
+      newGameConfig: ProjectNewGameConfig(
+        enabled: true,
+        startMapId: 'start_map',
+        preSessionSceneId: 'scene-pre-session',
+        starterOptions: <ProjectStarterOption>[
+          ProjectStarterOption(
+            id: 'starter-leaf',
+            label: 'Leaf',
+            pokemon: PlayerPokemon(
+              speciesId: 'leafmon',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+            ),
+          ),
+          ProjectStarterOption(
+            id: 'starter-fire',
+            label: 'Fire',
+            pokemon: PlayerPokemon(
+              speciesId: 'firemon',
+              natureId: 'hardy',
+              abilityId: 'blaze',
+            ),
+          ),
+        ],
+      ),
+    );
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final draft = NewGameDraft.start(
+      draftId: 'deferred-starter-draft',
+      projectRevision: harness.newGameFlow.preparation.projectRevision,
+      slotId: 'slot_1',
+      config: harness.newGameFlow.project.newGame,
+    );
+    final commit = commitNewGameDraft(
+      journal: NewGameSeedCommitJournal.empty(),
+      operationId: 'deferred-starter-commit',
+      currentProjectRevision: harness.newGameFlow.preparation.projectRevision,
+      expectedDraftRevision: draft.revision,
+      draft: draft,
+    );
+    expect(
+      commit.status,
+      NewGameSeedCommitStatus.committed,
+      reason: commit.issues.map((issue) => issue.toJson()).join(', '),
+    );
+
+    expect(
+      harness.coordinator.snapshot.isActionEnabled(RuntimePlayerAction.newGame),
+      isTrue,
+      reason: harness.coordinator.snapshot
+          .unavailableReasonFor(RuntimePlayerAction.newGame),
+    );
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+
+    expect(
+      result.status,
+      RuntimePlayerCommandStatus.accepted,
+      reason: result.safeMessage ??
+          harness.coordinator.snapshot.failure?.safeMessage,
+    );
+    expect(
+      harness.source.requests.single.initialGameState!.party.members,
+      isEmpty,
+    );
+  });
+
   test('uses the runtime default slot when New Game has no payload', () async {
     final harness = RuntimePlayerTestHarness(
       defaultSaveSlot: const RuntimePlayerLoadSlot(

@@ -281,8 +281,15 @@ export 'src/application/load_runtime_map_bundle.dart'
         loadRuntimeMapBundle,
         loadProjectManifestFromFile,
         loadMapDataFromFile;
-export 'src/application/authoring_preview/runtime_authoring_map_render_adapter.dart'
-    show RuntimeAuthoringMapRenderAdapter;
+export 'src/application/authoring_preview/runtime_authoring_asset_map_capture_service.dart'
+    show
+        RuntimeAuthoringAssetMapCaptureResult,
+        RuntimeAuthoringAssetMapCaptureService;
+export 'src/application/authoring_preview/runtime_authoring_asset_map_render_adapter.dart'
+    show
+        RuntimeAuthoringAssetMapRenderAdapter,
+        RuntimeAuthoringMapBundleLoader,
+        RuntimeAuthoringTilesetImageLoader;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;
 export 'src/application/map_activation.dart'
     show MapActivationReason, MapActivation;

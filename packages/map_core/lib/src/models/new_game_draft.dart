@@ -205,11 +205,13 @@ final class NewGameDraft {
     required this.avatarCharacterId,
     required this.pronounSet,
     required this.starterOptionId,
+    required bool starterSelectionRequired,
     required List<String> allowedAvatarCharacterIds,
     required List<String> allowedStarterOptionIds,
     required Map<String, NarrativeValueKind> variableKinds,
     required Map<String, NarrativeValue> variables,
-  }) : allowedAvatarCharacterIds = List<String>.unmodifiable(
+  }) : _starterSelectionRequired = starterSelectionRequired,
+       allowedAvatarCharacterIds = List<String>.unmodifiable(
          allowedAvatarCharacterIds,
        ),
        allowedStarterOptionIds = List<String>.unmodifiable(
@@ -237,6 +239,9 @@ final class NewGameDraft {
       avatarCharacterId: null,
       pronounSet: config.playerPronounSet,
       starterOptionId: null,
+      starterSelectionRequired:
+          config.preSessionSceneId == null ||
+          config.preSessionSceneId!.trim().isEmpty,
       allowedAvatarCharacterIds: _normalizedIds(
         config.playerAvatarCharacterIds,
         'playerAvatarCharacterIds',
@@ -259,6 +264,7 @@ final class NewGameDraft {
   final String? avatarCharacterId;
   final PlayerPronounSet pronounSet;
   final String? starterOptionId;
+  final bool _starterSelectionRequired;
   final List<String> allowedAvatarCharacterIds;
   final List<String> allowedStarterOptionIds;
   final Map<String, NarrativeValueKind> variableKinds;
@@ -315,7 +321,9 @@ final class NewGameDraft {
         ),
       );
     }
-    if (allowedStarterOptionIds.isNotEmpty && starterOptionId == null) {
+    if (_starterSelectionRequired &&
+        allowedStarterOptionIds.isNotEmpty &&
+        starterOptionId == null) {
       issues.add(
         NewGameDraftIssue(
           code: NewGameDraftIssueCode.starterRequired,
@@ -418,6 +426,7 @@ final class NewGameDraft {
     starterOptionId: identical(starterOptionId, _unchanged)
         ? this.starterOptionId
         : starterOptionId as String?,
+    starterSelectionRequired: _starterSelectionRequired,
     allowedAvatarCharacterIds: allowedAvatarCharacterIds,
     allowedStarterOptionIds: allowedStarterOptionIds,
     variableKinds: variableKinds,

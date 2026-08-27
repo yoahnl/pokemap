@@ -253,7 +253,12 @@ final class EventV2Actions {
         details: {'mode': mode.name},
       );
     }
-    if (current?.mode == EventSystemMode.v2Only ||
+    final unsafeDualReadRecovery = current?.mode == EventSystemMode.v2Only &&
+        mode == EventSystemMode.dualRead &&
+        (current!.legacyClaims.isNotEmpty ||
+            legacyMapEventCount > 0 ||
+            legacyScenarioSourceCount > 0);
+    if (unsafeDualReadRecovery ||
         (mode == EventSystemMode.v2Only &&
             (current?.records.isNotEmpty == true ||
                 current?.legacyClaims.isNotEmpty == true ||

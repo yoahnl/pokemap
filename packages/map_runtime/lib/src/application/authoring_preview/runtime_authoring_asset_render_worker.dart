@@ -1,16 +1,17 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_runtime/src/application/authoring_preview/runtime_authoring_map_render_adapter.dart';
+import 'package:path/path.dart' as p;
 
-Future<void> main(List<String> arguments) async {
+import '../load_runtime_map_bundle.dart';
+import 'runtime_authoring_asset_map_render_adapter.dart';
+
+Future<Map<String, Object?>> renderRuntimeAuthoringAssetRequest({
+  required String projectRoot,
+  required Map<String, Object?> request,
+}) async {
   try {
-    final projectRoot = _parseRoot(arguments);
-    final decoded = jsonDecode(await utf8.decoder.bind(stdin).join());
-    if (decoded is! Map) throw const FormatException();
-    final request = Map<String, dynamic>.from(decoded);
     _expectKeys(
       request,
       const {
@@ -21,7 +22,6 @@ Future<void> main(List<String> arguments) async {
         'cellPixelSize',
       },
     );
-
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [projectRoot],
@@ -36,8 +36,15 @@ Future<void> main(List<String> arguments) async {
     final snapshot = await ProjectSnapshotLoader(handles: handles).load(
       opened.projectHandle,
     );
-    const queries = MapRenderQueries(RuntimeAuthoringMapRenderAdapter());
     final mapId = _string(request['mapId'], 'mapId');
+    final adapter = RuntimeAuthoringAssetMapRenderAdapter(
+      bundleLoader: (_) => loadRuntimeMapBundle(
+        projectFilePath: p.join(projectRoot, 'project.json'),
+        mapId: mapId,
+        preloadedManifest: snapshot.manifest,
+      ),
+    );
+    final queries = MapRenderQueries(adapter);
     final layerIds = _strings(request['layerIds'], 'layerIds');
     final overlays = _overlays(request['overlays']);
     final cellPixelSize = _integer(
@@ -65,55 +72,41 @@ Future<void> main(List<String> arguments) async {
       result.bytes,
       mediaType: result.mimeType,
     );
-    stdout.write(
-      jsonEncode({
-        'status': 'success',
-        'data': result.toJson(),
-        'artifact': {
-          'id': 'render-$mapId',
-          'mediaType': result.mimeType,
-          'uri': content.handle,
-          'byteLength': content.byteLength,
-          'sha256': content.hexDigest,
-        },
-        'blob': base64Encode(result.bytes),
-      }),
-    );
+    return {
+      'status': 'success',
+      'data': result.toJson(),
+      'artifact': {
+        'id': 'render-$mapId',
+        'mediaType': result.mimeType,
+        'uri': content.handle,
+        'byteLength': content.byteLength,
+        'sha256': content.hexDigest,
+      },
+      'blob': base64Encode(result.bytes),
+    };
   } on FormatException {
-    _writeFailure(
+    return _failure(
       'render.request_invalid',
       'The render request does not match the canonical contract.',
     );
-    exitCode = 2;
   } on ArgumentError {
-    _writeFailure(
+    return _failure(
       'render.request_invalid',
       'The render request does not match the canonical contract.',
     );
-    exitCode = 2;
   } on ProjectSnapshotException catch (error) {
-    _writeFailure(error.code, error.message);
-    exitCode = 3;
+    return _failure(error.code, error.message);
   } on WorkspaceAccessException catch (error) {
-    _writeFailure(error.code, error.message);
-    exitCode = 3;
+    return _failure(error.code, error.message);
   } on Object {
-    _writeFailure(
+    return _failure(
       'render.failed',
-      'The revision-bound runtime render failed unexpectedly.',
+      'The revision-bound asset render failed unexpectedly.',
     );
-    exitCode = 3;
   }
 }
 
-String _parseRoot(List<String> arguments) {
-  if (arguments.length != 2 || arguments.first != '--root') {
-    throw const FormatException();
-  }
-  return _string(arguments[1], 'root');
-}
-
-void _expectKeys(Map<String, dynamic> value, Set<String> expected) {
+void _expectKeys(Map<String, Object?> value, Set<String> expected) {
   if (value.keys.toSet().difference(expected).isNotEmpty) {
     throw const FormatException();
   }
@@ -170,11 +163,7 @@ MapRect? _region(Object? value) {
   );
 }
 
-void _writeFailure(String code, String message) {
-  stdout.write(
-    jsonEncode({
+Map<String, Object?> _failure(String code, String message) => {
       'status': 'failure',
       'error': {'code': code, 'message': message},
-    }),
-  );
-}
+    };

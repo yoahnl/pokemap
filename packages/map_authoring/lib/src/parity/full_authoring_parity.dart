@@ -1000,7 +1000,7 @@ List<String> _evidenceFor(
         'history/undo forward receipt:$owner',
       ],
     AuthoringParityCapability.visualization => [
-        'pokemap_render revision-bound preview:$kind',
+        'pokemap_render revision-bound asset-accurate preview:$kind',
       ],
     AuthoringParityCapability.runtime => [
         'pokemap_playtest and runtime consumer:$kind',
