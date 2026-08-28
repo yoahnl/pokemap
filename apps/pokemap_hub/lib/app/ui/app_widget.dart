@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_session_controller.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
 import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
@@ -12,11 +13,12 @@ import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-typedef HubPlayerBuilder = Widget Function(
-  BuildContext context,
-  HubGameView game,
-  Future<void> Function() onHubRequested,
-);
+typedef HubPlayerBuilder =
+    Widget Function(
+      BuildContext context,
+      HubGameView game,
+      Future<void> Function() onHubRequested,
+    );
 
 /// Player application root. Platform composition injects package picking,
 /// install/maintenance, and session launch actions.
@@ -27,6 +29,7 @@ class PokeMapHubApp extends ConsumerStatefulWidget {
     this.productName = 'PokeMap Hub',
     this.actions = const HubUiActions(),
     this.playerBuilder,
+    this.sessionController,
     this.appearanceController,
     this.initializeController = true,
   });
@@ -35,6 +38,7 @@ class PokeMapHubApp extends ConsumerStatefulWidget {
   final String productName;
   final HubUiActions actions;
   final HubPlayerBuilder? playerBuilder;
+  final HubSessionController? sessionController;
   final AveluneAppearanceNotifier? appearanceController;
   final bool initializeController;
 
@@ -43,13 +47,17 @@ class PokeMapHubApp extends ConsumerStatefulWidget {
 }
 
 class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
-  HubGameView? _activeGame;
+  late HubSessionController _sessionController;
+  late bool _ownsSessionController;
   bool _startupLaunchEvaluated = false;
   AveluneHomeController? _homeController;
+
+  HubGameView? get _activeGame => _sessionController.activeGame;
 
   @override
   void initState() {
     super.initState();
+    _attachSessionController();
     // Subscribes to the provider, not to the widget field: swapping notifiers
     // no longer requires detaching a listener in didUpdateWidget.
     ref.listenManual(
@@ -73,16 +81,38 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
   @override
   void didUpdateWidget(covariant PokeMapHubApp oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.sessionController != widget.sessionController) {
+      _detachSessionController();
+      _attachSessionController();
+    }
     if (oldWidget.controller == widget.controller) {
       _syncHomeController();
       return;
     }
-    _activeGame = null;
+    _sessionController.close();
     _startupLaunchEvaluated = false;
     _syncHomeController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeLaunchMostRecentGame();
     });
+  }
+
+  void _attachSessionController() {
+    _ownsSessionController = widget.sessionController == null;
+    _sessionController =
+        widget.sessionController ??
+        HubSessionController(refreshHub: () => widget.controller.refresh());
+    _sessionController.addListener(_handleSessionChanged);
+  }
+
+  void _detachSessionController() {
+    _sessionController.removeListener(_handleSessionChanged);
+    if (_ownsSessionController) _sessionController.dispose();
+  }
+
+  void _handleSessionChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _syncHomeController() {
@@ -129,7 +159,7 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
       }
     }
     if (target != null) {
-      setState(() => _activeGame = target);
+      _sessionController.open(target);
     }
   }
 
@@ -149,81 +179,77 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
   }
 
   void _openPlayer(HubGameView game) {
-    if (_activeGame?.game.gameId == game.game.gameId) return;
-    setState(() => _activeGame = game);
+    _sessionController.open(game);
   }
 
-  Future<void> _returnToHub() async {
-    if (_activeGame == null) return;
-    setState(() => _activeGame = null);
-    await widget.controller.refresh();
-  }
+  Future<void> _returnToHub() async => _sessionController.returnToHub();
 
   @override
   void dispose() {
+    _detachSessionController();
     _homeController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => Builder(
-        builder: (context) {
-          final snapshot = ref.watch(hubDashboardNotifierProvider);
-          final preferences = snapshot.preferences;
-          return MaterialApp(
-            title: widget.productName,
-            debugShowCheckedModeBanner: false,
-            themeMode: preferences.themeMode,
-            theme: applyAveluneTheme(
-              PokeMapPlayerTheme.light(
-                highContrast: preferences.highContrast,
-                reducedMotion: preferences.reducedMotion,
+    builder: (context) {
+      final snapshot = ref.watch(hubDashboardNotifierProvider);
+      final preferences = snapshot.preferences;
+      return MaterialApp(
+        title: widget.productName,
+        debugShowCheckedModeBanner: false,
+        themeMode: preferences.themeMode,
+        theme: applyAveluneTheme(
+          PokeMapPlayerTheme.light(
+            highContrast: preferences.highContrast,
+            reducedMotion: preferences.reducedMotion,
+          ),
+          highContrast: preferences.highContrast,
+        ),
+        darkTheme: applyAveluneTheme(
+          PokeMapPlayerTheme.dark(
+            highContrast: preferences.highContrast,
+            reducedMotion: preferences.reducedMotion,
+          ),
+          highContrast: preferences.highContrast,
+        ),
+        locale: preferences.locale,
+        supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+        localizationsDelegates:
+            PokeMapPlayerLocalizations.localizationsDelegates,
+        builder: (context, child) {
+          final media = MediaQuery.of(context);
+          return MediaQuery(
+            data: media.copyWith(
+              textScaler: PlayerTextScaler(
+                systemScaler: media.textScaler,
+                preferenceScale: preferences.textScale,
               ),
-              highContrast: preferences.highContrast,
+              disableAnimations:
+                  media.disableAnimations || preferences.reducedMotion,
+              highContrast: media.highContrast || preferences.highContrast,
             ),
-            darkTheme: applyAveluneTheme(
-              PokeMapPlayerTheme.dark(
-                highContrast: preferences.highContrast,
-                reducedMotion: preferences.reducedMotion,
-              ),
-              highContrast: preferences.highContrast,
-            ),
-            locale: preferences.locale,
-            supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-            localizationsDelegates:
-                PokeMapPlayerLocalizations.localizationsDelegates,
-            builder: (context, child) {
-              final media = MediaQuery.of(context);
-              return MediaQuery(
-                data: media.copyWith(
-                  textScaler: PlayerTextScaler(
-                    systemScaler: media.textScaler,
-                    preferenceScale: preferences.textScale,
-                  ),
-                  disableAnimations:
-                      media.disableAnimations || preferences.reducedMotion,
-                  highContrast: media.highContrast || preferences.highContrast,
-                ),
-                child: child!,
-              );
-            },
-            home: switch ((_activeGame, widget.playerBuilder)) {
-              (final game?, final playerBuilder?) => playerBuilder(
-                  context,
-                  game,
-                  _returnToHub,
-                ),
-              _ => HubShell(
-                  productName: widget.productName,
-                  snapshot: snapshot,
-                  actions: _effectiveActions,
-                  homeController: _homeController,
-                  appearanceController: widget.appearanceController,
-                  onSectionSelected: widget.controller.selectSection,
-                  onCancelInstall: widget.controller.cancelImport,
-                ),
-            },
+            child: child!,
           );
         },
+        home: switch ((_activeGame, widget.playerBuilder)) {
+          (final game?, final playerBuilder?) => playerBuilder(
+            context,
+            game,
+            _returnToHub,
+          ),
+          _ => HubShell(
+            productName: widget.productName,
+            snapshot: snapshot,
+            actions: _effectiveActions,
+            homeController: _homeController,
+            appearanceController: widget.appearanceController,
+            onSectionSelected: widget.controller.selectSection,
+            onCancelInstall: widget.controller.cancelImport,
+          ),
+        },
       );
+    },
+  );
 }

@@ -41,6 +41,7 @@ final class HubComposition implements HubAppComposition {
     required this.controller,
     required this.actions,
     required this.launchResolver,
+    required this.sessionController,
     required this.appearanceController,
     required GameMaintenanceService? gameMaintenance,
     required HubPlatformAdapter platformAdapter,
@@ -51,6 +52,7 @@ final class HubComposition implements HubAppComposition {
   final HubDashboardNotifier controller;
   final HubUiActions actions;
   final InstalledGameLaunchResolver launchResolver;
+  final HubSessionController sessionController;
   final AveluneAppearanceNotifier appearanceController;
   final GameMaintenanceService? _gameMaintenance;
   final HubPlatformAdapter _platformAdapter;
@@ -80,6 +82,9 @@ final class HubComposition implements HubAppComposition {
         hostCompatibility: aveluneHostCompatibility(),
       );
       final controller = dashboardNotifier;
+      final sessionController = HubSessionController(
+        refreshHub: controller.refresh,
+      );
       late final HubComposition initializedComposition;
       final actions = HubUiActions(
         onImportRequested: () {
@@ -97,6 +102,7 @@ final class HubComposition implements HubAppComposition {
         controller: controller,
         actions: actions,
         launchResolver: launchResolver,
+        sessionController: sessionController,
         appearanceController: appearanceController,
         gameMaintenance: gameMaintenance,
         platformAdapter: adapter,
@@ -121,6 +127,7 @@ final class HubComposition implements HubAppComposition {
     productName: publicProductName,
     controller: controller,
     actions: actions,
+    sessionController: sessionController,
     appearanceController: appearanceController,
     playerBuilder:
         (context, game, onHubRequested) => HubInstalledGamePlayer(
@@ -199,6 +206,7 @@ final class HubComposition implements HubAppComposition {
 
   @override
   void dispose() {
+    sessionController.dispose();
     _platformAdapter.dispose();
   }
 }

@@ -30,10 +30,11 @@ void main() {
     harness = buildDashboardHarness(
       supportRoot: root,
       libraryStore: store,
-      activityReader: (_) async => HubGameActivity(
-        canContinue: true,
-        lastSaveAt: DateTime.utc(2026, 7, 25),
-      ),
+      activityReader:
+          (_) async => HubGameActivity(
+            canContinue: true,
+            lastSaveAt: DateTime.utc(2026, 7, 25),
+          ),
       // The appearance bundle goes into the same container, so a Consumer deep
       // in the shell resolves the notifier this test set up.
       extraOverrides: [
@@ -66,18 +67,18 @@ void main() {
           PokeMapHubApp(
             controller: harness.notifier,
             initializeController: false,
-            playerBuilder: (context, selected, onHubRequested) =>
-                Scaffold(
-              body: Column(
-                children: <Widget>[
-                  Text('Lecteur ${selected.game.title}'),
-                  FilledButton(
-                    onPressed: () => onHubRequested(),
-                    child: const Text('Retour test'),
+            playerBuilder:
+                (context, selected, onHubRequested) => Scaffold(
+                  body: Column(
+                    children: <Widget>[
+                      Text('Lecteur ${selected.game.title}'),
+                      FilledButton(
+                        onPressed: () => onHubRequested(),
+                        child: const Text('Retour test'),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
           ),
         ),
       );
@@ -101,51 +102,47 @@ void main() {
     },
   );
 
-  testWidgets(
-    'mobile Continue preserves the complete cold-launch flow',
-    (tester) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(
-        harness.wrap(
-          PokeMapHubApp(
-            productName: 'Avelune',
-            controller: harness.notifier,
-            initializeController: false,
-            playerBuilder: (
-              context,
-              selected,
-              onHubRequested,
-            ) {
-              return Scaffold(body: Text('Lecteur ${selected.game.title}'));
-            },
-          ),
+  testWidgets('mobile Continue preserves the complete cold-launch flow', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      harness.wrap(
+        PokeMapHubApp(
+          productName: 'Avelune',
+          controller: harness.notifier,
+          initializeController: false,
+          playerBuilder: (context, selected, onHubRequested) {
+            return Scaffold(body: Text('Lecteur ${selected.game.title}'));
+          },
         ),
-      );
+      ),
+    );
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
-      );
-      await _settleInsertion(tester);
-      await tester.pump(const Duration(milliseconds: 80));
-      await tester.pump();
-      await tester.pump();
-      // Advance through insertion animation: align 120ms, descend 300ms,
-      // latch 120ms, launch delay 80ms.
-      await tester.pump(const Duration(milliseconds: 120));
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.pump(const Duration(milliseconds: 120));
-      await tester.pump(const Duration(milliseconds: 80));
-      await tester.pump();
-      await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
+    );
+    await _settleInsertion(tester);
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.pump();
+    await tester.pump();
+    // Advance through insertion animation: align 120ms, descend 300ms,
+    // latch 120ms, launch delay 80ms.
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.pump();
+    await tester.pump();
 
-      expect(find.text('Lecteur Aube'), findsOneWidget);
-    },
-  );
+    expect(find.text('Lecteur Aube'), findsOneWidget);
+  });
 
-  testWidgets('mobile Settings opens the Avelune appearance settings',
-      (tester) async {
+  testWidgets('mobile Settings opens the Avelune appearance settings', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -153,8 +150,9 @@ void main() {
     // One container, both bundles. Two harnesses would mean the pumped widget
     // reads an idle appearance notifier from the dashboard container while the
     // test prepared a different one — passing, but asserting nothing.
-    final appearance = harness.container
-        .read(aveluneAppearanceNotifierProvider.notifier);
+    final appearance = harness.container.read(
+      aveluneAppearanceNotifierProvider.notifier,
+    );
     await tester.runAsync(appearance.initialize);
     await tester.pump();
     await tester.pumpAndSettle();
@@ -227,18 +225,18 @@ void main() {
           PokeMapHubApp(
             controller: harness.notifier,
             initializeController: false,
-            playerBuilder: (context, selected, onHubRequested) =>
-                Scaffold(
-              body: Column(
-                children: <Widget>[
-                  Text('Lecteur ${selected.game.title}'),
-                  FilledButton(
-                    onPressed: () => onHubRequested(),
-                    child: const Text('Retour automatique'),
+            playerBuilder:
+                (context, selected, onHubRequested) => Scaffold(
+                  body: Column(
+                    children: <Widget>[
+                      Text('Lecteur ${selected.game.title}'),
+                      FilledButton(
+                        onPressed: () => onHubRequested(),
+                        child: const Text('Retour automatique'),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
           ),
         ),
       );
@@ -254,6 +252,37 @@ void main() {
       expect(find.text('POKEMAP HUB'), findsOneWidget);
     },
   );
+
+  testWidgets('an external session controller opens and closes the player', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final session = HubSessionController(refreshHub: () async {});
+
+    await tester.pumpWidget(
+      harness.wrap(
+        PokeMapHubApp(
+          controller: harness.notifier,
+          sessionController: session,
+          initializeController: false,
+          playerBuilder:
+              (context, selected, onHubRequested) =>
+                  Scaffold(body: Text('Lecteur ${selected.game.title}')),
+        ),
+      ),
+    );
+
+    session.open(harness.snapshot.games.single);
+    await tester.pump();
+    expect(find.text('Lecteur Aube'), findsOneWidget);
+
+    await session.returnToHub();
+    await tester.pump();
+    expect(find.text('Lecteur Aube'), findsNothing);
+    expect(find.text('POKEMAP HUB'), findsOneWidget);
+  });
 }
 
 InstalledGame _installedGame() {
@@ -281,8 +310,7 @@ class _FakeCustomBackground implements AveluneCustomBackgroundGateway {
   @override
   Future<AveluneCustomBackgroundImportOutcome> pickAndImport(
     AveluneBackgroundSource source,
-  ) async =>
-      AveluneCustomBackgroundImportOutcome.cancelled;
+  ) async => AveluneCustomBackgroundImportOutcome.cancelled;
 
   @override
   Future<bool> isCurrentValid() async => false;

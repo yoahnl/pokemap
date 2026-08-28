@@ -39,11 +39,15 @@ export 'package:pokemap_hub/presentation/features/home/state/avelune_exchange_co
 export 'package:pokemap_hub/presentation/features/home/state/avelune_insertion_controller.dart';
 export 'package:pokemap_hub/app/ui/app_widget.dart';
 export 'package:pokemap_hub/core/diagnostics/hub_diagnostic.dart';
+export 'package:pokemap_hub/features/control/application/avelune_control_service.dart';
+export 'package:pokemap_hub/features/control/domain/avelune_control_models.dart';
+export 'package:pokemap_hub/features/control/infrastructure/avelune_control_server.dart';
 export 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
 export 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 export 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_dependencies.dart';
 export 'package:pokemap_hub/features/dashboard/application/services/hub_directory_storage_reader.dart';
 export 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
+export 'package:pokemap_hub/features/session/application/services/hub_session_controller.dart';
 export 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 export 'package:pokemap_hub/presentation/shell/hub_shell.dart';
 export 'package:pokemap_hub/presentation/features/player/pages/hub_installed_game_player.dart';
