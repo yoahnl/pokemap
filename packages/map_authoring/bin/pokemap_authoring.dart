@@ -51,7 +51,10 @@ Future<void> main(List<String> arguments) async {
     snapshotLoader: snapshots,
   );
   final artifacts = LocalArtifactStore(
-    allowedSourceRoots: options.allowedRoots,
+    allowedSourceRoots: [
+      ...options.allowedRoots,
+      ...options.artifactRoots,
+    ],
     maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
   );
   final mutations = LocalMapAuthoringMutationApi(
@@ -103,6 +106,7 @@ Future<void> main(List<String> arguments) async {
 
 const String _usage = 'Usage: pokemap_authoring --root <allowed-root> '
     '[--root <allowed-root> ...] [--export-root <allowed-output-root> ...] '
+    '[--artifact-root <allowed-artifact-root> ...] '
     '[--timeout-ms <positive-int>] '
     '[--export-timeout-ms <positive-int>] '
     '[--max-input-bytes <positive-int>]';
@@ -110,6 +114,7 @@ const String _usage = 'Usage: pokemap_authoring --root <allowed-root> '
 final class _CliOptions {
   const _CliOptions({
     required this.allowedRoots,
+    required this.artifactRoots,
     required this.exportRoots,
     required this.commandTimeout,
     required this.gameExportTimeout,
@@ -118,6 +123,7 @@ final class _CliOptions {
 
   factory _CliOptions.parse(List<String> arguments) {
     final roots = <String>[];
+    final artifactRoots = <String>[];
     final exportRoots = <String>[];
     var timeoutMs = 10000;
     var exportTimeoutMs = 120000;
@@ -128,6 +134,8 @@ final class _CliOptions {
       switch (option) {
         case '--root':
           roots.add(_nextValue(arguments, index++, option));
+        case '--artifact-root':
+          artifactRoots.add(_nextValue(arguments, index++, option));
         case '--export-root':
           exportRoots.add(_nextValue(arguments, index++, option));
         case '--timeout-ms':
@@ -156,6 +164,7 @@ final class _CliOptions {
     }
     return _CliOptions(
       allowedRoots: List.unmodifiable(roots),
+      artifactRoots: List.unmodifiable(artifactRoots),
       exportRoots: List.unmodifiable(exportRoots),
       commandTimeout: Duration(milliseconds: timeoutMs),
       gameExportTimeout: Duration(milliseconds: exportTimeoutMs),
@@ -164,6 +173,7 @@ final class _CliOptions {
   }
 
   final List<String> allowedRoots;
+  final List<String> artifactRoots;
   final List<String> exportRoots;
   final Duration commandTimeout;
   final Duration gameExportTimeout;

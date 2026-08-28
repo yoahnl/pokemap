@@ -9,11 +9,14 @@ final class RuntimeTitleMusicController {
   RuntimeTitleMusicController({
     FlameCinematicAudioDriver? driver,
     RuntimeAudioMixer? mixer,
+    Duration stopTimeout = const Duration(seconds: 1),
   })  : _driver = driver ?? FlameAudioCinematicRuntimeDriver(),
-        _mixer = mixer ?? RuntimeAudioMixer();
+        _mixer = mixer ?? RuntimeAudioMixer(),
+        _stopTimeout = stopTimeout;
 
   final FlameCinematicAudioDriver _driver;
   final RuntimeAudioMixer _mixer;
+  final Duration _stopTimeout;
 
   Future<void> _pending = Future<void>.value();
   Object? _handle;
@@ -111,7 +114,7 @@ final class RuntimeTitleMusicController {
     if (handle == null) return;
     _mixer.unregister(handle);
     try {
-      await _driver.stop(handle);
+      await _driver.stop(handle).timeout(_stopTimeout);
     } on Object catch (error) {
       lastFailure = error;
     }

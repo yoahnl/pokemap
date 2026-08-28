@@ -25,8 +25,10 @@ int resolvePlacedElementAnimationFrameIndex({
     return 0;
   }
   final normalizedDurations = frameDurationsMs
-      .map((value) =>
-          value > 0 ? value : defaultPlacedElementAnimationFrameDurationMs)
+      .map(
+        (value) =>
+            value > 0 ? value : defaultPlacedElementAnimationFrameDurationMs,
+      )
       .toList(growable: false);
   final config = animation;
   if (config == null || !config.enabled) {
@@ -68,8 +70,10 @@ PlacedElementAnimationOneShotFrame resolvePlacedElementAnimationOneShotFrame({
     );
   }
   final normalizedDurations = frameDurationsMs
-      .map((value) =>
-          value > 0 ? value : defaultPlacedElementAnimationFrameDurationMs)
+      .map(
+        (value) =>
+            value > 0 ? value : defaultPlacedElementAnimationFrameDurationMs,
+      )
       .toList(growable: false);
   if (normalizedDurations.length == 1) {
     return const PlacedElementAnimationOneShotFrame(
@@ -107,6 +111,24 @@ PlacedElementAnimationOneShotFrame resolvePlacedElementAnimationOneShotFrame({
     frameIndex: normalizedDurations.length - 1,
     completed: true,
   );
+}
+
+double resolvePlacedElementAnimationOneShotDurationMs({
+  required List<int> frameDurationsMs,
+  double speed = 1.0,
+}) {
+  final normalizedDurations = frameDurationsMs
+      .map(
+        (value) =>
+            value > 0 ? value : defaultPlacedElementAnimationFrameDurationMs,
+      )
+      .toList(growable: false);
+  if (normalizedDurations.isEmpty) {
+    return 0;
+  }
+  final safeSpeed = speed <= 0 ? 1.0 : speed;
+  final total = normalizedDurations.fold<int>(0, (sum, value) => sum + value);
+  return total / safeSpeed;
 }
 
 class PlacedElementAnimationOneShotFrame {
@@ -209,10 +231,7 @@ _AnimationSequence _buildSequence({
 }
 
 class _AnimationSequence {
-  const _AnimationSequence({
-    required this.indices,
-    required this.durationsMs,
-  });
+  const _AnimationSequence({required this.indices, required this.durationsMs});
 
   final List<int> indices;
   final List<int> durationsMs;

@@ -36,6 +36,7 @@ final class PlayerDialogueViewData {
     required this.isCurrentLineFullyRevealed,
     required this.isLastContent,
     required this.choices,
+    this.isAdvanceAvailable = true,
   });
 
   final int revision;
@@ -46,6 +47,7 @@ final class PlayerDialogueViewData {
   final bool isCurrentLineFullyRevealed;
   final bool isLastContent;
   final List<PlayerDialogueChoiceViewData> choices;
+  final bool isAdvanceAvailable;
 }
 
 sealed class PlayerDialogueAction {
@@ -186,11 +188,13 @@ class PlayerDialogueSurface extends StatelessWidget {
                         PlayerDialogueMode.line => GestureDetector(
                             key: const ValueKey<String>('dialogue-tap-zone'),
                             behavior: HitTestBehavior.opaque,
-                            onTap: () => onAction(
-                              PlayerDialogueAdvanceAction(
-                                snapshotRevision: data.revision,
-                              ),
-                            ),
+                            onTap: data.isAdvanceAvailable
+                                ? () => onAction(
+                                      PlayerDialogueAdvanceAction(
+                                        snapshotRevision: data.revision,
+                                      ),
+                                    )
+                                : null,
                             child: _DialogueLineContent(
                               data: data,
                               dialogue: dialogue,
@@ -614,6 +618,15 @@ class _DialogueAdvanceLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!data.isAdvanceAvailable) {
+      return const Align(
+        alignment: Alignment.centerRight,
+        child: Icon(
+          Icons.more_horiz_rounded,
+          key: ValueKey<String>('dialogue-progress-indicator-pending'),
+        ),
+      );
+    }
     final dialogue = context.playerDialogueProfile;
     final kind = data.isCurrentLineFullyRevealed
         ? dialogue?.progressIndicator ??

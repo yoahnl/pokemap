@@ -602,6 +602,13 @@ void _validateProjected(ProjectManifest manifest, Iterable<MapData> maps) {
     for (final map in maps) {
       MapValidator.validate(map, projectDialogueContext: manifest);
     }
+  } on ValidationException catch (error) {
+    throw _failure(
+      error.code ?? 'map.projected_state_invalid',
+      error.message,
+      details: error.details,
+      remediation: error.remediation,
+    );
   } on Object catch (error) {
     throw _failure(
       'map.projected_state_invalid',

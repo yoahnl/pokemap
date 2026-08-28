@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 export interface PokeMapMcpConfig {
   allowedRoots: string[];
+  artifactRoots: string[];
   exportRoots: string[];
   authoringPackageRoot: string;
   repositoryRoot: string;
@@ -22,6 +23,7 @@ export class PokeMapMcpConfigError extends Error {
 
 export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   const allowedRoots: string[] = [];
+  const artifactRoots: string[] = [];
   const exportRoots: string[] = [];
   let authoringPackageRoot: string | undefined;
   let repositoryRoot: string | undefined;
@@ -39,6 +41,9 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
     switch (option) {
       case "--root":
         allowedRoots.push(resolve(value));
+        break;
+      case "--artifact-root":
+        artifactRoots.push(resolve(value));
         break;
       case "--export-root":
         exportRoots.push(resolve(value));
@@ -85,6 +90,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   }
   return {
     allowedRoots,
+    artifactRoots,
     exportRoots,
     authoringPackageRoot: packageRoot,
     repositoryRoot: repository,

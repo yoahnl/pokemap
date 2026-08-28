@@ -25,9 +25,7 @@ void main() {
             name: 'Smart terrain',
             presetId: 'grass',
             usage: SmartTileUsage.terrain,
-            field: SmartTileField.cell(
-              semanticCells: <int>[0, 0, 0, 0],
-            ),
+            field: SmartTileField.cell(semanticCells: <int>[0, 0, 0, 0]),
           ),
         ],
       );
@@ -135,13 +133,12 @@ void main() {
           ],
         ),
       );
-      final preview = MapCellStrokeBuffer.smartTile(
-        sourceMap: map,
-        layerId: 'smart',
-      )..setSmartTileMaterials(
-          cells: const <GridPos>[GridPos(x: 1, y: 0)],
-          materialId: 'grass',
-        );
+      final preview =
+          MapCellStrokeBuffer.smartTile(sourceMap: map, layerId: 'smart')
+            ..setSmartTileMaterials(
+              cells: const <GridPos>[GridPos(x: 1, y: 0)],
+              materialId: 'grass',
+            );
       final recorder = ui.PictureRecorder();
       MapGridPainter(
         map: map,
@@ -163,8 +160,9 @@ void main() {
       ).paint(ui.Canvas(recorder), const ui.Size(64, 32));
       final picture = recorder.endRecording();
       final image = await picture.toImage(64, 32);
-      final pixels =
-          (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+      final pixels = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
 
       expect(_rgbaAt(pixels, 64, 16, 16)[3], 0);
       expect(_rgbaAt(pixels, 64, 48, 16), <int>[42, 207, 97, 255]);
@@ -200,10 +198,7 @@ void main() {
             tileObjects: <MapPlacedTile>[
               MapPlacedTile(
                 id: 'fractional-prop',
-                tile: TileLayerPaletteEntry(
-                  tilesetId: 'props',
-                  localTileId: 0,
-                ),
+                tile: TileLayerPaletteEntry(tilesetId: 'props', localTileId: 0),
                 anchorX: 0.25,
                 anchorY: 0.75,
                 width: 0.5,
@@ -233,9 +228,7 @@ void main() {
         offset: ui.Offset.zero,
         tileWidth: 32,
         tileHeight: 32,
-        tilesetImagesById: <String, ui.Image?>{
-          'object-asset': objectImage,
-        },
+        tilesetImagesById: <String, ui.Image?>{'object-asset': objectImage},
         sourceTileWidth: 32,
         sourceTileHeight: 32,
         tilesPerRowById: const <String, int>{},
@@ -347,8 +340,9 @@ void main() {
         ).paint(canvas, const ui.Size(64, 64));
         final picture = recorder.endRecording();
         final image = await picture.toImage(64, 64);
-        final pixels =
-            await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        final pixels = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
         final pixelOffset = ((16 * image.width) + 32) * 4;
         final alpha = pixels!.getUint8(pixelOffset + 3);
         picture.dispose();
@@ -408,10 +402,7 @@ void main() {
         offset: ui.Offset.zero,
         tileWidth: 32,
         tileHeight: 32,
-        tilesetImagesById: <String, ui.Image?>{
-          'base': base,
-          'detail': detail,
-        },
+        tilesetImagesById: <String, ui.Image?>{'base': base, 'detail': detail},
         sourceTileWidth: 2,
         sourceTileHeight: 2,
         tilesPerRowById: const <String, int>{'base': 1, 'detail': 1},
@@ -434,133 +425,123 @@ void main() {
     });
 
     test(
-        'marks only non-collision cells of multi-tile placed elements as foreground',
-        () {
-      const map = MapData(
-        id: 'lab',
-        name: 'lab',
-        size: GridSize(width: 3, height: 2),
-        layers: <MapLayer>[
-          TileLayer(
-            id: 'ground',
-            name: 'Ground',
-            palette: <TileLayerPaletteEntry>[
-              TileLayerPaletteEntry(
-                tilesetId: 'ground',
-                localTileId: 0,
-              ),
-            ],
-            cells: <int>[
-              1,
-              1,
-              0,
-              1,
-              1,
-              0,
-            ],
-          ),
-        ],
-        placedElements: <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'table_1',
-            layerId: 'ground',
-            elementId: 'table',
-            pos: GridPos(x: 0, y: 0),
-          ),
-        ],
-      );
-
-      const project = ProjectManifest(
-        name: 'editor',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[],
-        elements: <ProjectElementEntry>[
-          ProjectElementEntry(
-            id: 'table',
-            name: 'Table',
-            tilesetId: 'interior',
-            categoryId: 'decor',
-            frames: <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
-              ),
-            ],
-            collisionProfile: ElementCollisionProfile(
-              cells: <GridPos>[
-                GridPos(x: 0, y: 0),
-                GridPos(x: 1, y: 0),
+      'marks only non-collision cells of multi-tile placed elements as foreground',
+      () {
+        const map = MapData(
+          id: 'lab',
+          name: 'lab',
+          size: GridSize(width: 3, height: 2),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'ground',
+              name: 'Ground',
+              palette: <TileLayerPaletteEntry>[
+                TileLayerPaletteEntry(tilesetId: 'ground', localTileId: 0),
               ],
+              cells: <int>[1, 1, 0, 1, 1, 0],
             ),
-          ),
-        ],
-      );
-
-      final result = buildEditorForegroundTileCellIndicesByLayerId(
-        map: map,
-        project: project,
-      );
-
-      expect(result['ground'], equals(<int>{3, 4}));
-    });
-
-    test('rotates source collision cells into destination foreground bounds',
-        () {
-      final map = MapData(
-        id: 'rotated-foreground',
-        name: 'Rotated foreground',
-        size: const GridSize(width: 4, height: 4),
-        layers: <MapLayer>[
-          TileLayer(
-            id: 'ground',
-            name: 'Ground',
-            palette: <TileLayerPaletteEntry>[
-              const TileLayerPaletteEntry(
-                tilesetId: 'ground',
-                localTileId: 0,
-              ),
-            ],
-            cells: List<int>.filled(16, 1, growable: false),
-          ),
-        ],
-        placedElements: const <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'rotated-table',
-            layerId: 'ground',
-            elementId: 'table-3x2',
-            pos: GridPos(x: 1, y: 0),
-            quarterTurns: 1,
-          ),
-        ],
-      );
-      const project = ProjectManifest(
-        name: 'editor',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[],
-        elements: <ProjectElementEntry>[
-          ProjectElementEntry(
-            id: 'table-3x2',
-            name: 'Table 3x2',
-            tilesetId: 'interior',
-            categoryId: 'decor',
-            frames: <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 0, y: 0, width: 3, height: 2),
-              ),
-            ],
-            collisionProfile: ElementCollisionProfile(
-              cells: <GridPos>[GridPos(x: 0, y: 0)],
+          ],
+          placedElements: <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'table_1',
+              layerId: 'ground',
+              elementId: 'table',
+              pos: GridPos(x: 0, y: 0),
             ),
-          ),
-        ],
-      );
+          ],
+        );
 
-      final result = buildEditorForegroundTileCellIndicesByLayerId(
-        map: map,
-        project: project,
-      );
+        const project = ProjectManifest(
+          name: 'editor',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          elements: <ProjectElementEntry>[
+            ProjectElementEntry(
+              id: 'table',
+              name: 'Table',
+              tilesetId: 'interior',
+              categoryId: 'decor',
+              frames: <TilesetVisualFrame>[
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+                ),
+              ],
+              collisionProfile: ElementCollisionProfile(
+                cells: <GridPos>[GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+              ),
+            ),
+          ],
+        );
 
-      expect(result['ground'], equals(<int>{1, 5, 6, 9, 10}));
-    });
+        final result = buildEditorForegroundTileCellIndicesByLayerId(
+          map: map,
+          project: project,
+        );
+
+        expect(result['ground'], equals(<int>{3, 4}));
+      },
+    );
+
+    test(
+      'rotates source collision cells into destination foreground bounds',
+      () {
+        final map = MapData(
+          id: 'rotated-foreground',
+          name: 'Rotated foreground',
+          size: const GridSize(width: 4, height: 4),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'ground',
+              name: 'Ground',
+              palette: <TileLayerPaletteEntry>[
+                const TileLayerPaletteEntry(
+                  tilesetId: 'ground',
+                  localTileId: 0,
+                ),
+              ],
+              cells: List<int>.filled(16, 1, growable: false),
+            ),
+          ],
+          placedElements: const <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'rotated-table',
+              layerId: 'ground',
+              elementId: 'table-3x2',
+              pos: GridPos(x: 1, y: 0),
+              quarterTurns: 1,
+            ),
+          ],
+        );
+        const project = ProjectManifest(
+          name: 'editor',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          elements: <ProjectElementEntry>[
+            ProjectElementEntry(
+              id: 'table-3x2',
+              name: 'Table 3x2',
+              tilesetId: 'interior',
+              categoryId: 'decor',
+              frames: <TilesetVisualFrame>[
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 3, height: 2),
+                ),
+              ],
+              collisionProfile: ElementCollisionProfile(
+                cells: <GridPos>[GridPos(x: 0, y: 0)],
+              ),
+            ),
+          ],
+        );
+
+        final result = buildEditorForegroundTileCellIndicesByLayerId(
+          map: map,
+          project: project,
+        );
+
+        expect(result['ground'], equals(<int>{1, 5, 6, 9, 10}));
+      },
+    );
 
     test('routes split cells to the correct render pass deterministically', () {
       expect(
@@ -652,304 +633,292 @@ void main() {
       );
     });
 
-    test('paints placed elements even when their TileLayer has no tiles',
-        () async {
-      const map = MapData(
-        id: 'forest',
-        name: 'Forest',
-        size: GridSize(width: 3, height: 3),
-        layers: <MapLayer>[
-          TileLayer(
-            id: 'environment',
-            name: 'Environment',
-            cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
-          ),
-        ],
-        placedElements: <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'generated_tree_1',
-            layerId: 'environment',
-            elementId: 'tree',
-            pos: GridPos(x: 1, y: 1),
-          ),
-        ],
-      );
-      const project = ProjectManifest(
-        name: 'editor',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[
-          ProjectTilesetEntry(
-            id: 'element-tileset',
-            name: 'Element Tileset',
-            relativePath: 'tilesets/elements.png',
-          ),
-        ],
-        elements: <ProjectElementEntry>[
-          ProjectElementEntry(
-            id: 'tree',
-            name: 'Tree',
-            tilesetId: 'element-tileset',
-            categoryId: 'nature',
-            frames: <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 2, y: 0),
-              ),
-            ],
-          ),
-        ],
-      );
-      final tilesetImage = await _testTilesetImage();
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 32,
-        tileHeight: 32,
-        tilesetImagesById: {'element-tileset': tilesetImage},
-        sourceTileWidth: 32,
-        sourceTileHeight: 32,
-        tilesPerRowById: const <String, int>{'element-tileset': 4},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        project: project,
-      ).paint(canvas, const ui.Size(96, 96));
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(96, 96);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      final offset = ((48 * image.width) + 48) * 4;
-      expect(pixels!.getUint8(offset), greaterThan(220));
-      expect(pixels.getUint8(offset + 1), lessThan(40));
-      expect(pixels.getUint8(offset + 2), lessThan(40));
-      picture.dispose();
-      image.dispose();
-      tilesetImage.dispose();
-    });
-
-    test('rotates non-square placed-element cells and rectangular pixels',
-        () async {
-      final tilesetImage = await _rectangularAsymmetricTilesetImage();
-
-      Future<ByteData> render(
-        int quarterTurns, {
-        int animationMs = 0,
-      }) async {
-        final map = MapData(
-          id: 'rotated-pixels-$quarterTurns',
-          name: 'Rotated pixels',
-          size: const GridSize(width: 2, height: 2),
-          layers: const <MapLayer>[
+    test(
+      'paints placed elements even when their TileLayer has no tiles',
+      () async {
+        const map = MapData(
+          id: 'forest',
+          name: 'Forest',
+          size: GridSize(width: 3, height: 3),
+          layers: <MapLayer>[
             TileLayer(
-              id: 'decor',
-              name: 'Decor',
-              cells: <int>[0, 0, 0, 0],
+              id: 'environment',
+              name: 'Environment',
+              cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
             ),
           ],
           placedElements: <MapPlacedElement>[
             MapPlacedElement(
-              id: 'asymmetric',
-              layerId: 'decor',
-              elementId: 'two-cells',
-              pos: const GridPos(x: 0, y: 0),
-              quarterTurns: quarterTurns,
+              id: 'generated_tree_1',
+              layerId: 'environment',
+              elementId: 'tree',
+              pos: GridPos(x: 1, y: 1),
             ),
           ],
         );
         const project = ProjectManifest(
-          name: 'Rotated painter',
+          name: 'editor',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
             ProjectTilesetEntry(
-              id: 'rectangular',
-              name: 'Rectangular',
-              relativePath: 'rectangular.png',
+              id: 'element-tileset',
+              name: 'Element Tileset',
+              relativePath: 'tilesets/elements.png',
             ),
           ],
           elements: <ProjectElementEntry>[
             ProjectElementEntry(
-              id: 'two-cells',
-              name: 'Two cells',
-              tilesetId: 'rectangular',
+              id: 'tree',
+              name: 'Tree',
+              tilesetId: 'element-tileset',
+              categoryId: 'nature',
+              frames: <TilesetVisualFrame>[
+                TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0)),
+              ],
+            ),
+          ],
+        );
+        final tilesetImage = await _testTilesetImage();
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+
+        MapGridPainter(
+          map: map,
+          zoom: 1,
+          offset: ui.Offset.zero,
+          tileWidth: 32,
+          tileHeight: 32,
+          tilesetImagesById: {'element-tileset': tilesetImage},
+          sourceTileWidth: 32,
+          sourceTileHeight: 32,
+          tilesPerRowById: const <String, int>{'element-tileset': 4},
+          warps: const <MapWarp>[],
+          gameplayZones: const <MapGameplayZone>[],
+          connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+          project: project,
+        ).paint(canvas, const ui.Size(96, 96));
+
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(96, 96);
+        final pixels = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
+        final offset = ((48 * image.width) + 48) * 4;
+        expect(pixels!.getUint8(offset), greaterThan(220));
+        expect(pixels.getUint8(offset + 1), lessThan(40));
+        expect(pixels.getUint8(offset + 2), lessThan(40));
+        picture.dispose();
+        image.dispose();
+        tilesetImage.dispose();
+      },
+    );
+
+    test(
+      'rotates non-square placed-element cells and rectangular pixels',
+      () async {
+        final tilesetImage = await _rectangularAsymmetricTilesetImage();
+
+        Future<ByteData> render(int quarterTurns, {int animationMs = 0}) async {
+          final map = MapData(
+            id: 'rotated-pixels-$quarterTurns',
+            name: 'Rotated pixels',
+            size: const GridSize(width: 2, height: 2),
+            layers: const <MapLayer>[
+              TileLayer(id: 'decor', name: 'Decor', cells: <int>[0, 0, 0, 0]),
+            ],
+            placedElements: <MapPlacedElement>[
+              MapPlacedElement(
+                id: 'asymmetric',
+                layerId: 'decor',
+                elementId: 'two-cells',
+                pos: const GridPos(x: 0, y: 0),
+                quarterTurns: quarterTurns,
+                animation: const MapPlacedElementAnimation(
+                  enabled: true,
+                  mode: MapPlacedElementAnimationMode.loop,
+                ),
+              ),
+            ],
+          );
+          const project = ProjectManifest(
+            name: 'Rotated painter',
+            maps: <ProjectMapEntry>[],
+            tilesets: <ProjectTilesetEntry>[
+              ProjectTilesetEntry(
+                id: 'rectangular',
+                name: 'Rectangular',
+                relativePath: 'rectangular.png',
+              ),
+            ],
+            elements: <ProjectElementEntry>[
+              ProjectElementEntry(
+                id: 'two-cells',
+                name: 'Two cells',
+                tilesetId: 'rectangular',
+                categoryId: 'decor',
+                frames: <TilesetVisualFrame>[
+                  TilesetVisualFrame(
+                    source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 1),
+                    durationMs: 100,
+                  ),
+                  TilesetVisualFrame(
+                    source: TilesetSourceRect(x: 0, y: 1, width: 2, height: 1),
+                    durationMs: 100,
+                  ),
+                ],
+              ),
+            ],
+          );
+          final recorder = ui.PictureRecorder();
+          final canvas = ui.Canvas(recorder);
+          MapGridPainter(
+            map: map,
+            zoom: 1,
+            offset: ui.Offset.zero,
+            tileWidth: 12,
+            tileHeight: 8,
+            tilesetImagesById: <String, ui.Image?>{'rectangular': tilesetImage},
+            sourceTileWidth: 8,
+            sourceTileHeight: 4,
+            tilesPerRowById: const <String, int>{'rectangular': 2},
+            warps: const <MapWarp>[],
+            gameplayZones: const <MapGameplayZone>[],
+            connectionLabelsByDirection:
+                const <MapConnectionDirection, String>{},
+            project: project,
+            editorEntityAnimationMs: animationMs,
+            showGrid: false,
+            showEditorOverlays: false,
+          ).paint(canvas, const ui.Size(24, 16));
+          final picture = recorder.endRecording();
+          final image = await picture.toImage(24, 16);
+          final pixels = await image.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          );
+          picture.dispose();
+          image.dispose();
+          return pixels!;
+        }
+
+        void expectRgb(
+          ByteData pixels,
+          int x,
+          int y,
+          int red,
+          int green,
+          int blue,
+        ) {
+          final offset = ((y * 24) + x) * 4;
+          expect(pixels.getUint8(offset), red);
+          expect(pixels.getUint8(offset + 1), green);
+          expect(pixels.getUint8(offset + 2), blue);
+        }
+
+        final q1 = await render(1);
+        expectRgb(q1, 6, 2, 255, 0, 0);
+        expectRgb(q1, 6, 6, 0, 255, 0);
+        expectRgb(q1, 6, 10, 0, 0, 255);
+        expectRgb(q1, 6, 14, 255, 255, 0);
+
+        final q3 = await render(3);
+        expectRgb(q3, 6, 2, 255, 255, 0);
+        expectRgb(q3, 6, 6, 0, 0, 255);
+        expectRgb(q3, 6, 10, 0, 255, 0);
+        expectRgb(q3, 6, 14, 255, 0, 0);
+
+        final q1SecondFrame = await render(1, animationMs: 120);
+        expectRgb(q1SecondFrame, 6, 2, 255, 0, 255);
+        expectRgb(q1SecondFrame, 6, 6, 0, 255, 255);
+        tilesetImage.dispose();
+      },
+    );
+
+    test(
+      'selection and rotation ghost use preview destination bounds',
+      () async {
+        const map = MapData(
+          id: 'rotation-preview',
+          name: 'Rotation preview',
+          size: GridSize(width: 4, height: 4),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'decor',
+              name: 'Decor',
+              cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ),
+          ],
+          placedElements: <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'selected',
+              layerId: 'decor',
+              elementId: 'wide',
+              pos: GridPos(x: 0, y: 0),
+            ),
+          ],
+        );
+        const project = ProjectManifest(
+          name: 'Rotation preview',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          elements: <ProjectElementEntry>[
+            ProjectElementEntry(
+              id: 'wide',
+              name: 'Wide',
+              tilesetId: 'tiles',
               categoryId: 'decor',
               frames: <TilesetVisualFrame>[
                 TilesetVisualFrame(
-                  source: TilesetSourceRect(
-                    x: 0,
-                    y: 0,
-                    width: 2,
-                    height: 1,
-                  ),
-                  durationMs: 100,
-                ),
-                TilesetVisualFrame(
-                  source: TilesetSourceRect(
-                    x: 0,
-                    y: 1,
-                    width: 2,
-                    height: 1,
-                  ),
-                  durationMs: 100,
+                  source: TilesetSourceRect(x: 0, y: 0, width: 3, height: 2),
                 ),
               ],
             ),
           ],
         );
+        final preview = planMapPlacedElementRotation(
+          map: map,
+          project: project,
+          instanceId: 'selected',
+          targetQuarterTurns: 1,
+        );
+        expect(preview.canCommit, isTrue);
         final recorder = ui.PictureRecorder();
         final canvas = ui.Canvas(recorder);
         MapGridPainter(
           map: map,
           zoom: 1,
           offset: ui.Offset.zero,
-          tileWidth: 12,
+          tileWidth: 8,
           tileHeight: 8,
-          tilesetImagesById: <String, ui.Image?>{
-            'rectangular': tilesetImage,
-          },
+          tilesetImagesById: const <String, ui.Image?>{},
           sourceTileWidth: 8,
-          sourceTileHeight: 4,
-          tilesPerRowById: const <String, int>{'rectangular': 2},
+          sourceTileHeight: 8,
+          tilesPerRowById: const <String, int>{},
           warps: const <MapWarp>[],
           gameplayZones: const <MapGameplayZone>[],
           connectionLabelsByDirection: const <MapConnectionDirection, String>{},
           project: project,
-          editorEntityAnimationMs: animationMs,
+          selectedPlacedElementInstanceId: 'selected',
+          placedElementRotationPreview: preview,
+          rotationPreviewAcceptedColor: const ui.Color(0xFF00FFFF),
           showGrid: false,
-          showEditorOverlays: false,
-        ).paint(canvas, const ui.Size(24, 16));
+        ).paint(canvas, const ui.Size(32, 32));
         final picture = recorder.endRecording();
-        final image = await picture.toImage(24, 16);
-        final pixels =
-            await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        final image = await picture.toImage(32, 32);
+        final pixels = (await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        ))!;
+
+        int alphaAt(int x, int y) =>
+            pixels.getUint8((((y * image.width) + x) * 4) + 3);
+
+        // q1 swaps 3x2 into 2x3. Both selection and ghost include row 3,
+        // while the obsolete third column stays untouched.
+        expect(alphaAt(4, 20), greaterThan(0));
+        expect(alphaAt(20, 20), 0);
         picture.dispose();
         image.dispose();
-        return pixels!;
-      }
-
-      void expectRgb(
-        ByteData pixels,
-        int x,
-        int y,
-        int red,
-        int green,
-        int blue,
-      ) {
-        final offset = ((y * 24) + x) * 4;
-        expect(pixels.getUint8(offset), red);
-        expect(pixels.getUint8(offset + 1), green);
-        expect(pixels.getUint8(offset + 2), blue);
-      }
-
-      final q1 = await render(1);
-      expectRgb(q1, 6, 2, 255, 0, 0);
-      expectRgb(q1, 6, 6, 0, 255, 0);
-      expectRgb(q1, 6, 10, 0, 0, 255);
-      expectRgb(q1, 6, 14, 255, 255, 0);
-
-      final q3 = await render(3);
-      expectRgb(q3, 6, 2, 255, 255, 0);
-      expectRgb(q3, 6, 6, 0, 0, 255);
-      expectRgb(q3, 6, 10, 0, 255, 0);
-      expectRgb(q3, 6, 14, 255, 0, 0);
-
-      final q1SecondFrame = await render(1, animationMs: 120);
-      expectRgb(q1SecondFrame, 6, 2, 255, 0, 255);
-      expectRgb(q1SecondFrame, 6, 6, 0, 255, 255);
-      tilesetImage.dispose();
-    });
-
-    test('selection and rotation ghost use preview destination bounds',
-        () async {
-      const map = MapData(
-        id: 'rotation-preview',
-        name: 'Rotation preview',
-        size: GridSize(width: 4, height: 4),
-        layers: <MapLayer>[
-          TileLayer(
-            id: 'decor',
-            name: 'Decor',
-            cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          ),
-        ],
-        placedElements: <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'selected',
-            layerId: 'decor',
-            elementId: 'wide',
-            pos: GridPos(x: 0, y: 0),
-          ),
-        ],
-      );
-      const project = ProjectManifest(
-        name: 'Rotation preview',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[],
-        elements: <ProjectElementEntry>[
-          ProjectElementEntry(
-            id: 'wide',
-            name: 'Wide',
-            tilesetId: 'tiles',
-            categoryId: 'decor',
-            frames: <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(
-                  x: 0,
-                  y: 0,
-                  width: 3,
-                  height: 2,
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-      final preview = planMapPlacedElementRotation(
-        map: map,
-        project: project,
-        instanceId: 'selected',
-        targetQuarterTurns: 1,
-      );
-      expect(preview.canCommit, isTrue);
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 8,
-        tileHeight: 8,
-        tilesetImagesById: const <String, ui.Image?>{},
-        sourceTileWidth: 8,
-        sourceTileHeight: 8,
-        tilesPerRowById: const <String, int>{},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        project: project,
-        selectedPlacedElementInstanceId: 'selected',
-        placedElementRotationPreview: preview,
-        rotationPreviewAcceptedColor: const ui.Color(0xFF00FFFF),
-        showGrid: false,
-      ).paint(canvas, const ui.Size(32, 32));
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(32, 32);
-      final pixels = (await image.toByteData(
-        format: ui.ImageByteFormat.rawRgba,
-      ))!;
-
-      int alphaAt(int x, int y) =>
-          pixels.getUint8((((y * image.width) + x) * 4) + 3);
-
-      // q1 swaps 3x2 into 2x3. Both selection and ghost include row 3,
-      // while the obsolete third column stays untouched.
-      expect(alphaAt(4, 20), greaterThan(0));
-      expect(alphaAt(20, 20), 0);
-      picture.dispose();
-      image.dispose();
-    });
+      },
+    );
 
     test('element placement preview uses the semantic theme color', () async {
       const previewColor = ui.Color(0xFF12A34A);
@@ -957,9 +926,7 @@ void main() {
         id: 'element-placement-preview',
         name: 'Element placement preview',
         size: GridSize(width: 4, height: 4),
-        layers: <MapLayer>[
-          TileLayer(id: 'decor', name: 'Decor'),
-        ],
+        layers: <MapLayer>[TileLayer(id: 'decor', name: 'Decor')],
       );
       const project = ProjectManifest(
         name: 'Element placement preview',
@@ -1030,580 +997,600 @@ void main() {
       image.dispose();
     });
 
-    test('map with Border keeps static shadow preview below placed elements',
-        () async {
-      const map = MapData(
-        id: 'market',
-        name: 'Market',
-        size: GridSize(width: 5, height: 5),
-        layers: <MapLayer>[
-          TileLayer(
-            id: 'environment',
-            name: 'Environment',
-            cells: <int>[
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
+    test(
+      'map with Border keeps static shadow preview below placed elements',
+      () async {
+        const map = MapData(
+          id: 'market',
+          name: 'Market',
+          size: GridSize(width: 5, height: 5),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'environment',
+              name: 'Environment',
+              cells: <int>[
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+              ],
+            ),
+            BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
+          ],
+          placedElements: <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'stand_1',
+              layerId: 'environment',
+              elementId: 'stand',
+              pos: GridPos(x: 1, y: 1),
+            ),
+          ],
+        );
+        final project = ProjectManifest(
+          name: 'editor',
+          maps: const <ProjectMapEntry>[],
+          tilesets: const <ProjectTilesetEntry>[],
+          shadowCatalog: ProjectShadowCatalog(
+            profiles: [
+              ProjectShadowProfile(
+                id: 'stand_shadow',
+                name: 'Stand shadow',
+                mode: ShadowCasterMode.ellipse,
+                renderPass: ShadowRenderPass.groundStatic,
+                offsetX: 3,
+                offsetY: 5,
+                opacity: 0.5,
+              ),
             ],
           ),
-          BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
-        ],
-        placedElements: <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'stand_1',
-            layerId: 'environment',
-            elementId: 'stand',
-            pos: GridPos(x: 1, y: 1),
+          elements: [
+            ProjectElementEntry(
+              id: 'stand',
+              name: 'Stand',
+              tilesetId: 'element-tileset',
+              categoryId: 'market',
+              frames: const <TilesetVisualFrame>[
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+                ),
+              ],
+              shadow: ProjectElementShadowConfig(
+                castsShadow: true,
+                shadowProfileId: 'stand_shadow',
+              ),
+            ),
+          ],
+        );
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+
+        MapGridPainter(
+          map: map,
+          zoom: 1,
+          offset: ui.Offset.zero,
+          tileWidth: 16,
+          tileHeight: 16,
+          tilesetImagesById: const <String, ui.Image?>{},
+          sourceTileWidth: 16,
+          sourceTileHeight: 16,
+          tilesPerRowById: const <String, int>{},
+          warps: const <MapWarp>[],
+          gameplayZones: const <MapGameplayZone>[],
+          connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+          project: project,
+        ).paint(canvas, const ui.Size(80, 80));
+
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(80, 80);
+        final pixels = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
+        final offset = ((53 * image.width) + 35) * 4;
+        expect(pixels!.getUint8(offset + 3), greaterThan(0));
+        picture.dispose();
+        image.dispose();
+      },
+    );
+
+    test(
+      'map with Border keeps projected building shadow preview below placed elements',
+      () async {
+        const map = MapData(
+          id: 'market',
+          name: 'Market',
+          size: GridSize(width: 5, height: 7),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'environment',
+              name: 'Environment',
+              cells: <int>[
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+              ],
+            ),
+            BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
+          ],
+          placedElements: <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'building_1',
+              layerId: 'environment',
+              elementId: 'building',
+              pos: GridPos(x: 1, y: 2),
+            ),
+          ],
+        );
+        final project = ProjectManifest(
+          name: 'editor',
+          maps: const <ProjectMapEntry>[],
+          tilesets: const <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'element-tileset',
+              name: 'Element Tileset',
+              relativePath: 'tilesets/elements.png',
+            ),
+          ],
+          projectedBuildingShadowCatalog: ProjectBuildingShadowPresetCatalog(
+            presets: [_projectedBuildingShadowPreset()],
           ),
-        ],
-      );
-      final project = ProjectManifest(
-        name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[],
-        shadowCatalog: ProjectShadowCatalog(
-          profiles: [
-            ProjectShadowProfile(
-              id: 'stand_shadow',
-              name: 'Stand shadow',
-              mode: ShadowCasterMode.ellipse,
-              renderPass: ShadowRenderPass.groundStatic,
-              offsetX: 3,
-              offsetY: 5,
+          elements: [
+            ProjectElementEntry(
+              id: 'building',
+              name: 'Building',
+              tilesetId: 'element-tileset',
+              categoryId: 'market',
+              frames: const <TilesetVisualFrame>[
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 3),
+                ),
+              ],
+              projectedBuildingShadow: _projectedBuildingShadowConfig(),
+            ),
+          ],
+        );
+        final tilesetImage = await _solidColorImage(
+          width: 64,
+          height: 96,
+          color: const ui.Color(0xFFFF0000),
+        );
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+
+        MapGridPainter(
+          map: map,
+          zoom: 1,
+          offset: ui.Offset.zero,
+          tileWidth: 32,
+          tileHeight: 32,
+          tilesetImagesById: {'element-tileset': tilesetImage},
+          sourceTileWidth: 32,
+          sourceTileHeight: 32,
+          tilesPerRowById: const <String, int>{'element-tileset': 2},
+          warps: const <MapWarp>[],
+          gameplayZones: const <MapGameplayZone>[],
+          connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+          project: project,
+        ).paint(canvas, const ui.Size(160, 224));
+
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(160, 224);
+        final pixels = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
+        final shadowOnlyOffset = _rgbaOffset(image, x: 104, y: 150);
+        expect(pixels!.getUint8(shadowOnlyOffset + 3), greaterThan(0));
+        final spriteOverShadowOffset = _rgbaOffset(image, x: 80, y: 150);
+        expect(pixels.getUint8(spriteOverShadowOffset), greaterThan(220));
+        expect(pixels.getUint8(spriteOverShadowOffset + 1), lessThan(40));
+        expect(pixels.getUint8(spriteOverShadowOffset + 2), lessThan(40));
+        expect(pixels.getUint8(spriteOverShadowOffset + 3), greaterThan(240));
+        picture.dispose();
+        image.dispose();
+        tilesetImage.dispose();
+      },
+    );
+
+    test(
+      'paints projected building shadow preview before static shadow preview',
+      () {
+        final source = File(
+          'lib/src/ui/canvas/map_canvas/map_grid_painter.dart',
+        ).readAsStringSync();
+        final shadowStepStart = source.indexOf(
+          'case MapVisualCompositionStepKind.shadows:',
+        );
+        final nextStepStart = source.indexOf(
+          'case MapVisualCompositionStepKind.placedElements:',
+          shadowStepStart,
+        );
+        expect(shadowStepStart, isNonNegative);
+        expect(nextStepStart, isNonNegative);
+        final shadowStepSource = source.substring(
+          shadowStepStart,
+          nextStepStart,
+        );
+        final projectedPaintIndex = shadowStepSource.indexOf(
+          'projectedBuildingShadowPreviewInstructions',
+        );
+        final staticPaintIndex = shadowStepSource.indexOf(
+          'staticShadowPreviewInstructions',
+        );
+
+        expect(projectedPaintIndex, isNonNegative);
+        expect(staticPaintIndex, isNonNegative);
+        expect(projectedPaintIndex, lessThan(staticPaintIndex));
+      },
+    );
+
+    test(
+      'does not double-paint matching baked tiles under translucent elements',
+      () async {
+        const map = MapData(
+          id: 'forest',
+          name: 'Forest',
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'environment',
+              name: 'Environment',
+              palette: <TileLayerPaletteEntry>[
+                TileLayerPaletteEntry(
+                  tilesetId: 'element-tileset',
+                  localTileId: 2,
+                ),
+              ],
+              cells: <int>[1],
+            ),
+          ],
+          placedElements: <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'tree_1',
+              layerId: 'environment',
+              elementId: 'tree',
+              pos: GridPos(x: 0, y: 0),
               opacity: 0.5,
             ),
           ],
-        ),
-        elements: [
-          ProjectElementEntry(
-            id: 'stand',
-            name: 'Stand',
-            tilesetId: 'element-tileset',
-            categoryId: 'market',
-            frames: const <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
-              ),
-            ],
-            shadow: ProjectElementShadowConfig(
-              castsShadow: true,
-              shadowProfileId: 'stand_shadow',
+        );
+        const project = ProjectManifest(
+          name: 'editor',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'element-tileset',
+              name: 'Element Tileset',
+              relativePath: 'tilesets/elements.png',
             ),
+          ],
+          elements: <ProjectElementEntry>[
+            ProjectElementEntry(
+              id: 'tree',
+              name: 'Tree',
+              tilesetId: 'element-tileset',
+              categoryId: 'nature',
+              frames: <TilesetVisualFrame>[
+                TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0)),
+              ],
+            ),
+          ],
+        );
+        final tilesetImage = await _testTilesetImage();
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+
+        MapGridPainter(
+          map: map,
+          zoom: 1,
+          offset: ui.Offset.zero,
+          tileWidth: 32,
+          tileHeight: 32,
+          tilesetImagesById: {'element-tileset': tilesetImage},
+          sourceTileWidth: 32,
+          sourceTileHeight: 32,
+          tilesPerRowById: const <String, int>{'element-tileset': 4},
+          warps: const <MapWarp>[],
+          gameplayZones: const <MapGameplayZone>[],
+          connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+          project: project,
+        ).paint(canvas, const ui.Size(32, 32));
+
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(32, 32);
+        final pixels = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
+        final offset = ((16 * image.width) + 16) * 4;
+        expect(pixels!.getUint8(offset), inInclusiveRange(110, 150));
+        expect(pixels.getUint8(offset + 1), lessThan(40));
+        expect(pixels.getUint8(offset + 2), lessThan(40));
+        expect(pixels.getUint8(offset + 3), inInclusiveRange(110, 150));
+        picture.dispose();
+        image.dispose();
+        tilesetImage.dispose();
+      },
+    );
+
+    test(
+      'keeps non-matching base tiles visible under translucent elements',
+      () async {
+        const map = MapData(
+          id: 'forest',
+          name: 'Forest',
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'environment',
+              name: 'Environment',
+              palette: <TileLayerPaletteEntry>[
+                TileLayerPaletteEntry(
+                  tilesetId: 'element-tileset',
+                  localTileId: 3,
+                ),
+              ],
+              cells: <int>[1],
+            ),
+          ],
+          placedElements: <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'tree_1',
+              layerId: 'environment',
+              elementId: 'tree',
+              pos: GridPos(x: 0, y: 0),
+              opacity: 0.5,
+            ),
+          ],
+        );
+        const project = ProjectManifest(
+          name: 'editor',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'element-tileset',
+              name: 'Element Tileset',
+              relativePath: 'tilesets/elements.png',
+            ),
+          ],
+          elements: <ProjectElementEntry>[
+            ProjectElementEntry(
+              id: 'tree',
+              name: 'Tree',
+              tilesetId: 'element-tileset',
+              categoryId: 'nature',
+              frames: <TilesetVisualFrame>[
+                TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0)),
+              ],
+            ),
+          ],
+        );
+        final tilesetImage = await _testTilesetImage();
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+
+        MapGridPainter(
+          map: map,
+          zoom: 1,
+          offset: ui.Offset.zero,
+          tileWidth: 32,
+          tileHeight: 32,
+          tilesetImagesById: {'element-tileset': tilesetImage},
+          sourceTileWidth: 32,
+          sourceTileHeight: 32,
+          tilesPerRowById: const <String, int>{'element-tileset': 4},
+          warps: const <MapWarp>[],
+          gameplayZones: const <MapGameplayZone>[],
+          connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+          project: project,
+        ).paint(canvas, const ui.Size(32, 32));
+
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(32, 32);
+        final pixels = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
+        final offset = ((16 * image.width) + 16) * 4;
+        expect(pixels!.getUint8(offset), inInclusiveRange(110, 150));
+        expect(pixels.getUint8(offset + 1), lessThan(40));
+        expect(pixels.getUint8(offset + 2), inInclusiveRange(110, 150));
+        expect(pixels.getUint8(offset + 3), greaterThan(240));
+        picture.dispose();
+        image.dispose();
+        tilesetImage.dispose();
+      },
+    );
+
+    test(
+      'delete preview highlights sprite without footprint rectangle',
+      () async {
+        const map = MapData(
+          id: 'forest',
+          name: 'Forest',
+          size: GridSize(width: 3, height: 3),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'environment',
+              name: 'Environment',
+              cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ),
+          ],
+          placedElements: <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'generated_tree_1',
+              layerId: 'environment',
+              elementId: 'tree_large',
+              pos: GridPos(x: 1, y: 1),
+            ),
+          ],
+        );
+        const project = ProjectManifest(
+          name: 'editor',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'element-tileset',
+              name: 'Element Tileset',
+              relativePath: 'tilesets/elements.png',
+            ),
+          ],
+          elements: <ProjectElementEntry>[
+            ProjectElementEntry(
+              id: 'tree_large',
+              name: 'Large Tree',
+              tilesetId: 'element-tileset',
+              categoryId: 'nature',
+              frames: <TilesetVisualFrame>[
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 2, y: 0, width: 2, height: 2),
+                ),
+              ],
+            ),
+          ],
+        );
+        final tilesetImage = await _testTilesetImage();
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+
+        MapGridPainter(
+          map: map,
+          zoom: 1,
+          offset: ui.Offset.zero,
+          tileWidth: 32,
+          tileHeight: 32,
+          tilesetImagesById: {'element-tileset': tilesetImage},
+          sourceTileWidth: 32,
+          sourceTileHeight: 32,
+          tilesPerRowById: const <String, int>{'element-tileset': 4},
+          warps: const <MapWarp>[],
+          gameplayZones: const <MapGameplayZone>[],
+          connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+          project: project,
+          environmentGeneratedDeletePreviewId: 'generated_tree_1',
+        ).paint(canvas, const ui.Size(96, 96));
+
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(96, 96);
+        final pixels = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
+        final spriteOffset = ((48 * image.width) + 48) * 4;
+        expect(pixels!.getUint8(spriteOffset), greaterThan(220));
+        expect(pixels.getUint8(spriteOffset + 1), greaterThan(60));
+        expect(pixels.getUint8(spriteOffset + 2), greaterThan(60));
+        expect(pixels.getUint8(spriteOffset + 3), greaterThan(240));
+        final transparentFootprintOffset = ((80 * image.width) + 48) * 4;
+        expect(pixels.getUint8(transparentFootprintOffset + 3), lessThan(5));
+        picture.dispose();
+        image.dispose();
+        tilesetImage.dispose();
+      },
+    );
+  });
+
+  test(
+    'paints a sparse collision stroke preview before map publication',
+    () async {
+      final source = MapData(
+        id: 'collision-preview',
+        name: 'Collision preview',
+        size: const GridSize(width: 2, height: 1),
+        layers: <MapLayer>[
+          MapLayer.collision(
+            id: 'collision',
+            name: 'Collision',
+            collisions: List<bool>.filled(2, false, growable: false),
           ),
         ],
       );
+      final preview =
+          MapCellStrokeBuffer.collision(sourceMap: source, layerId: 'collision')
+            ..setCollisions(
+              origin: const GridPos(x: 1, y: 0),
+              patternSize: const GridSize(width: 1, height: 1),
+              value: true,
+            );
       final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
       MapGridPainter(
-        map: map,
+        map: source,
         zoom: 1,
         offset: ui.Offset.zero,
-        tileWidth: 16,
-        tileHeight: 16,
+        tileWidth: 32,
+        tileHeight: 32,
         tilesetImagesById: const <String, ui.Image?>{},
-        sourceTileWidth: 16,
-        sourceTileHeight: 16,
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
         tilesPerRowById: const <String, int>{},
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        project: project,
-      ).paint(canvas, const ui.Size(80, 80));
-
+        cellStrokePreview: preview,
+        showGrid: false,
+        showEditorOverlays: false,
+      ).paint(ui.Canvas(recorder), const ui.Size(64, 32));
       final picture = recorder.endRecording();
-      final image = await picture.toImage(80, 80);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      final offset = ((53 * image.width) + 35) * 4;
-      expect(pixels!.getUint8(offset + 3), greaterThan(0));
+      final image = await picture.toImage(64, 32);
+      final pixels = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+
+      expect(_rgbaAt(pixels, 64, 16, 16)[3], 0);
+      expect(_rgbaAt(pixels, 64, 48, 16)[3], greaterThan(0));
+
       picture.dispose();
       image.dispose();
-    });
-
-    test(
-        'map with Border keeps projected building shadow preview below placed elements',
-        () async {
-      const map = MapData(
-        id: 'market',
-        name: 'Market',
-        size: GridSize(width: 5, height: 7),
-        layers: <MapLayer>[
-          TileLayer(
-            id: 'environment',
-            name: 'Environment',
-            cells: <int>[
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-            ],
-          ),
-          BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
-        ],
-        placedElements: <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'building_1',
-            layerId: 'environment',
-            elementId: 'building',
-            pos: GridPos(x: 1, y: 2),
-          ),
-        ],
-      );
-      final project = ProjectManifest(
-        name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[
-          ProjectTilesetEntry(
-            id: 'element-tileset',
-            name: 'Element Tileset',
-            relativePath: 'tilesets/elements.png',
-          ),
-        ],
-        projectedBuildingShadowCatalog: ProjectBuildingShadowPresetCatalog(
-          presets: [_projectedBuildingShadowPreset()],
-        ),
-        elements: [
-          ProjectElementEntry(
-            id: 'building',
-            name: 'Building',
-            tilesetId: 'element-tileset',
-            categoryId: 'market',
-            frames: const <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 3),
-              ),
-            ],
-            projectedBuildingShadow: _projectedBuildingShadowConfig(),
-          ),
-        ],
-      );
-      final tilesetImage = await _solidColorImage(
-        width: 64,
-        height: 96,
-        color: const ui.Color(0xFFFF0000),
-      );
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 32,
-        tileHeight: 32,
-        tilesetImagesById: {'element-tileset': tilesetImage},
-        sourceTileWidth: 32,
-        sourceTileHeight: 32,
-        tilesPerRowById: const <String, int>{'element-tileset': 2},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        project: project,
-      ).paint(canvas, const ui.Size(160, 224));
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(160, 224);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      final shadowOnlyOffset = _rgbaOffset(image, x: 104, y: 150);
-      expect(pixels!.getUint8(shadowOnlyOffset + 3), greaterThan(0));
-      final spriteOverShadowOffset = _rgbaOffset(image, x: 80, y: 150);
-      expect(pixels.getUint8(spriteOverShadowOffset), greaterThan(220));
-      expect(pixels.getUint8(spriteOverShadowOffset + 1), lessThan(40));
-      expect(pixels.getUint8(spriteOverShadowOffset + 2), lessThan(40));
-      expect(pixels.getUint8(spriteOverShadowOffset + 3), greaterThan(240));
-      picture.dispose();
-      image.dispose();
-      tilesetImage.dispose();
-    });
-
-    test(
-        'paints projected building shadow preview before static shadow preview',
-        () {
-      final source = File(
-        'lib/src/ui/canvas/map_canvas/map_grid_painter.dart',
-      ).readAsStringSync();
-      final shadowStepStart = source.indexOf(
-        'case MapVisualCompositionStepKind.shadows:',
-      );
-      final nextStepStart = source.indexOf(
-        'case MapVisualCompositionStepKind.placedElements:',
-        shadowStepStart,
-      );
-      expect(shadowStepStart, isNonNegative);
-      expect(nextStepStart, isNonNegative);
-      final shadowStepSource = source.substring(shadowStepStart, nextStepStart);
-      final projectedPaintIndex = shadowStepSource.indexOf(
-        'projectedBuildingShadowPreviewInstructions',
-      );
-      final staticPaintIndex = shadowStepSource.indexOf(
-        'staticShadowPreviewInstructions',
-      );
-
-      expect(projectedPaintIndex, isNonNegative);
-      expect(staticPaintIndex, isNonNegative);
-      expect(projectedPaintIndex, lessThan(staticPaintIndex));
-    });
-
-    test(
-        'does not double-paint matching baked tiles under translucent elements',
-        () async {
-      const map = MapData(
-        id: 'forest',
-        name: 'Forest',
-        size: GridSize(width: 1, height: 1),
-        layers: <MapLayer>[
-          TileLayer(
-            id: 'environment',
-            name: 'Environment',
-            palette: <TileLayerPaletteEntry>[
-              TileLayerPaletteEntry(
-                tilesetId: 'element-tileset',
-                localTileId: 2,
-              ),
-            ],
-            cells: <int>[1],
-          ),
-        ],
-        placedElements: <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'tree_1',
-            layerId: 'environment',
-            elementId: 'tree',
-            pos: GridPos(x: 0, y: 0),
-            opacity: 0.5,
-          ),
-        ],
-      );
-      const project = ProjectManifest(
-        name: 'editor',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[
-          ProjectTilesetEntry(
-            id: 'element-tileset',
-            name: 'Element Tileset',
-            relativePath: 'tilesets/elements.png',
-          ),
-        ],
-        elements: <ProjectElementEntry>[
-          ProjectElementEntry(
-            id: 'tree',
-            name: 'Tree',
-            tilesetId: 'element-tileset',
-            categoryId: 'nature',
-            frames: <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 2, y: 0),
-              ),
-            ],
-          ),
-        ],
-      );
-      final tilesetImage = await _testTilesetImage();
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 32,
-        tileHeight: 32,
-        tilesetImagesById: {'element-tileset': tilesetImage},
-        sourceTileWidth: 32,
-        sourceTileHeight: 32,
-        tilesPerRowById: const <String, int>{'element-tileset': 4},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        project: project,
-      ).paint(canvas, const ui.Size(32, 32));
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(32, 32);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      final offset = ((16 * image.width) + 16) * 4;
-      expect(pixels!.getUint8(offset), inInclusiveRange(110, 150));
-      expect(pixels.getUint8(offset + 1), lessThan(40));
-      expect(pixels.getUint8(offset + 2), lessThan(40));
-      expect(pixels.getUint8(offset + 3), inInclusiveRange(110, 150));
-      picture.dispose();
-      image.dispose();
-      tilesetImage.dispose();
-    });
-
-    test('keeps non-matching base tiles visible under translucent elements',
-        () async {
-      const map = MapData(
-        id: 'forest',
-        name: 'Forest',
-        size: GridSize(width: 1, height: 1),
-        layers: <MapLayer>[
-          TileLayer(
-            id: 'environment',
-            name: 'Environment',
-            palette: <TileLayerPaletteEntry>[
-              TileLayerPaletteEntry(
-                tilesetId: 'element-tileset',
-                localTileId: 3,
-              ),
-            ],
-            cells: <int>[1],
-          ),
-        ],
-        placedElements: <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'tree_1',
-            layerId: 'environment',
-            elementId: 'tree',
-            pos: GridPos(x: 0, y: 0),
-            opacity: 0.5,
-          ),
-        ],
-      );
-      const project = ProjectManifest(
-        name: 'editor',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[
-          ProjectTilesetEntry(
-            id: 'element-tileset',
-            name: 'Element Tileset',
-            relativePath: 'tilesets/elements.png',
-          ),
-        ],
-        elements: <ProjectElementEntry>[
-          ProjectElementEntry(
-            id: 'tree',
-            name: 'Tree',
-            tilesetId: 'element-tileset',
-            categoryId: 'nature',
-            frames: <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 2, y: 0),
-              ),
-            ],
-          ),
-        ],
-      );
-      final tilesetImage = await _testTilesetImage();
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 32,
-        tileHeight: 32,
-        tilesetImagesById: {'element-tileset': tilesetImage},
-        sourceTileWidth: 32,
-        sourceTileHeight: 32,
-        tilesPerRowById: const <String, int>{'element-tileset': 4},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        project: project,
-      ).paint(canvas, const ui.Size(32, 32));
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(32, 32);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      final offset = ((16 * image.width) + 16) * 4;
-      expect(pixels!.getUint8(offset), inInclusiveRange(110, 150));
-      expect(pixels.getUint8(offset + 1), lessThan(40));
-      expect(pixels.getUint8(offset + 2), inInclusiveRange(110, 150));
-      expect(pixels.getUint8(offset + 3), greaterThan(240));
-      picture.dispose();
-      image.dispose();
-      tilesetImage.dispose();
-    });
-
-    test('delete preview highlights sprite without footprint rectangle',
-        () async {
-      const map = MapData(
-        id: 'forest',
-        name: 'Forest',
-        size: GridSize(width: 3, height: 3),
-        layers: <MapLayer>[
-          TileLayer(
-            id: 'environment',
-            name: 'Environment',
-            cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
-          ),
-        ],
-        placedElements: <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'generated_tree_1',
-            layerId: 'environment',
-            elementId: 'tree_large',
-            pos: GridPos(x: 1, y: 1),
-          ),
-        ],
-      );
-      const project = ProjectManifest(
-        name: 'editor',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[
-          ProjectTilesetEntry(
-            id: 'element-tileset',
-            name: 'Element Tileset',
-            relativePath: 'tilesets/elements.png',
-          ),
-        ],
-        elements: <ProjectElementEntry>[
-          ProjectElementEntry(
-            id: 'tree_large',
-            name: 'Large Tree',
-            tilesetId: 'element-tileset',
-            categoryId: 'nature',
-            frames: <TilesetVisualFrame>[
-              TilesetVisualFrame(
-                source: TilesetSourceRect(x: 2, y: 0, width: 2, height: 2),
-              ),
-            ],
-          ),
-        ],
-      );
-      final tilesetImage = await _testTilesetImage();
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 32,
-        tileHeight: 32,
-        tilesetImagesById: {'element-tileset': tilesetImage},
-        sourceTileWidth: 32,
-        sourceTileHeight: 32,
-        tilesPerRowById: const <String, int>{'element-tileset': 4},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        project: project,
-        environmentGeneratedDeletePreviewId: 'generated_tree_1',
-      ).paint(canvas, const ui.Size(96, 96));
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(96, 96);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      final spriteOffset = ((48 * image.width) + 48) * 4;
-      expect(pixels!.getUint8(spriteOffset), greaterThan(220));
-      expect(pixels.getUint8(spriteOffset + 1), greaterThan(60));
-      expect(pixels.getUint8(spriteOffset + 2), greaterThan(60));
-      expect(pixels.getUint8(spriteOffset + 3), greaterThan(240));
-      final transparentFootprintOffset = ((80 * image.width) + 48) * 4;
-      expect(pixels.getUint8(transparentFootprintOffset + 3), lessThan(5));
-      picture.dispose();
-      image.dispose();
-      tilesetImage.dispose();
-    });
-  });
-
-  test('paints a sparse collision stroke preview before map publication',
-      () async {
-    final source = MapData(
-      id: 'collision-preview',
-      name: 'Collision preview',
-      size: const GridSize(width: 2, height: 1),
-      layers: <MapLayer>[
-        MapLayer.collision(
-          id: 'collision',
-          name: 'Collision',
-          collisions: List<bool>.filled(2, false, growable: false),
-        ),
-      ],
-    );
-    final preview = MapCellStrokeBuffer.collision(
-      sourceMap: source,
-      layerId: 'collision',
-    )..setCollisions(
-        origin: const GridPos(x: 1, y: 0),
-        patternSize: const GridSize(width: 1, height: 1),
-        value: true,
-      );
-    final recorder = ui.PictureRecorder();
-    MapGridPainter(
-      map: source,
-      zoom: 1,
-      offset: ui.Offset.zero,
-      tileWidth: 32,
-      tileHeight: 32,
-      tilesetImagesById: const <String, ui.Image?>{},
-      sourceTileWidth: 32,
-      sourceTileHeight: 32,
-      tilesPerRowById: const <String, int>{},
-      warps: const <MapWarp>[],
-      gameplayZones: const <MapGameplayZone>[],
-      connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-      cellStrokePreview: preview,
-      showGrid: false,
-      showEditorOverlays: false,
-    ).paint(ui.Canvas(recorder), const ui.Size(64, 32));
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(64, 32);
-    final pixels =
-        (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
-
-    expect(_rgbaAt(pixels, 64, 16, 16)[3], 0);
-    expect(_rgbaAt(pixels, 64, 48, 16)[3], greaterThan(0));
-
-    picture.dispose();
-    image.dispose();
-  });
+    },
+  );
 
   group('EditorCanvasRepaintClock', () {
     test('notifies once per crossed 110 ms bucket and ignores duplicates', () {
@@ -1732,12 +1719,7 @@ Future<ui.Image> _quadrantUiImage(List<ui.Color> colors) async {
   final canvas = ui.Canvas(recorder);
   for (var index = 0; index < colors.length; index++) {
     canvas.drawRect(
-      ui.Rect.fromLTWH(
-        (index % 2).toDouble(),
-        (index ~/ 2).toDouble(),
-        1,
-        1,
-      ),
+      ui.Rect.fromLTWH((index % 2).toDouble(), (index ~/ 2).toDouble(), 1, 1),
       ui.Paint()..color = colors[index],
     );
   }
@@ -1822,10 +1804,7 @@ ProjectBuildingShadowPreset _projectedBuildingShadowPreset() {
       nearWidthRatio: 1,
       farWidthRatio: 0.5,
     ),
-    appearance: ProjectedShadowAppearance(
-      opacity: 0.18,
-      colorHexRgb: '123ABC',
-    ),
+    appearance: ProjectedShadowAppearance(opacity: 0.18, colorHexRgb: '123ABC'),
     timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );
 }

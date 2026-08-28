@@ -7,12 +7,16 @@ import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart'
     show
+        Builder,
+        Column,
         Directionality,
         KeyEventResult,
         LayoutBuilder,
+        SizedBox,
         Text,
         TextDirection,
-        ValueListenableBuilder;
+        ValueListenableBuilder,
+        Widget;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -55,6 +59,49 @@ void main() {
         ),
         isFalse,
       );
+    });
+
+    testWidgets('defers input authority publication during widget build',
+        (tester) async {
+      final game = PlayableMapGame(
+        bundle: _baseBundle(),
+        projectFilePath: '/tmp/project.json',
+      );
+      var lockDuringBuild = false;
+
+      Widget host() => Directionality(
+            textDirection: TextDirection.ltr,
+            child: Column(
+              children: <Widget>[
+                Builder(
+                  builder: (_) {
+                    if (lockDuringBuild) {
+                      game.setExternalInputLock(
+                        RuntimeExternalInputLock.pauseMenu,
+                        locked: true,
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+                ValueListenableBuilder<RuntimeInputAuthoritySnapshot>(
+                  valueListenable: game.inputAuthorityListenable,
+                  builder: (_, snapshot, __) => Text(
+                    snapshot.acceptsRuntimeInput ? 'accepts' : 'blocked',
+                  ),
+                ),
+              ],
+            ),
+          );
+
+      await tester.pumpWidget(host());
+      expect(find.text('accepts'), findsOneWidget);
+
+      lockDuringBuild = true;
+      await tester.pumpWidget(host());
+      await tester.pump();
+
+      expect(find.text('blocked'), findsOneWidget);
     });
 
     test('external pause lock consumes movement until its owner releases it',

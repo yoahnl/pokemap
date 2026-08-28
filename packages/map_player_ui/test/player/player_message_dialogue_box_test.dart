@@ -140,8 +140,27 @@ void main() {
     );
   });
 
-  testWidgets('the speaker shows when the request carries one',
+  testWidgets('an acknowledged page stops advertising a dead Suite action',
       (tester) async {
+    final results = <SceneInteractionResult>[];
+    await tester.pumpWidget(
+      app(request: message(), results: results, reduceMotion: true),
+    );
+
+    await tester.tap(tapZone());
+    await tester.pump();
+
+    expect(results, hasLength(1));
+    expect(find.text('Suite'), findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey<String>('dialogue-progress-indicator-pending'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the speaker shows when the request carries one', (tester) async {
     await tester.pumpWidget(
       app(
         request: message(speakerName: 'Professeur Aube'),

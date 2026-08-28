@@ -36,6 +36,7 @@ export 'src/domains/maps/canonical_border_snapshot_compiler.dart';
 export 'src/domains/maps/collision_actions.dart';
 export 'src/domains/maps/entity_actions.dart';
 export 'src/domains/maps/environment_actions.dart';
+export 'src/domains/maps/environment_preset_actions.dart';
 export 'src/domains/maps/map_lifecycle_actions.dart';
 export 'src/domains/maps/map_lifecycle_adapter.dart';
 export 'src/domains/maps/tiled_map_import_actions.dart';

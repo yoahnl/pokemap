@@ -113,6 +113,39 @@ void main() {
       expect(result.stderr, contains('--root'));
     }, timeout: const Timeout(Duration(minutes: 3)));
 
+    test('stages an artifact from a dedicated non-project root', () async {
+      final fixture = _fixture();
+      final artifactRoot = await Directory.systemTemp.createTemp(
+        'pokemap-artifact-root-',
+      );
+      addTearDown(() => artifactRoot.delete(recursive: true));
+      final artifact = File(
+        '${artifactRoot.path}${Platform.pathSeparator}generated.txt',
+      );
+      await artifact.writeAsString('generated outside the project');
+      final session = await _CliSession.start(
+        executable: await cli,
+        root: fixture.parent.path,
+        artifactRoot: artifactRoot.path,
+      );
+      addTearDown(session.dispose);
+
+      final staged = await session.send(
+        id: 'stage-dedicated-artifact-root',
+        command: 'stage_artifact',
+        args: {
+          'sourcePath': artifact.path,
+          'declaredMediaType': 'text/plain',
+        },
+      );
+      final completed = await session.finish();
+
+      expect(staged.status, AuthoringResultStatus.success);
+      expect(staged.data['artifactHandle'], startsWith('artifact://sha256/'));
+      expect(completed.exitCode, AuthoringCliExitCodes.success);
+      expect(completed.stderr, isEmpty);
+    }, timeout: const Timeout(Duration(minutes: 3)));
+
     test('rejects an option token used as a root value', () async {
       final result = await (await cli).run(
         [
@@ -191,11 +224,16 @@ final class _CliSession {
   static Future<_CliSession> start({
     required CompiledDartExecutable executable,
     required String root,
+    String? artifactRoot,
   }) async {
     final process = await executable.start(
       [
         '--root',
         root,
+        if (artifactRoot != null) ...[
+          '--artifact-root',
+          artifactRoot,
+        ],
         '--timeout-ms',
         '5000',
         '--max-input-bytes',

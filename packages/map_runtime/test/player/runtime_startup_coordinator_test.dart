@@ -1032,6 +1032,61 @@ void main() {
     );
   });
 
+  test('rotation during title music shutdown does not cancel session launch',
+      () async {
+    final stopGate = Completer<void>();
+    final harness = _RuntimeStartupTestHarness(
+      profile: _presentationWithIntroAndMusic(includeIntro: false),
+      audioStopGate: stopGate,
+      latestSave: PlayerSaveSummary(
+        address: SaveSlotAddress(
+          gameId: 'com.pokemap.runtime-player-test',
+          profileId: 'player',
+          slotId: 'main',
+        ),
+        updatedAt: DateTime.utc(2026, 8, 9),
+        playTimeSeconds: 120,
+        status: SaveStatus.active,
+        canContinue: true,
+      ),
+    );
+    addTearDown(harness.dispose);
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+    await harness.startup.dispatch(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.pressStart,
+        snapshotRevision: harness.startup.snapshot.revision,
+      ),
+    );
+
+    final launchFuture = harness.startup.dispatchPlayerCommand(
+      startupSnapshotRevision: harness.startup.snapshot.revision,
+      command: RuntimePlayerCommand(
+        action: RuntimePlayerAction.continueGame,
+        snapshotRevision: harness.player.coordinator.snapshot.revision,
+      ),
+    );
+    await _flushEvents();
+    final launchRevision = harness.startup.snapshot.revision;
+
+    await harness.startup.updatePresentationOrientation(
+      RuntimePresentationOrientation.portrait,
+    );
+
+    expect(harness.startup.snapshot.revision, greaterThan(launchRevision));
+    stopGate.complete();
+    final result = await launchFuture;
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.player.source.requests, hasLength(1));
+    expect(
+      harness.startup.snapshot.phase,
+      RuntimeStartupPhase.launchingSession,
+    );
+  });
+
   test('exposes a preSession name request while New Game is pending', () async {
     final harness = _RuntimeStartupTestHarness(
       profile: _presentationWithIntroAndMusic(includeIntro: false),

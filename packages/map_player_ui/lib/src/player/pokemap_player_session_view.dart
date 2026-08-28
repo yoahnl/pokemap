@@ -562,6 +562,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
                   if (snapshot.preSessionRequest case final request?)
                     PlayerSceneInteractionSurface(
                       request: request,
+                      interactionEnabled: snapshot.isActionEnabled(
+                        RuntimePlayerAction.resolvePreSessionInteraction,
+                      ),
                       onResult: (result) => unawaited(
                         _dispatchCommand(
                           RuntimePlayerAction.resolvePreSessionInteraction,

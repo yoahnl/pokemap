@@ -52,6 +52,7 @@ export class AuthoringClientError extends Error {
 
 export interface LocalAuthoringClientOptions {
   allowedRoots: readonly string[];
+  artifactRoots?: readonly string[];
   exportRoots?: readonly string[];
   authoringPackageRoot: string;
   dartExecutable?: string;
@@ -90,6 +91,7 @@ export class LocalAuthoringClient
     this.#options = {
       ...options,
       allowedRoots: [...options.allowedRoots],
+      artifactRoots: [...(options.artifactRoots ?? [])],
       exportRoots: [...(options.exportRoots ?? [])],
       dartExecutable: options.dartExecutable ?? "dart",
       requestTimeoutMs: options.requestTimeoutMs ?? 15_000,
@@ -182,12 +184,17 @@ export class LocalAuthoringClient
       "--export-root",
       root,
     ]);
+    const artifactRootArgs = this.#options.artifactRoots.flatMap((root) => [
+      "--artifact-root",
+      root,
+    ]);
     const child = spawn(
       this.#options.dartExecutable,
       [
         "run",
         "bin/pokemap_authoring.dart",
         ...rootArgs,
+        ...artifactRootArgs,
         ...exportRootArgs,
         "--timeout-ms",
         String(this.#options.workerTimeoutMs),

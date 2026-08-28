@@ -175,7 +175,234 @@ void main() {
       );
       expect(context.snapshot.maps.single.placedElements, isEmpty);
     });
+
+    test('authors an animated entrance through the canonical behavior action',
+        () {
+      final context = _animatedEntranceBehaviorContext();
+
+      final draft = const PlacedElementActions().build(context);
+      final updated = MapData.fromJson(
+        jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
+            as Map<String, dynamic>,
+      );
+      final behavior = updated.placedElements.single.behaviors.single;
+
+      expect(behavior.trigger, MapPlacedElementTriggerType.onBump);
+      expect(behavior.effect.type, MapPlacedElementEffectType.traverseWarp);
+      expect(behavior.effect.targetMapId, 'interior');
+      expect(behavior.effect.targetPos, const GridPos(x: 2, y: 3));
+    });
+
+    test('rejects an animated entrance on a static element', () {
+      final context = _animatedEntranceBehaviorContext(animatedElement: false);
+
+      expect(
+        () => const PlacedElementActions().build(context),
+        throwsA(
+          isA<MapAuthoringException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'placed_element.behavior.traverse_warp_requires_animation',
+              )
+              .having(
+                (error) => error.details['elementId'],
+                'elementId',
+                'door-element',
+              ),
+        ),
+      );
+    });
   });
+}
+
+AuthoringPlanningContext _animatedEntranceBehaviorContext({
+  bool animatedElement = true,
+}) {
+  const map = MapData(
+    id: 'exterior',
+    name: 'Exterior',
+    size: GridSize(width: 8, height: 8),
+    layers: <MapLayer>[
+      MapLayer.tile(
+        id: 'objects',
+        name: 'Objects',
+        cells: <int>[
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
+      ),
+    ],
+    placedElements: <MapPlacedElement>[
+      MapPlacedElement(
+        id: 'door',
+        layerId: 'objects',
+        elementId: 'door-element',
+        pos: GridPos(x: 3, y: 3),
+      ),
+    ],
+  );
+  final manifest = ProjectManifest(
+    name: 'Animated entrance project',
+    maps: const <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'exterior',
+        name: 'Exterior',
+        relativePath: 'maps/exterior.json',
+      ),
+      ProjectMapEntry(
+        id: 'interior',
+        name: 'Interior',
+        relativePath: 'maps/interior.json',
+      ),
+    ],
+    tilesets: <ProjectTilesetEntry>[],
+    elementCategories: const <ProjectElementCategory>[
+      ProjectElementCategory(id: 'doors', name: 'Doors'),
+    ],
+    elements: <ProjectElementEntry>[
+      ProjectElementEntry(
+        id: 'door-element',
+        name: 'Door',
+        tilesetId: 'doors',
+        categoryId: 'doors',
+        frames: <TilesetVisualFrame>[
+          const TilesetVisualFrame(
+            source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 1),
+            durationMs: 100,
+          ),
+          if (animatedElement)
+            const TilesetVisualFrame(
+              source: TilesetSourceRect(x: 2, y: 0, width: 2, height: 1),
+              durationMs: 100,
+            ),
+        ],
+      ),
+    ],
+  );
+  final manifestBytes = utf8.encode(jsonEncode(manifest.toJson()));
+  final mapBytes = utf8.encode(jsonEncode(map.toJson()));
+  final revision = computeNarrativeProjectFingerprint(
+    <NarrativeProjectFingerprintEntry>[
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'project.json',
+        bytes: manifestBytes,
+      ),
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'maps/exterior.json',
+        bytes: mapBytes,
+      ),
+    ],
+  );
+  final snapshot = ProjectSnapshot(
+    projectHandle: const ProjectHandle('animated_entrance'),
+    revision: revision,
+    manifest: manifest,
+    maps: const <MapData>[map],
+    resourceFingerprints: <String, String>{
+      'project': computeAuthoringBytesFingerprint(
+        manifestBytes,
+        logicalName: 'project.json',
+      ),
+      'map:exterior': computeAuthoringBytesFingerprint(
+        mapBytes,
+        logicalName: 'maps/exterior.json',
+      ),
+    },
+    resourceBytes: <String, List<int>>{
+      'project': manifestBytes,
+      'map:exterior': mapBytes,
+    },
+  );
+  return AuthoringPlanningContext(
+    snapshot: snapshot,
+    request: AuthoringRequest(
+      requestId: 'add-animated-entrance',
+      actionId: 'placed_element.behavior_add',
+      actionVersion: 1,
+      workspaceHandle: 'workspace',
+      parameters: <String, Object?>{
+        'mapId': 'exterior',
+        'instanceId': 'door',
+        'behavior': const MapPlacedElementBehavior(
+          id: 'enter',
+          trigger: MapPlacedElementTriggerType.onBump,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.traverseWarp,
+            targetMapId: 'interior',
+            targetPos: GridPos(x: 2, y: 3),
+          ),
+        ).toJson(),
+      },
+      expectedRevision: revision,
+      idempotencyKey: 'add-animated-entrance',
+      dryRun: false,
+    ),
+    planId: 'plan-animated-entrance',
+    seed: 42,
+  );
 }
 
 AuthoringPlanningContext _largePlacementContext({required GridPos pos}) {

@@ -150,6 +150,9 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
               showPreSessionInteraction =>
         PlayerSceneInteractionSurface(
           request: snapshot.preSessionRequest!,
+          interactionEnabled: snapshot.isActionEnabled(
+            RuntimePlayerAction.resolvePreSessionInteraction,
+          ),
           onResult: onPreSessionResult ?? (_) {},
         ),
       RuntimePlayerPhase.preSession => PlayerLoadingSurface(

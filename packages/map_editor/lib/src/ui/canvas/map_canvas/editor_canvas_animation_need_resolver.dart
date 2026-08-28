@@ -140,12 +140,13 @@ bool editorPlacedElementLayerNeedsAnimation(
   final elementsById = <String, ProjectElementEntry>{
     for (final element in project.elements) element.id: element,
   };
-  return map.placedElements.any(
-    (instance) =>
-        instance.layerId == layer.id &&
+  return map.placedElements.any((instance) {
+    final frames = elementsById[instance.elementId]?.frames;
+    return instance.layerId == layer.id &&
         instance.opacity > 0 &&
-        (elementsById[instance.elementId]?.frames.length ?? 0) > 1,
-  );
+        frames != null &&
+        entityEditorPlacedElementNeedsFrameAnimation(instance, frames);
+  });
 }
 
 bool editorCanvasBorderNeedsAnimation({
@@ -228,6 +229,8 @@ bool _visiblePlacedElementsNeedAnimation(
         !visibleLayerIds.contains(instance.layerId.trim())) {
       return false;
     }
-    return (elementsById[instance.elementId.trim()]?.frames.length ?? 0) > 1;
+    final frames = elementsById[instance.elementId.trim()]?.frames;
+    return frames != null &&
+        entityEditorPlacedElementNeedsFrameAnimation(instance, frames);
   });
 }

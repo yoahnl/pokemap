@@ -29,6 +29,7 @@ class PlayerSceneInteractionSurface extends StatefulWidget {
     this.promptResolver,
     this.onInputSourceChanged,
     this.allowCancellation = true,
+    this.interactionEnabled = true,
   });
 
   final SceneInteractionRequest request;
@@ -36,6 +37,7 @@ class PlayerSceneInteractionSurface extends StatefulWidget {
   final SceneInteractionPromptResolver? promptResolver;
   final ValueChanged<PlayerInputSource>? onInputSourceChanged;
   final bool allowCancellation;
+  final bool interactionEnabled;
 
   @override
   State<PlayerSceneInteractionSurface> createState() =>
@@ -249,6 +251,7 @@ class _PlayerSceneInteractionSurfaceState
               isCurrentLineFullyRevealed: fullyRevealed,
               isLastContent: false,
               choices: const <PlayerDialogueChoiceViewData>[],
+              isAdvanceAvailable: widget.interactionEnabled && !_terminal,
             ),
             onAction: (_) =>
                 _advanceMessage(request, fullyRevealed: fullyRevealed),
@@ -262,7 +265,7 @@ class _PlayerSceneInteractionSurfaceState
     SceneMessageInteractionRequest request, {
     required bool fullyRevealed,
   }) {
-    if (_terminal) return;
+    if (_terminal || !widget.interactionEnabled) return;
     if (!fullyRevealed) {
       setState(() {
         _revealTimer?.cancel();
@@ -308,7 +311,7 @@ class _PlayerSceneInteractionSurfaceState
                 label: strings.yes,
                 icon: Icons.check,
                 autofocus: true,
-                onPressed: _terminal
+                onPressed: !widget.interactionEnabled || _terminal
                     ? null
                     : () => _publish(
                           request,
@@ -325,7 +328,7 @@ class _PlayerSceneInteractionSurfaceState
                 label: strings.no,
                 icon: Icons.close,
                 secondary: true,
-                onPressed: _terminal
+                onPressed: !widget.interactionEnabled || _terminal
                     ? null
                     : () => _publish(
                           request,
@@ -365,7 +368,9 @@ class _PlayerSceneInteractionSurfaceState
                 ),
                 label: strings.submit,
                 icon: Icons.check,
-                onPressed: _terminal ? null : () => _submitSelection(request),
+                onPressed: !widget.interactionEnabled || _terminal
+                    ? null
+                    : () => _submitSelection(request),
               ),
             ],
           ),
@@ -390,7 +395,7 @@ class _PlayerSceneInteractionSurfaceState
                 .take(index)
                 .every((candidate) => !candidate.enabled),
         disabledReason: option.enabled ? null : strings.optionUnavailable,
-        onPressed: !_terminal && option.enabled
+        onPressed: widget.interactionEnabled && !_terminal && option.enabled
             ? () => _publish(
                   request,
                   SceneInteractionResult.choiceSelected(
@@ -417,7 +422,7 @@ class _PlayerSceneInteractionSurfaceState
           controller: _textController,
           focusNode: _textFocusNode,
           autofocus: true,
-          enabled: !_terminal,
+          enabled: widget.interactionEnabled && !_terminal,
           textInputAction: TextInputAction.done,
           inputFormatters: <TextInputFormatter>[
             if (maximum != null) _CommittedGraphemeLimitFormatter(maximum),
@@ -427,7 +432,9 @@ class _PlayerSceneInteractionSurfaceState
             counterText: '',
           ),
           onChanged: (_) => setState(() => _validationIssue = null),
-          onSubmitted: _terminal ? null : (_) => _submitText(request),
+          onSubmitted: !widget.interactionEnabled || _terminal
+              ? null
+              : (_) => _submitText(request),
         ),
         const SizedBox(height: PlayerSpacing.xs),
         Semantics(
@@ -442,7 +449,9 @@ class _PlayerSceneInteractionSurfaceState
           key: const ValueKey<String>('scene-interaction-text-submit'),
           label: strings.submit,
           icon: Icons.check,
-          onPressed: _terminal ? null : () => _submitText(request),
+          onPressed: !widget.interactionEnabled || _terminal
+              ? null
+              : () => _submitText(request),
         ),
       ],
     );
@@ -457,7 +466,8 @@ class _PlayerSceneInteractionSurfaceState
     final selected = _selectedOptionIds.contains(option.id);
     final maximumReached =
         _selectedOptionIds.length >= request.constraints.maxSelections;
-    final enabled = option.enabled &&
+    final enabled = widget.interactionEnabled &&
+        option.enabled &&
         (!_terminal &&
             (selected ||
                 !maximumReached ||
@@ -515,6 +525,7 @@ class _PlayerSceneInteractionSurfaceState
   }
 
   void _submitText(SceneTextInteractionRequest request) {
+    if (!widget.interactionEnabled) return;
     _publish(
       request,
       SceneInteractionResult.textSubmitted(
@@ -529,6 +540,7 @@ class _PlayerSceneInteractionSurfaceState
     SceneSelectionInteractionRequest request,
     String optionId,
   ) {
+    if (!widget.interactionEnabled) return;
     setState(() {
       _validationIssue = null;
       if (_selectedOptionIds.remove(optionId)) return;
@@ -542,6 +554,7 @@ class _PlayerSceneInteractionSurfaceState
   }
 
   void _submitSelection(SceneSelectionInteractionRequest request) {
+    if (!widget.interactionEnabled) return;
     final selected = request.options
         .where((option) => _selectedOptionIds.contains(option.id))
         .map((option) => option.id)

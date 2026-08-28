@@ -3493,6 +3493,7 @@ class MapValidator {
       instance.elementId,
       'Placed element instance $instanceId has empty elementId',
     );
+    final sourceElement = elementById[elementId];
     final layer = layerById[layerId];
     if (layer == null) {
       throw ValidationException(
@@ -3670,10 +3671,62 @@ class MapValidator {
           break;
         case MapPlacedElementEffectType.playAnimationOnce:
           break;
+        case MapPlacedElementEffectType.traverseWarp:
+          if (behavior.trigger != MapPlacedElementTriggerType.onAction &&
+              behavior.trigger != MapPlacedElementTriggerType.onEnter &&
+              behavior.trigger != MapPlacedElementTriggerType.onBump) {
+            throw ValidationException(
+              '$behaviorLabel traverseWarp requires trigger onAction, onEnter, or onBump',
+            );
+          }
+          final targetMapId = effect.targetMapId?.trim() ?? '';
+          if (targetMapId.isEmpty) {
+            throw ValidationException(
+              '$behaviorLabel traverseWarp requires a non-empty targetMapId',
+            );
+          }
+          if (projectDialogueContext != null &&
+              !projectDialogueContext.maps.any(
+                (entry) => entry.id == targetMapId,
+              )) {
+            throw ValidationException(
+              '$behaviorLabel references unknown target map "$targetMapId"',
+            );
+          }
+          final targetPos = effect.targetPos;
+          if (targetPos == null) {
+            throw ValidationException(
+              '$behaviorLabel traverseWarp requires targetPos',
+            );
+          }
+          if (targetPos.x < 0 || targetPos.y < 0) {
+            throw ValidationException(
+              '$behaviorLabel traverseWarp has invalid target position: '
+              '(${targetPos.x}, ${targetPos.y})',
+            );
+          }
+          if (projectDialogueContext != null &&
+              sourceElement != null &&
+              sourceElement.frames.length < 2) {
+            throw ValidationException(
+              '$behaviorLabel traverseWarp requires an animated source element with at least two frames',
+              code: 'placed_element.behavior.traverse_warp_requires_animation',
+              details: {
+                'instanceId': instanceId,
+                'elementId': elementId,
+                'frameCount': sourceElement.frames.length,
+              },
+              remediation: const [
+                'Place a dedicated animated door element over the static building.',
+                'Move the traverseWarp behavior to that animated door instance.',
+              ],
+            );
+          }
+          break;
       }
     }
     if (projectDialogueContext != null) {
-      final element = elementById[elementId];
+      final element = sourceElement;
       if (element == null) {
         throw ValidationException(
           'Placed element instance $instanceId references unknown element: $elementId',

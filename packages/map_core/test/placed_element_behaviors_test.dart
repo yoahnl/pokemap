@@ -54,18 +54,12 @@ void main() {
       final exitBehavior = MapPlacedElementBehavior.fromJson({
         'enabled': true,
         'trigger': 'on_exit',
-        'effect': {
-          'type': 'show_message',
-          'message': 'bye',
-        },
+        'effect': {'type': 'show_message', 'message': 'bye'},
       });
       final nearBehavior = MapPlacedElementBehavior.fromJson({
         'enabled': true,
         'trigger': 'on_near',
-        'effect': {
-          'type': 'show_message',
-          'message': 'near',
-        },
+        'effect': {'type': 'show_message', 'message': 'near'},
       });
 
       expect(exitBehavior.trigger, MapPlacedElementTriggerType.onExit);
@@ -81,10 +75,7 @@ void main() {
         'triggerScope': 'facing_only',
         'cooldownMs': 750,
         'trigger': 'on_action',
-        'effect': {
-          'type': 'show_message',
-          'message': 'hello',
-        },
+        'effect': {'type': 'show_message', 'message': 'hello'},
       });
 
       expect(behavior.cooldownMs, 750);
@@ -93,27 +84,51 @@ void main() {
       expect(behavior.toJson()['triggerScope'], 'facing_only');
     });
 
-    test('legacy behavior json without cooldownMs/triggerScope keeps defaults',
-        () {
+    test('serializes an animated entrance destination', () {
       final behavior = MapPlacedElementBehavior.fromJson({
-        'id': 'b1',
+        'id': 'door-enter',
         'enabled': true,
-        'trigger': 'on_action',
+        'trigger': 'on_bump',
         'effect': {
-          'type': 'show_message',
-          'message': 'hello',
+          'type': 'traverse_warp',
+          'targetMapId': 'station-interior',
+          'targetPos': {'x': 4, 'y': 7},
         },
       });
 
-      expect(behavior.cooldownMs, isNull);
-      expect(
-        behavior.triggerScope,
-        MapPlacedElementTriggerScope.defaultScope,
-      );
-      expect(behavior.toJson().containsKey('cooldownMs'), isTrue);
-      expect(behavior.toJson()['cooldownMs'], isNull);
-      expect(behavior.toJson()['triggerScope'], 'default');
+      expect(behavior.effect.type, MapPlacedElementEffectType.traverseWarp);
+      expect(behavior.effect.targetMapId, 'station-interior');
+      expect(behavior.effect.targetPos, const GridPos(x: 4, y: 7));
+      expect(behavior.toJson()['effect'], {
+        'type': 'traverse_warp',
+        'message': null,
+        'dialogue': null,
+        'animationEnabled': null,
+        'targetMapId': 'station-interior',
+        'targetPos': {'x': 4, 'y': 7},
+      });
     });
+
+    test(
+      'legacy behavior json without cooldownMs/triggerScope keeps defaults',
+      () {
+        final behavior = MapPlacedElementBehavior.fromJson({
+          'id': 'b1',
+          'enabled': true,
+          'trigger': 'on_action',
+          'effect': {'type': 'show_message', 'message': 'hello'},
+        });
+
+        expect(behavior.cooldownMs, isNull);
+        expect(
+          behavior.triggerScope,
+          MapPlacedElementTriggerScope.defaultScope,
+        );
+        expect(behavior.toJson().containsKey('cooldownMs'), isTrue);
+        expect(behavior.toJson()['cooldownMs'], isNull);
+        expect(behavior.toJson()['triggerScope'], 'default');
+      },
+    );
   });
 
   group('MapPlacedElement behavior validation', () {
@@ -188,6 +203,133 @@ void main() {
       expect(
         () => MapValidator.validate(map, projectDialogueContext: _project()),
         throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects animated entrance without target map', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'door-enter',
+          trigger: MapPlacedElementTriggerType.onBump,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.traverseWarp,
+            targetPos: GridPos(x: 1, y: 1),
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects animated entrance without target position', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'door-enter',
+          trigger: MapPlacedElementTriggerType.onBump,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.traverseWarp,
+            targetMapId: 'station-interior',
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects animated entrance on a non-interactive trigger', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'door-enter',
+          trigger: MapPlacedElementTriggerType.onNear,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.traverseWarp,
+            targetMapId: 'station-interior',
+            targetPos: GridPos(x: 1, y: 1),
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('accepts a contact-triggered animated entrance', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'door-enter',
+          trigger: MapPlacedElementTriggerType.onBump,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.traverseWarp,
+            targetMapId: 'station-interior',
+            targetPos: GridPos(x: 1, y: 1),
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        returnsNormally,
+      );
+    });
+
+    test('accepts a tile-entry animated entrance', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'door-enter',
+          trigger: MapPlacedElementTriggerType.onEnter,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.traverseWarp,
+            targetMapId: 'station-interior',
+            targetPos: GridPos(x: 1, y: 1),
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: _project()),
+        returnsNormally,
+      );
+    });
+
+    test('rejects an animated entrance on a static placed element', () {
+      final map = _baseMap(
+        behavior: const MapPlacedElementBehavior(
+          id: 'door-enter',
+          trigger: MapPlacedElementTriggerType.onBump,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.traverseWarp,
+            targetMapId: 'station-interior',
+            targetPos: GridPos(x: 1, y: 1),
+          ),
+        ),
+      );
+
+      expect(
+        () => MapValidator.validate(
+          map,
+          projectDialogueContext: _project(animatedElement: false),
+        ),
+        throwsA(
+          isA<ValidationException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'placed_element.behavior.traverse_warp_requires_animation',
+              )
+              .having(
+                (error) => error.details['elementId'],
+                'elementId',
+                'tree',
+              ),
+        ),
       );
     });
 
@@ -370,9 +512,7 @@ void main() {
   });
 }
 
-MapData _baseMap({
-  MapPlacedElementBehavior? behavior,
-}) {
+MapData _baseMap({MapPlacedElementBehavior? behavior}) {
   return MapData(
     id: 'map',
     name: 'Map',
@@ -381,24 +521,7 @@ MapData _baseMap({
       MapLayer.tile(
         id: 'layer',
         name: 'Layer',
-        cells: [
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-        ],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ],
     placedElements: [
@@ -413,10 +536,16 @@ MapData _baseMap({
   );
 }
 
-ProjectManifest _project() {
+ProjectManifest _project({bool animatedElement = true}) {
   return ProjectManifest(
     name: 'project',
-    maps: const [],
+    maps: const [
+      ProjectMapEntry(
+        id: 'station-interior',
+        name: 'Station interior',
+        relativePath: 'maps/station-interior.json',
+      ),
+    ],
     tilesets: const [
       ProjectTilesetEntry(id: 'ts', name: 'ts', relativePath: 'ts.png'),
     ],
@@ -430,16 +559,20 @@ ProjectManifest _project() {
         relativePath: 'dialogues/intro.yarn',
       ),
     ],
-    elements: const [
+    elements: [
       ProjectElementEntry(
         id: 'tree',
         name: 'Tree',
         tilesetId: 'ts',
         categoryId: 'decor',
         frames: [
-          TilesetVisualFrame(
+          const TilesetVisualFrame(
             source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
           ),
+          if (animatedElement)
+            const TilesetVisualFrame(
+              source: TilesetSourceRect(x: 1, y: 0, width: 1, height: 1),
+            ),
         ],
       ),
     ],

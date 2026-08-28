@@ -41,6 +41,7 @@ import '../../application/narrative_spatial_production_dispatch_bridge.dart';
 import '../../application/npc_overworld_movement_defaults.dart';
 import '../../application/npc_runtime_presence.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
+import '../../application/placed_element_warp_traversal_controller.dart';
 import '../../application/player_service_runtime_controller.dart';
 import '../../player/runtime_input_lock_manager.dart';
 import '../../player/runtime_audio_mixer.dart';
@@ -454,6 +455,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _viewSafeAreaPadding = padding;
     _battleOverlay?.setSafeAreaPadding(padding);
   }
+
   final MapActivationReason initialMapActivationReason;
   final String runtimeLocale;
 
@@ -506,6 +508,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       <RuntimeInputControl>{};
   RuntimeInputControl? _lastMovementControl;
   TriggeredWarp? _pendingWarp;
+  final PlacedElementWarpTraversalController
+      _placedElementWarpTraversalController =
+      PlacedElementWarpTraversalController();
   TriggeredConnection? _pendingConnection;
   BattleStartRequest? _pendingBattleRequest;
   Completer<SceneBattleRuntimeOutcomeResult>?
@@ -529,6 +534,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       context: RuntimeInputContext.overworld,
     ),
   );
+  RuntimeInputAuthoritySnapshot? _pendingInputAuthoritySnapshot;
+  bool _inputAuthorityPostFrameFlushScheduled = false;
   DialoguePresentationSnapshot? _pendingDialoguePresentationSnapshot;
   bool _dialoguePresentationPostFrameFlushScheduled = false;
   bool _preferDialogueFlutterOverlay = false;
@@ -805,6 +812,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingConnection != null ||
       _pendingConnectionEntryAnimation != null ||
       _pendingPlacedElementBehavior != null ||
+      _placedElementWarpTraversalController.isActive ||
       _pendingNarrativeTriggerEntries.isNotEmpty ||
       _isNarrativeTriggerQueueDraining;
 
@@ -824,6 +832,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       'pendingConnectionAnimation=${_pendingConnectionEntryAnimation != null} '
       'pendingBattle=${_pendingBattleRequest != null} '
       'pendingPlacedBehavior=${_pendingPlacedElementBehavior != null} '
+      'pendingPlacedWarpTraversal=${_placedElementWarpTraversalController.isActive} '
       'pendingTriggerEntries=${_pendingNarrativeTriggerEntries.length} '
       'triggerQueueDraining=$_isNarrativeTriggerQueueDraining',
     );
@@ -2333,6 +2342,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _publishInputAuthoritySnapshot() {
     final next = inputAuthoritySnapshot;
+    final binding = SchedulerBinding.instance;
+    final phase = binding.schedulerPhase;
+    final shouldDefer = phase == SchedulerPhase.persistentCallbacks ||
+        phase == SchedulerPhase.midFrameMicrotasks;
+    if (!shouldDefer) {
+      _pendingInputAuthoritySnapshot = null;
+      _flushInputAuthoritySnapshot(next);
+      return;
+    }
+    _pendingInputAuthoritySnapshot = next;
+    if (_inputAuthorityPostFrameFlushScheduled) {
+      return;
+    }
+    _inputAuthorityPostFrameFlushScheduled = true;
+    binding.addPostFrameCallback((_) {
+      _inputAuthorityPostFrameFlushScheduled = false;
+      final pending = _pendingInputAuthoritySnapshot;
+      _pendingInputAuthoritySnapshot = null;
+      if (pending != null) {
+        _flushInputAuthoritySnapshot(pending);
+      }
+    });
+  }
+
+  void _flushInputAuthoritySnapshot(RuntimeInputAuthoritySnapshot next) {
     if (_inputAuthorityNotifier.value != next) {
       _inputAuthorityNotifier.value = next;
     }
@@ -4157,6 +4191,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _syncViewportCullingRects();
     _syncNpcCollisionDebugOverlay();
+
+    if (_completePlacedElementWarpTraversal()) {
+      return;
+    }
 
     if (_cinematicRuntimeController.isPlaying) {
       _clearPressedMovementControls();
@@ -11134,6 +11172,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
         effectApplied = true;
         break;
+      case MapPlacedElementEffectType.traverseWarp:
+        effectApplied = _startPlacedElementWarpTraversal(
+          element: element,
+          behavior: behavior,
+        );
+        break;
     }
     if (!effectApplied) {
       return;
@@ -11164,6 +11208,76 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       instanceId: instanceId,
     );
     return fromBackground || fromForeground;
+  }
+
+  bool _startPlacedElementWarpTraversal({
+    required MapPlacedElement element,
+    required MapPlacedElementBehavior behavior,
+  }) {
+    if (_placedElementWarpTraversalController.isActive) {
+      return false;
+    }
+    final targetMapId = behavior.effect.targetMapId?.trim() ?? '';
+    final targetPos = behavior.effect.targetPos;
+    if (targetMapId.isEmpty || targetPos == null) {
+      return false;
+    }
+    final projectElement = _bundle.manifest.elements
+        .where((entry) => entry.id == element.elementId)
+        .firstOrNull;
+    if (projectElement == null || projectElement.frames.length < 2) {
+      _showNotification('Cette entrée ne possède pas d’animation.');
+      return false;
+    }
+    final started = _playPlacedElementAnimationOnce(instanceId: element.id);
+    if (!started) {
+      _showNotification('L’animation de cette entrée est indisponible.');
+      return false;
+    }
+    final frameDurationsMs = normalizeElementFrameDurationsMs(
+      projectElement.frames
+          .map((frame) => frame.durationMs)
+          .toList(growable: false),
+    );
+    final durationMs = resolvePlacedElementAnimationOneShotDurationMs(
+      frameDurationsMs: frameDurationsMs,
+      speed: element.animation?.speed ?? 1,
+    );
+    final behaviorId = behavior.id.trim().isEmpty ? 'legacy' : behavior.id;
+    final accepted = _placedElementWarpTraversalController.tryStart(
+      PlacedElementWarpTraversalPlan(
+        instanceId: element.id,
+        warp: TriggeredWarp(
+          warpId: 'placed:${element.id}:$behaviorId',
+          targetMapId: targetMapId,
+          targetPos: targetPos,
+          triggerMode: MapWarpTriggerMode.onBump,
+        ),
+        animationDurationMs: durationMs,
+      ),
+      nowMs: _runtimeClockMs,
+    );
+    if (!accepted) {
+      return false;
+    }
+    _clearPressedMovementControls();
+    _setFlowPhase(_RuntimeFlowPhase.blockingInteraction);
+    return true;
+  }
+
+  bool _completePlacedElementWarpTraversal() {
+    final warp = _placedElementWarpTraversalController.takeCompleted(
+      nowMs: _runtimeClockMs,
+    );
+    if (warp == null) {
+      return false;
+    }
+    _setFlowPhase(_RuntimeFlowPhase.overworld);
+    if (!_tryEnqueueWarp(warp)) {
+      _showNotification('Le passage est momentanément indisponible.');
+      return true;
+    }
+    return true;
   }
 
   void _applyPlacedElementAnimationEnabled({
@@ -12966,6 +13080,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingBattleRequest = null;
     }
     _pendingPlacedElementBehavior = null;
+    _placedElementWarpTraversalController.clear();
     _notification?.removeFromParent();
     _notification = null;
     _setRuntimeNotificationSnapshot(null);

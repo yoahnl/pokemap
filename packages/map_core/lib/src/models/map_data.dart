@@ -53,9 +53,7 @@ abstract class MapData with _$MapData {
     if (canonical.containsKey('visualStack')) {
       final visualStack = canonical['visualStack'];
       if (visualStack is! Map<String, dynamic>) {
-        throw const FormatException(
-          r'$.visualStack: expected an object',
-        );
+        throw const FormatException(r'$.visualStack: expected an object');
       }
     }
     final map = _$MapDataFromJson(canonical);
@@ -65,8 +63,9 @@ abstract class MapData with _$MapData {
       );
     }
     if (map.version != ProjectVersion.v6) {
-      final smartTileIndex =
-          map.layers.indexWhere((layer) => layer is SmartTileLayer);
+      final smartTileIndex = map.layers.indexWhere(
+        (layer) => layer is SmartTileLayer,
+      );
       if (smartTileIndex >= 0) {
         throw FormatException(
           r'$.layers['
@@ -295,6 +294,8 @@ enum MapPlacedElementEffectType {
   setAnimationEnabled,
   @JsonValue('play_animation_once')
   playAnimationOnce,
+  @JsonValue('traverse_warp')
+  traverseWarp,
 }
 
 @freezed
@@ -305,6 +306,8 @@ abstract class MapPlacedElementEffect with _$MapPlacedElementEffect {
     String? message,
     DialogueRef? dialogue,
     bool? animationEnabled,
+    String? targetMapId,
+    GridPos? targetPos,
   }) = _MapPlacedElementEffect;
 
   factory MapPlacedElementEffect.fromJson(Map<String, dynamic> json) =>
@@ -495,8 +498,9 @@ Map<String, dynamic> migrateMapPlacedElementJson(Map<String, dynamic> json) {
     out.remove('interaction');
     return out;
   }
-  final interaction =
-      Map<String, dynamic>.from(interactionRaw.cast<Object?, Object?>());
+  final interaction = Map<String, dynamic>.from(
+    interactionRaw.cast<Object?, Object?>(),
+  );
   final enabled = interaction['enabled'] == true;
   final modeRaw = (interaction['mode'] as String?)?.trim().toLowerCase();
   Map<String, dynamic>? behavior;
@@ -506,10 +510,7 @@ Map<String, dynamic> migrateMapPlacedElementJson(Map<String, dynamic> json) {
       behavior = <String, dynamic>{
         'enabled': enabled,
         'trigger': 'on_action',
-        'effect': <String, dynamic>{
-          'type': 'show_message',
-          'message': message,
-        },
+        'effect': <String, dynamic>{'type': 'show_message', 'message': message},
       };
     }
   } else if (modeRaw == 'dialogue') {
@@ -585,7 +586,8 @@ String _buildMigratedPlacedElementBehaviorId({
   required String instanceId,
   required int ordinal,
 }) {
-  final base =
-      instanceId.isEmpty ? 'placed_element' : Uri.encodeComponent(instanceId);
+  final base = instanceId.isEmpty
+      ? 'placed_element'
+      : Uri.encodeComponent(instanceId);
   return '$base::behavior::$ordinal';
 }

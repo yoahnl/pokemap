@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -42,6 +44,24 @@ void main() {
     expect(controller.isPlaying, isFalse);
   });
 
+  test('a stuck audio stop never traps the title transition', () async {
+    final stopGate = Completer<void>();
+    final driver = _FakeAudioDriver(stopGate: stopGate);
+    final controller = RuntimeTitleMusicController(
+      driver: driver,
+      stopTimeout: const Duration(milliseconds: 10),
+    );
+
+    await controller.update(path: '/title.ogg', titleVisible: true);
+    await controller
+        .update(path: null, titleVisible: false)
+        .timeout(const Duration(milliseconds: 100));
+
+    expect(driver.stopCount, 1);
+    expect(controller.isPlaying, isFalse);
+    expect(controller.lastFailure, isA<TimeoutException>());
+  });
+
   test('title music follows live master and music bus transitions', () async {
     final driver = _FakeAudioDriver();
     final mixer = RuntimeAudioMixer(
@@ -77,9 +97,10 @@ void main() {
 }
 
 final class _FakeAudioDriver implements FlameCinematicAudioDriver {
-  _FakeAudioDriver({this.failPlayback = false});
+  _FakeAudioDriver({this.failPlayback = false, this.stopGate});
 
   final bool failPlayback;
+  final Completer<void>? stopGate;
   final List<String> played = <String>[];
   final List<double> playVolumes = <double>[];
   final List<double> updatedVolumes = <double>[];
@@ -107,5 +128,6 @@ final class _FakeAudioDriver implements FlameCinematicAudioDriver {
   @override
   Future<void> stop(Object handle) async {
     stopCount += 1;
+    await stopGate?.future;
   }
 }

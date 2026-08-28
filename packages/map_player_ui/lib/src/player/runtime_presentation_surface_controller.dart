@@ -32,18 +32,26 @@ final class RuntimePresentationSurfaceController
         _orientation = orientation,
         _videoDriver = videoDriver,
         super(null) {
+    final mixer = audioMixer ?? RuntimeAudioMixer();
     _mediaController = RuntimePresentationMediaPlaybackController(
       catalog: catalog,
       targetPlatform: targetPlatform,
       resolveUri: _resolveMediaUri,
       videoDriver: videoDriver,
-      audioMixer: audioMixer,
+      audioMixer: mixer,
+    );
+    _audioController = RuntimePresentationAudioController(
+      catalog: catalog,
+      resolveUri: _resolveMediaUri,
+      driver: FlameRuntimePresentationAudioDriver(),
+      mixer: mixer,
     );
     _executionController = RuntimePresentationExecutionController(
       mediaController: _mediaController,
     );
     _playbackController = RuntimePresentationScenePlaybackController(
       executionController: _executionController,
+      audioController: _audioController,
       onFrame: _publishFrame,
       frameDeltas: frameDeltas,
       resolveVisualMediaId: _resolveVisualMediaId,
@@ -60,6 +68,7 @@ final class RuntimePresentationSurfaceController
 
   late final RuntimePresentationMediaPlaybackController _mediaController;
   late final RuntimePresentationExecutionController _executionController;
+  late final RuntimePresentationAudioController _audioController;
   late final RuntimePresentationScenePlaybackController _playbackController;
   PresentationFrameOrientation _orientation;
   bool _closed = false;

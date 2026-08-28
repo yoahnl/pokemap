@@ -36,12 +36,14 @@ class PlacedBehaviorCooldownPolicy {
     this.showMessage = const Duration(milliseconds: 650),
     this.openDialogue = const Duration(milliseconds: 900),
     this.playAnimationOnce = const Duration(milliseconds: 180),
+    this.traverseWarp = const Duration(milliseconds: 500),
     this.setAnimationEnabled = Duration.zero,
   });
 
   final Duration showMessage;
   final Duration openDialogue;
   final Duration playAnimationOnce;
+  final Duration traverseWarp;
   final Duration setAnimationEnabled;
 
   Duration durationFor(MapPlacedElementEffectType effectType) {
@@ -49,6 +51,7 @@ class PlacedBehaviorCooldownPolicy {
       MapPlacedElementEffectType.showMessage => showMessage,
       MapPlacedElementEffectType.openDialogue => openDialogue,
       MapPlacedElementEffectType.playAnimationOnce => playAnimationOnce,
+      MapPlacedElementEffectType.traverseWarp => traverseWarp,
       MapPlacedElementEffectType.setAnimationEnabled => setAnimationEnabled,
     };
   }

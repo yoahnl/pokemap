@@ -70,6 +70,58 @@ void main() {
     expect(controller.value, isNull);
   });
 
+  test('routes authored audio through the runtime playback pipeline', () async {
+    final controller = RuntimePresentationSurfaceController(
+      catalog: ProjectMediaCatalog(),
+      mediaUris: const <String, Uri>{},
+      targetPlatform: PresentationMediaTargetPlatform.macos,
+      videoDriver: _UnusedVideoDriver(),
+      frameDeltas: (_) => Stream<int>.value(1000000),
+      beforeTerminal: () async {},
+    );
+    addTearDown(controller.close);
+
+    final terminal = await controller.playPresentationCinematic(
+      ScenePresentationCinematicRuntimeRequest(
+        requestId: 'runtime:opening:missing-audio',
+        createdAtEpochMs: 1,
+        projectRevision:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        contentHash:
+            'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        presentationCinematicId: 'opening',
+        asset: PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 1000000,
+          tracks: <PresentationTrack>[
+            PresentationTrack(
+              id: 'music',
+              label: 'Music',
+              kind: PresentationTrackKind.audio,
+              clips: <PresentationClip>[
+                PresentationAudioClip(
+                  id: 'theme',
+                  startUs: 0,
+                  durationUs: 1000000,
+                  resourceId: 'missing-theme',
+                  audioKind: PresentationAudioKind.music,
+                  bus: PresentationAudioBus.music,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(terminal.result, RuntimePresentationExecutionResult.failed);
+    expect(
+      terminal.diagnosticCode,
+      PresentationDiagnosticCodes.mediaMissing,
+    );
+  });
+
   test('resolves an installed image without network fallback', () async {
     final controller = RuntimePresentationSurfaceController(
       catalog: ProjectMediaCatalog(

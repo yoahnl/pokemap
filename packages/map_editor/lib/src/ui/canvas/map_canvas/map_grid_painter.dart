@@ -1463,7 +1463,8 @@ class MapGridPainter extends CustomPainter {
     TilesetSourceRect? source;
     for (final entry in projectContext.elements) {
       if (entry.id == selectedInstance.elementId && entry.frames.isNotEmpty) {
-        source = entityEditorPickFrame(
+        source = entityEditorPickPlacedElementFrame(
+          selectedInstance,
           entry.frames,
           effectiveAnimationMs,
         ).source;
@@ -2728,7 +2729,11 @@ class MapGridPainter extends CustomPainter {
       if (entry == null || entry.frames.isEmpty) {
         continue;
       }
-      final frame = entityEditorPickFrame(entry.frames, effectiveAnimationMs);
+      final frame = entityEditorPickPlacedElementFrame(
+        instance,
+        entry.frames,
+        effectiveAnimationMs,
+      );
       final tilesetId = frame.tilesetId.trim().isNotEmpty
           ? frame.tilesetId.trim()
           : entry.tilesetId.trim();
@@ -2827,7 +2832,11 @@ class MapGridPainter extends CustomPainter {
     if (entry == null || entry.frames.isEmpty) {
       return;
     }
-    final frame = entityEditorPickFrame(entry.frames, effectiveAnimationMs);
+    final frame = entityEditorPickPlacedElementFrame(
+      instance,
+      entry.frames,
+      effectiveAnimationMs,
+    );
     final tilesetId = frame.tilesetId.trim().isNotEmpty
         ? frame.tilesetId.trim()
         : entry.tilesetId.trim();

@@ -4,9 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('resolvePlacedElementAnimationOneShotFrame', () {
     test('advances one cycle then marks as completed', () {
-      final durations = normalizeElementFrameDurationsMs(
-        const [100, 100, 100],
-      );
+      final durations = normalizeElementFrameDurationsMs(const [100, 100, 100]);
       expect(
         resolvePlacedElementAnimationOneShotFrame(
           frameDurationsMs: durations,
@@ -56,6 +54,22 @@ void main() {
         isA<PlacedElementAnimationOneShotFrame>()
             .having((value) => value.frameIndex, 'frameIndex', 1)
             .having((value) => value.completed, 'completed', false),
+      );
+    });
+
+    test('derives traversal duration from frames and speed', () {
+      expect(
+        resolvePlacedElementAnimationOneShotDurationMs(
+          frameDurationsMs: const [100, 250, 150],
+          speed: 2,
+        ),
+        250,
+      );
+      expect(
+        resolvePlacedElementAnimationOneShotDurationMs(
+          frameDurationsMs: const [100, 0],
+        ),
+        300,
       );
     });
   });

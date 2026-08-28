@@ -173,7 +173,8 @@ final class RuntimeStartupCoordinator {
     if (command.snapshotRevision != _snapshot.revision) {
       return const RuntimeStartupCommandResult(
         status: RuntimeStartupCommandStatus.stale,
-        safeMessage: 'L’écran de démarrage a changé avant l’arrivée de cette action.',
+        safeMessage:
+            'L’écran de démarrage a changé avant l’arrivée de cette action.',
       );
     }
     if (!_snapshot.isLifecycleActive || _snapshot.isTransitioning) {
@@ -302,9 +303,8 @@ final class RuntimeStartupCoordinator {
 
     final generation = _generation;
     _publish(_snapshot.next(isTransitioning: true));
-    final transitionRevision = _snapshot.revision;
     await _titleMusic.update(path: null, titleVisible: false);
-    if (!_canCompleteTitleLaunch(generation, transitionRevision)) {
+    if (!_canCompleteTitleLaunch(generation)) {
       await _restoreTitleAfterInterruptedLaunch(generation);
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.cancelled,
@@ -1138,11 +1138,11 @@ final class RuntimeStartupCoordinator {
     }
   }
 
-  bool _canCompleteTitleLaunch(int generation, int transitionRevision) =>
+  bool _canCompleteTitleLaunch(int generation) =>
       _isCurrent(generation) &&
       _snapshot.isLifecycleActive &&
       _snapshot.phase == RuntimeStartupPhase.titleMenu &&
-      _snapshot.revision == transitionRevision;
+      _snapshot.isTransitioning;
 
   Future<void> _restoreTitleAfterInterruptedLaunch(int generation) async {
     if (!_isCurrent(generation)) return;

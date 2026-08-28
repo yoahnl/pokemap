@@ -1505,7 +1505,7 @@ $MapPlacedElementEffectCopyWith<$Res> get effect {
 /// @nodoc
 mixin _$MapPlacedElementEffect {
 
- MapPlacedElementEffectType get type; String? get message; DialogueRef? get dialogue; bool? get animationEnabled;
+ MapPlacedElementEffectType get type; String? get message; DialogueRef? get dialogue; bool? get animationEnabled; String? get targetMapId; GridPos? get targetPos;
 /// Create a copy of MapPlacedElementEffect
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1518,16 +1518,16 @@ $MapPlacedElementEffectCopyWith<MapPlacedElementEffect> get copyWith => _$MapPla
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapPlacedElementEffect&&(identical(other.type, type) || other.type == type)&&(identical(other.message, message) || other.message == message)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.animationEnabled, animationEnabled) || other.animationEnabled == animationEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapPlacedElementEffect&&(identical(other.type, type) || other.type == type)&&(identical(other.message, message) || other.message == message)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.animationEnabled, animationEnabled) || other.animationEnabled == animationEnabled)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.targetPos, targetPos) || other.targetPos == targetPos));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,type,message,dialogue,animationEnabled);
+int get hashCode => Object.hash(runtimeType,type,message,dialogue,animationEnabled,targetMapId,targetPos);
 
 @override
 String toString() {
-  return 'MapPlacedElementEffect(type: $type, message: $message, dialogue: $dialogue, animationEnabled: $animationEnabled)';
+  return 'MapPlacedElementEffect(type: $type, message: $message, dialogue: $dialogue, animationEnabled: $animationEnabled, targetMapId: $targetMapId, targetPos: $targetPos)';
 }
 
 
@@ -1538,11 +1538,11 @@ abstract mixin class $MapPlacedElementEffectCopyWith<$Res>  {
   factory $MapPlacedElementEffectCopyWith(MapPlacedElementEffect value, $Res Function(MapPlacedElementEffect) _then) = _$MapPlacedElementEffectCopyWithImpl;
 @useResult
 $Res call({
- MapPlacedElementEffectType type, String? message, DialogueRef? dialogue, bool? animationEnabled
+ MapPlacedElementEffectType type, String? message, DialogueRef? dialogue, bool? animationEnabled, String? targetMapId, GridPos? targetPos
 });
 
 
-$DialogueRefCopyWith<$Res>? get dialogue;
+$DialogueRefCopyWith<$Res>? get dialogue;$GridPosCopyWith<$Res>? get targetPos;
 
 }
 /// @nodoc
@@ -1555,13 +1555,15 @@ class _$MapPlacedElementEffectCopyWithImpl<$Res>
 
 /// Create a copy of MapPlacedElementEffect
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? message = freezed,Object? dialogue = freezed,Object? animationEnabled = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? message = freezed,Object? dialogue = freezed,Object? animationEnabled = freezed,Object? targetMapId = freezed,Object? targetPos = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as MapPlacedElementEffectType,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
 as DialogueRef?,animationEnabled: freezed == animationEnabled ? _self.animationEnabled : animationEnabled // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,targetMapId: freezed == targetMapId ? _self.targetMapId : targetMapId // ignore: cast_nullable_to_non_nullable
+as String?,targetPos: freezed == targetPos ? _self.targetPos : targetPos // ignore: cast_nullable_to_non_nullable
+as GridPos?,
   ));
 }
 /// Create a copy of MapPlacedElementEffect
@@ -1575,6 +1577,18 @@ $DialogueRefCopyWith<$Res>? get dialogue {
 
   return $DialogueRefCopyWith<$Res>(_self.dialogue!, (value) {
     return _then(_self.copyWith(dialogue: value));
+  });
+}/// Create a copy of MapPlacedElementEffect
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res>? get targetPos {
+    if (_self.targetPos == null) {
+    return null;
+  }
+
+  return $GridPosCopyWith<$Res>(_self.targetPos!, (value) {
+    return _then(_self.copyWith(targetPos: value));
   });
 }
 }
@@ -1658,10 +1672,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapPlacedElementEffectType type,  String? message,  DialogueRef? dialogue,  bool? animationEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapPlacedElementEffectType type,  String? message,  DialogueRef? dialogue,  bool? animationEnabled,  String? targetMapId,  GridPos? targetPos)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapPlacedElementEffect() when $default != null:
-return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled);case _:
+return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled,_that.targetMapId,_that.targetPos);case _:
   return orElse();
 
 }
@@ -1679,10 +1693,10 @@ return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled);
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapPlacedElementEffectType type,  String? message,  DialogueRef? dialogue,  bool? animationEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapPlacedElementEffectType type,  String? message,  DialogueRef? dialogue,  bool? animationEnabled,  String? targetMapId,  GridPos? targetPos)  $default,) {final _that = this;
 switch (_that) {
 case _MapPlacedElementEffect():
-return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled);case _:
+return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled,_that.targetMapId,_that.targetPos);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1699,10 +1713,10 @@ return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled);
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapPlacedElementEffectType type,  String? message,  DialogueRef? dialogue,  bool? animationEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapPlacedElementEffectType type,  String? message,  DialogueRef? dialogue,  bool? animationEnabled,  String? targetMapId,  GridPos? targetPos)?  $default,) {final _that = this;
 switch (_that) {
 case _MapPlacedElementEffect() when $default != null:
-return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled);case _:
+return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled,_that.targetMapId,_that.targetPos);case _:
   return null;
 
 }
@@ -1714,13 +1728,15 @@ return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled);
 
 @JsonSerializable(explicitToJson: true)
 class _MapPlacedElementEffect implements MapPlacedElementEffect {
-  const _MapPlacedElementEffect({required this.type, this.message, this.dialogue, this.animationEnabled});
+  const _MapPlacedElementEffect({required this.type, this.message, this.dialogue, this.animationEnabled, this.targetMapId, this.targetPos});
   factory _MapPlacedElementEffect.fromJson(Map<String, dynamic> json) => _$MapPlacedElementEffectFromJson(json);
 
 @override final  MapPlacedElementEffectType type;
 @override final  String? message;
 @override final  DialogueRef? dialogue;
 @override final  bool? animationEnabled;
+@override final  String? targetMapId;
+@override final  GridPos? targetPos;
 
 /// Create a copy of MapPlacedElementEffect
 /// with the given fields replaced by the non-null parameter values.
@@ -1735,16 +1751,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapPlacedElementEffect&&(identical(other.type, type) || other.type == type)&&(identical(other.message, message) || other.message == message)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.animationEnabled, animationEnabled) || other.animationEnabled == animationEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapPlacedElementEffect&&(identical(other.type, type) || other.type == type)&&(identical(other.message, message) || other.message == message)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.animationEnabled, animationEnabled) || other.animationEnabled == animationEnabled)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.targetPos, targetPos) || other.targetPos == targetPos));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,type,message,dialogue,animationEnabled);
+int get hashCode => Object.hash(runtimeType,type,message,dialogue,animationEnabled,targetMapId,targetPos);
 
 @override
 String toString() {
-  return 'MapPlacedElementEffect(type: $type, message: $message, dialogue: $dialogue, animationEnabled: $animationEnabled)';
+  return 'MapPlacedElementEffect(type: $type, message: $message, dialogue: $dialogue, animationEnabled: $animationEnabled, targetMapId: $targetMapId, targetPos: $targetPos)';
 }
 
 
@@ -1755,11 +1771,11 @@ abstract mixin class _$MapPlacedElementEffectCopyWith<$Res> implements $MapPlace
   factory _$MapPlacedElementEffectCopyWith(_MapPlacedElementEffect value, $Res Function(_MapPlacedElementEffect) _then) = __$MapPlacedElementEffectCopyWithImpl;
 @override @useResult
 $Res call({
- MapPlacedElementEffectType type, String? message, DialogueRef? dialogue, bool? animationEnabled
+ MapPlacedElementEffectType type, String? message, DialogueRef? dialogue, bool? animationEnabled, String? targetMapId, GridPos? targetPos
 });
 
 
-@override $DialogueRefCopyWith<$Res>? get dialogue;
+@override $DialogueRefCopyWith<$Res>? get dialogue;@override $GridPosCopyWith<$Res>? get targetPos;
 
 }
 /// @nodoc
@@ -1772,13 +1788,15 @@ class __$MapPlacedElementEffectCopyWithImpl<$Res>
 
 /// Create a copy of MapPlacedElementEffect
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? message = freezed,Object? dialogue = freezed,Object? animationEnabled = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? message = freezed,Object? dialogue = freezed,Object? animationEnabled = freezed,Object? targetMapId = freezed,Object? targetPos = freezed,}) {
   return _then(_MapPlacedElementEffect(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as MapPlacedElementEffectType,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
 as DialogueRef?,animationEnabled: freezed == animationEnabled ? _self.animationEnabled : animationEnabled // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,targetMapId: freezed == targetMapId ? _self.targetMapId : targetMapId // ignore: cast_nullable_to_non_nullable
+as String?,targetPos: freezed == targetPos ? _self.targetPos : targetPos // ignore: cast_nullable_to_non_nullable
+as GridPos?,
   ));
 }
 
@@ -1793,6 +1811,18 @@ $DialogueRefCopyWith<$Res>? get dialogue {
 
   return $DialogueRefCopyWith<$Res>(_self.dialogue!, (value) {
     return _then(_self.copyWith(dialogue: value));
+  });
+}/// Create a copy of MapPlacedElementEffect
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res>? get targetPos {
+    if (_self.targetPos == null) {
+    return null;
+  }
+
+  return $GridPosCopyWith<$Res>(_self.targetPos!, (value) {
+    return _then(_self.copyWith(targetPos: value));
   });
 }
 }

@@ -100,6 +100,35 @@ void main() {
       );
     });
 
+    test('reports the validation reason when a map save is rejected', () {
+      final original = _map('town', width: 3, height: 2);
+      final snapshot = _snapshot(maps: [original]);
+      final request = _request(
+        snapshot,
+        actionId: 'map.save',
+        parameters: {'map': original.copyWith(name: '').toJson()},
+      );
+
+      expect(
+        () => const MapLifecycleActions().build(
+          _context(snapshot, request),
+        ),
+        throwsA(
+          isA<MapAuthoringException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'map.projected_state_invalid',
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Map name cannot be empty'),
+              ),
+        ),
+      );
+    });
+
     test('reports the exact canonical map save encoding boundary', () {
       final observer = _PerformanceObserver();
       final original = _map('town', width: 3, height: 2);

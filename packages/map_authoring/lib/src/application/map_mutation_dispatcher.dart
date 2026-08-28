@@ -44,6 +44,7 @@ import '../domains/maps/border_catalog_actions.dart';
 import '../domains/maps/collision_actions.dart';
 import '../domains/maps/entity_actions.dart';
 import '../domains/maps/environment_actions.dart';
+import '../domains/maps/environment_preset_actions.dart';
 import '../domains/maps/map_lifecycle_actions.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_operations_batch.dart';
@@ -103,6 +104,7 @@ final class MapMutationDispatcher {
     );
     const entity = EntityActions();
     const environment = EnvironmentActions();
+    const environmentPresets = EnvironmentPresetActions();
     const placedElement = PlacedElementActions();
     const triggerZone = TriggerZoneActions();
     const warpConnection = WarpConnectionActions();
@@ -212,6 +214,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: environment.build,
+        ),
+      for (final descriptor in EnvironmentPresetActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: environmentPresets.build,
         ),
       for (final descriptor in PlacedElementActions.descriptors)
         MapMutationActionRegistration(

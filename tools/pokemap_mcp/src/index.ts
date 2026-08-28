@@ -25,6 +25,7 @@ try {
 function start(config: PokeMapMcpConfig): void {
   const authoring = new LocalAuthoringClient({
     allowedRoots: config.allowedRoots,
+    artifactRoots: config.artifactRoots,
     exportRoots: config.exportRoots,
     authoringPackageRoot: config.authoringPackageRoot,
     dartExecutable: config.dartExecutable,

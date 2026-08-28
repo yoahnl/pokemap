@@ -22,6 +22,12 @@ void main() {
       trigger: MapPlacedElementTriggerType.onAction,
       effectType: MapPlacedElementEffectType.setAnimationEnabled,
     );
+    const keyTraverseWarp = PlacedBehaviorRuntimeKey(
+      instanceId: 'instance_a',
+      behaviorId: 'behavior_d',
+      trigger: MapPlacedElementTriggerType.onBump,
+      effectType: MapPlacedElementEffectType.traverseWarp,
+    );
 
     test('showMessage is blocked until cooldown expires', () {
       final gate = PlacedBehaviorCooldownGate();
@@ -66,6 +72,13 @@ void main() {
       gate.markTriggered(key: keyAnimationToggle, nowMs: 0);
       expect(gate.canTrigger(key: keyAnimationToggle, nowMs: 0), isTrue);
       expect(gate.canTrigger(key: keyAnimationToggle, nowMs: 1), isTrue);
+    });
+
+    test('traverseWarp keeps a short re-entry guard', () {
+      final gate = PlacedBehaviorCooldownGate();
+      gate.markTriggered(key: keyTraverseWarp, nowMs: 0);
+      expect(gate.canTrigger(key: keyTraverseWarp, nowMs: 499), isFalse);
+      expect(gate.canTrigger(key: keyTraverseWarp, nowMs: 500), isTrue);
     });
 
     test('cooldown key isolates behaviors by behaviorId', () {

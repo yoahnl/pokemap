@@ -123,10 +123,7 @@ class _PlacedInstancesSection extends StatelessWidget {
                 scope.layerId == null
                     ? 'Calque actif: —'
                     : 'Calque actif: ${scope.layerName ?? scope.layerId}',
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: secondary, fontSize: 11),
               ),
               const SizedBox(height: 8),
               if (scope.instances.isEmpty)
@@ -155,18 +152,16 @@ class _PlacedInstancesSection extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         scope.emptyMessage,
-                        style: TextStyle(
-                          color: secondary,
-                          fontSize: 11,
-                        ),
+                        style: TextStyle(color: secondary, fontSize: 11),
                       ),
                     ],
                   ),
                 )
               else
                 SizedBox(
-                  height:
-                      math.min(260, scope.instances.length * 67 + 6).toDouble(),
+                  height: math
+                      .min(260, scope.instances.length * 67 + 6)
+                      .toDouble(),
                   child: ListView.separated(
                     itemCount: scope.instances.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 6),
@@ -285,10 +280,7 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
                 instanceId == null
                     ? 'Sélectionne une instance dans la liste pour afficher ses détails.'
                     : 'Instance introuvable',
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: secondary, fontSize: 11),
               )
             else ...[
               _PropertyLine(
@@ -297,10 +289,7 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
                     ? 'Introuvable (${selected.instance.elementId})'
                     : '${selected.element!.name} (${selected.element!.id})',
               ),
-              _PropertyLine(
-                label: 'Instance',
-                value: selected.displayLabel,
-              ),
+              _PropertyLine(label: 'Instance', value: selected.displayLabel),
               _PropertyLine(
                 label: 'Position',
                 value: '(${selected.pos.x}, ${selected.pos.y})',
@@ -313,10 +302,7 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
                 label: 'Layer',
                 value: '${selected.layerName} (${selected.layerId})',
               ),
-              _PropertyLine(
-                label: 'ID interne',
-                value: selected.instanceId,
-              ),
+              _PropertyLine(label: 'ID interne', value: selected.instanceId),
               const SizedBox(height: 8),
               _CollisionToggleRow(
                 value: selected.applyCollision,
@@ -349,9 +335,9 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
                 shadowOverride: selected.shadowOverride,
                 onChanged: (next) =>
                     notifier.setPlacedElementInstanceShadowOverride(
-                  instanceId: selected.instanceId,
-                  shadowOverride: next,
-                ),
+                      instanceId: selected.instanceId,
+                      shadowOverride: next,
+                    ),
                 onEnsureDefaultShadowProfiles:
                     notifier.ensureDefaultShadowProfiles,
               ),
@@ -366,14 +352,16 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
                 tileHeight: tileHeight ?? snapshot.project!.settings.tileHeight,
                 onChanged: (next) =>
                     notifier.setPlacedElementInstanceAnimationConfig(
-                  instanceId: selected.instanceId,
-                  animation: next,
-                ),
+                      instanceId: selected.instanceId,
+                      animation: next,
+                    ),
               ),
               const SizedBox(height: 8),
               _PlacedElementBehaviorsSection(
                 value: selected.behaviors,
+                frameCount: selected.frameCount,
                 dialogues: snapshot.project!.dialogues,
+                maps: snapshot.project!.maps,
                 projectRootPath: snapshot.projectRootPath,
                 onChanged: (next) => notifier.setPlacedElementInstanceBehaviors(
                   instanceId: selected.instanceId,
@@ -383,8 +371,10 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
               const SizedBox(height: 8),
               CupertinoButton(
                 color: CupertinoColors.systemRed.withValues(alpha: 0.9),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 onPressed: () => _showDeletePlacedInstanceDialog(
                   context,
                   notifier: notifier,
@@ -417,10 +407,7 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
     if (!scrollable) {
       return content;
     }
-    return SingleChildScrollView(
-      primary: false,
-      child: content,
-    );
+    return SingleChildScrollView(primary: false, child: content);
   }
 }
 
@@ -453,16 +440,17 @@ _PlacedElementInstanceVm? _resolvePlacedElementInstance({
       break;
     }
   }
-  final sameLayerInstances = map.placedElements
-      .where((instance) => instance.layerId == selectedLayerId)
-      .toList(growable: false)
-    ..sort((a, b) {
-      final yCompare = a.pos.y.compareTo(b.pos.y);
-      if (yCompare != 0) return yCompare;
-      final xCompare = a.pos.x.compareTo(b.pos.x);
-      if (xCompare != 0) return xCompare;
-      return a.id.compareTo(b.id);
-    });
+  final sameLayerInstances =
+      map.placedElements
+          .where((instance) => instance.layerId == selectedLayerId)
+          .toList(growable: false)
+        ..sort((a, b) {
+          final yCompare = a.pos.y.compareTo(b.pos.y);
+          if (yCompare != 0) return yCompare;
+          final xCompare = a.pos.x.compareTo(b.pos.x);
+          if (xCompare != 0) return xCompare;
+          return a.id.compareTo(b.id);
+        });
   var occurrence = 0;
   for (final instance in sameLayerInstances) {
     if (instance.elementId == selected.elementId) {
@@ -548,9 +536,7 @@ class _PlacedInstanceCard extends StatelessWidget {
               ? accent.withValues(alpha: 0.13)
               : EditorPaintColors.transparent,
           borderRadius: BorderRadius.circular(7),
-          border: Border.all(
-            color: selected ? accent : border,
-          ),
+          border: Border.all(color: selected ? accent : border),
         ),
         child: Row(
           children: [
@@ -558,9 +544,7 @@ class _PlacedInstanceCard extends StatelessWidget {
               width: 44,
               height: 44,
               child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: border),
-                ),
+                decoration: BoxDecoration(border: Border.all(color: border)),
                 child: instance.element == null
                     ? Icon(
                         CupertinoIcons.question_circle,
@@ -568,17 +552,17 @@ class _PlacedInstanceCard extends StatelessWidget {
                         color: secondary,
                       )
                     : !instance.previewAvailable
-                        ? Icon(
-                            CupertinoIcons.question_circle,
-                            size: 18,
-                            color: secondary,
-                          )
-                        : _PaletteRectPreview(
-                            image: image,
-                            source: instance.source,
-                            tileWidth: tileWidth,
-                            tileHeight: tileHeight,
-                          ),
+                    ? Icon(
+                        CupertinoIcons.question_circle,
+                        size: 18,
+                        color: secondary,
+                      )
+                    : _PaletteRectPreview(
+                        image: image,
+                        source: instance.source,
+                        tileWidth: tileWidth,
+                        tileHeight: tileHeight,
+                      ),
               ),
             ),
             const SizedBox(width: 8),
@@ -602,19 +586,13 @@ class _PlacedInstanceCard extends StatelessWidget {
                     instance.displayLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: secondary,
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: secondary, fontSize: 10),
                   ),
                   Text(
                     'Pos: (${instance.pos.x}, ${instance.pos.y}) · Layer: ${instance.layerName} · Collision: ${instance.applyCollision ? 'on' : 'off'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: secondary,
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: secondary, fontSize: 10),
                   ),
                 ],
               ),
@@ -634,10 +612,7 @@ class _PlacedInstanceCard extends StatelessWidget {
 }
 
 class _PropertyLine extends StatelessWidget {
-  const _PropertyLine({
-    required this.label,
-    required this.value,
-  });
+  const _PropertyLine({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -664,13 +639,7 @@ class _PropertyLine extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: primary,
-                fontSize: 11,
-              ),
-            ),
+            child: Text(value, style: TextStyle(color: primary, fontSize: 11)),
           ),
         ],
       ),
@@ -679,10 +648,7 @@ class _PropertyLine extends StatelessWidget {
 }
 
 class _CollisionToggleRow extends StatelessWidget {
-  const _CollisionToggleRow({
-    required this.value,
-    required this.onChanged,
-  });
+  const _CollisionToggleRow({required this.value, required this.onChanged});
 
   final bool value;
   final ValueChanged<bool?> onChanged;
@@ -697,9 +663,7 @@ class _CollisionToggleRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surfaceRaised,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: colors.borderSubtle,
-        ),
+        border: Border.all(color: colors.borderSubtle),
       ),
       child: Row(
         children: [
@@ -718,10 +682,7 @@ class _CollisionToggleRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Appliquer la collision de l’élément',
-                  style: TextStyle(
-                    color: secondary,
-                    fontSize: 10,
-                  ),
+                  style: TextStyle(color: secondary, fontSize: 10),
                 ),
               ],
             ),
@@ -763,9 +724,7 @@ class _OpacitySliderRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surfaceRaised,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: colors.borderSubtle,
-        ),
+        border: Border.all(color: colors.borderSubtle),
       ),
       child: PokeMapGuidedSlider(
         key: const ValueKey('placed-instance-opacity-slider'),

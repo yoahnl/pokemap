@@ -38,6 +38,37 @@ TilesetVisualFrame entityEditorPickFrame(
   return pickProjectElementFrame(frames, elapsedMs);
 }
 
+TilesetVisualFrame entityEditorPickPlacedElementFrame(
+  MapPlacedElement instance,
+  List<TilesetVisualFrame> frames,
+  int elapsedMs,
+) {
+  if (frames.isEmpty) {
+    return entityEditorPickFrame(frames, elapsedMs);
+  }
+  final frameIndex = resolvePlacedElementAnimationFrameIndex(
+    frameDurationsMs: frames
+        .map(entityEditorFrameDurationMs)
+        .toList(growable: false),
+    elapsedMs: elapsedMs.toDouble(),
+    animation: instance.animation,
+    deterministicSeed: stableHash32(instance.id),
+  );
+  return frames[frameIndex];
+}
+
+bool entityEditorPlacedElementNeedsFrameAnimation(
+  MapPlacedElement instance,
+  List<TilesetVisualFrame> frames,
+) {
+  final animation = instance.animation;
+  return frames.length > 1 &&
+      animation != null &&
+      animation.enabled &&
+      animation.autoplay &&
+      animation.mode != MapPlacedElementAnimationMode.none;
+}
+
 Rect? _sourceRectForFrameInImage({
   required TilesetVisualFrame frame,
   required ui.Image image,
@@ -93,10 +124,7 @@ Rect? _sourceRectForCharacterFrameInImage({
   );
 }
 
-String? _resolveNpcCharacterId(
-  MapEntity entity,
-  ProjectManifest project,
-) {
+String? _resolveNpcCharacterId(MapEntity entity, ProjectManifest project) {
   if (entity.kind != MapEntityKind.npc) {
     return null;
   }
@@ -232,10 +260,7 @@ ResolvedEntityElementVisual? resolveEntityElementVisualForEditor({
   if (entry == null || entry.frames.isEmpty) {
     return null;
   }
-  final frame = entityEditorPickFrame(
-    entry.frames,
-    editorAnimationTimeMs,
-  );
+  final frame = entityEditorPickFrame(entry.frames, editorAnimationTimeMs);
   final tilesetId = frame.tilesetId.trim().isEmpty
       ? entry.tilesetId.trim()
       : frame.tilesetId.trim();
@@ -303,10 +328,7 @@ void collectTilesetIdsForEntityEditorVisuals({
     if (entry == null || entry.frames.isEmpty) {
       continue;
     }
-    _collectProjectElementTilesetIds(
-      entry,
-      onTilesetId: onTilesetId,
-    );
+    _collectProjectElementTilesetIds(entry, onTilesetId: onTilesetId);
   }
   for (final ent in map.entities) {
     if (ent.kind == MapEntityKind.npc) {
@@ -339,10 +361,7 @@ void collectTilesetIdsForEntityEditorVisuals({
     if (entry == null || entry.frames.isEmpty) {
       continue;
     }
-    _collectProjectElementTilesetIds(
-      entry,
-      onTilesetId: onTilesetId,
-    );
+    _collectProjectElementTilesetIds(entry, onTilesetId: onTilesetId);
   }
 }
 

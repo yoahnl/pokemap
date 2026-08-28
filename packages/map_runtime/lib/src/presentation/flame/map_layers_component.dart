@@ -136,6 +136,7 @@ class MapLayersComponent extends PositionComponent {
           ),
         ) {
     _animatedInstanceById = _buildAnimatedPlacedInstanceById(
+      bundle,
       _animatedPlacedCellsByLayerId,
     );
     _objectVisualIndicesByLayerId = _buildObjectVisualIndices(bundle);
@@ -165,8 +166,7 @@ class MapLayersComponent extends PositionComponent {
   final BorderRuntimeAssetBundle? borderAssets;
   final BorderRuntimeRenderer borderRenderer;
   final MapLayersRenderProfileObserver? debugOnRenderProfile;
-  final SmartTileAnimationActivationController?
-      smartTileAnimationController;
+  final SmartTileAnimationActivationController? smartTileAnimationController;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
   final Map<String, Map<int, _AnimatedPlacedCell>>
       _animatedPlacedCellsByLayerId;
@@ -329,6 +329,13 @@ class MapLayersComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     _animElapsed += dt;
+    _activeOneShotByInstanceId.removeWhere((_, oneShot) {
+      return resolvePlacedElementAnimationOneShotFrame(
+        frameDurationsMs: oneShot.frameDurationsMs,
+        elapsedMs: (_animElapsed * 1000) - oneShot.startedAtMs,
+        speed: oneShot.speed,
+      ).completed;
+    });
   }
 
   void setPlacedElementAnimationEnabledOverride({
@@ -779,6 +786,39 @@ class MapLayersComponent extends PositionComponent {
     return frames.last;
   }
 
+  TilesetVisualFrame _pickPlacedElementFrame({
+    required MapPlacedElement instance,
+    required List<TilesetVisualFrame> frames,
+    required int elapsedMs,
+  }) {
+    final oneShot = _activeOneShotByInstanceId[instance.id];
+    if (oneShot == null) {
+      final spec = _animatedInstanceById[instance.id];
+      if (spec == null) {
+        return _pickEntityFrame(frames, elapsedMs);
+      }
+      final animation = instance.animation ?? const MapPlacedElementAnimation();
+      final enabledOverride =
+          _animationEnabledOverrideByInstanceId[instance.id];
+      final effectiveAnimation = enabledOverride == null
+          ? animation
+          : animation.copyWith(enabled: enabledOverride);
+      final frameIndex = resolvePlacedElementAnimationFrameIndex(
+        frameDurationsMs: spec.frameDurationsMs,
+        elapsedMs: elapsedMs.toDouble(),
+        animation: effectiveAnimation,
+        deterministicSeed: stableHash32(instance.id),
+      );
+      return frames[frameIndex];
+    }
+    final resolution = resolvePlacedElementAnimationOneShotFrame(
+      frameDurationsMs: oneShot.frameDurationsMs,
+      elapsedMs: (_animElapsed * 1000) - oneShot.startedAtMs,
+      speed: oneShot.speed,
+    );
+    return frames[resolution.frameIndex];
+  }
+
   void _paintTileLayer(Canvas canvas, TileLayer layer) {
     final layerId = layer.id;
     final layerName = layer.name;
@@ -1091,7 +1131,16 @@ class MapLayersComponent extends PositionComponent {
       if (entry == null || entry.frames.isEmpty) {
         continue;
       }
-      final frame = _pickEntityFrame(entry.frames, elapsedMs);
+      final isPlayingOneShot =
+          _activeOneShotByInstanceId.containsKey(instance.id);
+      if (isPlayingOneShot && renderPass == MapLayerRenderPass.background) {
+        continue;
+      }
+      final frame = _pickPlacedElementFrame(
+        instance: instance,
+        frames: entry.frames,
+        elapsedMs: elapsedMs,
+      );
       final source = frame.source;
       if (source.width <= 0 || source.height <= 0) {
         continue;
@@ -1108,7 +1157,8 @@ class MapLayersComponent extends PositionComponent {
           collisionCells.isNotEmpty;
       if (!explicitForeground &&
           renderPass == MapLayerRenderPass.foreground &&
-          !hasForegroundSplit) {
+          !hasForegroundSplit &&
+          !isPlayingOneShot) {
         continue;
       }
       // Viewport culling pour les éléments placés.
@@ -1157,7 +1207,7 @@ class MapLayersComponent extends PositionComponent {
         width: gridTransform.destinationSize.width * tw,
         height: gridTransform.destinationSize.height * th,
       );
-      if (hasForegroundSplit) {
+      if (hasForegroundSplit && !isPlayingOneShot) {
         final clip = buildPlacedElementCollisionClip(
           destinationRect: dst,
           sourceGridSize: GridSize(
@@ -1510,6 +1560,7 @@ class MapLayersComponent extends PositionComponent {
 
   static Map<String, _AnimatedPlacedInstanceSpec>
       _buildAnimatedPlacedInstanceById(
+    RuntimeMapBundle bundle,
     Map<String, Map<int, _AnimatedPlacedCell>> cellsByLayerId,
   ) {
     final out = <String, _AnimatedPlacedInstanceSpec>{};
@@ -1523,6 +1574,27 @@ class MapLayersComponent extends PositionComponent {
           ),
         );
       }
+    }
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in bundle.manifest.elements) entry.id: entry,
+    };
+    for (final instance in bundle.map.placedElements) {
+      if (out.containsKey(instance.id)) {
+        continue;
+      }
+      final frames = elementById[instance.elementId]?.frames;
+      if (frames == null || frames.length < 2) {
+        continue;
+      }
+      out[instance.id] = _AnimatedPlacedInstanceSpec(
+        frameDurationsMs: normalizeElementFrameDurationsMs(
+          frames.map((frame) => frame.durationMs).toList(growable: false),
+        ),
+        speed: switch (instance.animation?.speed) {
+          final speed? when speed > 0 => speed,
+          _ => 1,
+        },
+      );
     }
     return out;
   }

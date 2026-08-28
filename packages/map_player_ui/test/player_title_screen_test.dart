@@ -388,6 +388,47 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('premium startup menu activates Continue with Enter',
+      (tester) async {
+    final selected = <PlayerTitleMenuAction>[];
+    final focusController = RuntimePlayerFocusController(
+      logicalSelectionId: 'title.continueGame',
+    );
+    addTearDown(focusController.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerActions(
+          onBack: () {},
+          onMenu: () {},
+          onInputSourceChanged: (_) {},
+          child: PlayerTitleScreen(
+            data: PlayerTitleViewData(
+              gameTitle: 'Le Train de 17h42',
+              author: 'PokeMap',
+              layoutVariant: PlayerTitleLayoutVariant.runtimeStartupCinematic,
+              actions: const <PlayerTitleMenuAction, PlayerActionAvailability>{
+                PlayerTitleMenuAction.continueGame:
+                    PlayerActionAvailability.enabled,
+                PlayerTitleMenuAction.newGame: PlayerActionAvailability.enabled,
+              },
+            ),
+            focusController: focusController,
+            onSelected: selected.add,
+          ),
+        ),
+      ),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(selected, <PlayerTitleMenuAction>[
+      PlayerTitleMenuAction.continueGame,
+    ]);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('premium startup menu keeps a 392 pixel rail on desktop',
       (tester) async {
     tester.view.physicalSize = const Size(995, 690);

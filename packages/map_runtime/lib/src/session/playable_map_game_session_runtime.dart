@@ -495,7 +495,6 @@ final class PlayableMapGameSessionRuntime
         save.gameId != descriptor.identity.gameId ||
         save.profileId != descriptor.profileId ||
         save.slotId != descriptor.slotId ||
-        save.gameVersion != descriptor.identity.gameVersion ||
         save.saveFormat != descriptor.identity.saveFormat ||
         save.compatibilityId != descriptor.identity.compatibilityId) {
       throw StateError('The selected save does not match the session.');

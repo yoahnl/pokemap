@@ -262,6 +262,10 @@ _MapPlacedElementEffect _$MapPlacedElementEffectFromJson(
       ? null
       : DialogueRef.fromJson(json['dialogue'] as Map<String, dynamic>),
   animationEnabled: json['animationEnabled'] as bool?,
+  targetMapId: json['targetMapId'] as String?,
+  targetPos: json['targetPos'] == null
+      ? null
+      : GridPos.fromJson(json['targetPos'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$MapPlacedElementEffectToJson(
@@ -271,6 +275,8 @@ Map<String, dynamic> _$MapPlacedElementEffectToJson(
   'message': instance.message,
   'dialogue': instance.dialogue?.toJson(),
   'animationEnabled': instance.animationEnabled,
+  'targetMapId': instance.targetMapId,
+  'targetPos': instance.targetPos?.toJson(),
 };
 
 const _$MapPlacedElementEffectTypeEnumMap = {
@@ -278,6 +284,7 @@ const _$MapPlacedElementEffectTypeEnumMap = {
   MapPlacedElementEffectType.openDialogue: 'open_dialogue',
   MapPlacedElementEffectType.setAnimationEnabled: 'set_animation_enabled',
   MapPlacedElementEffectType.playAnimationOnce: 'play_animation_once',
+  MapPlacedElementEffectType.traverseWarp: 'traverse_warp',
 };
 
 _MapPlacedElementAnimation _$MapPlacedElementAnimationFromJson(

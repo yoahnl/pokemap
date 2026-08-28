@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/placed_instances/placed_element_shadow_override_section.dart';
+import 'package:map_editor/src/ui/panels/tileset_palette/widgets/placed_instances/placed_element_warp_destination_editor.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/shadow/element_shadow_section.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
@@ -84,10 +85,7 @@ class _InspectorPulldownAction {
 }
 
 class TilesetPalettePanel extends ConsumerStatefulWidget {
-  const TilesetPalettePanel({
-    super.key,
-    this.embedded = false,
-  });
+  const TilesetPalettePanel({super.key, this.embedded = false});
 
   final bool embedded;
 
@@ -112,19 +110,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     super.dispose();
   }
 
-  void _releasePaletteImageFuture(
-    Future<EditorImageLoadResult>? future,
-  ) {
+  void _releasePaletteImageFuture(Future<EditorImageLoadResult>? future) {
     if (future == null) return;
     unawaited(
-      future.then<void>(
-        (result) {
-          final binding = WidgetsBinding.instance;
-          binding.addPostFrameCallback((_) => result.dispose());
-          binding.ensureVisualUpdate();
-        },
-        onError: (Object _, StackTrace _) {},
-      ),
+      future.then<void>((result) {
+        final binding = WidgetsBinding.instance;
+        binding.addPostFrameCallback((_) => result.dispose());
+        binding.ensureVisualUpdate();
+      }, onError: (Object _, StackTrace _) {}),
     );
   }
 
@@ -140,7 +133,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final previousFuture = _paletteImageFuture;
     _lastPaletteImageCache = imageCache;
     _lastPaletteImagePath = path;
-    final nextFuture = imageCache?.load(path) ??
+    final nextFuture =
+        imageCache?.load(path) ??
         Future<EditorImageLoadResult>.value(
           EditorImageLoadResult.failure(
             EditorImageFailure(
@@ -378,9 +372,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       return Center(
         child: Text(
           'Aucun projet chargé',
-          style: TextStyle(
-            color: colors.textMuted,
-          ),
+          style: TextStyle(color: colors.textMuted),
         ),
       );
     }
@@ -392,9 +384,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         Center(
           child: Text(
             'Aucun tileset sélectionné',
-            style: TextStyle(
-              color: colors.textMuted,
-            ),
+            style: TextStyle(color: colors.textMuted),
           ),
         ),
       );
@@ -475,10 +465,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           );
         }
 
-        final columns =
-            settings.tileWidth > 0 ? image.width ~/ settings.tileWidth : 0;
-        final rows =
-            settings.tileHeight > 0 ? image.height ~/ settings.tileHeight : 0;
+        final columns = settings.tileWidth > 0
+            ? image.width ~/ settings.tileWidth
+            : 0;
+        final rows = settings.tileHeight > 0
+            ? image.height ~/ settings.tileHeight
+            : 0;
         if (columns <= 0 || rows <= 0) {
           return Center(
             child: Text(
@@ -521,8 +513,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       fieldLabel: 'Tileset',
                       valueLabel: selectedTileset.name,
                       tooltip: 'Choisir un tileset',
-                      orderedIds:
-                          sortedTilesets.map((tileset) => tileset.id).toList(),
+                      orderedIds: sortedTilesets
+                          .map((tileset) => tileset.id)
+                          .toList(),
                       selectedId: selectedTileset.id,
                       idToLabel: (id) =>
                           sortedTilesets.firstWhere((t) => t.id == id).name,
@@ -628,7 +621,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       });
     }
     final selectedTilesetGroupId = snapshot.selectedTilesetElementGroupId;
-    final validSelectedTilesetGroupId = selectedTilesetGroupId != null &&
+    final validSelectedTilesetGroupId =
+        selectedTilesetGroupId != null &&
             tilesetGroupById.containsKey(selectedTilesetGroupId)
         ? selectedTilesetGroupId
         : null;
@@ -641,17 +635,21 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final selectedCategoryId = _selectedCategoryId;
     Set<String>? categoryScope;
     if (selectedCategoryId != null) {
-      categoryScope =
-          _collectCategoryScope(categoriesByParent, selectedCategoryId);
+      categoryScope = _collectCategoryScope(
+        categoriesByParent,
+        selectedCategoryId,
+      );
     }
 
-    final filteredElements = tilesetElements.where((element) {
-      if (categoryScope != null &&
-          !categoryScope.contains(element.categoryId)) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    final filteredElements = tilesetElements
+        .where((element) {
+          if (categoryScope != null &&
+              !categoryScope.contains(element.categoryId)) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
 
     final colors = context.pokeMapColors;
     const tilesAccent = EditorChrome.inspectorJoyLilac;
@@ -802,9 +800,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           if (!mounted) {
             return;
           }
-          ref.read(editorNotifierProvider.notifier).selectPlacedElementInstance(
-                instanceId: null,
-              );
+          ref
+              .read(editorNotifierProvider.notifier)
+              .selectPlacedElementInstance(instanceId: null);
         });
       }
     }
@@ -865,15 +863,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const ColoredBox(
-              color: tilesAccent,
-              child: SizedBox(width: 3),
-            ),
-            Expanded(
-              child: ListView(
-                children: tilesetGroupRows,
-              ),
-            ),
+            const ColoredBox(color: tilesAccent, child: SizedBox(width: 3)),
+            Expanded(child: ListView(children: tilesetGroupRows)),
           ],
         ),
       ),
@@ -933,15 +924,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const ColoredBox(
-              color: categoryStripe,
-              child: SizedBox(width: 3),
-            ),
-            Expanded(
-              child: ListView(
-                children: categoryRows,
-              ),
-            ),
+            const ColoredBox(color: categoryStripe, child: SizedBox(width: 3)),
+            Expanded(child: ListView(children: categoryRows)),
           ],
         ),
       ),
@@ -988,8 +972,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 ? MapPaletteAssetBrowserPresentation.inspector
                 : MapPaletteAssetBrowserPresentation.sideSheet,
             sourceId: activeTileset.id,
-            visibleElementIds:
-                filteredElements.map((element) => element.id).toSet(),
+            visibleElementIds: filteredElements
+                .map((element) => element.id)
+                .toSet(),
             elementActionsBuilder: (context, element) => Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1086,9 +1071,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       decoration: BoxDecoration(
         color: colors.surfaceBase,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: colors.borderSubtle,
-        ),
+        border: Border.all(color: colors.borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1125,10 +1108,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             const SizedBox(height: 6),
             Text(
               '$placedCount instance${placedCount > 1 ? 's' : ''} détectée${placedCount > 1 ? 's' : ''} sur le calque actif',
-              style: TextStyle(
-                color: secondary,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: secondary, fontSize: 11),
             ),
           ],
         ],
@@ -1192,16 +1172,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final elementById = <String, ProjectElementEntry>{
       for (final entry in project.elements) entry.id: entry,
     };
-    final rawLayerInstances = map.placedElements
-        .where((instance) => instance.layerId == tileLayer.id)
-        .toList(growable: true)
-      ..sort((a, b) {
-        final yCompare = a.pos.y.compareTo(b.pos.y);
-        if (yCompare != 0) return yCompare;
-        final xCompare = a.pos.x.compareTo(b.pos.x);
-        if (xCompare != 0) return xCompare;
-        return a.id.compareTo(b.id);
-      });
+    final rawLayerInstances =
+        map.placedElements
+            .where((instance) => instance.layerId == tileLayer.id)
+            .toList(growable: true)
+          ..sort((a, b) {
+            final yCompare = a.pos.y.compareTo(b.pos.y);
+            if (yCompare != 0) return yCompare;
+            final xCompare = a.pos.x.compareTo(b.pos.x);
+            if (xCompare != 0) return xCompare;
+            return a.id.compareTo(b.id);
+          });
 
     if (rawLayerInstances.isEmpty) {
       return _PlacedElementInstancesScope(
@@ -1217,7 +1198,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final instances = <_PlacedElementInstanceVm>[];
     for (final instance in rawLayerInstances) {
       final element = elementById[instance.elementId];
-      final previewAvailable = element != null &&
+      final previewAvailable =
+          element != null &&
           _resolveElementPrimaryTilesetId(element) == activeTileset.id &&
           tilesetColumns > 0;
       final key = element?.id ?? instance.elementId;
@@ -1539,10 +1521,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Rename Category',
-            style: editorMacosSheetTitleStyle(ctx),
-          ),
+          Text('Rename Category', style: editorMacosSheetTitleStyle(ctx)),
           const SizedBox(height: 12),
           MacosTextField(
             controller: controller,
@@ -1592,10 +1571,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'New Tileset Group',
-            style: editorMacosSheetTitleStyle(ctx),
-          ),
+          Text('New Tileset Group', style: editorMacosSheetTitleStyle(ctx)),
           const SizedBox(height: 12),
           MacosTextField(
             controller: controller,
@@ -1628,10 +1604,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       ),
     );
     if (!shouldSave) return;
-    await notifier.createTilesetElementGroup(
-      tilesetId,
-      controller.text.trim(),
-    );
+    await notifier.createTilesetElementGroup(tilesetId, controller.text.trim());
   }
 
   Future<void> _showCreateTilesetSubgroupDialog(
@@ -1649,10 +1622,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'New Tileset Subgroup',
-            style: editorMacosSheetTitleStyle(ctx),
-          ),
+          Text('New Tileset Subgroup', style: editorMacosSheetTitleStyle(ctx)),
           const SizedBox(height: 12),
           MacosTextField(
             controller: controller,
@@ -1712,10 +1682,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Rename Tileset Group',
-            style: editorMacosSheetTitleStyle(ctx),
-          ),
+          Text('Rename Tileset Group', style: editorMacosSheetTitleStyle(ctx)),
           const SizedBox(height: 12),
           MacosTextField(
             controller: controller,
@@ -1810,8 +1777,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final tilesetGroupById = <String, TilesetElementGroup>{
       for (final group in sortedTilesetGroups) group.id: group,
     };
-    String? selectedTilesetGroupId =
-        ref.read(editorNotifierProvider).selectedTilesetElementGroupId;
+    String? selectedTilesetGroupId = ref
+        .read(editorNotifierProvider)
+        .selectedTilesetElementGroupId;
     if (selectedTilesetGroupId != null &&
         !tilesetGroupById.containsKey(selectedTilesetGroupId)) {
       selectedTilesetGroupId = null;
@@ -1929,8 +1897,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         );
                         if (picked != null) {
                           setStateDialog(
-                            () => selectedTilesetGroupId =
-                                picked.isEmpty ? null : picked,
+                            () => selectedTilesetGroupId = picked.isEmpty
+                                ? null
+                                : picked,
                           );
                         }
                       },
@@ -1946,10 +1915,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       controlSize: ControlSize.regular,
                       secondary: true,
                       onPressed: () async {
-                        final items = <String>[
-                          '',
-                          ...groups.map((g) => g.id),
-                        ];
+                        final items = <String>['', ...groups.map((g) => g.id)];
                         final picked = await showCupertinoListPicker<String>(
                           context: ctx,
                           title: 'Groupe de scope',
@@ -1958,8 +1924,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         );
                         if (picked != null) {
                           setStateDialog(
-                            () => selectedGroupId =
-                                picked.isEmpty ? null : picked,
+                            () => selectedGroupId = picked.isEmpty
+                                ? null
+                                : picked,
                           );
                         }
                       },
@@ -1987,8 +1954,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         );
                         if (picked != null) {
                           setStateDialog(
-                            () => selectedLayerId =
-                                picked.isEmpty ? null : picked,
+                            () => selectedLayerId = picked.isEmpty
+                                ? null
+                                : picked,
                           );
                         }
                       },
@@ -2011,11 +1979,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       onPressed: () async {
                         final picked =
                             await showCupertinoListPicker<ElementPresetKind>(
-                          context: ctx,
-                          title: 'Type prédéfini',
-                          items: ElementPresetKind.values,
-                          labelOf: elementPresetLabel,
-                        );
+                              context: ctx,
+                              title: 'Type prédéfini',
+                              items: ElementPresetKind.values,
+                              labelOf: elementPresetLabel,
+                            );
                         if (picked != null) {
                           setStateDialog(() => selectedPresetKind = picked);
                         }
@@ -2206,10 +2174,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Edit Element',
-                    style: editorMacosSheetTitleStyle(ctx),
-                  ),
+                  Text('Edit Element', style: editorMacosSheetTitleStyle(ctx)),
                   const SizedBox(height: 12),
                   _ElementFramesEditor(
                     image: image,
@@ -2272,8 +2237,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         );
                         if (picked != null) {
                           setStateDialog(
-                            () => selectedTilesetGroupId =
-                                picked.isEmpty ? null : picked,
+                            () => selectedTilesetGroupId = picked.isEmpty
+                                ? null
+                                : picked,
                           );
                         }
                       },
@@ -2289,10 +2255,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       controlSize: ControlSize.regular,
                       secondary: true,
                       onPressed: () async {
-                        final items = <String>[
-                          '',
-                          ...groups.map((g) => g.id),
-                        ];
+                        final items = <String>['', ...groups.map((g) => g.id)];
                         final picked = await showCupertinoListPicker<String>(
                           context: ctx,
                           title: 'Scope Group',
@@ -2301,8 +2264,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         );
                         if (picked != null) {
                           setStateDialog(
-                            () => selectedGroupId =
-                                picked.isEmpty ? null : picked,
+                            () => selectedGroupId = picked.isEmpty
+                                ? null
+                                : picked,
                           );
                         }
                       },
@@ -2330,8 +2294,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         );
                         if (picked != null) {
                           setStateDialog(
-                            () => selectedLayerId =
-                                picked.isEmpty ? null : picked,
+                            () => selectedLayerId = picked.isEmpty
+                                ? null
+                                : picked,
                           );
                         }
                       },
@@ -2354,11 +2319,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       onPressed: () async {
                         final picked =
                             await showCupertinoListPicker<ElementPresetKind>(
-                          context: ctx,
-                          title: 'Type prédéfini',
-                          items: ElementPresetKind.values,
-                          labelOf: elementPresetLabel,
-                        );
+                              context: ctx,
+                              title: 'Type prédéfini',
+                              items: ElementPresetKind.values,
+                              labelOf: elementPresetLabel,
+                            );
                         if (picked != null) {
                           setStateDialog(() => selectedPresetKind = picked);
                         }
@@ -2534,13 +2499,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
 class _PlacedElementBehaviorsSection extends StatefulWidget {
   const _PlacedElementBehaviorsSection({
     required this.value,
+    required this.frameCount,
     required this.dialogues,
+    required this.maps,
     required this.projectRootPath,
     required this.onChanged,
   });
 
   final List<MapPlacedElementBehavior> value;
+  final int frameCount;
   final List<ProjectDialogueEntry> dialogues;
+  final List<ProjectMapEntry> maps;
   final String? projectRootPath;
   final ValueChanged<List<MapPlacedElementBehavior>> onChanged;
 
@@ -2655,9 +2624,7 @@ class _PlacedElementBehaviorsSectionState
       return;
     }
     _replaceSelectedBehavior(
-      selected.copyWith(
-        effect: selected.effect.copyWith(message: normalized),
-      ),
+      selected.copyWith(effect: selected.effect.copyWith(message: normalized)),
     );
   }
 
@@ -2728,6 +2695,8 @@ class _PlacedElementBehaviorsSectionState
         return 0;
       case MapPlacedElementEffectType.playAnimationOnce:
         return 180;
+      case MapPlacedElementEffectType.traverseWarp:
+        return 500;
     }
   }
 
@@ -2893,16 +2862,19 @@ class _PlacedElementBehaviorsSectionState
           return StatefulBuilder(
             builder: (ctx, setModalState) {
               final q = query.trim().toLowerCase();
-              final filtered = sorted.where((entry) {
-                if (q.isEmpty) {
-                  return true;
-                }
-                final haystack =
-                    '${entry.name} ${entry.id} ${entry.relativePath}'
-                        .toLowerCase();
-                return haystack.contains(q);
-              }).toList(growable: false);
-              final selectedMissing = selectedDialogueId.isNotEmpty &&
+              final filtered = sorted
+                  .where((entry) {
+                    if (q.isEmpty) {
+                      return true;
+                    }
+                    final haystack =
+                        '${entry.name} ${entry.id} ${entry.relativePath}'
+                            .toLowerCase();
+                    return haystack.contains(q);
+                  })
+                  .toList(growable: false);
+              final selectedMissing =
+                  selectedDialogueId.isNotEmpty &&
                   !sorted.any((entry) => entry.id == selectedDialogueId);
               return Center(
                 child: MacosSheet(
@@ -2940,7 +2912,8 @@ class _PlacedElementBehaviorsSectionState
                           const SizedBox(height: 10),
                           Expanded(
                             child: ListView.separated(
-                              itemCount: 1 +
+                              itemCount:
+                                  1 +
                                   (selectedMissing ? 1 : 0) +
                                   filtered.length,
                               separatorBuilder: (_, _) =>
@@ -2950,9 +2923,9 @@ class _PlacedElementBehaviorsSectionState
                                   return PushButton(
                                     controlSize: ControlSize.large,
                                     secondary: true,
-                                    onPressed: () => Navigator.of(c).pop(
-                                      _dialogueNoneMenuId,
-                                    ),
+                                    onPressed: () => Navigator.of(
+                                      c,
+                                    ).pop(_dialogueNoneMenuId),
                                     child: const Text('Aucun dialogue'),
                                   );
                                 }
@@ -2961,9 +2934,8 @@ class _PlacedElementBehaviorsSectionState
                                   return PushButton(
                                     controlSize: ControlSize.large,
                                     secondary: true,
-                                    onPressed: () => Navigator.of(c).pop(
-                                      selectedDialogueId,
-                                    ),
+                                    onPressed: () =>
+                                        Navigator.of(c).pop(selectedDialogueId),
                                     child: Text(
                                       '$selectedDialogueId (absent du projet)',
                                     ),
@@ -3041,8 +3013,9 @@ class _PlacedElementBehaviorsSectionState
     if (currentDialogue == null) {
       return;
     }
-    final normalizedNode =
-        (nodeId == null || nodeId.trim().isEmpty) ? null : nodeId.trim();
+    final normalizedNode = (nodeId == null || nodeId.trim().isEmpty)
+        ? null
+        : nodeId.trim();
     if (currentDialogue.startNode == normalizedNode) {
       return;
     }
@@ -3067,8 +3040,8 @@ class _PlacedElementBehaviorsSectionState
     final selectedScope = selected == null
         ? MapPlacedElementTriggerScope.defaultScope
         : allowedScopes.contains(selected.triggerScope)
-            ? selected.triggerScope
-            : MapPlacedElementTriggerScope.defaultScope;
+        ? selected.triggerScope
+        : MapPlacedElementTriggerScope.defaultScope;
 
     String triggerHelp(MapPlacedElementTriggerType trigger) {
       switch (trigger) {
@@ -3110,6 +3083,8 @@ class _PlacedElementBehaviorsSectionState
           return 'Animation on/off: active ou coupe l’animation locale de cette instance.';
         case MapPlacedElementEffectType.playAnimationOnce:
           return 'Animation 1x: joue une séquence une fois puis revient à l’état normal.';
+        case MapPlacedElementEffectType.traverseWarp:
+          return 'Entrée animée: joue l’ouverture, verrouille les contrôles, puis change de carte.';
       }
     }
 
@@ -3144,46 +3119,32 @@ class _PlacedElementBehaviorsSectionState
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 minimumSize: Size.zero,
                 onPressed: _addBehavior,
-                child: const Text(
-                  'Ajouter',
-                  style: TextStyle(fontSize: 10),
-                ),
+                child: const Text('Ajouter', style: TextStyle(fontSize: 10)),
               ),
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 minimumSize: Size.zero,
-                onPressed:
-                    widget.value.isEmpty ? null : _removeSelectedBehavior,
-                child: const Text(
-                  'Supprimer',
-                  style: TextStyle(fontSize: 10),
-                ),
+                onPressed: widget.value.isEmpty
+                    ? null
+                    : _removeSelectedBehavior,
+                child: const Text('Supprimer', style: TextStyle(fontSize: 10)),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Décor enrichi local: utilise cette section pour des réactions simples. Pour un vrai acteur gameplay (PNJ, panneau, item), utilise une MapEntity.',
-            style: TextStyle(
-              color: secondary,
-              fontSize: 10,
-            ),
+            style: TextStyle(color: secondary, fontSize: 10),
           ),
           if (widget.value.isEmpty) ...[
             Text(
               'Aucun comportement configuré.',
-              style: TextStyle(
-                color: secondary,
-                fontSize: 10,
-              ),
+              style: TextStyle(color: secondary, fontSize: 10),
             ),
             const SizedBox(height: 4),
             Text(
               'Ajoute un comportement pour définir déclencheur + effet.',
-              style: TextStyle(
-                color: secondary,
-                fontSize: 10,
-              ),
+              style: TextStyle(color: secondary, fontSize: 10),
             ),
           ] else ...[
             const SizedBox(height: 6),
@@ -3197,8 +3158,10 @@ class _PlacedElementBehaviorsSectionState
                   final behavior = widget.value[index];
                   final selectedChip = index == _selectedIndex;
                   return CupertinoButton(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     minimumSize: Size.zero,
                     color: selectedChip
                         ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.3)
@@ -3236,61 +3199,76 @@ class _PlacedElementBehaviorsSectionState
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: CupertinoSlidingSegmentedControl<
-                        MapPlacedElementTriggerType>(
-                      groupValue: selected.trigger,
-                      children: const {
-                        MapPlacedElementTriggerType.onAction: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Action', style: TextStyle(fontSize: 10)),
-                        ),
-                        MapPlacedElementTriggerType.onEnter: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Entrée', style: TextStyle(fontSize: 10)),
-                        ),
-                        MapPlacedElementTriggerType.onBump: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child:
-                              Text('Contact', style: TextStyle(fontSize: 10)),
-                        ),
-                        MapPlacedElementTriggerType.onExit: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Sortie', style: TextStyle(fontSize: 10)),
-                        ),
-                        MapPlacedElementTriggerType.onNear: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Proche', style: TextStyle(fontSize: 10)),
-                        ),
-                      },
-                      onValueChanged: (next) {
-                        if (next == null) {
-                          return;
-                        }
-                        _commitDrafts();
-                        final allowedScopesForNext =
-                            _allowedScopesForTrigger(next);
-                        final nextScope =
-                            allowedScopesForNext.contains(selected.triggerScope)
+                    child:
+                        CupertinoSlidingSegmentedControl<
+                          MapPlacedElementTriggerType
+                        >(
+                          groupValue: selected.trigger,
+                          children: const {
+                            MapPlacedElementTriggerType.onAction: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                'Action',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                            ),
+                            MapPlacedElementTriggerType.onEnter: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                'Entrée',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                            ),
+                            MapPlacedElementTriggerType.onBump: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                'Contact',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                            ),
+                            MapPlacedElementTriggerType.onExit: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                'Sortie',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                            ),
+                            MapPlacedElementTriggerType.onNear: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                'Proche',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                            ),
+                          },
+                          onValueChanged: (next) {
+                            if (next == null) {
+                              return;
+                            }
+                            _commitDrafts();
+                            final allowedScopesForNext =
+                                _allowedScopesForTrigger(next);
+                            final nextScope =
+                                allowedScopesForNext.contains(
+                                  selected.triggerScope,
+                                )
                                 ? selected.triggerScope
                                 : MapPlacedElementTriggerScope.defaultScope;
-                        _updateSelected(
-                          selected.copyWith(
-                            trigger: next,
-                            triggerScope: nextScope,
-                          ),
-                        );
-                      },
-                    ),
+                            _updateSelected(
+                              selected.copyWith(
+                                trigger: next,
+                                triggerScope: nextScope,
+                              ),
+                            );
+                          },
+                        ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
                 triggerHelp(selected.trigger),
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 10,
-                ),
+                style: TextStyle(color: secondary, fontSize: 10),
               ),
               const SizedBox(height: 8),
               Row(
@@ -3310,8 +3288,9 @@ class _PlacedElementBehaviorsSectionState
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                           side: BorderSide(
-                            color: EditorChrome.inspectorJoyBlue
-                                .withValues(alpha: 0.35),
+                            color: EditorChrome.inspectorJoyBlue.withValues(
+                              alpha: 0.35,
+                            ),
                           ),
                         ),
                         color: EditorChrome.islandFillElevated(context),
@@ -3366,13 +3345,15 @@ class _PlacedElementBehaviorsSectionState
                           decoration: BoxDecoration(
                             color: EditorChrome.largeIslandSurfaceColor(
                               context,
-                              tint: EditorChrome.inspectorJoyBlue
-                                  .withValues(alpha: 0.08),
+                              tint: EditorChrome.inspectorJoyBlue.withValues(
+                                alpha: 0.08,
+                              ),
                             ),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: EditorChrome.inspectorJoyBlue
-                                  .withValues(alpha: 0.35),
+                              color: EditorChrome.inspectorJoyBlue.withValues(
+                                alpha: 0.35,
+                              ),
                             ),
                           ),
                           child: Row(
@@ -3382,10 +3363,7 @@ class _PlacedElementBehaviorsSectionState
                                   _scopeLabel(selectedScope),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: label,
-                                    fontSize: 11,
-                                  ),
+                                  style: TextStyle(color: label, fontSize: 11),
                                 ),
                               ),
                               Icon(
@@ -3404,10 +3382,7 @@ class _PlacedElementBehaviorsSectionState
               const SizedBox(height: 4),
               Text(
                 scopeHelp(selectedScope),
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 10,
-                ),
+                style: TextStyle(color: secondary, fontSize: 10),
               ),
               const SizedBox(height: 8),
               Row(
@@ -3418,74 +3393,121 @@ class _PlacedElementBehaviorsSectionState
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: CupertinoSlidingSegmentedControl<
-                        MapPlacedElementEffectType>(
-                      groupValue: selected.effect.type,
-                      children: const {
-                        MapPlacedElementEffectType.showMessage: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child:
-                              Text('Message', style: TextStyle(fontSize: 10)),
-                        ),
-                        MapPlacedElementEffectType.openDialogue: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child:
-                              Text('Dialogue', style: TextStyle(fontSize: 10)),
-                        ),
-                        MapPlacedElementEffectType.setAnimationEnabled: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Anim ON/OFF',
-                              style: TextStyle(fontSize: 10)),
-                        ),
-                        MapPlacedElementEffectType.playAnimationOnce: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child:
-                              Text('Anim 1x', style: TextStyle(fontSize: 10)),
-                        ),
-                      },
-                      onValueChanged: (next) {
-                        if (next == null) {
-                          return;
-                        }
-                        _commitDrafts();
-                        final effect = switch (next) {
-                          MapPlacedElementEffectType.showMessage =>
-                            const MapPlacedElementEffect(
-                              type: MapPlacedElementEffectType.showMessage,
-                              message: '...',
+                    child:
+                        CupertinoSlidingSegmentedControl<
+                          MapPlacedElementEffectType
+                        >(
+                          groupValue: selected.effect.type,
+                          disabledChildren: widget.frameCount < 2
+                              ? const {MapPlacedElementEffectType.traverseWarp}
+                              : const {},
+                          children: const {
+                            MapPlacedElementEffectType.showMessage: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                'Message',
+                                style: TextStyle(fontSize: 10),
+                              ),
                             ),
-                          MapPlacedElementEffectType.openDialogue =>
-                            const MapPlacedElementEffect(
-                              type: MapPlacedElementEffectType.openDialogue,
-                              dialogue: DialogueRef(dialogueId: ''),
+                            MapPlacedElementEffectType.openDialogue: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                'Dialogue',
+                                style: TextStyle(fontSize: 10),
+                              ),
                             ),
-                          MapPlacedElementEffectType.setAnimationEnabled =>
-                            const MapPlacedElementEffect(
-                              type: MapPlacedElementEffectType
-                                  .setAnimationEnabled,
-                              animationEnabled: true,
+                            MapPlacedElementEffectType.setAnimationEnabled:
+                                Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 4),
+                                  child: Text(
+                                    'Anim ON/OFF',
+                                    style: TextStyle(fontSize: 10),
+                                  ),
+                                ),
+                            MapPlacedElementEffectType.playAnimationOnce:
+                                Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 4),
+                                  child: Text(
+                                    'Anim 1x',
+                                    style: TextStyle(fontSize: 10),
+                                  ),
+                                ),
+                            MapPlacedElementEffectType.traverseWarp: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                'Entrée',
+                                style: TextStyle(fontSize: 10),
+                              ),
                             ),
-                          MapPlacedElementEffectType.playAnimationOnce =>
-                            const MapPlacedElementEffect(
-                              type:
-                                  MapPlacedElementEffectType.playAnimationOnce,
-                            ),
-                        };
-                        _updateSelected(selected.copyWith(effect: effect));
-                        Future.microtask(_reloadDialogueNodesForSelected);
-                      },
-                    ),
+                          },
+                          onValueChanged: (next) {
+                            if (next == null) {
+                              return;
+                            }
+                            _commitDrafts();
+                            final effect = switch (next) {
+                              MapPlacedElementEffectType.showMessage =>
+                                const MapPlacedElementEffect(
+                                  type: MapPlacedElementEffectType.showMessage,
+                                  message: '...',
+                                ),
+                              MapPlacedElementEffectType.openDialogue =>
+                                const MapPlacedElementEffect(
+                                  type: MapPlacedElementEffectType.openDialogue,
+                                  dialogue: DialogueRef(dialogueId: ''),
+                                ),
+                              MapPlacedElementEffectType.setAnimationEnabled =>
+                                const MapPlacedElementEffect(
+                                  type: MapPlacedElementEffectType
+                                      .setAnimationEnabled,
+                                  animationEnabled: true,
+                                ),
+                              MapPlacedElementEffectType.playAnimationOnce =>
+                                const MapPlacedElementEffect(
+                                  type: MapPlacedElementEffectType
+                                      .playAnimationOnce,
+                                ),
+                              MapPlacedElementEffectType.traverseWarp =>
+                                MapPlacedElementEffect(
+                                  type: MapPlacedElementEffectType.traverseWarp,
+                                  targetMapId:
+                                      widget.maps.firstOrNull?.id ?? '',
+                                  targetPos: const GridPos(x: 0, y: 0),
+                                ),
+                            };
+                            _updateSelected(
+                              selected.copyWith(
+                                effect: effect,
+                                trigger:
+                                    next ==
+                                        MapPlacedElementEffectType.traverseWarp
+                                    ? MapPlacedElementTriggerType.onBump
+                                    : selected.trigger,
+                                triggerScope:
+                                    next ==
+                                        MapPlacedElementEffectType.traverseWarp
+                                    ? MapPlacedElementTriggerScope.defaultScope
+                                    : selected.triggerScope,
+                              ),
+                            );
+                            Future.microtask(_reloadDialogueNodesForSelected);
+                          },
+                        ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
                 effectHelp(selected.effect.type),
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 10,
-                ),
+                style: TextStyle(color: secondary, fontSize: 10),
               ),
+              if (widget.frameCount < 2) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Entrée indisponible : utilise une porte animée séparée comportant au moins deux frames.',
+                  style: TextStyle(color: secondary, fontSize: 10),
+                ),
+              ],
               const SizedBox(height: 8),
               _CompactSwitchRow(
                 title: 'Cooldown explicite',
@@ -3497,8 +3519,9 @@ class _PlacedElementBehaviorsSectionState
                   }
                   _updateSelected(
                     selected.copyWith(
-                      cooldownMs:
-                          _defaultExplicitCooldownMs(selected.effect.type),
+                      cooldownMs: _defaultExplicitCooldownMs(
+                        selected.effect.type,
+                      ),
                     ),
                   );
                 },
@@ -3508,10 +3531,7 @@ class _PlacedElementBehaviorsSectionState
                 selected.cooldownMs == null
                     ? 'Utilise la valeur par défaut du runtime pour cet effet.'
                     : 'Valeur forcée pour ce behavior. Le runtime ignore sa valeur par défaut.',
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 10,
-                ),
+                style: TextStyle(color: secondary, fontSize: 10),
               ),
               if (selected.cooldownMs != null) ...[
                 const SizedBox(height: 6),
@@ -3544,11 +3564,13 @@ class _PlacedElementBehaviorsSectionState
                         ),
                         minimumSize: Size.zero,
                         color: selected.cooldownMs == preset
-                            ? EditorChrome.inspectorJoyBlue
-                                .withValues(alpha: 0.25)
+                            ? EditorChrome.inspectorJoyBlue.withValues(
+                                alpha: 0.25,
+                              )
                             : EditorPaintColors.white12,
                         onPressed: () => _updateSelected(
-                            selected.copyWith(cooldownMs: preset)),
+                          selected.copyWith(cooldownMs: preset),
+                        ),
                         child: Text(
                           '${preset}ms',
                           style: const TextStyle(fontSize: 10),
@@ -3567,8 +3589,10 @@ class _PlacedElementBehaviorsSectionState
                     placeholder: 'Message…',
                     style: TextStyle(color: label, fontSize: 11),
                     placeholderStyle: TextStyle(color: secondary, fontSize: 11),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
                     onChanged: (text) {
                       _messageDraft = text;
                       _scheduleMessageCommit();
@@ -3597,8 +3621,8 @@ class _PlacedElementBehaviorsSectionState
                       final selectedDialogueLabel = selectedDialogueId.isEmpty
                           ? 'Aucun dialogue'
                           : selectedDialogue != null
-                              ? '${selectedDialogue.name} · ${selectedDialogue.relativePath}'
-                              : '$selectedDialogueId (absent du projet)';
+                          ? '${selectedDialogue.name} · ${selectedDialogue.relativePath}'
+                          : '$selectedDialogueId (absent du projet)';
                       final currentNode =
                           selected.effect.dialogue?.startNode?.trim() ?? '';
                       final nodeMenuIds = <String>[
@@ -3609,8 +3633,9 @@ class _PlacedElementBehaviorsSectionState
                           !nodeMenuIds.contains(currentNode)) {
                         nodeMenuIds.add(currentNode);
                       }
-                      final selectedNodeMenu =
-                          currentNode.isEmpty ? _nodeNoneMenuId : currentNode;
+                      final selectedNodeMenu = currentNode.isEmpty
+                          ? _nodeNoneMenuId
+                          : currentNode;
                       String nodeLabel(String id) {
                         if (id == _nodeNoneMenuId) {
                           return 'Nœud par défaut';
@@ -3648,9 +3673,7 @@ class _PlacedElementBehaviorsSectionState
                               decoration: BoxDecoration(
                                 color: colors.surfaceBase,
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: colors.borderSubtle,
-                                ),
+                                border: Border.all(color: colors.borderSubtle),
                               ),
                               child: Row(
                                 children: [
@@ -3700,9 +3723,7 @@ class _PlacedElementBehaviorsSectionState
                               offset: const Offset(0, 6),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                side: BorderSide(
-                                  color: colors.borderSubtle,
-                                ),
+                                side: BorderSide(color: colors.borderSubtle),
                               ),
                               color: EditorChrome.islandFillElevated(context),
                               elevation: 3,
@@ -3805,26 +3826,17 @@ class _PlacedElementBehaviorsSectionState
                           if (selectedDialogueId.isEmpty)
                             Text(
                               'Choisis un script pour activer la sélection du nœud.',
-                              style: TextStyle(
-                                color: secondary,
-                                fontSize: 10,
-                              ),
+                              style: TextStyle(color: secondary, fontSize: 10),
                             )
                           else if (_dialogueNodesLoading)
                             Text(
                               'Chargement des nœuds Yarn…',
-                              style: TextStyle(
-                                color: secondary,
-                                fontSize: 10,
-                              ),
+                              style: TextStyle(color: secondary, fontSize: 10),
                             )
                           else if (_dialogueNodes.isEmpty)
                             Text(
                               'Aucun nœud détecté dans ce script (ou fichier introuvable).',
-                              style: TextStyle(
-                                color: secondary,
-                                fontSize: 10,
-                              ),
+                              style: TextStyle(color: secondary, fontSize: 10),
                             ),
                         ],
                       );
@@ -3841,8 +3853,9 @@ class _PlacedElementBehaviorsSectionState
                     onChanged: (next) {
                       _updateSelected(
                         selected.copyWith(
-                          effect:
-                              selected.effect.copyWith(animationEnabled: next),
+                          effect: selected.effect.copyWith(
+                            animationEnabled: next,
+                          ),
                         ),
                       );
                     },
@@ -3854,10 +3867,19 @@ class _PlacedElementBehaviorsSectionState
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     'Animation 1x: déclenche une lecture unique puis restaure l’animation locale normale.',
-                    style: TextStyle(
-                      color: secondary,
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: secondary, fontSize: 10),
+                  ),
+                ),
+              if (selected.effect.type ==
+                  MapPlacedElementEffectType.traverseWarp)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: PlacedElementWarpDestinationEditor(
+                    effect: selected.effect,
+                    maps: widget.maps,
+                    onChanged: (next) {
+                      _updateSelected(selected.copyWith(effect: next));
+                    },
                   ),
                 ),
             ],
