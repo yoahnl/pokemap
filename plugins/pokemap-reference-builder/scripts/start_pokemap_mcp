@@ -1,0 +1,24 @@
+#!/bin/zsh
+set -euo pipefail
+
+repository_root="${POKEMAP_REPOSITORY_ROOT:-/Users/karim/Project/pokemonProject}"
+project_root="${POKEMAP_PROJECT_ROOT:-/Users/karim/Desktop/pokeMap Project/le_train_de_17h42}"
+server_path="$repository_root/tools/pokemap_mcp/dist/src/index.js"
+authoring_package="$repository_root/packages/map_authoring"
+dart_executable="${POKEMAP_DART_EXECUTABLE:-/opt/homebrew/bin/dart}"
+
+if [[ ! -f "$server_path" ]]; then
+  print -u2 "PokeMap MCP is not built at $server_path. Run npm run build in tools/pokemap_mcp."
+  exit 66
+fi
+
+if [[ ! -d "$project_root" ]]; then
+  print -u2 "PokeMap project root does not exist: $project_root"
+  exit 66
+fi
+
+exec node "$server_path" \
+  --root "$project_root" \
+  --repository-root "$repository_root" \
+  --authoring-package "$authoring_package" \
+  --dart "$dart_executable"

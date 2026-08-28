@@ -1,0 +1,25 @@
+{
+  "name": "pokemap-reference-builder",
+  "version": "0.1.0",
+  "description": "Turn exterior map references into reviewed semantic blueprints and editable PokeMap authoring operations.",
+  "author": {
+    "name": "PokeMap"
+  },
+  "keywords": ["pokemap", "map-authoring", "hgss", "pixel-art"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "PokeMap Reference Builder",
+    "shortDescription": "Rebuild exterior maps from visual references.",
+    "longDescription": "Decomposes an exterior reference image into reviewable semantic layers, enforces native HGSS/DS 32 px assets, and applies approved families through the canonical PokeMap MCP workflow.",
+    "developerName": "PokeMap",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Rebuild this exterior reference as an editable PokeMap map.",
+      "Decode this map image into semantic 32 px layers.",
+      "Create a correctly sized missing HGSS-style asset."
+    ],
+    "brandColor": "#4E8F67"
+  },
+  "mcpServers": "./.mcp.json"
+}

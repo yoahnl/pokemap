@@ -169,7 +169,7 @@ while IFS= read -r path; do
   fi
 
   case "$path" in
-    README.md|documentation/reports/*|documentation/*/*|skills/*/*)
+    README.md|documentation/reports/*|documentation/*/*|skills/*/*|plugins/*/skills/*/*)
       ;;
     */README.md|*/CHANGELOG.md|*/CONTRIBUTING.md|*/SECURITY.md|*/AGENTS.md)
       ;;

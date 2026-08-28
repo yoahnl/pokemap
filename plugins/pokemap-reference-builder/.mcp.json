@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "pokemap": {
+      "command": "./scripts/start_pokemap_mcp",
+      "cwd": "."
+    }
+  }
+}

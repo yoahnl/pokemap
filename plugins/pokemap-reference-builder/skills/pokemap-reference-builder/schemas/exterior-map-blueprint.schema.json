@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pokemap.local/schemas/exterior-map-blueprint.schema.json",
+  "title": "PokeMap exterior reference blueprint",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "cellSizePx",
+    "source",
+    "map",
+    "familyOrder",
+    "layers",
+    "missingAssets",
+    "review"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "cellSizePx": {"const": 32},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["referenceImage", "role"],
+      "properties": {
+        "referenceImage": {"type": "string", "minLength": 1},
+        "role": {"const": "composition_reference"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "widthCells", "heightCells"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "widthCells": {"type": "integer", "minimum": 1},
+        "heightCells": {"type": "integer", "minimum": 1}
+      }
+    },
+    "familyOrder": {
+      "const": ["surface", "network", "border", "structure", "decoration", "navigation"]
+    },
+    "layers": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/layer"}
+    },
+    "missingAssets": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/missingAsset"}
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "notes"],
+      "properties": {
+        "status": {"enum": ["proposed", "approved", "applied", "verified"]},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  "$defs": {
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": {"type": "integer", "minimum": 0},
+        "y": {"type": "integer", "minimum": 0}
+      }
+    },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1}
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {"enum": ["cells", "polygon", "polyline", "placement", "connection"]},
+        "cells": {"type": "array", "items": {"$ref": "#/$defs/cell"}},
+        "points": {"type": "array", "items": {"$ref": "#/$defs/cell"}},
+        "origin": {"$ref": "#/$defs/cell"},
+        "size": {"$ref": "#/$defs/size"}
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "resourceId", "actionFamily", "provenance"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1},
+        "resourceId": {"type": "string", "minLength": 1},
+        "actionFamily": {
+          "enum": ["environment", "smart_tile", "border_layer", "placed_element", "collision_layer", "connection"]
+        },
+        "provenance": {"enum": ["hgss_ds", "custom_hgss_compatible"]}
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "explicitApproval": {"type": "boolean"},
+        "waterBodyType": {"enum": ["river", "pond", "ocean"]},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "family", "semantic", "name", "status", "geometry", "bindings", "constraints"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+        "family": {"enum": ["surface", "network", "border", "structure", "decoration", "navigation"]},
+        "semantic": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "status": {"enum": ["proposed", "approved", "applied", "verified"]},
+        "geometry": {"$ref": "#/$defs/geometry"},
+        "bindings": {"type": "array", "items": {"$ref": "#/$defs/binding"}},
+        "constraints": {"$ref": "#/$defs/constraints"},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "missingAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "widthCells",
+        "heightCells",
+        "pixelWidth",
+        "pixelHeight",
+        "anchor",
+        "collisionCells",
+        "provenance",
+        "alphaPolicy",
+        "styleReferences"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+        "status": {"enum": ["proposed", "approved", "imported", "verified"]},
+        "widthCells": {"type": "integer", "minimum": 1, "maximum": 64},
+        "heightCells": {"type": "integer", "minimum": 1, "maximum": 64},
+        "pixelWidth": {"type": "integer", "minimum": 32},
+        "pixelHeight": {"type": "integer", "minimum": 32},
+        "anchor": {"$ref": "#/$defs/cell"},
+        "collisionCells": {"type": "array", "items": {"$ref": "#/$defs/cell"}},
+        "provenance": {"const": "custom_hgss_compatible"},
+        "alphaPolicy": {"enum": ["required", "optional"]},
+        "styleReferences": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "sourcePng": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
