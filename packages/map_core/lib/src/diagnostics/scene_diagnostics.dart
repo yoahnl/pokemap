@@ -41,6 +41,7 @@ enum SceneDiagnosticCode {
   consequenceUnknownNpc,
   commandUnknownNpc,
   commandUnknownWarp,
+  commandUnknownRailJourney,
   consequenceMissingTarget,
   consequenceInvalidValue,
   consequenceLegacyPokemonHpFallback,
@@ -454,6 +455,11 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
       .map((option) => option.id)
       .toSet();
   final badgeIds = project.badges.map((badge) => badge.id).toSet();
+  final railJourneyIds =
+      project.railJourneyCatalog?.journeys
+          .map((journey) => journey.id)
+          .toSet() ??
+      <String>{};
   final storyStepCounts = <String, int>{};
   for (final storyline in project.storylines) {
     for (final chapter in storyline.chapters) {
@@ -608,6 +614,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           storyStepCounts: storyStepCounts,
           starterOptionIds: starterOptionIds,
           badgeIds: badgeIds,
+          railJourneyIds: railJourneyIds,
           mapsById: mapsById,
           diagnostics: diagnostics,
         );
@@ -1005,6 +1012,7 @@ void _diagnoseActionConsequenceAgainstProject(
   required Map<String, int> storyStepCounts,
   required Set<String> starterOptionIds,
   required Set<String> badgeIds,
+  required Set<String> railJourneyIds,
   required Map<String, MapData> mapsById,
   required List<SceneDiagnostic> diagnostics,
 }) {
@@ -1045,6 +1053,20 @@ void _diagnoseActionConsequenceAgainstProject(
         ),
       );
     }
+  }
+  if (interactiveCommand is SceneRailJourneyInteractiveCommand &&
+      !railJourneyIds.contains(interactiveCommand.journeyId)) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.commandUnknownRailJourney,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'La commande railJourney cible un voyage absent du projet.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un voyage ferroviaire existant.',
+      ),
+    );
   }
 
   final consequence = payload.consequence;

@@ -167,7 +167,7 @@ final class WorkspaceHandleStore {
   WorkspaceHandleStore({
     WorkspaceClock? clock,
     WorkspaceTokenFactory? tokenFactory,
-    this.ttl = const Duration(minutes: 15),
+    this.ttl = const Duration(hours: 2),
   })  : _clock = clock ?? _systemClock,
         _tokenFactory = tokenFactory ?? _secureToken {
     if (ttl <= Duration.zero) {
@@ -272,13 +272,15 @@ final class WorkspaceHandleStore {
         'The requested project handle is unknown.',
       );
     }
-    if (!_clock().toUtc().isBefore(stored.expiresAt)) {
+    final now = _clock().toUtc();
+    if (!now.isBefore(stored.expiresAt)) {
       _remove(handle, stored);
       throw const WorkspaceHandleException(
         'workspace.handle_expired',
         'The requested project handle has expired.',
       );
     }
+    stored.expiresAt = now.add(ttl);
     return stored;
   }
 
@@ -350,7 +352,7 @@ final class WorkspaceHandleStore {
 }
 
 final class _StoredProjectAccess {
-  const _StoredProjectAccess({
+  _StoredProjectAccess({
     required this.workspaceHandle,
     required this.projectName,
     required this.initialFingerprint,
@@ -365,7 +367,7 @@ final class _StoredProjectAccess {
   final WorkspaceHandle workspaceHandle;
   final String projectName;
   final String initialFingerprint;
-  final DateTime expiresAt;
+  DateTime expiresAt;
   final ProjectResourceReader readBytes;
   final ProjectResourceIdentityLookup? readIdentity;
   final ProjectDirectoryLister? listFiles;

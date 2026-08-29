@@ -36,11 +36,11 @@ import 'event_builder_v2_simulation_sheet.dart';
 import 'event_builder_v2_template_sheet.dart';
 import 'event_builder_v2_workspace.dart';
 
-final _eventBuilderV2TemplateDraftProvider = NotifierProvider<
-    _EventBuilderV2TemplateDraftController,
-    _PendingEventBuilderV2TemplateDraft?>(
-  _EventBuilderV2TemplateDraftController.new,
-);
+final _eventBuilderV2TemplateDraftProvider =
+    NotifierProvider<
+      _EventBuilderV2TemplateDraftController,
+      _PendingEventBuilderV2TemplateDraft?
+    >(_EventBuilderV2TemplateDraftController.new);
 
 class _PendingEventBuilderV2TemplateDraft {
   const _PendingEventBuilderV2TemplateDraft({
@@ -146,7 +146,8 @@ class _EventBuilderV2ProductRouteState
           const PokeMapPageSurface(
             child: PokeMapEmptyState(
               title: 'Projet non enregistré',
-              description: 'Enregistrez le projet pour préparer sa conversion '
+              description:
+                  'Enregistrez le projet pour préparer sa conversion '
                   'vers Event V2.',
               icon: Icon(CupertinoIcons.floppy_disk),
             ),
@@ -183,7 +184,8 @@ class _EventBuilderV2ProductRouteState
           child: PokeMapDiagnosticCallout(
             severity: PokeMapDiagnosticSeverity.warning,
             title: 'Map non enregistrée',
-            message: 'Enregistrez la map active avant de charger les '
+            message:
+                'Enregistrez la map active avant de charger les '
                 'événements du projet. La vue Event ne réutilise jamais un '
                 'snapshot disque devenu obsolète.',
           ),
@@ -246,11 +248,10 @@ class _EventBuilderV2ProductRouteState
           message: mismatch
               ? 'Enregistrez ou rechargez le projet avant de continuer.'
               : 'Le projet ne peut pas préparer une vue Event V2 sûre. '
-                  'Aucun éditeur historique n’a été ouvert à la place.',
+                    'Aucun éditeur historique n’a été ouvert à la place.',
           actionLabel: 'Réessayer',
-          onAction: () => ref.invalidate(
-            narrativeEventBuilderV2ReadModelProvider(request),
-          ),
+          onAction: () =>
+              ref.invalidate(narrativeEventBuilderV2ReadModelProvider(request)),
         ),
       ),
     );
@@ -272,11 +273,10 @@ class _EventBuilderV2ProductRouteState
           message: mismatch
               ? 'Enregistrez ou rechargez le projet avant de continuer.'
               : 'Les diagnostics ne peuvent pas être garantis. L’éditeur '
-                  'reste fermé pour éviter de masquer un Event invalide.',
+                    'reste fermé pour éviter de masquer un Event invalide.',
           actionLabel: 'Réessayer',
-          onAction: () => ref.invalidate(
-            narrativeEventValidationSnapshotProvider(request),
-          ),
+          onAction: () =>
+              ref.invalidate(narrativeEventValidationSnapshotProvider(request)),
         ),
       ),
     );
@@ -293,8 +293,8 @@ class _EventBuilderV2ProductRouteState
     final currentProjectPath = _projectFilePath();
     final pendingTemplateDraft =
         pendingTemplate?.projectPath == currentProjectPath
-            ? pendingTemplate?.draft
-            : null;
+        ? pendingTemplate?.draft
+        : null;
     final bridge = ref.watch(narrativeEventMapBridgeControllerProvider);
     final state = NarrativeEventBuilderV2State(
       readModel: readModel,
@@ -302,22 +302,21 @@ class _EventBuilderV2ProductRouteState
       filter: _filter,
       selectedCompatibilityStableKey: _selectedCompatibilityStableKey,
     );
-    final worldMapNavigation =
-        ref.watch(worldMapTargetEditorNavigationProvider).pending;
+    final worldMapNavigation = ref
+        .watch(worldMapTargetEditorNavigationProvider)
+        .pending;
     if (worldMapNavigation != null) {
-      _scheduleWorldMapCompatibilityNavigation(
-        worldMapNavigation,
-        readModel,
-      );
+      _scheduleWorldMapCompatibilityNavigation(worldMapNavigation, readModel);
     }
     final selected = selectedNarrativeEventBuilderV2Event(
       state: state,
       bridgeState: bridge,
     );
-    final navigation =
-        ref.watch(narrativeStudioNavigationControllerProvider).location;
-    final requestedEventId = navigation.destination ==
-                NarrativeStudioDestination.events &&
+    final navigation = ref
+        .watch(narrativeStudioNavigationControllerProvider)
+        .location;
+    final requestedEventId =
+        navigation.destination == NarrativeStudioDestination.events &&
             navigation.childRoute == NarrativeStudioChildRoute.eventBuilder &&
             navigation.selection?.kind == NarrativeStudioAssetKind.event
         ? navigation.selection?.assetId
@@ -332,9 +331,8 @@ class _EventBuilderV2ProductRouteState
       }
     }
     final canMutateSelected = !state.isReadOnly && selected?.readOnly == false;
-    final validationItems = validationSnapshot?.state.forEvent(
-          selected?.eventId,
-        ) ??
+    final validationItems =
+        validationSnapshot?.state.forEvent(selected?.eventId) ??
         const <NarrativeEventValidationItem>[];
     final pendingEventId = _pendingSelectionEventId;
     if (pendingEventId != null) {
@@ -368,27 +366,31 @@ class _EventBuilderV2ProductRouteState
       onQueryChanged: (value) => setState(() => _query = value),
       onFilterChanged: (value) => setState(() => _filter = value),
       onSelectEvent: _selectEvent,
-      onOpenLifecycleActions:
-          canMutateSelected && !_isAuthoring ? _openLifecycleSheet : null,
-      onCreateEvent:
-          state.isReadOnly || _isAuthoring ? null : _openCreationSheet,
-      onCreateTemplate:
-          state.isReadOnly || _isAuthoring ? null : _openTemplateSheet,
+      onOpenLifecycleActions: canMutateSelected && !_isAuthoring
+          ? _openLifecycleSheet
+          : null,
+      onCreateEvent: state.isReadOnly || _isAuthoring
+          ? null
+          : _openCreationSheet,
+      onCreateTemplate: state.isReadOnly || _isAuthoring
+          ? null
+          : _openTemplateSheet,
       hasPendingTemplate: pendingTemplateDraft != null,
       onOpenLibrary: () => _openLibrary(context, selected),
       onChangeSource: canMutateSelected && !_isAuthoring
-          ? () => selected!.source.source == null &&
-                  bridge.selectedNarrativeEventV2Id == selected.eventId &&
-                  bridge.selectedGroupContext?.kind ==
-                      NarrativeEventGroupContextKind.map
-              ? _openMapForMissingSource(selected)
-              : _openSourceSheet(selected)
+          ? () =>
+                selected!.source.source == null &&
+                    bridge.selectedNarrativeEventV2Id == selected.eventId &&
+                    bridge.selectedGroupContext?.kind ==
+                        NarrativeEventGroupContextKind.map
+                ? _openMapForMissingSource(selected)
+                : _openSourceSheet(selected)
           : null,
       onSeeOnMap: _canSeeOnMap(selected)
           ? () => _openMapForEvent(
-                selected!,
-                NarrativeEventMapNavigationMode.view,
-              )
+              selected!,
+              NarrativeEventMapNavigationMode.view,
+            )
           : null,
       onAddCondition: canMutateSelected && !_isAuthoring
           ? () => _openConditionsSheet(selected!)
@@ -404,8 +406,8 @@ class _EventBuilderV2ProductRouteState
           : null,
       onSimulate:
           selected?.eventId == null || selected!.readOnly || _isAuthoring
-              ? null
-              : () => _openSimulationSheet(selected),
+          ? null
+          : () => _openSimulationSheet(selected),
       onManageEvaluationOrder: canMutateSelected && !_isAuthoring
           ? () => _openBehaviorSheet(selected!)
           : null,
@@ -414,10 +416,7 @@ class _EventBuilderV2ProductRouteState
       eventFocusNodeForStableKey: _eventFocusNodeFor,
       onValidationAction: validationSnapshot == null
           ? null
-          : (item) => _navigateFromValidation(
-                item,
-                readModel: readModel,
-              ),
+          : (item) => _navigateFromValidation(item, readModel: readModel),
     );
     final navigationFailure = bridge.lastNavigationResult;
     final notices = <Widget>[];
@@ -433,7 +432,8 @@ class _EventBuilderV2ProductRouteState
         ),
       );
     }
-    final globalDiagnostics = validationSnapshot?.state.global ??
+    final globalDiagnostics =
+        validationSnapshot?.state.global ??
         const <NarrativeEventValidationItem>[];
     if (globalDiagnostics.isNotEmpty) {
       notices.add(
@@ -443,10 +443,8 @@ class _EventBuilderV2ProductRouteState
           onToggle: () => setState(
             () => _globalDiagnosticsExpanded = !_globalDiagnosticsExpanded,
           ),
-          onAction: (item) => _navigateFromValidation(
-            item,
-            readModel: readModel,
-          ),
+          onAction: (item) =>
+              _navigateFromValidation(item, readModel: readModel),
         ),
       );
     }
@@ -469,23 +467,23 @@ class _EventBuilderV2ProductRouteState
           message: _authoringMessage!,
           actionLabel:
               _authoringStatus == NarrativeEventBuilderV2WriteStatus.conflict ||
-                      _authoringStatus ==
-                          NarrativeEventBuilderV2WriteStatus.recoveryRequired
-                  ? 'Recharger les événements'
-                  : null,
+                  _authoringStatus ==
+                      NarrativeEventBuilderV2WriteStatus.recoveryRequired
+              ? 'Recharger les événements'
+              : null,
           onAction:
               _authoringStatus == NarrativeEventBuilderV2WriteStatus.conflict ||
-                      _authoringStatus ==
-                          NarrativeEventBuilderV2WriteStatus.recoveryRequired
-                  ? () => ref.invalidate(
-                        narrativeEventBuilderV2ReadModelProvider(
-                          NarrativeEventBuilderV2SnapshotRequest.fromProject(
-                            projectRootPath: editor.projectRootPath!,
-                            project: editor.project!,
-                          ),
-                        ),
-                      )
-                  : null,
+                  _authoringStatus ==
+                      NarrativeEventBuilderV2WriteStatus.recoveryRequired
+              ? () => ref.invalidate(
+                  narrativeEventBuilderV2ReadModelProvider(
+                    NarrativeEventBuilderV2SnapshotRequest.fromProject(
+                      projectRootPath: editor.projectRootPath!,
+                      project: editor.project!,
+                    ),
+                  ),
+                )
+              : null,
         ),
       );
     }
@@ -531,10 +529,7 @@ class _EventBuilderV2ProductRouteState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final notice in notices)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: notice,
-          ),
+          Padding(padding: const EdgeInsets.only(bottom: 8), child: notice),
         Expanded(child: workspace),
       ],
     );
@@ -562,9 +557,9 @@ class _EventBuilderV2ProductRouteState
                   : 'Conversion Event V2 disponible',
               message: blocked
                   ? 'La prévisualisation exige un projet et des maps '
-                      'enregistrés pour garantir les hashes.'
+                        'enregistrés pour garantir les hashes.'
                   : 'Prévisualisez une conversion vérifiable. Le mode de jeu '
-                      'restera inchangé tant que vous ne l’activez pas.',
+                        'restera inchangé tant que vous ne l’activez pas.',
               actionLabel: blocked || _migrationBusy
                   ? null
                   : 'Prévisualiser la conversion',
@@ -605,9 +600,9 @@ class _EventBuilderV2ProductRouteState
                     : 'Projet en mode historique',
                 message: blocked
                     ? 'La prévisualisation exige un projet et des maps '
-                        'enregistrés pour garantir les hashes.'
+                          'enregistrés pour garantir les hashes.'
                     : 'Préparez une conversion vérifiable vers Event V2. '
-                        'Le mode de jeu ne sera pas changé automatiquement.',
+                          'Le mode de jeu ne sera pas changé automatiquement.',
               ),
               if (_migrationMessage != null) ...[
                 const SizedBox(height: 10),
@@ -648,9 +643,7 @@ class _EventBuilderV2ProductRouteState
       _migrationMessage = null;
     });
     final projectPath = p.join(projectRootPath, 'project.json');
-    final gateway = ref.read(
-      narrativeEventMigrationPersistenceGatewayProvider,
-    );
+    final gateway = ref.read(narrativeEventMigrationPersistenceGatewayProvider);
     try {
       final inspection = await gateway.inspect(projectPath);
       if (inspection.status ==
@@ -672,9 +665,12 @@ class _EventBuilderV2ProductRouteState
             projectPath,
           );
           final recoveredRegistry = session.manifest.eventRegistry;
-          final currentRegistry =
-              ref.read(editorNotifierProvider).project?.eventRegistry;
-          final adopted = recoveredRegistry != null &&
+          final currentRegistry = ref
+              .read(editorNotifierProvider)
+              .project
+              ?.eventRegistry;
+          final adopted =
+              recoveredRegistry != null &&
               ref
                   .read(editorNotifierProvider.notifier)
                   .applyPersistedNarrativeEventRegistry(
@@ -683,7 +679,8 @@ class _EventBuilderV2ProductRouteState
                     nextRegistry: recoveredRegistry,
                   );
           if (!adopted) {
-            message = 'La migration récupérée est sur disque; rechargez le '
+            message =
+                'La migration récupérée est sur disque; rechargez le '
                 'projet avant de continuer.';
           }
         }
@@ -730,9 +727,12 @@ class _EventBuilderV2ProductRouteState
                 projectPath,
               );
               final nextRegistry = session.manifest.eventRegistry;
-              final currentRegistry =
-                  ref.read(editorNotifierProvider).project?.eventRegistry;
-              final adopted = nextRegistry != null &&
+              final currentRegistry = ref
+                  .read(editorNotifierProvider)
+                  .project
+                  ?.eventRegistry;
+              final adopted =
+                  nextRegistry != null &&
                   ref
                       .read(editorNotifierProvider.notifier)
                       .applyPersistedNarrativeEventRegistry(
@@ -808,14 +808,13 @@ class _EventBuilderV2ProductRouteState
     }
     NarrativeEventValidationSnapshot currentSnapshot;
     try {
-      currentSnapshot = await ref.read(
-        narrativeEventValidationSnapshotLoaderProvider,
-      )(
-        NarrativeEventBuilderV2SnapshotRequest.fromProject(
-          projectRootPath: projectRootPath,
-          project: project,
-        ),
-      );
+      currentSnapshot =
+          await ref.read(narrativeEventValidationSnapshotLoaderProvider)(
+            NarrativeEventBuilderV2SnapshotRequest.fromProject(
+              projectRootPath: projectRootPath,
+              project: project,
+            ),
+          );
     } on Object {
       if (mounted) {
         setState(() {
@@ -1059,11 +1058,7 @@ class _EventBuilderV2ProductRouteState
     if (_worldMapNavigationRevisionInFlight == request.revision) return;
     _worldMapNavigationRevisionInFlight = request.revision;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _consumeWorldMapCompatibilityNavigation(
-        request,
-        readModel,
-        attempt: 0,
-      );
+      _consumeWorldMapCompatibilityNavigation(request, readModel, attempt: 0);
     });
   }
 
@@ -1319,9 +1314,7 @@ class _EventBuilderV2ProductRouteState
     }
   }
 
-  Future<void> _openSimulationSheet(
-    NarrativeEventProjectSummary event,
-  ) async {
+  Future<void> _openSimulationSheet(NarrativeEventProjectSummary event) async {
     final eventId = event.eventId;
     final projectPath = _projectFilePath();
     if (eventId == null || projectPath == null) return;
@@ -1348,8 +1341,9 @@ class _EventBuilderV2ProductRouteState
     final projectPath = _projectFilePath();
     final editor = ref.read(editorNotifierProvider);
     if (projectPath == null || editor.project == null) return;
-    final hasPendingBorderPreview =
-        ref.read(borderPreviewControllerProvider).hasPendingPreview;
+    final hasPendingBorderPreview = ref
+        .read(borderPreviewControllerProvider)
+        .hasPendingPreview;
     if (editor.isDirty ||
         editor.isProjectDirty ||
         editor.isSaving ||
@@ -1376,7 +1370,8 @@ class _EventBuilderV2ProductRouteState
           .withConfiguredStarters(session.manifest.newGame.starterOptions)
           .withProjectStorySteps(session.manifest);
       final eventId = NarrativeEventIdGenerator().generate(
-        existingRecords: session.manifest.eventRegistry?.records ??
+        existingRecords:
+            session.manifest.eventRegistry?.records ??
             const <NarrativeEventRecord>[],
       );
       final sceneId = 'scene.template.${eventId.substring(4)}';
@@ -1409,10 +1404,12 @@ class _EventBuilderV2ProductRouteState
           onOpenMapEditor: (draft) {
             ref
                 .read(_eventBuilderV2TemplateDraftProvider.notifier)
-                .setDraft(_PendingEventBuilderV2TemplateDraft(
-                  projectPath: projectPath,
-                  draft: draft,
-                ));
+                .setDraft(
+                  _PendingEventBuilderV2TemplateDraft(
+                    projectPath: projectPath,
+                    draft: draft,
+                  ),
+                );
             ref.read(editorNotifierProvider.notifier).selectMapWorkspace();
           },
         ),
@@ -1454,10 +1451,9 @@ class _EventBuilderV2ProductRouteState
         transactionId: 'template-${DateTime.now().microsecondsSinceEpoch}',
         preview: preview,
       );
-      await ref.read(editorNotifierProvider.notifier).loadProject(
-            projectPath,
-            rememberAsRecent: false,
-          );
+      await ref
+          .read(editorNotifierProvider.notifier)
+          .loadProject(projectPath, rememberAsRecent: false);
       if (!mounted) return null;
       setState(() {
         _isAuthoring = false;
@@ -1503,10 +1499,9 @@ class _EventBuilderV2ProductRouteState
         NarrativeTemplateTransactionFileGateway(projectPath: projectPath),
       );
       await coordinator.undo(preview);
-      await ref.read(editorNotifierProvider.notifier).loadProject(
-            projectPath,
-            rememberAsRecent: false,
-          );
+      await ref
+          .read(editorNotifierProvider.notifier)
+          .loadProject(projectPath, rememberAsRecent: false);
       if (!mounted) return;
       setState(() {
         _isAuthoring = false;
@@ -1584,7 +1579,7 @@ class _EventBuilderV2ProductRouteState
         : result.status;
     final message = !adopted
         ? 'L’événement est enregistré sur disque, mais la vue doit être '
-            'rechargée avant de continuer.'
+              'rechargée avant de continuer.'
         : result.message;
     setState(() {
       _isAuthoring = false;
@@ -1600,7 +1595,8 @@ class _EventBuilderV2ProductRouteState
       NarrativeEventBuilderV2UseCase useCase,
       String projectPath,
       NarrativeEventBuilderV2WriteEnvironment environment,
-    ) action,
+    )
+    action,
   ) async {
     final projectPath = _projectFilePath();
     if (projectPath == null) return 'Le projet enregistré est indisponible.';
@@ -1634,10 +1630,11 @@ class _EventBuilderV2ProductRouteState
         _authoringStatus = result.status;
         _authoringMessage =
             result.status == NarrativeEventBuilderV2WriteStatus.noOp
-                ? 'Aucune modification n’était nécessaire.'
-                : 'La modification est enregistrée.';
-        _pendingSelectionEventId =
-            authoring?.nextRecord == null ? null : result.eventId;
+            ? 'Aucune modification n’était nécessaire.'
+            : 'La modification est enregistrée.';
+        _pendingSelectionEventId = authoring?.nextRecord == null
+            ? null
+            : result.eventId;
         _lastEventUndoPath = result.persistenceResult?.undoPath;
       });
       return null;
@@ -1656,9 +1653,7 @@ class _EventBuilderV2ProductRouteState
     return message;
   }
 
-  Future<void> _openLifecycleSheet(
-    NarrativeEventProjectSummary event,
-  ) {
+  Future<void> _openLifecycleSheet(NarrativeEventProjectSummary event) {
     final eventId = event.eventId;
     if (eventId == null || event.readOnly) return Future.value();
     final lifecycle = narrativeEventLifecyclePresentation(event);
@@ -1718,11 +1713,11 @@ class _EventBuilderV2ProductRouteState
                   title: 'Dépublier ${event.title} ?',
                   message: lifecycle.isRuntimeEnabled
                       ? 'L’événement actif redeviendra un brouillon et ne sera '
-                          'plus joué. Sa source, ses conditions, sa Scene et '
-                          'son comportement seront conservés.'
+                            'plus joué. Sa source, ses conditions, sa Scene et '
+                            'son comportement seront conservés.'
                       : 'L’événement redeviendra un brouillon. Sa source, ses '
-                          'conditions, sa Scene et son comportement seront '
-                          'conservés.',
+                            'conditions, sa Scene et son comportement seront '
+                            'conservés.',
                   secondaryLabel: 'Annuler',
                   primaryLabel: 'Dépublier',
                 );
@@ -1750,9 +1745,7 @@ class _EventBuilderV2ProductRouteState
     );
   }
 
-  Future<void> _renameLifecycleEvent(
-    NarrativeEventProjectSummary event,
-  ) async {
+  Future<void> _renameLifecycleEvent(NarrativeEventProjectSummary event) async {
     final eventId = event.eventId;
     if (eventId == null) return;
     final controller = TextEditingController(text: event.title);
@@ -1777,9 +1770,7 @@ class _EventBuilderV2ProductRouteState
     );
   }
 
-  Future<void> _deleteLifecycleEvent(
-    NarrativeEventProjectSummary event,
-  ) async {
+  Future<void> _deleteLifecycleEvent(NarrativeEventProjectSummary event) async {
     final projectPath = _projectFilePath();
     final eventId = event.eventId;
     if (projectPath == null || eventId == null) return;
@@ -1815,16 +1806,15 @@ class _EventBuilderV2ProductRouteState
         context: context,
         title: 'Suppression bloquée',
         message: 'Cet événement est encore utilisé par :\n\n$consumers',
-        actions: const [
-          PokeMapDialogAction(label: 'Compris', value: false),
-        ],
+        actions: const [PokeMapDialogAction(label: 'Compris', value: false)],
       );
       return;
     }
     final confirmed = await showPokeMapBinaryConfirmationDialog(
       context,
       title: 'Supprimer ${event.title} ?',
-      message: 'Cette suppression retire uniquement l’Event V2. '
+      message:
+          'Cette suppression retire uniquement l’Event V2. '
           'L’élément physique de la map n’est pas supprimé.',
       secondaryLabel: 'Annuler',
       primaryLabel: 'Supprimer',
@@ -1868,7 +1858,8 @@ class _EventBuilderV2ProductRouteState
         ? result.status
         : NarrativeEventBuilderV2WriteStatus.recoveryRequired;
     final eventId = result.eventId;
-    final restored = eventId != null &&
+    final restored =
+        eventId != null &&
         nextRegistry?.records.any((record) => record.id == eventId) == true;
     setState(() {
       _isAuthoring = false;
@@ -1876,16 +1867,14 @@ class _EventBuilderV2ProductRouteState
       _authoringMessage = result.succeeded && adopted
           ? 'La dernière modification de l’événement a été annulée.'
           : adopted
-              ? result.message
-              : 'L’annulation est sur disque, mais la vue doit être rechargée.';
+          ? result.message
+          : 'L’annulation est sur disque, mais la vue doit être rechargée.';
       _pendingSelectionEventId = restored ? eventId : null;
       _lastEventUndoPath = result.persistenceResult?.undoPath;
     });
   }
 
-  Future<void> _openSourceSheet(
-    NarrativeEventProjectSummary event,
-  ) async {
+  Future<void> _openSourceSheet(NarrativeEventProjectSummary event) async {
     final eventId = event.eventId;
     if (eventId == null) return;
     final snapshot = await _loadAuthoringSnapshot(eventId: eventId);
@@ -1897,7 +1886,8 @@ class _EventBuilderV2ProductRouteState
       width: 460,
       builder: (_) => EventBuilderV2SourceSheet(
         snapshot: snapshot,
-        currentSource: snapshot.record?.draftOrNull?.source ??
+        currentSource:
+            snapshot.record?.draftOrNull?.source ??
             snapshot.record?.definitionOrNull?.source,
         onSubmit: (source) => _runWrite(
           (useCase, path, environment) => useCase.setSource(
@@ -1911,9 +1901,7 @@ class _EventBuilderV2ProductRouteState
     );
   }
 
-  Future<void> _openConditionsSheet(
-    NarrativeEventProjectSummary event,
-  ) async {
+  Future<void> _openConditionsSheet(NarrativeEventProjectSummary event) async {
     final eventId = event.eventId;
     if (eventId == null) return;
     final snapshot = await _loadAuthoringSnapshot(eventId: eventId);
@@ -1937,9 +1925,7 @@ class _EventBuilderV2ProductRouteState
     );
   }
 
-  Future<void> _openSceneSheet(
-    NarrativeEventProjectSummary event,
-  ) async {
+  Future<void> _openSceneSheet(NarrativeEventProjectSummary event) async {
     final eventId = event.eventId;
     if (eventId == null) return;
     final snapshot = await _loadAuthoringSnapshot(eventId: eventId);
@@ -1972,9 +1958,7 @@ class _EventBuilderV2ProductRouteState
     );
   }
 
-  Future<void> _openBehaviorSheet(
-    NarrativeEventProjectSummary event,
-  ) async {
+  Future<void> _openBehaviorSheet(NarrativeEventProjectSummary event) async {
     final eventId = event.eventId;
     if (eventId == null) return;
     final snapshot = await _loadAuthoringSnapshot(eventId: eventId);
@@ -2014,56 +1998,56 @@ class _EventBuilderV2ProductRouteState
   ) async {
     final actions = <Future<String?> Function()>[
       () => _runWrite(
-            (useCase, path, environment) => useCase.rename(
-              projectPath: path,
-              eventId: eventId,
-              name: update.name,
-              environment: environment,
-            ),
-          ),
+        (useCase, path, environment) => useCase.rename(
+          projectPath: path,
+          eventId: eventId,
+          name: update.name,
+          environment: environment,
+        ),
+      ),
       if (update.reusePolicy == NarrativeEventReusePolicy.reusable)
         () => _runWrite(
-              (useCase, path, environment) => useCase.setResetPolicy(
-                projectPath: path,
-                eventId: eventId,
-                resetPolicy: const NarrativeEventResetPolicy.never(),
-                environment: environment,
-              ),
-            ),
+          (useCase, path, environment) => useCase.setResetPolicy(
+            projectPath: path,
+            eventId: eventId,
+            resetPolicy: const NarrativeEventResetPolicy.never(),
+            environment: environment,
+          ),
+        ),
       if (update.reusePolicy != null)
         () => _runWrite(
-              (useCase, path, environment) => useCase.setReusePolicy(
-                projectPath: path,
-                eventId: eventId,
-                reusePolicy: update.reusePolicy!,
-                environment: environment,
-              ),
-            ),
+          (useCase, path, environment) => useCase.setReusePolicy(
+            projectPath: path,
+            eventId: eventId,
+            reusePolicy: update.reusePolicy!,
+            environment: environment,
+          ),
+        ),
       if (update.reusePolicy != NarrativeEventReusePolicy.reusable)
         () => _runWrite(
-              (useCase, path, environment) => useCase.setResetPolicy(
-                projectPath: path,
-                eventId: eventId,
-                resetPolicy: update.resetPolicy,
-                environment: environment,
-              ),
-            ),
-      () => _runWrite(
-            (useCase, path, environment) => useCase.setPriority(
-              projectPath: path,
-              eventId: eventId,
-              priority: update.priority,
-              environment: environment,
-            ),
+          (useCase, path, environment) => useCase.setResetPolicy(
+            projectPath: path,
+            eventId: eventId,
+            resetPolicy: update.resetPolicy,
+            environment: environment,
           ),
+        ),
       () => _runWrite(
-            (useCase, path, environment) => useCase.setOrder(
-              projectPath: path,
-              eventId: eventId,
-              order: update.order,
-              environment: environment,
-            ),
-          ),
+        (useCase, path, environment) => useCase.setPriority(
+          projectPath: path,
+          eventId: eventId,
+          priority: update.priority,
+          environment: environment,
+        ),
+      ),
+      () => _runWrite(
+        (useCase, path, environment) => useCase.setOrder(
+          projectPath: path,
+          eventId: eventId,
+          order: update.order,
+          environment: environment,
+        ),
+      ),
     ];
     for (final action in actions) {
       final error = await action();
@@ -2097,14 +2081,12 @@ class _EventBuilderV2ProductRouteState
 }
 
 Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
-    buildEventBuilderV2TemplateActionPickerOptions({
+buildEventBuilderV2TemplateActionPickerOptions({
   required ProjectManifest project,
   required List<MapData> maps,
   required SceneConsequenceCatalogs catalogs,
 }) {
-  List<SceneActionPickerOption> section(
-    SceneConsequenceCatalogSection value,
-  ) =>
+  List<SceneActionPickerOption> section(SceneConsequenceCatalogSection value) =>
       [
         for (final option in value.options)
           SceneActionPickerOption(id: option.id, label: option.label),
@@ -2200,18 +2182,24 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       for (final cinematic in project.cinematics)
         SceneActionPickerOption(id: cinematic.id, label: cinematic.title),
     ],
+    NarrativeCommandParameterKind.railJourney: [
+      for (final journey
+          in project.railJourneyCatalog?.journeys ??
+              const <RailJourneyDefinition>[])
+        SceneActionPickerOption(id: journey.id, label: journey.label),
+    ],
   };
 }
 
 String _fieldAbilityLabel(FieldAbility ability) => switch (ability) {
-      FieldAbility.surf => 'Surf',
-      FieldAbility.cut => 'Coupe',
-      FieldAbility.strength => 'Force',
-      FieldAbility.flash => 'Flash',
-      FieldAbility.rockSmash => 'Éclate-Roc',
-      FieldAbility.waterfall => 'Cascade',
-      FieldAbility.dive => 'Plongée',
-    };
+  FieldAbility.surf => 'Surf',
+  FieldAbility.cut => 'Coupe',
+  FieldAbility.strength => 'Force',
+  FieldAbility.flash => 'Flash',
+  FieldAbility.rockSmash => 'Éclate-Roc',
+  FieldAbility.waterfall => 'Cascade',
+  FieldAbility.dive => 'Plongée',
+};
 
 Map<String, NarrativeTemplatePhysicalSourceKind> _templatePhysicalSourceKinds(
   List<MapData> maps,
@@ -2227,8 +2215,8 @@ Map<String, NarrativeTemplatePhysicalSourceKind> _templatePhysicalSourceKinds(
     for (final trigger in map.triggers) {
       result['trigger:${map.id}:${trigger.id}'] =
           trigger.type == TriggerType.warp
-              ? NarrativeTemplatePhysicalSourceKind.warp
-              : NarrativeTemplatePhysicalSourceKind.zone;
+          ? NarrativeTemplatePhysicalSourceKind.warp
+          : NarrativeTemplatePhysicalSourceKind.zone;
     }
   }
   return Map<String, NarrativeTemplatePhysicalSourceKind>.unmodifiable(result);
@@ -2285,13 +2273,13 @@ class _EventLifecycleSheet extends StatelessWidget {
                   tone: lifecycle.isRuntimeEnabled
                       ? PokeMapTone.success
                       : lifecycle.isDraft
-                          ? PokeMapTone.warning
-                          : PokeMapTone.neutral,
+                      ? PokeMapTone.warning
+                      : PokeMapTone.neutral,
                   icon: lifecycle.isRuntimeEnabled
                       ? CupertinoIcons.play_fill
                       : lifecycle.isDraft
-                          ? CupertinoIcons.pencil
-                          : CupertinoIcons.pause_fill,
+                      ? CupertinoIcons.pencil
+                      : CupertinoIcons.pause_fill,
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -2419,9 +2407,7 @@ class _GlobalDiagnosticsPanel extends StatelessWidget {
     final infoCount = diagnostics.length - errorCount - warningCount;
     final visibleGroups = expanded
         ? groups
-        : groups.where(
-            (group) => _isErrorDiagnostic(group.item),
-          );
+        : groups.where((group) => _isErrorDiagnostic(group.item));
     final hasHiddenGroups = groups.any(
       (group) => !_isErrorDiagnostic(group.item),
     );
@@ -2445,13 +2431,13 @@ class _GlobalDiagnosticsPanel extends StatelessWidget {
                   icon: errorCount > 0
                       ? CupertinoIcons.exclamationmark_octagon_fill
                       : warningCount > 0
-                          ? CupertinoIcons.exclamationmark_triangle_fill
-                          : CupertinoIcons.info_circle_fill,
+                      ? CupertinoIcons.exclamationmark_triangle_fill
+                      : CupertinoIcons.info_circle_fill,
                   tone: errorCount > 0
                       ? PokeMapTone.danger
                       : warningCount > 0
-                          ? PokeMapTone.warning
-                          : PokeMapTone.info,
+                      ? PokeMapTone.warning
+                      : PokeMapTone.info,
                   size: 28,
                   iconSize: 14,
                 ),
@@ -2461,10 +2447,7 @@ class _GlobalDiagnosticsPanel extends StatelessWidget {
                     'Diagnostics du registre Event',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
                   ),
                 ),
                 if (errorCount > 0) ...[
@@ -2532,8 +2515,9 @@ class _GlobalDiagnosticsPanel extends StatelessWidget {
                 title: 'Diagnostic du registre Event',
                 message: group.item.diagnostic.message,
                 actionLabel: group.item.actionable ? 'Examiner' : null,
-                onAction:
-                    group.item.actionable ? () => onAction(group.item) : null,
+                onAction: group.item.actionable
+                    ? () => onAction(group.item)
+                    : null,
               ),
               if (group.occurrences > 1) ...[
                 const SizedBox(height: 5),
@@ -2554,10 +2538,7 @@ class _GlobalDiagnosticsPanel extends StatelessWidget {
 }
 
 class _GlobalDiagnosticGroup {
-  const _GlobalDiagnosticGroup({
-    required this.item,
-    required this.occurrences,
-  });
+  const _GlobalDiagnosticGroup({required this.item, required this.occurrences});
 
   final NarrativeEventValidationItem item;
   final int occurrences;
@@ -2594,24 +2575,21 @@ String _diagnosticCountLabel(
   int count, {
   required String singular,
   required String plural,
-}) =>
-    '$count ${count == 1 ? singular : plural}';
+}) => '$count ${count == 1 ? singular : plural}';
 
 PokeMapDiagnosticSeverity _feedbackSeverity(
   NarrativeEventBuilderV2WriteStatus? status,
 ) {
   return switch (status) {
     NarrativeEventBuilderV2WriteStatus.committed ||
-    NarrativeEventBuilderV2WriteStatus.noOp =>
-      PokeMapDiagnosticSeverity.info,
+    NarrativeEventBuilderV2WriteStatus.noOp => PokeMapDiagnosticSeverity.info,
     NarrativeEventBuilderV2WriteStatus.blocked ||
     NarrativeEventBuilderV2WriteStatus.conflict ||
     NarrativeEventBuilderV2WriteStatus.recoveryRequired =>
       PokeMapDiagnosticSeverity.warning,
     NarrativeEventBuilderV2WriteStatus.rejected ||
     NarrativeEventBuilderV2WriteStatus.failed ||
-    null =>
-      PokeMapDiagnosticSeverity.error,
+    null => PokeMapDiagnosticSeverity.error,
   };
 }
 
@@ -2638,7 +2616,6 @@ String _feedbackTitle(NarrativeEventBuilderV2WriteStatus? status) {
     NarrativeEventBuilderV2WriteStatus.rejected =>
       'Modification non applicable',
     NarrativeEventBuilderV2WriteStatus.failed ||
-    null =>
-      'Enregistrement impossible',
+    null => 'Enregistrement impossible',
   };
 }

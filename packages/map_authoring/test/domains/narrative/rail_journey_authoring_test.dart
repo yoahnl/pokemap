@@ -72,22 +72,51 @@ void main() {
         throwsA(
           isA<RailJourneyAuthoringException>()
               .having(
-                (error) => error.code,
-                'code',
-                'rail_journey.referenced',
-              )
+            (error) => error.code,
+            'code',
+            'rail_journey.referenced',
+          )
               .having(
-                (error) => error.details['consumerPaths'],
-                'consumerPaths',
-                <String>[
-                  'scenes[scene.rail].graph.nodes[1].payload.interactiveCommand.journeyId',
-                ],
-              ),
+            (error) => error.details['consumerPaths'],
+            'consumerPaths',
+            <String>[
+              'scenes[scene.rail].graph.nodes[1].payload.interactiveCommand.journeyId',
+            ],
+          ),
         ),
       );
       expect(project.railJourneyCatalog?.journeys, <RailJourneyDefinition>[
         _journey,
       ]);
+    });
+
+    test('export readiness blocks a Scene with an unknown journey', () {
+      final project = ProjectManifest(
+        name: 'Rail export fixture',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        scenes: <SceneAsset>[_railScene],
+      );
+      final report = const GamePackageGameplayReadinessGate().evaluate(
+        RuntimeProjectProjection(
+          project: project,
+          presentation: project.effectivePresentation,
+          payloadFiles: const <String, List<int>>{},
+          payloadDirectories: const <String>{},
+          compiledDialogueCount: 0,
+          scrubbedSecretFieldCount: 0,
+        ),
+      );
+
+      expect(
+        report.byCode('commandUnknownRailJourney'),
+        hasLength(1),
+      );
+      expect(
+        report.byCode('commandUnknownRailJourney').single.severity,
+        NarrativeProjectDiagnosticSeverity.error,
+      );
+      expect(report.isPlayable, isFalse);
     });
 
     test('queries each journey as a first-class resource', () {

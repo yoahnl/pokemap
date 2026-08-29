@@ -4986,6 +4986,12 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       for (final cinematic in project.cinematics)
         SceneActionPickerOption(id: cinematic.id, label: cinematic.title),
     ],
+    NarrativeCommandParameterKind.railJourney: [
+      for (final journey
+          in project.railJourneyCatalog?.journeys ??
+              const <RailJourneyDefinition>[])
+        SceneActionPickerOption(id: journey.id, label: journey.label),
+    ],
   };
 }
 

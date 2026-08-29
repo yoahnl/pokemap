@@ -517,6 +517,27 @@ void main() {
       );
     });
 
+    test('RailJourney actions have dedicated evidence for every transport', () {
+      final catalog = AuthoringFullParityCatalog.canonical();
+
+      for (final actionId in const <String>[
+        'rail_journey.upsert',
+        'rail_journey.delete',
+      ]) {
+        final action = catalog.requireMutationAction(actionId);
+        expect(
+          action.endToEndVerifiedTransports,
+          AuthoringTransport.values.toSet(),
+          reason: actionId,
+        );
+        expect(
+          action.endToEndEvidence[AuthoringTransport.editor],
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+          reason: actionId,
+        );
+      }
+    });
+
     test('direct API and JSONL CLI produce the same golden receipt', () async {
       final expected = jsonDecode(
         File('test/fixtures/pmcp085_golden_receipt.json').readAsStringSync(),

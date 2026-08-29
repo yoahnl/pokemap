@@ -127,6 +127,21 @@ final class RailJourneyActions {
         details: <String, Object?>{'journeyId': normalizedId},
       );
     }
+    final usages = buildNarrativeDependencyIndex(project: project)
+        .usagesFor(NarrativeDependencyKey.railJourney(normalizedId))
+        .toList()
+      ..sort((left, right) => left.path.compareTo(right.path));
+    if (usages.isNotEmpty) {
+      throw RailJourneyAuthoringException(
+        'rail_journey.referenced',
+        'The RailJourney definition is still referenced by a Scene.',
+        details: <String, Object?>{
+          'journeyId': normalizedId,
+          'consumerPaths':
+              usages.map((usage) => usage.path).toList(growable: false),
+        },
+      );
+    }
     final journeys = <RailJourneyDefinition>[
       for (final journey in catalog.journeys)
         if (journey.id != normalizedId) journey,

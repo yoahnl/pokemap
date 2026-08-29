@@ -54,7 +54,7 @@ class SceneActionBuilder extends StatefulWidget {
   final String? initialCommandId;
   final NarrativeCommandCatalog? commandCatalog;
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
-      pickerOptions;
+  pickerOptions;
   final Set<String>? runtimeCommandIds;
   final bool allowCommandSelection;
   final Map<String, String> initialParameters;
@@ -81,12 +81,12 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
   List<NarrativeCommandDescriptor> get _availableCommands => [
-        for (final command in _catalog.commands)
-          if (command.capabilities.editor ==
-                  NarrativeCommandCapabilityStatus.supported &&
-              _runtimeAllows(command))
-            command,
-      ];
+    for (final command in _catalog.commands)
+      if (command.capabilities.editor ==
+              NarrativeCommandCapabilityStatus.supported &&
+          _runtimeAllows(command))
+        command,
+  ];
 
   bool _runtimeAllows(NarrativeCommandDescriptor command) {
     final runtimeCommandIds = widget.runtimeCommandIds;
@@ -151,14 +151,28 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   List<NarrativeCommandParameterDescriptor> get _missingParameters => [
-        for (final parameter in _command.parameters)
-          if (_isParameterVisible(parameter) &&
-              _isParameterRequired(parameter) &&
-              !_hasValidValue(parameter))
-            parameter,
-      ];
+    for (final parameter in _command.parameters)
+      if (_isParameterVisible(parameter) &&
+          _isParameterRequired(parameter) &&
+          !_hasValidValue(parameter))
+        parameter,
+  ];
 
   bool _isParameterRequired(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.railJourney) {
+      final operation = _values['operation'];
+      if (parameter.id == 'direction') {
+        return operation == 'begin';
+      }
+      if (parameter.id == 'advanceEvent') {
+        return operation == 'advance';
+      }
+      if (parameter.id == 'doorSide') {
+        return operation == 'begin' ||
+            operation == 'advance' &&
+                _values['advanceEvent'] == 'destinationDoorUsed';
+      }
+    }
     if (_command.id == NarrativeCommandIds.playCharacterAnimation &&
         parameter.id == 'direction') {
       return _values['animationMode'] == 'directional';
@@ -176,6 +190,20 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _isParameterVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.railJourney) {
+      final operation = _values['operation'];
+      if (parameter.id == 'direction') {
+        return operation == 'begin';
+      }
+      if (parameter.id == 'advanceEvent') {
+        return operation == 'advance';
+      }
+      if (parameter.id == 'doorSide') {
+        return operation == 'begin' ||
+            operation == 'advance' &&
+                _values['advanceEvent'] == 'destinationDoorUsed';
+      }
+    }
     if (_command.id == NarrativeCommandIds.playCharacterAnimation) {
       if (parameter.id == 'direction') {
         return _values['animationMode'] == 'directional';
@@ -270,8 +298,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           ],
           SceneActionInspector(
             command: _command,
-            missingParameterLabels:
-                _missingParameters.map((parameter) => parameter.label).toList(),
+            missingParameterLabels: _missingParameters
+                .map((parameter) => parameter.label)
+                .toList(),
           ),
           for (final parameter in _command.parameters)
             if (_isParameterVisible(parameter)) ...[
@@ -297,8 +326,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         return PokeMapDropdownField<String>(
           label: parameter.label,
           value: _values[parameter.id] ?? 'true',
-          items: _command.id ==
-                      NarrativeCommandIds.setPauseMenuEntryVisibility &&
+          items:
+              _command.id == NarrativeCommandIds.setPauseMenuEntryVisibility &&
                   parameter.id == 'visible'
               ? const [
                   PokeMapDropdownItem(value: 'true', label: 'Afficher'),
@@ -319,7 +348,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           keyboardType: parameter.kind == NarrativeCommandParameterKind.integer
               ? TextInputType.number
               : null,
-          errorText: _values[parameter.id]?.isNotEmpty == true &&
+          errorText:
+              _values[parameter.id]?.isNotEmpty == true &&
                   !_hasValidValue(parameter)
               ? '${parameter.label} est invalide.'
               : null,
@@ -334,7 +364,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           return PokeMapDiagnosticCallout(
             severity: PokeMapDiagnosticSeverity.error,
             title: '${parameter.label} supprimé',
-            message: 'La cible « $currentValue » n’existe plus dans le '
+            message:
+                'La cible « $currentValue » n’existe plus dans le '
                 'catalogue du projet. Sélectionnez une cible valide avant de '
                 'publier.',
           );
@@ -371,51 +402,68 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     }
     return switch (kind) {
       NarrativeCommandParameterKind.completionOutcome => const [
-          SceneActionPickerOption(id: 'completed', label: 'Partie terminée'),
-          SceneActionPickerOption(id: 'victory', label: 'Victoire'),
-          SceneActionPickerOption(
-            id: 'alternateEnding',
-            label: 'Fin alternative',
-          ),
-        ],
+        SceneActionPickerOption(id: 'completed', label: 'Partie terminée'),
+        SceneActionPickerOption(id: 'victory', label: 'Victoire'),
+        SceneActionPickerOption(
+          id: 'alternateEnding',
+          label: 'Fin alternative',
+        ),
+      ],
       NarrativeCommandParameterKind.postGamePolicy => const [
-          SceneActionPickerOption(
-            id: 'continueGame',
-            label: 'Continuer en postgame',
-          ),
-          SceneActionPickerOption(
-            id: 'returnToTitle',
-            label: 'Retourner au titre',
-          ),
-          SceneActionPickerOption(id: 'returnToHub', label: 'Retourner au Hub'),
-        ],
+        SceneActionPickerOption(
+          id: 'continueGame',
+          label: 'Continuer en postgame',
+        ),
+        SceneActionPickerOption(
+          id: 'returnToTitle',
+          label: 'Retourner au titre',
+        ),
+        SceneActionPickerOption(id: 'returnToHub', label: 'Retourner au Hub'),
+      ],
       NarrativeCommandParameterKind.characterDirection => const [
-          SceneActionPickerOption(id: 'south', label: 'Sud'),
-          SceneActionPickerOption(id: 'north', label: 'Nord'),
-          SceneActionPickerOption(id: 'east', label: 'Est'),
-          SceneActionPickerOption(id: 'west', label: 'Ouest'),
-        ],
+        SceneActionPickerOption(id: 'south', label: 'Sud'),
+        SceneActionPickerOption(id: 'north', label: 'Nord'),
+        SceneActionPickerOption(id: 'east', label: 'Est'),
+        SceneActionPickerOption(id: 'west', label: 'Ouest'),
+      ],
       NarrativeCommandParameterKind.customAnimationPlayback => const [
-          SceneActionPickerOption(id: 'once', label: 'Une fois'),
-          SceneActionPickerOption(
-            id: 'repeatCount',
-            label: 'Nombre de répétitions',
-          ),
-          SceneActionPickerOption(
-              id: 'forDuration', label: 'Pendant une durée'),
-        ],
+        SceneActionPickerOption(id: 'once', label: 'Une fois'),
+        SceneActionPickerOption(
+          id: 'repeatCount',
+          label: 'Nombre de répétitions',
+        ),
+        SceneActionPickerOption(id: 'forDuration', label: 'Pendant une durée'),
+      ],
       NarrativeCommandParameterKind.pauseMenuAction => const [
-          SceneActionPickerOption(id: 'party', label: 'Équipe'),
-          SceneActionPickerOption(id: 'bag', label: 'Sac'),
-          SceneActionPickerOption(id: 'pokedex', label: 'Pokédex'),
-          SceneActionPickerOption(id: 'map', label: 'Carte'),
-          SceneActionPickerOption(id: 'save', label: 'Sauvegarder'),
-          SceneActionPickerOption(id: 'options', label: 'Options'),
-          SceneActionPickerOption(
-            id: 'returnToTitle',
-            label: 'Retour au titre',
-          ),
-        ],
+        SceneActionPickerOption(id: 'party', label: 'Équipe'),
+        SceneActionPickerOption(id: 'bag', label: 'Sac'),
+        SceneActionPickerOption(id: 'pokedex', label: 'Pokédex'),
+        SceneActionPickerOption(id: 'map', label: 'Carte'),
+        SceneActionPickerOption(id: 'save', label: 'Sauvegarder'),
+        SceneActionPickerOption(id: 'options', label: 'Options'),
+        SceneActionPickerOption(id: 'returnToTitle', label: 'Retour au titre'),
+      ],
+      NarrativeCommandParameterKind.railJourneyOperation => const [
+        SceneActionPickerOption(id: 'begin', label: 'Départ'),
+        SceneActionPickerOption(id: 'advance', label: 'Progression'),
+        SceneActionPickerOption(id: 'acknowledge', label: 'Confirmation'),
+      ],
+      NarrativeCommandParameterKind.railJourneyDirection => const [
+        SceneActionPickerOption(id: 'outbound', label: 'Aller'),
+        SceneActionPickerOption(id: 'return', label: 'Retour'),
+      ],
+      NarrativeCommandParameterKind.railJourneyAdvanceEvent => const [
+        SceneActionPickerOption(id: 'doorsClosed', label: 'Portes fermées'),
+        SceneActionPickerOption(id: 'arrivalReached', label: 'Arrivée'),
+        SceneActionPickerOption(
+          id: 'destinationDoorUsed',
+          label: 'Porte de destination',
+        ),
+      ],
+      NarrativeCommandParameterKind.railJourneyDoorSide => const [
+        SceneActionPickerOption(id: 'west', label: 'Porte ouest'),
+        SceneActionPickerOption(id: 'east', label: 'Porte est'),
+      ],
       _ => widget.pickerOptions[kind] ?? const [],
     };
   }

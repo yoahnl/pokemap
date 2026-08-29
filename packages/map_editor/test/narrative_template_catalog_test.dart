@@ -12,10 +12,7 @@ void main() {
       expect(catalog.cinematicTemplates, hasLength(2));
       expect(catalog.worldRuleTemplates, hasLength(2));
       expect(catalog.templates, hasLength(16));
-      expect(
-        catalog.byKind(NarrativeTemplateKind.nurse).isPublishable,
-        isTrue,
-      );
+      expect(catalog.byKind(NarrativeTemplateKind.nurse).isPublishable, isTrue);
       expect(
         catalog.byKind(NarrativeTemplateKind.nurse).command.id,
         NarrativeCommandIds.openHeal,
@@ -60,127 +57,137 @@ void main() {
       );
     });
 
-    test('canonical gameplay payloads create and round-trip without raw ids',
-        () {
-      final payloads = <SceneActionPayload>[
-        buildScenePayloadForNarrativeCommand(
-          commandId: NarrativeCommandIds.playCharacterAnimation,
-          parameters: const {
-            'actorId': 'player',
-            'definitionId': 'wave',
-            'direction': 'south',
-            'playbackKind': 'repeatCount',
-            'repeatCount': '2',
-          },
-        ) as SceneActionPayload,
-        buildScenePayloadForNarrativeCommand(
-          commandId: NarrativeCommandIds.openHeal,
-          parameters: const {'requiresConfirmation': 'false'},
-        ) as SceneActionPayload,
-        buildScenePayloadForNarrativeCommand(
-          commandId: NarrativeCommandIds.healParty,
-          parameters: const {},
-        ) as SceneActionPayload,
-        buildScenePayloadForNarrativeCommand(
-          commandId: NarrativeCommandIds.awardBadge,
-          parameters: const {'badgeId': 'badge_tide'},
-        ) as SceneActionPayload,
-        buildScenePayloadForNarrativeCommand(
-          commandId: NarrativeCommandIds.unlockFieldAbility,
-          parameters: const {'abilityId': 'surf'},
-        ) as SceneActionPayload,
-        buildScenePayloadForNarrativeCommand(
-          commandId: NarrativeCommandIds.setNpcPresence,
-          parameters: const {
-            'npcRef': 'map_port::npc_sailor',
-            'present': 'false',
-          },
-        ) as SceneActionPayload,
-        buildScenePayloadForNarrativeCommand(
-          commandId: NarrativeCommandIds.moveNpc,
-          parameters: const {
-            'npcRef': 'map_port::npc_sailor',
-            'warpId': 'warp_exit',
-          },
-        ) as SceneActionPayload,
-      ];
+    test(
+      'canonical gameplay payloads create and round-trip without raw ids',
+      () {
+        final payloads = <SceneActionPayload>[
+          buildScenePayloadForNarrativeCommand(
+                commandId: NarrativeCommandIds.playCharacterAnimation,
+                parameters: const {
+                  'actorId': 'player',
+                  'definitionId': 'wave',
+                  'direction': 'south',
+                  'playbackKind': 'repeatCount',
+                  'repeatCount': '2',
+                },
+              )
+              as SceneActionPayload,
+          buildScenePayloadForNarrativeCommand(
+                commandId: NarrativeCommandIds.openHeal,
+                parameters: const {'requiresConfirmation': 'false'},
+              )
+              as SceneActionPayload,
+          buildScenePayloadForNarrativeCommand(
+                commandId: NarrativeCommandIds.healParty,
+                parameters: const {},
+              )
+              as SceneActionPayload,
+          buildScenePayloadForNarrativeCommand(
+                commandId: NarrativeCommandIds.awardBadge,
+                parameters: const {'badgeId': 'badge_tide'},
+              )
+              as SceneActionPayload,
+          buildScenePayloadForNarrativeCommand(
+                commandId: NarrativeCommandIds.unlockFieldAbility,
+                parameters: const {'abilityId': 'surf'},
+              )
+              as SceneActionPayload,
+          buildScenePayloadForNarrativeCommand(
+                commandId: NarrativeCommandIds.setNpcPresence,
+                parameters: const {
+                  'npcRef': 'map_port::npc_sailor',
+                  'present': 'false',
+                },
+              )
+              as SceneActionPayload,
+          buildScenePayloadForNarrativeCommand(
+                commandId: NarrativeCommandIds.moveNpc,
+                parameters: const {
+                  'npcRef': 'map_port::npc_sailor',
+                  'warpId': 'warp_exit',
+                },
+              )
+              as SceneActionPayload,
+        ];
 
-      expect(
-        payloads[0].interactiveCommand,
-        SceneInteractiveCommand.playCharacterAnimation(
-          runtimeCommand: CharacterCustomAnimationRuntimeCommand(
-            actorId: 'player',
-            definitionId: 'wave',
-            direction: EntityFacing.south,
-            playback: CharacterCustomAnimationPlayback.repeatCount(2),
+        expect(
+          payloads[0].interactiveCommand,
+          SceneInteractiveCommand.playCharacterAnimation(
+            runtimeCommand: CharacterCustomAnimationRuntimeCommand(
+              actorId: 'player',
+              definitionId: 'wave',
+              direction: EntityFacing.south,
+              playback: CharacterCustomAnimationPlayback.repeatCount(2),
+            ),
           ),
-        ),
-      );
-      expect(
-        payloads[1].interactiveCommand,
-        SceneInteractiveCommand.openHeal(requiresConfirmation: false),
-      );
-      expect(payloads[2].consequence, SceneConsequence.healParty());
-      expect(
-        payloads[3].consequence,
-        SceneConsequence.awardBadge(badgeId: 'badge_tide'),
-      );
-      expect(
-        payloads[4].consequence,
-        SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
-      );
-      expect(
-        payloads[5].consequence,
-        SceneConsequence.setNpcPresence(
-          mapId: 'map_port',
-          entityId: 'npc_sailor',
-          present: false,
-        ),
-      );
-      expect(
-        payloads[6].interactiveCommand,
-        SceneInteractiveCommand.moveNpc(
-          mapId: 'map_port',
-          entityId: 'npc_sailor',
-          warpId: 'warp_exit',
-        ),
-      );
-      for (final payload in payloads) {
-        expect(SceneNodePayload.fromJson(payload.toJson()), payload);
-      }
-    });
+        );
+        expect(
+          payloads[1].interactiveCommand,
+          SceneInteractiveCommand.openHeal(requiresConfirmation: false),
+        );
+        expect(payloads[2].consequence, SceneConsequence.healParty());
+        expect(
+          payloads[3].consequence,
+          SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+        );
+        expect(
+          payloads[4].consequence,
+          SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+        );
+        expect(
+          payloads[5].consequence,
+          SceneConsequence.setNpcPresence(
+            mapId: 'map_port',
+            entityId: 'npc_sailor',
+            present: false,
+          ),
+        );
+        expect(
+          payloads[6].interactiveCommand,
+          SceneInteractiveCommand.moveNpc(
+            mapId: 'map_port',
+            entityId: 'npc_sailor',
+            warpId: 'warp_exit',
+          ),
+        );
+        for (final payload in payloads) {
+          expect(SceneNodePayload.fromJson(payload.toJson()), payload);
+        }
+      },
+    );
 
     test('static encounter builds the canonical tagged battle reference', () {
-      final payload = buildScenePayloadForNarrativeCommand(
-        commandId: NarrativeCommandIds.staticEncounter,
-        parameters: const {
-          'staticEncounterId': 'static:trainer_lighthouse_guardian',
-          'trainerId': 'trainer_lighthouse_guardian',
-          'battleTemplateId': 'battle_lighthouse_pokemon',
-        },
-      ) as SceneBattlePayload;
+      final payload =
+          buildScenePayloadForNarrativeCommand(
+                commandId: NarrativeCommandIds.staticEncounter,
+                parameters: const {
+                  'staticEncounterId': 'static:trainer_lighthouse_guardian',
+                  'trainerId': 'trainer_lighthouse_guardian',
+                  'battleTemplateId': 'battle_lighthouse_pokemon',
+                },
+              )
+              as SceneBattlePayload;
 
       expect(payload.battleKind, 'static');
       expect(payload.trainerId, 'trainer_lighthouse_guardian');
-      expect(
-        payload.battleTemplateId,
-        'battle_lighthouse_pokemon',
-      );
+      expect(payload.battleTemplateId, 'battle_lighthouse_pokemon');
       expect(payload.declaredOutcomes, const ['victory', 'defeat']);
       expect(SceneNodePayload.fromJson(payload.toJson()), payload);
     });
 
     test('RailJourney builds the typed interactive command wire', () {
-      final payload = buildScenePayloadForNarrativeCommand(
-        commandId: NarrativeCommandIds.railJourney,
-        parameters: const <String, String>{
-          'commandId': 'scene.rail.begin',
-          'journeyId': 'T1',
-          'operation': 'begin',
-          'direction': 'outbound',
-          'doorSide': 'west',
-        },
-      ) as SceneActionPayload;
+      final payload =
+          buildScenePayloadForNarrativeCommand(
+                commandId: NarrativeCommandIds.railJourney,
+                parameters: const <String, String>{
+                  'commandId': 'scene.rail.begin',
+                  'journeyId': 'T1',
+                  'operation': 'begin',
+                  'direction': 'outbound',
+                  'doorSide': 'west',
+                },
+              )
+              as SceneActionPayload;
 
       expect(
         payload.interactiveCommand,
@@ -195,62 +202,66 @@ void main() {
       expect(SceneNodePayload.fromJson(payload.toJson()), payload);
     });
 
-    test('Finish Game builds a localized terminal payload from friendly fields',
-        () {
-      final payload = buildScenePayloadForNarrativeCommand(
-        commandId: NarrativeCommandIds.finishGame,
-        parameters: const {
-          'endingName': 'Selbrume sauvée',
-          'outcome': 'victory',
-          'resultTitle': 'Selbrume est sauvée',
-          'resultTitleEn': 'Selbrume is safe',
-          'resultSummary': 'La brume se retire.',
-          'resultSummaryEn': 'The mist clears.',
-          'includeCredits': 'true',
-          'creditsTitle': 'Crédits',
-          'creditsTitleEn': 'Credits',
-          'creditsAuthor': 'PokeMap',
-          'creditsEndingLabel': 'Fin — Selbrume sauvée',
-          'creditsEndingLabelEn': 'The End — Selbrume is safe',
-          'creditsSkippable': 'true',
-          'postGamePolicy': 'returnToHub',
-        },
-      ) as SceneActionPayload;
+    test(
+      'Finish Game builds a localized terminal payload from friendly fields',
+      () {
+        final payload =
+            buildScenePayloadForNarrativeCommand(
+                  commandId: NarrativeCommandIds.finishGame,
+                  parameters: const {
+                    'endingName': 'Selbrume sauvée',
+                    'outcome': 'victory',
+                    'resultTitle': 'Selbrume est sauvée',
+                    'resultTitleEn': 'Selbrume is safe',
+                    'resultSummary': 'La brume se retire.',
+                    'resultSummaryEn': 'The mist clears.',
+                    'includeCredits': 'true',
+                    'creditsTitle': 'Crédits',
+                    'creditsTitleEn': 'Credits',
+                    'creditsAuthor': 'PokeMap',
+                    'creditsEndingLabel': 'Fin — Selbrume sauvée',
+                    'creditsEndingLabelEn': 'The End — Selbrume is safe',
+                    'creditsSkippable': 'true',
+                    'postGamePolicy': 'returnToHub',
+                  },
+                )
+                as SceneActionPayload;
 
-      final consequence = payload.consequence! as SceneFinishGameConsequence;
-      expect(consequence.endingId, 'ending.selbrume-sauvee');
-      expect(consequence.outcome, SceneGameCompletionOutcome.victory);
-      expect(consequence.result.title.resolve('en-US'), 'Selbrume is safe');
-      expect(consequence.credits!.title.resolve('en'), 'Credits');
-      expect(consequence.credits!.skippable, isTrue);
-      expect(consequence.postGamePolicy, ScenePostGamePolicy.returnToHub);
-      expect(SceneNodePayload.fromJson(payload.toJson()), payload);
-    });
+        final consequence = payload.consequence! as SceneFinishGameConsequence;
+        expect(consequence.endingId, 'ending.selbrume-sauvee');
+        expect(consequence.outcome, SceneGameCompletionOutcome.victory);
+        expect(consequence.result.title.resolve('en-US'), 'Selbrume is safe');
+        expect(consequence.credits!.title.resolve('en'), 'Credits');
+        expect(consequence.credits!.skippable, isTrue);
+        expect(consequence.postGamePolicy, ScenePostGamePolicy.returnToHub);
+        expect(SceneNodePayload.fromJson(payload.toJson()), payload);
+      },
+    );
 
-    test('legacy untyped NPC action remains readable but needs canonical refs',
-        () {
-      final legacy = SceneNodePayload.fromJson(const {
-        'kind': 'action',
-        'actionKind': 'setNpcPresence',
-        'parameters': {'entityId': 'npc_old'},
-      });
+    test(
+      'legacy untyped NPC action remains readable but needs canonical refs',
+      () {
+        final legacy = SceneNodePayload.fromJson(const {
+          'kind': 'action',
+          'actionKind': 'setNpcPresence',
+          'parameters': {'entityId': 'npc_old'},
+        });
 
-      expect(legacy, isA<SceneActionPayload>());
-      expect((legacy as SceneActionPayload).actionKind, 'setNpcPresence');
-      expect(
-        () => buildScenePayloadForNarrativeCommand(
-          commandId: NarrativeCommandIds.setNpcPresence,
-          parameters: const {'npcRef': 'npc_old', 'present': 'false'},
-        ),
-        throwsArgumentError,
-      );
-    });
+        expect(legacy, isA<SceneActionPayload>());
+        expect((legacy as SceneActionPayload).actionKind, 'setNpcPresence');
+        expect(
+          () => buildScenePayloadForNarrativeCommand(
+            commandId: NarrativeCommandIds.setNpcPresence,
+            parameters: const {'npcRef': 'npc_old', 'present': 'false'},
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
 
     test('badge preview refuses a target removed from the project', () {
       final withBadge = _emptyProject().copyWith(
-        badges: const [
-          BadgeDefinition(id: 'badge_tide', label: 'Badge Marée'),
-        ],
+        badges: const [BadgeDefinition(id: 'badge_tide', label: 'Badge Marée')],
       );
       final request = NarrativeTemplateRequest(
         kind: NarrativeTemplateKind.badgeReward,
@@ -280,33 +291,35 @@ void main() {
       expect(deleted.diagnostics.join(' '), contains('badge_tide'));
     });
 
-    test('item ball preview creates one Event pointing to one Scene action',
-        () {
-      final before = _emptyProject();
-      final preview = previewNarrativeTemplate(
-        project: before,
-        request: _itemBallRequest(),
-      );
+    test(
+      'item ball preview creates one Event pointing to one Scene action',
+      () {
+        final before = _emptyProject();
+        final preview = previewNarrativeTemplate(
+          project: before,
+          request: _itemBallRequest(),
+        );
 
-      expect(preview.canApply, isTrue);
-      expect(preview.diagnostics, isEmpty);
-      expect(preview.event!.sceneId, _sceneId);
-      expect(preview.after!.eventRegistry!.records, hasLength(1));
-      expect(preview.after!.scenes, hasLength(1));
+        expect(preview.canApply, isTrue);
+        expect(preview.diagnostics, isEmpty);
+        expect(preview.event!.sceneId, _sceneId);
+        expect(preview.after!.eventRegistry!.records, hasLength(1));
+        expect(preview.after!.scenes, hasLength(1));
 
-      final actionPayloads = preview.scene!.graph.nodes
-          .map((node) => node.payload)
-          .whereType<SceneActionPayload>()
-          .toList();
-      expect(actionPayloads, hasLength(1));
-      expect(
-        actionPayloads.single.consequence,
-        SceneConsequence.giveItem(itemId: 'potion', quantity: 2),
-      );
+        final actionPayloads = preview.scene!.graph.nodes
+            .map((node) => node.payload)
+            .whereType<SceneActionPayload>()
+            .toList();
+        expect(actionPayloads, hasLength(1));
+        expect(
+          actionPayloads.single.consequence,
+          SceneConsequence.giveItem(itemId: 'potion', quantity: 2),
+        );
 
-      final reloaded = ProjectManifest.fromJson(preview.after!.toJson());
-      expect(reloaded.toJson(), preview.after!.toJson());
-    });
+        final reloaded = ProjectManifest.fromJson(preview.after!.toJson());
+        expect(reloaded.toJson(), preview.after!.toJson());
+      },
+    );
 
     test('static encounter preview preserves its distinct battle template', () {
       final before = ProjectManifest(
@@ -327,9 +340,7 @@ void main() {
             tags: ['static-encounter'],
           ),
         ],
-        scenes: [
-          _staticBattleContractScene(),
-        ],
+        scenes: [_staticBattleContractScene()],
       );
       final preview = previewNarrativeTemplate(
         project: before,
@@ -437,9 +448,7 @@ void main() {
       final catalog = NarrativeTemplateCatalog.canonical();
 
       for (final template in catalog.cinematicTemplates) {
-        final timeline = buildNarrativeCinematicTemplateTimeline(
-          template.kind,
-        );
+        final timeline = buildNarrativeCinematicTemplateTimeline(template.kind);
         final mutation = NarrativeAssetMutation.createCinematic(
           _emptyProject(),
           title: template.label,
@@ -451,30 +460,32 @@ void main() {
       }
     });
 
-    test('conditional NPC requires its Fact parameters before construction',
-        () {
-      final preview = previewNarrativeTemplate(
-        project: _emptyProject(),
-        request: NarrativeTemplateRequest(
-          kind: NarrativeTemplateKind.conditionalNpc,
-          eventId: _eventId,
-          sceneId: _sceneId,
-          name: 'PNJ conditionnel',
-          source: NarrativeEventSourceRef.entityInteract('map_port', 'npc_a'),
-          physicalSource: const NarrativeTemplatePhysicalSource(
-            kind: NarrativeTemplatePhysicalSourceKind.entity,
-            mapId: 'map_port',
-            sourceId: 'npc_a',
-            exists: true,
+    test(
+      'conditional NPC requires its Fact parameters before construction',
+      () {
+        final preview = previewNarrativeTemplate(
+          project: _emptyProject(),
+          request: NarrativeTemplateRequest(
+            kind: NarrativeTemplateKind.conditionalNpc,
+            eventId: _eventId,
+            sceneId: _sceneId,
+            name: 'PNJ conditionnel',
+            source: NarrativeEventSourceRef.entityInteract('map_port', 'npc_a'),
+            physicalSource: const NarrativeTemplatePhysicalSource(
+              kind: NarrativeTemplatePhysicalSourceKind.entity,
+              mapId: 'map_port',
+              sourceId: 'npc_a',
+              exists: true,
+            ),
+            parameters: const {'dialogueId': 'dialogue.a'},
           ),
-          parameters: const {'dialogueId': 'dialogue.a'},
-        ),
-      );
+        );
 
-      expect(preview.canApply, isFalse);
-      expect(preview.diagnostics.join(' '), contains('Fact'));
-      expect(preview.after, isNull);
-    });
+        expect(preview.canApply, isFalse);
+        expect(preview.diagnostics.join(' '), contains('Fact'));
+        expect(preview.after, isNull);
+      },
+    );
 
     test('refuses ID collisions and a missing physical Map Editor source', () {
       final collision = previewNarrativeTemplate(
@@ -573,16 +584,16 @@ const _eventId = 'evt_00000000-0000-7000-8000-000000000001';
 const _sceneId = 'scene.item.ball';
 
 ProjectManifest _emptyProject() => const ProjectManifest(
-      name: 'Template test',
-      maps: [
-        ProjectMapEntry(
-          id: 'map_port',
-          name: 'Port',
-          relativePath: 'maps/port.json',
-        ),
-      ],
-      tilesets: [],
-    );
+  name: 'Template test',
+  maps: [
+    ProjectMapEntry(
+      id: 'map_port',
+      name: 'Port',
+      relativePath: 'maps/port.json',
+    ),
+  ],
+  tilesets: [],
+);
 
 NarrativeTemplateRequest _itemBallRequest({
   bool sourceExists = true,
@@ -593,10 +604,7 @@ NarrativeTemplateRequest _itemBallRequest({
     eventId: _eventId,
     sceneId: _sceneId,
     name: 'Potion au sol',
-    source: NarrativeEventSourceRef.entityInteract(
-      'map_port',
-      'object_potion',
-    ),
+    source: NarrativeEventSourceRef.entityInteract('map_port', 'object_potion'),
     physicalSource: NarrativeTemplatePhysicalSource(
       kind: NarrativeTemplatePhysicalSourceKind.object,
       mapId: 'map_port',

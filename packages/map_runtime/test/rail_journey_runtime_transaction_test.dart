@@ -172,6 +172,7 @@ void main() {
       var animationCalls = 0;
       var transitionCalls = 0;
       var commitCalls = 0;
+      var rollbackCalls = 0;
 
       final result = await const RailJourneyRuntimeTransaction().execute(
         command: _beginCommand(),
@@ -193,7 +194,9 @@ void main() {
         commitProgress: (_) async {
           commitCalls += 1;
         },
-        rollback: () async {},
+        rollback: () async {
+          rollbackCalls += 1;
+        },
       );
 
       expect(
@@ -205,6 +208,7 @@ void main() {
       expect(animationCalls, 0);
       expect(transitionCalls, 0);
       expect(commitCalls, 0);
+      expect(rollbackCalls, 0);
     });
 
     test('animation failure blocks before transition and commit', () async {
@@ -246,6 +250,7 @@ void main() {
       var animationCalls = 0;
       var transitionCalls = 0;
       var commitCalls = 0;
+      var rollbackCalls = 0;
 
       final result = await const RailJourneyRuntimeTransaction().execute(
         command: _beginCommand(),
@@ -268,7 +273,9 @@ void main() {
         commitProgress: (_) async {
           commitCalls += 1;
         },
-        rollback: () async {},
+        rollback: () async {
+          rollbackCalls += 1;
+        },
       );
 
       expect(
@@ -282,6 +289,7 @@ void main() {
       expect(animationCalls, 1);
       expect(transitionCalls, 1);
       expect(commitCalls, 0);
+      expect(rollbackCalls, 1);
     });
 
     test('partial spatial exception is compensated before rethrow', () async {

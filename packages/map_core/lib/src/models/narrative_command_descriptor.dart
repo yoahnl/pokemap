@@ -36,6 +36,11 @@ enum NarrativeCommandParameterKind {
   characterDirection,
   customAnimationPlayback,
   pauseMenuAction,
+  railJourney,
+  railJourneyOperation,
+  railJourneyDirection,
+  railJourneyAdvanceEvent,
+  railJourneyDoorSide,
 }
 
 @immutable

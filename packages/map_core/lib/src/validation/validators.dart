@@ -17,6 +17,7 @@ import '../models/project_trainer.dart';
 import '../models/rail_journey.dart';
 import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
+import '../models/scene_interactive_command.dart';
 import '../models/script_conditions.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
@@ -156,6 +157,7 @@ class ProjectValidator {
     }
     _validateUniqueness(manifest);
     _validateRailJourneys(manifest, maps: maps, itemCatalog: itemCatalog);
+    _validateSceneRailJourneyReferences(manifest);
     _validateHierarchy(manifest);
     _validateEncounterTables(manifest.encounterTables);
     _validateProjectDialogues(manifest);
@@ -499,6 +501,37 @@ class ProjectValidator {
         vehicleMap: vehicleMap,
         elementsById: elementsById,
       );
+    }
+  }
+
+  static void _validateSceneRailJourneyReferences(ProjectManifest manifest) {
+    final journeyIds =
+        manifest.railJourneyCatalog?.journeys
+            .map((journey) => journey.id)
+            .toSet() ??
+        <String>{};
+    for (final scene in manifest.scenes) {
+      for (final node in scene.graph.nodes) {
+        final payload = node.payload;
+        if (payload is! SceneActionPayload) {
+          continue;
+        }
+        final command = payload.interactiveCommand;
+        if (command is! SceneRailJourneyInteractiveCommand ||
+            journeyIds.contains(command.journeyId)) {
+          continue;
+        }
+        throw ValidationException(
+          'Scene ${scene.id} references an unknown RailJourney: '
+          '${command.journeyId}',
+          code: 'scene_rail_journey_unknown',
+          details: <String, Object?>{
+            'sceneId': scene.id,
+            'nodeId': node.id,
+            'journeyId': command.journeyId,
+          },
+        );
+      }
     }
   }
 

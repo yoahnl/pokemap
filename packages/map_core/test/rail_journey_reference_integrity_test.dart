@@ -4,16 +4,20 @@ import 'package:test/test.dart';
 void main() {
   test('dependency index resolves Scene to RailJourney usages', () {
     final index = buildNarrativeDependencyIndex(
-      project: _project(railJourneyCatalog: const RailJourneyCatalog(
-        journeys: <RailJourneyDefinition>[_journey],
-      )),
+      project: _project(
+        railJourneyCatalog: const RailJourneyCatalog(
+          journeys: <RailJourneyDefinition>[_journey],
+        ),
+      ),
     );
     const target = NarrativeDependencyKey.railJourney('T1');
 
     expect(index.definitionsFor(target), hasLength(1));
     expect(index.usagesFor(target), hasLength(1));
-    expect(index.usagesFor(target).single.owner,
-        const NarrativeDependencyKey.scene('scene.rail'));
+    expect(
+      index.usagesFor(target).single.owner,
+      const NarrativeDependencyKey.scene('scene.rail'),
+    );
     expect(
       index.usagesFor(target).single.path,
       'scenes[scene.rail].graph.nodes[1].payload.interactiveCommand.journeyId',
@@ -39,10 +43,7 @@ void main() {
       sceneReport.byCode(SceneDiagnosticCode.commandUnknownRailJourney),
       hasLength(1),
     );
-    expect(
-      narrativeReport.byCode('commandUnknownRailJourney'),
-      hasLength(1),
-    );
+    expect(narrativeReport.byCode('commandUnknownRailJourney'), hasLength(1));
     expect(narrativeReport.isPlayable, isFalse);
     expect(
       () => ProjectValidator.validate(project),

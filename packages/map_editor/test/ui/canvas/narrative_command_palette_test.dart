@@ -11,8 +11,9 @@ import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_produ
 void main() {
   test('authoring attestation covers every publishable builder command', () {
     final catalog = NarrativeCommandCatalog.canonical();
-    final attestation =
-        buildMapEditorNarrativeCommandAuthoringAttestation(catalog: catalog);
+    final attestation = buildMapEditorNarrativeCommandAuthoringAttestation(
+      catalog: catalog,
+    );
 
     expect(
       attestation.referencesByCapabilityId.keys,
@@ -20,9 +21,7 @@ void main() {
     );
     expect(
       attestation.referenceFor(NarrativeCommandIds.railJourney),
-      endsWith(
-        'narrative_template_catalog.dart#buildSceneRailJourneyPayload',
-      ),
+      endsWith('narrative_template_catalog.dart#buildSceneRailJourneyPayload'),
     );
     expect(
       attestation.referencesByCapabilityId.entries
@@ -90,42 +89,46 @@ void main() {
   });
 
   testWidgets(
-      'authoring actions expose only commands executable by the current runtime',
-      (tester) async {
-    NarrativeCommandDescriptor? opened;
-    final actions = buildNarrativeCommandAuthoringPaletteActions(
-      runtimeCommandIds: const {
-        NarrativeCommandIds.healParty,
-        NarrativeCommandIds.awardBadge,
-        NarrativeCommandIds.unlockFieldAbility,
-        NarrativeCommandIds.railJourney,
-      },
-      capabilityTruth: _completeTruth(),
-      onOpenCommand: (command) => opened = command,
-    );
-    await tester.pumpWidget(
-      _host(
-        NarrativeCommandPalette(
-          index: _index,
-          actions: actions,
-          onOpenEntry: (_) {},
-          onDismiss: () {},
+    'authoring actions expose only commands executable by the current runtime',
+    (tester) async {
+      NarrativeCommandDescriptor? opened;
+      final actions = buildNarrativeCommandAuthoringPaletteActions(
+        runtimeCommandIds: const {
+          NarrativeCommandIds.healParty,
+          NarrativeCommandIds.awardBadge,
+          NarrativeCommandIds.unlockFieldAbility,
+          NarrativeCommandIds.railJourney,
+        },
+        capabilityTruth: _completeTruth(),
+        onOpenCommand: (command) => opened = command,
+      );
+      await tester.pumpWidget(
+        _host(
+          NarrativeCommandPalette(
+            index: _index,
+            actions: actions,
+            onOpenEntry: (_) {},
+            onDismiss: () {},
+          ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text('Créer · Soigner l’équipe'), findsOneWidget);
-    expect(find.text('Créer · Donner un badge'), findsOneWidget);
-    expect(
-      find.text('Créer · Débloquer une capacité terrain'),
-      findsOneWidget,
-    );
-    expect(find.text('Créer · Piloter un voyage ferroviaire'), findsOneWidget);
-    expect(find.textContaining('Modifier la présence'), findsNothing);
+      expect(find.text('Créer · Soigner l’équipe'), findsOneWidget);
+      expect(find.text('Créer · Donner un badge'), findsOneWidget);
+      expect(
+        find.text('Créer · Débloquer une capacité terrain'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Créer · Piloter un voyage ferroviaire'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Modifier la présence'), findsNothing);
 
-    await tester.tap(find.text('Créer · Donner un badge'));
-    expect(opened?.id, NarrativeCommandIds.awardBadge);
-  });
+      await tester.tap(find.text('Créer · Donner un badge'));
+      expect(opened?.id, NarrativeCommandIds.awardBadge);
+    },
+  );
 
   test('authoring actions hide a promoted command with incomplete truth', () {
     final actions = buildNarrativeCommandAuthoringPaletteActions(
@@ -223,8 +226,6 @@ final _index = NarrativeGlobalSearchIndex.fromEntries(
 );
 
 Widget _host(Widget child) => MaterialApp(
-      theme: PokeMapTheme.dark(),
-      home: Scaffold(
-        body: SizedBox(width: 1200, height: 800, child: child),
-      ),
-    );
+  theme: PokeMapTheme.dark(),
+  home: Scaffold(body: SizedBox(width: 1200, height: 800, child: child)),
+);

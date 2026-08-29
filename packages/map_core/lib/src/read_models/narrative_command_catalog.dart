@@ -441,13 +441,7 @@ final class NarrativeCommandCatalog {
         label: 'Piloter un voyage ferroviaire',
         description: 'Cycle ferroviaire persistant et transactionnel.',
         backend: NarrativeCommandBackend.interactiveRuntimeCommand,
-        capabilities: const NarrativeCommandCapabilities(
-          model: NarrativeCommandCapabilityStatus.supported,
-          editor: NarrativeCommandCapabilityStatus.unsupported,
-          runtime: NarrativeCommandCapabilityStatus.unsupported,
-          reason:
-              'En attente du raccord authoring et PlayableMapGame du lot 3B.',
-        ),
+        capabilities: supported,
         fgLotId: 'FG-080',
         wireId: 'SceneInteractiveCommand.railJourney',
         parameters: [
@@ -456,28 +450,32 @@ final class NarrativeCommandCatalog {
             'Commande',
             NarrativeCommandParameterKind.text,
           ),
-          _parameter('journeyId', 'Voyage', NarrativeCommandParameterKind.text),
+          _parameter(
+            'journeyId',
+            'Voyage',
+            NarrativeCommandParameterKind.railJourney,
+          ),
           _parameter(
             'operation',
             'Opération',
-            NarrativeCommandParameterKind.text,
+            NarrativeCommandParameterKind.railJourneyOperation,
           ),
           _parameter(
             'direction',
             'Direction',
-            NarrativeCommandParameterKind.text,
+            NarrativeCommandParameterKind.railJourneyDirection,
             required: false,
           ),
           _parameter(
             'advanceEvent',
             'Étape',
-            NarrativeCommandParameterKind.text,
+            NarrativeCommandParameterKind.railJourneyAdvanceEvent,
             required: false,
           ),
           _parameter(
             'doorSide',
             'Côté de porte',
-            NarrativeCommandParameterKind.text,
+            NarrativeCommandParameterKind.railJourneyDoorSide,
             required: false,
           ),
         ],

@@ -35,15 +35,15 @@ final class NarrativeTemplateDefinition {
     required this.physicalSourceKind,
     this.authoringHint,
     Map<String, String> additionalRequiredParameters = const <String, String>{},
-  })  : id = 'eventScene.${kind.name}',
-        targetKind = NarrativeTemplateTargetKind.eventScene,
-        _command = command,
-        parameterLabels = Map<String, String>.unmodifiable(
-          additionalRequiredParameters,
-        ),
-        additionalRequiredParameters = Map<String, String>.unmodifiable(
-          additionalRequiredParameters,
-        );
+  }) : id = 'eventScene.${kind.name}',
+       targetKind = NarrativeTemplateTargetKind.eventScene,
+       _command = command,
+       parameterLabels = Map<String, String>.unmodifiable(
+         additionalRequiredParameters,
+       ),
+       additionalRequiredParameters = Map<String, String>.unmodifiable(
+         additionalRequiredParameters,
+       );
 
   NarrativeTemplateDefinition.asset({
     required this.kind,
@@ -52,11 +52,11 @@ final class NarrativeTemplateDefinition {
     required this.targetKind,
     this.authoringHint,
     Map<String, String> parameterLabels = const <String, String>{},
-  })  : assert(targetKind != NarrativeTemplateTargetKind.eventScene),
-        _command = null,
-        physicalSourceKind = null,
-        parameterLabels = Map<String, String>.unmodifiable(parameterLabels),
-        additionalRequiredParameters = const <String, String>{};
+  }) : assert(targetKind != NarrativeTemplateTargetKind.eventScene),
+       _command = null,
+       physicalSourceKind = null,
+       parameterLabels = Map<String, String>.unmodifiable(parameterLabels),
+       additionalRequiredParameters = const <String, String>{};
 
   final NarrativeTemplateKind kind;
   final String id;
@@ -245,10 +245,9 @@ final class NarrativeTemplateCatalog {
 
   List<NarrativeTemplateDefinition> _forTarget(
     NarrativeTemplateTargetKind target,
-  ) =>
-      List.unmodifiable(
-        templates.where((template) => template.targetKind == target),
-      );
+  ) => List.unmodifiable(
+    templates.where((template) => template.targetKind == target),
+  );
 
   NarrativeTemplateDefinition byKind(NarrativeTemplateKind kind) =>
       templates.firstWhere((template) => template.kind == kind);
@@ -259,41 +258,41 @@ CinematicTimeline buildNarrativeCinematicTemplateTimeline(
 ) {
   return switch (kind) {
     NarrativeTemplateKind.cinematicEstablishingShot => CinematicTimeline(
-        steps: [
-          CinematicTimelineStep(
-            id: 'template.establishing.marker',
-            kind: CinematicTimelineStepKind.marker,
-            label: 'Plan d’établissement',
-          ),
-          CinematicTimelineStep(
-            id: 'template.establishing.camera',
-            kind: CinematicTimelineStepKind.camera,
-            label: 'Installer le décor',
-            durationMs: 1200,
-          ),
-        ],
-      ),
+      steps: [
+        CinematicTimelineStep(
+          id: 'template.establishing.marker',
+          kind: CinematicTimelineStepKind.marker,
+          label: 'Plan d’établissement',
+        ),
+        CinematicTimelineStep(
+          id: 'template.establishing.camera',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Installer le décor',
+          durationMs: 1200,
+        ),
+      ],
+    ),
     NarrativeTemplateKind.cinematicDialogueBeat => CinematicTimeline(
-        steps: [
-          CinematicTimelineStep(
-            id: 'template.dialogue.marker',
-            kind: CinematicTimelineStepKind.marker,
-            label: 'Temps de dialogue',
-          ),
-          CinematicTimelineStep(
-            id: 'template.dialogue.line',
-            kind: CinematicTimelineStepKind.dialogueLine,
-            label: 'Réplique à configurer',
-            dialogueText: 'Dialogue à configurer',
-            durationMs: 1000,
-          ),
-        ],
-      ),
+      steps: [
+        CinematicTimelineStep(
+          id: 'template.dialogue.marker',
+          kind: CinematicTimelineStepKind.marker,
+          label: 'Temps de dialogue',
+        ),
+        CinematicTimelineStep(
+          id: 'template.dialogue.line',
+          kind: CinematicTimelineStepKind.dialogueLine,
+          label: 'Réplique à configurer',
+          dialogueText: 'Dialogue à configurer',
+          durationMs: 1000,
+        ),
+      ],
+    ),
     _ => throw ArgumentError.value(
-        kind,
-        'kind',
-        'Only Cinematic templates can build a Cinematic timeline.',
-      ),
+      kind,
+      'kind',
+      'Only Cinematic templates can build a Cinematic timeline.',
+    ),
   };
 }
 
@@ -516,11 +515,9 @@ String? _diagnosePhysicalSource(
   final sourceMapId = sourceJson['mapId'];
   final sourceId = switch (physical.kind) {
     NarrativeTemplatePhysicalSourceKind.entity ||
-    NarrativeTemplatePhysicalSourceKind.object =>
-      sourceJson['entityId'],
+    NarrativeTemplatePhysicalSourceKind.object => sourceJson['entityId'],
     NarrativeTemplatePhysicalSourceKind.zone ||
-    NarrativeTemplatePhysicalSourceKind.warp =>
-      sourceJson['triggerId'],
+    NarrativeTemplatePhysicalSourceKind.warp => sourceJson['triggerId'],
   };
   if (sourceMapId != physical.mapId || sourceId != physical.sourceId) {
     return 'La source physique ne correspond pas à la source de l’Event ; '
@@ -556,6 +553,26 @@ List<String> _diagnoseParameterValues(
       case NarrativeCommandParameterKind.postGamePolicy:
         if (!ScenePostGamePolicy.values.any((policy) => policy.name == value)) {
           diagnostics.add('${parameter.label} est inconnue.');
+        }
+      case NarrativeCommandParameterKind.railJourneyOperation:
+        if (!SceneRailJourneyOperation.values.any(
+          (operation) => operation.name == value,
+        )) {
+          diagnostics.add('${parameter.label} est inconnue.');
+        }
+      case NarrativeCommandParameterKind.railJourneyDirection:
+        if (value != 'outbound' && value != 'return') {
+          diagnostics.add('${parameter.label} est inconnue.');
+        }
+      case NarrativeCommandParameterKind.railJourneyAdvanceEvent:
+        if (!SceneRailJourneyAdvanceEvent.values.any(
+          (event) => event.name == value,
+        )) {
+          diagnostics.add('${parameter.label} est inconnue.');
+        }
+      case NarrativeCommandParameterKind.railJourneyDoorSide:
+        if (!RailJourneyDoorSide.values.any((side) => side.name == value)) {
+          diagnostics.add('${parameter.label} est inconnu.');
         }
       default:
         break;
@@ -656,6 +673,15 @@ List<String> _diagnoseProjectReferences(
         );
       }
       break;
+    case NarrativeCommandIds.railJourney:
+      requireReference(
+        parameterId: 'journeyId',
+        knownIds:
+            project.railJourneyCatalog?.journeys.map((journey) => journey.id) ??
+            const <String>[],
+        label: 'Le voyage ferroviaire',
+      );
+      break;
   }
   return diagnostics;
 }
@@ -666,23 +692,20 @@ NarrativeEventReusePolicy _reusePolicy(NarrativeTemplateKind kind) =>
       NarrativeTemplateKind.conditionalNpc ||
       NarrativeTemplateKind.doorWarp ||
       NarrativeTemplateKind.shop ||
-      NarrativeTemplateKind.nurse =>
-        NarrativeEventReusePolicy.reusable,
+      NarrativeTemplateKind.nurse => NarrativeEventReusePolicy.reusable,
       NarrativeTemplateKind.itemBall ||
       NarrativeTemplateKind.hiddenItem ||
       NarrativeTemplateKind.trainer ||
       NarrativeTemplateKind.staticEncounter ||
       NarrativeTemplateKind.starter ||
       NarrativeTemplateKind.badgeReward ||
-      NarrativeTemplateKind.gameEnding =>
-        NarrativeEventReusePolicy.oneShot,
+      NarrativeTemplateKind.gameEnding => NarrativeEventReusePolicy.oneShot,
       NarrativeTemplateKind.cinematicEstablishingShot ||
       NarrativeTemplateKind.cinematicDialogueBeat ||
       NarrativeTemplateKind.worldRuleFactVisibility ||
-      NarrativeTemplateKind.worldRuleDialogueOverride =>
-        throw StateError(
-          'This template does not create an Event.',
-        ),
+      NarrativeTemplateKind.worldRuleDialogueOverride => throw StateError(
+        'This template does not create an Event.',
+      ),
     };
 
 /// Converts a publishable command form into its one canonical Scene wire.
@@ -694,79 +717,77 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       int.tryParse(parameters[id] ?? '') ?? fallback;
   return switch (commandId) {
     NarrativeCommandIds.setFact => SceneActionPayload.consequence(
-        SceneConsequence.setFact(
-          factId: parameters['factId']!,
-          value: parameters['value'] == 'true',
-        ),
+      SceneConsequence.setFact(
+        factId: parameters['factId']!,
+        value: parameters['value'] == 'true',
       ),
+    ),
     NarrativeCommandIds.markEventConsumed => SceneActionPayload.consequence(
-        SceneConsequence.markEventConsumed(
-          mapId: parameters['mapId']!,
-          eventId: parameters['eventId']!,
-        ),
+      SceneConsequence.markEventConsumed(
+        mapId: parameters['mapId']!,
+        eventId: parameters['eventId']!,
       ),
+    ),
     NarrativeCommandIds.completeStoryStep => SceneActionPayload.consequence(
-        SceneConsequence.completeStoryStep(stepId: parameters['stepId']!),
-      ),
+      SceneConsequence.completeStoryStep(stepId: parameters['stepId']!),
+    ),
     NarrativeCommandIds.giveItem => SceneActionPayload.consequence(
-        SceneConsequence.giveItem(
-          itemId: parameters['itemId']!,
-          quantity: integer('quantity'),
-        ),
+      SceneConsequence.giveItem(
+        itemId: parameters['itemId']!,
+        quantity: integer('quantity'),
       ),
+    ),
     NarrativeCommandIds.takeItem => SceneActionPayload.consequence(
-        SceneConsequence.takeItem(
-          itemId: parameters['itemId']!,
-          quantity: integer('quantity'),
-        ),
+      SceneConsequence.takeItem(
+        itemId: parameters['itemId']!,
+        quantity: integer('quantity'),
       ),
+    ),
     NarrativeCommandIds.giveMoney => SceneActionPayload.consequence(
-        SceneConsequence.giveMoney(amount: integer('amount')),
-      ),
+      SceneConsequence.giveMoney(amount: integer('amount')),
+    ),
     NarrativeCommandIds.givePokemon => SceneActionPayload.consequence(
-        SceneConsequence.givePokemon(
-          speciesId: parameters['speciesId']!,
-          formId: parameters['formId']!,
-          level: integer('level'),
-          currentHp: integer('currentHp', fallback: integer('level')),
-          natureId: parameters['natureId'] ?? 'hardy',
-          abilityId: parameters['abilityId'] ?? 'unknown',
-        ),
+      SceneConsequence.givePokemon(
+        speciesId: parameters['speciesId']!,
+        formId: parameters['formId']!,
+        level: integer('level'),
+        currentHp: integer('currentHp', fallback: integer('level')),
+        natureId: parameters['natureId'] ?? 'hardy',
+        abilityId: parameters['abilityId'] ?? 'unknown',
       ),
+    ),
     NarrativeCommandIds.giveConfiguredStarter => SceneActionPayload.consequence(
-        SceneConsequence.giveConfiguredStarter(
-          starterOptionId: parameters['starterOptionId']!,
-        ),
+      SceneConsequence.giveConfiguredStarter(
+        starterOptionId: parameters['starterOptionId']!,
       ),
+    ),
     NarrativeCommandIds.healParty => SceneActionPayload.consequence(
-        SceneConsequence.healParty(),
-      ),
+      SceneConsequence.healParty(),
+    ),
     NarrativeCommandIds.awardBadge => SceneActionPayload.consequence(
-        SceneConsequence.awardBadge(badgeId: parameters['badgeId']!),
-      ),
+      SceneConsequence.awardBadge(badgeId: parameters['badgeId']!),
+    ),
     NarrativeCommandIds.unlockFieldAbility => SceneActionPayload.consequence(
-        SceneConsequence.unlockFieldAbility(
-          ability: _fieldAbilityFromId(parameters['abilityId']!),
-        ),
+      SceneConsequence.unlockFieldAbility(
+        ability: _fieldAbilityFromId(parameters['abilityId']!),
       ),
+    ),
     NarrativeCommandIds.finishGame => SceneActionPayload.consequence(
-        _buildFinishGameConsequence(parameters),
-      ),
+      _buildFinishGameConsequence(parameters),
+    ),
     NarrativeCommandIds.setNpcPresence => SceneActionPayload.consequence(
-        switch (_parseNpcRef(parameters['npcRef'])) {
-          (final mapId, final entityId) => SceneConsequence.setNpcPresence(
-              mapId: mapId,
-              entityId: entityId,
-              present: parameters['present'] == 'true',
-            ),
-        },
-      ),
+      switch (_parseNpcRef(parameters['npcRef'])) {
+        (final mapId, final entityId) => SceneConsequence.setNpcPresence(
+          mapId: mapId,
+          entityId: entityId,
+          present: parameters['present'] == 'true',
+        ),
+      },
+    ),
     NarrativeCommandIds.setPauseMenuEntryVisibility =>
       SceneActionPayload.consequence(
         SceneConsequence.setPauseMenuEntryVisibility(
-          actionId: ProjectPauseActionId.values.byName(
-            parameters['actionId']!,
-          ),
+          actionId: ProjectPauseActionId.values.byName(parameters['actionId']!),
           visible: parameters['visible'] == 'true',
         ),
       ),
@@ -783,69 +804,111 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
             },
             playback: switch (parameters['playbackKind']) {
               'repeatCount' => CharacterCustomAnimationPlayback.repeatCount(
-                  integer('repeatCount'),
-                ),
+                integer('repeatCount'),
+              ),
               'forDuration' => CharacterCustomAnimationPlayback.forDuration(
-                  integer('durationMs'),
-                ),
+                integer('durationMs'),
+              ),
               _ => CharacterCustomAnimationPlayback.once(),
             },
           ),
         ),
       ),
     NarrativeCommandIds.warp => SceneActionPayload.interactive(
-        SceneInteractiveCommand.warp(
-          destinationMapId: parameters['destinationMapId']!,
+      SceneInteractiveCommand.warp(
+        destinationMapId: parameters['destinationMapId']!,
+        warpId: parameters['warpId']!,
+      ),
+    ),
+    NarrativeCommandIds.openShop => SceneActionPayload.interactive(
+      SceneInteractiveCommand.openShop(shopId: parameters['shopId']!),
+    ),
+    NarrativeCommandIds.openHeal => SceneActionPayload.interactive(
+      SceneInteractiveCommand.openHeal(
+        requiresConfirmation: parameters['requiresConfirmation'] != 'false',
+      ),
+    ),
+    NarrativeCommandIds.openPc => SceneActionPayload.interactive(
+      switch (parameters['storageId']) {
+        final storageId? => SceneInteractiveCommand.openPc(
+          storageId: storageId,
+        ),
+        null => SceneInteractiveCommand.openPc(),
+      },
+    ),
+    NarrativeCommandIds.moveNpc => SceneActionPayload.interactive(
+      switch (_parseNpcRef(parameters['npcRef'])) {
+        (final mapId, final entityId) => SceneInteractiveCommand.moveNpc(
+          mapId: mapId,
+          entityId: entityId,
           warpId: parameters['warpId']!,
         ),
-      ),
-    NarrativeCommandIds.openShop => SceneActionPayload.interactive(
-        SceneInteractiveCommand.openShop(shopId: parameters['shopId']!),
-      ),
-    NarrativeCommandIds.openHeal => SceneActionPayload.interactive(
-        SceneInteractiveCommand.openHeal(
-          requiresConfirmation: parameters['requiresConfirmation'] != 'false',
-        ),
-      ),
-    NarrativeCommandIds.openPc => SceneActionPayload.interactive(
-        switch (parameters['storageId']) {
-          final storageId? => SceneInteractiveCommand.openPc(
-              storageId: storageId,
-            ),
-          null => SceneInteractiveCommand.openPc(),
-        },
-      ),
-    NarrativeCommandIds.moveNpc => SceneActionPayload.interactive(
-        switch (_parseNpcRef(parameters['npcRef'])) {
-          (final mapId, final entityId) => SceneInteractiveCommand.moveNpc(
-              mapId: mapId,
-              entityId: entityId,
-              warpId: parameters['warpId']!,
-            ),
-        },
-      ),
+      },
+    ),
+    NarrativeCommandIds.railJourney => buildSceneRailJourneyPayload(parameters),
     NarrativeCommandIds.dialogue => SceneYarnDialoguePayload(
-        dialogueId: parameters['dialogueId']!,
-      ),
+      dialogueId: parameters['dialogueId']!,
+    ),
     NarrativeCommandIds.trainerBattle => SceneBattlePayload(
-        battleKind: 'trainer',
-        trainerId: parameters['trainerId']!,
-      ),
+      battleKind: 'trainer',
+      trainerId: parameters['trainerId']!,
+    ),
     NarrativeCommandIds.staticEncounter => SceneBattlePayload(
-        battleKind: 'static',
-        trainerId: _staticEncounterTrainerId(parameters),
-        battleTemplateId: _staticEncounterBattleTemplateId(parameters),
-        declaredOutcomes: const ['victory', 'defeat'],
-      ),
+      battleKind: 'static',
+      trainerId: _staticEncounterTrainerId(parameters),
+      battleTemplateId: _staticEncounterBattleTemplateId(parameters),
+      declaredOutcomes: const ['victory', 'defeat'],
+    ),
     NarrativeCommandIds.cinematic => SceneCinematicPayload(
-        cinematicId: parameters['cinematicId']!,
-      ),
+      cinematicId: parameters['cinematicId']!,
+    ),
     _ => throw ArgumentError.value(
-        commandId,
-        'commandId',
-        'An unsupported Narrative command cannot produce a Scene payload.',
-      ),
+      commandId,
+      'commandId',
+      'An unsupported Narrative command cannot produce a Scene payload.',
+    ),
   };
+}
+
+SceneActionPayload buildSceneRailJourneyPayload(
+  Map<String, String> parameters,
+) {
+  final operation = SceneRailJourneyOperation.values.byName(
+    parameters['operation']!,
+  );
+  final direction = switch (operation) {
+    SceneRailJourneyOperation.begin => switch (parameters['direction']) {
+      'outbound' => RailJourneyDirection.outbound,
+      'return' => RailJourneyDirection.returnJourney,
+      final value => throw ArgumentError.value(value, 'direction'),
+    },
+    SceneRailJourneyOperation.advance ||
+    SceneRailJourneyOperation.acknowledge => null,
+  };
+  final advanceEvent = switch (operation) {
+    SceneRailJourneyOperation.advance =>
+      SceneRailJourneyAdvanceEvent.values.byName(parameters['advanceEvent']!),
+    SceneRailJourneyOperation.begin ||
+    SceneRailJourneyOperation.acknowledge => null,
+  };
+  final doorSide = switch ((operation, advanceEvent)) {
+    (SceneRailJourneyOperation.begin, _) ||
+    (
+      SceneRailJourneyOperation.advance,
+      SceneRailJourneyAdvanceEvent.destinationDoorUsed,
+    ) => RailJourneyDoorSide.values.byName(parameters['doorSide']!),
+    _ => null,
+  };
+  return SceneActionPayload.interactive(
+    SceneInteractiveCommand.railJourney(
+      commandId: parameters['commandId']!,
+      journeyId: parameters['journeyId']!,
+      operation: operation,
+      direction: direction,
+      advanceEvent: advanceEvent,
+      doorSide: doorSide,
+    ),
+  );
 }
 
 String _staticEncounterTrainerId(Map<String, String> parameters) {
@@ -1006,51 +1069,51 @@ SceneAsset _buildTemplateScene(
   );
   final contentEdges = switch (payload) {
     SceneBattlePayload() => <SceneEdge>[
-        SceneEdge(
-          id: '${request.sceneId}.content-victory',
-          fromNodeId: contentId,
-          fromPortId: 'victory',
-          toNodeId: endId,
-          kind: SceneEdgeKind.battleVictory,
-        ),
-        SceneEdge(
-          id: '${request.sceneId}.content-defeat',
-          fromNodeId: contentId,
-          fromPortId: 'defeat',
-          toNodeId: endId,
-          kind: SceneEdgeKind.battleDefeat,
-        ),
-      ],
-    SceneCinematicPayload() => <SceneEdge>[
-        SceneEdge(
-          id: '${request.sceneId}.content-end',
-          fromNodeId: contentId,
-          fromPortId: 'completed',
-          toNodeId: endId,
-          kind: SceneEdgeKind.cinematicCompleted,
-        ),
-      ],
-    SceneActionPayload() => <SceneEdge>[
-        SceneEdge(
-          id: '${request.sceneId}.content-end',
-          fromNodeId: contentId,
-          fromPortId: 'completed',
-          toNodeId: endId,
-          kind: SceneEdgeKind.actionCompleted,
-        ),
-      ],
-    SceneYarnDialoguePayload() => <SceneEdge>[
-        SceneEdge(
-          id: '${request.sceneId}.content-end',
-          fromNodeId: contentId,
-          fromPortId: 'completed',
-          toNodeId: endId,
-          kind: SceneEdgeKind.defaultFlow,
-        ),
-      ],
-    _ => throw StateError(
-        'Template command produced an unsupported node kind: ${payload.kind}',
+      SceneEdge(
+        id: '${request.sceneId}.content-victory',
+        fromNodeId: contentId,
+        fromPortId: 'victory',
+        toNodeId: endId,
+        kind: SceneEdgeKind.battleVictory,
       ),
+      SceneEdge(
+        id: '${request.sceneId}.content-defeat',
+        fromNodeId: contentId,
+        fromPortId: 'defeat',
+        toNodeId: endId,
+        kind: SceneEdgeKind.battleDefeat,
+      ),
+    ],
+    SceneCinematicPayload() => <SceneEdge>[
+      SceneEdge(
+        id: '${request.sceneId}.content-end',
+        fromNodeId: contentId,
+        fromPortId: 'completed',
+        toNodeId: endId,
+        kind: SceneEdgeKind.cinematicCompleted,
+      ),
+    ],
+    SceneActionPayload() => <SceneEdge>[
+      SceneEdge(
+        id: '${request.sceneId}.content-end',
+        fromNodeId: contentId,
+        fromPortId: 'completed',
+        toNodeId: endId,
+        kind: SceneEdgeKind.actionCompleted,
+      ),
+    ],
+    SceneYarnDialoguePayload() => <SceneEdge>[
+      SceneEdge(
+        id: '${request.sceneId}.content-end',
+        fromNodeId: contentId,
+        fromPortId: 'completed',
+        toNodeId: endId,
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
+    _ => throw StateError(
+      'Template command produced an unsupported node kind: ${payload.kind}',
+    ),
   };
   return SceneAsset(
     id: request.sceneId,
@@ -1117,20 +1180,19 @@ final class NarrativeTemplateTransactionRecord {
 
   NarrativeTemplateTransactionRecord copyWith({
     NarrativeTemplateTransactionStatus? status,
-  }) =>
-      NarrativeTemplateTransactionRecord(
-        transactionId: transactionId,
-        status: status ?? this.status,
-        before: before,
-        after: after,
-      );
+  }) => NarrativeTemplateTransactionRecord(
+    transactionId: transactionId,
+    status: status ?? this.status,
+    before: before,
+    after: after,
+  );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'transactionId': transactionId,
-        'status': status.name,
-        'before': before.toJson(),
-        'after': after.toJson(),
-      };
+    'transactionId': transactionId,
+    'status': status.name,
+    'before': before.toJson(),
+    'after': after.toJson(),
+  };
 }
 
 abstract interface class NarrativeTemplateTransactionGateway {

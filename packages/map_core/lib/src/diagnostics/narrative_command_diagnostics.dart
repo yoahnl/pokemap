@@ -1,4 +1,5 @@
 import '../models/project_manifest.dart';
+import '../models/rail_journey.dart';
 import '../models/scene_interactive_command.dart';
 import '../read_models/narrative_command_catalog.dart';
 
@@ -7,6 +8,7 @@ enum NarrativeCommandDiagnosticCode {
   duplicateWire,
   unsupportedCommand,
   unknownDestinationMap,
+  unknownRailJourney,
 }
 
 final class NarrativeCommandDiagnostic {
@@ -64,6 +66,18 @@ List<NarrativeCommandDiagnostic> diagnoseInteractiveCommand({
         NarrativeCommandDiagnostic(
           code: NarrativeCommandDiagnosticCode.unknownDestinationMap,
           message: 'Map de destination inconnue : $destinationMapId.',
+        ),
+      ];
+    }
+  }
+  if (command case SceneRailJourneyInteractiveCommand(:final journeyId)) {
+    final journeys =
+        project.railJourneyCatalog?.journeys ?? const <RailJourneyDefinition>[];
+    if (!journeys.any((journey) => journey.id == journeyId)) {
+      return [
+        NarrativeCommandDiagnostic(
+          code: NarrativeCommandDiagnosticCode.unknownRailJourney,
+          message: 'Voyage ferroviaire inconnu : $journeyId.',
         ),
       ];
     }

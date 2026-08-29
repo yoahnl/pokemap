@@ -514,6 +514,8 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.directApi:
           'test/tooling/jsonl_rail_journey_flow_test.dart',
       AuthoringTransport.cli: 'test/tooling/jsonl_rail_journey_flow_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/rail_journey_server.test.ts',
     };

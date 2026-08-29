@@ -487,6 +487,11 @@ NarrativeStudioNavigationResolution resolveNarrativeDependencyNavigationIntent(
           selection: selection(NarrativeStudioAssetKind.worldRule),
         ),
       ),
+    NarrativeDependencyTargetKind.railJourney =>
+      const NarrativeStudioNavigationResolution.unavailable(
+        'Les voyages ferroviaires se configurent dans leur catalogue '
+        'd’authoring dédié.',
+      ),
     NarrativeDependencyTargetKind.sourceMap => _resolveExternalMap(intent, id),
   };
 }

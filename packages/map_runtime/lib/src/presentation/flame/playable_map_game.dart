@@ -10373,9 +10373,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     final stateBeforeCommand = currentGameState();
     final sourceBundle = _bundle;
-    final sourceWorld = _world;
-    final sourceMapId = _activeMapId;
-    final sourcePosition = _world.player.pos;
+    final GameplayWorldState? sourceWorld = isLoaded ? _world : null;
+    final sourceMapId =
+        isLoaded ? _activeMapId : stateBeforeCommand.currentMapId;
+    final sourcePosition =
+        isLoaded ? _world.player.pos : stateBeforeCommand.playerPosition;
     final workingSession = _activeNarrativeSceneWorkingSession;
     var spatialCommitted = false;
     var rolledBack = false;
@@ -10387,7 +10389,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               _world.player.pos != sourcePosition)) {
         await _recoverFromWarpFailure(
           sourceBundle: sourceBundle,
-          sourceWorld: sourceWorld,
+          sourceWorld: sourceWorld!,
           sourceMapId: sourceMapId,
         );
         if (_activeMapId != sourceMapId ||

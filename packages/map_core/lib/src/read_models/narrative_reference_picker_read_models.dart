@@ -95,19 +95,21 @@ final class CanonicalNarrativeReferencePickerReadModel {
     if (normalizedQuery.isEmpty) return this;
     final filteredGroups = <CanonicalNarrativeReferenceGroup>[
       for (final group in groups)
-        if (group.options.where((option) {
-          final searchableValues = <String>[
-            option.label,
-            option.technicalId,
-            option.kindLabel,
-            option.groupLabel,
-            ...option.breadcrumbLabels,
-            if (option.diagnostic != null) option.diagnostic!,
-          ];
-          return searchableValues.any(
-            (value) => value.toLowerCase().contains(normalizedQuery),
-          );
-        }).toList(growable: false)
+        if (group.options
+                .where((option) {
+                  final searchableValues = <String>[
+                    option.label,
+                    option.technicalId,
+                    option.kindLabel,
+                    option.groupLabel,
+                    ...option.breadcrumbLabels,
+                    if (option.diagnostic != null) option.diagnostic!,
+                  ];
+                  return searchableValues.any(
+                    (value) => value.toLowerCase().contains(normalizedQuery),
+                  );
+                })
+                .toList(growable: false)
             case final matchingOptions when matchingOptions.isNotEmpty)
           CanonicalNarrativeReferenceGroup(
             label: group.label,
@@ -123,7 +125,7 @@ final class CanonicalNarrativeReferencePickerReadModel {
 }
 
 CanonicalNarrativeReferencePickerReadModel
-    buildCanonicalNarrativeReferencePickerReadModel({
+buildCanonicalNarrativeReferencePickerReadModel({
   required NarrativeDependencyIndex index,
   required Set<NarrativeDependencyTargetKind> allowedKinds,
   NarrativeDependencyKey? selectedKey,
@@ -213,8 +215,8 @@ CanonicalNarrativeReferenceOption _canonicalOptionFor({
   final hasExplicitIncompatibility = incompatibleReason != null;
   final explainedIncompatibility = hasExplicitIncompatibility
       ? (incompatibleReason.trim().isEmpty
-          ? 'Cette référence est incompatible dans ce contexte.'
-          : incompatibleReason)
+            ? 'Cette référence est incompatible dans ce contexte.'
+            : incompatibleReason)
       : null;
   final diagnostic = isAmbiguous
       ? 'Référence ambiguë : ${definitions.length} définitions partagent cette identité.'
@@ -287,12 +289,12 @@ String _canonicalKindLabel(
     return switch (key.sourceKind) {
       'map' => 'Map',
       'entity' => switch (metadata['entityKind']) {
-          'npc' => 'PNJ',
-          'sign' => 'Panneau',
-          'item' => 'Objet',
-          'spawn' => 'Point d’apparition',
-          _ => 'Entité',
-        },
+        'npc' => 'PNJ',
+        'sign' => 'Panneau',
+        'item' => 'Objet',
+        'spawn' => 'Point d’apparition',
+        _ => 'Entité',
+      },
       'element' => 'Objet placé',
       'gameplayZone' => 'Zone',
       'trigger' => 'Déclencheur',
@@ -314,6 +316,7 @@ String _canonicalKindLabel(
     NarrativeDependencyTargetKind.chapter => 'Chapter',
     NarrativeDependencyTargetKind.step => 'Step',
     NarrativeDependencyTargetKind.worldRule => 'World Rule',
+    NarrativeDependencyTargetKind.railJourney => 'Voyage ferroviaire',
     NarrativeDependencyTargetKind.sourceMap => throw StateError('Handled'),
   };
 }
@@ -326,12 +329,12 @@ String _canonicalGroupLabel(
     return switch (key.sourceKind) {
       'map' => 'Maps',
       'entity' => switch (metadata['entityKind']) {
-          'npc' => 'PNJ',
-          'sign' => 'Panneaux',
-          'item' => 'Objets',
-          'spawn' => 'Points d’apparition',
-          _ => 'Entités',
-        },
+        'npc' => 'PNJ',
+        'sign' => 'Panneaux',
+        'item' => 'Objets',
+        'spawn' => 'Points d’apparition',
+        _ => 'Entités',
+      },
       'element' => 'Objets placés',
       'gameplayZone' => 'Zones',
       'trigger' => 'Déclencheurs',
@@ -353,6 +356,7 @@ String _canonicalGroupLabel(
     NarrativeDependencyTargetKind.chapter => 'Chapters',
     NarrativeDependencyTargetKind.step => 'Steps',
     NarrativeDependencyTargetKind.worldRule => 'World Rules',
+    NarrativeDependencyTargetKind.railJourney => 'Voyages ferroviaires',
     NarrativeDependencyTargetKind.sourceMap => throw StateError('Handled'),
   };
 }
@@ -373,15 +377,9 @@ int _compareCanonicalOptions(
   return left.key.toString().compareTo(right.key.toString());
 }
 
-enum NarrativeBattleOutcomeKind {
-  victory,
-  defeat,
-}
+enum NarrativeBattleOutcomeKind { victory, defeat }
 
-enum NarrativeStoryStepPickerSource {
-  stepStudio,
-  legacyMetadata,
-}
+enum NarrativeStoryStepPickerSource { stepStudio, legacyMetadata }
 
 enum NarrativePredicateReferenceKind {
   storyFlag,
@@ -431,16 +429,16 @@ final class NarrativeScenarioPickerOption {
 
   @override
   int get hashCode => Object.hash(
-        scenarioId,
-        humanLabel,
-        description,
-        scope,
-        entryNodeId,
-        Object.hashAll(declaredOutcomeIds),
-        nodeCount,
-        edgeCount,
-        debugTechnicalLabel,
-      );
+    scenarioId,
+    humanLabel,
+    description,
+    scope,
+    entryNodeId,
+    Object.hashAll(declaredOutcomeIds),
+    nodeCount,
+    edgeCount,
+    debugTechnicalLabel,
+  );
 }
 
 @immutable
@@ -457,9 +455,9 @@ final class NarrativeStoryStepPickerOption {
     required List<String> expectedOutcomeIds,
     required List<String> emittedOutcomeIds,
     required this.debugTechnicalLabel,
-  })  : linkedCutsceneIds = List<String>.unmodifiable(linkedCutsceneIds),
-        expectedOutcomeIds = List<String>.unmodifiable(expectedOutcomeIds),
-        emittedOutcomeIds = List<String>.unmodifiable(emittedOutcomeIds);
+  }) : linkedCutsceneIds = List<String>.unmodifiable(linkedCutsceneIds),
+       expectedOutcomeIds = List<String>.unmodifiable(expectedOutcomeIds),
+       emittedOutcomeIds = List<String>.unmodifiable(emittedOutcomeIds);
 
   final String stepId;
   final String humanLabel;
@@ -491,18 +489,18 @@ final class NarrativeStoryStepPickerOption {
 
   @override
   int get hashCode => Object.hash(
-        stepId,
-        humanLabel,
-        description,
-        sourceScenarioId,
-        sourceScenarioLabel,
-        sourceKind,
-        order,
-        Object.hashAll(linkedCutsceneIds),
-        Object.hashAll(expectedOutcomeIds),
-        Object.hashAll(emittedOutcomeIds),
-        debugTechnicalLabel,
-      );
+    stepId,
+    humanLabel,
+    description,
+    sourceScenarioId,
+    sourceScenarioLabel,
+    sourceKind,
+    order,
+    Object.hashAll(linkedCutsceneIds),
+    Object.hashAll(expectedOutcomeIds),
+    Object.hashAll(emittedOutcomeIds),
+    debugTechnicalLabel,
+  );
 }
 
 @immutable
@@ -551,18 +549,18 @@ final class NarrativeEventSourcePickerOption {
 
   @override
   int get hashCode => Object.hash(
-        sourceId,
-        sourceKind,
-        humanLabel,
-        mapId,
-        mapLabel,
-        entityId,
-        entityLabel,
-        triggerId,
-        triggerLabel,
-        outcomeId,
-        debugTechnicalLabel,
-      );
+    sourceId,
+    sourceKind,
+    humanLabel,
+    mapId,
+    mapLabel,
+    entityId,
+    entityLabel,
+    triggerId,
+    triggerLabel,
+    outcomeId,
+    debugTechnicalLabel,
+  );
 }
 
 @immutable
@@ -593,12 +591,12 @@ final class NarrativePredicateReferencePickerOption {
 
   @override
   int get hashCode => Object.hash(
-        referenceId,
-        referenceKind,
-        humanLabel,
-        Object.hashAll(sourceScenarioIds),
-        debugTechnicalLabel,
-      );
+    referenceId,
+    referenceKind,
+    humanLabel,
+    Object.hashAll(sourceScenarioIds),
+    debugTechnicalLabel,
+  );
 }
 
 @immutable
@@ -610,11 +608,9 @@ final class NarrativeOutcomePickerOption {
     required List<String> emittedByScenarioIds,
     required List<String> consumedByScenarioIds,
     required this.debugTechnicalLabel,
-  })  : declaredByScenarioIds =
-            List<String>.unmodifiable(declaredByScenarioIds),
-        emittedByScenarioIds = List<String>.unmodifiable(emittedByScenarioIds),
-        consumedByScenarioIds =
-            List<String>.unmodifiable(consumedByScenarioIds);
+  }) : declaredByScenarioIds = List<String>.unmodifiable(declaredByScenarioIds),
+       emittedByScenarioIds = List<String>.unmodifiable(emittedByScenarioIds),
+       consumedByScenarioIds = List<String>.unmodifiable(consumedByScenarioIds);
 
   final String outcomeId;
   final String humanLabel;
@@ -644,13 +640,13 @@ final class NarrativeOutcomePickerOption {
 
   @override
   int get hashCode => Object.hash(
-        outcomeId,
-        humanLabel,
-        Object.hashAll(declaredByScenarioIds),
-        Object.hashAll(emittedByScenarioIds),
-        Object.hashAll(consumedByScenarioIds),
-        debugTechnicalLabel,
-      );
+    outcomeId,
+    humanLabel,
+    Object.hashAll(declaredByScenarioIds),
+    Object.hashAll(emittedByScenarioIds),
+    Object.hashAll(consumedByScenarioIds),
+    debugTechnicalLabel,
+  );
 }
 
 @immutable
@@ -669,8 +665,8 @@ final class NarrativeBattleReferencePickerOption {
     required List<NarrativeBattleOutcomeKind> supportedOutcomeKinds,
     required this.debugTechnicalLabel,
   }) : supportedOutcomeKinds = List<NarrativeBattleOutcomeKind>.unmodifiable(
-          supportedOutcomeKinds,
-        );
+         supportedOutcomeKinds,
+       );
 
   final String battleReferenceId;
   final String battleId;
@@ -704,41 +700,47 @@ final class NarrativeBattleReferencePickerOption {
 
   @override
   int get hashCode => Object.hash(
-        battleReferenceId,
-        battleId,
-        humanLabel,
-        sourceScenarioId,
-        sourceNodeId,
-        trainerId,
-        trainerLabel,
-        trainerClass,
-        npcEntityId,
-        isTrainerKnown,
-        Object.hashAll(supportedOutcomeKinds),
-        debugTechnicalLabel,
-      );
+    battleReferenceId,
+    battleId,
+    humanLabel,
+    sourceScenarioId,
+    sourceNodeId,
+    trainerId,
+    trainerLabel,
+    trainerClass,
+    npcEntityId,
+    isTrainerKnown,
+    Object.hashAll(supportedOutcomeKinds),
+    debugTechnicalLabel,
+  );
 }
 
 List<NarrativeScenarioPickerOption> buildNarrativeScenarioPickerOptions(
   ProjectManifest manifest,
 ) {
-  final options = manifest.scenarios.map((scenario) {
-    final scenarioId = scenario.id.trim();
-    return NarrativeScenarioPickerOption(
-      scenarioId: scenarioId,
-      humanLabel: _labelOrId(scenario.name, scenarioId),
-      description: scenario.description.trim(),
-      scope: scenario.scope,
-      entryNodeId: scenario.entryNodeId.trim(),
-      declaredOutcomeIds: _dedupeAndSort(scenario.declaredOutcomes),
-      nodeCount: scenario.nodes.length,
-      edgeCount: scenario.edges.length,
-      debugTechnicalLabel: scenarioId,
-    );
-  }).toList(growable: false);
+  final options = manifest.scenarios
+      .map((scenario) {
+        final scenarioId = scenario.id.trim();
+        return NarrativeScenarioPickerOption(
+          scenarioId: scenarioId,
+          humanLabel: _labelOrId(scenario.name, scenarioId),
+          description: scenario.description.trim(),
+          scope: scenario.scope,
+          entryNodeId: scenario.entryNodeId.trim(),
+          declaredOutcomeIds: _dedupeAndSort(scenario.declaredOutcomes),
+          nodeCount: scenario.nodes.length,
+          edgeCount: scenario.edges.length,
+          debugTechnicalLabel: scenarioId,
+        );
+      })
+      .toList(growable: false);
 
-  options.sort(_compareByLabelThen(
-      (option) => option.humanLabel, (option) => option.scenarioId));
+  options.sort(
+    _compareByLabelThen(
+      (option) => option.humanLabel,
+      (option) => option.scenarioId,
+    ),
+  );
   return List<NarrativeScenarioPickerOption>.unmodifiable(options);
 }
 
@@ -776,19 +778,25 @@ List<NarrativeOutcomePickerOption> buildNarrativeOutcomePickerOptions(
     }
   }
 
-  final options = byOutcomeId.values.map((entry) {
-    return NarrativeOutcomePickerOption(
-      outcomeId: entry.outcomeId,
-      humanLabel: _humanizeTechnicalId(entry.outcomeId),
-      declaredByScenarioIds: _dedupeAndSort(entry.declaredByScenarioIds),
-      emittedByScenarioIds: _dedupeAndSort(entry.emittedByScenarioIds),
-      consumedByScenarioIds: _dedupeAndSort(entry.consumedByScenarioIds),
-      debugTechnicalLabel: entry.outcomeId,
-    );
-  }).toList(growable: false);
+  final options = byOutcomeId.values
+      .map((entry) {
+        return NarrativeOutcomePickerOption(
+          outcomeId: entry.outcomeId,
+          humanLabel: _humanizeTechnicalId(entry.outcomeId),
+          declaredByScenarioIds: _dedupeAndSort(entry.declaredByScenarioIds),
+          emittedByScenarioIds: _dedupeAndSort(entry.emittedByScenarioIds),
+          consumedByScenarioIds: _dedupeAndSort(entry.consumedByScenarioIds),
+          debugTechnicalLabel: entry.outcomeId,
+        );
+      })
+      .toList(growable: false);
 
-  options.sort(_compareByLabelThen(
-      (option) => option.humanLabel, (option) => option.outcomeId));
+  options.sort(
+    _compareByLabelThen(
+      (option) => option.humanLabel,
+      (option) => option.outcomeId,
+    ),
+  );
   return List<NarrativeOutcomePickerOption>.unmodifiable(options);
 }
 
@@ -809,7 +817,9 @@ List<NarrativeStoryStepPickerOption> buildNarrativeStoryStepPickerOptions(
   final options = byStepId.values.toList(growable: false);
   options.sort((a, b) {
     final byScenario = _compareStringsCaseInsensitive(
-        a.sourceScenarioLabel, b.sourceScenarioLabel);
+      a.sourceScenarioLabel,
+      b.sourceScenarioLabel,
+    );
     if (byScenario != 0) {
       return byScenario;
     }
@@ -955,7 +965,7 @@ List<NarrativeEventSourcePickerOption> buildNarrativeEventSourcePickerOptions(
 }
 
 List<NarrativeBattleReferencePickerOption>
-    buildNarrativeBattleReferencePickerOptions(ProjectManifest manifest) {
+buildNarrativeBattleReferencePickerOptions(ProjectManifest manifest) {
   final trainersById = <String, ProjectTrainerEntry>{
     for (final trainer in manifest.trainers)
       if (trainer.id.trim().isNotEmpty) trainer.id.trim(): trainer,
@@ -1007,13 +1017,17 @@ List<NarrativeBattleReferencePickerOption>
     }
   }
 
-  options.sort(_compareByLabelThen(
-      (option) => option.humanLabel, (option) => option.battleReferenceId));
+  options.sort(
+    _compareByLabelThen(
+      (option) => option.humanLabel,
+      (option) => option.battleReferenceId,
+    ),
+  );
   return List<NarrativeBattleReferencePickerOption>.unmodifiable(options);
 }
 
 List<NarrativePredicateReferencePickerOption>
-    buildNarrativePredicateReferencePickerOptions(ProjectManifest manifest) {
+buildNarrativePredicateReferencePickerOptions(ProjectManifest manifest) {
   final byKey = <String, _MutablePredicateReferencePickerOption>{};
 
   void add({
@@ -1105,15 +1119,17 @@ List<NarrativePredicateReferencePickerOption>
     }
   }
 
-  final options = byKey.values.map((entry) {
-    return NarrativePredicateReferencePickerOption(
-      referenceId: entry.referenceId,
-      referenceKind: entry.referenceKind,
-      humanLabel: entry.humanLabel,
-      sourceScenarioIds: _dedupeAndSort(entry.sourceScenarioIds),
-      debugTechnicalLabel: entry.referenceId,
-    );
-  }).toList(growable: false);
+  final options = byKey.values
+      .map((entry) {
+        return NarrativePredicateReferencePickerOption(
+          referenceId: entry.referenceId,
+          referenceKind: entry.referenceKind,
+          humanLabel: entry.humanLabel,
+          sourceScenarioIds: _dedupeAndSort(entry.sourceScenarioIds),
+          debugTechnicalLabel: entry.referenceId,
+        );
+      })
+      .toList(growable: false);
 
   options.sort((a, b) {
     final byKind = a.referenceKind.index.compareTo(b.referenceKind.index);
@@ -1220,8 +1236,9 @@ Iterable<NarrativeStoryStepPickerOption> _storyStepOptionsForScenario(
     return;
   }
 
-  final legacyStepId =
-      _stringValue(scenario.metadata[_legacyStepIdMetadataKey]);
+  final legacyStepId = _stringValue(
+    scenario.metadata[_legacyStepIdMetadataKey],
+  );
   if (legacyStepId.isEmpty) {
     return;
   }
@@ -1341,10 +1358,10 @@ Iterable<String> _flagNamesFromStepStudioMetadata(
 }
 
 String _normalizedActionKind(ScenarioNode node) {
-  return (node.payload.actionKind ?? '')
-      .trim()
-      .toLowerCase()
-      .replaceAll('_', '');
+  return (node.payload.actionKind ?? '').trim().toLowerCase().replaceAll(
+    '_',
+    '',
+  );
 }
 
 String _labelOrId(String label, String id) {

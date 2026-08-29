@@ -169,6 +169,25 @@ void main() {
       );
     });
 
+    test('renews an active project handle from its latest use', () async {
+      final fixture = _realFixtureDirectory();
+      final harness = await _Harness.create(fixture.parent);
+      final opened = await harness.service.openProject(fixture.path);
+      final access = harness.handles.resolveProject(opened.projectHandle);
+
+      harness.now = harness.now.add(const Duration(minutes: 4));
+      await access.readBytes('project.json');
+      harness.now = harness.now.add(const Duration(minutes: 4));
+
+      expect(await access.readBytes('project.json'), isNotEmpty);
+    });
+
+    test('defaults to a two-hour idle timeout', () {
+      final handles = WorkspaceHandleStore();
+
+      expect(handles.ttl, const Duration(hours: 2));
+    });
+
     test('closes a workspace idempotently and invalidates its project',
         () async {
       final fixture = _realFixtureDirectory();

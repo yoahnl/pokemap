@@ -27,7 +27,7 @@ class PokeMapDependencyInspector extends StatelessWidget {
   final ValueChanged<NarrativeDependencyNavigationIntent>? onOpen;
   final NarrativeReferenceReplacementCapability? replacementCapability;
   final ValueChanged<NarrativeReferenceReplacementCapability>?
-      onReplaceEverywhere;
+  onReplaceEverywhere;
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +50,7 @@ class PokeMapDependencyInspector extends StatelessWidget {
             trailing: capability == null
                 ? null
                 : PokeMapButton(
-                    key: const ValueKey(
-                      'dependency-inspector-replace-all',
-                    ),
+                    key: const ValueKey('dependency-inspector-replace-all'),
                     onPressed: () => onReplaceEverywhere!(capability),
                     variant: PokeMapButtonVariant.secondary,
                     size: PokeMapButtonSize.small,
@@ -177,20 +175,14 @@ class _DefinitionCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Propriétaire : ${definition.owner!.id}',
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: colors.textSecondary, fontSize: 11),
                   ),
                 ],
                 if (definition.path case final path?) ...[
                   const SizedBox(height: 4),
                   Text(
                     path,
-                    style: TextStyle(
-                      color: colors.textMuted,
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: colors.textMuted, fontSize: 11),
                   ),
                 ],
               ],
@@ -199,13 +191,11 @@ class _DefinitionCard extends StatelessWidget {
           if (canOpen) ...[
             const SizedBox(width: 8),
             PokeMapButton(
-              key: ValueKey<Object>(
-                (
-                  'dependency-inspector-definition-open',
-                  definition.key,
-                  definition.path,
-                ),
-              ),
+              key: ValueKey<Object>((
+                'dependency-inspector-definition-open',
+                definition.key,
+                definition.path,
+              )),
               onPressed: () => onOpen!(intent),
               variant: PokeMapButtonVariant.ghost,
               size: PokeMapButtonSize.small,
@@ -309,10 +299,7 @@ class _ConsumerCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${_kindLabel(usage.owner.kind)} · ${usage.path}',
-                  style: TextStyle(
-                    color: colors.textMuted,
-                    fontSize: 11,
-                  ),
+                  style: TextStyle(color: colors.textMuted, fontSize: 11),
                 ),
               ],
             ),
@@ -320,14 +307,12 @@ class _ConsumerCard extends StatelessWidget {
           if (canOpen) ...[
             const SizedBox(width: 8),
             PokeMapButton(
-              key: ValueKey<Object>(
-                (
-                  'dependency-inspector-consumer-open',
-                  usage.target,
-                  usage.owner,
-                  usage.path,
-                ),
-              ),
+              key: ValueKey<Object>((
+                'dependency-inspector-consumer-open',
+                usage.target,
+                usage.owner,
+                usage.path,
+              )),
               onPressed: () => onOpen!(intent),
               variant: PokeMapButtonVariant.ghost,
               size: PokeMapButtonSize.small,
@@ -467,6 +452,7 @@ String _kindLabel(NarrativeDependencyTargetKind kind) {
     NarrativeDependencyTargetKind.chapter => 'Chapitre',
     NarrativeDependencyTargetKind.step => 'Étape',
     NarrativeDependencyTargetKind.worldRule => 'Règle du monde',
+    NarrativeDependencyTargetKind.railJourney => 'Voyage ferroviaire',
     NarrativeDependencyTargetKind.sourceMap => 'Source de map',
   };
 }

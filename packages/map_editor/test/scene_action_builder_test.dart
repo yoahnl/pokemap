@@ -6,8 +6,9 @@ import 'package:map_editor/src/ui/canvas/scenes/scene_action_builder.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  testWidgets('builds a persistent action from guided picker values',
-      (tester) async {
+  testWidgets('builds a persistent action from guided picker values', (
+    tester,
+  ) async {
     SceneNodePayload? submitted;
     SceneActionBuildResult? submittedResult;
     await _pumpBuilder(
@@ -40,27 +41,30 @@ void main() {
     expect(submittedResult!.parameters, {'itemId': 'potion', 'quantity': '2'});
   });
 
-  testWidgets('empty guided picker blocks publication without asking for an ID',
-      (tester) async {
-    await _pumpBuilder(
-      tester,
-      initialCommandId: NarrativeCommandIds.giveItem,
-    );
+  testWidgets(
+    'empty guided picker blocks publication without asking for an ID',
+    (tester) async {
+      await _pumpBuilder(
+        tester,
+        initialCommandId: NarrativeCommandIds.giveItem,
+      );
 
-    expect(find.textContaining('Aucun Objet disponible'), findsOneWidget);
-    expect(
-      tester
-          .widget<PokeMapButton>(
-            find.byKey(const ValueKey('scene-action-submit')),
-          )
-          .onPressed,
-      isNull,
-    );
-    expect(find.byType(PokeMapTextField), findsOneWidget);
-  });
+      expect(find.textContaining('Aucun Objet disponible'), findsOneWidget);
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const ValueKey('scene-action-submit')),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(find.byType(PokeMapTextField), findsOneWidget);
+    },
+  );
 
-  testWidgets('static encounter uses the dedicated guided contract picker',
-      (tester) async {
+  testWidgets('static encounter uses the dedicated guided contract picker', (
+    tester,
+  ) async {
     SceneNodePayload? submitted;
     await _pumpBuilder(
       tester,
@@ -96,8 +100,9 @@ void main() {
     );
   });
 
-  testWidgets('canonical heal command is authorable without raw parameters',
-      (tester) async {
+  testWidgets('canonical heal command is authorable without raw parameters', (
+    tester,
+  ) async {
     SceneNodePayload? submitted;
     await _pumpBuilder(
       tester,
@@ -115,8 +120,9 @@ void main() {
     );
   });
 
-  testWidgets('Pokemon form picker follows the selected species',
-      (tester) async {
+  testWidgets('Pokemon form picker follows the selected species', (
+    tester,
+  ) async {
     SceneActionBuildResult? result;
     await _pumpBuilder(
       tester,
@@ -177,8 +183,9 @@ void main() {
     );
   });
 
-  testWidgets('custom animation uses actor definition and direction pickers',
-      (tester) async {
+  testWidgets('custom animation uses actor definition and direction pickers', (
+    tester,
+  ) async {
     SceneNodePayload? submitted;
     await _pumpBuilder(
       tester,
@@ -208,8 +215,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
     await tester.pump();
 
-    final command = (submitted! as SceneActionPayload).interactiveCommand!
-        as SceneCharacterCustomAnimationInteractiveCommand;
+    final command =
+        (submitted! as SceneActionPayload).interactiveCommand!
+            as SceneCharacterCustomAnimationInteractiveCommand;
     expect(command.runtimeCommand.actorId, 'player');
     expect(command.runtimeCommand.definitionId, 'wave');
     expect(command.runtimeCommand.direction, EntityFacing.south);
@@ -219,19 +227,21 @@ void main() {
     );
   });
 
-  testWidgets('RailJourney uses guided journey and transition pickers',
-      (tester) async {
+  testWidgets('RailJourney uses guided journey and transition pickers', (
+    tester,
+  ) async {
     SceneActionBuildResult? result;
     await _pumpBuilder(
       tester,
       initialCommandId: NarrativeCommandIds.railJourney,
       runtimeCommandIds: const <String>{NarrativeCommandIds.railJourney},
-      options: const <NarrativeCommandParameterKind,
-          List<SceneActionPickerOption>>{
-        NarrativeCommandParameterKind.railJourney: <SceneActionPickerOption>[
-          SceneActionPickerOption(id: 'T1', label: 'Hanazuki → Aohara'),
-        ],
-      },
+      options:
+          const <NarrativeCommandParameterKind, List<SceneActionPickerOption>>{
+            NarrativeCommandParameterKind.railJourney:
+                <SceneActionPickerOption>[
+                  SceneActionPickerOption(id: 'T1', label: 'Hanazuki → Aohara'),
+                ],
+          },
       initialParameters: const <String, String>{
         'commandId': 'scene.rail.begin',
         'operation': 'begin',
@@ -264,8 +274,9 @@ void main() {
     );
   });
 
-  testWidgets('badge and field ability use project-owned guided pickers',
-      (tester) async {
+  testWidgets('badge and field ability use project-owned guided pickers', (
+    tester,
+  ) async {
     SceneNodePayload? badgePayload;
     await _pumpBuilder(
       tester,
@@ -306,48 +317,48 @@ void main() {
     );
   });
 
-  testWidgets('NPC state uses a guided project picker without raw identifiers',
-      (tester) async {
-    SceneActionBuildResult? result;
-    await _pumpBuilder(
-      tester,
-      initialCommandId: NarrativeCommandIds.setNpcPresence,
-      runtimeCommandIds: const {NarrativeCommandIds.setNpcPresence},
-      options: const {
-        NarrativeCommandParameterKind.npc: [
-          SceneActionPickerOption(
-            id: 'map_port::npc_sailor',
-            label: 'Port · Marin',
-          ),
-        ],
-      },
-      initialParameters: const {'present': 'false'},
-      onSubmitResult: (value) => result = value,
-    );
+  testWidgets(
+    'NPC state uses a guided project picker without raw identifiers',
+    (tester) async {
+      SceneActionBuildResult? result;
+      await _pumpBuilder(
+        tester,
+        initialCommandId: NarrativeCommandIds.setNpcPresence,
+        runtimeCommandIds: const {NarrativeCommandIds.setNpcPresence},
+        options: const {
+          NarrativeCommandParameterKind.npc: [
+            SceneActionPickerOption(
+              id: 'map_port::npc_sailor',
+              label: 'Port · Marin',
+            ),
+          ],
+        },
+        initialParameters: const {'present': 'false'},
+        onSubmitResult: (value) => result = value,
+      );
 
-    expect(find.text('Port · Marin'), findsOneWidget);
-    expect(find.text('PNJ'), findsOneWidget);
-    expect(
-      find.byType(PokeMapDropdownField<String>),
-      findsNWidgets(3),
-    );
-    expect(find.byType(PokeMapTextField), findsNothing);
+      expect(find.text('Port · Marin'), findsOneWidget);
+      expect(find.text('PNJ'), findsOneWidget);
+      expect(find.byType(PokeMapDropdownField<String>), findsNWidgets(3));
+      expect(find.byType(PokeMapTextField), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
-    await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+      await tester.pump();
 
-    expect(
-      (result!.payload as SceneActionPayload).consequence,
-      SceneConsequence.setNpcPresence(
-        mapId: 'map_port',
-        entityId: 'npc_sailor',
-        present: false,
-      ),
-    );
-  });
+      expect(
+        (result!.payload as SceneActionPayload).consequence,
+        SceneConsequence.setNpcPresence(
+          mapId: 'map_port',
+          entityId: 'npc_sailor',
+          present: false,
+        ),
+      );
+    },
+  );
 
-  testWidgets('pause menu visibility uses a guided picker without Resume',
-      (tester) async {
+  testWidgets('pause menu visibility uses a guided picker without Resume', (
+    tester,
+  ) async {
     SceneActionBuildResult? result;
     await _pumpBuilder(
       tester,
@@ -365,16 +376,19 @@ void main() {
         )
         .singleWhere((field) => field.label == 'Entrée du menu');
     expect(actionField.items.map((item) => item.label), contains('Pokédex'));
-    expect(actionField.items.map((item) => item.label), isNot(contains('Reprendre')));
+    expect(
+      actionField.items.map((item) => item.label),
+      isNot(contains('Reprendre')),
+    );
     final visibilityField = tester
         .widgetList<PokeMapDropdownField<String>>(
           find.byType(PokeMapDropdownField<String>),
         )
         .singleWhere((field) => field.label == 'Visibilité');
-    expect(
-      visibilityField.items.map((item) => item.label),
-      <String>['Afficher', 'Masquer'],
-    );
+    expect(visibilityField.items.map((item) => item.label), <String>[
+      'Afficher',
+      'Masquer',
+    ]);
 
     await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
     await tester.pump();
@@ -388,8 +402,9 @@ void main() {
     );
   });
 
-  testWidgets('deleted picker target is kept visible and blocks editing',
-      (tester) async {
+  testWidgets('deleted picker target is kept visible and blocks editing', (
+    tester,
+  ) async {
     await _pumpBuilder(
       tester,
       initialCommandId: NarrativeCommandIds.awardBadge,
@@ -413,8 +428,9 @@ void main() {
     );
   });
 
-  testWidgets('editing preserves an existing non-default picker target',
-      (tester) async {
+  testWidgets('editing preserves an existing non-default picker target', (
+    tester,
+  ) async {
     SceneActionBuildResult? result;
     await _pumpBuilder(
       tester,
@@ -439,8 +455,9 @@ void main() {
     );
   });
 
-  testWidgets('commands absent from the current runtime stay hidden',
-      (tester) async {
+  testWidgets('commands absent from the current runtime stay hidden', (
+    tester,
+  ) async {
     await _pumpBuilder(
       tester,
       initialCommandId: NarrativeCommandIds.healParty,
@@ -452,8 +469,9 @@ void main() {
     expect(find.text('Modifier la présence d’un PNJ'), findsNothing);
   });
 
-  testWidgets('Finish Game uses friendly fields and guided policy pickers',
-      (tester) async {
+  testWidgets('Finish Game uses friendly fields and guided policy pickers', (
+    tester,
+  ) async {
     SceneNodePayload? submitted;
     await _pumpBuilder(
       tester,
@@ -482,14 +500,12 @@ void main() {
     finishButton.onPressed!();
     await tester.pump();
 
-    final consequence = (submitted! as SceneActionPayload).consequence!
-        as SceneFinishGameConsequence;
+    final consequence =
+        (submitted! as SceneActionPayload).consequence!
+            as SceneFinishGameConsequence;
     expect(consequence.endingId, 'ending.selbrume-sauvee');
     expect(consequence.credits, isNull);
-    expect(
-      consequence.postGamePolicy,
-      ScenePostGamePolicy.continueGame,
-    );
+    expect(consequence.postGamePolicy, ScenePostGamePolicy.continueGame);
   });
 }
 

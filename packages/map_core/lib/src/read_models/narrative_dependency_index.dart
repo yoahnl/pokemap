@@ -11,6 +11,7 @@ import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
+import '../models/rail_journey.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_interactive_command.dart';
@@ -33,6 +34,7 @@ enum NarrativeDependencyTargetKind {
   chapter,
   step,
   worldRule,
+  railJourney,
   sourceMap,
 }
 
@@ -100,6 +102,9 @@ final class NarrativeDependencyKey {
 
   const NarrativeDependencyKey.eventV2(String eventId)
       : this(NarrativeDependencyTargetKind.eventV2, eventId);
+
+  const NarrativeDependencyKey.railJourney(String journeyId)
+      : this(NarrativeDependencyTargetKind.railJourney, journeyId);
 
   const NarrativeDependencyKey.projectNewGame()
       : this(
@@ -603,6 +608,16 @@ final class _NarrativeDependencyIndexBuilder {
         rule.id,
         rule.label,
         path: 'worldRules[${rule.id}]',
+      );
+    }
+    for (final journey
+        in project.railJourneyCatalog?.journeys ??
+            const <RailJourneyDefinition>[]) {
+      _definition(
+        NarrativeDependencyTargetKind.railJourney,
+        journey.id,
+        journey.label,
+        path: 'railJourneyCatalog.journeys[${journey.id}]',
       );
     }
     for (final record
@@ -2165,6 +2180,13 @@ final class _NarrativeDependencyIndexBuilder {
         break;
       case SceneOpenPcInteractiveCommand():
         break;
+      case SceneRailJourneyInteractiveCommand(:final journeyId):
+        _usage(
+          target: NarrativeDependencyKey.railJourney(journeyId),
+          owner: owner,
+          path: '$path.journeyId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
     }
   }
 

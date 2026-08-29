@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -110,6 +111,7 @@ void main() {
 
     final firstPort = await game.debugExecuteSceneInteractiveCommand(
       _railBeginCommand(),
+      executionId: 'rail-execution-1',
     );
     final committed = game.playerServiceGameStateSnapshot;
 
@@ -139,11 +141,14 @@ void main() {
     );
     expect(
       committed.railJourneyProgress.appliedOperations.keys,
-      contains('rail:debug:interactive-command:board-t1'),
+      contains(
+        'rail:debug:interactive-command:rail-execution-1:board-t1',
+      ),
     );
 
     final replayPort = await game.debugExecuteSceneInteractiveCommand(
       _railBeginCommand(),
+      executionId: 'rail-execution-1',
     );
 
     expect(replayPort, 'completed');
@@ -174,6 +179,174 @@ void main() {
       restored.railJourneyProgress,
       committed.railJourneyProgress,
     );
+  });
+
+  test(
+      'separate executions of the same RailJourney command use distinct receipts',
+      () async {
+    Future<GameState> execute(String executionId) async {
+      final game = PlayableMapGame(
+        bundle: _railBundle(),
+        projectFilePath: '/tmp/scene-rail/project.json',
+        saveData: saveDataFromGameState(_railReadyState()),
+        railJourneyDoorAnimation: (_) async => true,
+        railJourneySpatialTransition: (_) async => true,
+      );
+
+      expect(
+        await game.debugExecuteSceneInteractiveCommand(
+          _railBeginCommand(),
+          executionId: executionId,
+        ),
+        'completed',
+      );
+      return game.playerServiceGameStateSnapshot;
+    }
+
+    final first = await execute('rail-execution-a');
+    final second = await execute('rail-execution-b');
+
+    expect(
+      first.railJourneyProgress.appliedOperations.keys,
+      contains(
+        'rail:debug:interactive-command:rail-execution-a:board-t1',
+      ),
+    );
+    expect(
+      second.railJourneyProgress.appliedOperations.keys,
+      contains(
+        'rail:debug:interactive-command:rail-execution-b:board-t1',
+      ),
+    );
+    expect(
+      first.railJourneyProgress.appliedOperations.keys.single,
+      isNot(second.railJourneyProgress.appliedOperations.keys.single),
+    );
+  });
+
+  test('two complete Scene cycles keep execution identity and replay safety',
+      () async {
+    final scene = _railScene();
+
+    PlayableMapGame createGame(
+      GameState state,
+      List<RailJourneyRuntimeTransition> transitions,
+    ) {
+      return PlayableMapGame(
+        bundle: _railBundle(scenes: <SceneAsset>[scene]),
+        projectFilePath: '/tmp/scene-rail/project.json',
+        saveData: saveDataFromGameState(state),
+        runtimeMapBundleLoader: ({required projectFilePath, required mapId}) {
+          return Future<RuntimeMapBundle>.value(
+            _railBundle(
+              scenes: <SceneAsset>[scene],
+              mapId: mapId,
+            ),
+          );
+        },
+        railJourneyDoorAnimation: (_) async => true,
+        railJourneySpatialTransition: (transition) async {
+          transitions.add(transition);
+          return true;
+        },
+      );
+    }
+
+    Future<NarrativeSceneExecutionCompleted> execute(
+      PlayableMapGame game,
+      String executionId,
+    ) async {
+      final initial = game.playerServiceGameStateSnapshot;
+      final result = await game.debugExecuteNarrativeSceneForTest(
+        NarrativeSceneExecutionRequest(
+          eventId: 'event_rail_cycle',
+          sceneId: scene.id,
+          executionId: executionId,
+          gameState: initial,
+        ),
+      );
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      return result as NarrativeSceneExecutionCompleted;
+    }
+
+    final firstTransitions = <RailJourneyRuntimeTransition>[];
+    final first = await execute(
+      createGame(_railReadyState(), firstTransitions),
+      'rail-scene-cycle-a',
+    );
+    final secondTransitions = <RailJourneyRuntimeTransition>[];
+    final second = await execute(
+      createGame(_railReadyState(), secondTransitions),
+      'rail-scene-cycle-b',
+    );
+    final replayTransitions = <RailJourneyRuntimeTransition>[];
+    final replay = await execute(
+      createGame(first.updatedGameState, replayTransitions),
+      'rail-scene-cycle-a',
+    );
+
+    const firstOperationId =
+        'rail:event-v2:event_rail_cycle:rail-scene-cycle-a:board-t1';
+    const secondOperationId =
+        'rail:event-v2:event_rail_cycle:rail-scene-cycle-b:board-t1';
+    expect(firstTransitions, hasLength(1));
+    expect(secondTransitions, hasLength(1));
+    expect(replayTransitions, isEmpty);
+    expect(
+      first.updatedGameState.railJourneyProgress.appliedOperations.keys,
+      contains(firstOperationId),
+    );
+    expect(
+      second.updatedGameState.railJourneyProgress.appliedOperations.keys,
+      contains(secondOperationId),
+    );
+    expect(replay.updatedGameState, first.updatedGameState);
+  });
+
+  test('later Scene failure compensates a completed RailJourney command',
+      () async {
+    final scene = _railScene(failAfterRail: true);
+    var animationCalls = 0;
+    var transitionCalls = 0;
+    final game = PlayableMapGame(
+      bundle: _railBundle(scenes: <SceneAsset>[scene]),
+      projectFilePath: '/tmp/scene-rail/project.json',
+      saveData: saveDataFromGameState(_railReadyState()),
+      runtimeMapBundleLoader: ({required projectFilePath, required mapId}) {
+        return Future<RuntimeMapBundle>.value(
+          _railBundle(
+            scenes: <SceneAsset>[scene],
+            mapId: mapId,
+          ),
+        );
+      },
+      railJourneyDoorAnimation: (_) async {
+        animationCalls += 1;
+        return true;
+      },
+      railJourneySpatialTransition: (_) async {
+        transitionCalls += 1;
+        return true;
+      },
+    );
+    final initial = game.playerServiceGameStateSnapshot;
+
+    final result = await game.debugExecuteNarrativeSceneForTest(
+      NarrativeSceneExecutionRequest(
+        eventId: 'event_rail_then_fail',
+        sceneId: scene.id,
+        executionId: 'rail-scene-failure-1',
+        gameState: initial,
+      ),
+    );
+    final restored = game.playerServiceGameStateSnapshot;
+
+    expect(result, isA<NarrativeSceneExecutionFailed>());
+    expect(animationCalls, 1);
+    expect(transitionCalls, 1);
+    expect(restored.currentMapId, initial.currentMapId);
+    expect(restored.playerPosition, initial.playerPosition);
+    expect(restored.railJourneyProgress, initial.railJourneyProgress);
   });
 
   test('PlayableMapGame keeps RailJourney progress atomic on spatial failure',
@@ -372,8 +545,71 @@ SceneRailJourneyInteractiveCommand _railBeginCommand() =>
       doorSide: RailJourneyDoorSide.west,
     ) as SceneRailJourneyInteractiveCommand;
 
-RuntimeMapBundle _railBundle() => RuntimeMapBundle(
-      manifest: const ProjectManifest(
+SceneAsset _railScene({bool failAfterRail = false}) => SceneAsset(
+      id: failAfterRail ? 'scene_rail_then_fail' : 'scene_rail_cycle',
+      name: failAfterRail ? 'Rail then fail' : 'Rail cycle',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'rail',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(_railBeginCommand()),
+          ),
+          if (failAfterRail)
+            SceneNode(
+              id: 'fail',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.takeItem(
+                  itemId: 'missing_item',
+                  quantity: 1,
+                ),
+              ),
+            ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: <SceneEdge>[
+          SceneEdge(
+            id: 'start-rail',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'rail',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'rail-completed',
+            fromNodeId: 'rail',
+            fromPortId: 'completed',
+            toNodeId: failAfterRail ? 'fail' : 'end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+          SceneEdge(
+            id: 'rail-blocked',
+            fromNodeId: 'rail',
+            fromPortId: 'blocked',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+          if (failAfterRail)
+            SceneEdge(
+              id: 'fail-end',
+              fromNodeId: 'fail',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+        ],
+      ),
+    );
+
+RuntimeMapBundle _railBundle({
+  List<SceneAsset> scenes = const <SceneAsset>[],
+  String mapId = 'map_origin',
+}) =>
+    RuntimeMapBundle(
+      manifest: ProjectManifest(
         name: 'Scene rail journey',
         maps: <ProjectMapEntry>[
           ProjectMapEntry(
@@ -394,12 +630,13 @@ RuntimeMapBundle _railBundle() => RuntimeMapBundle(
         ],
         tilesets: <ProjectTilesetEntry>[],
         railJourneyCatalog: _railCatalog,
+        scenes: scenes,
       ),
-      map: const MapData(
-        id: 'map_origin',
-        name: 'Origin',
-        size: GridSize(width: 16, height: 16),
-        layers: <MapLayer>[
+      map: MapData(
+        id: mapId,
+        name: mapId,
+        size: const GridSize(width: 16, height: 16),
+        layers: const <MapLayer>[
           MapLayer.object(id: 'objects', name: 'Objects'),
         ],
       ),

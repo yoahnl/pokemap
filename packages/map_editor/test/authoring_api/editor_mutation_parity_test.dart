@@ -139,6 +139,62 @@ void main() {
       );
     });
 
+    test('editor upserts, queries and deletes a RailJourney', () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final project = _editorRailProject();
+      final projectPath = p.join(fixture.root.path, 'project.json');
+      await FileProjectRepository().saveProject(project, projectPath);
+      for (final map in _editorRailMaps()) {
+        await FileMapRepository().saveMap(
+          map,
+          p.join(fixture.root.path, 'maps', '${map.id}.json'),
+          projectDialogueContext: project,
+        );
+      }
+
+      final upsertPlan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'rail_journey.upsert',
+        parameters: <String, Object?>{'journey': _editorRailJourney.toJson()},
+        idempotencyKey: 'editor-rail-upsert',
+      );
+      final upserted = await fixture.mutations.apply(
+        upsertPlan,
+        operationId: 'editor-rail-upsert',
+      );
+      final session = await fixture.queries.open(fixture.root.path);
+      final queried = session.query(
+        AuthoringQueryRequest(
+          resourceKind: 'railJourney',
+          operation: AuthoringQueryOperation.get,
+          ids: <String>['T1'],
+          view: AuthoringQueryView.detail,
+        ),
+      );
+
+      expect(upserted.receipt.actionId, 'rail_journey.upsert');
+      expect(queried['items'], hasLength(1));
+      expect((queried['items']! as List).single, containsPair('id', 'T1'));
+
+      final deletePlan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'rail_journey.delete',
+        parameters: const <String, Object?>{'journeyId': 'T1'},
+        idempotencyKey: 'editor-rail-delete',
+      );
+      final confirmation = await fixture.mutations.confirm(deletePlan);
+      final deleted = await fixture.mutations.apply(
+        deletePlan,
+        operationId: 'editor-rail-delete',
+        confirmationToken: confirmation,
+      );
+      final durable = await FileProjectRepository().loadProject(projectPath);
+
+      expect(deleted.receipt.actionId, 'rail_journey.delete');
+      expect(durable.railJourneyCatalog, isNull);
+    });
+
     test(
       'CIN-033 certifies preSession and Presentation in the editor',
       () async {
@@ -2246,20 +2302,23 @@ List<_Cin033EditorStep> _cin033EditorSteps() => <_Cin033EditorStep>[
   }),
   // BETA-CIN-081: the CIN-V2 branches are an editor transport too — the
   // Studio panel emits exactly this action.
-  const _Cin033EditorStep('scene.presentation.cue.routes.set', <String, Object?>{
-    'sceneId': 'new_game_intro',
-    'presentationNodeId': 'opening',
-    'markerId': 'cue_player_name',
-    'routes': <Object?>[
-      <String, Object?>{
-        'outputPortId': 'completed',
-        'outcome': <String, Object?>{
-          'kind': 'repeatFromMarker',
-          'markerId': 'cue_player_name',
+  const _Cin033EditorStep(
+    'scene.presentation.cue.routes.set',
+    <String, Object?>{
+      'sceneId': 'new_game_intro',
+      'presentationNodeId': 'opening',
+      'markerId': 'cue_player_name',
+      'routes': <Object?>[
+        <String, Object?>{
+          'outputPortId': 'completed',
+          'outcome': <String, Object?>{
+            'kind': 'repeatFromMarker',
+            'markerId': 'cue_player_name',
+          },
         },
-      },
-    ],
-  }),
+      ],
+    },
+  ),
 ];
 
 const Set<String> _cin033CertifiedActionIds = <String>{
@@ -2317,6 +2376,150 @@ final class _Cin033EditorStep {
   final Map<String, Object?> parameters;
   final bool confirmed;
 }
+
+const _editorRailFrames = <TilesetVisualFrame>[
+  TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0), durationMs: 120),
+  TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0), durationMs: 120),
+];
+
+const _editorRailJourney = RailJourneyDefinition(
+  id: 'T1',
+  label: 'Origin to destination',
+  origin: RailJourneyEndpoint(
+    stationMapId: 'rail-origin',
+    boardingArea: MapRect(
+      pos: GridPos(x: 0, y: 0),
+      size: GridSize(width: 1, height: 1),
+    ),
+    trainEntryPos: GridPos(x: 0, y: 0),
+    stationArrivalPos: GridPos(x: 1, y: 1),
+    doors: <RailJourneyEndpointDoor>[
+      RailJourneyEndpointDoor(
+        side: RailJourneyDoorSide.west,
+        stationPlacedElementId: 'door-origin',
+        vehiclePlacedElementId: 'door-train-west',
+      ),
+    ],
+  ),
+  destination: RailJourneyEndpoint(
+    stationMapId: 'rail-destination',
+    boardingArea: MapRect(
+      pos: GridPos(x: 0, y: 0),
+      size: GridSize(width: 1, height: 1),
+    ),
+    trainEntryPos: GridPos(x: 1, y: 0),
+    stationArrivalPos: GridPos(x: 1, y: 1),
+    doors: <RailJourneyEndpointDoor>[
+      RailJourneyEndpointDoor(
+        side: RailJourneyDoorSide.east,
+        stationPlacedElementId: 'door-destination',
+        vehiclePlacedElementId: 'door-train-east',
+      ),
+    ],
+  ),
+  vehicleMapId: 'rail-train',
+  vehicleVariant: RailJourneyVehicleVariant.regular,
+  shellState: 'day',
+  fare: RailJourneyFare(policy: RailJourneyFarePolicy.storyFree),
+);
+
+ProjectManifest _editorRailProject() => const ProjectManifest(
+  name: 'Rail editor parity',
+  maps: <ProjectMapEntry>[
+    ProjectMapEntry(
+      id: 'rail-origin',
+      name: 'Origin',
+      relativePath: 'maps/rail-origin.json',
+    ),
+    ProjectMapEntry(
+      id: 'rail-destination',
+      name: 'Destination',
+      relativePath: 'maps/rail-destination.json',
+    ),
+    ProjectMapEntry(
+      id: 'rail-train',
+      name: 'Train',
+      relativePath: 'maps/rail-train.json',
+      role: MapRole.interior,
+    ),
+  ],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'doors',
+      name: 'Doors',
+      relativePath: 'tilesets/doors.png',
+    ),
+  ],
+  elementCategories: <ProjectElementCategory>[
+    ProjectElementCategory(id: 'doors', name: 'Doors'),
+  ],
+  elements: <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'door',
+      name: 'Door',
+      tilesetId: 'doors',
+      categoryId: 'doors',
+      frames: _editorRailFrames,
+    ),
+  ],
+);
+
+List<MapData> _editorRailMaps() => const <MapData>[
+  MapData(
+    id: 'rail-origin',
+    name: 'Origin',
+    size: GridSize(width: 2, height: 2),
+    layers: <MapLayer>[
+      MapLayer.tile(id: 'doors', name: 'Doors', cells: <int>[0, 0, 0, 0]),
+    ],
+    placedElements: <MapPlacedElement>[
+      MapPlacedElement(
+        id: 'door-origin',
+        layerId: 'doors',
+        elementId: 'door',
+        pos: GridPos(x: 0, y: 0),
+      ),
+    ],
+  ),
+  MapData(
+    id: 'rail-destination',
+    name: 'Destination',
+    size: GridSize(width: 2, height: 2),
+    layers: <MapLayer>[
+      MapLayer.tile(id: 'doors', name: 'Doors', cells: <int>[0, 0, 0, 0]),
+    ],
+    placedElements: <MapPlacedElement>[
+      MapPlacedElement(
+        id: 'door-destination',
+        layerId: 'doors',
+        elementId: 'door',
+        pos: GridPos(x: 0, y: 0),
+      ),
+    ],
+  ),
+  MapData(
+    id: 'rail-train',
+    name: 'Train',
+    size: GridSize(width: 2, height: 2),
+    layers: <MapLayer>[
+      MapLayer.tile(id: 'doors', name: 'Doors', cells: <int>[0, 0, 0, 0]),
+    ],
+    placedElements: <MapPlacedElement>[
+      MapPlacedElement(
+        id: 'door-train-west',
+        layerId: 'doors',
+        elementId: 'door',
+        pos: GridPos(x: 0, y: 0),
+      ),
+      MapPlacedElement(
+        id: 'door-train-east',
+        layerId: 'doors',
+        elementId: 'door',
+        pos: GridPos(x: 1, y: 0),
+      ),
+    ],
+  ),
+];
 
 final class _MutationFixture {
   _MutationFixture({
