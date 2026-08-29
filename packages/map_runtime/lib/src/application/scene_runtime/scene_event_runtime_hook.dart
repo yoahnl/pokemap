@@ -75,6 +75,7 @@ final class SceneEventRuntimeHook {
 
     final pendingConsequences = <SceneConsequence>[];
     final pendingPokemonGrantOperationIds = <String?>[];
+    final pendingRailProgressionOperationIds = <String?>[];
     final writer = consequenceWriter ??
         SceneConsequenceRuntimeWriter(
           project: project,
@@ -94,12 +95,19 @@ final class SceneEventRuntimeHook {
             nodeId: nodeId,
             consequence: consequence,
           );
+          final railProgressionOperationId = sceneRailProgressionOperationId(
+            sceneId: sceneId,
+            executionId: executionId,
+            nodeId: nodeId,
+            consequence: consequence,
+          );
           final currentValidationState = validationState;
           if (currentValidationState != null) {
             final validation = writer.applyOne(
               currentValidationState,
               consequence,
               pokemonGrantOperationId: grantOperationId,
+              railProgressionOperationId: railProgressionOperationId,
             );
             if (!validation.success) {
               rejectedConsequenceWrite = validation;
@@ -112,6 +120,7 @@ final class SceneEventRuntimeHook {
           }
           pendingConsequences.add(consequence);
           pendingPokemonGrantOperationIds.add(grantOperationId);
+          pendingRailProgressionOperationIds.add(railProgressionOperationId);
           return 'completed';
         },
       ),
@@ -141,6 +150,7 @@ final class SceneEventRuntimeHook {
         commitBaseState,
         pendingConsequences,
         pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+        railProgressionOperationIds: pendingRailProgressionOperationIds,
       );
       if (!writeResult.success) {
         return SceneEventRuntimeHookResult.failed(

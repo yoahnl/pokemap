@@ -756,6 +756,7 @@ final Set<String> _approvedResourceKinds = {
   'worldRule',
   'scene',
   'storyline',
+  'railJourney',
   'cinematic',
   'cinematicLibraryCatalog',
   'cinematicLibraryFolder',

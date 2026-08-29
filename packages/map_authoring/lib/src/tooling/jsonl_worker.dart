@@ -23,6 +23,7 @@ import '../domains/maps/map_region_query.dart';
 import '../domains/narrative/cinematic_library_actions.dart';
 import '../domains/narrative/presentation_cinematic_actions.dart';
 import '../domains/narrative/presentation_cinematic_template_actions.dart';
+import '../domains/narrative/rail_journey_actions.dart';
 import '../history/authoring_history.dart';
 import '../ports/project_file_reader.dart';
 import '../ports/artifact_store.dart';
@@ -255,6 +256,14 @@ final class JsonlWorker {
       result = _failure(
         requestId,
         code: _itemDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
+      );
+    } on RailJourneyAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: _railJourneyDomainErrorCode(error.code),
         domainCode: error.code,
         message: error.message,
         details: _safeDetails(error.details),
@@ -834,6 +843,15 @@ AuthoringErrorCode _itemDomainErrorCode(String code) => switch (code) {
       'item.parameters_invalid' ||
       'item.use_context_mismatch' ||
       'item.held_effect_invalid' =>
+        AuthoringErrorCode.invalidRequest,
+      _ => AuthoringErrorCode.validationFailed,
+    };
+
+AuthoringErrorCode _railJourneyDomainErrorCode(String code) => switch (code) {
+      'rail_journey.not_found' => AuthoringErrorCode.notFound,
+      'rail_journey.action_unsupported' => AuthoringErrorCode.unsupported,
+      'rail_journey.id_invalid' ||
+      'rail_journey.invalid' =>
         AuthoringErrorCode.invalidRequest,
       _ => AuthoringErrorCode.validationFailed,
     };

@@ -26,6 +26,27 @@ String? scenePokemonGrantOperationId({
   return 'scene:$normalizedSceneId:$normalizedExecutionId:$normalizedNodeId';
 }
 
+String? sceneRailProgressionOperationId({
+  required String sceneId,
+  required String executionId,
+  required String nodeId,
+  required SceneConsequence consequence,
+}) {
+  if (consequence.kind != SceneConsequenceKind.grantRailCurrency &&
+      consequence.kind != SceneConsequenceKind.grantRailStamp) {
+    return null;
+  }
+  final normalizedSceneId = sceneId.trim();
+  final normalizedExecutionId = executionId.trim();
+  final normalizedNodeId = nodeId.trim();
+  if (normalizedSceneId.isEmpty ||
+      normalizedExecutionId.isEmpty ||
+      normalizedNodeId.isEmpty) {
+    return null;
+  }
+  return 'scene:$normalizedSceneId:$normalizedExecutionId:$normalizedNodeId';
+}
+
 final class SceneConsequenceRuntimeWriter {
   const SceneConsequenceRuntimeWriter({
     required this.project,
@@ -51,11 +72,13 @@ final class SceneConsequenceRuntimeWriter {
     GameState gameState,
     SceneConsequence consequence, {
     String? pokemonGrantOperationId,
+    String? railProgressionOperationId,
   }) {
     return applyAll(
       gameState,
       <SceneConsequence>[consequence],
       pokemonGrantOperationIds: <String?>[pokemonGrantOperationId],
+      railProgressionOperationIds: <String?>[railProgressionOperationId],
     );
   }
 
@@ -63,6 +86,7 @@ final class SceneConsequenceRuntimeWriter {
     GameState gameState,
     List<SceneConsequence> consequences, {
     List<String?> pokemonGrantOperationIds = const <String?>[],
+    List<String?> railProgressionOperationIds = const <String?>[],
   }) {
     var nextState = gameState;
     final applied = <SceneConsequence>[];
@@ -75,11 +99,15 @@ final class SceneConsequenceRuntimeWriter {
       final grantOperationId = index < pokemonGrantOperationIds.length
           ? pokemonGrantOperationIds[index]
           : null;
+      final railOperationId = index < railProgressionOperationIds.length
+          ? railProgressionOperationIds[index]
+          : null;
       final step = _apply(
         nextState,
         consequence,
         factWriter,
         grantOperationId,
+        railOperationId,
       );
       if (step.errorCode != null) {
         return SceneConsequenceRuntimeWriteResult.failed(
@@ -106,6 +134,7 @@ final class SceneConsequenceRuntimeWriter {
     SceneConsequence consequence,
     NarrativeFactRuntimeWriter factWriter,
     String? pokemonGrantOperationId,
+    String? railProgressionOperationId,
   ) {
     return switch (consequence.kind) {
       SceneConsequenceKind.setFact => _applySetFact(
@@ -132,6 +161,16 @@ final class SceneConsequenceRuntimeWriter {
       SceneConsequenceKind.giveMoney => _applyGiveMoney(
           gameState,
           consequence as SceneGiveMoneyConsequence,
+        ),
+      SceneConsequenceKind.grantRailCurrency => _applyGrantRailCurrency(
+          gameState,
+          consequence as SceneGrantRailCurrencyConsequence,
+          railProgressionOperationId,
+        ),
+      SceneConsequenceKind.grantRailStamp => _applyGrantRailStamp(
+          gameState,
+          consequence as SceneGrantRailStampConsequence,
+          railProgressionOperationId,
         ),
       SceneConsequenceKind.givePokemon => _applyGivePokemon(
           gameState,
@@ -334,6 +373,112 @@ final class SceneConsequenceRuntimeWriter {
     }
     return _SceneConsequenceRuntimeWriteStep.applied(
       mutations.addMoney(gameState, consequence.amount),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyGrantRailCurrency(
+    GameState gameState,
+    SceneGrantRailCurrencyConsequence consequence,
+    String? progressionOperationId,
+  ) {
+    final operationId = progressionOperationId?.trim() ?? '';
+    if (operationId.isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingRailProgressionOperationId,
+        'Scene consequence grantRailCurrency requires a runtime operation id.',
+      );
+    }
+    late final RailProgressionOperationBinding binding;
+    try {
+      binding = RailProgressionOperationBinding(
+        kind: RailProgressionOperationKind.grantCurrency,
+        semanticId: consequence.semanticCurrencyId,
+        amount: consequence.amount,
+      ).validated();
+    } on StateError {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidRailProgressionGrant,
+        'Scene consequence grantRailCurrency requires a currency id and '
+        'positive amount.',
+      );
+    }
+    final progress = gameState.railJourneyProgress;
+    final existing = progress.appliedProgressionOperations[operationId];
+    if (existing != null) {
+      return existing == binding
+          ? _SceneConsequenceRuntimeWriteStep.applied(gameState)
+          : const _SceneConsequenceRuntimeWriteStep.failed(
+              SceneConsequenceRuntimeWriteErrorCode
+                  .railProgressionIdempotencyConflict,
+              'Rail progression operation id was reused with another payload.',
+            );
+    }
+    final balances = Map<String, int>.of(progress.semanticCurrencyBalances);
+    balances[binding.semanticId] =
+        (balances[binding.semanticId] ?? 0) + binding.amount;
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      gameState.copyWith(
+        railJourneyProgress: progress.copyWith(
+          semanticCurrencyBalances: balances,
+          appliedProgressionOperations: <String,
+              RailProgressionOperationBinding>{
+            ...progress.appliedProgressionOperations,
+            operationId: binding,
+          },
+        ).validated(),
+      ),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyGrantRailStamp(
+    GameState gameState,
+    SceneGrantRailStampConsequence consequence,
+    String? progressionOperationId,
+  ) {
+    final operationId = progressionOperationId?.trim() ?? '';
+    if (operationId.isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingRailProgressionOperationId,
+        'Scene consequence grantRailStamp requires a runtime operation id.',
+      );
+    }
+    late final RailProgressionOperationBinding binding;
+    try {
+      binding = RailProgressionOperationBinding(
+        kind: RailProgressionOperationKind.grantStamp,
+        semanticId: consequence.stampId,
+      ).validated();
+    } on StateError {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidRailProgressionGrant,
+        'Scene consequence grantRailStamp requires a stamp id.',
+      );
+    }
+    final progress = gameState.railJourneyProgress;
+    final existing = progress.appliedProgressionOperations[operationId];
+    if (existing != null) {
+      return existing == binding
+          ? _SceneConsequenceRuntimeWriteStep.applied(gameState)
+          : const _SceneConsequenceRuntimeWriteStep.failed(
+              SceneConsequenceRuntimeWriteErrorCode
+                  .railProgressionIdempotencyConflict,
+              'Rail progression operation id was reused with another payload.',
+            );
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      gameState.copyWith(
+        railJourneyProgress: progress.copyWith(
+          earnedStampIds: <String>{
+            ...progress.earnedStampIds,
+            binding.semanticId,
+          },
+          appliedProgressionOperations: <String,
+              RailProgressionOperationBinding>{
+            ...progress.appliedProgressionOperations,
+            operationId: binding,
+          },
+        ).validated(),
+      ),
     );
   }
 

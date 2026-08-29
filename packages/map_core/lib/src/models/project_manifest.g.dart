@@ -105,6 +105,11 @@ _ProjectManifest _$ProjectManifestFromJson(
   storylines: json['storylines'] == null
       ? const []
       : _storylinesFromJson(json['storylines']),
+  railJourneyCatalog: json['railJourneyCatalog'] == null
+      ? null
+      : RailJourneyCatalog.fromJson(
+          json['railJourneyCatalog'] as Map<String, dynamic>,
+        ),
   shops:
       (json['shops'] as List<dynamic>?)
           ?.map((e) => ShopDefinition.fromJson(e as Map<String, dynamic>))
@@ -224,6 +229,7 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'eventRegistry': ?instance.eventRegistry?.toJson(),
   'scenes': _scenesToJson(instance.scenes),
   'storylines': _storylinesToJson(instance.storylines),
+  'railJourneyCatalog': ?instance.railJourneyCatalog?.toJson(),
   'shops': instance.shops.map((e) => e.toJson()).toList(),
   'badges': instance.badges.map((e) => e.toJson()).toList(),
   'trainers': instance.trainers.map((e) => e.toJson()).toList(),

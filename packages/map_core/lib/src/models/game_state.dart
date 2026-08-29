@@ -5,6 +5,7 @@ import 'geometry.dart';
 import 'narrative_event_progress.dart';
 import 'narrative_fact_runtime_state.dart';
 import 'player_pause_menu_state.dart';
+import 'rail_journey.dart';
 import 'save_data.dart';
 
 part 'game_state.freezed.dart';
@@ -94,6 +95,7 @@ abstract class GameState with _$GameState {
 
     /// Progression narrative et capacités.
     @Default(PlayerProgression()) PlayerProgression progression,
+    @Default(RailJourneyProgress()) RailJourneyProgress railJourneyProgress,
 
     /// Variables de script (int/bool/string).
     @Default(ScriptVariables()) ScriptVariables scriptVariables,

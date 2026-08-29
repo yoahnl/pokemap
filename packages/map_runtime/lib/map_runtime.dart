@@ -184,6 +184,8 @@ export 'src/application/player_service_runtime_controller.dart'
         PlayerServiceRecoveryCapsLoader,
         PlayerServiceRuntimeController,
         loadRuntimePlayerServiceRecoveryCaps;
+export 'src/application/rail_journey_runtime_coordinator.dart';
+export 'src/application/rail_journey_runtime_transaction.dart';
 
 export 'src/application/battle_start_request.dart'
     show
@@ -490,7 +492,10 @@ export 'src/application/scene_runtime/scene_presentation_cinematic_runtime_await
         ScenePresentationCinematicRuntimeAwaitableResult,
         ScenePresentationCinematicRuntimeAwaitableStatus;
 export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
-    show SceneConsequenceRuntimeWriter;
+    show
+        SceneConsequenceRuntimeWriter,
+        scenePokemonGrantOperationId,
+        sceneRailProgressionOperationId;
 export 'src/application/scene_runtime/narrative_game_completion_runtime_coordinator.dart'
     show
         GameCompletionRequestEmitter,

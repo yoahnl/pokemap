@@ -149,6 +149,29 @@ void main() {
     );
   });
 
+  test('RailJourney is publishable through its typed editor and runtime wire',
+      () {
+    final command = NarrativeCommandCatalog.canonical().byId(
+      NarrativeCommandIds.railJourney,
+    )!;
+
+    expect(command.isPublishable, isTrue);
+    expect(command.capabilities.reason, isNull);
+    expect(command.backend, NarrativeCommandBackend.interactiveRuntimeCommand);
+    expect(command.wireId, 'SceneInteractiveCommand.railJourney');
+    expect(
+      command.parameters.map((parameter) => parameter.kind),
+      <NarrativeCommandParameterKind>[
+        NarrativeCommandParameterKind.text,
+        NarrativeCommandParameterKind.railJourney,
+        NarrativeCommandParameterKind.railJourneyOperation,
+        NarrativeCommandParameterKind.railJourneyDirection,
+        NarrativeCommandParameterKind.railJourneyAdvanceEvent,
+        NarrativeCommandParameterKind.railJourneyDoorSide,
+      ],
+    );
+  });
+
   test('canonical gameplay commands carry the corrected FG references', () {
     final catalog = NarrativeCommandCatalog.canonical();
     expect(catalog.byId(NarrativeCommandIds.healParty)!.fgLotId, 'FG-085');

@@ -294,6 +294,11 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
   progression: json['progression'] == null
       ? const PlayerProgression()
       : PlayerProgression.fromJson(json['progression'] as Map<String, dynamic>),
+  railJourneyProgress: json['railJourneyProgress'] == null
+      ? const RailJourneyProgress()
+      : RailJourneyProgress.fromJson(
+          json['railJourneyProgress'] as Map<String, dynamic>,
+        ),
   narrativeFactRuntimeState:
       readNarrativeFactRuntimeStateJson(json, 'narrativeFactRuntimeState') ==
           null
@@ -342,6 +347,7 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'trainerProfile': instance.trainerProfile.toJson(),
   'bag': instance.bag.toJson(),
   'progression': instance.progression.toJson(),
+  'railJourneyProgress': instance.railJourneyProgress.toJson(),
   'narrativeFactRuntimeState': instance.narrativeFactRuntimeState.toJson(),
   'narrativeEventProgress': narrativeEventProgressToJson(
     instance.narrativeEventProgress,

@@ -8,6 +8,7 @@ import 'geometry.dart';
 import 'narrative_event_progress.dart';
 import 'narrative_fact_runtime_state.dart';
 import 'player_pause_menu_state.dart';
+import 'rail_journey.dart';
 
 part 'save_data.freezed.dart';
 part 'save_data.g.dart';
@@ -825,6 +826,7 @@ abstract class SaveData with _$SaveData {
     @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,
     @Default(Bag()) Bag bag,
     @Default(PlayerProgression()) PlayerProgression progression,
+    @Default(RailJourneyProgress()) RailJourneyProgress railJourneyProgress,
     @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
     @Default(NarrativeFactRuntimeState.empty())
     NarrativeFactRuntimeState narrativeFactRuntimeState,
@@ -871,6 +873,7 @@ abstract class SaveData with _$SaveData {
       trainerProfile: trainerProfile.normalized(),
       bag: bag.normalized(),
       progression: progression.normalized(),
+      railJourneyProgress: railJourneyProgress.validated(),
       narrativeFactRuntimeState: narrativeFactRuntimeState,
       narrativeEventProgress: narrativeEventProgress,
       completedBattleRequestIds: _normalizeUniqueStringsSorted(

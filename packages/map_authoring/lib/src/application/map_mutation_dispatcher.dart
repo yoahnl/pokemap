@@ -29,6 +29,7 @@ import '../domains/narrative/cinematic_actions.dart';
 import '../domains/narrative/cinematic_library_actions.dart';
 import '../domains/narrative/presentation_cinematic_actions.dart';
 import '../domains/narrative/presentation_cinematic_template_actions.dart';
+import '../domains/narrative/rail_journey_actions.dart';
 import '../domains/narrative/event_actions.dart';
 import '../domains/narrative/fact_rule_actions.dart';
 import '../domains/narrative/scene_actions.dart';
@@ -159,6 +160,7 @@ final class MapMutationDispatcher {
     const events = EventV2Actions();
     const factsAndRules = FactRuleActions();
     const storylines = StorylineActions();
+    const railJourneys = RailJourneyActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -391,6 +393,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: storylines.build,
+        ),
+      for (final descriptor in RailJourneyActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: railJourneys.build,
         ),
     ]);
   }

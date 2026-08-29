@@ -298,6 +298,81 @@ void main() {
       );
     });
 
+    test('project validation rejects out-of-bounds RailJourney geometry',
+        () async {
+      final setup = await _TestSetup.create(clean: true);
+      addTearDown(setup.dispose);
+      await _writeOutOfBoundsRailJourneyFixture(setup.fixture);
+      final opened = await _request(
+        setup.worker,
+        id: 'open-rail-journey-bounds',
+        command: 'open',
+        args: {'projectRoot': setup.fixture.path},
+      );
+      final projectHandle = opened.data['projectHandle']! as String;
+
+      final validated = await _request(
+        setup.worker,
+        id: 'validate-rail-journey-bounds',
+        command: 'validate',
+        args: {'projectHandle': projectHandle},
+      );
+      final directlyValidated = await setup.api.validate(
+        ProjectHandle(projectHandle),
+      );
+      final structure = validated.data['structure']! as Map<String, Object?>;
+      final diagnostics =
+          (structure['diagnostics']! as List).cast<Map<String, Object?>>();
+
+      expect(validated.status, AuthoringResultStatus.success);
+      expect(structure['valid'], isFalse);
+      expect(
+        diagnostics,
+        contains(
+          containsPair(
+            'code',
+            'rail_journey.boarding_area_out_of_bounds',
+          ),
+        ),
+      );
+      expect(directlyValidated, validated.data);
+    });
+
+    test('project validation exposes unknown RailJourney items over JSONL',
+        () async {
+      final setup = await _TestSetup.create(clean: true);
+      addTearDown(setup.dispose);
+      await _writeUnknownRailJourneyItemFixture(setup.fixture);
+      final opened = await _request(
+        setup.worker,
+        id: 'open-rail-journey-item',
+        command: 'open',
+        args: {'projectRoot': setup.fixture.path},
+      );
+      final projectHandle = opened.data['projectHandle']! as String;
+
+      final validated = await _request(
+        setup.worker,
+        id: 'validate-rail-journey-item',
+        command: 'validate',
+        args: {'projectHandle': projectHandle},
+      );
+      final directlyValidated = await setup.api.validate(
+        ProjectHandle(projectHandle),
+      );
+      final structure = validated.data['structure']! as Map<String, Object?>;
+      final diagnostics =
+          (structure['diagnostics']! as List).cast<Map<String, Object?>>();
+
+      expect(validated.status, AuthoringResultStatus.success);
+      expect(structure['valid'], isFalse);
+      expect(
+        diagnostics,
+        contains(containsPair('code', 'rail_journey.item_unknown')),
+      );
+      expect(directlyValidated, validated.data);
+    });
+
     test('malformed and unknown requests do not terminate the worker',
         () async {
       final setup = await _TestSetup.create();
@@ -638,6 +713,265 @@ final class _TestSetup {
   }
 }
 
+Future<void> _writeOutOfBoundsRailJourneyFixture(Directory fixture) async {
+  const origin = RailJourneyEndpoint(
+    stationMapId: 'map_origin_station',
+    boardingArea: MapRect(
+      pos: GridPos(x: 8, y: 8),
+      size: GridSize(width: 3, height: 2),
+    ),
+    trainEntryPos: GridPos(x: 1, y: 4),
+    stationArrivalPos: GridPos(x: 3, y: 6),
+    doors: <RailJourneyEndpointDoor>[
+      RailJourneyEndpointDoor(
+        side: RailJourneyDoorSide.west,
+        stationPlacedElementId: 'door_origin_west',
+        vehiclePlacedElementId: 'door_vehicle_west',
+      ),
+    ],
+  );
+  const destination = RailJourneyEndpoint(
+    stationMapId: 'map_destination_station',
+    boardingArea: MapRect(
+      pos: GridPos(x: 4, y: 2),
+      size: GridSize(width: 2, height: 3),
+    ),
+    trainEntryPos: GridPos(x: 6, y: 4),
+    stationArrivalPos: GridPos(x: 7, y: 6),
+    doors: <RailJourneyEndpointDoor>[
+      RailJourneyEndpointDoor(
+        side: RailJourneyDoorSide.east,
+        stationPlacedElementId: 'door_destination_east',
+        vehiclePlacedElementId: 'door_vehicle_east',
+      ),
+    ],
+  );
+  const manifest = ProjectManifest(
+    name: 'RailJourney validation fixture',
+    maps: <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'map_origin_station',
+        name: 'Origin station',
+        relativePath: 'maps/origin.json',
+      ),
+      ProjectMapEntry(
+        id: 'map_destination_station',
+        name: 'Destination station',
+        relativePath: 'maps/destination.json',
+      ),
+      ProjectMapEntry(
+        id: 'map_train_car',
+        name: 'Train car',
+        relativePath: 'maps/train.json',
+        role: MapRole.interior,
+      ),
+    ],
+    tilesets: <ProjectTilesetEntry>[],
+    pokemon: ProjectPokemonConfig(
+      enabled: false,
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    ),
+    railJourneyCatalog: RailJourneyCatalog(
+      journeys: <RailJourneyDefinition>[
+        RailJourneyDefinition(
+          id: 'T1',
+          label: 'Origin to destination',
+          origin: origin,
+          destination: destination,
+          vehicleMapId: 'map_train_car',
+          vehicleVariant: RailJourneyVehicleVariant.regular,
+          shellState: 'day',
+          fare: RailJourneyFare(policy: RailJourneyFarePolicy.storyFree),
+        ),
+      ],
+    ),
+  );
+  const maps = <String, MapData>{
+    'origin.json': MapData(
+      id: 'map_origin_station',
+      name: 'Origin station',
+      size: GridSize(width: 10, height: 10),
+    ),
+    'destination.json': MapData(
+      id: 'map_destination_station',
+      name: 'Destination station',
+      size: GridSize(width: 10, height: 10),
+    ),
+    'train.json': MapData(
+      id: 'map_train_car',
+      name: 'Train car',
+      size: GridSize(width: 10, height: 10),
+    ),
+  };
+  await File('${fixture.path}/project.json').writeAsString(
+    const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
+    flush: true,
+  );
+  final mapDirectory = Directory('${fixture.path}/maps');
+  await mapDirectory.create(recursive: true);
+  for (final entry in maps.entries) {
+    await File('${mapDirectory.path}/${entry.key}').writeAsString(
+      const JsonEncoder.withIndent('  ').convert(entry.value.toJson()),
+      flush: true,
+    );
+  }
+}
+
+Future<void> _writeUnknownRailJourneyItemFixture(Directory fixture) async {
+  await _writeOutOfBoundsRailJourneyFixture(fixture);
+  final manifestFile = File('${fixture.path}/project.json');
+  final manifest = ProjectManifest.fromJson(
+    Map<String, dynamic>.from(
+      jsonDecode(await manifestFile.readAsString()) as Map,
+    ),
+  );
+  final journey = manifest.railJourneyCatalog!.journeys.single;
+  final updatedJourney = journey.copyWith(
+    origin: journey.origin.copyWith(
+      boardingArea: const MapRect(
+        pos: GridPos(x: 2, y: 3),
+        size: GridSize(width: 3, height: 2),
+      ),
+    ),
+    requirements: journey.requirements.copyWith(
+      requiredItemIds: const <String>{'item_missing'},
+    ),
+  );
+  const doorFrames = <TilesetVisualFrame>[
+    TilesetVisualFrame(
+      source: TilesetSourceRect(x: 0, y: 0),
+      durationMs: 120,
+    ),
+    TilesetVisualFrame(
+      source: TilesetSourceRect(x: 1, y: 0),
+      durationMs: 120,
+    ),
+  ];
+  final updatedManifest = manifest.copyWith(
+    pokemon: const ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      catalogFiles: <String, String>{
+        'items': 'data/pokemon/items.json',
+      },
+    ),
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'doors',
+        name: 'Doors',
+        relativePath: 'tilesets/doors.png',
+      ),
+    ],
+    elementCategories: const <ProjectElementCategory>[
+      ProjectElementCategory(id: 'doors', name: 'Doors'),
+    ],
+    elements: const <ProjectElementEntry>[
+      ProjectElementEntry(
+        id: 'element_station_west',
+        name: 'Station west door',
+        tilesetId: 'doors',
+        categoryId: 'doors',
+        frames: doorFrames,
+      ),
+      ProjectElementEntry(
+        id: 'element_station_east',
+        name: 'Station east door',
+        tilesetId: 'doors',
+        categoryId: 'doors',
+        frames: doorFrames,
+      ),
+      ProjectElementEntry(
+        id: 'element_vehicle_west',
+        name: 'Vehicle west door',
+        tilesetId: 'doors',
+        categoryId: 'doors',
+        frames: doorFrames,
+      ),
+      ProjectElementEntry(
+        id: 'element_vehicle_east',
+        name: 'Vehicle east door',
+        tilesetId: 'doors',
+        categoryId: 'doors',
+        frames: doorFrames,
+      ),
+    ],
+    railJourneyCatalog: RailJourneyCatalog(
+      journeys: <RailJourneyDefinition>[updatedJourney],
+    ),
+  );
+  await manifestFile.writeAsString(
+    const JsonEncoder.withIndent(' ').convert(updatedManifest.toJson()),
+    flush: true,
+  );
+
+  final mapDoorPlacements = <String, List<MapPlacedElement>>{
+    'origin.json': const <MapPlacedElement>[
+      MapPlacedElement(
+        id: 'door_origin_west',
+        layerId: 'doors',
+        elementId: 'element_station_west',
+        pos: GridPos(x: 2, y: 3),
+      ),
+    ],
+    'destination.json': const <MapPlacedElement>[
+      MapPlacedElement(
+        id: 'door_destination_east',
+        layerId: 'doors',
+        elementId: 'element_station_east',
+        pos: GridPos(x: 4, y: 2),
+      ),
+    ],
+    'train.json': const <MapPlacedElement>[
+      MapPlacedElement(
+        id: 'door_vehicle_west',
+        layerId: 'doors',
+        elementId: 'element_vehicle_west',
+        pos: GridPos(x: 1, y: 4),
+      ),
+      MapPlacedElement(
+        id: 'door_vehicle_east',
+        layerId: 'doors',
+        elementId: 'element_vehicle_east',
+        pos: GridPos(x: 6, y: 4),
+      ),
+    ],
+  };
+  for (final entry in mapDoorPlacements.entries) {
+    final mapFile = File('${fixture.path}/maps/${entry.key}');
+    final map = MapData.fromJson(
+      Map<String, dynamic>.from(
+        jsonDecode(await mapFile.readAsString()) as Map,
+      ),
+    );
+    final updatedMap = map.copyWith(
+      layers: const <MapLayer>[
+        MapLayer.object(id: 'doors', name: 'Doors'),
+      ],
+      placedElements: entry.value,
+    );
+    await mapFile.writeAsString(
+      const JsonEncoder.withIndent(' ').convert(updatedMap.toJson()),
+      flush: true,
+    );
+  }
+  final itemCatalogFile = File('${fixture.path}/data/pokemon/items.json');
+  await itemCatalogFile.parent.create(recursive: true);
+  await itemCatalogFile.writeAsString(
+    const JsonEncoder.withIndent(' ').convert(
+      const ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'item_ticket',
+            displayName: 'Ticket',
+            pocketId: 'key_items',
+          ),
+        ],
+      ).toJson(),
+    ),
+    flush: true,
+  );
+}
+
 Future<AuthoringResult> _request(
   JsonlWorker worker, {
   required String id,
@@ -696,8 +1030,7 @@ final class _DelayedReadApi implements AuthoringReadApiPort {
       const {};
 }
 
-final class _RecordingGamePackageExportApi
-    implements GamePackageExportApiPort {
+final class _RecordingGamePackageExportApi implements GamePackageExportApiPort {
   _RecordingGamePackageExportApi({this.delay = Duration.zero});
 
   final Duration delay;

@@ -460,6 +460,12 @@ final class AuthoringResourceKindRegistry {
         summary: 'Chapter, Step and progression graph aggregate',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'railJourney',
+        version: 1,
+        displayName: 'Rail journey',
+        summary: 'One typed station-to-station journey definition',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'cinematic',
         version: 1,
         displayName: 'Cinematic',
@@ -606,6 +612,7 @@ final class AuthoringResourceKindRegistry {
       'presentationLayer',
       'presentationVisualFolder',
       'presentationMedia',
+      'railJourney',
       'scene',
       'script',
       'smartTileAnimation',

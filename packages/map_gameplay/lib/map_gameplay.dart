@@ -1,5 +1,7 @@
 library map_gameplay;
 
+export 'src/rail_journey_service.dart';
+
 export 'src/pokemon_gameplay_rules.dart'
     show PokemonGameplayFeatureDisabledError, PokemonGameplayRules;
 

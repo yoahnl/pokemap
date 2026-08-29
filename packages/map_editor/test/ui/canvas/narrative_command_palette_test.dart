@@ -19,10 +19,16 @@ void main() {
       unorderedEquals(catalog.publishable.map((command) => command.id)),
     );
     expect(
-      attestation.referencesByCapabilityId.values,
-      everyElement(
-        endsWith('scene_action_builder.dart#SceneActionBuilder'),
+      attestation.referenceFor(NarrativeCommandIds.railJourney),
+      endsWith(
+        'narrative_template_catalog.dart#buildSceneRailJourneyPayload',
       ),
+    );
+    expect(
+      attestation.referencesByCapabilityId.entries
+          .where((entry) => entry.key != NarrativeCommandIds.railJourney)
+          .map((entry) => entry.value),
+      everyElement(endsWith('scene_action_builder.dart#SceneActionBuilder')),
     );
   });
 
@@ -92,6 +98,7 @@ void main() {
         NarrativeCommandIds.healParty,
         NarrativeCommandIds.awardBadge,
         NarrativeCommandIds.unlockFieldAbility,
+        NarrativeCommandIds.railJourney,
       },
       capabilityTruth: _completeTruth(),
       onOpenCommand: (command) => opened = command,
@@ -113,6 +120,7 @@ void main() {
       find.text('Créer · Débloquer une capacité terrain'),
       findsOneWidget,
     );
+    expect(find.text('Créer · Piloter un voyage ferroviaire'), findsOneWidget);
     expect(find.textContaining('Modifier la présence'), findsNothing);
 
     await tester.tap(find.text('Créer · Donner un badge'));

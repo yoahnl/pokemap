@@ -170,6 +170,31 @@ void main() {
       expect(SceneNodePayload.fromJson(payload.toJson()), payload);
     });
 
+    test('RailJourney builds the typed interactive command wire', () {
+      final payload = buildScenePayloadForNarrativeCommand(
+        commandId: NarrativeCommandIds.railJourney,
+        parameters: const <String, String>{
+          'commandId': 'scene.rail.begin',
+          'journeyId': 'T1',
+          'operation': 'begin',
+          'direction': 'outbound',
+          'doorSide': 'west',
+        },
+      ) as SceneActionPayload;
+
+      expect(
+        payload.interactiveCommand,
+        SceneInteractiveCommand.railJourney(
+          commandId: 'scene.rail.begin',
+          journeyId: 'T1',
+          operation: SceneRailJourneyOperation.begin,
+          direction: RailJourneyDirection.outbound,
+          doorSide: RailJourneyDoorSide.west,
+        ),
+      );
+      expect(SceneNodePayload.fromJson(payload.toJson()), payload);
+    });
+
     test('Finish Game builds a localized terminal payload from friendly fields',
         () {
       final payload = buildScenePayloadForNarrativeCommand(

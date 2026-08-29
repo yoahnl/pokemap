@@ -12,6 +12,8 @@ enum SceneConsequenceKind {
   giveItem,
   takeItem,
   giveMoney,
+  grantRailCurrency,
+  grantRailStamp,
   givePokemon,
   giveConfiguredStarter,
   healParty,
@@ -72,6 +74,19 @@ abstract base class SceneConsequence {
     String? label,
     String? notes,
   }) = SceneGiveMoneyConsequence;
+
+  factory SceneConsequence.grantRailCurrency({
+    required String semanticCurrencyId,
+    required int amount,
+    String? label,
+    String? notes,
+  }) = SceneGrantRailCurrencyConsequence;
+
+  factory SceneConsequence.grantRailStamp({
+    required String stampId,
+    String? label,
+    String? notes,
+  }) = SceneGrantRailStampConsequence;
 
   factory SceneConsequence.givePokemon({
     required String speciesId,
@@ -148,6 +163,10 @@ abstract base class SceneConsequence {
       SceneConsequenceKind.takeItem => SceneTakeItemConsequence.fromJson(json),
       SceneConsequenceKind.giveMoney =>
         SceneGiveMoneyConsequence.fromJson(json),
+      SceneConsequenceKind.grantRailCurrency =>
+        SceneGrantRailCurrencyConsequence.fromJson(json),
+      SceneConsequenceKind.grantRailStamp =>
+        SceneGrantRailStampConsequence.fromJson(json),
       SceneConsequenceKind.givePokemon =>
         SceneGivePokemonConsequence.fromJson(json),
       SceneConsequenceKind.giveConfiguredStarter =>
@@ -490,6 +509,103 @@ final class SceneGiveMoneyConsequence extends SceneConsequence {
 
   @override
   int get hashCode => Object.hash(amount, label, notes);
+}
+
+@immutable
+final class SceneGrantRailCurrencyConsequence extends SceneConsequence {
+  SceneGrantRailCurrencyConsequence({
+    required String semanticCurrencyId,
+    required this.amount,
+    String? label,
+    String? notes,
+  })  : semanticCurrencyId = semanticCurrencyId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneGrantRailCurrencyConsequence.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return SceneGrantRailCurrencyConsequence(
+      semanticCurrencyId: _readRequiredString(json, 'semanticCurrencyId'),
+      amount: _readRequiredInt(json, 'amount'),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.grantRailCurrency;
+
+  final String semanticCurrencyId;
+  final int amount;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'semanticCurrencyId': semanticCurrencyId,
+        'amount': amount,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneGrantRailCurrencyConsequence &&
+          other.semanticCurrencyId == semanticCurrencyId &&
+          other.amount == amount &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(semanticCurrencyId, amount, label, notes);
+}
+
+@immutable
+final class SceneGrantRailStampConsequence extends SceneConsequence {
+  SceneGrantRailStampConsequence({
+    required String stampId,
+    String? label,
+    String? notes,
+  })  : stampId = stampId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneGrantRailStampConsequence.fromJson(Map<String, dynamic> json) {
+    return SceneGrantRailStampConsequence(
+      stampId: _readRequiredString(json, 'stampId'),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.grantRailStamp;
+
+  final String stampId;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'stampId': stampId,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneGrantRailStampConsequence &&
+          other.stampId == stampId &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(stampId, label, notes);
 }
 
 @immutable
@@ -1072,6 +1188,8 @@ String _kindToJson(SceneConsequenceKind kind) {
     SceneConsequenceKind.giveItem => 'giveItem',
     SceneConsequenceKind.takeItem => 'takeItem',
     SceneConsequenceKind.giveMoney => 'giveMoney',
+    SceneConsequenceKind.grantRailCurrency => 'grantRailCurrency',
+    SceneConsequenceKind.grantRailStamp => 'grantRailStamp',
     SceneConsequenceKind.givePokemon => 'givePokemon',
     SceneConsequenceKind.giveConfiguredStarter => 'giveConfiguredStarter',
     SceneConsequenceKind.healParty => 'healParty',

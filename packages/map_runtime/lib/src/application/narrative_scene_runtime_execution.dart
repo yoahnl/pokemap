@@ -67,6 +67,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   // buffered consequences onto the latest host GameState.
   final pendingConsequences = <SceneConsequence>[];
   final pendingPokemonGrantOperationIds = <String?>[];
+  final pendingRailProgressionOperationIds = <String?>[];
   final writer = consequenceWriter ??
       SceneConsequenceRuntimeWriter(
         project: project,
@@ -85,10 +86,17 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
           nodeId: nodeId,
           consequence: consequence,
         );
+        final railProgressionOperationId = sceneRailProgressionOperationId(
+          sceneId: request.sceneId,
+          executionId: request.executionId,
+          nodeId: nodeId,
+          consequence: consequence,
+        );
         final validation = writer.applyOne(
           validationState,
           consequence,
           pokemonGrantOperationId: grantOperationId,
+          railProgressionOperationId: railProgressionOperationId,
         );
         if (!validation.success) {
           throw StateError(
@@ -99,6 +107,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         validationState = validation.gameState;
         pendingConsequences.add(consequence);
         pendingPokemonGrantOperationIds.add(grantOperationId);
+        pendingRailProgressionOperationIds.add(railProgressionOperationId);
         return 'completed';
       },
     ),
@@ -117,6 +126,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     currentGameState(),
     pendingConsequences,
     pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+    railProgressionOperationIds: pendingRailProgressionOperationIds,
   );
   if (!writeResult.success) {
     return NarrativeSceneExecutionResult.failed(

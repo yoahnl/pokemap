@@ -21,6 +21,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
     this.openHeal,
     this.openPc,
     this.playCharacterAnimation,
+    this.railJourney,
     this.openWorldService,
   });
 
@@ -30,6 +31,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
   final SceneInteractiveCommandHandler? openHeal;
   final SceneInteractiveCommandHandler? openPc;
   final SceneInteractiveCommandHandler? playCharacterAnimation;
+  final SceneInteractiveCommandHandler? railJourney;
   final SceneWorldServiceRequestHandler? openWorldService;
 
   Future<String> execute(SceneRuntimePlanIntent intent) async {
@@ -66,6 +68,10 @@ final class SceneInteractiveCommandRuntimeExecutor {
         await _executeRequired(
           command,
           handler: playCharacterAnimation,
+        ),
+      SceneInteractiveCommandKind.railJourney => await _executeRequired(
+          command,
+          handler: railJourney,
         ),
     };
     if (!command.outputPortIds.contains(output)) {

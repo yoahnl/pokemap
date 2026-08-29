@@ -158,6 +158,7 @@ void main() {
           'project',
           'projectPresentationPreset',
           'projectPresentationProfile',
+          'railJourney',
           'region',
           'sandboxPlayerState',
           'scene',

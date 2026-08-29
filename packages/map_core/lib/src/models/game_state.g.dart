@@ -94,6 +94,11 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
   progression: json['progression'] == null
       ? const PlayerProgression()
       : PlayerProgression.fromJson(json['progression'] as Map<String, dynamic>),
+  railJourneyProgress: json['railJourneyProgress'] == null
+      ? const RailJourneyProgress()
+      : RailJourneyProgress.fromJson(
+          json['railJourneyProgress'] as Map<String, dynamic>,
+        ),
   scriptVariables: json['scriptVariables'] == null
       ? const ScriptVariables()
       : ScriptVariables.fromJson(
@@ -155,6 +160,7 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'trainerProfile': instance.trainerProfile.toJson(),
       'bag': instance.bag.toJson(),
       'progression': instance.progression.toJson(),
+      'railJourneyProgress': instance.railJourneyProgress.toJson(),
       'scriptVariables': instance.scriptVariables.toJson(),
       'storyFlags': instance.storyFlags.toJson(),
       'narrativeFactRuntimeState': instance.narrativeFactRuntimeState.toJson(),

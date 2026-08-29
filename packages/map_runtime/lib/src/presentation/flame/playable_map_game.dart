@@ -43,6 +43,8 @@ import '../../application/npc_runtime_presence.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/placed_element_warp_traversal_controller.dart';
 import '../../application/player_service_runtime_controller.dart';
+import '../../application/rail_journey_runtime_coordinator.dart';
+import '../../application/rail_journey_runtime_transaction.dart';
 import '../../player/runtime_input_lock_manager.dart';
 import '../../player/runtime_audio_mixer.dart';
 import '../../player/runtime_music_service.dart';
@@ -256,6 +258,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameCompletionRequestEmitter? gameCompletionEmitter,
     this.defeatRecoveryCheckpointEmitter,
     @visibleForTesting this.defeatRecoveryCapsLoader,
+    @visibleForTesting this.railJourneyDoorAnimation,
+    @visibleForTesting this.railJourneySpatialTransition,
     this.runtimeLocale = 'fr-FR',
     String? initialPlayerName,
     String? initialPlayerAvatarCharacterId,
@@ -485,6 +489,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final DefeatRecoveryCheckpointEmitter? defeatRecoveryCheckpointEmitter;
   @visibleForTesting
   final PlayerServiceRecoveryCapsLoader? defeatRecoveryCapsLoader;
+  @visibleForTesting
+  final RailJourneyDoorAnimation? railJourneyDoorAnimation;
+  @visibleForTesting
+  final RailJourneySpatialTransition? railJourneySpatialTransition;
   final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   final bool enableActorContactShadows;
   final bool enableStaticPlacedElementShadows;
@@ -1085,7 +1093,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         hostedBattleOutcomes: hostedBattleOutcomes,
         consequenceWriter: consequenceWriter,
         callbacks: _buildSceneRuntimeHostCallbacks(
-          runtimeSourceId: 'event-v2:${request.eventId}:${request.executionId}',
+          runtimeSourceId: 'event-v2:${request.eventId}',
+          executionId: request.executionId,
           defaultNpcEntityId: _narrativeSceneBattleAnchor(
             snapshot,
             request.eventId,
@@ -1095,33 +1104,36 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
       if (result is NarrativeSceneExecutionCompleted) {
-        try {
-          final hydratedGameState = await _hydrateOwnedPlayerPokemonProgression(
-            result.updatedGameState,
-          );
-          final gameCompletion = result.gameCompletion;
-          if (gameCompletion != null) {
-            final coordinator = _gameCompletionCoordinator;
-            if (coordinator == null) {
-              return NarrativeSceneExecutionResult.failed(
-                StateError(
-                  'Finish Game requires an active session completion port.',
-                ),
-              );
-            }
-            coordinator.queue(gameCompletion);
+        final hydratedGameState = await _hydrateOwnedPlayerPokemonProgression(
+          result.updatedGameState,
+        );
+        final gameCompletion = result.gameCompletion;
+        if (gameCompletion != null) {
+          final coordinator = _gameCompletionCoordinator;
+          if (coordinator == null) {
+            throw StateError(
+              'Finish Game requires an active session completion port.',
+            );
           }
-          session.gameState = hydratedGameState;
-          return NarrativeSceneExecutionResult.completed(
-            updatedGameState: hydratedGameState,
-            qualifiedOutcomes: result.qualifiedOutcomes,
-            gameCompletion: gameCompletion,
-          );
-        } catch (error) {
-          return NarrativeSceneExecutionResult.failed(error);
+          coordinator.queue(gameCompletion);
         }
+        session.gameState = hydratedGameState;
+        session.commit();
+        return NarrativeSceneExecutionResult.completed(
+          updatedGameState: hydratedGameState,
+          qualifiedOutcomes: result.qualifiedOutcomes,
+          gameCompletion: gameCompletion,
+        );
       }
+      await session.rollback();
       return result;
+    } catch (error) {
+      try {
+        await session.rollback();
+      } catch (rollbackError) {
+        return NarrativeSceneExecutionResult.failed(rollbackError);
+      }
+      return NarrativeSceneExecutionResult.failed(error);
     } finally {
       _activeNarrativeSceneWorkingSession = null;
     }
@@ -10047,8 +10059,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _showNotification('Scene V1 impossible.');
       return;
     }
+    _NarrativeSceneWorkingSession? workingSession;
     try {
       final session = _NarrativeSceneWorkingSession(_gameState);
+      workingSession = session;
       final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
       final consequenceWriter = await _buildSceneConsequenceRuntimeWriter(
         project: _bundle.manifest,
@@ -10057,6 +10071,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         gameState: session.gameState,
       );
       _activeNarrativeSceneWorkingSession = session;
+      final executionId = _nextNarrativeRuntimeId('scene');
       late final SceneEventRuntimeHookResult result;
       try {
         result = await SceneEventRuntimeHook(
@@ -10064,6 +10079,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           callbacks: _buildSceneRuntimeHostCallbacks(
             runtimeSourceId:
                 'scene:${_bundle.map.id}:${event.id}:${page.pageIndex}',
+            executionId: executionId,
             defaultNpcEntityId: event.id,
             currentGameState: () => session.gameState,
             onQualifiedBattleOutcome: hostedBattleOutcomes.add,
@@ -10075,7 +10091,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           page: page.page,
           gameState: session.gameState,
           currentGameState: () => session.gameState,
-          executionId: _nextNarrativeRuntimeId('scene'),
+          executionId: executionId,
         );
       } finally {
         _activeNarrativeSceneWorkingSession = null;
@@ -10087,12 +10103,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'message=${result.message ?? '-'}',
       );
 
-      if (!result.success && result.handled) {
-        // BETA-SYS-006 : result.message porte des détails techniques anglais
-        // (« Scene branch intent is missing sourceNodeId ») déjà tracés en
-        // debugPrint juste au-dessus. Le joueur reçoit un message stable.
-        _showNotification('La scène ne peut pas continuer.');
-      } else if (result.success) {
+      if (!result.success) {
+        await session.rollback();
+        if (result.handled) {
+          // BETA-SYS-006 : result.message porte des détails techniques anglais
+          // (« Scene branch intent is missing sourceNodeId ») déjà tracés en
+          // debugPrint juste au-dessus. Le joueur reçoit un message stable.
+          _showNotification('La scène ne peut pas continuer.');
+        }
+      } else {
         session.gameState = await _hydrateOwnedPlayerPokemonProgression(
           result.updatedGameState ?? session.gameState,
         );
@@ -10117,8 +10136,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             ),
         ];
         await _publishRootNarrativeOutcomes(outcomes);
+        session.commit();
       }
     } catch (error, stackTrace) {
+      try {
+        await workingSession?.rollback();
+      } catch (rollbackError, rollbackStackTrace) {
+        debugPrint(
+          '[scene_runtime] rollback failed event=${event.id} '
+          'page=${page.pageIndex} error=$rollbackError\n$rollbackStackTrace',
+        );
+      }
       debugPrint(
         '[scene_runtime] unhandled hook error event=${event.id} '
         'page=${page.pageIndex} error=$error\n$stackTrace',
@@ -10129,10 +10157,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   SceneRuntimeHostCallbacks _buildSceneRuntimeHostCallbacks({
     required String runtimeSourceId,
+    required String executionId,
     required String defaultNpcEntityId,
     required GameState Function() currentGameState,
     void Function(NarrativeOutcomeRef outcome)? onQualifiedBattleOutcome,
   }) {
+    final runtimeExecutionSourceId = '$runtimeSourceId:$executionId';
     return SceneRuntimeHostCallbacks(
       evaluateCondition: (intent) => _resolveSceneConditionOutput(
         intent,
@@ -10143,7 +10173,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       ),
       showDialogue: (intent) {
         final adapter = SceneDialogueRuntimeAwaitableAdapter(
-          runtimeSourceId: runtimeSourceId,
+          runtimeSourceId: runtimeExecutionSourceId,
           launcher: _CallbackSceneDialogueRuntimeLauncher(
             _startSceneDialogue,
           ),
@@ -10163,7 +10193,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       },
       startBattle: (intent) {
         final adapter = SceneBattleRuntimeOutcomeAdapter(
-          runtimeSourceId: runtimeSourceId,
+          runtimeSourceId: runtimeExecutionSourceId,
           defaultNpcEntityId: defaultNpcEntityId,
           launcher: _CallbackSceneBattleRuntimeLauncher(
             _startSceneBattle,
@@ -10191,7 +10221,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       },
       playCinematic: (intent) {
         final adapter = SceneCinematicRuntimeAwaitableAdapter(
-          runtimeSourceId: runtimeSourceId,
+          runtimeSourceId: runtimeExecutionSourceId,
           project: _bundle.manifest,
           player: _cinematicRuntimeController,
         );
@@ -10217,6 +10247,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           currentGameState: currentGameState,
         ),
         openWorldService: _executeSceneWorldServiceRequest,
+        railJourney: (command) => _executeSceneRailJourneyCommand(
+          command,
+          runtimeSourceId: runtimeExecutionSourceId,
+          currentGameState: currentGameState,
+        ),
       ).execute,
     );
   }
@@ -10315,6 +10350,161 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _notifySceneCommand('Warp impossible.');
       return 'blocked';
     }
+  }
+
+  Future<String> _executeSceneRailJourneyCommand(
+    SceneInteractiveCommand command, {
+    required String runtimeSourceId,
+    required GameState Function() currentGameState,
+  }) async {
+    if (command is! SceneRailJourneyInteractiveCommand) return 'blocked';
+    final catalog = _bundle.manifest.railJourneyCatalog;
+    if (catalog == null) {
+      _notifySceneCommand('Ce trajet ferroviaire n’est pas configuré.');
+      return 'blocked';
+    }
+    final injectedAnimation = railJourneyDoorAnimation;
+    final injectedTransition = railJourneySpatialTransition;
+    if (!isLoaded &&
+        (injectedAnimation == null || injectedTransition == null)) {
+      _notifySceneCommand('Le trajet est indisponible avant le chargement.');
+      return 'blocked';
+    }
+
+    final stateBeforeCommand = currentGameState();
+    final sourceBundle = _bundle;
+    final sourceWorld = _world;
+    final sourceMapId = _activeMapId;
+    final sourcePosition = _world.player.pos;
+    final workingSession = _activeNarrativeSceneWorkingSession;
+    var spatialCommitted = false;
+    var rolledBack = false;
+
+    Future<void> rollback() async {
+      if (rolledBack) return;
+      if (isLoaded &&
+          (_activeMapId != sourceMapId ||
+              _world.player.pos != sourcePosition)) {
+        await _recoverFromWarpFailure(
+          sourceBundle: sourceBundle,
+          sourceWorld: sourceWorld,
+          sourceMapId: sourceMapId,
+        );
+        if (_activeMapId != sourceMapId ||
+            _world.player.pos != sourcePosition) {
+          throw StateError(
+            'RailJourney rollback could not restore map=$sourceMapId '
+            'position=(${sourcePosition.x},${sourcePosition.y}).',
+          );
+        }
+      }
+      workingSession?.gameState = stateBeforeCommand;
+      _applyNarrativeGameState(stateBeforeCommand);
+      rolledBack = true;
+    }
+
+    try {
+      final result = await const RailJourneyRuntimeTransaction().execute(
+        command: command,
+        operationInstanceId: 'rail:$runtimeSourceId:${command.commandId}',
+        catalog: catalog,
+        gameState: currentGameState(),
+        animateDoor: injectedAnimation ?? _animateRailJourneyDoor,
+        performTransition: (transition) async {
+          _applyNarrativeGameState(currentGameState());
+          final completed = injectedTransition == null
+              ? await _performRailJourneyTransition(transition)
+              : await injectedTransition(transition);
+          if (completed && injectedTransition != null) {
+            _applyNarrativeGameState(
+              _gameState.copyWith(
+                currentMapId: transition.destinationMapId,
+                playerPosition: transition.destinationPosition,
+              ),
+            );
+          }
+          spatialCommitted = completed;
+          return completed;
+        },
+        commitProgress: (progress) async {
+          final baseState = spatialCommitted ? _gameState : currentGameState();
+          final committed = baseState.copyWith(railJourneyProgress: progress);
+          if (workingSession != null) {
+            workingSession.gameState = committed;
+          }
+          if (spatialCommitted || workingSession == null) {
+            _applyNarrativeGameState(committed);
+          }
+        },
+        rollback: rollback,
+      );
+      if (result is RailJourneyRuntimeTransactionBlocked) {
+        _notifySceneCommand('Le trajet ne peut pas continuer.');
+      } else if (result is RailJourneyRuntimeTransactionCompleted &&
+          !result.alreadyApplied) {
+        workingSession?.registerCompensation(rollback);
+      }
+      return result.outputPortId;
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[rail_journey] command failed command=${command.commandId} '
+        'journey=${command.journeyId} error=$error\n$stackTrace',
+      );
+      _notifySceneCommand('Le trajet ferroviaire a échoué.');
+      return 'blocked';
+    }
+  }
+
+  Future<bool> _animateRailJourneyDoor(String placedElementId) async {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) return false;
+    final instance = _world.map.placedElements
+        .where((candidate) => candidate.id == placedElementId)
+        .firstOrNull;
+    if (instance == null) return false;
+    final element = _bundle.manifest.elements
+        .where((candidate) => candidate.id == instance.elementId)
+        .firstOrNull;
+    if (element == null || element.frames.length < 2) return false;
+    if (!_playPlacedElementAnimationOnce(instanceId: instance.id)) {
+      return false;
+    }
+
+    final mapId = _activeMapId;
+    final frameDurationsMs = normalizeElementFrameDurationsMs(
+      element.frames.map((frame) => frame.durationMs).toList(growable: false),
+    );
+    final durationMs = resolvePlacedElementAnimationOneShotDurationMs(
+      frameDurationsMs: frameDurationsMs,
+      speed: instance.animation?.speed ?? 1,
+    );
+    _clearPressedMovementControls();
+    _setFlowPhase(_RuntimeFlowPhase.blockingInteraction);
+    try {
+      await Future<void>.delayed(Duration(milliseconds: durationMs.round()));
+      return _activeMapId == mapId;
+    } finally {
+      if (_activeMapId == mapId &&
+          _flowPhase == _RuntimeFlowPhase.blockingInteraction) {
+        _setFlowPhase(_RuntimeFlowPhase.overworld);
+      }
+    }
+  }
+
+  Future<bool> _performRailJourneyTransition(
+    RailJourneyRuntimeTransition transition,
+  ) async {
+    await _handleWarp(
+      TriggeredWarp(
+        warpId:
+            'rail:${transition.sourceDoorPlacedElementId}:${transition.destinationDoorPlacedElementId}',
+        targetMapId: transition.destinationMapId,
+        targetPos: transition.destinationPosition,
+        triggerMode: MapWarpTriggerMode.onBump,
+      ),
+      allowMapActivationWork: true,
+    );
+    return _activeMapId == transition.destinationMapId &&
+        _world.player.pos == transition.destinationPosition;
   }
 
   Future<String> _executeSceneMoveNpcCommand(
@@ -10473,10 +10663,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @visibleForTesting
   Future<String> debugExecuteSceneInteractiveCommand(
-    SceneInteractiveCommand command,
-  ) async {
+    SceneInteractiveCommand command, {
+    String? executionId,
+  }) async {
+    final resolvedExecutionId =
+        executionId ?? _nextNarrativeRuntimeId('debug-scene');
     final callback = _buildSceneRuntimeHostCallbacks(
       runtimeSourceId: 'debug:interactive-command',
+      executionId: resolvedExecutionId,
       defaultNpcEntityId: 'debug',
       currentGameState: () => playerServiceGameStateSnapshot,
     ).executeInteractiveCommand!;

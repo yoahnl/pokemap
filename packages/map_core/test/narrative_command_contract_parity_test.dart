@@ -224,6 +224,15 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
               ),
             ),
           ),
+      NarrativeCommandIds.railJourney: () => SceneActionPayload.interactive(
+            SceneInteractiveCommand.railJourney(
+              commandId: 'scene.parity.rail.begin',
+              journeyId: 'T1',
+              operation: SceneRailJourneyOperation.begin,
+              direction: RailJourneyDirection.outbound,
+              doorSide: RailJourneyDoorSide.west,
+            ),
+          ),
       NarrativeCommandIds.dialogue: () => SceneYarnDialoguePayload(
             dialogueId: 'dialogue_port',
           ),
@@ -393,6 +402,9 @@ ProjectManifest _project() => ProjectManifest(
           ),
         ],
       ),
+      railJourneyCatalog: const RailJourneyCatalog(
+        journeys: <RailJourneyDefinition>[_parityJourney],
+      ),
     );
 
 MapData _map() => MapData(
@@ -424,3 +436,32 @@ MapData _map() => MapData(
         ),
       ],
     );
+
+const _parityJourney = RailJourneyDefinition(
+  id: 'T1',
+  label: 'Parity Journey',
+  origin: RailJourneyEndpoint(
+    stationMapId: 'map_port',
+    boardingArea: MapRect(
+      pos: GridPos(x: 0, y: 0),
+      size: GridSize(width: 1, height: 1),
+    ),
+    trainEntryPos: GridPos(x: 0, y: 0),
+    stationArrivalPos: GridPos(x: 0, y: 0),
+    doors: <RailJourneyEndpointDoor>[],
+  ),
+  destination: RailJourneyEndpoint(
+    stationMapId: 'map_port',
+    boardingArea: MapRect(
+      pos: GridPos(x: 0, y: 0),
+      size: GridSize(width: 1, height: 1),
+    ),
+    trainEntryPos: GridPos(x: 0, y: 0),
+    stationArrivalPos: GridPos(x: 0, y: 0),
+    doors: <RailJourneyEndpointDoor>[],
+  ),
+  vehicleMapId: 'map_port',
+  vehicleVariant: RailJourneyVehicleVariant.regular,
+  shellState: 'day',
+  fare: RailJourneyFare(policy: RailJourneyFarePolicy.storyFree),
+);

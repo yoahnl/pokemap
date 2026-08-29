@@ -65,6 +65,17 @@ void main() {
     }
   });
 
+  test('RailJourney runtime evidence names the transactional consumer', () {
+    final attestation = buildMapRuntimeNarrativeCommandConsumerAttestation();
+
+    expect(
+      attestation.referenceFor(NarrativeCommandIds.railJourney),
+      endsWith(
+        'rail_journey_runtime_transaction.dart#RailJourneyRuntimeTransaction',
+      ),
+    );
+  });
+
   test('player-surface attestation resolves to the playable game host', () {
     final catalog = NarrativeCommandCatalog.canonical();
     final consumers =
@@ -148,6 +159,7 @@ void main() {
       openHeal: handler,
       openPc: handler,
       playCharacterAnimation: handler,
+      railJourney: handler,
     );
 
     expect(samples.keys, unorderedEquals(declaredIds));
@@ -158,7 +170,32 @@ void main() {
       );
       expect(command.outputPortIds, contains(output), reason: entry.key);
     }
-    expect(calls, SceneInteractiveCommandKind.values);
+    expect(
+      calls,
+      samples.values.map((sample) => sample().kind),
+    );
+  });
+
+  test('RailJourney execution fails closed when its handler is missing',
+      () async {
+    final executor = SceneInteractiveCommandRuntimeExecutor(
+      warp: (_) async => 'completed',
+    );
+
+    await expectLater(
+      executor.execute(
+        SceneRuntimePlanIntent.executeInteractiveCommand(
+          command: _interactiveSamples()[NarrativeCommandIds.railJourney]!(),
+        ),
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('railJourney'),
+        ),
+      ),
+    );
   });
 
   test('every supported dedicated node reaches a runtime host callback',
@@ -362,6 +399,14 @@ Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
               definitionId: 'saluer',
               direction: EntityFacing.south,
             ),
+          ),
+      NarrativeCommandIds.railJourney: () =>
+          SceneInteractiveCommand.railJourney(
+            commandId: 'scene.runtime.rail.begin',
+            journeyId: 'T1',
+            operation: SceneRailJourneyOperation.begin,
+            direction: RailJourneyDirection.outbound,
+            doorSide: RailJourneyDoorSide.west,
           ),
     };
 

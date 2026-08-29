@@ -120,6 +120,7 @@ export 'src/models/scene_consequence.dart';
 export 'src/models/scene_finish_game_contract.dart';
 export 'src/models/storyline_asset.dart';
 export 'src/models/world_rule.dart';
+export 'src/models/rail_journey.dart';
 export 'src/models/visual_frame_json.dart';
 export 'src/models/shadow.dart';
 export 'src/models/shadow_catalog.dart';

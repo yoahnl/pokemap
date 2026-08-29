@@ -18,6 +18,7 @@ void main() {
       openHeal: handler,
       openPc: handler,
       playCharacterAnimation: handler,
+      railJourney: handler,
     );
     for (final command in <SceneInteractiveCommand>[
       SceneInteractiveCommand.warp(
@@ -37,6 +38,13 @@ void main() {
           actorId: 'npc.guard',
           definitionId: 'wave',
         ),
+      ),
+      SceneInteractiveCommand.railJourney(
+        commandId: 'board-t1',
+        journeyId: 'T1',
+        operation: SceneRailJourneyOperation.begin,
+        direction: RailJourneyDirection.outbound,
+        doorSide: RailJourneyDoorSide.west,
       ),
     ]) {
       final result = await executor.execute(

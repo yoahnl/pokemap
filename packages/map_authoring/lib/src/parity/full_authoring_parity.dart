@@ -509,6 +509,15 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId.startsWith('rail_journey.')) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_rail_journey_flow_test.dart',
+      AuthoringTransport.cli: 'test/tooling/jsonl_rail_journey_flow_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/rail_journey_server.test.ts',
+    };
+  }
   if (_cin081CertifiedActionIds.contains(actionId)) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
@@ -1250,6 +1259,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/narrative/modern_narrative_authoring_test.dart',
   ),
   _ContractEvidenceRule(
+    ['rail_journey.'],
+    'test/domains/narrative/rail_journey_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['storyline.', 'scenario.'],
     'test/domains/narrative/storyline_scenario_authoring_test.dart',
   ),
@@ -1303,6 +1316,7 @@ const _semanticOwners = <String, String>{
   'worldRule': 'worldRule',
   'scene': 'scene',
   'storyline': 'storyline',
+  'railJourney': 'railJourney',
   'cinematic': 'cinematic',
   'cinematicMediaAsset': 'cinematic',
   'cinematicLibraryCatalog': 'project',
@@ -1362,6 +1376,7 @@ const _requiredDirectReadResourceKinds = <String>{
   'presentationLayer',
   'presentationVisualFolder',
   'presentationPreviewContext',
+  'railJourney',
 };
 
 const _visualResources = <String>{

@@ -213,7 +213,115 @@ void main() {
         'ending.selbrume',
       );
     });
+
+    test('derives rail grant receipts from scene execution context', () async {
+      const initial = GameState(saveId: 'save_rail_rewards');
+      final project = _project().copyWith(
+        scenes: <SceneAsset>[..._project().scenes, _railRewardScene()],
+      );
+      final callbacks = SceneRuntimeHostCallbacks(
+        evaluateCondition: (_) => throw StateError('Unexpected condition.'),
+        showDialogue: (_) => throw StateError('Unexpected dialogue.'),
+        startBattle: (_) => throw StateError('Unexpected battle.'),
+        playCinematic: (_) => throw StateError('Unexpected cinematic.'),
+      );
+
+      final first = await executeNarrativeEventScene(
+        request: const NarrativeSceneExecutionRequest(
+          eventId: 'event_rail_rewards',
+          sceneId: 'scene_rail_rewards',
+          executionId: 'execution_rail_rewards_1',
+          gameState: initial,
+        ),
+        project: project,
+        mapsById: const <String, MapData>{},
+        currentGameState: () => initial,
+        callbacks: callbacks,
+      ) as NarrativeSceneExecutionCompleted;
+      final replay = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+          eventId: 'event_rail_rewards',
+          sceneId: 'scene_rail_rewards',
+          executionId: 'execution_rail_rewards_1',
+          gameState: first.updatedGameState,
+        ),
+        project: project,
+        mapsById: const <String, MapData>{},
+        currentGameState: () => first.updatedGameState,
+        callbacks: callbacks,
+      ) as NarrativeSceneExecutionCompleted;
+
+      expect(
+        first.updatedGameState.railJourneyProgress.semanticCurrencyBalances,
+        <String, int>{'line_tokens': 3},
+      );
+      expect(first.updatedGameState.railJourneyProgress.earnedStampIds,
+          <String>{'hanazuki_stamp'});
+      expect(
+        first.updatedGameState.railJourneyProgress.appliedProgressionOperations
+            .keys,
+        <String>{
+          'scene:scene_rail_rewards:execution_rail_rewards_1:grant_currency',
+          'scene:scene_rail_rewards:execution_rail_rewards_1:grant_stamp',
+        },
+      );
+      expect(replay.updatedGameState, first.updatedGameState);
+    });
   });
+}
+
+SceneAsset _railRewardScene() {
+  return SceneAsset(
+    id: 'scene_rail_rewards',
+    name: 'Rail rewards',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: <SceneNode>[
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'grant_currency',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.grantRailCurrency(
+              semanticCurrencyId: 'line_tokens',
+              amount: 3,
+            ),
+          ),
+        ),
+        SceneNode(
+          id: 'grant_stamp',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.grantRailStamp(stampId: 'hanazuki_stamp'),
+          ),
+        ),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ],
+      edges: <SceneEdge>[
+        SceneEdge(
+          id: 'start_currency',
+          fromNodeId: 'start',
+          fromPortId: 'completed',
+          toNodeId: 'grant_currency',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'currency_stamp',
+          fromNodeId: 'grant_currency',
+          fromPortId: 'completed',
+          toNodeId: 'grant_stamp',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+        SceneEdge(
+          id: 'stamp_end',
+          fromNodeId: 'grant_stamp',
+          fromPortId: 'completed',
+          toNodeId: 'end',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+      ],
+    ),
+  );
 }
 
 SceneAsset _finishScene() {

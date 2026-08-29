@@ -17,6 +17,8 @@ void main() {
       NarrativeCommandIds.giveItem,
       NarrativeCommandIds.takeItem,
       NarrativeCommandIds.giveMoney,
+      NarrativeCommandIds.grantRailCurrency,
+      NarrativeCommandIds.grantRailStamp,
       NarrativeCommandIds.givePokemon,
       NarrativeCommandIds.giveConfiguredStarter,
       NarrativeCommandIds.warp,
@@ -35,6 +37,7 @@ void main() {
       NarrativeCommandIds.setPauseMenuEntryVisibility,
       NarrativeCommandIds.moveNpc,
       NarrativeCommandIds.playCharacterAnimation,
+      NarrativeCommandIds.railJourney,
     };
 
     expect(

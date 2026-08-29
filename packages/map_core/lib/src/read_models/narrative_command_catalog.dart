@@ -7,6 +7,8 @@ abstract final class NarrativeCommandIds {
   static const giveItem = 'giveItem';
   static const takeItem = 'takeItem';
   static const giveMoney = 'giveMoney';
+  static const grantRailCurrency = 'grantRailCurrency';
+  static const grantRailStamp = 'grantRailStamp';
   static const givePokemon = 'givePokemon';
   static const giveConfiguredStarter = 'giveConfiguredStarter';
   static const warp = 'warp';
@@ -26,6 +28,7 @@ abstract final class NarrativeCommandIds {
       'setPauseMenuEntryVisibility';
   static const moveNpc = 'moveNpc';
   static const playCharacterAnimation = 'playCharacterAnimation';
+  static const railJourney = 'railJourney';
 }
 
 final class NarrativeCommandCatalog {
@@ -139,6 +142,55 @@ final class NarrativeCommandCatalog {
             NarrativeCommandParameterKind.integer,
           ),
         ],
+      ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.grantRailCurrency,
+        label: 'Donner des jetons ferroviaires',
+        description: 'Crédite une monnaie ferroviaire sémantique.',
+        backend: NarrativeCommandBackend.sceneConsequence,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.unsupported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'En attente du raccord authoring du lot ferroviaire.',
+        ),
+        fgLotId: 'FG-080',
+        wireId: 'SceneConsequence.grantRailCurrency',
+        parameters: [
+          _parameter(
+            'semanticCurrencyId',
+            'Monnaie ferroviaire',
+            NarrativeCommandParameterKind.text,
+          ),
+          _parameter(
+            'amount',
+            'Montant',
+            NarrativeCommandParameterKind.integer,
+          ),
+        ],
+        isPersistent: true,
+      ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.grantRailStamp,
+        label: 'Donner un tampon ferroviaire',
+        description: 'Attribue un tampon de progression ferroviaire.',
+        backend: NarrativeCommandBackend.sceneConsequence,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.unsupported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'En attente du raccord authoring du lot ferroviaire.',
+        ),
+        fgLotId: 'FG-080',
+        wireId: 'SceneConsequence.grantRailStamp',
+        parameters: [
+          _parameter(
+            'stampId',
+            'Tampon ferroviaire',
+            NarrativeCommandParameterKind.text,
+          ),
+        ],
+        isPersistent: true,
       ),
       consequence(
         NarrativeCommandIds.givePokemon,
@@ -383,6 +435,54 @@ final class NarrativeCommandCatalog {
             required: false,
           ),
         ],
+      ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.railJourney,
+        label: 'Piloter un voyage ferroviaire',
+        description: 'Cycle ferroviaire persistant et transactionnel.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.unsupported,
+          runtime: NarrativeCommandCapabilityStatus.unsupported,
+          reason:
+              'En attente du raccord authoring et PlayableMapGame du lot 3B.',
+        ),
+        fgLotId: 'FG-080',
+        wireId: 'SceneInteractiveCommand.railJourney',
+        parameters: [
+          _parameter(
+            'commandId',
+            'Commande',
+            NarrativeCommandParameterKind.text,
+          ),
+          _parameter('journeyId', 'Voyage', NarrativeCommandParameterKind.text),
+          _parameter(
+            'operation',
+            'Opération',
+            NarrativeCommandParameterKind.text,
+          ),
+          _parameter(
+            'direction',
+            'Direction',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'advanceEvent',
+            'Étape',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'doorSide',
+            'Côté de porte',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+        ],
+        isPersistent: true,
+        isAwaitable: true,
       ),
       node(
         NarrativeCommandIds.dialogue,

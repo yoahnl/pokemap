@@ -1098,6 +1098,21 @@ List<_QueryRecord> _records(
             },
           ),
       ];
+    case 'railJourney':
+      return <_QueryRecord>[
+        for (final journey in snapshot.manifest.railJourneyCatalog?.journeys ??
+            const <RailJourneyDefinition>[])
+          _QueryRecord(
+            summary: _railJourneySummary(journey),
+            detail: <String, Object?>{
+              ...journey.toJson(),
+              'resourceKind': 'railJourney',
+              'schemaVersion':
+                  snapshot.manifest.railJourneyCatalog?.schemaVersion ??
+                      railJourneySchemaVersion,
+            },
+          ),
+      ];
     default:
       throw StateError(
         'Canonical queryable resource kind has no query route: '
@@ -1980,6 +1995,18 @@ Map<String, Object?> _storylineSummary(StorylineAsset storyline) => {
       'chapterCount': storyline.chapters.length,
       'stepCount': storyline.chapters
           .fold<int>(0, (count, chapter) => count + chapter.steps.length),
+    };
+
+Map<String, Object?> _railJourneySummary(RailJourneyDefinition journey) =>
+    <String, Object?>{
+      'id': journey.id,
+      'name': journey.label,
+      'resourceKind': 'railJourney',
+      'originMapId': journey.origin.stationMapId,
+      'destinationMapId': journey.destination.stationMapId,
+      'vehicleMapId': journey.vehicleMapId,
+      'vehicleVariant': journey.vehicleVariant.name,
+      'farePolicy': journey.fare.policy.name,
     };
 
 String? _pokemonSpeciesDisplayName(

@@ -219,6 +219,51 @@ void main() {
     );
   });
 
+  testWidgets('RailJourney uses guided journey and transition pickers',
+      (tester) async {
+    SceneActionBuildResult? result;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.railJourney,
+      runtimeCommandIds: const <String>{NarrativeCommandIds.railJourney},
+      options: const <NarrativeCommandParameterKind,
+          List<SceneActionPickerOption>>{
+        NarrativeCommandParameterKind.railJourney: <SceneActionPickerOption>[
+          SceneActionPickerOption(id: 'T1', label: 'Hanazuki → Aohara'),
+        ],
+      },
+      initialParameters: const <String, String>{
+        'commandId': 'scene.rail.begin',
+        'operation': 'begin',
+      },
+      onSubmitResult: (value) => result = value,
+    );
+
+    expect(find.text('Hanazuki → Aohara'), findsOneWidget);
+    expect(find.text('Départ'), findsOneWidget);
+    expect(find.text('Aller'), findsOneWidget);
+    expect(find.text('Porte ouest'), findsOneWidget);
+    expect(find.text('Étape'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('scene-action-parameter-journeyId')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    expect(
+      (result!.payload as SceneActionPayload).interactiveCommand,
+      SceneInteractiveCommand.railJourney(
+        commandId: 'scene.rail.begin',
+        journeyId: 'T1',
+        operation: SceneRailJourneyOperation.begin,
+        direction: RailJourneyDirection.outbound,
+        doorSide: RailJourneyDoorSide.west,
+      ),
+    );
+  });
+
   testWidgets('badge and field ability use project-owned guided pickers',
       (tester) async {
     SceneNodePayload? badgePayload;

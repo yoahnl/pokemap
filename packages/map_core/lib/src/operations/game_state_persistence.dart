@@ -37,6 +37,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     trainerProfile: normalizedSaveData.trainerProfile,
     bag: normalizedSaveData.bag,
     progression: normalizedProgression,
+    railJourneyProgress: normalizedSaveData.railJourneyProgress,
     storyFlags: StoryFlags(activeFlags: migratedFlags),
     narrativeFactRuntimeState: normalizedSaveData.narrativeFactRuntimeState,
     narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
@@ -76,6 +77,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     trainerProfile: normalizedGameState.trainerProfile,
     bag: normalizedGameState.bag,
     progression: normalizedProgression,
+    railJourneyProgress: normalizedGameState.railJourneyProgress,
     narrativeFactRuntimeState: normalizedGameState.narrativeFactRuntimeState,
     narrativeEventProgress: normalizedGameState.narrativeEventProgress,
     pauseMenuState: normalizedGameState.pauseMenuState,
@@ -94,6 +96,7 @@ GameState normalizeLoadedGameState(GameState state) {
   final stateWithRoster = state.copyWith(
     party: roster.party,
     pokemonStorage: roster.pokemonStorage,
+    railJourneyProgress: state.railJourneyProgress.validated(),
   );
   final normalizedProgression = _normalizePokedexProgression(
     progression: stateWithRoster.progression,

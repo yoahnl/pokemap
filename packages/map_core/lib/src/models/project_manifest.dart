@@ -9,6 +9,7 @@ import 'enums.dart';
 import 'project_battle_audio.dart';
 import 'project_battle_transitions.dart';
 import 'project_trainer.dart';
+import 'rail_journey.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
 import 'pokemon_ruleset_profile.dart';
@@ -494,6 +495,7 @@ abstract class ProjectManifest with _$ProjectManifest {
       toJson: _storylinesToJson,
     )
     List<StorylineAsset> storylines,
+    @JsonKey(includeIfNull: false) RailJourneyCatalog? railJourneyCatalog,
     @Default([]) List<ShopDefinition> shops,
     @Default([]) List<BadgeDefinition> badges,
     @Default([]) List<ProjectTrainerEntry> trainers,

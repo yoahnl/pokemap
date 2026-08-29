@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../runtime/character_custom_animation_runtime_contract.dart';
+import 'rail_journey.dart';
 
 enum SceneInteractiveCommandKind {
   warp,
@@ -9,6 +10,15 @@ enum SceneInteractiveCommandKind {
   openHeal,
   openPc,
   playCharacterAnimation,
+  railJourney,
+}
+
+enum SceneRailJourneyOperation { begin, advance, acknowledge }
+
+enum SceneRailJourneyAdvanceEvent {
+  doorsClosed,
+  arrivalReached,
+  destinationDoorUsed,
 }
 
 @immutable
@@ -38,6 +48,15 @@ abstract base class SceneInteractiveCommand {
   factory SceneInteractiveCommand.playCharacterAnimation({
     required CharacterCustomAnimationRuntimeCommand runtimeCommand,
   }) = SceneCharacterCustomAnimationInteractiveCommand;
+
+  factory SceneInteractiveCommand.railJourney({
+    required String commandId,
+    required String journeyId,
+    required SceneRailJourneyOperation operation,
+    RailJourneyDirection? direction,
+    SceneRailJourneyAdvanceEvent? advanceEvent,
+    RailJourneyDoorSide? doorSide,
+  }) = SceneRailJourneyInteractiveCommand;
 
   factory SceneInteractiveCommand.fromJson(Map<String, dynamic> json) {
     final kind = SceneInteractiveCommandKind.values.firstWhere(
@@ -70,6 +89,27 @@ abstract base class SceneInteractiveCommand {
         SceneCharacterCustomAnimationInteractiveCommand(
           runtimeCommand: CharacterCustomAnimationRuntimeCommand.fromJson(
             _requiredObject(json, 'runtimeCommand'),
+          ),
+        ),
+      SceneInteractiveCommandKind.railJourney =>
+        SceneRailJourneyInteractiveCommand(
+          commandId: _required(json, 'commandId'),
+          journeyId: _required(json, 'journeyId'),
+          operation: _requiredEnum(
+            json,
+            'operation',
+            SceneRailJourneyOperation.values,
+          ),
+          direction: _optionalRailJourneyDirection(json, 'direction'),
+          advanceEvent: _optionalEnum(
+            json,
+            'advanceEvent',
+            SceneRailJourneyAdvanceEvent.values,
+          ),
+          doorSide: _optionalEnum(
+            json,
+            'doorSide',
+            RailJourneyDoorSide.values,
           ),
         ),
     };
@@ -268,6 +308,97 @@ final class SceneCharacterCustomAnimationInteractiveCommand
   int get hashCode => runtimeCommand.hashCode;
 }
 
+@immutable
+final class SceneRailJourneyInteractiveCommand
+    extends SceneInteractiveCommand {
+  SceneRailJourneyInteractiveCommand({
+    required String commandId,
+    required String journeyId,
+    required this.operation,
+    this.direction,
+    this.advanceEvent,
+    this.doorSide,
+  })  : commandId = _normalize(commandId, 'commandId'),
+        journeyId = _normalize(journeyId, 'journeyId') {
+    switch (operation) {
+      case SceneRailJourneyOperation.begin:
+        if (direction == null || doorSide == null || advanceEvent != null) {
+          throw ArgumentError(
+            'A rail journey begin requires direction and doorSide only.',
+          );
+        }
+      case SceneRailJourneyOperation.advance:
+        if (direction != null || advanceEvent == null) {
+          throw ArgumentError(
+            'A rail journey advance requires advanceEvent only.',
+          );
+        }
+        final requiresDoor =
+            advanceEvent == SceneRailJourneyAdvanceEvent.destinationDoorUsed;
+        if (requiresDoor != (doorSide != null)) {
+          throw ArgumentError(
+            'Only destinationDoorUsed requires a rail journey doorSide.',
+          );
+        }
+      case SceneRailJourneyOperation.acknowledge:
+        if (direction != null || advanceEvent != null || doorSide != null) {
+          throw ArgumentError(
+            'A rail journey acknowledge cannot carry transition fields.',
+          );
+        }
+    }
+  }
+
+  final String commandId;
+  final String journeyId;
+  final SceneRailJourneyOperation operation;
+  final RailJourneyDirection? direction;
+  final SceneRailJourneyAdvanceEvent? advanceEvent;
+  final RailJourneyDoorSide? doorSide;
+
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.railJourney;
+
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked'];
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'kind': kind.name,
+        'commandId': commandId,
+        'journeyId': journeyId,
+        'operation': operation.name,
+        if (direction != null)
+          'direction': switch (direction!) {
+            RailJourneyDirection.outbound => 'outbound',
+            RailJourneyDirection.returnJourney => 'return',
+          },
+        if (advanceEvent != null) 'advanceEvent': advanceEvent!.name,
+        if (doorSide != null) 'doorSide': doorSide!.name,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SceneRailJourneyInteractiveCommand &&
+      other.commandId == commandId &&
+      other.journeyId == journeyId &&
+      other.operation == operation &&
+      other.direction == direction &&
+      other.advanceEvent == advanceEvent &&
+      other.doorSide == doorSide;
+
+  @override
+  int get hashCode => Object.hash(
+        commandId,
+        journeyId,
+        operation,
+        direction,
+        advanceEvent,
+        doorSide,
+      );
+}
+
 String _normalize(String value, String field) {
   final normalized = value.trim();
   if (normalized.isEmpty) throw ArgumentError.value(value, field);
@@ -298,4 +429,42 @@ Map<String, dynamic> _requiredObject(Map<String, dynamic> json, String field) {
   final value = json[field];
   if (value is! Map) throw FormatException('$field must be an object.');
   return Map<String, dynamic>.from(value);
+}
+
+T _requiredEnum<T extends Enum>(
+  Map<String, dynamic> json,
+  String field,
+  List<T> values,
+) {
+  final value = _required(json, field);
+  return values.firstWhere(
+    (candidate) => candidate.name == value,
+    orElse: () => throw FormatException('$field is invalid.'),
+  );
+}
+
+T? _optionalEnum<T extends Enum>(
+  Map<String, dynamic> json,
+  String field,
+  List<T> values,
+) {
+  final value = _optional(json, field);
+  if (value == null) return null;
+  return values.firstWhere(
+    (candidate) => candidate.name == value,
+    orElse: () => throw FormatException('$field is invalid.'),
+  );
+}
+
+RailJourneyDirection? _optionalRailJourneyDirection(
+  Map<String, dynamic> json,
+  String field,
+) {
+  final value = _optional(json, field);
+  return switch (value) {
+    null => null,
+    'outbound' => RailJourneyDirection.outbound,
+    'return' => RailJourneyDirection.returnJourney,
+    _ => throw FormatException('$field is invalid.'),
+  };
 }

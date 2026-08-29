@@ -161,7 +161,11 @@ final class AuthoringReadApi
     );
     final structureDiagnostics = <AuthoringStructureDiagnostic>[];
     try {
-      ProjectValidator.validate(snapshot.manifest);
+      ProjectValidator.validate(
+        snapshot.manifest,
+        maps: snapshot.maps,
+        itemCatalog: snapshot.itemCatalog,
+      );
       for (final map in snapshot.maps) {
         MapValidator.validate(
           map,

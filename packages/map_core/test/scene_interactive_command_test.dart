@@ -19,6 +19,92 @@ void main() {
     }
   });
 
+  test('rail journey command round-trips its canonical begin wire', () {
+    final json = <String, dynamic>{
+      'kind': 'railJourney',
+      'commandId': 'board-t1',
+      'journeyId': 'T1',
+      'operation': 'begin',
+      'direction': 'outbound',
+      'doorSide': 'west',
+    };
+
+    final command = SceneInteractiveCommand.fromJson(json);
+
+    expect(command.toJson(), json);
+    expect(command.outputPortIds, const ['completed', 'blocked']);
+  });
+
+  test('rail journey command round-trips advance and acknowledge wires', () {
+    final jsons = <Map<String, dynamic>>[
+      <String, dynamic>{
+        'kind': 'railJourney',
+        'commandId': 'arrive-t1',
+        'journeyId': 'T1',
+        'operation': 'advance',
+        'advanceEvent': 'destinationDoorUsed',
+        'doorSide': 'east',
+      },
+      <String, dynamic>{
+        'kind': 'railJourney',
+        'commandId': 'ack-t1',
+        'journeyId': 'T1',
+        'operation': 'acknowledge',
+      },
+    ];
+
+    for (final json in jsons) {
+      expect(SceneInteractiveCommand.fromJson(json).toJson(), json);
+    }
+  });
+
+  test('rail journey command rejects incoherent operation fields', () {
+    SceneInteractiveCommand decode(Map<String, dynamic> fields) =>
+        SceneInteractiveCommand.fromJson(<String, dynamic>{
+          'kind': 'railJourney',
+          'commandId': 'command-t1',
+          'journeyId': 'T1',
+          ...fields,
+        });
+
+    expect(
+      () => decode(<String, dynamic>{
+        'operation': 'begin',
+        'doorSide': 'west',
+      }),
+      throwsArgumentError,
+    );
+    expect(
+      () => decode(<String, dynamic>{
+        'operation': 'begin',
+        'direction': 'outbound',
+      }),
+      throwsArgumentError,
+    );
+    expect(
+      () => decode(<String, dynamic>{
+        'operation': 'advance',
+        'advanceEvent': 'doorsClosed',
+        'doorSide': 'west',
+      }),
+      throwsArgumentError,
+    );
+    expect(
+      () => decode(<String, dynamic>{
+        'operation': 'advance',
+        'advanceEvent': 'destinationDoorUsed',
+      }),
+      throwsArgumentError,
+    );
+    expect(
+      () => decode(<String, dynamic>{
+        'operation': 'acknowledge',
+        'direction': 'return',
+      }),
+      throwsArgumentError,
+    );
+  });
+
   test('Scene action owns exactly one canonical typed backend', () {
     final command = SceneInteractiveCommand.openShop(shopId: 'shop.port');
     final payload = SceneActionPayload.interactive(command);

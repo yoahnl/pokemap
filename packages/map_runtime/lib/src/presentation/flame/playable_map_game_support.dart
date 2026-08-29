@@ -259,8 +259,6 @@ final class _PlayableMapCinematicRuntimeHost
     }));
   }
 
-
-
   PositionComponent _emoteGlyphComponent(String emoteId) {
     return TextComponent(
       text: _cinematicEmoteGlyph(emoteId),
@@ -667,6 +665,33 @@ final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 
   GameState gameState;
+  final List<Future<void> Function()> _compensations =
+      <Future<void> Function()>[];
+
+  void registerCompensation(Future<void> Function() compensation) {
+    _compensations.add(compensation);
+  }
+
+  void commit() {
+    _compensations.clear();
+  }
+
+  Future<void> rollback() async {
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    while (_compensations.isNotEmpty) {
+      final compensation = _compensations.removeLast();
+      try {
+        await compensation();
+      } catch (error, stackTrace) {
+        firstError ??= error;
+        firstStackTrace ??= stackTrace;
+      }
+    }
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
+  }
 }
 
 final class _NarrativeOutcomeContinuationContext {

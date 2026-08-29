@@ -5,6 +5,7 @@ import '../models/badge_definition.dart';
 import '../models/cinematic_library_catalog.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
+import '../models/items/project_item_catalog.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
@@ -13,6 +14,7 @@ import '../models/project_manifest.dart';
 import '../models/project_presentation_profile.dart';
 import '../models/project_tileset_source.dart';
 import '../models/project_trainer.dart';
+import '../models/rail_journey.dart';
 import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
 import '../models/script_conditions.dart';
@@ -86,7 +88,11 @@ class ProjectValidator {
     }
   }
 
-  static void validate(ProjectManifest manifest) {
+  static void validate(
+    ProjectManifest manifest, {
+    Iterable<MapData>? maps,
+    ProjectItemCatalog? itemCatalog,
+  }) {
     if (manifest.version != ProjectVersion.v6 &&
         manifest.version != ProjectVersion.v7) {
       throw const ValidationException(
@@ -149,6 +155,7 @@ class ProjectValidator {
       );
     }
     _validateUniqueness(manifest);
+    _validateRailJourneys(manifest, maps: maps, itemCatalog: itemCatalog);
     _validateHierarchy(manifest);
     _validateEncounterTables(manifest.encounterTables);
     _validateProjectDialogues(manifest);
@@ -355,6 +362,358 @@ class ProjectValidator {
         );
       }
     }
+  }
+
+  static void _validateRailJourneys(
+    ProjectManifest manifest, {
+    required Iterable<MapData>? maps,
+    required ProjectItemCatalog? itemCatalog,
+  }) {
+    final rawCatalog = manifest.railJourneyCatalog;
+    if (rawCatalog == null) {
+      return;
+    }
+
+    late final RailJourneyCatalog catalog;
+    try {
+      catalog = rawCatalog.validated();
+    } on StateError catch (error) {
+      throw ValidationException(
+        'Invalid RailJourney catalog: $error',
+        code: 'rail_journey.catalog_invalid',
+      );
+    }
+
+    final projectMapIds = manifest.maps.map((map) => map.id).toSet();
+    final factIds = manifest.facts.map((fact) => fact.id).toSet();
+    final storyStepIds = <String>{
+      for (final storyline in manifest.storylines)
+        for (final chapter in storyline.chapters)
+          for (final step in chapter.steps) step.id,
+    };
+    final mapsById = maps == null
+        ? null
+        : <String, MapData>{for (final map in maps) map.id: map};
+    final elementsById = <String, ProjectElementEntry>{
+      for (final element in manifest.elements) element.id: element,
+    };
+    final itemIds = itemCatalog == null
+        ? null
+        : <String>{for (final item in itemCatalog.entries) item.id.trim()};
+
+    for (var index = 0; index < catalog.journeys.length; index += 1) {
+      final journey = catalog.journeys[index];
+      final journeyPath =
+          r'$.railJourneyCatalog.journeys['
+          '$index]';
+      _requireRailJourneyMap(
+        projectMapIds,
+        journey.origin.stationMapId,
+        '$journeyPath.origin.stationMapId',
+      );
+      _requireRailJourneyMap(
+        projectMapIds,
+        journey.destination.stationMapId,
+        '$journeyPath.destination.stationMapId',
+      );
+      _requireRailJourneyMap(
+        projectMapIds,
+        journey.vehicleMapId,
+        '$journeyPath.vehicleMapId',
+      );
+
+      for (final factId in <String>{
+        ...journey.requirements.requiredFactIds,
+        ...journey.requirements.requiredAnyFactIds,
+      }) {
+        if (!factIds.contains(factId)) {
+          throw ValidationException(
+            'RailJourney ${journey.id} references an unknown Fact: $factId',
+            code: 'rail_journey.fact_unknown',
+            details: <String, Object?>{
+              'journeyId': journey.id,
+              'factId': factId,
+            },
+          );
+        }
+      }
+      for (final stepId in journey.requirements.completedStoryStepIds) {
+        if (!storyStepIds.contains(stepId)) {
+          throw ValidationException(
+            'RailJourney ${journey.id} references an unknown story step: '
+            '$stepId',
+            code: 'rail_journey.story_step_unknown',
+            details: <String, Object?>{
+              'journeyId': journey.id,
+              'storyStepId': stepId,
+            },
+          );
+        }
+      }
+      if (itemIds != null) {
+        for (final itemId in journey.requirements.requiredItemIds) {
+          if (!itemIds.contains(itemId)) {
+            throw ValidationException(
+              'RailJourney ${journey.id} references an unknown item: $itemId',
+              code: 'rail_journey.item_unknown',
+              details: <String, Object?>{
+                'journeyId': journey.id,
+                'itemId': itemId,
+              },
+            );
+          }
+        }
+      }
+
+      if (mapsById == null) {
+        continue;
+      }
+      final originMap = _requireRailJourneyMapData(
+        mapsById,
+        journey.origin.stationMapId,
+        journey.id,
+      );
+      final destinationMap = _requireRailJourneyMapData(
+        mapsById,
+        journey.destination.stationMapId,
+        journey.id,
+      );
+      final vehicleMap = _requireRailJourneyMapData(
+        mapsById,
+        journey.vehicleMapId,
+        journey.id,
+      );
+      _validateRailJourneyEndpointBounds(
+        journeyId: journey.id,
+        endpointName: 'origin',
+        endpoint: journey.origin,
+        stationMap: originMap,
+        vehicleMap: vehicleMap,
+        elementsById: elementsById,
+      );
+      _validateRailJourneyEndpointBounds(
+        journeyId: journey.id,
+        endpointName: 'destination',
+        endpoint: journey.destination,
+        stationMap: destinationMap,
+        vehicleMap: vehicleMap,
+        elementsById: elementsById,
+      );
+    }
+  }
+
+  static void _requireRailJourneyMap(
+    Set<String> projectMapIds,
+    String mapId,
+    String path,
+  ) {
+    if (projectMapIds.contains(mapId)) {
+      return;
+    }
+    throw ValidationException(
+      '$path references an unknown map: $mapId',
+      code: 'rail_journey.map_unknown',
+      details: <String, Object?>{'path': path, 'mapId': mapId},
+    );
+  }
+
+  static MapData _requireRailJourneyMapData(
+    Map<String, MapData> mapsById,
+    String mapId,
+    String journeyId,
+  ) {
+    final map = mapsById[mapId];
+    if (map != null) {
+      return map;
+    }
+    throw ValidationException(
+      'RailJourney $journeyId requires loaded MapData for map $mapId',
+      code: 'rail_journey.map_data_missing',
+      details: <String, Object?>{'journeyId': journeyId, 'mapId': mapId},
+    );
+  }
+
+  static void _validateRailJourneyEndpointBounds({
+    required String journeyId,
+    required String endpointName,
+    required RailJourneyEndpoint endpoint,
+    required MapData stationMap,
+    required MapData vehicleMap,
+    required Map<String, ProjectElementEntry> elementsById,
+  }) {
+    if (!_railJourneyRectInBounds(endpoint.boardingArea, stationMap.size)) {
+      throw ValidationException(
+        'RailJourney $journeyId $endpointName boarding area is outside '
+        'station map ${stationMap.id}',
+        code: 'rail_journey.boarding_area_out_of_bounds',
+        details: <String, Object?>{
+          'journeyId': journeyId,
+          'endpoint': endpointName,
+          'mapId': stationMap.id,
+        },
+      );
+    }
+    if (!_railJourneyPositionInBounds(
+      endpoint.stationArrivalPos,
+      stationMap.size,
+    )) {
+      throw ValidationException(
+        'RailJourney $journeyId $endpointName arrival position is outside '
+        'station map ${stationMap.id}',
+        code: 'rail_journey.station_arrival_out_of_bounds',
+        details: <String, Object?>{
+          'journeyId': journeyId,
+          'endpoint': endpointName,
+          'mapId': stationMap.id,
+        },
+      );
+    }
+    if (!_railJourneyPositionInBounds(
+      endpoint.trainEntryPos,
+      vehicleMap.size,
+    )) {
+      throw ValidationException(
+        'RailJourney $journeyId $endpointName train entry position is outside '
+        'vehicle map ${vehicleMap.id}',
+        code: 'rail_journey.train_entry_out_of_bounds',
+        details: <String, Object?>{
+          'journeyId': journeyId,
+          'endpoint': endpointName,
+          'mapId': vehicleMap.id,
+        },
+      );
+    }
+    for (final door in endpoint.doors) {
+      final stationPlacedElement = _railJourneyPlacedElement(
+        stationMap,
+        door.stationPlacedElementId,
+      );
+      if (stationPlacedElement == null) {
+        throw ValidationException(
+          'RailJourney $journeyId $endpointName station door instance '
+          '${door.stationPlacedElementId} is missing from ${stationMap.id}',
+          code: 'rail_journey.station_door_instance_missing',
+          details: <String, Object?>{
+            'journeyId': journeyId,
+            'endpoint': endpointName,
+            'side': door.side.name,
+            'mapId': stationMap.id,
+            'placedElementId': door.stationPlacedElementId,
+          },
+        );
+      }
+      _validateRailJourneyDoorAnimation(
+        journeyId: journeyId,
+        endpointName: endpointName,
+        side: door.side,
+        map: stationMap,
+        placedElement: stationPlacedElement,
+        doorContext: 'station',
+        elementsById: elementsById,
+      );
+
+      final vehiclePlacedElement = _railJourneyPlacedElement(
+        vehicleMap,
+        door.vehiclePlacedElementId,
+      );
+      if (vehiclePlacedElement == null) {
+        throw ValidationException(
+          'RailJourney $journeyId $endpointName vehicle door instance '
+          '${door.vehiclePlacedElementId} is missing from ${vehicleMap.id}',
+          code: 'rail_journey.vehicle_door_instance_missing',
+          details: <String, Object?>{
+            'journeyId': journeyId,
+            'endpoint': endpointName,
+            'side': door.side.name,
+            'mapId': vehicleMap.id,
+            'placedElementId': door.vehiclePlacedElementId,
+          },
+        );
+      }
+      _validateRailJourneyDoorAnimation(
+        journeyId: journeyId,
+        endpointName: endpointName,
+        side: door.side,
+        map: vehicleMap,
+        placedElement: vehiclePlacedElement,
+        doorContext: 'vehicle',
+        elementsById: elementsById,
+      );
+    }
+  }
+
+  static MapPlacedElement? _railJourneyPlacedElement(
+    MapData map,
+    String placedElementId,
+  ) {
+    for (final placedElement in map.placedElements) {
+      if (placedElement.id == placedElementId) {
+        return placedElement;
+      }
+    }
+    return null;
+  }
+
+  static void _validateRailJourneyDoorAnimation({
+    required String journeyId,
+    required String endpointName,
+    required RailJourneyDoorSide side,
+    required MapData map,
+    required MapPlacedElement placedElement,
+    required String doorContext,
+    required Map<String, ProjectElementEntry> elementsById,
+  }) {
+    final element = elementsById[placedElement.elementId];
+    if (element == null) {
+      throw ValidationException(
+        'RailJourney $journeyId $endpointName $doorContext door instance '
+        '${placedElement.id} references unknown element '
+        '${placedElement.elementId}',
+        code: 'rail_journey.door_element_unknown',
+        details: <String, Object?>{
+          'journeyId': journeyId,
+          'endpoint': endpointName,
+          'side': side.name,
+          'doorContext': doorContext,
+          'mapId': map.id,
+          'placedElementId': placedElement.id,
+          'elementId': placedElement.elementId,
+        },
+      );
+    }
+    if (element.frames.length < 2) {
+      throw ValidationException(
+        'RailJourney $journeyId $endpointName $doorContext door instance '
+        '${placedElement.id} requires an element with at least two frames',
+        code: 'rail_journey.door_not_animated',
+        details: <String, Object?>{
+          'journeyId': journeyId,
+          'endpoint': endpointName,
+          'side': side.name,
+          'doorContext': doorContext,
+          'mapId': map.id,
+          'placedElementId': placedElement.id,
+          'elementId': element.id,
+          'frameCount': element.frames.length,
+        },
+      );
+    }
+  }
+
+  static bool _railJourneyRectInBounds(MapRect rect, GridSize size) {
+    return rect.pos.x >= 0 &&
+        rect.pos.y >= 0 &&
+        rect.size.width > 0 &&
+        rect.size.height > 0 &&
+        rect.pos.x + rect.size.width <= size.width &&
+        rect.pos.y + rect.size.height <= size.height;
+  }
+
+  static bool _railJourneyPositionInBounds(GridPos pos, GridSize size) {
+    return pos.x >= 0 &&
+        pos.y >= 0 &&
+        pos.x < size.width &&
+        pos.y < size.height;
   }
 
   static void _validateUniqueness(ProjectManifest manifest) {
