@@ -35,9 +35,9 @@ class SmartTileImageStage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         const PokeMapSectionHeader(
-          title: 'Choisir l’image source',
+          title: 'Choisir l’image qui contient vos tuiles',
           description:
-              'Importez une image ou réutilisez une ressource déjà canonique dans le projet.',
+              'Vous pourrez prévisualiser chaque image du projet avant de confirmer votre choix.',
         ),
         const SizedBox(height: 12),
         PokeMapAssetCard(
@@ -47,7 +47,7 @@ class SmartTileImageStage extends StatelessWidget {
           description: 'Importer une image ou choisir un tileset existant.',
           selected: selectedChoice == SmartTileStudioSourceChoice.projectImage,
           onPressed: () => onChoiceSelected(
-            SmartTileStudioSourceChoice.projectImage,
+            SmartTileStudioSourceChoice.projectImage
           ),
         ),
         const SizedBox(height: 8),
@@ -59,7 +59,7 @@ class SmartTileImageStage extends StatelessWidget {
           selected:
               selectedChoice == SmartTileStudioSourceChoice.registeredAtlas,
           onPressed: () => onChoiceSelected(
-            SmartTileStudioSourceChoice.registeredAtlas,
+            SmartTileStudioSourceChoice.registeredAtlas
           ),
         ),
         if (selectedChoice == SmartTileStudioSourceChoice.projectImage) ...[
@@ -80,7 +80,7 @@ class SmartTileImageStage extends StatelessWidget {
                 onPressed: isBusy ? null : onChooseProjectImage,
                 variant: PokeMapButtonVariant.secondary,
                 leading:
-                    const Icon(CupertinoIcons.photo_on_rectangle, size: 15),
+                    const Icon(CupertinoIcons.photo_on_rectangle, size: 15,),
                 child: const Text('Choisir dans le projet'),
               ),
             ],
@@ -118,7 +118,7 @@ class SmartTileImageStage extends StatelessWidget {
             key: const Key('smart-tiles-next-step'),
             onPressed: canContinue ? onContinue : null,
             trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Détecter la grille'),
+            child: const Text('Vérifier le découpage'),
           ),
         ),
       ],

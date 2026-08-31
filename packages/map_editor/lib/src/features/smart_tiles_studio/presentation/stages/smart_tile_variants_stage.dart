@@ -9,6 +9,7 @@ import '../../application/smart_tile_form_projection.dart';
 class SmartTileVariantsStage extends StatelessWidget {
   const SmartTileVariantsStage({
     super.key,
+    required this.usage,
     required this.transformPolicy,
     required this.currentTransformPolicy,
     required this.allowedTransforms,
@@ -28,7 +29,11 @@ class SmartTileVariantsStage extends StatelessWidget {
     required this.onClearAnimationFrames,
     required this.onCreateAnimation,
     required this.onContinue,
+    required this.showAdvancedSettings,
+    required this.onToggleAdvancedSettings,
   });
+
+  final SmartTileUsage usage;
 
   final SmartTileTransformPolicy transformPolicy;
   final SmartTileTransformPolicy currentTransformPolicy;
@@ -49,17 +54,60 @@ class SmartTileVariantsStage extends StatelessWidget {
   final VoidCallback onClearAnimationFrames;
   final VoidCallback? onCreateAnimation;
   final VoidCallback? onContinue;
+  final bool showAdvancedSettings;
+  final VoidCallback onToggleAdvancedSettings;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const PokeMapSectionHeader(
-          title: 'Variantes et transformations',
-          description:
-              'Autorisez uniquement les symétries qui respectent le dessin. PokeMap utilise directement les opérations D4 du moteur.',
+        PokeMapSectionHeader(
+          title: usage == SmartTileUsage.path
+              ? 'Options facultatives du chemin'
+              : 'Options d’affichage',
+          description: usage == SmartTileUsage.path
+              ? 'Pour un chemin simple, gardez les réglages proposés et continuez. Activez une rotation ou un miroir seulement si vos tuiles restent correctes une fois retournées.'
+              : 'Autorisez uniquement les rotations et miroirs qui respectent le dessin.',
         ),
+        if (usage == SmartTileUsage.path) ...[
+          const SizedBox(height: 12),
+          PokeMapPanel(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+        const PokeMapSectionHeader(
+          title: 'Réglages conseillés prêts',
+          description:
+                      'Aucune rotation, aucun miroir et aucune animation ne sont nécessaires pour commencer.',
+        ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PokeMapButton(
+                    key: const Key('smart-tiles-toggle-variants-advanced'),
+                    onPressed: onToggleAdvancedSettings,
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    leading: Icon(
+                      showAdvancedSettings
+                          ? CupertinoIcons.chevron_up
+                          : CupertinoIcons.slider_horizontal_3,
+                      size: 14,
+                    ),
+                    child: Text(
+                      showAdvancedSettings
+                          ? 'Masquer les options avancées'
+                          : 'Afficher les rotations et animations',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (usage != SmartTileUsage.path || showAdvancedSettings) ...[
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -131,7 +179,7 @@ class SmartTileVariantsStage extends StatelessWidget {
                 children: <Widget>[
                   for (final transform in allowedTransforms)
                     PokeMapBadge(
-                        label: smartTileTransformHumanLabel(transform)),
+                        label: smartTileTransformHumanLabel(transform),),
                 ],
               ),
             ],
@@ -197,9 +245,9 @@ class SmartTileVariantsStage extends StatelessWidget {
         ],
         const SizedBox(height: 18),
         const PokeMapSectionHeader(
-          title: 'Animations facultatives',
+          title: 'Animation facultative',
           description:
-              'Cliquez au moins deux cellules de l’atlas dans l’ordre, donnez un nom à la boucle, puis créez-la.',
+                'Ignorez cette section si votre chemin est fixe. Sinon, choisissez au moins deux images dans l’ordre.',
         ),
         const SizedBox(height: 10),
         atlasPreview,
@@ -284,6 +332,7 @@ class SmartTileVariantsStage extends StatelessWidget {
             const SizedBox(height: 8),
           ],
         ],
+        ],
         const SizedBox(height: 16),
         Align(
           alignment: Alignment.centerRight,
@@ -291,7 +340,10 @@ class SmartTileVariantsStage extends StatelessWidget {
             key: const Key('smart-tiles-variants-next-step'),
             onPressed: onContinue,
             trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Configurer les formes'),
+            child: Text(
+              usage == SmartTileUsage.path
+                  ? 'Associer les images du chemin'
+                  : 'Associer les images',),
           ),
         ),
       ],

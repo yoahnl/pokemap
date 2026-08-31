@@ -13,6 +13,8 @@ class SmartTileGridStage extends StatelessWidget {
     required this.onProposalSelected,
     required this.onChanged,
     required this.onConfirm,
+    required this.showAdvancedSettings,
+    required this.onToggleAdvancedSettings,
     this.atlasPreview,
   });
 
@@ -23,6 +25,8 @@ class SmartTileGridStage extends StatelessWidget {
   final ValueChanged<int> onProposalSelected;
   final void Function(String field, String value) onChanged;
   final VoidCallback? onConfirm;
+  final bool showAdvancedSettings;
+  final VoidCallback onToggleAdvancedSettings;
   final Widget? atlasPreview;
 
   @override
@@ -31,13 +35,13 @@ class SmartTileGridStage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         PokeMapSectionHeader(
-          title: 'Confirmer la grille',
+          title: 'Vérifier le découpage en tuiles',
           description:
-              '${geometry.columns} × ${geometry.rows} cellules proposées. Rien n’est appliqué avant confirmation.',
+              'PokeMap propose ${geometry.columns} colonnes × ${geometry.rows} lignes. Si le quadrillage suit bien chaque tuile de l’image, vous pouvez continuer.',
           trailing: PokeMapBadge(
             label: geometry.isWithinImage
-                ? 'Dans les limites de l’image'
-                : 'Cellules hors image',
+                ? 'Découpage exploitable'
+                : 'Découpage à corriger',
             variant: geometry.isWithinImage
                 ? PokeMapBadgeVariant.success
                 : PokeMapBadgeVariant.error,
@@ -58,8 +62,8 @@ class SmartTileGridStage extends StatelessWidget {
                     size: PokeMapButtonSize.small,
                     isSelected: selectedProposal == index,
                     child: Text(
-                      '${proposals[index].geometry.cellWidth} × '
-                      '${proposals[index].geometry.cellHeight} px • '
+                      'Tuiles ${proposals[index].geometry.cellWidth} × '
+                      '${proposals[index].geometry.cellHeight} px · '
                       '${(proposals[index].confidence * 100).round()} %',
                     ),
                   ),
@@ -76,10 +80,38 @@ class SmartTileGridStage extends StatelessWidget {
           atlasPreview!,
         ],
         const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: PokeMapButton(
+            key: const Key('smart-tiles-toggle-grid-advanced'),
+            onPressed: onToggleAdvancedSettings,
+            variant: PokeMapButtonVariant.ghost,
+            size: PokeMapButtonSize.small,
+            leading: Icon(
+              showAdvancedSettings
+                  ? CupertinoIcons.chevron_up
+                  : CupertinoIcons.slider_horizontal_3,
+              size: 14,
+            ),
+            child: Text(
+              showAdvancedSettings
+                  ? 'Masquer les réglages avancés'
+                  : 'Le quadrillage est décalé ? Corriger manuellement',
+            ),
+          ),
+        ),
+        if (showAdvancedSettings) ...[
+          const SizedBox(height: 12),
+          PokeMapPanel(
+            key: const Key('smart-tiles-grid-advanced-fields'),
+            padding: const EdgeInsets.all(12),
+            child:
         _SmartTileGridFields(
           controllers: controllers,
           onChanged: onChanged,
         ),
+          ),
+        ],
         const SizedBox(height: 14),
         Align(
           alignment: Alignment.centerRight,
@@ -87,7 +119,7 @@ class SmartTileGridStage extends StatelessWidget {
             key: const Key('smart-tiles-confirm-grid'),
             onPressed: onConfirm,
             trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Confirmer et continuer'),
+            child: const Text('Le découpage est correct'),
           ),
         ),
       ],

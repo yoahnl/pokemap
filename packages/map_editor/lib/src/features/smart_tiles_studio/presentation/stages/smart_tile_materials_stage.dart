@@ -7,6 +7,7 @@ import 'smart_tile_material_picker.dart';
 class SmartTileMaterialsStage extends StatelessWidget {
   const SmartTileMaterialsStage({
     super.key,
+    required this.usage,
     required this.items,
     required this.defaultMaterialId,
     required this.activeMaterialId,
@@ -20,6 +21,8 @@ class SmartTileMaterialsStage extends StatelessWidget {
     required this.onCreateMaterial,
     required this.onContinue,
   });
+
+  final SmartTileUsage usage;
 
   final List<SmartTileMaterialPickerItem> items;
   final String defaultMaterialId;
@@ -38,12 +41,26 @@ class SmartTileMaterialsStage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const PokeMapSectionHeader(
-          title: 'Quelle matière peignez-vous ?',
-          description:
-              'Ajoutez une ou plusieurs matières, puis distinguez la matière active de celle utilisée par défaut.',
+      children: <Widget>[ PokeMapSectionHeader(
+          title: usage == SmartTileUsage.path
+              ? 'Nommer ce que vous allez peindre'
+              : 'Choisir la peinture de ce Smart Tile',
+          description: usage == SmartTileUsage.path
+              ? 'Pour un chemin simple, une seule peinture suffit. PokeMap en a déjà préparé une ; vous pouvez continuer directement.'
+              : 'La peinture active est celle que vous placerez sur la carte. Les choix supplémentaires restent facultatifs.',
         ),
+        if (usage == SmartTileUsage.path) ...[
+          const SizedBox(height: 10),
+          const PokeMapPanel(
+            key: Key('smart-tiles-simple-path-material-ready'),
+            padding: EdgeInsets.all(12),
+            child: PokeMapSectionHeader(
+              title: 'Votre chemin est prêt à être peint',
+              description:
+                  'Gardez cette peinture unique, sauf si le même atlas contient réellement plusieurs types de chemin.',
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         SmartTileMaterialPicker(
           items: items,
@@ -88,7 +105,10 @@ class SmartTileMaterialsStage extends StatelessWidget {
             key: const Key('smart-tiles-materials-next-step'),
             onPressed: canContinue ? onContinue : null,
             trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Configurer les raccords'),
+            child: Text(
+              usage == SmartTileUsage.path
+                  ? 'Choisir la forme du chemin'
+                  : 'Choisir le tracé automatique',),
           ),
         ),
       ],

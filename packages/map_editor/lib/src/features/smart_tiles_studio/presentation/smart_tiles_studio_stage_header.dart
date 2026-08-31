@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
 import '../application/smart_tile_draft_persistence_state.dart';
@@ -10,11 +11,13 @@ class SmartTilesStudioStageHeader extends StatelessWidget {
     super.key,
     required this.step,
     required this.launchContext,
+    this.usage,
     this.persistenceState,
   });
 
   final SmartTileStudioWizardStep step;
   final SmartTilesStudioLaunchContext launchContext;
+  final SmartTileUsage? usage;
   final SmartTileDraftPersistenceState? persistenceState;
 
   @override
@@ -25,7 +28,9 @@ class SmartTilesStudioStageHeader extends StatelessWidget {
       children: <Widget>[
         PokeMapSectionHeader(
           title: 'Nouveau Smart Tile',
-          description: 'Parcours guidé, puis workbench libre à tout moment.',
+          description: usage == SmartTileUsage.path
+              ? 'Créez un chemin pas à pas. Les réglages techniques sont proposés automatiquement.'
+              : 'Parcours guidé avec des réglages conseillés à chaque étape.',
           trailing: Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -41,6 +46,16 @@ class SmartTilesStudioStageHeader extends StatelessWidget {
                 key: const Key('smart-tiles-save-state'),
                 label: savePresentation.label,
                 variant: savePresentation.variant,
+              ),
+              if (usage != null)
+                PokeMapBadge(
+                  key: const Key('smart-tiles-guided-usage'),
+                  label: switch (usage!) {
+                    SmartTileUsage.terrain => 'Terrain guidé',
+                    SmartTileUsage.path => 'Chemin guidé',
+                    SmartTileUsage.forestSurface => 'Surface guidée',
+                  },
+                  variant: PokeMapBadgeVariant.info,
               ),
             ],
           ),
@@ -75,7 +90,7 @@ class SmartTilesStudioStageHeader extends StatelessWidget {
   if (state == null) {
     return (
       label: 'Brouillon local',
-      variant: PokeMapBadgeVariant.neutral,
+      variant: PokeMapBadgeVariant.neutral
     );
   }
   return switch (state.phase) {
@@ -108,13 +123,13 @@ class SmartTilesStudioStageHeader extends StatelessWidget {
 
 String smartTileWizardStepLabel(SmartTileStudioWizardStep step) =>
     switch (step) {
-      SmartTileStudioWizardStep.usage => 'Usage',
+      SmartTileStudioWizardStep.usage => 'Objectif',
       SmartTileStudioWizardStep.image => 'Image',
-      SmartTileStudioWizardStep.grid => 'Grille',
-      SmartTileStudioWizardStep.materials => 'Matériaux',
-      SmartTileStudioWizardStep.connections => 'Raccords',
-      SmartTileStudioWizardStep.variants => 'Variantes',
-      SmartTileStudioWizardStep.forms => 'Formes',
-      SmartTileStudioWizardStep.test => 'Essai',
-      SmartTileStudioWizardStep.publish => 'Publier',
+      SmartTileStudioWizardStep.grid => 'Découpage',
+      SmartTileStudioWizardStep.materials => 'Peinture',
+      SmartTileStudioWizardStep.connections => 'Tracé',
+      SmartTileStudioWizardStep.variants => 'Options',
+      SmartTileStudioWizardStep.forms => 'Associer',
+      SmartTileStudioWizardStep.test => 'Tester',
+      SmartTileStudioWizardStep.publish => 'Enregistrer',
     };

@@ -119,15 +119,19 @@ class SmartTileFormsStage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         PokeMapSectionHeader(
-          title: 'Formes de raccord',
-          description:
+          title: usage == SmartTileUsage.path
+              ? 'Associer les images aux virages du chemin'
+              : 'Associer les images aux formes',
+          description: usage == SmartTileUsage.path
+              ? 'Choisissez une situation du chemin, puis cliquez l’image correspondante dans l’atlas. PokeMap utilisera ces associations lorsque vous dessinerez.':
               'Choisissez une forme puis sa cellule dans l’atlas. Vous pouvez aussi cliquer d’abord l’atlas : la prochaine forme choisie sera associée.',
           trailing: Wrap(
             spacing: 6,
             runSpacing: 6,
             children: <Widget>[
               PokeMapBadge(
-                label: '$covered couvertes ou générées',
+                label: usage == SmartTileUsage.path
+                    ? '$covered prêtes': '$covered couvertes ou générées',
                 variant: PokeMapBadgeVariant.success,
               ),
               if (transitionCases.isNotEmpty)
@@ -137,13 +141,16 @@ class SmartTileFormsStage extends StatelessWidget {
                 ),
               if (ambiguous > 0)
                 PokeMapBadge(
-                  label: '$ambiguous ambiguës',
+                  label: usage == SmartTileUsage.path
+                      ? '$ambiguous à corriger'
+                      : '$ambiguous ambiguës',
                   variant: PokeMapBadgeVariant.error,
                 ),
               if (missing > 0 &&
                   (hasRelativeMapping || transitionCases.isEmpty))
                 PokeMapBadge(
-                  label: '$missing manquantes',
+                  label: usage == SmartTileUsage.path
+                      ? '$missing sans image': '$missing manquantes',
                   variant: PokeMapBadgeVariant.warning,
                 ),
             ],
@@ -305,7 +312,7 @@ class SmartTileFormsStage extends StatelessWidget {
               for (final animation in animations)
                 PokeMapButton(
                   key: Key(
-                    'smart-tiles-form-animation-${animation.id}',
+                    'smart-tiles-form-animation-${animation.id}'
                   ),
                   onPressed: () {
                     if (selectedTransition != null) {
@@ -428,7 +435,7 @@ class SmartTileFormsStage extends StatelessWidget {
               ),
               onRemove: () => onRemoveVariant(
                 selected.mask,
-                selected.candidates[index].id,
+                selected.candidates[index].id
               ),
             ),
             const SizedBox(height: 8),
@@ -441,7 +448,10 @@ class SmartTileFormsStage extends StatelessWidget {
             key: const Key('smart-tiles-mapping-next-step'),
             onPressed: onContinue,
             trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Ouvrir le banc d’essai'),
+            child: Text(
+              usage == SmartTileUsage.path
+                  ? 'Tester le chemin'
+                  :'Ouvrir le banc d’essai',),
           ),
         ),
       ],
@@ -1004,7 +1014,7 @@ class _SmartTileVisualPartEditorState
                     ),
                   ],
                   onChanged: (unit) => widget.onChanged(
-                    widget.part.copyWith(offsetUnit: unit),
+                    widget.part.copyWith(offsetUnit: unit)
                   ),
                 ),
               ),
@@ -1071,9 +1081,9 @@ class _SmartTileVisualPartEditorState
       _VisualGeometryField.offsetX => widget.part.copyWith(offsetX: value),
       _VisualGeometryField.offsetY => widget.part.copyWith(offsetY: value),
       _VisualGeometryField.footprintWidth =>
-        widget.part.copyWith(footprintWidth: value),
+        widget.part.copyWith(footprintWidth: value,),
       _VisualGeometryField.footprintHeight =>
-        widget.part.copyWith(footprintHeight: value),
+        widget.part.copyWith(footprintHeight: value,),
       _VisualGeometryField.anchorX => widget.part.copyWith(anchorX: value),
       _VisualGeometryField.anchorY => widget.part.copyWith(anchorY: value),
       _VisualGeometryField.drawOrder => widget.part.copyWith(drawOrder: value),
@@ -1104,7 +1114,7 @@ String _normalizedPercentage(
 ) {
   final total = candidates.fold<int>(
     0,
-    (sum, item) => sum + item.weight,
+    (sum, item) => sum + item.weight
   );
   if (total <= 0) return '0 %';
   final value = candidate.weight * 100 / total;
