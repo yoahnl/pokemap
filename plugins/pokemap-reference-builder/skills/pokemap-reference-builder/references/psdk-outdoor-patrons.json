@@ -1,0 +1,1916 @@
+{
+  "schemaVersion": 1,
+  "cellSize": 32,
+  "entries": [
+    {
+      "id": "pont-bois-portique",
+      "label": "Pont de bois — portique et rambardes",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        608,
+        32,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pont-bois-rambardes",
+      "label": "Pont de bois — traverses",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        736,
+        32,
+        128,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "escalier-bois-large",
+      "label": "Escalier de bois large",
+      "family": "architecture",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        608,
+        224,
+        128,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "escalier-bois-etroit",
+      "label": "Escalier de bois étroit",
+      "family": "architecture",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        768,
+        224,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "passerelle-bois-large",
+      "label": "Passerelle de bois — tablier large",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        608,
+        320,
+        96,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "passerelle-bois-sections",
+      "label": "Passerelle de bois — tablier et abouts",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        736,
+        320,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pont-bois-vertical",
+      "label": "Pont de bois — travée verticale",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        704,
+        512,
+        128,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pont-bois-angle",
+      "label": "Pont de bois — angle",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        608,
+        640,
+        128,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "rambarde-bois-angle",
+      "label": "Rambarde bois — angle opposé",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        608,
+        960,
+        96,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pont-metal-droit",
+      "label": "Pont métallique — travée droite",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        672,
+        1184,
+        160,
+        224
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pont-metal-bombe",
+      "label": "Pont métallique — arche bombée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        640,
+        1440,
+        224,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pont-metal-face",
+      "label": "Pont métallique — face de l’arche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        640,
+        1568,
+        224,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "passerelle-claire-v",
+      "label": "Passerelle claire verticale",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        608,
+        1632,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "passerelle-claire-h",
+      "label": "Passerelle claire horizontale",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        736,
+        1696,
+        128,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arche-pierre-large",
+      "label": "Arche de pierre — grande travée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        640,
+        1824,
+        160,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arche-pierre-petite",
+      "label": "Arche de pierre — petite travée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        640,
+        1952,
+        128,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cloture-bois-poteaux",
+      "label": "Clôture de bois — poteaux et traverses",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        896,
+        32,
+        128,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cloture-claire",
+      "label": "Clôture claire — poteaux et traverses",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1024,
+        32,
+        160,
+        192
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cloture-pierre",
+      "label": "Clôture de pierre — raccords",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        896,
+        128,
+        224,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "palissade-bois",
+      "label": "Palissade de bois — angles et segments",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        896,
+        224,
+        192,
+        192
+      ],
+      "notes": ""
+    },
+    {
+      "id": "barriere-metal-blanche",
+      "label": "Barrière blanche — angles et segments",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        896,
+        416,
+        192,
+        192
+      ],
+      "notes": ""
+    },
+    {
+      "id": "barriere-boulonnee-grise",
+      "label": "Barrière boulonnée grise",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        928,
+        608,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "barriere-boulonnee-brune",
+      "label": "Barrière boulonnée brune",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1024,
+        608,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "portillon-rond-clair",
+      "label": "Portillon rond clair",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        928,
+        768,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "portillon-rond-bleu",
+      "label": "Portillon rond bleu",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        992,
+        768,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "portillon-rond-violet",
+      "label": "Portillon rond violet",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1056,
+        768,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arceaux-blancs",
+      "label": "Arceaux bas blancs",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        928,
+        832,
+        192,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cloture-bleue",
+      "label": "Poteaux de clôture bleue",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        896,
+        896,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cloture-bois-basse",
+      "label": "Petite clôture de bois",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        928,
+        928,
+        96,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "borne-orange",
+      "label": "Borne orange",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1024,
+        960,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "borne-blanche",
+      "label": "Borne blanche",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1056,
+        960,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "bassin-pierre-cadre",
+      "label": "Cadre de bassin en pierre",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        928,
+        992,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "bassin-pierre-sections",
+      "label": "Bassin de pierre — sections droites",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1024,
+        992,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "bassin-pierre-face",
+      "label": "Bassin de pierre — face basse",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1024,
+        1184,
+        96,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "banc-bois",
+      "label": "Banc de bois",
+      "family": "mobilier",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        32,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "boite-lettres-orange",
+      "label": "Boîte aux lettres orange",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1216,
+        32,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "panneau-metal-gris",
+      "label": "Panneau métallique gris",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1280,
+        32,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "panneau-rond",
+      "label": "Panneau arrondi",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1344,
+        32,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "panneau-bleu",
+      "label": "Panneau bleu",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        32,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "panneau-direction-gris",
+      "label": "Panneau directionnel gris",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        128,
+        96,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "grand-panneau-incline",
+      "label": "Grand panneau d’information incliné",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1312,
+        128,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "panneau-direction-bleu",
+      "label": "Panneau directionnel bleu",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1280,
+        288,
+        96,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "borne-grise",
+      "label": "Borne grise",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        352,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "borne-carree-brune",
+      "label": "Borne carrée brune",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1216,
+        352,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-bleu",
+      "label": "Lampadaire bleu",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1248,
+        320,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "totem-multicolore",
+      "label": "Totem multicolore",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1312,
+        320,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "panneau-rond-orange",
+      "label": "Panneau rond orange",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        320,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-boule-blanche",
+      "label": "Lampadaire à boule blanche",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        480,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "borne-haute-grise",
+      "label": "Borne haute grise",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1248,
+        480,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-boule-bleue",
+      "label": "Lampadaire à boule bleue",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1312,
+        480,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "panneau-pied-bois",
+      "label": "Panneau sur pied de bois",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        480,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "eolienne-gauche",
+      "label": "Éolienne — vue gauche",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1472,
+        32,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "eolienne-droite",
+      "label": "Éolienne — vue droite",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1600,
+        32,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "statue-socle",
+      "label": "Statue sur socle",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1504,
+        256,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cloche-portique",
+      "label": "Cloche et portique",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1600,
+        448,
+        96,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "enseigne-lumineuse",
+      "label": "Enseigne lumineuse sur pied",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1504,
+        448,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fontaine-ronde-active",
+      "label": "Fontaine ronde avec jet",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1504,
+        576,
+        96,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fontaine-ronde-vide",
+      "label": "Fontaine ronde vide",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1600,
+        576,
+        96,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petite-fontaine-active",
+      "label": "Petite fontaine avec jet",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1504,
+        832,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petite-fontaine-vide",
+      "label": "Petite fontaine vide",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1568,
+        832,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "banc-gris",
+      "label": "Banc gris",
+      "family": "mobilier",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1632,
+        832,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "terminal-bleu",
+      "label": "Terminal bleu sur pied",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1472,
+        832,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "kiosque-bleu",
+      "label": "Kiosque bleu — comptoir",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1568,
+        960,
+        96,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "enseigne-kiosque",
+      "label": "Panneau du kiosque",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1536,
+        960,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "parasol",
+      "label": "Parasol bleu et blanc",
+      "family": "mobilier",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1600,
+        1120,
+        96,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "parasol-plateforme",
+      "label": "Parasol — plateforme",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1600,
+        1216,
+        128,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "barriere-tourniquet",
+      "label": "Barrière à tourniquet",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1504,
+        1216,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "camera-trepied",
+      "label": "Appareil sur trépied",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1504,
+        1312,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "panneau-affichage",
+      "label": "Panneau d’affichage",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1536,
+        1312,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "distributeur-rond",
+      "label": "Distributeur à dôme",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1568,
+        1312,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "borne-incendie",
+      "label": "Borne incendie",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1504,
+        1440,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "portique-violet",
+      "label": "Portique violet — rambardes",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1760,
+        32,
+        288,
+        416
+      ],
+      "notes": ""
+    },
+    {
+      "id": "portique-violet-socle",
+      "label": "Portique violet — socle",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1760,
+        416,
+        288,
+        192
+      ],
+      "notes": ""
+    },
+    {
+      "id": "escalier-metal-large",
+      "label": "Escalier métallique large",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1792,
+        608,
+        256,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pont-suspendu-mat",
+      "label": "Pont suspendu — pylône et haubans",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1792,
+        800,
+        160,
+        448
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pont-suspendu-travee",
+      "label": "Pont suspendu — longue travée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1728,
+        1280,
+        320,
+        1280
+      ],
+      "notes": ""
+    },
+    {
+      "id": "rocaille-creuse",
+      "label": "Rocaille creuse",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1664,
+        288,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "jardiniere-rose",
+      "label": "Jardinière de fleurs roses",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1216,
+        1088,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "jardiniere-tulipes",
+      "label": "Jardinière de tulipes",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1280,
+        1088,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "jardiniere-bois",
+      "label": "Grande jardinière de bois vide",
+      "family": "mobilier",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1312,
+        1088,
+        96,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "poutres-portique",
+      "label": "Portique de bois et pierre",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        1344,
+        96,
+        160
+      ],
+      "notes": ""
+    },
+    {
+      "id": "jardiniere-rect-h",
+      "label": "Jardinière feuillue horizontale",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1280,
+        1344,
+        128,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "jardiniere-rect-v",
+      "label": "Jardinière feuillue verticale",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        1440,
+        64,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "muret-banc-bois",
+      "label": "Banc long orange",
+      "family": "mobilier",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1216,
+        1536,
+        128,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arbuste-rond-petit",
+      "label": "Petit arbuste rond",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1248,
+        1632,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cascade-rocher",
+      "label": "Rocher à petite cascade",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        1696,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arbre-gris",
+      "label": "Arbre gris feuillu",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1248,
+        1696,
+        128,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arbre-mort",
+      "label": "Arbre mort",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        1696,
+        64,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "tronc-couche",
+      "label": "Tronc couché",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        1824,
+        96,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "branche-couchee-a",
+      "label": "Branche couchée diagonale A",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1248,
+        1856,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "branche-couchee-b",
+      "label": "Branche couchée diagonale B",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1216,
+        1888,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "souche",
+      "label": "Souche sombre",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1280,
+        1856,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arbuste-conique",
+      "label": "Arbuste conique",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        1952,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arbuste-boule",
+      "label": "Arbuste en boule",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1216,
+        1984,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "haie-longue",
+      "label": "Haie longue",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        2016,
+        160,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "haie-courte",
+      "label": "Haie courte",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1216,
+        2112,
+        64,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "haie-verticale",
+      "label": "Haie verticale",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        2048,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "haie-raccords",
+      "label": "Haie sombre — raccords modulaires",
+      "family": "vegetation",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        2272,
+        128,
+        192
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-bois-0",
+      "label": "Lampadaire de bois — tête losange A",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        672,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-bois-1",
+      "label": "Lampadaire de bois — tête losange B",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1280,
+        672,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-bois-2",
+      "label": "Panneau de bois carré",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1312,
+        704,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-bois-3",
+      "label": "Boîte de bois sur poteau",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1344,
+        672,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-bois-var-0",
+      "label": "Lampadaire de bois — variante 1",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        768,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-bois-var-1",
+      "label": "Lampadaire de bois — variante 2",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1248,
+        768,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-bois-var-2",
+      "label": "Lampadaire de bois — variante 3",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1184,
+        864,
+        64,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-bois-var-3",
+      "label": "Lampadaire de bois — variante 4",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1280,
+        864,
+        32,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-urbain-0",
+      "label": "Lampadaire urbain — variante 1",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1312,
+        800,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-urbain-1",
+      "label": "Lampadaire urbain — variante 2",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1408,
+        800,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-urbain-2",
+      "label": "Lampadaire urbain — variante 3",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        672,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lampadaire-urbain-3",
+      "label": "Lampadaire urbain — variante 4",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1312,
+        928,
+        32,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pot-fleuri-0",
+      "label": "Pot fleuri — variante 1",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1664,
+        1312,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pot-fleuri-1",
+      "label": "Pot fleuri — variante 2",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1696,
+        1312,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pot-fleuri-2",
+      "label": "Pot fleuri — variante 3",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1664,
+        1376,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pot-fleuri-3",
+      "label": "Pot fleuri — variante 4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1696,
+        1376,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pot-fleuri-4",
+      "label": "Pot fleuri — variante 5",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1728,
+        1376,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pot-fleuri-5",
+      "label": "Pot fleuri — variante 6",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1664,
+        1440,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pot-fleuri-6",
+      "label": "Pot fleuri — variante 7",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1696,
+        1440,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petite-souche-0",
+      "label": "Petite souche inclinée — 1",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1696,
+        192,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petite-souche-1",
+      "label": "Petite souche inclinée — 2",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1600,
+        320,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "conteneur-jaune-0",
+      "label": "Conteneur de kiosque — 1",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1664,
+        992,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "conteneur-jaune-1",
+      "label": "Conteneur de kiosque — 2",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1696,
+        992,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "conteneur-jaune-2",
+      "label": "Conteneur de kiosque — 3",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1728,
+        992,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "conteneur-jaune-3",
+      "label": "Conteneur de kiosque — 4",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1504,
+        1088,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "conteneur-jaune-4",
+      "label": "Conteneur de kiosque — 5",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1536,
+        1088,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pilier-pont-0",
+      "label": "Pilier de pont — hauteur 6",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1984,
+        832,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pilier-pont-1",
+      "label": "Pilier de pont — hauteur 5",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1984,
+        928,
+        64,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pilier-pont-2",
+      "label": "Pilier de pont — hauteur 4",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1984,
+        1056,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pilier-pont-3",
+      "label": "Pilier de pont — hauteur 3",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1984,
+        1120,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pilier-pont-4",
+      "label": "Pilier de pont — hauteur 2",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1984,
+        1184,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pilier-pont-5",
+      "label": "Pilier de pont — hauteur 1",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1984,
+        1248,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleur-claire-0",
+      "label": "Petite fleur claire — 1",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        2144,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleur-claire-1",
+      "label": "Petite fleur claire — 2",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1408,
+        2144,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleur-claire-2",
+      "label": "Petite fleur claire — 3",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        2176,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleur-claire-3",
+      "label": "Petite fleur claire — 4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1408,
+        2176,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleur-claire-4",
+      "label": "Petite fleur claire — 5",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1376,
+        2208,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleur-claire-5",
+      "label": "Petite fleur claire — 6",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Assets.png",
+      "rect": [
+        1408,
+        2208,
+        32,
+        32
+      ],
+      "notes": ""
+    }
+  ],
+  "sheets": [
+    {
+      "source": "TECH-Assets.png",
+      "coverageNote": "Props et modules extérieurs relus sur grille 32 px. Sols des colonnes 0–17, ombres démontées et vignettes techniques exclus. Les rambardes et travées constituent des familles modulaires, pas des objets placables uniques."
+    }
+  ]
+}
