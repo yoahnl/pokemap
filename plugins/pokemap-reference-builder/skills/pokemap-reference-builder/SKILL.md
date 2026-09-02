@@ -26,7 +26,53 @@ Do not translate a missing action into direct JSON edits. Report the MCP parity 
 
 ## Decode before authoring
 
-Inspect the reference visually and create a semantic blueprint before any PokeMap mutation. Read [the layer model](references/exterior-layer-model.md), then use `scripts/blueprint_tool.py init` and fill the resulting JSON.
+Inspect the reference visually and create a semantic blueprint before any PokeMap mutation. Read [the layer model](references/exterior-layer-model.md). Use the assisted V2 pipeline when the reference and candidate render align to an integer cell grid. Fall back to `scripts/blueprint_tool.py init` only when they do not.
+
+### Assisted V2 pipeline
+
+Create a small analysis profile from reviewed seed cells. Keep `cellSizePx` at 32 and set `sourceCellSizePx` to the capture scale, such as 16 for a half-size render. Each semantic class may declare a family, confidence threshold, minimum connected-component size, constraints, and unresolved asset requirements.
+
+```bash
+python3 scripts/reference_analyzer.py analyze \
+  --reference <reference.png> --profile <reference-profile.json> \
+  --map-id <map-id> --name <name> \
+  --output-blueprint <reference-blueprint.json> \
+  --output-report <reference-analysis.json> \
+  --output-overlay <reference-overlay.png>
+```
+
+Run the same command on the current PokeMap render with a profile using the same semantics. Review both overlays. A high numeric confidence proves only that cells resemble their seeds; it does not prove the semantic labels are correct.
+
+Index only roots with reviewed provenance, then resolve exact-footprint candidates:
+
+```bash
+python3 scripts/asset_resolver.py index \
+  --root '<path>=hgss_ds' --root '<path>=custom_hgss_compatible' \
+  --output <asset-catalog.json>
+python3 scripts/asset_resolver.py resolve \
+  --blueprint <reference-blueprint.json> --catalog <asset-catalog.json> \
+  --output <asset-resolution.json>
+python3 scripts/asset_resolver.py workshop \
+  --blueprint <reference-blueprint.json> --resolution <asset-resolution.json> \
+  --output-dir <assets-workshop> --manifest <asset-workshop.json>
+```
+
+`reuse` means an eligible exact-footprint candidate scored at least 80. `gap` creates a transparent canvas and contract at exactly `widthCells * 32` by `heightCells * 32`; it is not finished artwork and cannot be imported without native-scale review.
+
+Lint the proposed masks and compare the current candidate:
+
+```bash
+python3 scripts/blueprint_quality.py lint \
+  --blueprint <candidate-blueprint.json> --output <lint.json>
+python3 scripts/blueprint_quality.py compare \
+  --reference <reference-blueprint.json> --candidate <candidate-blueprint.json> \
+  --asset-report <asset-resolution.json> \
+  --reference-image <reference.png> --candidate-image <candidate-render.png> \
+  --threshold 80 \
+  --output <comparison.json>
+```
+
+The two images must show the same crop and aspect ratio. The comparison command exits non-zero below the threshold, when image evidence is missing, when any visual axis is below 80, or on a hard spatial gate. Its published score gives 50 percent of the weight to rendered fidelity and 50 percent to semantic composition, network topology, structure scale, and asset resolution. Rendered fidelity covers palette and material style, visual hierarchy, and detail density. The report keeps a separate `technicalScore`, identifies weak image regions, and emits an ordered `repairPlan`. Trees in water, structures, or rails, required disconnected networks, and large repeated placed assets that flatten terrain or network families are blocking errors. A score of 80 only makes the candidate eligible for human review; it never marks the map verified.
 
 Classify geometry into these families:
 
@@ -50,6 +96,7 @@ Read [the HGSS/DS quality gates](references/hgss-ds-quality-gates.md) before bin
 - Rivers use river water and river banks, never ocean water.
 - Do not create or apply Smart Borders unless the blueprint contains a separately approved `border` layer.
 - Use nearest-neighbor scaling only when an approved custom asset requires an integer scale. Never use fractional scaling or smoothing.
+- Keep terrain and networks editable. Never replace a large share of grass, water, forest, paths, rails, or paddies with one opaque multi-family sprite, even when it improves the image score.
 
 ## Missing asset workshop
 
@@ -78,7 +125,7 @@ For every family:
 5. apply with a unique operation ID;
 6. requery and validate;
 7. render the map;
-8. compare the render with the reference and the approved blueprint;
+8. compare the same-crop render with the reference image and the approved blueprint;
 9. mark the family `verified` only after human visual acceptance.
 
 Recommended checkpoints are surfaces, networks plus any explicit borders, structures, decorations, then navigation. Do not stack later families on a visibly rejected checkpoint.

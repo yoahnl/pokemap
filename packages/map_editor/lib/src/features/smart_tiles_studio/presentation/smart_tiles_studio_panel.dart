@@ -20,6 +20,7 @@ import '../application/smart_tile_grid_detector.dart';
 import '../application/smart_tile_guide.dart';
 import '../application/smart_tile_guide_placement.dart';
 import '../application/smart_tile_pattern_authoring.dart';
+import '../application/smart_tile_path_pattern.dart';
 import '../application/smart_tile_preset_preview.dart';
 import '../application/smart_tile_publication_service.dart';
 import '../application/smart_tile_reconstruction_service.dart';
@@ -48,10 +49,15 @@ import 'stages/smart_tile_connections_stage.dart';
 import 'stages/smart_tile_forms_stage.dart';
 import 'stages/smart_tile_material_picker.dart';
 import 'stages/smart_tile_materials_stage.dart';
+import 'stages/smart_tile_path_fill_stage.dart';
+import 'stages/smart_tile_path_pattern_stage.dart';
 import 'stages/smart_tile_publish_stage.dart';
 import 'stages/smart_tile_test_stage.dart';
 import 'stages/smart_tile_usage_stage.dart';
 import 'stages/smart_tile_variants_stage.dart';
+import 'workbench/smart_tile_coverage_gallery.dart';
+
+part 'smart_tiles_studio_quick_path.dart';
 
 enum SmartTilesStudioTab { atlas, rules, animations, testBench, validation }
 
@@ -98,13 +104,14 @@ class SmartTilesStudioPanel extends StatefulWidget {
   final Future<SmartTileTiledWangImportResult> Function(
     SmartTileTiledWangSource source,
     List<TiledWangSetSelection> selections,
-  )? onImportTiledWang;
+  )?
+  onImportTiledWang;
   final SmartTileReconstructionService? reconstructionService;
   final Future<void> Function(SmartTileReconstructionResult result)?
-      onReconstructionApplied;
+  onReconstructionApplied;
   final SmartTilePublicationService? publicationService;
   final Future<void> Function(SmartTilePublicationResult result)?
-      onPublicationApplied;
+  onPublicationApplied;
   final SmartTilePresetLibraryActions presetActions;
   final Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern;
   @override
@@ -170,6 +177,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   SmartTileTopology? _customConnectionTopology;
   bool _showAdvancedConnectionSettings = false;
   bool _showAdvancedVariantSettings = false;
+  SmartTilePathPatternId? _selectedPathPatternId;
+  bool _useAdvancedPathFlow = false;
   SmartTileTestLayerController? _testLabController;
   SmartTileLabTool _testLabTool = SmartTileLabTool.pencil;
   bool _labShowStructure = true;
@@ -195,6 +204,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   SmartTileReconstructionPlan? _reconstructionPlan;
   String? _reconstructionError;
 
+  void _setQuickPathState(VoidCallback callback) => setState(callback);
+
   @override
   void initState() {
     super.initState();
@@ -207,18 +218,20 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.manifest != widget.manifest) {
       _testLabController = null;
-      final keys = buildSmartTileStudioLibrary(widget.manifest,)
-          .map((item) => item.key)
-          .toSet();
+      final keys = buildSmartTileStudioLibrary(
+        widget.manifest,
+      ).map((item) => item.key).toSet();
       if (!keys.contains(_selectedItemKey)) {
         _selectedItemKey = keys.firstOrNull;
       }
-      if (!widget.manifest.tilesets
-          .any((tileset) => tileset.id == _selectedSourceTilesetId,)) {
+      if (!widget.manifest.tilesets.any(
+        (tileset) => tileset.id == _selectedSourceTilesetId,
+      )) {
         _clearSourceImageSelection();
       }
-      if (!widget.manifest.smartTileCatalog.atlases
-          .any((atlas) => atlas.id == _selectedRegisteredAtlasId,)) {
+      if (!widget.manifest.smartTileCatalog.atlases.any(
+        (atlas) => atlas.id == _selectedRegisteredAtlasId,
+      )) {
         _selectedRegisteredAtlasId = null;
       }
     }
@@ -259,14 +272,16 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       usageFilter: _usageFilter,
       query: _query,
     );
-    final selectedItem =
-        items.where((item) => item.key == _selectedItemKey).firstOrNull;
+    final selectedItem = items
+        .where((item) => item.key == _selectedItemKey)
+        .firstOrNull;
     final diagnostics = validateProjectSmartTileCatalog(
       catalog: widget.manifest.smartTileCatalog,
       projectTilesetIds: widget.manifest.tilesets.map((tileset) => tileset.id),
     );
-    final inspectorFrame =
-        selectedItem == null ? null : _inspectorFrameFor(selectedItem);
+    final inspectorFrame = selectedItem == null
+        ? null
+        : _inspectorFrameFor(selectedItem);
 
     return Material(
       type: MaterialType.transparency,
@@ -275,24 +290,29 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: SmartTilesStudioShell(
+            focusWorkbench: _isQuickPathWorkbenchFocused,
             library: SmartTilesStudioLibraryPane(
               items: visibleItems,
               searchController: _searchController,
               usageFilter: _usageFilter,
               isCreating: _session.state.isCreating,
               selectedItemKey: _selectedItemKey,
-              tiledWangPickerError:
-                  _tiledWangSource == null ? _tiledWangError : null,
-              onImportTiledWang: widget.onPickTiledWangSource == null ||
+              tiledWangPickerError: _tiledWangSource == null
+                  ? _tiledWangError
+                  : null,
+              onImportTiledWang:
+                  widget.onPickTiledWangSource == null ||
                       widget.onImportTiledWang == null ||
                       _tiledWangPicking ||
                       _tiledWangImporting
                   ? null
                   : () => unawaited(_pickTiledWangSource()),
-              onReconstructLiteralLayer:
-                  _canStartReconstruction ? _startReconstruction : null,
-              onCreatePattern:
-                  widget.onUpsertPattern == null ? null : _startNewPattern,
+              onReconstructLiteralLayer: _canStartReconstruction
+                  ? _startReconstruction
+                  : null,
+              onCreatePattern: widget.onUpsertPattern == null
+                  ? null
+                  : _startNewPattern,
               onCreatePreset: _startDraft,
               onQueryChanged: (value) => setState(() => _query = value),
               onUsageFilterChanged: (filter) =>
@@ -306,8 +326,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               isCreating: _session.state.isCreating,
               isResumedDraft: _resumedDraftId != null,
               wizardStepLabel: _wizardStepLabel(_session.state.wizardStep),
-              sourceChoiceLabel:
-                  _sourceChoiceLabel(_session.state.sourceChoice,),
+              sourceChoiceLabel: _sourceChoiceLabel(
+                _session.state.sourceChoice,
+              ),
               selectedItem: selectedItem,
               diagnostics: diagnostics,
               isCapturedMapAvailable: widget.isCapturedMapAvailable,
@@ -327,6 +348,13 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
+  bool get _isQuickPathWorkbenchFocused =>
+      _session.state.isCreating &&
+      _session.state.usage == SmartTileUsage.path &&
+      !_useAdvancedPathFlow &&
+      (_session.state.wizardStep == SmartTileStudioWizardStep.connections ||
+          _session.state.wizardStep == SmartTileStudioWizardStep.forms);
+
   Widget _buildWorkbench(SmartTileLibraryItem? selectedItem) {
     final isEditingPattern = _editingPattern != null || _newPatternId != null;
     final isImportingTiledWang = _tiledWangSource != null;
@@ -343,6 +371,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               SmartTilesStudioStageHeader(
                 step: _session.state.wizardStep,
                 usage: _session.state.usage,
+                useSimplePathFlow: !_useAdvancedPathFlow,
                 launchContext: widget.launchContext,
                 persistenceState: widget.persistenceState,
               )
@@ -351,7 +380,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                 !isReconstructing)
               PokeMapSectionHeader(
                 title: 'Smart Tiles Studio',
-                description: selectedItem?.name ??
+                description:
+                    selectedItem?.name ??
                     'Sélectionnez un preset dans la bibliothèque.',
               ),
             if (!_session.state.isCreating &&
@@ -377,31 +407,31 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               onApply: _applyReconstruction,
             )
           : isImportingTiledWang
-              ? SmartTileTiledWangImportEditor(
-                  source: _tiledWangSource!,
-                  isImporting: _tiledWangImporting,
-                  externalError: _tiledWangError,
-                  onCancel: _cancelTiledWangImport,
-                  onImport: _importTiledWang,
-                )
-              : _session.state.isCreating
-                  ? _buildWizard()
-                  : isEditingPattern
-                      ? SmartTilePatternEditor(
-                          key: ValueKey<String>(
-                            'smart-tile-pattern-editor-${_editingPattern?.id ?? _newPatternId}',
-                          ),
-                          manifest: widget.manifest,
-                          projectRootPath: widget.projectRootPath,
-                          patternId: _editingPattern?.id ?? _newPatternId!,
-                          imageLoader: widget.imageLoader,
-                          initialPattern: _editingPattern,
-                          isSaving: _patternSaving,
-                          externalError: _patternError,
-                          onCancel: _cancelPatternEditing,
-                          onSave: _savePattern,
-                        )
-                      : _buildSelectedTab(selectedItem),
+          ? SmartTileTiledWangImportEditor(
+              source: _tiledWangSource!,
+              isImporting: _tiledWangImporting,
+              externalError: _tiledWangError,
+              onCancel: _cancelTiledWangImport,
+              onImport: _importTiledWang,
+            )
+          : _session.state.isCreating
+          ? _buildWizard()
+          : isEditingPattern
+          ? SmartTilePatternEditor(
+              key: ValueKey<String>(
+                'smart-tile-pattern-editor-${_editingPattern?.id ?? _newPatternId}',
+              ),
+              manifest: widget.manifest,
+              projectRootPath: widget.projectRootPath,
+              patternId: _editingPattern?.id ?? _newPatternId!,
+              imageLoader: widget.imageLoader,
+              initialPattern: _editingPattern,
+              isSaving: _patternSaving,
+              externalError: _patternError,
+              onCancel: _cancelPatternEditing,
+              onSave: _savePattern,
+            )
+          : _buildSelectedTab(selectedItem),
     );
   }
 
@@ -409,19 +439,21 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: SmartTilesStudioTab.values.map((tab) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: PokeMapButton(
-              key: Key('smart-tiles-tab-${tab.name}'),
-              onPressed: () => setState(() => _tab = tab),
-              variant: PokeMapButtonVariant.ghost,
-              size: PokeMapButtonSize.small,
-              isSelected: _tab == tab,
-              child: Text(_tabLabel(tab)),
-            ),
-          );
-        }).toList(growable: false),
+        children: SmartTilesStudioTab.values
+            .map((tab) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: PokeMapButton(
+                  key: Key('smart-tiles-tab-${tab.name}'),
+                  onPressed: () => setState(() => _tab = tab),
+                  variant: PokeMapButtonVariant.ghost,
+                  size: PokeMapButtonSize.small,
+                  isSelected: _tab == tab,
+                  child: Text(_tabLabel(tab)),
+                ),
+              );
+            })
+            .toList(growable: false),
       ),
     );
   }
@@ -451,9 +483,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     final atlas = projection == null
         ? null
         : widget.manifest.smartTileCatalog.atlases
-            .where((candidate) => candidate.id == projection.atlasId)
-            .firstOrNull;
-    final canEdit = projection != null &&
+              .where((candidate) => candidate.id == projection.atlasId)
+              .firstOrNull;
+    final canEdit =
+        projection != null &&
         atlas != null &&
         widget.onUpsertPattern != null &&
         !_patternSaving;
@@ -505,7 +538,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           PokeMapAssetCard(
             thumbnail: const Icon(CupertinoIcons.photo, size: 20),
             label: atlas?.name ?? 'Atlas indisponible',
-            description: 'Zone ${projection.selection.left + 1},'
+            description:
+                'Zone ${projection.selection.left + 1},'
                 '${projection.selection.top + 1} → '
                 '${projection.selection.right + 1},'
                 '${projection.selection.bottom + 1}',
@@ -520,10 +554,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             disabledReason: projection == null
                 ? 'L’éditeur simple ne doit pas aplatir ce motif avancé.'
                 : atlas == null
-                    ? 'L’atlas source de ce motif est indisponible.'
-                    : widget.onUpsertPattern == null
-                        ? 'La session canonique du projet est indisponible.'
-                        : null,
+                ? 'L’atlas source de ce motif est indisponible.'
+                : widget.onUpsertPattern == null
+                ? 'La session canonique du projet est indisponible.'
+                : null,
             leading: const Icon(CupertinoIcons.pencil, size: 15),
             child: const Text('Modifier le motif'),
           ),
@@ -573,8 +607,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       onChoiceSelected: _chooseSource,
       onChooseProjectImage: _chooseProjectImage,
       onChooseRegisteredAtlas: _chooseRegisteredAtlas,
-      onImportImage:
-          widget.onImportProjectImage == null ? null : _importProjectImage,
+      onImportImage: widget.onImportProjectImage == null
+          ? null
+          : _importProjectImage,
       onContinue: _moveToGrid,
       selectedSource: selectedTileset == null
           ? null
@@ -583,7 +618,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               registeredAtlas: selectedAtlas,
               image: loadedImage,
             ),
-      errorMessage: _sourceImageResult != null &&
+      errorMessage:
+          _sourceImageResult != null &&
               !_sourceImageResult!.isLoaded &&
               !_isLoadingSourceImage
           ? _sourceImageResult!.message
@@ -622,10 +658,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                       tileset.relativePath,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: 11
-                      ),
+                      style: TextStyle(color: colors.textMuted, fontSize: 11),
                     ),
                   ],
                 ),
@@ -730,7 +763,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       activeMaterialId: state.activeMaterialId,
       newMaterialNameController: _newMaterialNameController,
       canCreateMaterial: _newMaterialNameController.text.trim().isNotEmpty,
-      canContinue: state.materials.isNotEmpty &&
+      canContinue:
+          state.materials.isNotEmpty &&
           state.defaultMaterialId.isNotEmpty &&
           state.activeMaterialId.isNotEmpty,
       onActivate: _activateMaterial,
@@ -744,7 +778,20 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
 
   Widget _buildConnectionsStep() {
     final usage = _session.state.usage!;
-    final hasSelection = _selectedConnectionProfileId != null &&
+    if (usage == SmartTileUsage.path && !_useAdvancedPathFlow) {
+      return SmartTilePathPatternStage(
+        selectedPatternId: _selectedPathPatternId,
+        onPatternSelected: (patternId) {
+          unawaited(_selectPathPattern(patternId));
+        },
+        onUseCustomPattern: _startAdvancedPathFlow,
+        onContinue: _selectedPathPatternId == null
+            ? null
+            : _continueQuickPathPattern,
+      );
+    }
+    final hasSelection =
+        _selectedConnectionProfileId != null &&
         (_selectedConnectionProfileId != SmartTileConnectionProfileId.custom ||
             _customConnectionTopology != null);
     return SmartTileConnectionsStage(
@@ -802,10 +849,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           for (final guide in guides) ...[
             PokeMapAssetCard(
               key: Key('smart-tiles-guide-${guide.id.name}'),
-              thumbnail: SmartTileGuideDiagram(
-                guide: guide,
-                compact: true
-              ),
+              thumbnail: SmartTileGuideDiagram(guide: guide, compact: true),
               label: guide.name,
               description: guide.description,
               selected: _session.state.guideId == guide.id,
@@ -838,10 +882,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         image: _sourceImageResult?.image,
         selectedFrame: _animationFrames.isEmpty ? null : _animationFrames.last,
         enabled: true,
-        onCellSelected: (cell) => _toggleAnimationFrame(
-          column: cell.column,
-          row: cell.row
-        ),
+        onCellSelected: (cell) =>
+            _toggleAnimationFrame(column: cell.column, row: cell.row),
       ),
       onTransformPolicyChanged: _proposeTransformPolicy,
       onAcceptTransformProposal: _acceptTransformProposal,
@@ -894,6 +936,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     final guideId = _session.state.guideId;
     final guide = guideId == null ? null : smartTileGuideById(guideId);
     final geometry = _session.state.gridGeometry!;
+    final quickPathStage = _buildQuickPathFillStage(
+      forms: forms,
+      preset: preset,
+      geometry: geometry,
+    );
+    if (quickPathStage != null) return quickPathStage;
     return SmartTileFormsStage(
       usage: _session.state.usage!,
       topology: preset.topology,
@@ -1021,8 +1069,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                   PokeMapButton(
                     key: Key('smart-tiles-correction-${cell.number}'),
                     onPressed: () => setState(() {
-                      _correctionNumber =
-                          _correctionNumber == cell.number ? null : cell.number;
+                      _correctionNumber = _correctionNumber == cell.number
+                          ? null
+                          : cell.number;
                     }),
                     variant: PokeMapButtonVariant.ghost,
                     size: PokeMapButtonSize.small,
@@ -1044,11 +1093,13 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     final placement = _guidePlacement;
     final mappedCount = _authoring.state.mappings.length;
     final placedCellCount = placement?.frames.length ?? 0;
-    final isComplete = placement?.isValid == true &&
+    final isComplete =
+        placement?.isValid == true &&
         placedCellCount == guide.cells.length &&
         mappedCount == guide.requiredMasks.length &&
-        smartTileCanonicalMasks(guide.templateHint,)
-            .every(_authoring.state.mappings.containsKey);
+        smartTileCanonicalMasks(
+          guide.templateHint,
+        ).every(_authoring.state.mappings.containsKey);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -1152,8 +1203,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                 PokeMapButton(
                   key: Key('smart-tiles-correction-${cell.number}'),
                   onPressed: () => setState(() {
-                    _correctionNumber =
-                        _correctionNumber == cell.number ? null : cell.number;
+                    _correctionNumber = _correctionNumber == cell.number
+                        ? null
+                        : cell.number;
                   }),
                   variant: PokeMapButtonVariant.ghost,
                   size: PokeMapButtonSize.small,
@@ -1278,10 +1330,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     final preset = catalog.presets.single;
     final controller = _testLabFor(preset: preset, catalog: catalog);
     final scenarios = controller.runCanonicalScenarios();
-    final isComplete = _labIsPublishable(
-      preset: preset,
-      scenarios: scenarios
-    );
+    final isComplete = _labIsPublishable(preset: preset, scenarios: scenarios);
     final forms = projectSmartTileForms(
       preset: preset,
       materials: catalog.materials,
@@ -1332,16 +1381,16 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         for (final part in candidate.parts) {
           final frames = switch (part.source) {
             SmartTileFrameSource(frame: final frame) => <SmartTileFrameRef>[
-                frame,
-              ],
-            SmartTileAnimationSource(animationId: final id) => catalog
-                    .animations
-                    .where((animation) => animation.id == id)
-                    .firstOrNull
-                    ?.frames
-                    .map((frame) => frame.frame)
-                    .toList(growable: false) ??
-                const <SmartTileFrameRef>[],
+              frame,
+            ],
+            SmartTileAnimationSource(animationId: final id) =>
+              catalog.animations
+                      .where((animation) => animation.id == id)
+                      .firstOrNull
+                      ?.frames
+                      .map((frame) => frame.frame)
+                      .toList(growable: false) ??
+                  const <SmartTileFrameRef>[],
           };
           for (final frame in frames) {
             final atlas = catalog.atlases
@@ -1382,14 +1431,14 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       guideSummary: guide?.name ?? 'Aucun — associations libres',
       mappingSummary: guide == null
           ? _authoring.state.transitionCases.isEmpty
-              ? '${_authoring.state.mappings.length} formes • ${_authoring.state.mappings.values.expand((variants) => variants).length} variantes'
-              : '${_authoring.state.mappings.length} formes relatives • '
-                  '${_authoring.state.transitionCases.length} cas exacts • '
-                  '${compiled.presets.single.rules.expand((rule) => rule.candidates).length} variantes'
+                ? '${_authoring.state.mappings.length} formes • ${_authoring.state.mappings.values.expand((variants) => variants).length} variantes'
+                : '${_authoring.state.mappings.length} formes relatives • '
+                      '${_authoring.state.transitionCases.length} cas exacts • '
+                      '${compiled.presets.single.rules.expand((rule) => rule.candidates).length} variantes'
           : '${guide.cells.length} cellules • '
-              '${guide.requiredMasks.length} raccords • '
-              '${guide.cells.length - guide.requiredMasks.length} variantes'
-              '${_authoring.state.transitionCases.isEmpty ? '' : ' • ${_authoring.state.transitionCases.length} cas exacts'}',
+                '${guide.requiredMasks.length} raccords • '
+                '${guide.cells.length - guide.requiredMasks.length} variantes'
+                '${_authoring.state.transitionCases.isEmpty ? '' : ' • ${_authoring.state.transitionCases.length} cas exacts'}',
       targetKind: _publicationTargetKind,
       mapId: widget.launchContext.capturedMapId,
       mapAvailable: widget.isCapturedMapAvailable && widget.capturedMap != null,
@@ -1421,7 +1470,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       // so callers can find it while it is still loading.
       key: key,
       frame: frame,
-      atlases: widget.manifest.smartTileCatalog.atlases,
+      atlases: _spritePreviewAtlases(),
       tilesets: widget.manifest.tilesets,
       projectRootPath: widget.projectRootPath,
       imageCache: widget.imageCache,
@@ -1434,8 +1483,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   SmartTileFrameRef? _inspectorFrameFor(SmartTileLibraryItem item) {
     final preset = item.nativePreset;
     if (preset == null) return null;
-    final focusedRule =
-        preset.rules.where((rule) => rule.id == _focusedRuleId).firstOrNull;
+    final focusedRule = preset.rules
+        .where((rule) => rule.id == _focusedRuleId)
+        .firstOrNull;
     if (focusedRule != null) {
       final frame = focusedRule.candidates
           .map(
@@ -1487,8 +1537,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         icon: Icon(CupertinoIcons.photo),
       );
     }
-    final selectedAtlas =
-        atlases.where((atlas) => atlas.id == _selectedAtlasTabId).firstOrNull;
+    final selectedAtlas = atlases
+        .where((atlas) => atlas.id == _selectedAtlasTabId)
+        .firstOrNull;
     return ListView(
       padding: const EdgeInsets.all(18),
       children: <Widget>[
@@ -1505,7 +1556,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               semanticLabel: 'Première cellule de ${atlas.name}',
             ),
             label: atlas.name,
-            description: '${atlas.columns} × ${atlas.rows} cellules • '
+            description:
+                '${atlas.columns} × ${atlas.rows} cellules • '
                 '${atlas.cellWidth} × ${atlas.cellHeight} px • '
                 'origine ${atlas.originX},${atlas.originY} • '
                 'espacement ${atlas.spacingX},${atlas.spacingY}',
@@ -1651,27 +1703,28 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         final form = mask == null ? null : formsByMask[mask];
         return PokeMapAssetCard(
           key: Key('smart-tiles-rule-${rule.id}'),
-          thumbnail: switch (
-              rule.candidates
-                  .map(
-                    (candidate) => firstSmartTileFrameOf(
-                      candidate,
-                      animations: widget.manifest.smartTileCatalog.animations,
-                    ),
-                  )
-                  .nonNulls
-                  .firstOrNull) {
+          thumbnail: switch (rule.candidates
+              .map(
+                (candidate) => firstSmartTileFrameOf(
+                  candidate,
+                  animations: widget.manifest.smartTileCatalog.animations,
+                ),
+              )
+              .nonNulls
+              .firstOrNull) {
             final SmartTileFrameRef frame => _spritePreview(
-                frame,
-                size: 30,
-                semanticLabel: 'Sprite de ${form?.label ?? 'la règle'}',
-              ),
+              frame,
+              size: 30,
+              semanticLabel: 'Sprite de ${form?.label ?? 'la règle'}',
+            ),
             null => const Icon(CupertinoIcons.arrow_branch, size: 20),
           },
           label: form?.label ?? 'Forme personnalisée',
-          description: form?.description ??
+          description:
+              form?.description ??
               'Cette règle avancée ne correspond pas à une forme standard.',
-          selected: _focusedRuleId == rule.id ||
+          selected:
+              _focusedRuleId == rule.id ||
               (_focusedRuleId == null && _focusedMask == mask),
           onPressed: () => setState(() {
             _focusedRuleId = rule.id;
@@ -1758,13 +1811,13 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           trailing: PokeMapBadge(
             label: blocking == 0
                 ? selectedItem.statusLabel == 'Publié'
-                    ? 'Preset publié et valide'
-                    : 'Brouillon valide'
+                      ? 'Preset publié et valide'
+                      : 'Brouillon valide'
                 : '$blocking erreur(s) bloquante(s)',
             variant: blocking == 0
                 ? selectedItem.statusLabel == 'Publié'
-                    ? PokeMapBadgeVariant.success
-                    : PokeMapBadgeVariant.info
+                      ? PokeMapBadgeVariant.success
+                      : PokeMapBadgeVariant.info
                 : PokeMapBadgeVariant.error,
           ),
         ),
@@ -1845,10 +1898,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         widget.isCapturedMapAvailable &&
         map != null &&
         map.layers.whereType<TileLayer>().any(
-              (layer) =>
-                  layer.purpose == MapLayerPurpose.visual &&
-                  layer.cells.any((cell) => cell > 0),
-            ) &&
+          (layer) =>
+              layer.purpose == MapLayerPurpose.visual &&
+              layer.cells.any((cell) => cell > 0),
+        ) &&
         widget.manifest.smartTileCatalog.presets.any(
           (preset) => preset.status == SmartTilePresetStatus.published,
         );
@@ -1876,8 +1929,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _reconstructionOpen = false;
       _reconstructionPlan = null;
       _reconstructionError = null;
-      _selectedItemKey =
-          buildSmartTileStudioLibrary(widget.manifest,).firstOrNull?.key;
+      _selectedItemKey = buildSmartTileStudioLibrary(
+        widget.manifest,
+      ).firstOrNull?.key;
     });
   }
 
@@ -2001,14 +2055,13 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _reconstructionOpen = false;
       _reconstructionPlan = null;
       _reconstructionError = null;
-      _selectedItemKey =
-          buildSmartTileStudioLibrary(widget.manifest,).firstOrNull?.key;
+      _selectedItemKey = buildSmartTileStudioLibrary(
+        widget.manifest,
+      ).firstOrNull?.key;
     });
   }
 
-  Future<void> _importTiledWang(
-    List<TiledWangSetSelection> selections
-  ) async {
+  Future<void> _importTiledWang(List<TiledWangSetSelection> selections) async {
     final callback = widget.onImportTiledWang;
     final source = _tiledWangSource;
     if (callback == null || source == null || _tiledWangImporting) return;
@@ -2027,8 +2080,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         _draftMessage = source.isImageCollection
             ? 'Collection Tiled importée dans la bibliothèque PokeMap.'
             : result.presetIds.length == 1
-                ? 'Wang Set importé comme brouillon Smart Tile.'
-                : '${result.presetIds.length} Wang Sets importés comme brouillons Smart Tiles.';
+            ? 'Wang Set importé comme brouillon Smart Tile.'
+            : '${result.presetIds.length} Wang Sets importés comme brouillons Smart Tiles.';
       });
     } on Object catch (error) {
       if (!mounted) return;
@@ -2113,10 +2166,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _resumedDraftId = null;
       final id = _nextDraftId();
       _authoring = SmartTileAuthoringController.blank()
-        ..configureIdentity(
-          id: id,
-          name: 'Nouveau Smart Tile'
-        );
+        ..configureIdentity(id: id, name: 'Nouveau Smart Tile');
       _newMaterialNameController.clear();
       _animationNameController.clear();
       _animationDurationController.text = '180';
@@ -2135,6 +2185,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _selectedRegisteredAtlasId = null;
       _selectedConnectionProfileId = null;
       _customConnectionTopology = null;
+      _selectedPathPatternId = null;
+      _useAdvancedPathFlow = false;
       _showAdvancedConnectionSettings = false;
       _showAdvancedVariantSettings = false;
       _testLabController = null;
@@ -2154,6 +2206,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       topology: draft.topology,
       templateHint: draft.templateHint,
     );
+    final pathPattern = draft.usage == SmartTileUsage.path
+        ? smartTilePathPatternForConfiguration(
+            topology: draft.topology,
+            templateHint: draft.templateHint,
+          )
+        : null;
     final atlas = draft.atlases
         .where((candidate) => candidate.id == draft.primaryAtlasId)
         .firstOrNull;
@@ -2169,10 +2227,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _patternError = null;
       _authoring = authoring;
       _resumedDraftId = draft.id;
-      _session.resumeDraft(
-        draft,
-        gridGeometry: authoring.state.gridGeometry
-      );
+      _session.resumeDraft(draft, gridGeometry: authoring.state.gridGeometry);
       _selectedItemKey = 'draft:${draft.id}';
       _newMaterialNameController.clear();
       _animationNameController.clear();
@@ -2186,19 +2241,26 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _selectedRenderChannel = SmartTileRenderChannel.ground;
       _guidePlacement = null;
       _correctionNumber = null;
-      _placementMessage = 'Brouillon repris à l’étape « '
+      _placementMessage =
+          'Brouillon repris à l’étape « '
           '${_wizardStepLabel(_session.state.wizardStep)} ».';
       _draftMessage = null;
       _clearSourceImageSelection();
       _selectedSourceTilesetId = tilesetId;
-      _selectedRegisteredAtlasId = widget.manifest.smartTileCatalog.atlases
-              .any((candidate) => candidate.id == atlas?.id,)
+      _selectedRegisteredAtlasId =
+          widget.manifest.smartTileCatalog.atlases.any(
+            (candidate) => candidate.id == atlas?.id,
+          )
           ? atlas?.id
           : null;
       _selectedConnectionProfileId =
           connectionProfile?.id ?? SmartTileConnectionProfileId.custom;
-      _customConnectionTopology =
-          connectionProfile == null ? draft.topology : null;
+      _customConnectionTopology = connectionProfile == null
+          ? draft.topology
+          : null;
+      _selectedPathPatternId = pathPattern?.id;
+      _useAdvancedPathFlow =
+          draft.usage == SmartTileUsage.path && pathPattern == null;
       _testLabController = null;
       _testLabTool = SmartTileLabTool.pencil;
       _transformProposal = null;
@@ -2247,10 +2309,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       .where((tileset) => tileset.id == _selectedSourceTilesetId)
       .firstOrNull;
 
-  ProjectSmartTileAtlas? get _selectedRegisteredAtlas =>
-      widget.manifest.smartTileCatalog.atlases
-          .where((atlas) => atlas.id == _selectedRegisteredAtlasId)
-          .firstOrNull;
+  ProjectSmartTileAtlas? get _selectedRegisteredAtlas => widget
+      .manifest
+      .smartTileCatalog
+      .atlases
+      .where((atlas) => atlas.id == _selectedRegisteredAtlasId)
+      .firstOrNull;
 
   bool get _canMoveToGrid {
     return switch (_session.state.sourceChoice) {
@@ -2370,9 +2434,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       title: 'Choisir un atlas enregistré',
       semanticLabel: 'Sélecteur d’atlas Smart Tiles',
       width: 520,
-      builder: (context) => _SmartTileRegisteredAtlasPicker(
-        atlases: atlases
-      ),
+      builder: (context) => _SmartTileRegisteredAtlasPicker(atlases: atlases),
     );
     if (!mounted || selected == null) {
       return;
@@ -2420,11 +2482,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     final registeredAtlas = _selectedRegisteredAtlas;
     final proposals = switch (_session.state.sourceChoice) {
       SmartTileStudioSourceChoice.emptyPreset => _gridDetector.detect(
-          const SmartTileGridDetectionInput(
-            imageWidth: 160,
-            imageHeight: 96
-          ),
-        ),
+        const SmartTileGridDetectionInput(imageWidth: 160, imageHeight: 96),
+      ),
       SmartTileStudioSourceChoice.registeredAtlas
           when image != null && registeredAtlas != null =>
         <SmartTileGridCandidate>[
@@ -2460,6 +2519,23 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     };
     final detected = proposals.first.geometry;
     _setGridControllers(detected);
+    if (_session.state.usage == SmartTileUsage.path &&
+        !_useAdvancedPathFlow &&
+        detected.isWithinImage) {
+      setState(() {
+        _gridProposals = proposals;
+        _selectedGridProposal = 0;
+        _pendingGridGeometry = detected;
+        _session.moveToGrid();
+        _configureDraftAtlas(detected);
+        _session.configureGrid(detected);
+        _authoring.clearMappings();
+        _session.moveToMaterials();
+        _session.moveToConnections();
+      });
+      _flushDraftAfterStepChange();
+      return;
+    }
     setState(() {
       _gridProposals = proposals;
       _selectedGridProposal = 0;
@@ -2484,8 +2560,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       'spacingY': geometry.spacingY,
     };
     for (final entry in values.entries) {
-      final controller =
-          _gridControllers.putIfAbsent(entry.key, TextEditingController.new,);
+      final controller = _gridControllers.putIfAbsent(
+        entry.key,
+        TextEditingController.new,
+      );
       controller.text = '${entry.value}';
     }
   }
@@ -2548,7 +2626,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             SmartTileUsage.forestSurface => 'Surface',
           },
         );
-      }_session.moveToImage();
+      }
+      _session.moveToImage();
     });
     _flushDraftAfterStepChange();
   }
@@ -2568,7 +2647,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         _customConnectionTopology = null;
         _authoring.configureConnections(
           recommended.resolve(),
-          clearMappings: _authoring.state.mappings.isNotEmpty ||
+          clearMappings:
+              _authoring.state.mappings.isNotEmpty ||
               _authoring.state.transitionCases.isNotEmpty,
         );
       }
@@ -2675,8 +2755,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       for (final material in widget.manifest.smartTileCatalog.materials)
         material.id: material,
       ...allowed,
-    }.values.toList()
-      ..sort((left, right) => left.name.compareTo(right.name));
+    }.values.toList()..sort((left, right) => left.name.compareTo(right.name));
     return <SmartTileMaterialPickerItem>[
       for (final material in all)
         SmartTileMaterialPickerItem(
@@ -2704,8 +2783,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
 
   void _activateMaterial(ProjectSmartTileMaterial material) {
     setState(() {
-      if (!_authoring.state.materials
-          .any((candidate) => candidate.id == material.id,)) {
+      if (!_authoring.state.materials.any(
+        (candidate) => candidate.id == material.id,
+      )) {
         _authoring.addMaterial(material);
       } else {
         _authoring.setActiveMaterial(material.id);
@@ -2781,7 +2861,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     SmartTileTopology? customTopology,
   }) async {
     final state = _authoring.state;
-    final changesContract = state.topology != configuration.topology ||
+    final changesContract =
+        state.topology != configuration.topology ||
         state.templateHint != configuration.templateHint;
     var clearMappings = false;
     if (changesContract &&
@@ -2834,6 +2915,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _placementMessage = null;
       _selectedConnectionProfileId = null;
       _customConnectionTopology = null;
+      _selectedPathPatternId = null;
+      _useAdvancedPathFlow = false;
       _showAdvancedConnectionSettings = false;
       _showAdvancedVariantSettings = false;
       _testLabController = null;
@@ -2860,7 +2943,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       coveragePolicy: SmartTileCoveragePolicy.complete,
     );
     final state = _authoring.state;
-    final changesContract = state.topology != configuration.topology ||
+    final changesContract =
+        state.topology != configuration.topology ||
         state.templateHint != configuration.templateHint;
     var clearMappings = false;
     if (changesContract &&
@@ -2980,8 +3064,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     final cell = GridPos(x: column, y: row);
     final selectionStart =
         _atlasSelectionMode == SmartTileAtlasSelectionMode.rectangle
-            ? _atlasSelectionStart
-            : null;
+        ? _atlasSelectionStart
+        : null;
     if (_atlasSelectionMode == SmartTileAtlasSelectionMode.rectangle &&
         selectionStart == null) {
       setState(() {
@@ -3086,10 +3170,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     _notifyDraftChanged();
   }
 
-  void _setTransitionCaseCenter(
-    String caseId,
-    SmartTileSlotMatch match
-  ) {
+  void _setTransitionCaseCenter(String caseId, SmartTileSlotMatch match) {
     setState(() {
       _authoring.setTransitionCaseCenter(caseId: caseId, match: match);
     });
@@ -3186,8 +3267,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           channel: _selectedRenderChannel,
           footprintWidth: frame.columnSpan,
           footprintHeight: frame.rowSpan,
-          drawOrder:
-              _selectedRenderChannel == SmartTileRenderChannel.canopy ? 10 : 0,
+          drawOrder: _selectedRenderChannel == SmartTileRenderChannel.canopy
+              ? 10
+              : 0,
         ),
       );
     } else if (candidates.isNotEmpty && !addVariant) {
@@ -3219,10 +3301,26 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         rowSpan: frame.rowSpan,
       );
     }
+    final pathPatternId = _selectedPathPatternId;
+    final nextQuickPathMask =
+        _session.state.usage == SmartTileUsage.path &&
+            !_useAdvancedPathFlow &&
+            pathPatternId != null
+        ? smartTilePathPatternById(pathPatternId).slots
+              .where(
+                (slot) =>
+                    (_authoring.state.mappings[slot.mask]?.isNotEmpty ??
+                        false) ==
+                    false,
+              )
+              .map((slot) => slot.mask)
+              .firstOrNull
+        : null;
     setState(() {
       _lastMappedFrame = frame;
       _pendingAtlasFrame = null;
       _lastCandidateId = candidateId;
+      if (nextQuickPathMask != null) _selectedMask = nextQuickPathMask;
     });
     _notifyDraftChanged();
   }
@@ -3423,10 +3521,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         : SmartTilePublicationTargetKind.library;
     _publicationLayerIdController.text =
         SmartTilePublicationService.suggestLayerId(
-      presetId: _authoring.state.id,
-      existingLayerIds:
-          capturedMap?.layers.map((layer) => layer.id) ?? const <String>[],
-    );
+          presetId: _authoring.state.id,
+          existingLayerIds:
+              capturedMap?.layers.map((layer) => layer.id) ?? const <String>[],
+        );
     _publicationLayerNameController.text = _authoring.state.name;
     _clearPublicationPlanState();
   }
@@ -3480,10 +3578,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       SmartTilePublicationTargetKind.library =>
         const SmartTilePublicationTarget.library(),
       SmartTilePublicationTargetKind.map => SmartTilePublicationTarget.map(
-          mapId: widget.launchContext.capturedMapId ?? '',
-          layerId: _publicationLayerIdController.text,
-          layerName: _publicationLayerNameController.text,
-        ),
+        mapId: widget.launchContext.capturedMapId ?? '',
+        layerId: _publicationLayerIdController.text,
+        layerName: _publicationLayerNameController.text,
+      ),
     };
     setState(() {
       _publicationBusy = true;
@@ -3564,9 +3662,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       lastStage: stage,
       guideId: _session.state.guideId?.name,
       clearGuide: _session.state.guideId == null,
-      sourceTilesetIds: <String>[
-        ?_selectedSourceTilesetId
-      ],
+      sourceTilesetIds: <String>[?_selectedSourceTilesetId],
     );
   }
 
@@ -3590,10 +3686,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     if (current != null && current.preset == preset) {
       return current;
     }
-    final next = SmartTileTestLayerController(
-      preset: preset,
-      catalog: catalog
-    );
+    final next = SmartTileTestLayerController(preset: preset, catalog: catalog);
     _testLabController = next;
     _testLabTool = SmartTileLabTool.pencil;
     return next;
@@ -3610,12 +3703,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         (scenario) => switch (scenario.inspection.resolution.status) {
           SmartTileResolutionStatus.ambiguousRule ||
           SmartTileResolutionStatus.noCandidate ||
-          SmartTileResolutionStatus.invalidRule =>
-            true,
+          SmartTileResolutionStatus.invalidRule => true,
           SmartTileResolutionStatus.resolved ||
           SmartTileResolutionStatus.noIntent ||
-          SmartTileResolutionStatus.noMatchingRule =>
-            false,
+          SmartTileResolutionStatus.noMatchingRule => false,
         },
       );
       return resolved > 0 && !hasBlockingResolution;
@@ -3724,13 +3815,16 @@ class _SmartTileRegisteredAtlasPickerState
   @override
   Widget build(BuildContext context) {
     final normalizedQuery = _query.trim().toLowerCase();
-    final visibleAtlases = widget.atlases.where((atlas) {
-      return normalizedQuery.isEmpty ||
-          atlas.name.toLowerCase().contains(normalizedQuery) ||
-          atlas.id.toLowerCase().contains(normalizedQuery) ||
-          atlas.tilesetId.toLowerCase().contains(normalizedQuery);
-    }).toList(growable: false)
-      ..sort((left, right) => left.name.compareTo(right.name));
+    final visibleAtlases =
+        widget.atlases
+            .where((atlas) {
+              return normalizedQuery.isEmpty ||
+                  atlas.name.toLowerCase().contains(normalizedQuery) ||
+                  atlas.id.toLowerCase().contains(normalizedQuery) ||
+                  atlas.tilesetId.toLowerCase().contains(normalizedQuery);
+            })
+            .toList(growable: false)
+          ..sort((left, right) => left.name.compareTo(right.name));
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -3759,9 +3853,7 @@ class _SmartTileRegisteredAtlasPickerState
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: PokeMapAssetCard(
-                          key: Key(
-                            'smart-tiles-registered-atlas-${atlas.id}'
-                          ),
+                          key: Key('smart-tiles-registered-atlas-${atlas.id}'),
                           thumbnail: const Icon(
                             CupertinoIcons.square_grid_3x2,
                             size: 20,
@@ -3811,8 +3903,9 @@ class _SmartTileAtlasMappingViewport extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const viewportHeight = 420.0;
-        final availableWidth =
-            constraints.maxWidth.isFinite ? constraints.maxWidth : 720.0;
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 720.0;
         final sourceWidth = geometry.imageWidth.toDouble();
         final sourceHeight = geometry.imageHeight.toDouble();
         final scale = math.min(
@@ -3878,10 +3971,12 @@ class _SmartTileAtlasMappingViewport extends StatelessWidget {
                         painter: _SmartTileAtlasGridPainter(
                           geometry: geometry,
                           selectedFrame: selectedFrame,
-                          lineColor:
-                              colors.borderStrong.withValues(alpha: 0.62,),
-                          selectionColor:
-                              colors.brandPrimary.withValues(alpha: 0.24,),
+                          lineColor: colors.borderStrong.withValues(
+                            alpha: 0.62,
+                          ),
+                          selectionColor: colors.brandPrimary.withValues(
+                            alpha: 0.24,
+                          ),
                           selectionBorderColor: colors.brandPrimary,
                         ),
                       ),
@@ -3892,11 +3987,13 @@ class _SmartTileAtlasMappingViewport extends StatelessWidget {
                             painter: SmartTileGuideOverlayPainter(
                               geometry: geometry,
                               placement: placement!,
-                              fillColor: colors.brandPrimarySoft
-                                  .withValues(alpha: 0.58,),
+                              fillColor: colors.brandPrimarySoft.withValues(
+                                alpha: 0.58,
+                              ),
                               borderColor: colors.brandPrimary,
-                              anchorColor:
-                                  colors.success.withValues(alpha: 0.58,),
+                              anchorColor: colors.success.withValues(
+                                alpha: 0.58,
+                              ),
                               textColor: colors.textPrimary,
                             ),
                           ),
@@ -4050,22 +4147,22 @@ class _SmartTileAtlasGridPainter extends CustomPainter {
 }
 
 String _tabLabel(SmartTilesStudioTab tab) => switch (tab) {
-      SmartTilesStudioTab.atlas => 'Atlas',
-      SmartTilesStudioTab.rules => 'Règles',
-      SmartTilesStudioTab.animations => 'Animations',
-      SmartTilesStudioTab.testBench => 'Banc d’essai',
-      SmartTilesStudioTab.validation => 'Validation',
-    };
+  SmartTilesStudioTab.atlas => 'Atlas',
+  SmartTilesStudioTab.rules => 'Règles',
+  SmartTilesStudioTab.animations => 'Animations',
+  SmartTilesStudioTab.testBench => 'Banc d’essai',
+  SmartTilesStudioTab.validation => 'Validation',
+};
 
 String _templateLabel(SmartTileTemplateHint template) => switch (template) {
-      SmartTileTemplateHint.simple => 'Simple',
-      SmartTileTemplateHint.edge16 => 'Edge 16',
-      SmartTileTemplateHint.corner16 => 'Corner 16',
-      SmartTileTemplateHint.corner12 => 'Corner 12',
-      SmartTileTemplateHint.blob47 => 'Blob 47',
-      SmartTileTemplateHint.mixed256 => 'Mixed 256',
-      SmartTileTemplateHint.free => 'Libre',
-    };
+  SmartTileTemplateHint.simple => 'Simple',
+  SmartTileTemplateHint.edge16 => 'Edge 16',
+  SmartTileTemplateHint.corner16 => 'Corner 16',
+  SmartTileTemplateHint.corner12 => 'Corner 12',
+  SmartTileTemplateHint.blob47 => 'Blob 47',
+  SmartTileTemplateHint.mixed256 => 'Mixed 256',
+  SmartTileTemplateHint.free => 'Libre',
+};
 
 String _wizardStepLabel(SmartTileStudioWizardStep step) =>
     smartTileWizardStepLabel(step);

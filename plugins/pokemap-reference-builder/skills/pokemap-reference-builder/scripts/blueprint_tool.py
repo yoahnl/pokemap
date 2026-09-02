@@ -166,6 +166,17 @@ def validate_layer(value: object, path: str, width: int, height: int, errors: li
         for index, binding in enumerate(bindings)
     ]
     constraints = require_object(layer.get("constraints"), f"{path}.constraints", errors)
+    continuity_required = constraints.get("continuityRequired")
+    if continuity_required is not None and not isinstance(continuity_required, bool):
+        errors.append(f"{path}.constraints.continuityRequired: expected boolean")
+    network_width = constraints.get("networkWidthCells")
+    if network_width is not None and (
+        not isinstance(network_width, int) or isinstance(network_width, bool) or not 1 <= network_width <= 64
+    ):
+        errors.append(f"{path}.constraints.networkWidthCells: expected integer between 1 and 64")
+    allows_water = constraints.get("allowsWater")
+    if allows_water is not None and not isinstance(allows_water, bool):
+        errors.append(f"{path}.constraints.allowsWater: expected boolean")
     if status in {"approved", "applied", "verified"} and not bindings:
         errors.append(f"{path}.bindings: approved and later layers require a live resource binding")
     semantic_key = str(semantic).lower()
@@ -207,6 +218,14 @@ def validate_missing_asset(value: object, path: str, errors: list[str]) -> str |
         errors.append(f"{path}.provenance: must be custom_hgss_compatible")
     if asset.get("alphaPolicy") not in {"required", "optional"}:
         errors.append(f"{path}.alphaPolicy: expected required or optional")
+    semantic = asset.get("semantic")
+    if semantic is not None and (not isinstance(semantic, str) or not semantic):
+        errors.append(f"{path}.semantic: expected non-empty string")
+    tags = asset.get("tags")
+    if tags is not None and (
+        not isinstance(tags, list) or any(not isinstance(tag, str) or not tag for tag in tags)
+    ):
+        errors.append(f"{path}.tags: expected an array of non-empty strings")
     references = require_list(asset.get("styleReferences"), f"{path}.styleReferences", errors)
     if status in {"approved", "imported", "verified"}:
         if not isinstance(asset.get("sourcePng"), str) or not asset.get("sourcePng"):

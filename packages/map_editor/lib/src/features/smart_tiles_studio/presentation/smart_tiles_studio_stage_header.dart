@@ -13,12 +13,14 @@ class SmartTilesStudioStageHeader extends StatelessWidget {
     required this.launchContext,
     this.usage,
     this.persistenceState,
+    this.useSimplePathFlow = true,
   });
 
   final SmartTileStudioWizardStep step;
   final SmartTilesStudioLaunchContext launchContext;
   final SmartTileUsage? usage;
   final SmartTileDraftPersistenceState? persistenceState;
+  final bool useSimplePathFlow;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,9 @@ class SmartTilesStudioStageHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         PokeMapSectionHeader(
-          title: 'Nouveau Smart Tile',
+          title: usage == SmartTileUsage.path && useSimplePathFlow
+              ? 'Construire un chemin'
+              : 'Nouveau Smart Tile',
           description: usage == SmartTileUsage.path
               ? 'Créez un chemin pas à pas. Les réglages techniques sont proposés automatiquement.'
               : 'Parcours guidé avec des réglages conseillés à chaque étape.',
@@ -61,25 +65,80 @@ class SmartTilesStudioStageHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: <Widget>[
-              for (final candidate in SmartTileStudioWizardStep.values)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: PokeMapBadge(
-                    label:
-                        '${candidate.index + 1}. ${smartTileWizardStepLabel(candidate)}',
-                    variant: candidate == step
-                        ? PokeMapBadgeVariant.info
-                        : PokeMapBadgeVariant.neutral,
+        if (usage == SmartTileUsage.path && useSimplePathFlow)
+          _QuickPathSteps(step: step)
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: <Widget>[
+                for (final candidate in SmartTileStudioWizardStep.values)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: PokeMapBadge(
+                      label:
+                          '${candidate.index + 1}. ${smartTileWizardStepLabel(candidate)}',
+                      variant: candidate == step
+                          ? PokeMapBadgeVariant.info
+                          : PokeMapBadgeVariant.neutral,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-        ),
       ],
+    );
+  }
+}
+
+class _QuickPathSteps extends StatelessWidget {
+  const _QuickPathSteps({required this.step});
+
+  final SmartTileStudioWizardStep step;
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = <String>[
+      'Image',
+      'Patron',
+      'Remplir le patron',
+      'Essai',
+    ];
+    final active = switch (step) {
+      SmartTileStudioWizardStep.usage ||
+      SmartTileStudioWizardStep.image ||
+      SmartTileStudioWizardStep.grid ||
+      SmartTileStudioWizardStep.materials =>
+        0,
+      SmartTileStudioWizardStep.connections => 1,
+      SmartTileStudioWizardStep.variants ||
+      SmartTileStudioWizardStep.forms =>
+        2,
+      SmartTileStudioWizardStep.test ||
+      SmartTileStudioWizardStep.publish =>
+        3,
+    };
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: <Widget>[
+          for (var index = 0; index < labels.length; index += 1) ...[
+            PokeMapBadge(
+              label: index < active ? '${labels[index]} ✓' : labels[index],
+              variant: index == active
+                  ? PokeMapBadgeVariant.info
+                  : index < active
+                      ? PokeMapBadgeVariant.success
+                      : PokeMapBadgeVariant.neutral,
+            ),
+            if (index != labels.length - 1) ...[
+              const SizedBox(width: 6),
+              const Icon(CupertinoIcons.arrow_right, size: 13),
+              const SizedBox(width: 6),
+            ],
+          ],
+        ],
+      ),
     );
   }
 }

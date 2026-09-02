@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -126,7 +128,103 @@ void main() {
         }),
       );
     });
+
+    test('mask editing accepts one atomic explicit cell selection', () {
+      final fixture = _fixture();
+      final snapshot = _snapshot(fixture.manifest, fixture.map);
+      final draft = const EnvironmentActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: AuthoringRequest(
+            requestId: 'request-environment-mask-cells',
+            actionId: 'environment.mask_erase',
+            actionVersion: 1,
+            workspaceHandle: 'workspace-environment-mask-cells',
+            expectedRevision: snapshot.revision,
+            idempotencyKey: 'idem-environment-mask-cells',
+            parameters: const {
+              'mapId': 'map',
+              'layerId': 'env',
+              'areaId': 'forest-area',
+              'cells': [
+                {'x': 0, 'y': 0},
+                {'x': 1, 'y': 1},
+                {'x': 5, 'y': 3},
+              ],
+            },
+          ),
+          planId: 'plan-environment-mask-cells',
+          seed: 17,
+        ),
+      );
+      final projected = MapData.fromJson(
+        Map<String, dynamic>.from(
+          jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
+              as Map,
+        ),
+      );
+      final area = projected.layers
+          .whereType<EnvironmentLayer>()
+          .single
+          .content
+          .areas
+          .single;
+
+      expect(area.mask.cells.where((value) => !value), hasLength(3));
+      expect(area.mask.cells[0], isFalse);
+      expect(area.mask.cells[7], isFalse);
+      expect(area.mask.cells[23], isFalse);
+    });
   });
+}
+
+ProjectSnapshot _snapshot(ProjectManifest manifest, MapData map) {
+  final resolvedManifest = manifest.copyWith(
+    maps: const [
+      ProjectMapEntry(
+        id: 'map',
+        name: 'Map',
+        relativePath: 'maps/map.json',
+      ),
+    ],
+  );
+  final manifestBytes = utf8.encode(jsonEncode(resolvedManifest.toJson()));
+  final mapBytes = utf8.encode(jsonEncode(map.toJson()));
+  final projectRevision = computeNarrativeProjectFingerprint([
+    NarrativeProjectFingerprintEntry(
+      relativePath: 'project.json',
+      bytes: manifestBytes,
+    ),
+  ]);
+  final mapRevision = computeNarrativeProjectFingerprint([
+    NarrativeProjectFingerprintEntry(
+      relativePath: 'maps/map.json',
+      bytes: mapBytes,
+    ),
+  ]);
+  return ProjectSnapshot(
+    projectHandle: const ProjectHandle('environment-project'),
+    revision: computeNarrativeProjectFingerprint([
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'project.json',
+        bytes: manifestBytes,
+      ),
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'maps/map.json',
+        bytes: mapBytes,
+      ),
+    ]),
+    manifest: resolvedManifest,
+    maps: [map],
+    resourceFingerprints: {
+      'project': projectRevision,
+      'map:map': mapRevision,
+    },
+    resourceBytes: {
+      'project': manifestBytes,
+      'map:map': mapBytes,
+    },
+  );
 }
 
 ({ProjectManifest manifest, MapData map}) _fixture() {

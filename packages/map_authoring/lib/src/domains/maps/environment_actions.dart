@@ -416,6 +416,7 @@ final class EnvironmentActions {
           'y',
           'width',
           'height',
+          'cells',
         },
       'environment.generate_apply' || 'environment.regenerate_apply' => const {
           'layerId',
@@ -542,16 +543,39 @@ final class EnvironmentActions {
         );
       case 'environment.mask_paint':
       case 'environment.mask_erase':
-        final region = _parameterRegion(parameters, context.map.size)!;
-        updated = _editMask(
-          context.map,
-          layerId: layerId,
-          areaId: parameters.string('areaId'),
-          region: region,
-          value: actionId == 'environment.mask_paint',
-        );
-        changedItems = region.width * region.height;
-        extraPreview['editedRegion'] = region.toJson();
+        final region = _parameterRegion(parameters, context.map.size);
+        final hasCells = parameters.contains('cells');
+        if ((region == null) == !hasCells) {
+          throw invalidSemanticField(
+            'maskSelection',
+            'exactly one rectangular region or explicit cell list',
+          );
+        }
+        if (hasCells) {
+          final cells = _parameterCells(
+            parameters.list('cells'),
+            context.map.size,
+          );
+          updated = _editMaskCells(
+            context.map,
+            layerId: layerId,
+            areaId: parameters.string('areaId'),
+            cells: cells,
+            value: actionId == 'environment.mask_paint',
+          );
+          changedItems = cells.length;
+          extraPreview['editedCellCount'] = cells.length;
+        } else {
+          updated = _editMask(
+            context.map,
+            layerId: layerId,
+            areaId: parameters.string('areaId'),
+            region: region!,
+            value: actionId == 'environment.mask_paint',
+          );
+          changedItems = region.width * region.height;
+          extraPreview['editedRegion'] = region.toJson();
+        }
         extraPreview['regenerationHaloCells'] = generationHaloCells;
       case 'environment.mask_clear':
         updated = _clearMask(
@@ -726,6 +750,48 @@ EnvironmentGenerationRegion? _parameterRegion(
   );
   _requireRegion(region, size);
   return region;
+}
+
+List<({int x, int y})> _parameterCells(List<Object?> raw, GridSize size) {
+  if (raw.isEmpty || raw.length > EnvironmentActions.maxGenerationCells) {
+    throw invalidSemanticField(
+      'cells',
+      'between 1 and ${EnvironmentActions.maxGenerationCells} coordinates',
+    );
+  }
+  final cells = <({int x, int y})>[];
+  final seen = <(int, int)>{};
+  for (var index = 0; index < raw.length; index++) {
+    final value = raw[index];
+    if (value is! Map || value.keys.any((key) => key is! String)) {
+      throw invalidSemanticField('cells[$index]', 'an {x, y} object');
+    }
+    final cell = Map<String, Object?>.from(value);
+    if (cell.length != 2 || !cell.containsKey('x') || !cell.containsKey('y')) {
+      throw invalidSemanticField('cells[$index]', 'exactly {x, y}');
+    }
+    final x = cell['x'];
+    final y = cell['y'];
+    if (x is! int || y is! int) {
+      throw invalidSemanticField('cells[$index]', 'integer x and y values');
+    }
+    if (x < 0 || y < 0 || x >= size.width || y >= size.height) {
+      throw semanticFailure(
+        'environment.cell_out_of_bounds',
+        'An Environment mask coordinate is outside the map.',
+        details: {'index': index, 'x': x, 'y': y},
+      );
+    }
+    if (!seen.add((x, y))) {
+      throw semanticFailure(
+        'environment.cell_duplicate',
+        'An Environment mask selection contains a duplicate coordinate.',
+        details: {'x': x, 'y': y},
+      );
+    }
+    cells.add((x: x, y: y));
+  }
+  return List.unmodifiable(cells);
 }
 
 EnvironmentLayer _environmentLayer(MapData map, String layerId) {
@@ -975,6 +1041,38 @@ MapData _editMask(
             width: area.mask.width,
             height: area.mask.height,
             cells: cells,
+          ),
+          seed: area.seed,
+          paramsOverride: area.paramsOverride,
+          generatedPlacementIds: area.generatedPlacementIds,
+        );
+      },
+    );
+
+MapData _editMaskCells(
+  MapData map, {
+  required String layerId,
+  required String areaId,
+  required List<({int x, int y})> cells,
+  required bool value,
+}) =>
+    _replaceArea(
+      map,
+      layerId: layerId,
+      areaId: areaId,
+      update: (area) {
+        final updatedCells = List<bool>.from(area.mask.cells);
+        for (final cell in cells) {
+          updatedCells[cell.y * area.mask.width + cell.x] = value;
+        }
+        return EnvironmentArea(
+          id: area.id,
+          name: area.name,
+          presetId: area.presetId,
+          mask: EnvironmentAreaMask(
+            width: area.mask.width,
+            height: area.mask.height,
+            cells: updatedCells,
           ),
           seed: area.seed,
           paramsOverride: area.paramsOverride,

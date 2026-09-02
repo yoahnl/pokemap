@@ -90,6 +90,38 @@ class BlueprintToolTest(unittest.TestCase):
         errors = validate_blueprint(self.blueprint)
         self.assertTrue(any("widthCells * 32" in error for error in errors))
 
+    def test_rejects_invalid_v2_spatial_constraints(self) -> None:
+        layer = self.layer("network", "path", "smart_tile", "preset-hgss-path")
+        layer["constraints"] = {"continuityRequired": "yes", "networkWidthCells": 0}
+        self.blueprint["layers"].append(layer)
+
+        errors = validate_blueprint(self.blueprint)
+
+        self.assertTrue(any("continuityRequired" in error for error in errors))
+        self.assertTrue(any("networkWidthCells" in error for error in errors))
+
+    def test_rejects_invalid_missing_asset_semantic_tags(self) -> None:
+        asset = {
+            "id": "asset-custom-bridge",
+            "semantic": "bridge",
+            "tags": ["wood", ""],
+            "status": "proposed",
+            "widthCells": 3,
+            "heightCells": 2,
+            "pixelWidth": 96,
+            "pixelHeight": 64,
+            "anchor": {"x": 1, "y": 1},
+            "collisionCells": [],
+            "provenance": "custom_hgss_compatible",
+            "alphaPolicy": "required",
+            "styleReferences": [],
+        }
+        self.blueprint["missingAssets"].append(asset)
+
+        errors = validate_blueprint(self.blueprint)
+
+        self.assertTrue(any("tags" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

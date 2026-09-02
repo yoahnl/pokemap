@@ -109,6 +109,9 @@
       "properties": {
         "explicitApproval": {"type": "boolean"},
         "waterBodyType": {"enum": ["river", "pond", "ocean"]},
+        "continuityRequired": {"type": "boolean"},
+        "networkWidthCells": {"type": "integer", "minimum": 1, "maximum": 64},
+        "allowsWater": {"type": "boolean"},
         "notes": {"type": "array", "items": {"type": "string"}}
       }
     },
@@ -146,6 +149,8 @@
       ],
       "properties": {
         "id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+        "semantic": {"type": "string", "minLength": 1},
+        "tags": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
         "status": {"enum": ["proposed", "approved", "imported", "verified"]},
         "widthCells": {"type": "integer", "minimum": 1, "maximum": 64},
         "heightCells": {"type": "integer", "minimum": 1, "maximum": 64},

@@ -80,10 +80,12 @@ class SmartTileFormGlyph extends StatelessWidget {
     super.key,
     required this.mask,
     required this.topology,
+    this.dimension = 38,
   });
 
   final int mask;
   final SmartTileTopology topology;
+  final double dimension;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +94,7 @@ class SmartTileFormGlyph extends StatelessWidget {
       label: 'Pictogramme de raccord',
       image: true,
       child: SizedBox.square(
-        dimension: 38,
+        dimension: dimension,
         child: CustomPaint(
           painter: _SmartTileFormGlyphPainter(
             mask: mask,

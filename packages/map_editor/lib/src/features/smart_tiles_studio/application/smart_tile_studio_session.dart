@@ -278,6 +278,28 @@ final class SmartTileStudioSession {
     _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.usage);
   }
 
+  void returnToImage() {
+    if (_state.usage == null) {
+      throw StateError('Aucun usage à conserver.');
+    }
+    _state = _state.copyWith(
+      wizardStep: SmartTileStudioWizardStep.image,
+      clearSource: true,
+      clearGrid: true,
+      clearAnchor: true,
+    );
+  }
+
+  void returnToGrid() {
+    if (_state.usage == null || _state.sourceChoice == null) {
+      throw StateError('Choisissez une source avant son découpage.');
+    }
+    _state = _state.copyWith(
+      wizardStep: SmartTileStudioWizardStep.grid,
+      clearAnchor: true,
+    );
+  }
+
   void returnToGuide() {
     if (_state.usage == null) {
       throw StateError('Aucun usage à conserver.');

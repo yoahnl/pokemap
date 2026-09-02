@@ -13,13 +13,12 @@ import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_ti
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_asset_card.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_selectable_tile.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 void main() {
   group('SmartTilesStudioPanel', () {
-    testWidgets('enables the three approved no-code usages', (
-      tester
-    ) async {
+    testWidgets('enables the three approved no-code usages', (tester) async {
       await _pumpPanel(tester, _manifest());
 
       await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
@@ -93,8 +92,9 @@ void main() {
       );
     });
 
-    testWidgets('opens and submits the guided TSX/Wang import flow',
-        (tester,) async {
+    testWidgets('opens and submits the guided TSX/Wang import flow', (
+      tester,
+    ) async {
       List<TiledWangSetSelection>? submitted;
       await _pumpPanel(
         tester,
@@ -110,23 +110,17 @@ void main() {
         },
       );
 
-      await tester.tap(
-        find.byKey(const Key('smart-tiles-import-tiled-wang'))
-      );
+      await tester.tap(find.byKey(const Key('smart-tiles-import-tiled-wang')));
       await tester.pumpAndSettle();
       expect(
         find.byKey(const Key('smart-tiles-tiled-wang-import-editor')),
         findsOneWidget,
       );
-      await tester.tap(
-        find.byKey(const Key('smart-tiles-wang-set-0-usage'))
-      );
+      await tester.tap(find.byKey(const Key('smart-tiles-wang-set-0-usage')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Chemin').last);
       await tester.pumpAndSettle();
-      final submit = find.byKey(
-        const Key('smart-tiles-tiled-wang-submit')
-      );
+      final submit = find.byKey(const Key('smart-tiles-tiled-wang-submit'));
       await tester.scrollUntilVisible(
         submit,
         300,
@@ -150,9 +144,7 @@ void main() {
       ProjectSmartTilePreset? published;
       await _pumpPanel(
         tester,
-        _manifest(
-          presets: const <ProjectSmartTilePreset>[_importedWangPreset]
-        ),
+        _manifest(presets: const <ProjectSmartTilePreset>[_importedWangPreset]),
         onPublishExistingPreset: (preset) async => published = preset,
       );
 
@@ -200,9 +192,7 @@ void main() {
         onDuplicatePreset: (preset) async => duplicated = preset,
       );
 
-      final duplicate = find.byKey(
-        const Key('smart-tiles-duplicate-preset')
-      );
+      final duplicate = find.byKey(const Key('smart-tiles-duplicate-preset'));
       expect(duplicate, findsOneWidget);
       expect(tester.widget<PokeMapButton>(duplicate).onPressed, isNotNull);
 
@@ -235,8 +225,9 @@ void main() {
       expect(deleted!.id, 'hanazuki-path');
     });
 
-    testWidgets('opens the reconstruction assistant from a captured map',
-        (tester,) async {
+    testWidgets('opens the reconstruction assistant from a captured map', (
+      tester,
+    ) async {
       await _pumpPanel(
         tester,
         _manifest(),
@@ -267,17 +258,10 @@ void main() {
     testWidgets('adapts the studio shell without overflowing when narrow', (
       tester,
     ) async {
-      await _pumpPanel(
-        tester,
-        _manifest(),
-        surfaceSize: const Size(560, 760)
-      );
+      await _pumpPanel(tester, _manifest(), surfaceSize: const Size(560, 760));
 
       expect(tester.takeException(), isNull);
-      expect(
-        find.byKey(const Key('smart-tiles-library-column')),
-        findsNothing
-      );
+      expect(find.byKey(const Key('smart-tiles-library-column')), findsNothing);
       expect(
         find.byKey(const Key('smart-tiles-workbench-column')),
         findsOneWidget,
@@ -286,10 +270,7 @@ void main() {
         find.byKey(const Key('smart-tiles-inspector-column')),
         findsNothing,
       );
-      expect(
-        find.byKey(const Key('smart-tiles-open-library')),
-        findsOneWidget
-      );
+      expect(find.byKey(const Key('smart-tiles-open-library')), findsOneWidget);
       expect(
         find.byKey(const Key('smart-tiles-open-inspector')),
         findsOneWidget,
@@ -307,11 +288,7 @@ void main() {
     testWidgets('moves only the inspector to a side sheet at medium width', (
       tester,
     ) async {
-      await _pumpPanel(
-        tester,
-        _manifest(),
-        surfaceSize: const Size(900, 760)
-      );
+      await _pumpPanel(tester, _manifest(), surfaceSize: const Size(900, 760));
 
       expect(
         find.byKey(const Key('smart-tiles-library-column')),
@@ -325,10 +302,7 @@ void main() {
         find.byKey(const Key('smart-tiles-inspector-column')),
         findsNothing,
       );
-      expect(
-        find.byKey(const Key('smart-tiles-open-library')),
-        findsNothing
-      );
+      expect(find.byKey(const Key('smart-tiles-open-library')), findsNothing);
 
       await tester.tap(find.byKey(const Key('smart-tiles-open-inspector')));
       await tester.pumpAndSettle();
@@ -383,8 +357,9 @@ void main() {
       expect(find.text('Terrain Hanazuki'), findsNothing);
     });
 
-    testWidgets('adds a published preset to the captured map canonically',
-        (tester,) async {
+    testWidgets('adds a published preset to the captured map canonically', (
+      tester,
+    ) async {
       ProjectSmartTilePreset? addedPreset;
       await _pumpPanel(
         tester,
@@ -429,10 +404,7 @@ void main() {
       ]) {
         expect(find.text(stage), findsOneWidget);
       }
-      expect(
-        find.byKey(const Key('smart-tiles-usage-path')),
-        findsOneWidget
-      );
+      expect(find.byKey(const Key('smart-tiles-usage-path')), findsOneWidget);
       expect(find.text('0x00'), findsNothing);
     });
 
@@ -516,6 +488,14 @@ void main() {
       await tester.tap(find.byKey(const Key('smart-tiles-usage-path')));
       await tester.pump();
       expect(find.text('Chemin guidé'), findsOneWidget);
+      for (final stage in const <String>[
+        'Image',
+        'Patron',
+        'Remplir le patron',
+        'Essai',
+      ]) {
+        expect(find.text(stage), findsOneWidget);
+      }
       await tester.tap(find.byKey(const Key('smart-tiles-usage-next-step')));
       await tester.pump();
       await tester.tap(
@@ -537,16 +517,129 @@ void main() {
       await tester.tap(find.byKey(const Key('smart-tiles-next-step')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Vérifier le découpage en tuiles'), findsOneWidget);
+      expect(
+        find.byKey(const Key('smart-tiles-path-pattern-classic')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('smart-tiles-path-pattern-closedContour')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const Key('smart-tiles-grid-advanced-fields')),
         findsNothing,
       );
       expect(
         find.byKey(const Key('smart-tiles-toggle-grid-advanced')),
-        findsOneWidget,
+        findsNothing,
       );
     });
+
+    testWidgets('opens the approved 3 by 3 plus 2 by 2 contour workbench', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _pumpQuickPathPatternStage(
+        tester,
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('smart-tiles-path-pattern-closedContour')),
+      );
+      await tester.pumpAndSettle();
+      final next = find.byKey(const Key('smart-tiles-path-pattern-continue'));
+      await _ensureWorkbenchTapTargetVisible(tester, next);
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('smart-tiles-path-primary-grid')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('smart-tiles-path-corner-grid')),
+        findsOneWidget,
+      );
+      expect(find.text('0 / 13 morceaux associés'), findsOneWidget);
+      expect(find.text('Aperçu automatique'), findsOneWidget);
+      expect(find.byKey(const Key('smart-tiles-library-column')), findsNothing);
+      expect(
+        find.byKey(const Key('smart-tiles-inspector-column')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('smart-tiles-open-library')), findsOneWidget);
+      expect(
+        find.byKey(const Key('smart-tiles-open-inspector')),
+        findsOneWidget,
+      );
+      expect(latestDraft?.topology, SmartTileTopology.wangCorner4);
+      expect(latestDraft?.templateHint, SmartTileTemplateHint.corner12);
+      expect(latestDraft?.lastStage, SmartTileAuthoringStage.forms);
+    });
+
+    testWidgets(
+      'maps the selected contour piece and advances to the next one',
+      (tester) async {
+        ProjectSmartTileAuthoringDraft? latestDraft;
+        await _pumpQuickPathPatternStage(
+          tester,
+          onDraftChanged: (draft) => latestDraft = draft,
+        );
+        await tester.tap(
+          find.byKey(const Key('smart-tiles-path-pattern-closedContour')),
+        );
+        await tester.pumpAndSettle();
+        final next = find.byKey(const Key('smart-tiles-path-pattern-continue'));
+        await _ensureWorkbenchTapTargetVisible(tester, next);
+        await tester.tap(next);
+        await tester.pumpAndSettle();
+
+        const firstMask = smartTileSouthEastBit;
+        const secondMask = smartTileSouthWestBit | smartTileSouthEastBit;
+        final firstSlot = find.byKey(
+          const Key('smart-tiles-path-slot-$firstMask'),
+        );
+        await _ensureWorkbenchTapTargetVisible(tester, firstSlot);
+        await tester.tap(firstSlot);
+        await tester.pump();
+
+        final atlas = find.byKey(const Key('smart-tiles-atlas-viewport'));
+        await _tapAtlasDisplay(tester, atlas, const Offset(8, 8));
+        await tester.pumpAndSettle();
+
+        expect(find.text('1 / 13 morceaux associés'), findsOneWidget);
+        expect(
+          tester
+              .widget<PokeMapSelectableTile>(
+                find.byKey(const Key('smart-tiles-path-slot-$secondMask')),
+              )
+              .selected,
+          isTrue,
+        );
+        expect(
+          latestDraft!.rules.map(
+            (rule) => smartTileMaskForSignature(
+              rule.signature,
+              topology: latestDraft!.topology,
+            ),
+          ),
+          contains(firstMask),
+        );
+        expect(find.byType(SmartTileSpritePreview), findsWidgets);
+        final previews = tester.widgetList<SmartTileSpritePreview>(
+          find.byType(SmartTileSpritePreview),
+        );
+        expect(
+          previews.any(
+            (preview) => preview.atlases.any(
+              (atlas) => atlas.id == preview.frame.atlasId,
+            ),
+          ),
+          isTrue,
+        );
+      },
+    );
 
     testWidgets('prepares one paint material for a simple path', (
       tester,
@@ -610,7 +703,8 @@ void main() {
       );
       expect(
         find.byKey(const Key('smart-tiles-variants-next-step')),
-        findsOneWidget,);
+        findsOneWidget,
+      );
     });
 
     testWidgets('authors a reusable pattern through the no-code workbench', (
@@ -708,10 +802,7 @@ void main() {
     testWidgets('loads a real-sized atlas and keeps its grid editable', (
       tester,
     ) async {
-      final loader = _FakeSmartTileAtlasImageLoader(
-        width: 1760,
-        height: 2304
-      );
+      final loader = _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304);
       await _pumpGridStage(tester, loader: loader);
 
       expect(loader.lastTilesetId, _target.id);
@@ -754,10 +845,13 @@ void main() {
         tester,
         loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
         onDraftChanged: (draft) => latestDraft = draft,
+        usage: SmartTileUsage.terrain,
       );
 
       expect(
-          find.byKey(const Key('smart-tiles-atlas-viewport')), findsOneWidget,);
+        find.byKey(const Key('smart-tiles-atlas-viewport')),
+        findsOneWidget,
+      );
       expect(latestDraft, isNotNull);
       expect(latestDraft!.lastStage, SmartTileAuthoringStage.grid);
       expect(latestDraft!.sourceTilesetIds, <String>[_target.id]);
@@ -797,7 +891,9 @@ void main() {
       await tester.pump();
 
       expect(latestDraft!.allowedMaterialIds, <String>[
-        'smart-tile-material-chemin','dirt',]);
+        'smart-tile-material-chemin',
+        'dirt',
+      ]);
       expect(latestDraft!.defaultMaterialId, 'smart-tile-material-chemin');
       await tester.tap(
         find.byKey(const Key('smart-tiles-material-default-dirt')),
@@ -813,7 +909,10 @@ void main() {
       await tester.pump();
 
       expect(latestDraft!.allowedMaterialIds, <String>[
-        'smart-tile-material-chemin','dirt', 'grass',]);
+        'smart-tile-material-chemin',
+        'dirt',
+        'grass',
+      ]);
       expect(latestDraft!.defaultMaterialId, 'dirt');
       expect(
         tester
@@ -852,8 +951,9 @@ void main() {
       await tester.tap(create);
       await tester.pump();
 
-      final material =latestDraft!.materials.singleWhere(
-        (candidate) => candidate.name == 'Sable doux',);
+      final material = latestDraft!.materials.singleWhere(
+        (candidate) => candidate.name == 'Sable doux',
+      );
       expect(material.id, 'smart-tile-material-sable-doux');
       expect(latestDraft!.defaultMaterialId, 'smart-tile-material-chemin');
       expect(find.text('Sable doux'), findsOneWidget);
@@ -900,7 +1000,7 @@ void main() {
       );
 
       final custom = find.byKey(const Key('smart-tiles-connection-custom'));
-      await _ensureWorkbenchTapTargetVisible( tester,custom);
+      await _ensureWorkbenchTapTargetVisible(tester, custom);
       await tester.tap(custom);
       await tester.pump();
       final next = find.byKey(const Key('smart-tiles-connections-next-step'));
@@ -930,12 +1030,8 @@ void main() {
       );
       await _confirmGridAndOpenConnections(tester);
 
-      final complete = find.byKey(
-        const Key('smart-tiles-coverage-complete')
-      );
-      final sparse = find.byKey(
-        const Key('smart-tiles-coverage-sparse')
-      );
+      final complete = find.byKey(const Key('smart-tiles-coverage-complete'));
+      final sparse = find.byKey(const Key('smart-tiles-coverage-sparse'));
       expect(complete, findsOneWidget);
       expect(sparse, findsOneWidget);
       expect(tester.widget<PokeMapAssetCard>(sparse).selected, isTrue);
@@ -1000,9 +1096,9 @@ void main() {
         projectRootPath: '/tmp/erw-project',
         onImportProjectImage: () async =>
             throw const SmartTileSourceImportException(
-          'smart_tile.source_not_image',
-          'Le fichier sélectionné n’est pas une image reconnue.',
-        ),
+              'smart_tile.source_not_image',
+              'Le fichier sélectionné n’est pas une image reconnue.',
+            ),
       );
       await _startPathImage(tester);
       await tester.tap(
@@ -1030,10 +1126,7 @@ void main() {
     ) async {
       await _pumpGuidedAtlas(
         tester,
-        loader: _FakeSmartTileAtlasImageLoader(
-          width: 1760,
-          height: 2304
-        ),
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
       );
 
       final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
@@ -1055,10 +1148,7 @@ void main() {
     ) async {
       await _pumpGuidedAtlas(
         tester,
-        loader: _FakeSmartTileAtlasImageLoader(
-          width: 1760,
-          height: 2304
-        ),
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
         surfaceSize: const Size(1440, 1800),
       );
 
@@ -1072,9 +1162,7 @@ void main() {
       await tester.tap(correction);
       await tester.pump();
       await tester.ensureVisible(viewport);
-      await tester.tapAt(
-        tester.getTopLeft(viewport) + const Offset(140, 110)
-      );
+      await tester.tapAt(tester.getTopLeft(viewport) + const Offset(140, 110));
       await tester.pump();
 
       expect(find.text('Case 7 corrigée.'), findsOneWidget);
@@ -1085,34 +1173,31 @@ void main() {
       );
     });
 
-    testWidgets('rejects the whole guide when its anchor is too close to edge',
-        (
-      tester
-    ) async {
-      await _pumpGuidedAtlas(
-        tester,
-        loader: _FakeSmartTileAtlasImageLoader(
-          width: 1760,
-          height: 2304
-        ),
-      );
+    testWidgets(
+      'rejects the whole guide when its anchor is too close to edge',
+      (tester) async {
+        await _pumpGuidedAtlas(
+          tester,
+          loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        );
 
-      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
-      await _ensureWorkbenchTapTargetVisible(
-        tester,
-        viewport,
-        localOffset: const Offset(3, 3),
-      );
-      await tester.tapAt(tester.getTopLeft(viewport) + const Offset(3, 3));
-      await tester.pump();
+        final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+        await _ensureWorkbenchTapTargetVisible(
+          tester,
+          viewport,
+          localOffset: const Offset(3, 3),
+        );
+        await tester.tapAt(tester.getTopLeft(viewport) + const Offset(3, 3));
+        await tester.pump();
 
-      expect(find.textContaining('Le guide dépasse l’atlas'), findsOneWidget);
-      expect(find.text('0 cellules • 0 raccords'), findsOneWidget);
-      expect(
-        find.byKey(const Key('smart-tiles-guide-overlay')),
-        findsNothing,
-      );
-    },);
+        expect(find.textContaining('Le guide dépasse l’atlas'), findsOneWidget);
+        expect(find.text('0 cellules • 0 raccords'), findsOneWidget);
+        expect(
+          find.byKey(const Key('smart-tiles-guide-overlay')),
+          findsNothing,
+        );
+      },
+    );
 
     testWidgets('emits a canonical draft and exposes the real publication', (
       tester,
@@ -1120,10 +1205,7 @@ void main() {
       ProjectSmartTileAuthoringDraft? durableDraft;
       await _pumpGuidedAtlas(
         tester,
-        loader: _FakeSmartTileAtlasImageLoader(
-          width: 1760,
-          height: 2304
-        ),
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
         onDraftChanged: (next) => durableDraft = next,
       );
       final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
@@ -1180,9 +1262,7 @@ void main() {
       await _jumpWorkbenchToTop(tester);
 
       final quarterTurnsSwitch = find.descendant(
-        of: find.byKey(
-          const Key('smart-tiles-transform-quarter-turns')
-        ),
+        of: find.byKey(const Key('smart-tiles-transform-quarter-turns')),
         matching: find.byType(CupertinoSwitch),
       );
       await tester.ensureVisible(quarterTurnsSwitch);
@@ -1196,9 +1276,7 @@ void main() {
       );
       await tester.tap(
         find.descendant(
-          of: find.byKey(
-            const Key('smart-tiles-transform-horizontal-flip')
-          ),
+          of: find.byKey(const Key('smart-tiles-transform-horizontal-flip')),
           matching: find.byType(CupertinoSwitch),
         ),
       );
@@ -1206,8 +1284,10 @@ void main() {
 
       expect(latestDraft!.transformPolicy.allowQuarterTurns, isFalse);
       expect(latestDraft!.transformPolicy.allowHFlip, isFalse);
-      expect(find.text('8 orientation(s) réellement autorisée(s)'),
-          findsOneWidget,);
+      expect(
+        find.text('8 orientation(s) réellement autorisée(s)'),
+        findsOneWidget,
+      );
       expect(find.text('Formes gagnées (0)'), findsOneWidget);
       expect(find.text('Formes perdues (0)'), findsOneWidget);
 
@@ -1220,16 +1300,20 @@ void main() {
         find.byKey(const Key('smart-tiles-transform-proposal')),
         findsNothing,
       );
-      expect(find.text('1 orientation(s) réellement autorisée(s)'),
-          findsOneWidget,);
+      expect(
+        find.text('1 orientation(s) réellement autorisée(s)'),
+        findsOneWidget,
+      );
 
       await tester.ensureVisible(quarterTurnsSwitch);
       await tester.pumpAndSettle();
       await tester.tap(quarterTurnsSwitch);
       await tester.pump();
       expect(latestDraft!.transformPolicy.allowQuarterTurns, isFalse);
-      expect(find.text('4 orientation(s) réellement autorisée(s)'),
-          findsOneWidget,);
+      expect(
+        find.text('4 orientation(s) réellement autorisée(s)'),
+        findsOneWidget,
+      );
       var accept = find.byKey(const Key('smart-tiles-transform-accept'));
       await tester.ensureVisible(accept);
       await tester.pumpAndSettle();
@@ -1242,8 +1326,10 @@ void main() {
       await tester.tap(quarterTurnsSwitch);
       await tester.pump();
       expect(latestDraft!.transformPolicy.allowQuarterTurns, isTrue);
-      expect(find.text('1 orientation(s) réellement autorisée(s)'),
-          findsOneWidget,);
+      expect(
+        find.text('1 orientation(s) réellement autorisée(s)'),
+        findsOneWidget,
+      );
       accept = find.byKey(const Key('smart-tiles-transform-accept'));
       await tester.ensureVisible(accept);
       await tester.pumpAndSettle();
@@ -1275,7 +1361,9 @@ void main() {
       expect(animation.name, 'Herbe au vent');
       expect(animation.frames, hasLength(2));
       expect(
-          animation.frames.every((frame) => frame.durationMs == 120), isTrue,);
+        animation.frames.every((frame) => frame.durationMs == 120),
+        isTrue,
+      );
       expect(find.text('Herbe au vent'), findsOneWidget);
       expect(find.text(animation.id), findsNothing);
     });
@@ -1325,9 +1413,7 @@ void main() {
       expect(find.text('Terrain à reprendre'), findsWidgets);
       expect(find.textContaining('Brouillon à reprendre'), findsOneWidget);
       await tester.tap(
-        find.byKey(
-          const Key('smart-tiles-library-item-draft:resumable-draft')
-        ),
+        find.byKey(const Key('smart-tiles-library-item-draft:resumable-draft')),
       );
       await tester.pumpAndSettle();
 
@@ -1409,9 +1495,7 @@ void main() {
         onDraftChanged: (value) => latestDraft = value,
       );
       await tester.tap(
-        find.byKey(
-          const Key('smart-tiles-library-item-draft:transform-draft')
-        ),
+        find.byKey(const Key('smart-tiles-library-item-draft:transform-draft')),
       );
       await tester.pumpAndSettle();
       await _jumpWorkbenchToTop(tester);
@@ -1480,7 +1564,7 @@ void main() {
       );
 
       final form = find.byKey(const Key('smart-tiles-form-0'));
-      await _ensureWorkbenchTapTargetVisible( tester,form);
+      await _ensureWorkbenchTapTargetVisible(tester, form);
       await tester.tap(form);
       await tester.pump();
       final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
@@ -1512,8 +1596,10 @@ void main() {
       await tester.ensureVisible(moveDown);
       await tester.tap(moveDown);
       await tester.pump();
-      expect(latestDraft!.rules.single.candidates.map((item) => item.id),
-          <String>[secondId, firstId],);
+      expect(
+        latestDraft!.rules.single.candidates.map((item) => item.id),
+        <String>[secondId, firstId],
+      );
 
       final remove = find.byKey(Key('smart-tiles-variant-remove-$firstId'));
       await tester.ensureVisible(remove);
@@ -1534,7 +1620,7 @@ void main() {
       );
 
       final form = find.byKey(const Key('smart-tiles-form-0'));
-      await _ensureWorkbenchTapTargetVisible( tester,form);
+      await _ensureWorkbenchTapTargetVisible(tester, form);
       await tester.tap(form);
       await tester.pump();
       final rectangle = find.byKey(
@@ -1710,7 +1796,8 @@ void main() {
       await _ensureWorkbenchTapTargetVisible(
         tester,
         form,
-        localOffset: formTapOffset,);
+        localOffset: formTapOffset,
+      );
       await tester.tapAt(tester.getTopLeft(form) + formTapOffset);
       await tester.pump();
 
@@ -1777,11 +1864,12 @@ void main() {
 
       final parts = latestDraft!.rules.single.candidates.single.parts;
       expect(
-          parts.map((part) => part.channel),
-          containsAll(<Object?>[
-            SmartTileRenderChannel.ground,
-            SmartTileRenderChannel.canopy,
-          ]),);
+        parts.map((part) => part.channel),
+        containsAll(<Object?>[
+          SmartTileRenderChannel.ground,
+          SmartTileRenderChannel.canopy,
+        ]),
+      );
     });
 
     testWidgets('test bench resolves every canonical Edge 16 scenario', (
@@ -1793,10 +1881,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('16 / 16 résolus'), findsOneWidget);
-      expect(
-        find.byKey(const Key('smart-tiles-compact-lab')),
-        findsOneWidget
-      );
+      expect(find.byKey(const Key('smart-tiles-compact-lab')), findsOneWidget);
       final lab = find.byKey(const Key('smart-tiles-compact-lab'));
       await tester.ensureVisible(lab);
       await tester.tapAt(tester.getTopLeft(lab) + const Offset(168, 168));
@@ -1809,9 +1894,7 @@ void main() {
       _expectNoTechnicalMaskText(tester);
     });
 
-    testWidgets('manual bench exposes dedicated Wang lattices', (
-      tester
-    ) async {
+    testWidgets('manual bench exposes dedicated Wang lattices', (tester) async {
       await _pumpPanel(
         tester,
         _manifest(
@@ -1837,10 +1920,7 @@ void main() {
       await tester.tap(find.byKey(const Key('smart-tiles-tab-testBench')));
       await tester.pump();
 
-      expect(
-        find.byKey(const Key('smart-tiles-compact-lab')),
-        findsOneWidget
-      );
+      expect(find.byKey(const Key('smart-tiles-compact-lab')), findsOneWidget);
       expect(
         find.byKey(const Key('smart-tiles-wang-manual-bench-deferred')),
         findsNothing,
@@ -1872,10 +1952,36 @@ Future<void> _startPathImage(WidgetTester tester) async {
   await _startUsageImage(tester, SmartTileUsage.path);
 }
 
-Future<void> _startUsageImage(
-  WidgetTester tester,
-  SmartTileUsage usage
-) async {
+Future<void> _pumpQuickPathPatternStage(
+  WidgetTester tester, {
+  ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged,
+}) async {
+  await _pumpPanel(
+    tester,
+    _manifest(
+      presets: const <ProjectSmartTilePreset>[],
+      tilesets: const <ProjectTilesetEntry>[_target],
+    ),
+    projectRootPath: '/tmp/erw-project',
+    imageLoader: _FakeSmartTileAtlasImageLoader(width: 320, height: 192),
+    onDraftChanged: onDraftChanged,
+  );
+  await _startPathImage(tester);
+  await tester.tap(find.byKey(const Key('smart-tiles-source-project-image')));
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('smart-tiles-choose-project-image')));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.byKey(const Key('smart-tiles-source-tileset-erw-terrain-master')),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('smart-tiles-picker-confirm-image')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('smart-tiles-next-step')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _startUsageImage(WidgetTester tester, SmartTileUsage usage) async {
   await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
   await tester.pump();
   await tester.tap(find.byKey(Key('smart-tiles-usage-${usage.name}')));
@@ -1964,9 +2070,7 @@ Future<void> _pumpGuidedAtlas(
   await tester.pumpAndSettle();
   await tester.tap(connectionsNext);
   await tester.pumpAndSettle();
-  final variantsNext = find.byKey(
-    const Key('smart-tiles-variants-next-step')
-  );
+  final variantsNext = find.byKey(const Key('smart-tiles-variants-next-step'));
   await tester.ensureVisible(variantsNext);
   await tester.pumpAndSettle();
   await tester.tap(variantsNext);
@@ -1984,7 +2088,9 @@ Future<void> _pumpGridStage(
   await _pumpPanel(
     tester,
     _manifest(
-        presets: const [], tilesets: const <ProjectTilesetEntry>[_target],),
+      presets: const [],
+      tilesets: const <ProjectTilesetEntry>[_target],
+    ),
     projectRootPath: '/tmp/erw-project',
     imageLoader: loader,
     onDraftChanged: onDraftChanged,
@@ -2000,11 +2106,15 @@ Future<void> _pumpGridStage(
     find.byKey(const Key('smart-tiles-source-tileset-erw-terrain-master')),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const Key('smart-tiles-picker-confirm-image'))
-  );
+  await tester.tap(find.byKey(const Key('smart-tiles-picker-confirm-image')));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const Key('smart-tiles-next-step')));
   await tester.pump();
+  final customPath = find.byKey(const Key('smart-tiles-path-pattern-custom'));
+  if (usage == SmartTileUsage.path && customPath.evaluate().isNotEmpty) {
+    await tester.tap(customPath);
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> _confirmGridAndOpenConnections(WidgetTester tester) async {
@@ -2073,15 +2183,16 @@ Future<void> _ensureWorkbenchTapTargetVisible(
       .first;
   final targetRect = tester.getRect(target);
   final listRect = tester.getRect(list);
-  final point = targetRect.topLeft +
+  final point =
+      targetRect.topLeft +
       (localOffset ?? Offset(targetRect.width / 2, targetRect.height / 2));
   final safeTop = listRect.top + 8;
   final safeBottom = listRect.bottom - 8;
   final dragY = point.dy < safeTop
       ? safeTop - point.dy
       : point.dy > safeBottom
-          ? safeBottom - point.dy
-          : 0.0;
+      ? safeBottom - point.dy
+      : 0.0;
   if (dragY != 0) {
     await tester.drag(list, Offset(0, dragY));
     await tester.pumpAndSettle();
@@ -2129,18 +2240,19 @@ Future<void> _pumpPanel(
   Future<SmartTileTiledWangImportResult> Function(
     SmartTileTiledWangSource source,
     List<TiledWangSetSelection> selections,
-  )? onImportTiledWang,
+  )?
+  onImportTiledWang,
   bool isCapturedMapAvailable = false,
   MapData? capturedMap,
   SmartTileReconstructionService? reconstructionService,
   Future<void> Function(SmartTileReconstructionResult result)?
-      onReconstructionApplied,
+  onReconstructionApplied,
   Future<void> Function(ProjectSmartTilePreset preset)? onPublishExistingPreset,
   Future<void> Function(ProjectSmartTilePreset preset)? onUpdatePreset,
   Future<void> Function(ProjectSmartTilePreset preset)? onDuplicatePreset,
   Future<void> Function(ProjectSmartTilePreset preset)? onDeletePreset,
   Future<bool> Function(ProjectSmartTilePreset preset)?
-      onAddPresetToCapturedMap,
+  onAddPresetToCapturedMap,
   Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern,
   Size surfaceSize = const Size(1440, 900),
 }) async {
@@ -2181,8 +2293,7 @@ final class _UnusedReconstructionGateway
   @override
   Future<SmartTileReconstructionCanonicalSnapshot> load({
     required String projectRootPath,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<SmartTileReconstructionCanonicalPlan> plan({
@@ -2190,15 +2301,13 @@ final class _UnusedReconstructionGateway
     required Map<String, Object?> parameters,
     required String expectedRevision,
     required String idempotencyKey,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<String> confirmAndApply({
     required SmartTileReconstructionCanonicalPlan plan,
     required String operationId,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 }
 
 const _literalCapturedMap = MapData(
@@ -2323,11 +2432,7 @@ ProjectManifest _completeManifest({bool animated = false}) {
             name: 'Edge wind',
             frames: <ProjectSmartTileAnimationFrame>[
               ProjectSmartTileAnimationFrame(
-                frame: SmartTileFrameRef(
-                  atlasId: 'atlas',
-                  column: 0,
-                  row: 0
-                ),
+                frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
                 durationMs: 167,
               ),
             ],
@@ -2411,10 +2516,7 @@ const _importedWangPreset = ProjectSmartTilePreset(
 
 final class _FakeSmartTileAtlasImageLoader
     implements SmartTileAtlasImageLoader {
-  _FakeSmartTileAtlasImageLoader({
-    required this.width,
-    required this.height
-  });
+  _FakeSmartTileAtlasImageLoader({required this.width, required this.height});
 
   final int width;
   final int height;

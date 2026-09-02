@@ -13,16 +13,35 @@ class SmartTilesStudioShell extends StatelessWidget {
     required this.library,
     required this.workbench,
     required this.inspector,
+    this.focusWorkbench = false,
   });
 
   final Widget library;
   final Widget workbench;
   final Widget inspector;
+  final bool focusWorkbench;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        if (focusWorkbench) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _SecondarySurfaceBar(
+                inspectorOnly: false,
+                onOpenLibrary: () => _showLibrary(context),
+                onOpenInspector: () => _showInspector(context),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                key: const Key('smart-tiles-workbench-column'),
+                child: workbench,
+              ),
+            ],
+          );
+        }
         if (constraints.maxWidth >= 1100) {
           final inspectorWidth = constraints.maxWidth >= 1220 ? 300.0 : 260.0;
           return Row(
