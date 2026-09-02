@@ -1,0 +1,2268 @@
+{
+  "schemaVersion": 1,
+  "cellSize": 32,
+  "entries": [
+    {
+      "id": "buisson-feuillu",
+      "label": "Buisson feuillu compact",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        608,
+        32,
+        96,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "buisson-boule",
+      "label": "Buisson boule",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        704,
+        160,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arbuste-tronc",
+      "label": "Arbuste à petit tronc",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        800,
+        128,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "arbre-mort-nature",
+      "label": "Tronc d’arbre mort",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        608,
+        1056,
+        64,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "jeune-arbre-a",
+      "label": "Jeune arbre rond A",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        672,
+        1184,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "jeune-arbre-b",
+      "label": "Jeune arbre rond B",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        736,
+        1184,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "buisson-givre",
+      "label": "Buisson givré",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        704,
+        1408,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pousse-isolee",
+      "label": "Petite pousse isolée",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        1376,
+        32,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "roche-mousse",
+      "label": "Pierre moussue",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        1408,
+        64,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "roche-taille-a",
+      "label": "Roche petite",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        1184,
+        128,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "roche-taille-b",
+      "label": "Roche grise moyenne",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        1216,
+        128,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "roche-taille-c",
+      "label": "Roche brune moyenne",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        1280,
+        128,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "roche-taille-d",
+      "label": "Roche grise haute",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        1344,
+        128,
+        96,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "rocher-brun-haut",
+      "label": "Rocher brun haut",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        512,
+        32,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "caillou-brun",
+      "label": "Caillou brun",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        512,
+        128,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "rocher-gris",
+      "label": "Rocher gris",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        512,
+        1280,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "caillou-gris",
+      "label": "Caillou gris",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        512,
+        1376,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petites-pierres",
+      "label": "Petites pierres grises",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        512,
+        1408,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "rocher-ocre",
+      "label": "Rocher ocre",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        512,
+        1472,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "buisson-baies",
+      "label": "Buisson à petites baies",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        608,
+        1344,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petit-decor-rond-0",
+      "label": "Petite roche brune",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        608,
+        160,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petit-decor-rond-1",
+      "label": "Petite roche bleutée",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        640,
+        160,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petit-decor-rond-2",
+      "label": "Plante en pot",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        672,
+        160,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petit-decor-rond-3",
+      "label": "Petit buisson rond",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        704,
+        160,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "petit-decor-rond-4",
+      "label": "Petit rocher sombre",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        736,
+        160,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "branche-nature-0",
+      "label": "Branche au sol — 1",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        608,
+        1248,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "branche-nature-1",
+      "label": "Branche au sol — 2",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        672,
+        1248,
+        64,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "branche-nature-2",
+      "label": "Branche au sol — 3",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        608,
+        1312,
+        64,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "branche-nature-3",
+      "label": "Branche au sol — 4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        672,
+        1312,
+        64,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pousse-nature-0",
+      "label": "Petite pousse — 1",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        640,
+        1344,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pousse-nature-1",
+      "label": "Petite pousse — 2",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        672,
+        1312,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pousse-nature-2",
+      "label": "Petite pousse — 3",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        704,
+        1344,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pousse-nature-3",
+      "label": "Petite pousse — 4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        736,
+        1312,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "herbe-isolee-0",
+      "label": "Touffe isolée — 1",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        544,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "herbe-isolee-1",
+      "label": "Touffe isolée — 2",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        160,
+        608,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "herbe-isolee-2",
+      "label": "Touffe isolée — 3",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        640,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "herbe-isolee-3",
+      "label": "Touffe isolée — 4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        608,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "herbe-isolee-4",
+      "label": "Touffe isolée — 5",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        448,
+        96,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "herbe-isolee-5",
+      "label": "Touffe isolée — 6",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        480,
+        128,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-2-3",
+      "label": "Fleurs au sol — motif 2-3",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        64,
+        96,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-4-3",
+      "label": "Fleurs au sol — motif 4-3",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        128,
+        96,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-6-3",
+      "label": "Fleurs au sol — motif 6-3",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        96,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-7-3",
+      "label": "Fleurs au sol — motif 7-3",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        96,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-2-4",
+      "label": "Fleurs au sol — motif 2-4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        64,
+        128,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-4-4",
+      "label": "Fleurs au sol — motif 4-4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        128,
+        128,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-6-4",
+      "label": "Fleurs au sol — motif 6-4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        128,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-7-4",
+      "label": "Fleurs au sol — motif 7-4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        128,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-2-6",
+      "label": "Fleurs au sol — motif 2-6",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        64,
+        192,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-4-6",
+      "label": "Fleurs au sol — motif 4-6",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        128,
+        192,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-6-6",
+      "label": "Fleurs au sol — motif 6-6",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        192,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-7-6",
+      "label": "Fleurs au sol — motif 7-6",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        192,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-2-7",
+      "label": "Fleurs au sol — motif 2-7",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        64,
+        224,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-4-7",
+      "label": "Fleurs au sol — motif 4-7",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        128,
+        224,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-6-7",
+      "label": "Fleurs au sol — motif 6-7",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        224,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fleurs-nature-7-7",
+      "label": "Fleurs au sol — motif 7-7",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        224,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-7-13",
+      "label": "Petites pierres éparses — 7-13",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        416,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-5-15",
+      "label": "Petites pierres éparses — 5-15",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        160,
+        480,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-7-15",
+      "label": "Petites pierres éparses — 7-15",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        480,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-6-16",
+      "label": "Petites pierres éparses — 6-16",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        512,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-7-30",
+      "label": "Petites pierres éparses — 7-30",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        960,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-5-31",
+      "label": "Petites pierres éparses — 5-31",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        160,
+        992,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-7-31",
+      "label": "Petites pierres éparses — 7-31",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        992,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-6-32",
+      "label": "Petites pierres éparses — 6-32",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        1024,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-7-41",
+      "label": "Petites pierres éparses — 7-41",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        1312,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-5-43",
+      "label": "Petites pierres éparses — 5-43",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        160,
+        1376,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-7-43",
+      "label": "Petites pierres éparses — 7-43",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        1376,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-6-44",
+      "label": "Petites pierres éparses — 6-44",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        1408,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-7-45",
+      "label": "Petites pierres éparses — 7-45",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        1440,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-5-47",
+      "label": "Petites pierres éparses — 5-47",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        160,
+        1504,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-7-47",
+      "label": "Petites pierres éparses — 7-47",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        224,
+        1504,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierres-detail-6-48",
+      "label": "Petites pierres éparses — 6-48",
+      "family": "decoration",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        192,
+        1536,
+        32,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "entree-montagne-0-0",
+      "label": "Entrée de grotte brune claire — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1312,
+        32,
+        96,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-0-1",
+      "label": "Entrée de grotte brune claire — côté droit",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1440,
+        32,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-0-2",
+      "label": "Entrée de grotte brune claire — côté gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1536,
+        32,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-0-3",
+      "label": "Entrée de grotte brune claire — face enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1344,
+        128,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-0-4",
+      "label": "Entrée de grotte brune claire — droite enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1472,
+        128,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-0-5",
+      "label": "Entrée de grotte brune claire — gauche enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1600,
+        128,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-1-0",
+      "label": "Entrée de grotte grise — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1312,
+        288,
+        96,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-1-1",
+      "label": "Entrée de grotte grise — côté droit",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1440,
+        288,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-1-2",
+      "label": "Entrée de grotte grise — côté gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1536,
+        288,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-1-3",
+      "label": "Entrée de grotte grise — face enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1344,
+        384,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-1-4",
+      "label": "Entrée de grotte grise — droite enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1472,
+        384,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-1-5",
+      "label": "Entrée de grotte grise — gauche enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1600,
+        384,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-2-0",
+      "label": "Entrée de grotte brune veinée — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1312,
+        576,
+        96,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-2-1",
+      "label": "Entrée de grotte brune veinée — côté droit",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1440,
+        576,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-2-2",
+      "label": "Entrée de grotte brune veinée — côté gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1536,
+        576,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-2-3",
+      "label": "Entrée de grotte brune veinée — face enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1344,
+        672,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-2-4",
+      "label": "Entrée de grotte brune veinée — droite enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1472,
+        672,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-2-5",
+      "label": "Entrée de grotte brune veinée — gauche enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1600,
+        672,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-3-0",
+      "label": "Entrée de grotte grise veinée — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1312,
+        832,
+        96,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-3-1",
+      "label": "Entrée de grotte grise veinée — côté droit",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1440,
+        832,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-3-2",
+      "label": "Entrée de grotte grise veinée — côté gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1536,
+        832,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-3-3",
+      "label": "Entrée de grotte grise veinée — face enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1344,
+        928,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-3-4",
+      "label": "Entrée de grotte grise veinée — droite enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1472,
+        928,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-3-5",
+      "label": "Entrée de grotte grise veinée — gauche enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1600,
+        928,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-4-0",
+      "label": "Entrée de grotte brune sombre — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1312,
+        1120,
+        96,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-4-1",
+      "label": "Entrée de grotte brune sombre — côté droit",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1440,
+        1120,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-4-2",
+      "label": "Entrée de grotte brune sombre — côté gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1536,
+        1120,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-4-3",
+      "label": "Entrée de grotte brune sombre — face enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1344,
+        1216,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-4-4",
+      "label": "Entrée de grotte brune sombre — droite enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1472,
+        1216,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-4-5",
+      "label": "Entrée de grotte brune sombre — gauche enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1600,
+        1216,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-5-0",
+      "label": "Entrée de grotte ocre — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1312,
+        1408,
+        96,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-5-1",
+      "label": "Entrée de grotte ocre — côté droit",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1440,
+        1408,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-5-2",
+      "label": "Entrée de grotte ocre — côté gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1536,
+        1408,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-5-3",
+      "label": "Entrée de grotte ocre — face enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1344,
+        1504,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-5-4",
+      "label": "Entrée de grotte ocre — droite enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1472,
+        1504,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-5-5",
+      "label": "Entrée de grotte ocre — gauche enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1600,
+        1504,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-6-0",
+      "label": "Entrée de grotte moussue — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1312,
+        1696,
+        96,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-6-1",
+      "label": "Entrée de grotte moussue — côté droit",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1440,
+        1696,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-6-2",
+      "label": "Entrée de grotte moussue — côté gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1536,
+        1696,
+        64,
+        96
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-6-3",
+      "label": "Entrée de grotte moussue — face enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1344,
+        1792,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-6-4",
+      "label": "Entrée de grotte moussue — droite enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1472,
+        1792,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-6-5",
+      "label": "Entrée de grotte moussue — gauche enneigée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        1600,
+        1792,
+        96,
+        128
+      ],
+      "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
+    },
+    {
+      "id": "entree-montagne-simple",
+      "label": "Petite entrée de grotte brune",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Mountains.png",
+      "rect": [
+        576,
+        2240,
+        96,
+        64
+      ],
+      "notes": "Module d’ouverture isolé."
+    },
+    {
+      "id": "entree-caverne-0-0",
+      "label": "Ouverture de caverne grise — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        896,
+        32,
+        96,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-0-1",
+      "label": "Ouverture de caverne grise — droite",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        1024,
+        32,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-0-2",
+      "label": "Ouverture de caverne grise — gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        1152,
+        32,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-0-3",
+      "label": "Ouverture de caverne grise — face éclairée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        896,
+        128,
+        96,
+        128
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-1-0",
+      "label": "Ouverture de caverne ocre — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        896,
+        1088,
+        96,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-1-1",
+      "label": "Ouverture de caverne ocre — droite",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        1024,
+        1088,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-1-2",
+      "label": "Ouverture de caverne ocre — gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        1152,
+        1088,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-1-3",
+      "label": "Ouverture de caverne ocre — face éclairée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        896,
+        1184,
+        96,
+        128
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-2-0",
+      "label": "Ouverture de caverne glacée — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        2432,
+        32,
+        96,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-2-1",
+      "label": "Ouverture de caverne glacée — droite",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        2560,
+        32,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-2-2",
+      "label": "Ouverture de caverne glacée — gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        2688,
+        32,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-2-3",
+      "label": "Ouverture de caverne glacée — face éclairée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        2432,
+        128,
+        96,
+        128
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-3-0",
+      "label": "Ouverture de caverne bleue — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        2432,
+        1088,
+        96,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-3-1",
+      "label": "Ouverture de caverne bleue — droite",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        2560,
+        1088,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-3-2",
+      "label": "Ouverture de caverne bleue — gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        2688,
+        1088,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-3-3",
+      "label": "Ouverture de caverne bleue — face éclairée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        2432,
+        1184,
+        96,
+        128
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-4-0",
+      "label": "Ouverture de caverne violette — face",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        4128,
+        32,
+        96,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-4-1",
+      "label": "Ouverture de caverne violette — droite",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        4256,
+        32,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-4-2",
+      "label": "Ouverture de caverne violette — gauche",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        4320,
+        32,
+        64,
+        96
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "entree-caverne-4-3",
+      "label": "Ouverture de caverne violette — face éclairée",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        4128,
+        128,
+        96,
+        128
+      ],
+      "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
+    },
+    {
+      "id": "echelle-courte",
+      "label": "Échelle de bois courte",
+      "family": "architecture",
+      "kind": "object",
+      "source": "TECH-Caves.png",
+      "rect": [
+        960,
+        352,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "echelle-longue",
+      "label": "Échelle de bois longue",
+      "family": "architecture",
+      "kind": "object",
+      "source": "TECH-Caves.png",
+      "rect": [
+        1024,
+        384,
+        64,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pont-caverne-angle",
+      "label": "Pont de caverne — angle de bois",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        1088,
+        352,
+        128,
+        128
+      ],
+      "notes": ""
+    },
+    {
+      "id": "passerelle-caverne-poutres",
+      "label": "Passerelle de caverne — poutres",
+      "family": "architecture",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        1376,
+        384,
+        128,
+        96
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierre-caverne-barriere",
+      "label": "Barrière de rochers gris",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Caves.png",
+      "rect": [
+        864,
+        352,
+        96,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pierre-caverne-brune",
+      "label": "Barrière de rochers bruns",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Caves.png",
+      "rect": [
+        800,
+        1408,
+        96,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "roches-caverne-grises",
+      "label": "roches caverne grises",
+      "family": "vegetation",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        32,
+        896,
+        160,
+        128
+      ],
+      "notes": "Ensemble de petites roches/cristaux ; pièces de détail conservées ensemble dans leur région source."
+    },
+    {
+      "id": "cristaux-bleus",
+      "label": "cristaux bleus",
+      "family": "vegetation",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        1664,
+        896,
+        256,
+        128
+      ],
+      "notes": "Ensemble de petites roches/cristaux ; pièces de détail conservées ensemble dans leur région source."
+    },
+    {
+      "id": "cristaux-verts",
+      "label": "cristaux verts",
+      "family": "vegetation",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        3200,
+        896,
+        96,
+        128
+      ],
+      "notes": "Ensemble de petites roches/cristaux ; pièces de détail conservées ensemble dans leur région source."
+    },
+    {
+      "id": "roches-caverne-brunes",
+      "label": "roches caverne brunes",
+      "family": "vegetation",
+      "kind": "module",
+      "source": "TECH-Caves.png",
+      "rect": [
+        32,
+        1920,
+        96,
+        64
+      ],
+      "notes": "Ensemble de petites roches/cristaux ; pièces de détail conservées ensemble dans leur région source."
+    },
+    {
+      "id": "fleurs-animees-0",
+      "label": "Fleurs animées — fleurs blanches hautes",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        32,
+        1696,
+        32,
+        64
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "fleurs-animees-1",
+      "label": "Fleurs animées — fleurs blanches compactes",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        32,
+        1760,
+        32,
+        32
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "fleurs-animees-2",
+      "label": "Fleurs animées — fleurs blanches éparses A",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        32,
+        1792,
+        64,
+        32
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "fleurs-animees-3",
+      "label": "Fleurs animées — fleurs blanches éparses B",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        32,
+        1824,
+        64,
+        64
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "fleurs-animees-4",
+      "label": "Fleurs animées — fleurs roses hautes",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        32,
+        1888,
+        32,
+        64
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "fleurs-animees-5",
+      "label": "Fleurs animées — fleurs roses compactes",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        32,
+        1952,
+        32,
+        32
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "fleurs-animees-6",
+      "label": "Fleurs animées — fleurs roses éparses A",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        32,
+        1984,
+        64,
+        32
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "fleurs-animees-7",
+      "label": "Fleurs animées — fleurs roses éparses B",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        32,
+        2016,
+        64,
+        64
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "fleurs-animees-8",
+      "label": "Fleurs animées — tulipes claires",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        288,
+        1696,
+        32,
+        96
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "fleurs-animees-9",
+      "label": "Fleurs animées — tulipes colorées",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        448,
+        1696,
+        32,
+        96
+      ],
+      "notes": "Première pose mesurée ; animations par tuile à reprendre depuis TECH-Animations.tsx.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 4,
+        "durationMs": 300
+      }
+    },
+    {
+      "id": "machine-animee-grille",
+      "label": "Grille animée",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        320,
+        1888,
+        32,
+        32
+      ],
+      "notes": "Première pose ; 12 images de 100 ms déclarées dans le TSX.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 12,
+        "durationMs": 100
+      }
+    },
+    {
+      "id": "machine-animee-console",
+      "label": "Console animée",
+      "family": "equipement",
+      "kind": "object",
+      "source": "TECH-Nature-animations.png",
+      "rect": [
+        320,
+        1920,
+        64,
+        64
+      ],
+      "notes": "Première pose ; 2 images de 300 ms par tuile dans le TSX.",
+      "animationReference": {
+        "tsx": "TECH-Animations.tsx",
+        "frames": 2,
+        "durationMs": 300
+      }
+    }
+  ],
+  "sheets": [
+    {
+      "source": "TECH-Nature.png",
+      "coverageNote": "Arbres assemblés depuis les règles Tiled ; arbustes, roches, fleurs et petits décors mesurés sur la source. Autotiles de sol/eau/relief et ombres démontées exclus."
+    },
+    {
+      "source": "TECH-Mountains.png",
+      "coverageNote": "Ouvertures de grotte relevées par palette et orientation. Falaises, talus et raccords de sols exclus."
+    },
+    {
+      "source": "TECH-Caves.png",
+      "coverageNote": "Ouvertures, échelles, passerelles, roches et cristaux. Autotiles de murs/sols/eau exclus. Certains ensembles minéraux restent des modules à découper."
+    },
+    {
+      "source": "TECH-Nature-animations.png",
+      "coverageNote": "Fleurs et deux équipements animés : dimensions de la première pose et cadence du TSX. Animations d’eau, vagues et sols exclues ; ce catalogue n’est pas un export d’animations."
+    }
+  ]
+}

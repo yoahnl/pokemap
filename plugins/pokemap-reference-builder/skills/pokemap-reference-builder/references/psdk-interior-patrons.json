@@ -1,0 +1,3844 @@
+{
+  "entries": [
+    {
+      "id": "psdk-basement-grille-triple",
+      "label": "Grille murale à trois fentes",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        208,
+        0,
+        64,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-grille-droite",
+      "label": "Extrémité droite de grille murale",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        224,
+        32,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Fragment d'une grille ; largeur assemblée non déductible."
+    },
+    {
+      "id": "psdk-basement-grille-gauche",
+      "label": "Extrémité gauche de grille murale",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        224,
+        64,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Fragment d'une grille ; largeur assemblée non déductible."
+    },
+    {
+      "id": "psdk-basement-prise-haute",
+      "label": "Prise murale inclinée, variante haute",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        256,
+        48,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-prise-basse",
+      "label": "Prise murale inclinée, variante basse",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        256,
+        96,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-tube-lumineux",
+      "label": "Petit tube lumineux horizontal",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        224,
+        96,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-plaque-ventilation",
+      "label": "Plaque de ventilation à quatre pales",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        32,
+        160,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Module carré ; ombres architecturales voisines exclues."
+    },
+    {
+      "id": "psdk-basement-baie-electronique",
+      "label": "Baie électronique à deux étages",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        160,
+        320,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-armoire-bleue",
+      "label": "Armoire métallique bleue",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        224,
+        336,
+        64,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-extincteur",
+      "label": "Extincteur rouge",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        160,
+        384,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-outil-long",
+      "label": "Pièce métallique coudée horizontale",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        192,
+        384,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": "Objet non identifié ; description strictement visuelle."
+    },
+    {
+      "id": "psdk-basement-outil-coude",
+      "label": "Pièce métallique coudée verticale",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        192,
+        416,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": "Objet non identifié ; description strictement visuelle."
+    },
+    {
+      "id": "psdk-basement-marches-rouges",
+      "label": "Marches rouges courtes",
+      "family": "architecture",
+      "source": "TECH-Basement.png",
+      "rect": [
+        64,
+        416,
+        32,
+        48
+      ],
+      "kind": "module",
+      "notes": "Tronçon de marches ; pas un escalier complet."
+    },
+    {
+      "id": "psdk-basement-escalier-diagonal",
+      "label": "Escalier diagonal avec balustrade",
+      "family": "architecture",
+      "source": "TECH-Basement.png",
+      "rect": [
+        96,
+        416,
+        64,
+        112
+      ],
+      "kind": "module",
+      "notes": "Tronçon diagonal à raccorder ; hauteur totale non déductible."
+    },
+    {
+      "id": "psdk-basement-limon-diagonal",
+      "label": "Limon diagonal bleu",
+      "family": "architecture",
+      "source": "TECH-Basement.png",
+      "rect": [
+        32,
+        448,
+        64,
+        80
+      ],
+      "kind": "module",
+      "notes": "Tronçon sans marches ; longueur assemblée non déductible."
+    },
+    {
+      "id": "psdk-basement-caisses-bleues",
+      "label": "Deux caisses bleues empilées",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        160,
+        464,
+        64,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-caisses-bois",
+      "label": "Deux caisses en bois empilées",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        224,
+        464,
+        64,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-four-industriel",
+      "label": "Four industriel bleu et ocre",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        32,
+        544,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-tour-verte",
+      "label": "Tour informatique à voyants verts",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        96,
+        544,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-tour-ambre",
+      "label": "Tour informatique à écran ambre",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        128,
+        544,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-console-laboratoire",
+      "label": "Console technique à flacons et voyants",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        160,
+        544,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-machine-double",
+      "label": "Machine grise à deux compartiments",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        224,
+        544,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-cartons-hauts",
+      "label": "Pile de cartons haute",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        32,
+        608,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-carton-bas",
+      "label": "Carton bas fermé",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        64,
+        624,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-passage-encadre",
+      "label": "Passage sombre avec encadrement clair",
+      "family": "architecture",
+      "source": "TECH-Basement.png",
+      "rect": [
+        128,
+        608,
+        96,
+        80
+      ],
+      "kind": "object",
+      "notes": "L'encadrement inclut une bande de mur de chaque côté."
+    },
+    {
+      "id": "psdk-basement-corbeille",
+      "label": "Corbeille cylindrique verte",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        224,
+        640,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-boitier-bleu",
+      "label": "Petit boîtier bleu mural",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        256,
+        656,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-lit-bleu",
+      "label": "Lit étroit bleu",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        48,
+        672,
+        64,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-coussin-ovale",
+      "label": "Coussin ou siège ovale clair",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        144,
+        720,
+        64,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-tabouret-ocre",
+      "label": "Tabouret carré ocre",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        224,
+        720,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-radio",
+      "label": "Radio portable avec antenne",
+      "family": "equipement",
+      "source": "TECH-Basement.png",
+      "rect": [
+        256,
+        704,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-livres-ocres",
+      "label": "Pile de livres ocre",
+      "family": "decoration",
+      "source": "TECH-Basement.png",
+      "rect": [
+        128,
+        768,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-livres-verts",
+      "label": "Pile de livres verte",
+      "family": "decoration",
+      "source": "TECH-Basement.png",
+      "rect": [
+        128,
+        800,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-table-etroite",
+      "label": "Table rectangulaire étroite grise",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        160,
+        768,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-table-ovale",
+      "label": "Grande table ovale en bois",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        192,
+        768,
+        96,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-sac-gauche",
+      "label": "Sac ou coussin beige incliné à gauche",
+      "family": "decoration",
+      "source": "TECH-Basement.png",
+      "rect": [
+        32,
+        832,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-sac-droite",
+      "label": "Sac ou coussin beige incliné à droite",
+      "family": "decoration",
+      "source": "TECH-Basement.png",
+      "rect": [
+        64,
+        832,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-basement-tabouret-clair",
+      "label": "Tabouret carré clair",
+      "family": "mobilier",
+      "source": "TECH-Basement.png",
+      "rect": [
+        128,
+        832,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-battle-passage-futuriste",
+      "label": "Passage futuriste à encadrement gris",
+      "family": "architecture",
+      "source": "TECH-Battle.png",
+      "rect": [
+        80,
+        80,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": "Le cadre inclut le mur immédiatement adjacent."
+    },
+    {
+      "id": "psdk-battle-comptoir-clair",
+      "label": "Comptoir clair avec section vitrée",
+      "family": "mobilier",
+      "source": "TECH-Battle.png",
+      "rect": [
+        32,
+        256,
+        128,
+        64
+      ],
+      "kind": "module",
+      "notes": "Pièces jointives d'un comptoir démonté ; largeur finale variable."
+    },
+    {
+      "id": "psdk-battle-borne-jaune",
+      "label": "Borne jaune à écran et clavier",
+      "family": "equipement",
+      "source": "TECH-Battle.png",
+      "rect": [
+        192,
+        256,
+        48,
+        112
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-battle-tabouret-vert",
+      "label": "Tabouret carré vert",
+      "family": "mobilier",
+      "source": "TECH-Battle.png",
+      "rect": [
+        32,
+        320,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-battle-plante-pot",
+      "label": "Plante verte en pot rose",
+      "family": "vegetation",
+      "source": "TECH-Battle.png",
+      "rect": [
+        32,
+        352,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-battle-terminal-gris",
+      "label": "Terminal gris sur pied",
+      "family": "equipement",
+      "source": "TECH-Battle.png",
+      "rect": [
+        80,
+        336,
+        64,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-battle-marches-sombres",
+      "label": "Marches sombres à bande cyan",
+      "family": "architecture",
+      "source": "TECH-Battle.png",
+      "rect": [
+        192,
+        192,
+        96,
+        64
+      ],
+      "kind": "module",
+      "notes": "Deux tronçons de marches ; le rectangle n'est pas un escalier assemblé."
+    },
+    {
+      "id": "psdk-casino-colonne",
+      "label": "Colonne sombre à chapiteau crème",
+      "family": "architecture",
+      "source": "TECH-Casino.png",
+      "rect": [
+        32,
+        32,
+        32,
+        112
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-rideau-creme",
+      "label": "Panneau de rideau crème",
+      "family": "decoration",
+      "source": "TECH-Casino.png",
+      "rect": [
+        64,
+        32,
+        32,
+        96
+      ],
+      "kind": "module",
+      "notes": "Panneau adjacent à la colonne ; cadre source d'une section."
+    },
+    {
+      "id": "psdk-casino-drape-violet-haut",
+      "label": "Drapé violet, section haute",
+      "family": "decoration",
+      "source": "TECH-Casino.png",
+      "rect": [
+        160,
+        32,
+        160,
+        64
+      ],
+      "kind": "module",
+      "notes": "Décor mural horizontal démonté ; extrémité droite en bord de planche."
+    },
+    {
+      "id": "psdk-casino-drape-violet-bas",
+      "label": "Drapé violet, section basse",
+      "family": "decoration",
+      "source": "TECH-Casino.png",
+      "rect": [
+        96,
+        96,
+        192,
+        64
+      ],
+      "kind": "module",
+      "notes": "Décor mural horizontal démonté ; assemblage à déterminer."
+    },
+    {
+      "id": "psdk-casino-comptoir-dore-corps",
+      "label": "Comptoir doré, corps principal",
+      "family": "mobilier",
+      "source": "TECH-Casino.png",
+      "rect": [
+        32,
+        304,
+        96,
+        144
+      ],
+      "kind": "module",
+      "notes": "Forme en U ouverte et modulaire ; ne représente pas un comptoir fermé."
+    },
+    {
+      "id": "psdk-casino-comptoir-dore-angle",
+      "label": "Comptoir doré, angle supérieur",
+      "family": "mobilier",
+      "source": "TECH-Casino.png",
+      "rect": [
+        128,
+        288,
+        32,
+        64
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée du comptoir."
+    },
+    {
+      "id": "psdk-casino-comptoir-dore-extremite",
+      "label": "Comptoir doré, longue extrémité",
+      "family": "mobilier",
+      "source": "TECH-Casino.png",
+      "rect": [
+        128,
+        368,
+        32,
+        112
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée du comptoir."
+    },
+    {
+      "id": "psdk-casino-roulette",
+      "label": "Grande table de roulette",
+      "family": "mobilier",
+      "source": "TECH-Casino.png",
+      "rect": [
+        192,
+        304,
+        96,
+        128
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-table-jeu",
+      "label": "Table de jeu semi-circulaire verte",
+      "family": "mobilier",
+      "source": "TECH-Casino.png",
+      "rect": [
+        192,
+        464,
+        96,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-machine-rouge",
+      "label": "Machine à sous rouge",
+      "family": "equipement",
+      "source": "TECH-Casino.png",
+      "rect": [
+        160,
+        464,
+        32,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-miroir-dore",
+      "label": "Grand miroir sur socle doré",
+      "family": "mobilier",
+      "source": "TECH-Casino.png",
+      "rect": [
+        32,
+        528,
+        96,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-palmier",
+      "label": "Palmier d'intérieur en pot",
+      "family": "vegetation",
+      "source": "TECH-Casino.png",
+      "rect": [
+        128,
+        544,
+        96,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-machine-bleue",
+      "label": "Machine à sous bleue",
+      "family": "equipement",
+      "source": "TECH-Casino.png",
+      "rect": [
+        224,
+        560,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-machine-jaune",
+      "label": "Machine à sous jaune",
+      "family": "equipement",
+      "source": "TECH-Casino.png",
+      "rect": [
+        256,
+        560,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-tabouret-carre",
+      "label": "Tabouret carré clair",
+      "family": "mobilier",
+      "source": "TECH-Casino.png",
+      "rect": [
+        192,
+        608,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-fontaine-eau",
+      "label": "Fontaine à eau bleue",
+      "family": "equipement",
+      "source": "TECH-Casino.png",
+      "rect": [
+        128,
+        608,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-lustre",
+      "label": "Grand lustre à lumières jaunes",
+      "family": "decoration",
+      "source": "TECH-Casino.png",
+      "rect": [
+        32,
+        608,
+        96,
+        128
+      ],
+      "kind": "object",
+      "notes": "La chaîne supérieure et les lampes inférieures sont incluses."
+    },
+    {
+      "id": "psdk-casino-table-ronde",
+      "label": "Petite table ronde crème",
+      "family": "mobilier",
+      "source": "TECH-Casino.png",
+      "rect": [
+        128,
+        688,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-casino-cordon-gris",
+      "label": "Petits potelets et cordon gris",
+      "family": "decoration",
+      "source": "TECH-Casino.png",
+      "rect": [
+        160,
+        688,
+        32,
+        48
+      ],
+      "kind": "module",
+      "notes": "Petites pièces démontées ; ne pas supposer une barrière continue."
+    },
+    {
+      "id": "psdk-casino-cordon-turquoise",
+      "label": "Potelets et cordon turquoise",
+      "family": "decoration",
+      "source": "TECH-Casino.png",
+      "rect": [
+        192,
+        688,
+        32,
+        48
+      ],
+      "kind": "module",
+      "notes": "Petites pièces démontées ; ne pas supposer une barrière continue."
+    },
+    {
+      "id": "psdk-elevator-montant",
+      "label": "Montant d'ascenseur clair",
+      "family": "architecture",
+      "source": "TECH-Elevator.png",
+      "rect": [
+        32,
+        32,
+        96,
+        128
+      ],
+      "kind": "module",
+      "notes": "Module vertical avec ombrage ; une cabine complète n'est pas fournie."
+    },
+    {
+      "id": "psdk-elevator-linteau",
+      "label": "Linteau clair horizontal",
+      "family": "architecture",
+      "source": "TECH-Elevator.png",
+      "rect": [
+        128,
+        48,
+        96,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce horizontale détachée."
+    },
+    {
+      "id": "psdk-elevator-baie-vitree",
+      "label": "Baie vitrée sombre à bande cyan",
+      "family": "architecture",
+      "source": "TECH-Elevator.png",
+      "rect": [
+        32,
+        176,
+        160,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-console-double",
+      "label": "Console grise à deux écrans",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        32,
+        48,
+        128,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-panneau-vert",
+      "label": "Grand panneau technique vert",
+      "family": "architecture",
+      "source": "TECH-HQ.png",
+      "rect": [
+        192,
+        32,
+        96,
+        128
+      ],
+      "kind": "module",
+      "notes": "Grand panneau sans contexte d'assemblage ; ne pas le traiter comme un bâtiment complet."
+    },
+    {
+      "id": "psdk-hq-bandeau-vert",
+      "label": "Bandeau technique vert",
+      "family": "architecture",
+      "source": "TECH-HQ.png",
+      "rect": [
+        192,
+        160,
+        96,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-hq-console-voyants",
+      "label": "Façade de console à voyants",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        224,
+        192,
+        64,
+        32
+      ],
+      "kind": "module",
+      "notes": "La partie supérieure est contiguë à un bandeau d'architecture."
+    },
+    {
+      "id": "psdk-hq-console-simple",
+      "label": "Façade de console grise",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        224,
+        256,
+        64,
+        32
+      ],
+      "kind": "module",
+      "notes": "Section de console."
+    },
+    {
+      "id": "psdk-hq-voyant-vert",
+      "label": "Voyant rond vert",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        0,
+        288,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-voyant-jaune",
+      "label": "Voyant rond jaune",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        64,
+        288,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-voyant-bleu",
+      "label": "Voyant rond bleu",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        0,
+        352,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-interrupteur-rouge",
+      "label": "Petit interrupteur rouge",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        160,
+        288,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-interrupteur-bleu",
+      "label": "Petit interrupteur bleu",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        192,
+        288,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-interrupteur-vert",
+      "label": "Petit interrupteur vert",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        224,
+        288,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-interrupteur-jaune",
+      "label": "Petit interrupteur jaune",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        256,
+        288,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-cable-connecteur",
+      "label": "Connecteur carré et faisceau de câbles",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        32,
+        320,
+        64,
+        64
+      ],
+      "kind": "module",
+      "notes": "Module de réseau de câbles ; pas un meuble complet."
+    },
+    {
+      "id": "psdk-hq-cable-horizontal",
+      "label": "Faisceau de câbles horizontal",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        96,
+        320,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Tronçon répétable technique, sans sol."
+    },
+    {
+      "id": "psdk-hq-cable-coude",
+      "label": "Coude de faisceau de câbles",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        32,
+        384,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Tronçon de réseau technique."
+    },
+    {
+      "id": "psdk-hq-cable-vertical",
+      "label": "Faisceau de câbles vertical",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        64,
+        384,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Tronçon de réseau technique."
+    },
+    {
+      "id": "psdk-hq-cable-vertical-large",
+      "label": "Faisceau vertical large",
+      "family": "equipement",
+      "source": "TECH-HQ.png",
+      "rect": [
+        96,
+        384,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Tronçon de réseau technique."
+    },
+    {
+      "id": "psdk-hq-barriere-basse",
+      "label": "Barrière basse métallique claire",
+      "family": "architecture",
+      "source": "TECH-HQ.png",
+      "rect": [
+        64,
+        416,
+        96,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hq-cuivre-croix",
+      "label": "Raccord cuivré en croix",
+      "family": "architecture",
+      "source": "TECH-HQ.png",
+      "rect": [
+        160,
+        320,
+        128,
+        128
+      ],
+      "kind": "module",
+      "notes": "Pièces cuivrées disposées en croix ; fonction exacte non identifiée."
+    },
+    {
+      "id": "psdk-hq-cuivre-double",
+      "label": "Panneau cuivré à deux rainures",
+      "family": "architecture",
+      "source": "TECH-HQ.png",
+      "rect": [
+        160,
+        432,
+        64,
+        112
+      ],
+      "kind": "module",
+      "notes": "Module technique ; son rôle de porte ou de paroi n'est pas confirmé."
+    },
+    {
+      "id": "psdk-hq-cuivre-central",
+      "label": "Panneau cuivré étroit",
+      "family": "architecture",
+      "source": "TECH-HQ.png",
+      "rect": [
+        224,
+        432,
+        32,
+        112
+      ],
+      "kind": "module",
+      "notes": "Module technique détaché."
+    },
+    {
+      "id": "psdk-hq-cuivre-droit",
+      "label": "Panneau cuivré à rainure décentrée",
+      "family": "architecture",
+      "source": "TECH-HQ.png",
+      "rect": [
+        256,
+        432,
+        32,
+        112
+      ],
+      "kind": "module",
+      "notes": "Module technique détaché."
+    },
+    {
+      "id": "psdk-hq-cuivre-capuchon",
+      "label": "Petit capuchon cuivré",
+      "family": "architecture",
+      "source": "TECH-HQ.png",
+      "rect": [
+        128,
+        544,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-hq-cuivre-bas",
+      "label": "Modules cuivrés inférieurs",
+      "family": "architecture",
+      "source": "TECH-HQ.png",
+      "rect": [
+        192,
+        544,
+        96,
+        64
+      ],
+      "kind": "module",
+      "notes": "Modules tronqués par le bord inférieur de la planche ; pas un objet complet."
+    },
+    {
+      "id": "psdk-hub-porte-bleue",
+      "label": "Porte ou ouverture bleue à encadrement sombre",
+      "family": "architecture",
+      "source": "TECH-Hub.png",
+      "rect": [
+        48,
+        64,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": "Une étroite bande de mur entoure le passage."
+    },
+    {
+      "id": "psdk-hub-rayonnage-haut",
+      "label": "Rayonnage de trois travées, rangée haute",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        32,
+        128,
+        128,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-rayonnage-bas",
+      "label": "Rayonnage de trois travées, rangée basse",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        48,
+        192,
+        128,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-affiche",
+      "label": "Petite affiche colorée encadrée",
+      "family": "decoration",
+      "source": "TECH-Hub.png",
+      "rect": [
+        160,
+        128,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-plaque-cyan",
+      "label": "Plaque rectangulaire cyan à emblème",
+      "family": "decoration",
+      "source": "TECH-Hub.png",
+      "rect": [
+        192,
+        416,
+        96,
+        32
+      ],
+      "kind": "object",
+      "notes": "L'usage mural ou au sol n'est pas déterminable dans la planche."
+    },
+    {
+      "id": "psdk-hub-escalier-bleu",
+      "label": "Grand escalier bleu à limons gris",
+      "family": "architecture",
+      "source": "TECH-Hub.png",
+      "rect": [
+        48,
+        544,
+        96,
+        160
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-marches-bleues-sombres",
+      "label": "Tronçon de marches bleues sombres",
+      "family": "architecture",
+      "source": "TECH-Hub.png",
+      "rect": [
+        176,
+        608,
+        64,
+        32
+      ],
+      "kind": "module",
+      "notes": "Tronçon seul ; grandes ombres voisines exclues."
+    },
+    {
+      "id": "psdk-hub-marches-rouges",
+      "label": "Tronçon de marches rouges",
+      "family": "architecture",
+      "source": "TECH-Hub.png",
+      "rect": [
+        256,
+        560,
+        32,
+        48
+      ],
+      "kind": "module",
+      "notes": "Tronçon seul."
+    },
+    {
+      "id": "psdk-hub-rampe-rouge-haute",
+      "label": "Rampe diagonale à main courante rouge",
+      "family": "architecture",
+      "source": "TECH-Hub.png",
+      "rect": [
+        224,
+        656,
+        64,
+        96
+      ],
+      "kind": "module",
+      "notes": "Segment diagonal haut ; nécessite des raccords."
+    },
+    {
+      "id": "psdk-hub-rampe-rouge-basse",
+      "label": "Main courante rouge diagonale basse",
+      "family": "architecture",
+      "source": "TECH-Hub.png",
+      "rect": [
+        224,
+        784,
+        64,
+        32
+      ],
+      "kind": "module",
+      "notes": "Segment diagonal bas."
+    },
+    {
+      "id": "psdk-hub-comptoir-vitre-droit",
+      "label": "Section droite de comptoir vitré",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        64,
+        704,
+        128,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce démontée du comptoir."
+    },
+    {
+      "id": "psdk-hub-comptoir-vitre-arrondi",
+      "label": "Façade arrondie de comptoir vitré",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        32,
+        736,
+        160,
+        112
+      ],
+      "kind": "module",
+      "notes": "Façade en arc ; plateau arrière à composer."
+    },
+    {
+      "id": "psdk-hub-comptoir-clair-terminal",
+      "label": "Comptoir courbe clair avec terminal",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        48,
+        864,
+        128,
+        96
+      ],
+      "kind": "module",
+      "notes": "Arc de comptoir et écran central ; l'ensemble n'est pas fermé."
+    },
+    {
+      "id": "psdk-hub-encadrement-bleu",
+      "label": "Encadrement bleu en U",
+      "family": "architecture",
+      "source": "TECH-Hub.png",
+      "rect": [
+        192,
+        896,
+        96,
+        96
+      ],
+      "kind": "module",
+      "notes": "Pièce indépendante sans surface remplie."
+    },
+    {
+      "id": "psdk-hub-comptoir-rouge",
+      "label": "Comptoir rouge en L avec appareil",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        32,
+        960,
+        128,
+        128
+      ],
+      "kind": "module",
+      "notes": "Module en L ; un appareil est déjà intégré au rectangle."
+    },
+    {
+      "id": "psdk-hub-comptoir-sombre",
+      "label": "Comptoir sombre horizontal",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        160,
+        992,
+        128,
+        96
+      ],
+      "kind": "module",
+      "notes": "Section de comptoir ; bord supérieur ouvert."
+    },
+    {
+      "id": "psdk-hub-petite-console",
+      "label": "Petite console inclinée bleue et blanche",
+      "family": "equipement",
+      "source": "TECH-Hub.png",
+      "rect": [
+        96,
+        1120,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-borne-arquee",
+      "label": "Borne technique à arche blanche et siège bleu",
+      "family": "equipement",
+      "source": "TECH-Hub.png",
+      "rect": [
+        160,
+        1088,
+        64,
+        96
+      ],
+      "kind": "object",
+      "notes": "Fonction exacte non identifiée ; silhouette conservée."
+    },
+    {
+      "id": "psdk-hub-capot-borne",
+      "label": "Petit capot blanc arqué",
+      "family": "equipement",
+      "source": "TECH-Hub.png",
+      "rect": [
+        256,
+        1168,
+        32,
+        16
+      ],
+      "kind": "module",
+      "notes": "Fragment isolé ; borne complète non fournie ici."
+    },
+    {
+      "id": "psdk-hub-comptoir-bleu-montant",
+      "label": "Montant vertical de comptoir bleu",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        32,
+        1120,
+        32,
+        96
+      ],
+      "kind": "module",
+      "notes": "Tronçon vertical d'un comptoir démonté."
+    },
+    {
+      "id": "psdk-hub-comptoir-bleu-facade",
+      "label": "Façade de comptoir bleu avec vitrine",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        32,
+        1200,
+        160,
+        48
+      ],
+      "kind": "module",
+      "notes": "Section basse horizontale ; ne comprend pas les montants hauts."
+    },
+    {
+      "id": "psdk-hub-terminal-gris",
+      "label": "Terminal gris sur pied",
+      "family": "equipement",
+      "source": "TECH-Hub.png",
+      "rect": [
+        224,
+        1184,
+        64,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-baie-vitree-polygonale",
+      "label": "Grande baie vitrée polygonale à deux niveaux",
+      "family": "architecture",
+      "source": "TECH-Hub.png",
+      "rect": [
+        16,
+        1280,
+        128,
+        304
+      ],
+      "kind": "object",
+      "notes": "Façade vitrée isolée ; pas un bâtiment fermé. L'ombre séparée à droite est exclue."
+    },
+    {
+      "id": "psdk-hub-banquette-bleue-gauche",
+      "label": "Extrémité gauche de banquette bleue",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        156,
+        1584,
+        36,
+        64
+      ],
+      "kind": "module",
+      "notes": "Élément de banquette démontée."
+    },
+    {
+      "id": "psdk-hub-banquette-bleue-droite",
+      "label": "Extrémité droite de banquette bleue",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        192,
+        1584,
+        32,
+        64
+      ],
+      "kind": "module",
+      "notes": "Élément de banquette démontée."
+    },
+    {
+      "id": "psdk-hub-table-ovale-claire",
+      "label": "Table ovale claire",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        224,
+        1584,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-banquette-bandeau",
+      "label": "Bandeau horizontal de banquette bleue",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        288,
+        1584,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Tronçon coupé par le bord droit de l'atlas."
+    },
+    {
+      "id": "psdk-hub-caisses-bois",
+      "label": "Deux caisses en bois empilées",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        32,
+        1664,
+        64,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-distributeur",
+      "label": "Distributeur étroit coloré",
+      "family": "equipement",
+      "source": "TECH-Hub.png",
+      "rect": [
+        96,
+        1680,
+        32,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-cartons",
+      "label": "Pile de cartons fermés",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        128,
+        1664,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-petit-meuble-bleu",
+      "label": "Petit meuble bleu à plateau gris",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        160,
+        1664,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-plante-pot",
+      "label": "Plante verte en pot rose",
+      "family": "vegetation",
+      "source": "TECH-Hub.png",
+      "rect": [
+        192,
+        1664,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-tabouret-rouge",
+      "label": "Tabouret carré rouge",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        256,
+        1664,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-sac-gauche",
+      "label": "Sac beige incliné à gauche",
+      "family": "decoration",
+      "source": "TECH-Hub.png",
+      "rect": [
+        224,
+        1696,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-sac-droite",
+      "label": "Sac beige incliné à droite",
+      "family": "decoration",
+      "source": "TECH-Hub.png",
+      "rect": [
+        256,
+        1696,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-hub-table-vitree-rouge",
+      "label": "Table ou vitrine basse rouge et bleue",
+      "family": "mobilier",
+      "source": "TECH-Hub.png",
+      "rect": [
+        144,
+        1728,
+        64,
+        32
+      ],
+      "kind": "object",
+      "notes": "Silhouette basse isolée ; usage exact non confirmé."
+    },
+    {
+      "id": "psdk-lab-baie-grise",
+      "label": "Grande baie grise à montants bleus",
+      "family": "architecture",
+      "source": "TECH-Lab.png",
+      "rect": [
+        32,
+        32,
+        192,
+        96
+      ],
+      "kind": "object",
+      "notes": "Panneau architectural complet dans son cadre ; fonction de porte non confirmée."
+    },
+    {
+      "id": "psdk-lab-fenetre-hexagonale",
+      "label": "Fenêtre ou enseigne hexagonale cyan",
+      "family": "architecture",
+      "source": "TECH-Lab.png",
+      "rect": [
+        192,
+        32,
+        96,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-feuille-haute",
+      "label": "Feuille affichée en haut",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        208,
+        64,
+        24,
+        24
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-feuille-centrale",
+      "label": "Feuille affichée au centre",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        224,
+        80,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-feuille-droite",
+      "label": "Feuille affichée à droite",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        256,
+        64,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-feuille-gauche",
+      "label": "Feuille affichée à gauche",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        192,
+        96,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-horloge",
+      "label": "Horloge murale ronde jaune",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        256,
+        96,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-tableau",
+      "label": "Tableau vert avec graphiques",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        192,
+        128,
+        96,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-montant-technique",
+      "label": "Montant technique étroit clair et ocre",
+      "family": "architecture",
+      "source": "TECH-Lab.png",
+      "rect": [
+        160,
+        160,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce verticale isolée ; rôle exact non identifié."
+    },
+    {
+      "id": "psdk-lab-tabouret-vert",
+      "label": "Tabouret carré vert",
+      "family": "mobilier",
+      "source": "TECH-Lab.png",
+      "rect": [
+        96,
+        224,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-plante-pot",
+      "label": "Plante verte en pot rose",
+      "family": "vegetation",
+      "source": "TECH-Lab.png",
+      "rect": [
+        128,
+        224,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-livres-ocres-haut",
+      "label": "Pile de livres ocre haute",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        256,
+        192,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-livres-verts-haut",
+      "label": "Pile de livres verte haute",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        256,
+        224,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-livre-ouvert-haut",
+      "label": "Livre ouvert, variante haute",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        256,
+        256,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-table-jaune",
+      "label": "Grande table jaune de laboratoire",
+      "family": "mobilier",
+      "source": "TECH-Lab.png",
+      "rect": [
+        32,
+        272,
+        96,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-tour-verte",
+      "label": "Tour informatique à voyants verts",
+      "family": "equipement",
+      "source": "TECH-Lab.png",
+      "rect": [
+        128,
+        288,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-tour-ambre",
+      "label": "Tour informatique à écran ambre",
+      "family": "equipement",
+      "source": "TECH-Lab.png",
+      "rect": [
+        160,
+        288,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-boitier-bleu-gauche",
+      "label": "Boîtier bleu mural gauche",
+      "family": "equipement",
+      "source": "TECH-Lab.png",
+      "rect": [
+        192,
+        304,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-boitier-bleu-droite",
+      "label": "Boîtier bleu mural droit",
+      "family": "equipement",
+      "source": "TECH-Lab.png",
+      "rect": [
+        224,
+        304,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-ordinateur-bleu",
+      "label": "Ordinateur ou console bleue",
+      "family": "equipement",
+      "source": "TECH-Lab.png",
+      "rect": [
+        256,
+        288,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-corbeille",
+      "label": "Corbeille cylindrique verte",
+      "family": "mobilier",
+      "source": "TECH-Lab.png",
+      "rect": [
+        96,
+        352,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-meuble-tiroirs",
+      "label": "Petit meuble gris à tiroirs",
+      "family": "mobilier",
+      "source": "TECH-Lab.png",
+      "rect": [
+        128,
+        352,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-carton-bas",
+      "label": "Carton fermé bas",
+      "family": "mobilier",
+      "source": "TECH-Lab.png",
+      "rect": [
+        160,
+        368,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-cartons-hauts",
+      "label": "Pile de cartons fermés haute",
+      "family": "mobilier",
+      "source": "TECH-Lab.png",
+      "rect": [
+        224,
+        352,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-livre-ouvert-bas",
+      "label": "Livre ouvert, variante basse",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        256,
+        368,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-tabouret-rose-gauche",
+      "label": "Tabouret rose gauche",
+      "family": "mobilier",
+      "source": "TECH-Lab.png",
+      "rect": [
+        32,
+        384,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-tabouret-rose-droite",
+      "label": "Tabouret rose droit",
+      "family": "mobilier",
+      "source": "TECH-Lab.png",
+      "rect": [
+        64,
+        384,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-capsule",
+      "label": "Grande capsule de laboratoire",
+      "family": "equipement",
+      "source": "TECH-Lab.png",
+      "rect": [
+        32,
+        416,
+        96,
+        128
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-armoire-vitree-haute",
+      "label": "Armoire vitrée haute",
+      "family": "equipement",
+      "source": "TECH-Lab.png",
+      "rect": [
+        128,
+        416,
+        64,
+        112
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-armoire-vitree-basse",
+      "label": "Armoire vitrée basse",
+      "family": "equipement",
+      "source": "TECH-Lab.png",
+      "rect": [
+        192,
+        432,
+        64,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-livres-verts-bas",
+      "label": "Pile de livres verte basse",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        256,
+        416,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-lab-livres-ocres-bas",
+      "label": "Pile de livres ocre basse",
+      "family": "decoration",
+      "source": "TECH-Lab.png",
+      "rect": [
+        256,
+        480,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-bouteille",
+      "label": "Bouteille sombre murale",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        128,
+        32,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": "Forme verticale suspendue ; usage exact non confirmé."
+    },
+    {
+      "id": "psdk-library-notice",
+      "label": "Petite notice encadrée",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        160,
+        32,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-petit-cadre",
+      "label": "Petit cadre vert mural",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        208,
+        48,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": "Le fond de papier peint est présent autour du cadre."
+    },
+    {
+      "id": "psdk-library-fleurs",
+      "label": "Petit pot de fleurs claires",
+      "family": "vegetation",
+      "source": "TECH-Library.png",
+      "rect": [
+        256,
+        128,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-comptoir-vert-corps",
+      "label": "Comptoir vert, corps en U",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        160,
+        208,
+        96,
+        144
+      ],
+      "kind": "module",
+      "notes": "Module de comptoir ouvert ; les pièces à droite sont séparées."
+    },
+    {
+      "id": "psdk-library-comptoir-vert-angle",
+      "label": "Comptoir vert, angle haut",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        256,
+        192,
+        32,
+        64
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-library-comptoir-vert-extremite",
+      "label": "Comptoir vert, extrémité longue",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        256,
+        272,
+        32,
+        112
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-library-bibliotheque-panneau-haut",
+      "label": "Panneau supérieur d'étagère en bois",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        0,
+        224,
+        32,
+        64
+      ],
+      "kind": "module",
+      "notes": "Pièce de meuble coupée au bord gauche."
+    },
+    {
+      "id": "psdk-library-bibliotheque-flanc",
+      "label": "Flanc de grande bibliothèque",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        0,
+        288,
+        32,
+        144
+      ],
+      "kind": "module",
+      "notes": "Pièce latérale coupée au bord gauche."
+    },
+    {
+      "id": "psdk-library-bibliotheque-bleue",
+      "label": "Grande bibliothèque remplie de livres bleus",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        32,
+        320,
+        64,
+        128
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-bibliotheque-verte",
+      "label": "Bibliothèque basse à livres verts",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        96,
+        320,
+        64,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-table-bois",
+      "label": "Grande table rectangulaire en bois",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        160,
+        432,
+        96,
+        112
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-table-extension",
+      "label": "Extension étroite de table en bois",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        256,
+        432,
+        32,
+        112
+      ],
+      "kind": "module",
+      "notes": "Plateau étroit adjacent à la grande table ; assemblage à déterminer."
+    },
+    {
+      "id": "psdk-library-horloge-sur-pied",
+      "label": "Grande horloge sur pied",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        48,
+        448,
+        64,
+        128
+      ],
+      "kind": "object",
+      "notes": "Le corps complet est cadré ; la longue ombre diagonale au sud-est est exclue pour éviter les autres objets."
+    },
+    {
+      "id": "psdk-library-livre-ouvert",
+      "label": "Livre ouvert",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        128,
+        528,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-papier-gauche",
+      "label": "Petite pile de feuilles gauche",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        160,
+        544,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-papier-droite",
+      "label": "Petite pile de feuilles droite",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        192,
+        544,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-chaise-gauche",
+      "label": "Chaise verte tournée à gauche",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        224,
+        544,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-chaise-droite",
+      "label": "Chaise verte tournée à droite",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        256,
+        544,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-corbeille",
+      "label": "Corbeille cylindrique verte",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        160,
+        576,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-plante-pot",
+      "label": "Plante verte en pot rose",
+      "family": "vegetation",
+      "source": "TECH-Library.png",
+      "rect": [
+        192,
+        576,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-tabouret-vert",
+      "label": "Tabouret carré vert",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        224,
+        608,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-ordinateur-bleu",
+      "label": "Ordinateur ou console bleue",
+      "family": "equipement",
+      "source": "TECH-Library.png",
+      "rect": [
+        256,
+        608,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-fontaine-eau",
+      "label": "Fontaine à eau bleue",
+      "family": "equipement",
+      "source": "TECH-Library.png",
+      "rect": [
+        32,
+        576,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-commode",
+      "label": "Petite commode en bois",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        32,
+        640,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-livres-ocres",
+      "label": "Pile de livres ocre",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        64,
+        640,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-livres-verts",
+      "label": "Pile de livres verte",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        64,
+        672,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-tabouret-rond-gauche",
+      "label": "Tabouret rond doré gauche",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        96,
+        640,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-tabouret-rond-droite",
+      "label": "Tabouret rond doré droit",
+      "family": "mobilier",
+      "source": "TECH-Library.png",
+      "rect": [
+        144,
+        640,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-documents",
+      "label": "Feuilles de documents étalées",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        192,
+        640,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-livre-violet",
+      "label": "Livre ou boîtier plat violet",
+      "family": "decoration",
+      "source": "TECH-Library.png",
+      "rect": [
+        224,
+        640,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-boitier-bleu-gauche",
+      "label": "Boîtier bleu mural gauche",
+      "family": "equipement",
+      "source": "TECH-Library.png",
+      "rect": [
+        224,
+        672,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-library-boitier-bleu-droite",
+      "label": "Boîtier bleu mural droit",
+      "family": "equipement",
+      "source": "TECH-Library.png",
+      "rect": [
+        256,
+        688,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-cadre-photo",
+      "label": "Grand cadre photographique vertical",
+      "family": "decoration",
+      "source": "TECH-Photo.png",
+      "rect": [
+        32,
+        32,
+        96,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-miroir-eclaire",
+      "label": "Miroir mural à ampoules latérales",
+      "family": "decoration",
+      "source": "TECH-Photo.png",
+      "rect": [
+        240,
+        32,
+        64,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-plante-pot",
+      "label": "Plante verte en pot rose",
+      "family": "vegetation",
+      "source": "TECH-Photo.png",
+      "rect": [
+        160,
+        160,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-tabouret-rose",
+      "label": "Tabouret rond rose",
+      "family": "mobilier",
+      "source": "TECH-Photo.png",
+      "rect": [
+        128,
+        192,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-coiffeuse",
+      "label": "Coiffeuse blanche à surface vitrée",
+      "family": "mobilier",
+      "source": "TECH-Photo.png",
+      "rect": [
+        192,
+        160,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-banquette-horizontale",
+      "label": "Banquette turquoise horizontale",
+      "family": "mobilier",
+      "source": "TECH-Photo.png",
+      "rect": [
+        160,
+        224,
+        96,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-banquette-verticale",
+      "label": "Banquette turquoise verticale",
+      "family": "mobilier",
+      "source": "TECH-Photo.png",
+      "rect": [
+        96,
+        240,
+        32,
+        96
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-linge-rose",
+      "label": "Pile de linge rose",
+      "family": "decoration",
+      "source": "TECH-Photo.png",
+      "rect": [
+        32,
+        240,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-linge-vert",
+      "label": "Pile de linge vert",
+      "family": "decoration",
+      "source": "TECH-Photo.png",
+      "rect": [
+        32,
+        272,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-pot-fleurs",
+      "label": "Pot de fleurs claires",
+      "family": "vegetation",
+      "source": "TECH-Photo.png",
+      "rect": [
+        64,
+        272,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-tasse",
+      "label": "Petite tasse claire",
+      "family": "decoration",
+      "source": "TECH-Photo.png",
+      "rect": [
+        64,
+        320,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-photo-siege-bleu-gauche",
+      "label": "Siège bleu avec raccord gauche",
+      "family": "mobilier",
+      "source": "TECH-Photo.png",
+      "rect": [
+        160,
+        304,
+        64,
+        64
+      ],
+      "kind": "module",
+      "notes": "Élément de siège démonté ; bandeau horizontal conservé."
+    },
+    {
+      "id": "psdk-photo-siege-bleu-droite",
+      "label": "Siège bleu avec raccord droit",
+      "family": "mobilier",
+      "source": "TECH-Photo.png",
+      "rect": [
+        224,
+        304,
+        64,
+        64
+      ],
+      "kind": "module",
+      "notes": "Élément de siège démonté ; bandeau horizontal conservé."
+    },
+    {
+      "id": "psdk-wifi-rampe-rouge-haute",
+      "label": "Rampe diagonale à main courante rouge",
+      "family": "architecture",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        32,
+        128,
+        64,
+        96
+      ],
+      "kind": "module",
+      "notes": "Section haute ; raccords à composer."
+    },
+    {
+      "id": "psdk-wifi-rampe-rouge-basse",
+      "label": "Main courante rouge diagonale basse",
+      "family": "architecture",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        32,
+        256,
+        64,
+        32
+      ],
+      "kind": "module",
+      "notes": "Section basse."
+    },
+    {
+      "id": "psdk-wifi-marches-rouges",
+      "label": "Tronçon de marches rouges",
+      "family": "architecture",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        96,
+        192,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Tronçon de marches seul."
+    },
+    {
+      "id": "psdk-wifi-passage-cyan",
+      "label": "Passage à encadrement cyan",
+      "family": "architecture",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        192,
+        192,
+        96,
+        64
+      ],
+      "kind": "object",
+      "notes": "Le mur autour du passage est inclus dans le cadre source."
+    },
+    {
+      "id": "psdk-wifi-plante-pot",
+      "label": "Plante verte en pot rose",
+      "family": "vegetation",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        96,
+        256,
+        32,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-wifi-coiffeuse",
+      "label": "Meuble blanc à surface vitrée",
+      "family": "mobilier",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        128,
+        256,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-wifi-comptoir-montant-gauche",
+      "label": "Montant gauche de comptoir bleu",
+      "family": "mobilier",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        32,
+        320,
+        32,
+        96
+      ],
+      "kind": "module",
+      "notes": "Tronçon vertical de comptoir."
+    },
+    {
+      "id": "psdk-wifi-comptoir-montant-droit",
+      "label": "Montant droit de comptoir bleu",
+      "family": "mobilier",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        192,
+        320,
+        32,
+        96
+      ],
+      "kind": "module",
+      "notes": "Tronçon vertical de comptoir."
+    },
+    {
+      "id": "psdk-wifi-comptoir-facade",
+      "label": "Façade de comptoir bleu avec plaque",
+      "family": "mobilier",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        32,
+        400,
+        192,
+        48
+      ],
+      "kind": "module",
+      "notes": "Section horizontale basse ; les montants ne sont pas inclus."
+    },
+    {
+      "id": "psdk-wifi-comptoir-capot-haut",
+      "label": "Petit capot bleu haut",
+      "family": "mobilier",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        96,
+        336,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-wifi-comptoir-capot-bas",
+      "label": "Petit capot bleu bas",
+      "family": "mobilier",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        128,
+        368,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-wifi-panneau-metal",
+      "label": "Panneau métallique étroit vertical",
+      "family": "architecture",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        224,
+        336,
+        32,
+        64
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-wifi-comptoir-extremite",
+      "label": "Extrémité arrondie de comptoir bleu",
+      "family": "mobilier",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        224,
+        432,
+        64,
+        48
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-wifi-comptoir-raccord",
+      "label": "Raccord gauche de comptoir bleu",
+      "family": "mobilier",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        192,
+        448,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-wifi-fleurs-gauche",
+      "label": "Pot de fleurs claires gauche",
+      "family": "vegetation",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        144,
+        560,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-wifi-fleurs-droite",
+      "label": "Pot de fleurs claires droit",
+      "family": "vegetation",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        192,
+        560,
+        32,
+        48
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-wifi-terminal",
+      "label": "Terminal gris sur pied à voyants verts",
+      "family": "equipement",
+      "source": "TECH-Wifi.png",
+      "rect": [
+        240,
+        528,
+        48,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-enseigne-niveau-1",
+      "label": "Enseigne technique « LEVEL 1 »",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        96,
+        32,
+        96,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-enseigne-niveau-2",
+      "label": "Enseigne technique « LEVEL 2 »",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        224,
+        32,
+        96,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-enseigne-niveau-3",
+      "label": "Enseigne technique « LEVEL 3 »",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        352,
+        32,
+        96,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-enseigne-niveau-4",
+      "label": "Enseigne technique « LEVEL 4 »",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        480,
+        32,
+        96,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-capsule-niveau1",
+      "label": "Grande capsule sombre à deux panneaux",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        32,
+        80,
+        96,
+        144
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-socle-niveau1",
+      "label": "Socle rond sombre, petit",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        128,
+        144,
+        64,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-capsule-niveau1-calottes",
+      "label": "Calottes de capsule, niveau 1",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        128,
+        64,
+        64,
+        64
+      ],
+      "kind": "module",
+      "notes": "Deux pièces superposées et disjointes ; hauteur de capsule assemblée non déductible."
+    },
+    {
+      "id": "psdk-misc-capsule-niveau2-haut",
+      "label": "Corps démonté de capsule, niveau 2",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        224,
+        64,
+        96,
+        96
+      ],
+      "kind": "module",
+      "notes": "Corps incomplet avec zone rose ouverte ; ne pas considérer comme un objet fermé."
+    },
+    {
+      "id": "psdk-misc-socle-niveau2",
+      "label": "Socle ovale sombre, niveau 2",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        224,
+        160,
+        96,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-capsule-niveau3-haut",
+      "label": "Corps démonté de capsule, niveau 3",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        352,
+        64,
+        96,
+        96
+      ],
+      "kind": "module",
+      "notes": "Corps incomplet avec zone rose ouverte."
+    },
+    {
+      "id": "psdk-misc-socle-niveau3",
+      "label": "Socle ovale sombre, niveau 3",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        352,
+        160,
+        96,
+        64
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-capsule-calottes-larges",
+      "label": "Calottes larges de capsule",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        448,
+        96,
+        64,
+        96
+      ],
+      "kind": "module",
+      "notes": "Pièces de raccord démontées ; cadre source commun."
+    },
+    {
+      "id": "psdk-misc-capsule-niveau4-haut",
+      "label": "Partie supérieure de capsule, niveau 4",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        480,
+        80,
+        96,
+        64
+      ],
+      "kind": "module",
+      "notes": "Partie haute uniquement ; base séparée."
+    },
+    {
+      "id": "psdk-misc-socle-niveau4",
+      "label": "Socle sombre arrondi, niveau 4",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        512,
+        144,
+        64,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-dome-spirale-haut",
+      "label": "Calotte sombre en éventail",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        608,
+        32,
+        64,
+        64
+      ],
+      "kind": "module",
+      "notes": "Partie d'une structure démontée."
+    },
+    {
+      "id": "psdk-misc-dome-spirale-milieu",
+      "label": "Corps sombre en arche",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        608,
+        96,
+        64,
+        64
+      ],
+      "kind": "module",
+      "notes": "Partie d'une structure démontée."
+    },
+    {
+      "id": "psdk-misc-dome-spirale-bas",
+      "label": "Socle sombre à marches arrondies",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        608,
+        160,
+        64,
+        64
+      ],
+      "kind": "module",
+      "notes": "Partie basse d'une structure démontée."
+    },
+    {
+      "id": "psdk-misc-dome-tranche-haute",
+      "label": "Tranche oblique sombre haute",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        672,
+        32,
+        32,
+        64
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée de la structure sombre."
+    },
+    {
+      "id": "psdk-misc-dome-tranche-basse",
+      "label": "Tranche oblique sombre basse",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        672,
+        96,
+        32,
+        64
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée de la structure sombre."
+    },
+    {
+      "id": "psdk-misc-dome-petite-tranche-haute",
+      "label": "Petite tranche diagonale sombre haute",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        672,
+        160,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-misc-dome-petite-tranche-basse",
+      "label": "Petite tranche diagonale sombre basse",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        672,
+        192,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-misc-touffe-haute",
+      "label": "Petite touffe verte dressée",
+      "family": "vegetation",
+      "source": "TECH-Misc.png",
+      "rect": [
+        928,
+        192,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-touffe-basse",
+      "label": "Petite pousse verte basse",
+      "family": "vegetation",
+      "source": "TECH-Misc.png",
+      "rect": [
+        960,
+        192,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-voyant-jaune",
+      "label": "Voyant rond jaune",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        160,
+        256,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-montant-brun",
+      "label": "Montant brun vertical",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        64,
+        256,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Module de structure ou de machine ; fonction non identifiée."
+    },
+    {
+      "id": "psdk-misc-montant-voyants",
+      "label": "Montant brun à voyants jaunes",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        96,
+        256,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Module technique."
+    },
+    {
+      "id": "psdk-misc-bandeau-brun",
+      "label": "Bandeau brun à quatre boutons",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        32,
+        288,
+        96,
+        64
+      ],
+      "kind": "module",
+      "notes": "Bandeau avec petits pieds inférieurs ; assemblage non déterminé."
+    },
+    {
+      "id": "psdk-misc-terminal-gris",
+      "label": "Terminal gris sur pied",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        144,
+        304,
+        64,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-cristal-glace",
+      "label": "Cristal de glace sur socle enneigé",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        432,
+        272,
+        96,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-rocher-mousse",
+      "label": "Rocher arrondi couvert de mousse",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        576,
+        272,
+        64,
+        80
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-disque-clair",
+      "label": "Petit disque métallique clair",
+      "family": "equipement",
+      "source": "TECH-Misc.png",
+      "rect": [
+        416,
+        384,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-roche-glace-horizontale",
+      "label": "Corniche ou rocher de glace horizontal",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        352,
+        448,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Fragment sculpté ; assemblage final indéterminé."
+    },
+    {
+      "id": "psdk-misc-roche-glace-dome",
+      "label": "Petit dôme ou rocher de glace",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        384,
+        448,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Fragment sculpté ; assemblage final indéterminé."
+    },
+    {
+      "id": "psdk-misc-roche-glace-pilier-gauche",
+      "label": "Pilier ou chute de glace gauche",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        352,
+        512,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Fragment vertical tronqué ; ne pas interpréter comme objet complet."
+    },
+    {
+      "id": "psdk-misc-roche-glace-pilier-droit",
+      "label": "Pilier ou chute de glace droit",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        384,
+        512,
+        32,
+        32
+      ],
+      "kind": "module",
+      "notes": "Fragment vertical tronqué ; ne pas interpréter comme objet complet."
+    },
+    {
+      "id": "psdk-misc-souche",
+      "label": "Petite souche brune",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        928,
+        416,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-rocher-pointu",
+      "label": "Petit rocher brun pointu",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        960,
+        416,
+        32,
+        32
+      ],
+      "kind": "object",
+      "notes": ""
+    },
+    {
+      "id": "psdk-misc-rochers-racines",
+      "label": "Rochers ou racines bruns accolés",
+      "family": "decoration",
+      "source": "TECH-Misc.png",
+      "rect": [
+        928,
+        448,
+        64,
+        32
+      ],
+      "kind": "module",
+      "notes": "Deux fragments accolés ; silhouettes incomplètes."
+    },
+    {
+      "id": "psdk-misc-poteaux-fins",
+      "label": "Poteaux techniques fins",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        672,
+        416,
+        32,
+        96
+      ],
+      "kind": "module",
+      "notes": "Traits verticaux détachés ; ne forme pas une barrière complète."
+    },
+    {
+      "id": "psdk-misc-poteau-clair",
+      "label": "Poteau ou lampe technique clair",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        704,
+        416,
+        32,
+        96
+      ],
+      "kind": "module",
+      "notes": "Pièce verticale démontée."
+    },
+    {
+      "id": "psdk-misc-poteau-droit",
+      "label": "Poteau technique droit",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        736,
+        416,
+        32,
+        96
+      ],
+      "kind": "module",
+      "notes": "Pièce verticale démontée."
+    },
+    {
+      "id": "psdk-misc-bandeau-clair",
+      "label": "Bandeau technique blanc horizontal",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        672,
+        528,
+        96,
+        16
+      ],
+      "kind": "module",
+      "notes": "Pièce détachée."
+    },
+    {
+      "id": "psdk-misc-colonne-doree",
+      "label": "Colonne ou bandeau doré vertical",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        800,
+        432,
+        32,
+        128
+      ],
+      "kind": "module",
+      "notes": "Pièce décorative verticale ; extrémités indéterminées."
+    },
+    {
+      "id": "psdk-misc-linteau-dore",
+      "label": "Linteau ou bandeau doré horizontal",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        832,
+        544,
+        96,
+        32
+      ],
+      "kind": "module",
+      "notes": "Pièce décorative horizontale."
+    },
+    {
+      "id": "psdk-misc-parasol",
+      "label": "Parasol bleu et blanc vu de dessus",
+      "family": "mobilier",
+      "source": "TECH-Misc.png",
+      "rect": [
+        512,
+        544,
+        64,
+        64
+      ],
+      "kind": "object",
+      "notes": "L'ombre circulaire stockée séparément au-dessous est exclue."
+    },
+    {
+      "id": "psdk-misc-bateau",
+      "label": "Grand bateau blanc à liseré cyan",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        320,
+        672,
+        512,
+        288
+      ],
+      "kind": "object",
+      "notes": "Silhouette complète du bateau, cabine, cheminée, rampe et ombre comprise."
+    },
+    {
+      "id": "psdk-misc-escalier-portuaire",
+      "label": "Escalier large gris avec montants violets",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        32,
+        800,
+        160,
+        128
+      ],
+      "kind": "object",
+      "notes": "L'escalier inclut ses deux montants latéraux."
+    },
+    {
+      "id": "psdk-misc-portique-portuaire",
+      "label": "Portique violet étroit",
+      "family": "architecture",
+      "source": "TECH-Misc.png",
+      "rect": [
+        192,
+        800,
+        96,
+        128
+      ],
+      "kind": "module",
+      "notes": "Montants et traverse avec jambes disjointes ; hauteur finale à vérifier."
+    }
+  ],
+  "sheets": [
+    {
+      "source": "TECH-Basement.png",
+      "coverageNote": "Mobilier, appareils et fragments architecturaux relevés visuellement. Sols, grandes ombres seules, halos cyan, murs répétables et marqueur de passage rouge exclus."
+    },
+    {
+      "source": "TECH-Battle.png",
+      "coverageNote": "Borne, terminal, plante, siège, passage et comptoir relevés. Motifs circulaires, sols, aplats lumineux et murs répétables exclus."
+    },
+    {
+      "source": "TECH-Casino.png",
+      "coverageNote": "Tables, machines, palmier, lustre, miroirs et modules de comptoir/draperie relevés. Sols à motifs, zones lumineuses et aplats de diagnostic exclus."
+    },
+    {
+      "source": "TECH-Elevator.png",
+      "coverageNote": "Trois pièces architecturales repérées ; la planche fournit surtout un ascenseur démonté. Sol losangé, repère rouge et masques d'ombre seuls exclus."
+    },
+    {
+      "source": "TECH-HQ.png",
+      "coverageNote": "Consoles, signaux, raccords, barrière et modules métalliques relevés. Plaques directionnelles au sol, marquages de danger, sols et ombres seules exclus. Fonction précise des pièces cuivrées non établie."
+    },
+    {
+      "source": "TECH-Hub.png",
+      "coverageNote": "Mobilier, portes, vitrine polygonale, escaliers, végétation et appareils relevés. Comptoirs conservés sous forme de modules quand ils sont démontés. Sols, grand emblème au sol, reflets isolés et ombres seules exclus."
+    },
+    {
+      "source": "TECH-Lab.png",
+      "coverageNote": "Appareils, capsule, armoires, mobilier, documents, tableau et baie architecturale relevés. Carrelages, tapis et ombres seules exclus."
+    },
+    {
+      "source": "TECH-Library.png",
+      "coverageNote": "Bibliothèques, tables, chaises, horloge, mobilier et petits objets relevés. Comptoirs et flancs séparés conservés comme modules ; tapis, sols, lambris répétables, halos et ombres seules exclus."
+    },
+    {
+      "source": "TECH-Photo.png",
+      "coverageNote": "Mobilier de studio, cadre, miroir, banquettes, végétation et petits accessoires relevés. Tapis, carrelages, halos lumineux et aplats blancs non identifiés exclus."
+    },
+    {
+      "source": "TECH-Wifi.png",
+      "coverageNote": "Comptoirs démontés, passage, rampes, terminal et végétation relevés. Pictogramme Wi-Fi, boutons/dalles au sol, murs vitrés répétables, bandes lumineuses au sol et ombres seules exclus."
+    },
+    {
+      "source": "TECH-Misc.png",
+      "coverageNote": "Bateau, escalier, portique, capsules et appareils, parasol, rochers, végétation et modules techniques relevés. Bassins, sols, eau/lave/neige, effets de nuages, ombres seules et panneaux de texture exclus. Plusieurs pièces techniques ont une fonction non confirmée."
+    }
+  ]
+}
