@@ -12,15 +12,71 @@ void main() {
     signature: 'UNE EXPÉRIENCE DE JEU',
   );
   late Uint8List logoBytes;
+  late Uint8List wordmarkBytes;
 
   setUpAll(() async {
     logoBytes = await _logoBytes();
+    wordmarkBytes = await File(
+      '../../apps/pokemap_hub/assets/avelune/logo/avelune_wordmark.png',
+    ).readAsBytes();
     await (FontLoader('packages/map_player_ui/PokeMapSplashMarcellus')
           ..addFont(rootBundle.load('assets/fonts/Marcellus-Regular.ttf')))
         .load();
     await (FontLoader('packages/map_player_ui/PokeMapSplashDMSans')
           ..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf')))
         .load();
+  });
+
+  testWidgets('renders the supplied wordmark with reduced motion',
+      (tester) async {
+    final wordmark = MemoryImage(wordmarkBytes);
+    await tester.pumpWidget(_app(PlayerRuntimeSplashSurface(
+      branding: branding,
+      progress: .2,
+      animationProgress: 0,
+      logo: MemoryImage(logoBytes),
+      wordmark: wordmark,
+      reducedMotion: true,
+    )));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<Image>(find.byKey(
+        const ValueKey<String>('startup-splash-wordmark-image'),
+      )).image,
+      wordmark,
+    );
+    expect(
+      tester.widget<Opacity>(find.byKey(
+        const ValueKey<String>('startup-splash-wordmark'),
+      )).opacity,
+      1,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps the host name when a wordmark cannot decode',
+      (tester) async {
+    await tester.pumpWidget(_app(PlayerRuntimeSplashSurface(
+      branding: branding,
+      progress: .2,
+      animationProgress: 0,
+      wordmark: MemoryImage(Uint8List.fromList(<int>[0, 1, 2])),
+      reducedMotion: true,
+    )));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('startup-splash-wordmark-image')),
+      findsOneWidget,
+    );
+    final wordmark = find.byKey(
+      const ValueKey<String>('startup-splash-wordmark-image'),
+    );
+    expect(
+      find.descendant(of: wordmark, matching: find.byType(CustomPaint)),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('ports every signed premium splash timestamp', (tester) async {
@@ -232,6 +288,7 @@ void main() {
             loadingProgress: loading,
             loadingLabel: _mockLoadingLabel(loading),
             logo: logo,
+            wordmark: MemoryImage(wordmarkBytes),
             reducedMotion: false,
           ),
         ),
@@ -255,6 +312,7 @@ void main() {
           loadingProgress: 1,
           loadingLabel: 'Prêt',
           logo: logo,
+          wordmark: MemoryImage(wordmarkBytes),
           reducedMotion: false,
         ),
       ),
@@ -281,6 +339,7 @@ void main() {
           loadingProgress: _mockLoadingProgress(4500),
           loadingLabel: 'Accord du monde',
           logo: logo,
+          wordmark: MemoryImage(wordmarkBytes),
           reducedMotion: false,
         ),
       ),
@@ -315,7 +374,7 @@ Future<void> _setViewport(WidgetTester tester, Size size) async {
 }
 
 Future<Uint8List> _logoBytes() => File(
-      '../../apps/pokemap_hub/assets/avelune/logo/avelune_mark.webp',
+      '../../apps/pokemap_hub/assets/avelune/logo/avelune_symbol.png',
     ).readAsBytes();
 
 double _mockLoadingProgress(int milliseconds) {

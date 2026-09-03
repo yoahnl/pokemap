@@ -36,6 +36,7 @@ class HubInstalledGamePlayer extends StatefulWidget {
     required this.onHubRequested,
     required this.hostBranding,
     required this.splashLogo,
+    this.splashWordmark,
     this.diagnosticLogFile,
     player_ui.PlayerPreferences? preferences,
   });
@@ -53,6 +54,7 @@ class HubInstalledGamePlayer extends StatefulWidget {
   final HubPlayerReturnRequest onHubRequested;
   final RuntimeHostSplashBranding hostBranding;
   final ImageProvider? splashLogo;
+  final ImageProvider? splashWordmark;
   final File? diagnosticLogFile;
 
   @override
@@ -303,6 +305,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
           ),
           titleMenuPoster: _startupImage(resolvedPresentation?.titleMenuPoster),
           splashLogo: widget.splashLogo,
+          splashWordmark: widget.splashWordmark,
           reducedMotion: _reducedMotion,
           onPresentationOrientationChanged: (nextOrientation) {
             unawaited(startup.updatePresentationOrientation(nextOrientation));

@@ -26,6 +26,18 @@ class AveluneHomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
     final markSize = compact ? 32.0 : 38.0;
+    final name = Text(
+      productName.toUpperCase(),
+      maxLines: 1,
+      overflow: TextOverflow.clip,
+      style: TextStyle(
+        color: colors.textPrimary,
+        fontSize: compact ? 17 : 19,
+        fontWeight: FontWeight.w300,
+        letterSpacing: compact ? 4.4 : 5.6,
+        height: 1,
+      ),
+    );
 
     return Padding(
       key: const ValueKey<String>('avelune-home-header'),
@@ -46,29 +58,37 @@ class AveluneHomeHeader extends StatelessWidget {
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
                 excludeFromSemantics: true,
-                errorBuilder: (_, _, _) => Icon(
-                  AveluneIcons.brand,
-                  color: colors.primaryBright,
-                  size: markSize * 0.78,
-                ),
+                errorBuilder:
+                    (_, _, _) => Icon(
+                      AveluneIcons.brand,
+                      color: colors.primaryBright,
+                      size: markSize * 0.78,
+                    ),
               ),
             ),
           ),
           SizedBox(width: compact ? AveluneSpacing.sm : AveluneSpacing.md),
           Expanded(
             child: ExcludeSemantics(
-              child: Text(
-                productName.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.clip,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: compact ? 17 : 19,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: compact ? 4.4 : 5.6,
-                  height: 1,
-                ),
-              ),
+              child:
+                  productName.trim().toLowerCase() == 'avelune'
+                      ? Align(
+                        alignment: Alignment.centerLeft,
+                        child: Image.asset(
+                          AveluneMaterialCatalog.wordmark.path,
+                          key: const ValueKey<String>(
+                            'avelune-home-header-wordmark',
+                          ),
+                          width: compact ? 164 : 184,
+                          height: compact ? 17 : 19,
+                          fit: BoxFit.contain,
+                          color: colors.textPrimary,
+                          filterQuality: FilterQuality.high,
+                          excludeFromSemantics: true,
+                          errorBuilder: (_, _, _) => name,
+                        ),
+                      )
+                      : name,
             ),
           ),
           ExcludeSemantics(

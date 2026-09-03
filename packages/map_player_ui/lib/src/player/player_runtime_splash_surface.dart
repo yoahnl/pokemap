@@ -20,6 +20,7 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
     this.ambientProgress,
     this.loadingLabel,
     this.logo,
+    this.wordmark,
     this.reducedMotion = false,
   })  : assert(progress >= 0 && progress <= 1),
         assert(animationProgress >= 0 && animationProgress <= 1),
@@ -36,6 +37,7 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
   final double? ambientProgress;
   final String? loadingLabel;
   final ImageProvider? logo;
+  final ImageProvider? wordmark;
   final bool reducedMotion;
 
   @override
@@ -56,6 +58,7 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
         loadingProgress: progress,
         loadingLabel: loadingLabel,
         logo: logo,
+        wordmark: wordmark,
         reducedMotion: reducedMotion,
       ),
     );
@@ -73,6 +76,7 @@ class PlayerSplashTimeline extends StatelessWidget {
     required this.reducedMotion,
     this.loadingLabel,
     this.logo,
+    this.wordmark,
   })  : assert(progress >= 0 && progress <= 1),
         assert(exitProgress >= 0 && exitProgress <= 1),
         assert(ambientProgress >= 0 && ambientProgress <= 1),
@@ -85,6 +89,7 @@ class PlayerSplashTimeline extends StatelessWidget {
   final double loadingProgress;
   final String? loadingLabel;
   final ImageProvider? logo;
+  final ImageProvider? wordmark;
   final bool reducedMotion;
 
   @override
@@ -136,6 +141,7 @@ class PlayerSplashTimeline extends StatelessWidget {
                         progress >= kPlayerSplashHoldProgress,
                     branding: branding,
                     logo: logo,
+                    wordmark: wordmark,
                     primary: primary,
                     secondary: secondary,
                     reducedMotion: reducedMotion,
@@ -197,6 +203,7 @@ class _SplashLogoStage extends StatelessWidget {
     required this.held,
     required this.branding,
     required this.logo,
+    required this.wordmark,
     required this.primary,
     required this.secondary,
     required this.reducedMotion,
@@ -209,6 +216,7 @@ class _SplashLogoStage extends StatelessWidget {
   final bool held;
   final RuntimeHostSplashBranding branding;
   final ImageProvider? logo;
+  final ImageProvider? wordmark;
   final Color primary;
   final Color secondary;
   final bool reducedMotion;
@@ -231,6 +239,22 @@ class _SplashLogoStage extends StatelessWidget {
     final signatureState = reducedMotion
         ? _VerticalRevealState.staticState
         : _signatureState(time);
+    final name = _PaintedText(
+      text: branding.displayName,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: const Color(0xFFF8F3E9),
+        fontFamily: 'PokeMapSplashMarcellus',
+        package: 'map_player_ui',
+        fontSize: wordmarkSize,
+        fontWeight: FontWeight.w400,
+        height: 1.2,
+        letterSpacing: nameState.letterSpacingEm * wordmarkSize,
+        shadows: const <Shadow>[
+          Shadow(color: Color(0x80EAD5FF), blurRadius: 28),
+        ],
+      ),
+    );
 
     return SizedBox(
       width: width,
@@ -287,26 +311,20 @@ class _SplashLogoStage extends StatelessWidget {
                         sigmaX: nameState.blur,
                         sigmaY: nameState.blur,
                       ),
-                      child: _PaintedText(
-                        text: branding.displayName,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: const Color(0xFFF8F3E9),
-                          fontFamily: 'PokeMapSplashMarcellus',
-                          package: 'map_player_ui',
-                          fontSize: wordmarkSize,
-                          fontWeight: FontWeight.w400,
-                          height: 1.2,
-                          letterSpacing:
-                              nameState.letterSpacingEm * wordmarkSize,
-                          shadows: const <Shadow>[
-                            Shadow(
-                              color: Color(0x80EAD5FF),
-                              blurRadius: 28,
+                      child: wordmark == null
+                          ? name
+                          : Image(
+                              key: const ValueKey<String>(
+                                'startup-splash-wordmark-image',
+                              ),
+                              image: wordmark!,
+                              width: wordmarkSize * 13,
+                              height: wordmarkSize * 1.2,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.high,
+                              excludeFromSemantics: true,
+                              errorBuilder: (_, __, ___) => name,
                             ),
-                          ],
-                        ),
-                      ),
                     ),
                   ),
                 ),

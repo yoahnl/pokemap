@@ -15,14 +15,17 @@ void main() {
       expect(AveluneMaterialCatalog.furniture, hasLength(6));
       expect(AveluneMaterialCatalog.consoleLayers, hasLength(4));
       expect(AveluneMaterialCatalog.cartridgeLayers, hasLength(5));
-      expect(AveluneMaterialCatalog.all, hasLength(22));
+      expect(AveluneMaterialCatalog.all, hasLength(23));
       expect(
         AveluneMaterialCatalog.all.map((asset) => asset.id).toSet(),
         hasLength(AveluneMaterialCatalog.all.length),
       );
       expect(
         AveluneMaterialCatalog.all.map((asset) => asset.path),
-        everyElement(allOf(startsWith('assets/avelune/'), endsWith('.webp'))),
+        everyElement(allOf(
+          startsWith('assets/avelune/'),
+          anyOf(endsWith('.webp'), endsWith('.png')),
+        )),
       );
       expect(
         AveluneMaterialCatalog.background('amber').id,
@@ -36,6 +39,27 @@ void main() {
         () => AveluneMaterialCatalog.background('unknown'),
         throwsArgumentError,
       );
+    });
+
+    test('branding uses the unmodified user Brand Kit exports', () async {
+      const digests = <String, String>{
+        'logo.mark':
+            '3d15942fdc38439cfc80a6337db103d94201eb641813759901a37165b29f9689',
+        'logo.wordmark':
+            '87f5e3620baf96bab7d50266ba8ccfe33dbacf286a760758439fdae21e295bf6',
+      };
+      for (final entry in digests.entries) {
+        final matches = AveluneMaterialCatalog.all.where(
+          (asset) => asset.id == entry.key,
+        );
+        expect(matches, hasLength(1), reason: entry.key);
+        final data = await rootBundle.load(matches.single.path);
+        expect(
+          sha256.convert(data.buffer.asUint8List()).toString(),
+          entry.value,
+          reason: entry.key,
+        );
+      }
     });
 
     test('every asset loads, decodes and meets its size contract', () async {

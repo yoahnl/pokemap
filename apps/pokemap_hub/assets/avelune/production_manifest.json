@@ -154,10 +154,17 @@
     },
     {
       "id": "logo.mark",
-      "source": "OpenAI ImageGen output exec-1c9d9014-a4e2-455d-b3a9-8f3a973d16b1.png guided by the frozen Avelune logo reference",
-      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
-      "transformation": "Standalone crescent, hidden A and star keyed and normalized to a transparent 512x512 icon canvas.",
-      "sha256": "efee629873068bc168b1dfce1f12c6cbbadb7e27ec8ed1f2eb63f01870b66fb8"
+      "source": "User-supplied Avelune_Brand_Kit/04_Symbol/Avelune_Symbol_White_1024_Transparent.png",
+      "tool": "Direct asset import",
+      "transformation": "None; original transparent PNG copied byte for byte.",
+      "sha256": "3d15942fdc38439cfc80a6337db103d94201eb641813759901a37165b29f9689"
+    },
+    {
+      "id": "logo.wordmark",
+      "source": "User-supplied Avelune_Brand_Kit/03_Wordmark/Avelune_Wordmark_White_Transparent.png",
+      "tool": "Direct asset import",
+      "transformation": "None; original transparent PNG copied byte for byte.",
+      "sha256": "87f5e3620baf96bab7d50266ba8ccfe33dbacf286a760758439fdae21e295bf6"
     }
   ]
 }

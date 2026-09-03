@@ -21,8 +21,10 @@ const _aveluneRuntimeSplashBranding = RuntimeHostSplashBranding(
   secondaryColorHex: '#9E79D7',
 );
 
-const _aveluneRuntimeSplashLogo = AssetImage(
-  'assets/avelune/logo/avelune_mark.webp',
+final _aveluneRuntimeSplashLogo = AssetImage(AveluneMaterialCatalog.logo.path);
+
+final _aveluneRuntimeSplashWordmark = AssetImage(
+  AveluneMaterialCatalog.wordmark.path,
 );
 
 abstract interface class HubAppComposition {
@@ -144,6 +146,7 @@ final class HubComposition implements HubAppComposition {
           game: game.game,
           hostBranding: _aveluneRuntimeSplashBranding,
           splashLogo: _aveluneRuntimeSplashLogo,
+          splashWordmark: _aveluneRuntimeSplashWordmark,
           preferences: controller.snapshot.preferences,
           diagnosticLogFile: File(
             p.join(supportRoot.path, 'logs', 'hub-player.log'),

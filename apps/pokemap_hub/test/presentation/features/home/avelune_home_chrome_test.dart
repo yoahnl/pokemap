@@ -13,6 +13,22 @@ void main() {
   const iphone = Size(393, 852);
   const iphoneInsets = EdgeInsets.only(top: 47, bottom: 34);
 
+  testWidgets('header preserves an injected product name', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: applyAveluneTheme(PokeMapPlayerTheme.dark()),
+        home: const Scaffold(
+          body: AveluneHomeHeader(productName: 'Autre joueur'),
+        ),
+      ),
+    );
+    expect(find.text('AUTRE JOUEUR'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('avelune-home-header-wordmark')),
+      findsNothing,
+    );
+  });
+
   testWidgets('header carries the Avelune mark and wordmark', (tester) async {
     await _pumpHome(tester, size: iphone, insets: iphoneInsets);
 
@@ -20,7 +36,15 @@ void main() {
       find.byKey(const ValueKey<String>('avelune-home-header')),
       findsOneWidget,
     );
-    expect(find.text('AVELUNE'), findsWidgets);
+    final wordmarkFinder = find.byKey(
+      const ValueKey<String>('avelune-home-header-wordmark'),
+    );
+    expect(wordmarkFinder, findsOneWidget);
+    final wordmark = tester.widget<Image>(wordmarkFinder);
+    expect(
+      (wordmark.image as AssetImage).assetName,
+      'assets/avelune/logo/avelune_wordmark.png',
+    );
 
     final logo = tester.widget<Image>(
       find.byKey(const ValueKey<String>('avelune-home-header-mark')),

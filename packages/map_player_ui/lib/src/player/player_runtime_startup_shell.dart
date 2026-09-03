@@ -68,6 +68,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
     this.introSource,
     this.introPoster,
     this.splashLogo,
+    this.splashWordmark,
     this.introDriverFactory,
     this.audioMixer,
     this.titlePromptSource,
@@ -102,6 +103,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
   final PlayerIntroVideoSource? introSource;
   final ImageProvider? introPoster;
   final ImageProvider? splashLogo;
+  final ImageProvider? splashWordmark;
   final PlayerIntroPlaybackFactory? introDriverFactory;
   final RuntimeAudioMixer? audioMixer;
   final PlayerIntroVideoSource? titlePromptSource;
@@ -255,6 +257,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
           ambientProgress: _splashAmbientAnimation.value,
           loadingLabel: _runtimeStartupLoadingLabel(widget.snapshot),
           logo: widget.splashLogo,
+          wordmark: widget.splashWordmark,
           reducedMotion: widget.reducedMotion,
         ),
       );

@@ -14,10 +14,13 @@ import 'package:pokemap_hub/features/session/domain/entities/installed_game_laun
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_game_player.dart';
+import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
 
 void main() {
   testWidgets('mounts the runtime splash on the first frame', (tester) async {
     final launch = Completer<InstalledGameLaunchContext>();
+    final logo = AssetImage(AveluneMaterialCatalog.logo.path);
+    final wordmark = AssetImage(AveluneMaterialCatalog.wordmark.path);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -33,7 +36,8 @@ void main() {
             displayName: 'TEST',
             signature: 'RUNTIME',
           ),
-          splashLogo: null,
+          splashLogo: logo,
+          splashWordmark: wordmark,
           onHubRequested: () async {},
           diagnosticLogFile: File('/dev/null'),
         ),
@@ -50,6 +54,19 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(PlayerLoadingSurface), findsNothing);
+    final timeline = tester.widget<PlayerSplashTimeline>(
+      find.byType(PlayerSplashTimeline),
+    );
+    expect(timeline.logo, logo);
+    expect(timeline.wordmark, wordmark);
+    expect(
+      tester
+          .widget<Image>(
+            find.byKey(const ValueKey<String>('startup-splash-wordmark-image')),
+          )
+          .image,
+      wordmark,
+    );
     final splash = find.byKey(
       const ValueKey<String>('startup-splash-timeline'),
     );

@@ -206,10 +206,17 @@ abstract final class AveluneMaterialCatalog {
 
   static const AveluneMaterialAsset logo = AveluneMaterialAsset(
     id: 'logo.mark',
-    path: 'assets/avelune/logo/avelune_mark.webp',
+    path: 'assets/avelune/logo/avelune_symbol.png',
     role: AveluneMaterialAssetRole.logo,
     minimumSize: Size(512, 512),
     requiresTransparentCorners: true,
+  );
+
+  static const AveluneMaterialAsset wordmark = AveluneMaterialAsset(
+    id: 'logo.wordmark',
+    path: 'assets/avelune/logo/avelune_wordmark.png',
+    role: AveluneMaterialAssetRole.logo,
+    minimumSize: Size(602, 52),
   );
 
   static const List<AveluneMaterialAsset> all = <AveluneMaterialAsset>[
@@ -219,6 +226,7 @@ abstract final class AveluneMaterialCatalog {
     ...cartridgeLayers,
     fallbackArtwork,
     logo,
+    wordmark,
   ];
 
   static AveluneMaterialAsset background(String id) =>

@@ -28,7 +28,10 @@ void main() {
     await tester.pumpWidget(_app(_shell(snapshot, productName: 'Avelune')));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('AVELUNE'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey<String>('avelune-home-header-wordmark')),
+      findsOneWidget,
+    );
     expect(find.text('PokeMap Hub'), findsNothing);
     expect(
       find.textContaining(RegExp('poke', caseSensitive: false)),
