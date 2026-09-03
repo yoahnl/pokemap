@@ -480,8 +480,8 @@
     },
     {
       "id": "banc-bois",
-      "label": "Banc de bois",
-      "family": "mobilier",
+      "label": "Petit panneau de bois",
+      "family": "equipement",
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
@@ -566,7 +566,7 @@
       "id": "grand-panneau-incline",
       "label": "Grand panneau d’information incliné",
       "family": "equipement",
-      "kind": "object",
+      "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
         1312,
@@ -574,7 +574,7 @@
         96,
         160
       ],
-      "notes": ""
+      "notes": "Panneau et montants démontés dans la source ; réassembler les poteaux avant de créer l’objet final."
     },
     {
       "id": "panneau-direction-bleu",
@@ -723,10 +723,10 @@
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
-        1472,
-        32,
-        96,
-        160
+        1492,
+        48,
+        50,
+        136
       ],
       "notes": ""
     },
@@ -737,10 +737,10 @@
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
-        1600,
-        32,
-        96,
-        160
+        1594,
+        48,
+        50,
+        136
       ],
       "notes": ""
     },
@@ -1064,7 +1064,8 @@
         320,
         1280
       ],
-      "notes": ""
+      "notes": "Ensemble de travées démontées ; des petits objets voisins entrent dans ce cadre. Préparer un masque et reconstruire les sections avant de l’utiliser comme patron.",
+      "needsMask": true
     },
     {
       "id": "rocaille-creuse",
@@ -1185,10 +1186,10 @@
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
-        1248,
-        1632,
-        32,
-        32
+        1246,
+        1654,
+        36,
+        26
       ],
       "notes": ""
     },
@@ -1243,8 +1244,8 @@
       "rect": [
         1184,
         1824,
-        96,
-        64
+        76,
+        54
       ],
       "notes": ""
     },
@@ -1311,10 +1312,10 @@
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
-        1216,
-        1984,
-        32,
-        32
+        1218,
+        1978,
+        28,
+        28
       ],
       "notes": ""
     },
@@ -1339,10 +1340,10 @@
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
-        1216,
-        2112,
-        64,
-        32
+        1214,
+        2096,
+        68,
+        30
       ],
       "notes": ""
     },
@@ -1606,9 +1607,9 @@
       "source": "TECH-Assets.png",
       "rect": [
         1728,
-        1376,
+        1344,
         32,
-        32
+        64
       ],
       "notes": ""
     },
@@ -1647,10 +1648,10 @@
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
-        1696,
-        192,
-        32,
-        32
+        1680,
+        186,
+        34,
+        36
       ],
       "notes": ""
     },
@@ -1661,10 +1662,10 @@
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
-        1600,
-        320,
-        32,
-        32
+        1598,
+        314,
+        36,
+        36
       ],
       "notes": ""
     },
@@ -1672,7 +1673,7 @@
       "id": "conteneur-jaune-0",
       "label": "Conteneur de kiosque — 1",
       "family": "equipement",
-      "kind": "object",
+      "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
         1664,
@@ -1680,13 +1681,14 @@
         32,
         64
       ],
-      "notes": ""
+      "notes": "Module de présentoir : l’objet jouxte la bande du comptoir. À isoler avant de mesurer l’objet seul.",
+      "needsMask": true
     },
     {
       "id": "conteneur-jaune-1",
       "label": "Conteneur de kiosque — 2",
       "family": "equipement",
-      "kind": "object",
+      "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
         1696,
@@ -1694,13 +1696,14 @@
         32,
         64
       ],
-      "notes": ""
+      "notes": "Module de présentoir : l’objet jouxte la bande du comptoir. À isoler avant de mesurer l’objet seul.",
+      "needsMask": true
     },
     {
       "id": "conteneur-jaune-2",
       "label": "Conteneur de kiosque — 3",
       "family": "equipement",
-      "kind": "object",
+      "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
         1728,
@@ -1708,7 +1711,8 @@
         32,
         64
       ],
-      "notes": ""
+      "notes": "Module de présentoir : l’objet jouxte la bande du comptoir. À isoler avant de mesurer l’objet seul.",
+      "needsMask": true
     },
     {
       "id": "conteneur-jaune-3",
@@ -1717,10 +1721,10 @@
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
-        1504,
-        1088,
-        32,
-        64
+        1506,
+        1084,
+        28,
+        46
       ],
       "notes": ""
     },
@@ -1731,21 +1735,21 @@
       "kind": "object",
       "source": "TECH-Assets.png",
       "rect": [
-        1536,
-        1088,
-        32,
-        64
+        1538,
+        1084,
+        28,
+        46
       ],
       "notes": ""
     },
     {
       "id": "pilier-pont-0",
-      "label": "Pilier de pont — hauteur 6",
+      "label": "Pilier de pont — variante 1",
       "family": "architecture",
       "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
-        1984,
+        1952,
         832,
         64,
         96
@@ -1754,40 +1758,40 @@
     },
     {
       "id": "pilier-pont-1",
-      "label": "Pilier de pont — hauteur 5",
+      "label": "Pilier de pont — variante 2",
       "family": "architecture",
       "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
-        1984,
+        1952,
         928,
         64,
-        128
+        96
       ],
       "notes": ""
     },
     {
       "id": "pilier-pont-2",
-      "label": "Pilier de pont — hauteur 4",
+      "label": "Pilier de pont — variante 3",
       "family": "architecture",
       "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
-        1984,
-        1056,
+        1952,
+        1024,
         64,
-        64
+        96
       ],
       "notes": ""
     },
     {
       "id": "pilier-pont-3",
-      "label": "Pilier de pont — hauteur 3",
+      "label": "Pilier de pont — variante 4",
       "family": "architecture",
       "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
-        1984,
+        1952,
         1120,
         64,
         64
@@ -1796,12 +1800,12 @@
     },
     {
       "id": "pilier-pont-4",
-      "label": "Pilier de pont — hauteur 2",
+      "label": "Pilier de pont — variante 5",
       "family": "architecture",
       "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
-        1984,
+        1952,
         1184,
         64,
         64
@@ -1810,12 +1814,12 @@
     },
     {
       "id": "pilier-pont-5",
-      "label": "Pilier de pont — hauteur 1",
+      "label": "Pilier de pont — variante 6",
       "family": "architecture",
       "kind": "module",
       "source": "TECH-Assets.png",
       "rect": [
-        1984,
+        1952,
         1248,
         64,
         64

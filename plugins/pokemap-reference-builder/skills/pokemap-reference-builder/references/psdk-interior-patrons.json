@@ -132,13 +132,14 @@
       "family": "equipement",
       "source": "TECH-Basement.png",
       "rect": [
-        160,
-        384,
-        32,
-        64
+        164,
+        396,
+        28,
+        38
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Le petit outil voisin mord sur le coin supérieur droit du cadre englobant ; détourage nécessaire avant extraction.",
+      "needsMask": true
     },
     {
       "id": "psdk-basement-outil-long",
@@ -146,13 +147,14 @@
       "family": "equipement",
       "source": "TECH-Basement.png",
       "rect": [
-        192,
-        384,
-        32,
-        32
+        188,
+        394,
+        30,
+        18
       ],
       "kind": "object",
-      "notes": "Objet non identifié ; description strictement visuelle."
+      "notes": "Pièce métallique complète ; le coin inférieur gauche du cadre croise l'extincteur voisin. Détourage nécessaire.",
+      "needsMask": true
     },
     {
       "id": "psdk-basement-outil-coude",
@@ -160,10 +162,10 @@
       "family": "equipement",
       "source": "TECH-Basement.png",
       "rect": [
-        192,
+        196,
         416,
-        32,
-        32
+        16,
+        24
       ],
       "kind": "object",
       "notes": "Objet non identifié ; description strictement visuelle."
@@ -208,7 +210,8 @@
         80
       ],
       "kind": "module",
-      "notes": "Tronçon sans marches ; longueur assemblée non déductible."
+      "notes": "Tronçon sans marches ; un fragment de marches rouges se trouve dans le coin supérieur droit du cadre. Détourage ou assemblage de modules nécessaire.",
+      "needsMask": true
     },
     {
       "id": "psdk-basement-caisses-bleues",
@@ -303,7 +306,7 @@
         224,
         544,
         64,
-        64
+        80
       ],
       "kind": "object",
       "notes": ""
@@ -328,10 +331,10 @@
       "family": "mobilier",
       "source": "TECH-Basement.png",
       "rect": [
-        64,
-        624,
+        66,
+        638,
         32,
-        48
+        34
       ],
       "kind": "object",
       "notes": ""
@@ -371,9 +374,9 @@
       "source": "TECH-Basement.png",
       "rect": [
         256,
-        656,
+        640,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -384,10 +387,10 @@
       "family": "mobilier",
       "source": "TECH-Basement.png",
       "rect": [
-        48,
-        672,
-        64,
-        96
+        52,
+        682,
+        62,
+        86
       ],
       "kind": "object",
       "notes": ""
@@ -398,10 +401,10 @@
       "family": "mobilier",
       "source": "TECH-Basement.png",
       "rect": [
-        144,
-        720,
-        64,
-        32
+        152,
+        716,
+        52,
+        36
       ],
       "kind": "object",
       "notes": ""
@@ -464,31 +467,33 @@
     },
     {
       "id": "psdk-basement-table-etroite",
-      "label": "Table rectangulaire étroite grise",
+      "label": "Meuble gris étroit de profil",
       "family": "mobilier",
       "source": "TECH-Basement.png",
       "rect": [
         160,
         768,
         32,
-        64
+        80
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Fonction exacte non identifiée. Le meuble est contigu au grand élément de bois ovale ; masque nécessaire pour séparer les deux.",
+      "needsMask": true
     },
     {
       "id": "psdk-basement-table-ovale",
-      "label": "Grande table ovale en bois",
+      "label": "Élément ovale en bois",
       "family": "mobilier",
       "source": "TECH-Basement.png",
       "rect": [
         192,
         768,
         96,
-        64
+        80
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Table ou panneau de bois ovale, fonction incertaine. Il touche le meuble gris voisin ; masque nécessaire avant d'en déduire une silhouette autonome.",
+      "needsMask": true
     },
     {
       "id": "psdk-basement-sac-gauche",
@@ -499,10 +504,11 @@
         32,
         832,
         32,
-        32
+        48
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Une ombre adjacente affleure le cadre supérieur ; masque nécessaire pour isoler le sac.",
+      "needsMask": true
     },
     {
       "id": "psdk-basement-sac-droite",
@@ -513,10 +519,11 @@
         64,
         832,
         32,
-        32
+        48
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Une ombre adjacente affleure le cadre supérieur ; masque nécessaire pour isoler le sac.",
+      "needsMask": true
     },
     {
       "id": "psdk-basement-tabouret-clair",
@@ -566,13 +573,14 @@
       "family": "equipement",
       "source": "TECH-Battle.png",
       "rect": [
-        192,
+        176,
         256,
-        48,
+        64,
         112
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "L'ombre technique voisine touche le coin gauche du cadre ; masque nécessaire pour isoler la borne.",
+      "needsMask": true
     },
     {
       "id": "psdk-battle-tabouret-vert",
@@ -765,7 +773,7 @@
         160,
         464,
         32,
-        96
+        80
       ],
       "kind": "object",
       "notes": ""
@@ -790,13 +798,14 @@
       "family": "vegetation",
       "source": "TECH-Casino.png",
       "rect": [
-        128,
-        544,
-        96,
-        96
+        138,
+        552,
+        76,
+        88
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Silhouette du palmier mesurée ; le rectangle englobant croise la fontaine et le tabouret voisins dans ses coins bas. Un masque est nécessaire pour isoler le palmier.",
+      "needsMask": true
     },
     {
       "id": "psdk-casino-machine-bleue",
@@ -807,7 +816,7 @@
         224,
         560,
         32,
-        64
+        80
       ],
       "kind": "object",
       "notes": ""
@@ -821,7 +830,7 @@
         256,
         560,
         32,
-        64
+        80
       ],
       "kind": "object",
       "notes": ""
@@ -848,11 +857,12 @@
       "rect": [
         128,
         608,
-        32,
+        36,
         64
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "La fontaine et son ombre latérale côtoient le palmier et le lustre ; un masque est nécessaire avant extraction.",
+      "needsMask": true
     },
     {
       "id": "psdk-casino-lustre",
@@ -947,7 +957,7 @@
         32,
         176,
         160,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -1150,7 +1160,7 @@
     },
     {
       "id": "psdk-hq-cable-coude",
-      "label": "Coude de faisceau de câbles",
+      "label": "Faisceau de câbles horizontal court",
       "family": "equipement",
       "source": "TECH-HQ.png",
       "rect": [
@@ -1211,12 +1221,13 @@
       "source": "TECH-HQ.png",
       "rect": [
         160,
-        320,
+        316,
         128,
         128
       ],
       "kind": "module",
-      "notes": "Pièces cuivrées disposées en croix ; fonction exacte non identifiée."
+      "notes": "Pièces cuivrées disposées en croix ; fonction exacte non identifiée. Quelques pixels du module inférieur voisin affleurent le bord bas du cadre.",
+      "needsMask": true
     },
     {
       "id": "psdk-hq-cuivre-double",
@@ -1239,12 +1250,12 @@
       "source": "TECH-HQ.png",
       "rect": [
         224,
-        432,
+        448,
         32,
-        112
+        96
       ],
       "kind": "module",
-      "notes": "Module technique détaché."
+      "notes": "Tronçon technique vertical contigu aux pièces inférieures ; cadre modulaire et non hauteur d'objet assemblé."
     },
     {
       "id": "psdk-hq-cuivre-droit",
@@ -1353,7 +1364,7 @@
         192,
         416,
         96,
-        32
+        48
       ],
       "kind": "object",
       "notes": "L'usage mural ou au sol n'est pas déterminable dans la planche."
@@ -1369,8 +1380,8 @@
         96,
         160
       ],
-      "kind": "object",
-      "notes": ""
+      "kind": "module",
+      "notes": "Tronçon d'escalier avec limons ; le palier bleu supérieur, sol de raccord à y=532, n'est pas inclus."
     },
     {
       "id": "psdk-hub-marches-bleues-sombres",
@@ -1437,7 +1448,7 @@
         64,
         704,
         128,
-        32
+        48
       ],
       "kind": "module",
       "notes": "Pièce démontée du comptoir."
@@ -1449,12 +1460,13 @@
       "source": "TECH-Hub.png",
       "rect": [
         32,
-        736,
+        744,
         160,
-        112
+        96
       ],
       "kind": "module",
-      "notes": "Façade en arc ; plateau arrière à composer."
+      "notes": "Façade en arc ; plateau arrière à composer. Un petit raccord de la pièce supérieure est présent au bord haut du rectangle.",
+      "needsMask": true
     },
     {
       "id": "psdk-hub-comptoir-clair-terminal",
@@ -1546,9 +1558,9 @@
       "family": "equipement",
       "source": "TECH-Hub.png",
       "rect": [
-        256,
+        240,
         1168,
-        32,
+        48,
         16
       ],
       "kind": "module",
@@ -1588,7 +1600,7 @@
       "family": "equipement",
       "source": "TECH-Hub.png",
       "rect": [
-        224,
+        208,
         1184,
         64,
         96
@@ -1608,7 +1620,8 @@
         304
       ],
       "kind": "object",
-      "notes": "Façade vitrée isolée ; pas un bâtiment fermé. L'ombre séparée à droite est exclue."
+      "notes": "Façade vitrée isolée ; pas un bâtiment fermé. L'ombre séparée à droite est exclue. Un masque d'ombre adjacent affleure le coin inférieur gauche du cadre.",
+      "needsMask": true
     },
     {
       "id": "psdk-hub-banquette-bleue-gauche",
@@ -1644,13 +1657,14 @@
       "family": "mobilier",
       "source": "TECH-Hub.png",
       "rect": [
-        224,
-        1584,
-        64,
-        64
+        208,
+        1568,
+        80,
+        80
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Le cadre englobe la table entière et une partie de la banquette bleue gauche ; masque nécessaire pour mesurer la table seule.",
+      "needsMask": true
     },
     {
       "id": "psdk-hub-banquette-bandeau",
@@ -1787,10 +1801,11 @@
         144,
         1728,
         64,
-        32
+        48
       ],
       "kind": "object",
-      "notes": "Silhouette basse isolée ; usage exact non confirmé."
+      "notes": "Silhouette basse isolée ; usage exact non confirmé. Le cadre croise les ombres des objets voisins ; masque nécessaire.",
+      "needsMask": true
     },
     {
       "id": "psdk-lab-baie-grise",
@@ -1800,7 +1815,7 @@
       "rect": [
         32,
         32,
-        192,
+        160,
         96
       ],
       "kind": "object",
@@ -1822,31 +1837,17 @@
     },
     {
       "id": "psdk-lab-feuille-haute",
-      "label": "Feuille affichée en haut",
+      "label": "Groupe de trois feuilles affichées",
       "family": "decoration",
       "source": "TECH-Lab.png",
       "rect": [
-        208,
+        192,
         64,
-        24,
-        24
+        64,
+        48
       ],
       "kind": "object",
-      "notes": ""
-    },
-    {
-      "id": "psdk-lab-feuille-centrale",
-      "label": "Feuille affichée au centre",
-      "family": "decoration",
-      "source": "TECH-Lab.png",
-      "rect": [
-        224,
-        80,
-        32,
-        32
-      ],
-      "kind": "object",
-      "notes": ""
+      "notes": "Les feuilles se recouvrent et forment un groupe ; aucune feuille cachée n'est reconstituée."
     },
     {
       "id": "psdk-lab-feuille-droite",
@@ -1856,20 +1857,6 @@
       "rect": [
         256,
         64,
-        32,
-        32
-      ],
-      "kind": "object",
-      "notes": ""
-    },
-    {
-      "id": "psdk-lab-feuille-gauche",
-      "label": "Feuille affichée à gauche",
-      "family": "decoration",
-      "source": "TECH-Lab.png",
-      "rect": [
-        192,
-        96,
         32,
         32
       ],
@@ -2037,9 +2024,9 @@
       "source": "TECH-Lab.png",
       "rect": [
         192,
-        304,
+        288,
         32,
-        32
+        64
       ],
       "kind": "object",
       "notes": ""
@@ -2051,9 +2038,9 @@
       "source": "TECH-Lab.png",
       "rect": [
         224,
-        304,
+        288,
         32,
-        32
+        64
       ],
       "kind": "object",
       "notes": ""
@@ -2106,10 +2093,10 @@
       "family": "mobilier",
       "source": "TECH-Lab.png",
       "rect": [
-        160,
-        368,
+        162,
+        382,
         32,
-        48
+        34
       ],
       "kind": "object",
       "notes": ""
@@ -2221,7 +2208,7 @@
         256,
         416,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2235,7 +2222,7 @@
         256,
         480,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2263,7 +2250,7 @@
         160,
         32,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2291,7 +2278,7 @@
         256,
         128,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2388,11 +2375,12 @@
       "rect": [
         96,
         320,
-        64,
-        96
+        80,
+        112
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Le cadre inclut l'ombre latérale complète et croise un module de comptoir au coin supérieur droit ; masque nécessaire.",
+      "needsMask": true
     },
     {
       "id": "psdk-library-table-bois",
@@ -2434,7 +2422,8 @@
         128
       ],
       "kind": "object",
-      "notes": "Le corps complet est cadré ; la longue ombre diagonale au sud-est est exclue pour éviter les autres objets."
+      "notes": "Le corps complet est cadré ; la longue ombre diagonale au sud-est est exclue pour éviter les autres objets.",
+      "needsMask": true
     },
     {
       "id": "psdk-library-livre-ouvert",
@@ -2487,7 +2476,7 @@
         224,
         544,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2501,7 +2490,7 @@
         256,
         544,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2515,7 +2504,7 @@
         160,
         576,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2570,11 +2559,12 @@
       "rect": [
         32,
         576,
-        32,
+        40,
         64
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Le cadre complet de l'appareil inclut un fragment de l'ombre de l'horloge dans le coin supérieur droit ; masque nécessaire.",
+      "needsMask": true
     },
     {
       "id": "psdk-library-commode",
@@ -2627,7 +2617,7 @@
         96,
         640,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2641,7 +2631,7 @@
         144,
         640,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2780,8 +2770,8 @@
       "rect": [
         160,
         224,
-        96,
-        48
+        112,
+        64
       ],
       "kind": "object",
       "notes": ""
@@ -2794,7 +2784,7 @@
       "rect": [
         96,
         240,
-        32,
+        48,
         96
       ],
       "kind": "object",
@@ -2809,7 +2799,7 @@
         32,
         240,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2821,7 +2811,7 @@
       "source": "TECH-Photo.png",
       "rect": [
         32,
-        272,
+        288,
         32,
         32
       ],
@@ -2837,7 +2827,7 @@
         64,
         272,
         32,
-        32
+        48
       ],
       "kind": "object",
       "notes": ""
@@ -2961,9 +2951,9 @@
       "source": "TECH-Wifi.png",
       "rect": [
         128,
-        256,
+        240,
         64,
-        64
+        80
       ],
       "kind": "object",
       "notes": ""
@@ -3092,7 +3082,8 @@
         48
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Une bande bleue opaque subsiste derrière la base du pot dans la source ; ce n'est pas un sprite prêt à importer.",
+      "needsMask": true
     },
     {
       "id": "psdk-wifi-fleurs-droite",
@@ -3106,7 +3097,8 @@
         48
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "Une bande bleue opaque subsiste derrière la base du pot dans la source ; ce n'est pas un sprite prêt à importer.",
+      "needsMask": true
     },
     {
       "id": "psdk-wifi-terminal",
@@ -3450,9 +3442,9 @@
       "family": "equipement",
       "source": "TECH-Misc.png",
       "rect": [
-        160,
+        158,
         256,
-        32,
+        36,
         32
       ],
       "kind": "object",
@@ -3495,7 +3487,7 @@
         32,
         288,
         96,
-        64
+        80
       ],
       "kind": "module",
       "notes": "Bandeau avec petits pieds inférieurs ; assemblage non déterminé."
@@ -3614,7 +3606,7 @@
     },
     {
       "id": "psdk-misc-souche",
-      "label": "Petite souche brune",
+      "label": "Petit rocher brun à sommet plat",
       "family": "decoration",
       "source": "TECH-Misc.png",
       "rect": [
@@ -3624,7 +3616,7 @@
         32
       ],
       "kind": "object",
-      "notes": ""
+      "notes": "La matière bois ou pierre n'est pas certaine ; la forme est mesurée sans l'imposer."
     },
     {
       "id": "psdk-misc-rocher-pointu",
@@ -3655,46 +3647,18 @@
       "notes": "Deux fragments accolés ; silhouettes incomplètes."
     },
     {
-      "id": "psdk-misc-poteaux-fins",
-      "label": "Poteaux techniques fins",
-      "family": "architecture",
-      "source": "TECH-Misc.png",
-      "rect": [
-        672,
-        416,
-        32,
-        96
-      ],
-      "kind": "module",
-      "notes": "Traits verticaux détachés ; ne forme pas une barrière complète."
-    },
-    {
       "id": "psdk-misc-poteau-clair",
-      "label": "Poteau ou lampe technique clair",
+      "label": "Petite applique ou plaque verticale claire",
       "family": "architecture",
       "source": "TECH-Misc.png",
       "rect": [
         704,
         416,
         32,
-        96
+        48
       ],
       "kind": "module",
-      "notes": "Pièce verticale démontée."
-    },
-    {
-      "id": "psdk-misc-poteau-droit",
-      "label": "Poteau technique droit",
-      "family": "architecture",
-      "source": "TECH-Misc.png",
-      "rect": [
-        736,
-        416,
-        32,
-        96
-      ],
-      "kind": "module",
-      "notes": "Pièce verticale démontée."
+      "notes": "Pièce verticale détachée ; support et fonction exacte non identifiés."
     },
     {
       "id": "psdk-misc-bandeau-clair",
@@ -3798,47 +3762,47 @@
   "sheets": [
     {
       "source": "TECH-Basement.png",
-      "coverageNote": "Mobilier, appareils et fragments architecturaux relevés visuellement. Sols, grandes ombres seules, halos cyan, murs répétables et marqueur de passage rouge exclus."
+      "coverageNote": "Mobilier, appareils et fragments architecturaux relevés visuellement. Sols, grandes ombres seules, halos cyan, murs répétables et marqueur de passage rouge exclus. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-Battle.png",
-      "coverageNote": "Borne, terminal, plante, siège, passage et comptoir relevés. Motifs circulaires, sols, aplats lumineux et murs répétables exclus."
+      "coverageNote": "Borne, terminal, plante, siège, passage et comptoir relevés. Motifs circulaires, sols, aplats lumineux et murs répétables exclus. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-Casino.png",
-      "coverageNote": "Tables, machines, palmier, lustre, miroirs et modules de comptoir/draperie relevés. Sols à motifs, zones lumineuses et aplats de diagnostic exclus."
+      "coverageNote": "Tables, machines, palmier, lustre, miroirs et modules de comptoir/draperie relevés. Sols à motifs, zones lumineuses et aplats de diagnostic exclus. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-Elevator.png",
-      "coverageNote": "Trois pièces architecturales repérées ; la planche fournit surtout un ascenseur démonté. Sol losangé, repère rouge et masques d'ombre seuls exclus."
+      "coverageNote": "Trois pièces architecturales repérées ; la planche fournit surtout un ascenseur démonté. Sol losangé, repère rouge et masques d'ombre seuls exclus. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-HQ.png",
-      "coverageNote": "Consoles, signaux, raccords, barrière et modules métalliques relevés. Plaques directionnelles au sol, marquages de danger, sols et ombres seules exclus. Fonction précise des pièces cuivrées non établie."
+      "coverageNote": "Consoles, signaux, raccords, barrière et modules métalliques relevés. Plaques directionnelles au sol, marquages de danger, sols et ombres seules exclus. Fonction précise des pièces cuivrées non établie. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-Hub.png",
-      "coverageNote": "Mobilier, portes, vitrine polygonale, escaliers, végétation et appareils relevés. Comptoirs conservés sous forme de modules quand ils sont démontés. Sols, grand emblème au sol, reflets isolés et ombres seules exclus."
+      "coverageNote": "Mobilier, portes, vitrine polygonale, escaliers, végétation et appareils relevés. Comptoirs conservés sous forme de modules quand ils sont démontés. Sols, grand emblème au sol, reflets isolés et ombres seules exclus. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-Lab.png",
-      "coverageNote": "Appareils, capsule, armoires, mobilier, documents, tableau et baie architecturale relevés. Carrelages, tapis et ombres seules exclus."
+      "coverageNote": "Appareils, capsule, armoires, mobilier, documents, tableau et baie architecturale relevés. Carrelages, tapis et ombres seules exclus. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-Library.png",
-      "coverageNote": "Bibliothèques, tables, chaises, horloge, mobilier et petits objets relevés. Comptoirs et flancs séparés conservés comme modules ; tapis, sols, lambris répétables, halos et ombres seules exclus."
+      "coverageNote": "Bibliothèques, tables, chaises, horloge, mobilier et petits objets relevés. Comptoirs et flancs séparés conservés comme modules ; tapis, sols, lambris répétables, halos et ombres seules exclus. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-Photo.png",
-      "coverageNote": "Mobilier de studio, cadre, miroir, banquettes, végétation et petits accessoires relevés. Tapis, carrelages, halos lumineux et aplats blancs non identifiés exclus."
+      "coverageNote": "Mobilier de studio, cadre, miroir, banquettes, végétation et petits accessoires relevés. Tapis, carrelages, halos lumineux et aplats blancs non identifiés exclus. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-Wifi.png",
-      "coverageNote": "Comptoirs démontés, passage, rampes, terminal et végétation relevés. Pictogramme Wi-Fi, boutons/dalles au sol, murs vitrés répétables, bandes lumineuses au sol et ombres seules exclus."
+      "coverageNote": "Comptoirs démontés, passage, rampes, terminal et végétation relevés. Pictogramme Wi-Fi, boutons/dalles au sol, murs vitrés répétables, bandes lumineuses au sol et ombres seules exclus. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     },
     {
       "source": "TECH-Misc.png",
-      "coverageNote": "Bateau, escalier, portique, capsules et appareils, parasol, rochers, végétation et modules techniques relevés. Bassins, sols, eau/lave/neige, effets de nuages, ombres seules et panneaux de texture exclus. Plusieurs pièces techniques ont une fonction non confirmée."
+      "coverageNote": "Bateau, escalier, portique, capsules et appareils, parasol, rochers, végétation et modules techniques relevés. Bassins, sols, eau/lave/neige, effets de nuages, ombres seules et panneaux de texture exclus. Plusieurs pièces techniques ont une fonction non confirmée. Les rectangles sont des cadres source natifs, pas des sprites détourés ni des collisions. Les cas de voisinage ou de pièces incomplètes sont notés."
     }
   ]
 }

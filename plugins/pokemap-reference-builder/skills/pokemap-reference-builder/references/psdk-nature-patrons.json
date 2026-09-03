@@ -24,9 +24,9 @@
       "source": "TECH-Nature.png",
       "rect": [
         704,
-        160,
+        128,
         32,
-        32
+        64
       ],
       "notes": ""
     },
@@ -37,9 +37,9 @@
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        800,
+        768,
         128,
-        64,
+        96,
         64
       ],
       "notes": ""
@@ -93,9 +93,9 @@
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        704,
+        672,
         1408,
-        64,
+        96,
         96
       ],
       "notes": ""
@@ -180,7 +180,7 @@
         1344,
         128,
         96,
-        96
+        128
       ],
       "notes": ""
     },
@@ -262,7 +262,7 @@
       "source": "TECH-Nature.png",
       "rect": [
         512,
-        1472,
+        1440,
         64,
         96
       ],
@@ -270,15 +270,15 @@
     },
     {
       "id": "buisson-baies",
-      "label": "Buisson à petites baies",
+      "label": "Plantes aquatiques groupées",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
         608,
         1344,
-        32,
-        32
+        64,
+        64
       ],
       "notes": ""
     },
@@ -290,9 +290,9 @@
       "source": "TECH-Nature.png",
       "rect": [
         608,
-        160,
+        128,
         32,
-        32
+        64
       ],
       "notes": ""
     },
@@ -304,9 +304,9 @@
       "source": "TECH-Nature.png",
       "rect": [
         640,
-        160,
+        128,
         32,
-        32
+        64
       ],
       "notes": ""
     },
@@ -318,9 +318,9 @@
       "source": "TECH-Nature.png",
       "rect": [
         672,
-        160,
+        128,
         32,
-        32
+        64
       ],
       "notes": ""
     },
@@ -332,9 +332,9 @@
       "source": "TECH-Nature.png",
       "rect": [
         704,
-        160,
+        128,
         32,
-        32
+        64
       ],
       "notes": ""
     },
@@ -346,9 +346,9 @@
       "source": "TECH-Nature.png",
       "rect": [
         736,
-        160,
+        128,
         32,
-        32
+        64
       ],
       "notes": ""
     },
@@ -410,35 +410,21 @@
     },
     {
       "id": "pousse-nature-0",
-      "label": "Petite pousse — 1",
-      "family": "vegetation",
-      "kind": "object",
-      "source": "TECH-Nature.png",
-      "rect": [
-        640,
-        1344,
-        32,
-        32
-      ],
-      "notes": ""
-    },
-    {
-      "id": "pousse-nature-1",
-      "label": "Petite pousse — 2",
+      "label": "Petite plante aquatique — 1",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
         672,
-        1312,
+        1344,
         32,
-        32
+        64
       ],
       "notes": ""
     },
     {
-      "id": "pousse-nature-2",
-      "label": "Petite pousse — 3",
+      "id": "pousse-nature-1",
+      "label": "Petite plante aquatique — 2",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
@@ -451,14 +437,28 @@
       "notes": ""
     },
     {
-      "id": "pousse-nature-3",
-      "label": "Petite pousse — 4",
+      "id": "pousse-nature-2",
+      "label": "Petite plante aquatique — 3",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
         736,
-        1312,
+        1344,
+        32,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pousse-nature-3",
+      "label": "Petite plante aquatique — 4",
+      "family": "vegetation",
+      "kind": "object",
+      "source": "TECH-Nature.png",
+      "rect": [
+        768,
+        1344,
         32,
         32
       ],
@@ -471,10 +471,10 @@
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        192,
+        224,
         544,
-        32,
-        32
+        64,
+        64
       ],
       "notes": ""
     },
@@ -487,7 +487,7 @@
       "rect": [
         160,
         608,
-        32,
+        64,
         32
       ],
       "notes": ""
@@ -516,7 +516,7 @@
         224,
         608,
         32,
-        32
+        64
       ],
       "notes": ""
     },
@@ -541,21 +541,21 @@
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        480,
+        448,
         128,
-        32,
+        64,
         32
       ],
       "notes": ""
     },
     {
       "id": "fleurs-nature-2-3",
-      "label": "Fleurs au sol — motif 2-3",
+      "label": "Petites feuilles au sol — variante 1",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        64,
+        80,
         96,
         32,
         32
@@ -564,7 +564,7 @@
     },
     {
       "id": "fleurs-nature-4-3",
-      "label": "Fleurs au sol — motif 4-3",
+      "label": "Petites feuilles au sol — variante 2",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
@@ -578,12 +578,12 @@
     },
     {
       "id": "fleurs-nature-6-3",
-      "label": "Fleurs au sol — motif 6-3",
+      "label": "Fleurs pâles au sol — variante 1",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        192,
+        176,
         96,
         32,
         32
@@ -592,7 +592,7 @@
     },
     {
       "id": "fleurs-nature-7-3",
-      "label": "Fleurs au sol — motif 7-3",
+      "label": "Fleurs pâles au sol — variante 2",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
@@ -606,13 +606,13 @@
     },
     {
       "id": "fleurs-nature-2-4",
-      "label": "Fleurs au sol — motif 2-4",
+      "label": "Petites feuilles au sol — variante 3",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        64,
-        128,
+        80,
+        144,
         32,
         32
       ],
@@ -620,13 +620,13 @@
     },
     {
       "id": "fleurs-nature-4-4",
-      "label": "Fleurs au sol — motif 4-4",
+      "label": "Petites feuilles au sol — variante 4",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
         128,
-        128,
+        144,
         32,
         32
       ],
@@ -634,13 +634,13 @@
     },
     {
       "id": "fleurs-nature-6-4",
-      "label": "Fleurs au sol — motif 6-4",
+      "label": "Fleurs pâles au sol — variante 3",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        192,
-        128,
+        176,
+        144,
         32,
         32
       ],
@@ -648,13 +648,13 @@
     },
     {
       "id": "fleurs-nature-7-4",
-      "label": "Fleurs au sol — motif 7-4",
+      "label": "Fleurs pâles au sol — variante 4",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
         224,
-        128,
+        144,
         32,
         32
       ],
@@ -662,12 +662,12 @@
     },
     {
       "id": "fleurs-nature-2-6",
-      "label": "Fleurs au sol — motif 2-6",
+      "label": "Fleurs orange au sol — variante 1",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        64,
+        80,
         192,
         32,
         32
@@ -676,7 +676,7 @@
     },
     {
       "id": "fleurs-nature-4-6",
-      "label": "Fleurs au sol — motif 4-6",
+      "label": "Fleurs orange au sol — variante 2",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
@@ -690,12 +690,12 @@
     },
     {
       "id": "fleurs-nature-6-6",
-      "label": "Fleurs au sol — motif 6-6",
+      "label": "Fleurs blanches au sol — variante 1",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        192,
+        176,
         192,
         32,
         32
@@ -704,7 +704,7 @@
     },
     {
       "id": "fleurs-nature-7-6",
-      "label": "Fleurs au sol — motif 7-6",
+      "label": "Fleurs blanches au sol — variante 2",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
@@ -718,13 +718,13 @@
     },
     {
       "id": "fleurs-nature-2-7",
-      "label": "Fleurs au sol — motif 2-7",
+      "label": "Fleurs orange au sol — variante 3",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        64,
-        224,
+        80,
+        240,
         32,
         32
       ],
@@ -732,13 +732,13 @@
     },
     {
       "id": "fleurs-nature-4-7",
-      "label": "Fleurs au sol — motif 4-7",
+      "label": "Fleurs orange au sol — variante 4",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
         128,
-        224,
+        240,
         32,
         32
       ],
@@ -746,13 +746,13 @@
     },
     {
       "id": "fleurs-nature-6-7",
-      "label": "Fleurs au sol — motif 6-7",
+      "label": "Fleurs blanches au sol — variante 3",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
-        192,
-        224,
+        176,
+        240,
         32,
         32
       ],
@@ -760,13 +760,13 @@
     },
     {
       "id": "fleurs-nature-7-7",
-      "label": "Fleurs au sol — motif 7-7",
+      "label": "Fleurs blanches au sol — variante 4",
       "family": "vegetation",
       "kind": "object",
       "source": "TECH-Nature.png",
       "rect": [
         224,
-        224,
+        240,
         32,
         32
       ],
@@ -850,20 +850,6 @@
       "source": "TECH-Nature.png",
       "rect": [
         160,
-        992,
-        32,
-        32
-      ],
-      "notes": ""
-    },
-    {
-      "id": "pierres-detail-7-31",
-      "label": "Petites pierres éparses — 7-31",
-      "family": "decoration",
-      "kind": "object",
-      "source": "TECH-Nature.png",
-      "rect": [
-        224,
         992,
         32,
         32
@@ -1017,9 +1003,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1440,
+        1408,
         32,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1031,9 +1017,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1536,
+        1504,
         32,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1045,10 +1031,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1344,
-        128,
-        96,
-        128
+        1334,
+        144,
+        116,
+        106
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1059,10 +1045,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1472,
-        128,
+        1454,
+        130,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1073,10 +1059,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1600,
-        128,
+        1586,
+        130,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1101,9 +1087,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1440,
+        1408,
         288,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1115,9 +1101,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1536,
+        1504,
         288,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1129,10 +1115,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1344,
-        384,
-        96,
-        128
+        1334,
+        400,
+        116,
+        106
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1143,10 +1129,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1472,
-        384,
+        1454,
+        386,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1157,10 +1143,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1600,
-        384,
+        1586,
+        386,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1185,9 +1171,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1440,
+        1408,
         576,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1199,9 +1185,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1536,
+        1504,
         576,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1213,10 +1199,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1344,
-        672,
-        96,
-        128
+        1334,
+        688,
+        116,
+        106
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1227,10 +1213,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1472,
-        672,
+        1454,
+        674,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1241,10 +1227,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1600,
-        672,
+        1586,
+        674,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1269,9 +1255,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1440,
+        1408,
         832,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1283,9 +1269,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1536,
+        1504,
         832,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1297,10 +1283,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1344,
-        928,
-        96,
-        128
+        1334,
+        944,
+        116,
+        106
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1311,10 +1297,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1472,
-        928,
+        1454,
+        930,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1325,10 +1311,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1600,
-        928,
+        1586,
+        930,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1353,9 +1339,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1440,
+        1408,
         1120,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1367,9 +1353,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1536,
+        1504,
         1120,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1381,10 +1367,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1344,
-        1216,
-        96,
-        128
+        1334,
+        1232,
+        116,
+        106
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1395,10 +1381,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1472,
-        1216,
+        1454,
+        1218,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1409,10 +1395,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1600,
-        1216,
+        1586,
+        1218,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1437,9 +1423,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1440,
         1408,
-        64,
+        1408,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1451,9 +1437,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1536,
+        1504,
         1408,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1465,10 +1451,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1344,
-        1504,
-        96,
-        128
+        1334,
+        1520,
+        116,
+        106
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1479,10 +1465,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1472,
-        1504,
+        1454,
+        1506,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1493,10 +1479,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1600,
-        1504,
+        1586,
+        1506,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1521,9 +1507,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1440,
+        1408,
         1696,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1535,9 +1521,9 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1536,
+        1504,
         1696,
-        64,
+        96,
         96
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
@@ -1549,10 +1535,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1344,
-        1792,
-        96,
-        128
+        1334,
+        1808,
+        116,
+        106
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1563,10 +1549,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1472,
-        1792,
+        1454,
+        1794,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1577,10 +1563,10 @@
       "kind": "module",
       "source": "TECH-Mountains.png",
       "rect": [
-        1600,
-        1792,
+        1586,
+        1794,
         96,
-        128
+        88
       ],
       "notes": "Pièce d’entrée à raccorder au relief ; le sol et la falaise environnante sont exclus."
     },
@@ -1605,7 +1591,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        896,
+        864,
         32,
         96,
         96
@@ -1619,9 +1605,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        1024,
+        960,
         32,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1633,9 +1619,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        1152,
+        1120,
         32,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1647,7 +1633,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        896,
+        864,
         128,
         96,
         128
@@ -1661,7 +1647,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        896,
+        864,
         1088,
         96,
         96
@@ -1675,9 +1661,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        1024,
+        960,
         1088,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1689,9 +1675,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        1152,
+        1120,
         1088,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1703,7 +1689,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        896,
+        864,
         1184,
         96,
         128
@@ -1717,7 +1703,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        2432,
+        2400,
         32,
         96,
         96
@@ -1731,9 +1717,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        2560,
+        2496,
         32,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1745,9 +1731,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        2688,
+        2656,
         32,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1759,7 +1745,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        2432,
+        2400,
         128,
         96,
         128
@@ -1773,7 +1759,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        2432,
+        2272,
         1088,
         96,
         96
@@ -1787,9 +1773,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        2560,
+        2368,
         1088,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1801,9 +1787,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        2688,
+        2528,
         1088,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1815,7 +1801,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        2432,
+        2272,
         1184,
         96,
         128
@@ -1829,7 +1815,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        4128,
+        4032,
         32,
         96,
         96
@@ -1843,9 +1829,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        4256,
+        4128,
         32,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1857,9 +1843,9 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        4320,
+        4288,
         32,
-        64,
+        96,
         96
       ],
       "notes": "Ouverture de grotte à combiner avec son mur ; vérifier les raccords dans le nouvel asset."
@@ -1871,7 +1857,7 @@
       "kind": "module",
       "source": "TECH-Caves.png",
       "rect": [
-        4128,
+        4032,
         128,
         96,
         128
@@ -2237,7 +2223,7 @@
         320,
         1920,
         64,
-        64
+        96
       ],
       "notes": "Première pose ; 2 images de 300 ms par tuile dans le TSX.",
       "animationReference": {

@@ -1,11 +1,51 @@
 ---
 name: pokemap-reference-builder
-description: Decode an exterior map reference image into reviewable semantic layers, create correctly sized missing assets when needed, and reconstruct an editable map through the canonical PokeMap MCP. Use for exterior-map reference reconstruction, not interiors or flattened background imports.
+description: Use when reconstructing an editable exterior PokeMap/Avelune map from a reference, creating correctly sized missing props or buildings, or measuring PSDK object assets as reusable dimensional templates. Map reconstruction supports exteriors; asset measurement also covers interior furniture.
 ---
 
 # PokeMap Reference Builder
 
 Convert a visual reference into an editable PokeMap composition. The reference guides geometry and visual hierarchy; it is never imported as a runtime background.
+
+## Object measurements and asset templates
+
+For an asset-only inventory or dimensional-template request, use this section without requiring a map ID, a blueprint approval, or a live MCP session. Source PNG/TSX/TMX inspection and catalog creation do not mutate the game project. Exclude floors and terrain when the user asks for props, buildings, furniture, or vegetation.
+
+Look for `assets/meta/patrons_psdk/patrons.json` under the user's asset-library root. Its companion `index.html` is the visual table; `patrons.csv` is the spreadsheet export. If absent or stale, build it from the designated PSDK `Data/Tiled` directory:
+
+```bash
+python3 scripts/build_psdk_patron_catalog.py \
+  --tiled-root '<sdk>/Data/Tiled' \
+  --output '<asset-library>/assets/meta/patrons_psdk'
+python3 scripts/build_psdk_patron_catalog.py \
+  --output '<asset-library>/assets/meta/patrons_psdk' --check-only
+python3 scripts/build_psdk_patron_catalog.py \
+  --output '<asset-library>/assets/meta/patrons_psdk' --query 'lampe' --limit 8
+python3 scripts/build_psdk_patron_catalog.py \
+  --output '<asset-library>/assets/meta/patrons_psdk' --query '' --family architecture --limit 8
+```
+
+The measurement scripts require Pillow. Source layouts are declared in `references/psdk-outdoor-patrons.json`, `references/psdk-interior-patrons.json`, and `references/psdk-nature-patrons.json`. Treat them as source-version-specific coordinates, not universal PSDK geometry. Inspect changed source images and update their regions before trusting a rebuilt catalog. `--check-only` checks the hashes of source sheets, rules, definitions, and generators as well as each preview and measurement; rebuild when any input changes. Houses assembled from rules use the generic label `Bâtiment`; the `architecture` filter includes them.
+
+Use a catalog entry's ID and provenance when choosing a template. `canvasPx` and `canvasCells` describe its source or assembled canvas; `artBoundsPx` is the visible art with alpha at least 128; `visibleBoundsPx` also includes translucent shadows. None is a collision footprint. `minimumCanvasCells` is only a bounding-box lower bound, not permission to crop or move a sprite. A `module` entry is a collection or construction piece, not necessarily a complete placeable object.
+
+For buildings and trees, use the composed Tiled-rule entries before raw atlas fragments. The entire `TECH-Buildings.png` sheet is not one building. Roofs, façades, bases, doors, and shadows can live at unrelated atlas coordinates. Reconstruct their relative positions from `regions_input` plus `regions_output` and the rule layers. Building input markers are not artwork; tree and furniture input layers can contain real trunks or bases. Missing source tiles must remain explicit diagnostics, never invented geometry or usable templates.
+
+Keep rule input anchors distinct from ground-contact anchors. Preserve raw passage information without assuming its collision meaning. When using a template for new artwork, choose and review the new asset's ground anchor, collision cells, entrance, and shadow policy separately; the defaults produced by `asset_contract.py init` are proposals, not measurements from the patron.
+
+The catalog preserves source pixel scale and converts only the exact pink/yellow sheet guides to transparency in previews. It does not restyle assets, certify their artistic fit, or export an animation just because one pose and TSX cadence were measured. Before new art, show the chosen source template and its pixel/cell dimensions; then use the missing-asset workshop below. Use the canonical MCP workflow only when importing or modifying the game project.
+
+## Asset creation rules — proportions, alpha, and shadows
+
+Apply these rules to every new or adapted asset, including asset-only work. The selected patron supplies proportions and construction geometry; the user's approved visual reference supplies the palette, texture, architecture, lighting, and detail density. Do not impose the original PSDK colors or building style on new artwork.
+
+- Record the patron ID, exact canvas in pixels and 32 px cells, and the selected visual reference before creating the asset. Preserve pixel scale and silhouette readability. Export a PNG with real RGBA transparency; no opaque background, baked checkerboard, guide colors, or smoothing of the artwork.
+- **Trees require a small round ground shadow in alpha at their base.** In top-down perspective it may read as a slightly flattened oval. Center it on the trunk's ground-contact point, place it behind the trunk, and keep it compact beneath the canopy. It must ground the tree without hiding the trunk base or becoming a large dark disk. A different shadow requires an explicit user direction.
+- **Props and buildings use a shadow fitted to their ground contact and the approved reference's light direction.** Do not apply the tree's round shadow to every object. For the station platform, preserve the requested south-facing lip and very small shadow on its east side when creating or adapting that family.
+- Use a dark tint consistent with the approved palette and genuinely translucent shadow pixels: alpha strictly between 0 and 255, with alpha 0 outside the silhouette/shadow. Match opacity and edge softness to the approved reference; record the chosen opacity instead of inventing a universal value. Keep the artwork itself crisp.
+- Inspect an existing PNG before adding a shadow. Keep an existing shadow only if it already satisfies the requested shape, position, and alpha; otherwise replace it. Deliver **one ground shadow per asset**. Do not stack the source shadow, a new painted shadow, and an editor/runtime auto-shadow. Keep the shadow editable separately in the working source; combine it once for a standalone PNG when that is the chosen delivery mode. Do not assume a separate runtime shadow layer exists without checking the product capability.
+- Fit the complete asset and shadow inside the declared canvas. Reserve transparent padding before painting; never clip a shadow, stretch the drawing, or silently enlarge its footprint to make it fit. Any needed canvas revision must be made explicit before import. Ground anchor, entrance, and collision are defined from the object, not from its shadow or canopy bounds.
+- Review at native size and integer zoom, on transparency and on representative grass and path backgrounds. Confirm one compact shadow, no opaque halo/background, no clipped edge, coherent light, and preserved ground contact. Record shadow shape, position, opacity, and delivery mode in the existing asset metadata or delivery notes; do not invent unsupported contract fields. The current `asset_contract.py validate` checks actual transparency but **does not certify shadow shape, placement, translucency, or double-shadow absence**; inspect these explicitly.
 
 ## Required inputs
 
@@ -105,7 +145,7 @@ When no existing HGSS/DS resource satisfies an approved structure or prop:
 1. Declare the footprint in cells with `scripts/asset_contract.py init`.
 2. Keep the candidate under `<project>/.pokemap/authoring/reference-builder/<operation-id>/assets/`.
 3. Produce or import a PNG whose dimensions are exactly `widthCells * 32` by `heightCells * 32`.
-4. Record anchor, local collision cells, HGSS/DS style references, and alpha policy.
+4. Apply the asset creation and shadow rules above; record anchor, local collision cells, selected style references, and alpha policy.
 5. Run `scripts/asset_contract.py validate`.
 6. Show the candidate at native scale and an integer zoom for approval.
 7. Import it only after approval through the canonical `asset.import` or `asset.replace` action.
