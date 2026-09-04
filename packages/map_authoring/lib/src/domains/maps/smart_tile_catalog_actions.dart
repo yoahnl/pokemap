@@ -113,7 +113,8 @@ final class SmartTileCatalogActions {
       ),
       _descriptor(
         'smart_tile.preset.publish',
-        'Publish a Smart Tile preset with optional atomic layer creation',
+        'Publish a Smart Tile preset including editable candidate labels '
+            '(rules[].candidates[].label), with optional atomic layer creation',
         resourceKinds: const <String>[
           'project',
           'map',

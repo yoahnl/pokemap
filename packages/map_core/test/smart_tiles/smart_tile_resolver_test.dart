@@ -275,6 +275,28 @@ void main() {
       expect(repeated.deterministicHash, first.deterministicHash);
       expect(reordered.candidate?.id, first.candidate?.id);
       expect(reordered.deterministicHash, first.deterministicHash);
+      final named = resolveSmartTile(
+        preset: preset.copyWith(
+          rules: [
+            preset.rules.single.copyWith(
+              candidates: [
+                for (final candidate in preset.rules.single.candidates)
+                  candidate.copyWith(label: 'Brins ${candidate.id}'),
+              ],
+            ),
+          ],
+        ),
+        materials: _materials,
+        context: context,
+        mapId: 'hanazuki',
+        layerId: 'path',
+        x: 12,
+        y: 9,
+        projectSeed: 1742,
+      );
+      expect(named.candidate?.id, first.candidate?.id);
+      expect(named.deterministicHash, first.deterministicHash);
+      expect(named.parts, first.parts);
       expect(first.deterministicHash, 0x1574bbaada138ecf);
       expect(
           anotherLayerSeed.deterministicHash, isNot(first.deterministicHash));

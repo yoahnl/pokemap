@@ -414,6 +414,7 @@ Map<String, dynamic> _$SmartTilePatternStrokeToJson(
 _SmartTileCandidate _$SmartTileCandidateFromJson(Map<String, dynamic> json) =>
     _SmartTileCandidate(
       id: json['id'] as String,
+      label: json['label'] as String? ?? '',
       weight: (json['weight'] as num?)?.toInt() ?? 1,
       parts:
           (json['parts'] as List<dynamic>?)
@@ -427,6 +428,7 @@ _SmartTileCandidate _$SmartTileCandidateFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$SmartTileCandidateToJson(_SmartTileCandidate instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'label': instance.label,
       'weight': instance.weight,
       'parts': instance.parts.map((e) => e.toJson()).toList(),
     };

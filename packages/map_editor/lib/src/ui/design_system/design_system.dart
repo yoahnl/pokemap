@@ -33,6 +33,7 @@ export 'pokemap_empty_state.dart';
 export 'pokemap_eraser_footprint_dialog.dart';
 export 'pokemap_explorer_module_card.dart';
 export 'pokemap_guided_slider.dart';
+export 'pokemap_hover_preview.dart';
 export 'pokemap_horizontal_resize_handle.dart';
 export 'pokemap_icon_button.dart';
 export 'pokemap_media_preview_surface.dart';

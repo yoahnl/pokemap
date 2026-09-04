@@ -5171,6 +5171,36 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "actor_occlusion",
     );
 
+    const namedPreset = record((publishedLibraryPreset.items as unknown[])[0]);
+    const candidateBeforeNaming = structuredClone(publishedCandidate);
+    const mapBeforeNaming = await readFile(
+      join(fixture.root, "maps/map_hanazuki_village.json"),
+    );
+    publishedCandidate.label = "Petites fleurs crème";
+    await applyAction(
+      "smart_tile.preset.publish",
+      { preset: namedPreset },
+      "name-variant",
+    );
+    const namedQuery = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "smartTilePreset",
+      operation: "get",
+      view: "detail",
+      ids: ["mcp-library-preset"],
+    });
+    const namedRule = record(
+      (record((namedQuery.items as unknown[])[0]).rules as unknown[])[0],
+    );
+    assert.deepEqual(record((namedRule.candidates as unknown[])[0]), {
+      ...candidateBeforeNaming,
+      label: "Petites fleurs crème",
+    });
+    assert.deepEqual(
+      await readFile(join(fixture.root, "maps/map_hanazuki_village.json")),
+      mapBeforeNaming,
+    );
+
     await applyAction(
       "smart_tile.preset.draft.upsert",
       {

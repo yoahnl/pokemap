@@ -1101,6 +1101,57 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  Future<bool> renameSmartTileCandidate({
+    required String presetId,
+    required String ruleId,
+    required String candidateId,
+    required String label,
+  }) async {
+    final project = state.project;
+    final projectRootPath = state.projectRootPath;
+    if (project == null || projectRootPath == null) return false;
+    final preset = project.smartTileCatalog.presets
+        .where((preset) => preset.id == presetId)
+        .firstOrNull;
+    if (preset == null) return false;
+    final updated = preset.copyWith(
+      rules: [
+        for (final rule in preset.rules)
+          if (rule.id == ruleId)
+            rule.copyWith(
+              candidates: [
+                for (final candidate in rule.candidates)
+                  if (candidate.id == candidateId)
+                    candidate.copyWith(label: label.trim())
+                  else
+                    candidate,
+              ],
+            )
+          else
+            rule,
+      ],
+    );
+    if (updated == preset) return true;
+    try {
+      final gateway = CanonicalSmartTilePublicationGateway(
+        mutations: ref.read(authoringMutationAdapterProvider),
+        queries: ref.read(authoringQueryAdapterProvider),
+      );
+      await SmartTilePublicationService(
+        gateway: gateway,
+      ).publishPreset(projectRootPath: projectRootPath, preset: updated);
+      final canonical = await gateway.load(projectRootPath: projectRootPath);
+      acceptCanonicalProjectManifest(
+        canonical.manifest,
+        statusMessage: 'Libellé de la variante enregistré.',
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(errorMessage: 'Libellé non enregistré : $error');
+      return false;
+    }
+  }
+
   /// Écrit la surcharge de densité portée par un seul calque.
   ///
   /// Même chemin canonique que les gestes de peinture Smart Tile : plan,

@@ -623,6 +623,7 @@ abstract class SmartTileCandidate with _$SmartTileCandidate {
   @JsonSerializable(explicitToJson: true)
   const factory SmartTileCandidate({
     required String id,
+    @Default('') String label,
     @Default(1) int weight,
     @Default(<SmartTileVisualPart>[]) List<SmartTileVisualPart> parts,
   }) = _SmartTileCandidate;

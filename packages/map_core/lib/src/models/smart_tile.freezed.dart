@@ -3776,7 +3776,7 @@ as int,
 /// @nodoc
 mixin _$SmartTileCandidate {
 
- String get id; int get weight; List<SmartTileVisualPart> get parts;
+ String get id; String get label; int get weight; List<SmartTileVisualPart> get parts;
 /// Create a copy of SmartTileCandidate
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3789,16 +3789,16 @@ $SmartTileCandidateCopyWith<SmartTileCandidate> get copyWith => _$SmartTileCandi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTileCandidate&&(identical(other.id, id) || other.id == id)&&(identical(other.weight, weight) || other.weight == weight)&&const DeepCollectionEquality().equals(other.parts, parts));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTileCandidate&&(identical(other.id, id) || other.id == id)&&(identical(other.label, label) || other.label == label)&&(identical(other.weight, weight) || other.weight == weight)&&const DeepCollectionEquality().equals(other.parts, parts));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,weight,const DeepCollectionEquality().hash(parts));
+int get hashCode => Object.hash(runtimeType,id,label,weight,const DeepCollectionEquality().hash(parts));
 
 @override
 String toString() {
-  return 'SmartTileCandidate(id: $id, weight: $weight, parts: $parts)';
+  return 'SmartTileCandidate(id: $id, label: $label, weight: $weight, parts: $parts)';
 }
 
 
@@ -3809,7 +3809,7 @@ abstract mixin class $SmartTileCandidateCopyWith<$Res>  {
   factory $SmartTileCandidateCopyWith(SmartTileCandidate value, $Res Function(SmartTileCandidate) _then) = _$SmartTileCandidateCopyWithImpl;
 @useResult
 $Res call({
- String id, int weight, List<SmartTileVisualPart> parts
+ String id, String label, int weight, List<SmartTileVisualPart> parts
 });
 
 
@@ -3826,9 +3826,10 @@ class _$SmartTileCandidateCopyWithImpl<$Res>
 
 /// Create a copy of SmartTileCandidate
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? weight = null,Object? parts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? label = null,Object? weight = null,Object? parts = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
 as int,parts: null == parts ? _self.parts : parts // ignore: cast_nullable_to_non_nullable
 as List<SmartTileVisualPart>,
@@ -3916,10 +3917,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int weight,  List<SmartTileVisualPart> parts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String label,  int weight,  List<SmartTileVisualPart> parts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SmartTileCandidate() when $default != null:
-return $default(_that.id,_that.weight,_that.parts);case _:
+return $default(_that.id,_that.label,_that.weight,_that.parts);case _:
   return orElse();
 
 }
@@ -3937,10 +3938,10 @@ return $default(_that.id,_that.weight,_that.parts);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int weight,  List<SmartTileVisualPart> parts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String label,  int weight,  List<SmartTileVisualPart> parts)  $default,) {final _that = this;
 switch (_that) {
 case _SmartTileCandidate():
-return $default(_that.id,_that.weight,_that.parts);case _:
+return $default(_that.id,_that.label,_that.weight,_that.parts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3957,10 +3958,10 @@ return $default(_that.id,_that.weight,_that.parts);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int weight,  List<SmartTileVisualPart> parts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String label,  int weight,  List<SmartTileVisualPart> parts)?  $default,) {final _that = this;
 switch (_that) {
 case _SmartTileCandidate() when $default != null:
-return $default(_that.id,_that.weight,_that.parts);case _:
+return $default(_that.id,_that.label,_that.weight,_that.parts);case _:
   return null;
 
 }
@@ -3972,10 +3973,11 @@ return $default(_that.id,_that.weight,_that.parts);case _:
 
 @JsonSerializable(explicitToJson: true)
 class _SmartTileCandidate implements SmartTileCandidate {
-  const _SmartTileCandidate({required this.id, this.weight = 1, final  List<SmartTileVisualPart> parts = const <SmartTileVisualPart>[]}): assert(id != "", 'id must not be blank'),_parts = parts;
+  const _SmartTileCandidate({required this.id, this.label = '', this.weight = 1, final  List<SmartTileVisualPart> parts = const <SmartTileVisualPart>[]}): assert(id != "", 'id must not be blank'),_parts = parts;
   factory _SmartTileCandidate.fromJson(Map<String, dynamic> json) => _$SmartTileCandidateFromJson(json);
 
 @override final  String id;
+@override@JsonKey() final  String label;
 @override@JsonKey() final  int weight;
  final  List<SmartTileVisualPart> _parts;
 @override@JsonKey() List<SmartTileVisualPart> get parts {
@@ -3998,16 +4000,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SmartTileCandidate&&(identical(other.id, id) || other.id == id)&&(identical(other.weight, weight) || other.weight == weight)&&const DeepCollectionEquality().equals(other._parts, _parts));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SmartTileCandidate&&(identical(other.id, id) || other.id == id)&&(identical(other.label, label) || other.label == label)&&(identical(other.weight, weight) || other.weight == weight)&&const DeepCollectionEquality().equals(other._parts, _parts));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,weight,const DeepCollectionEquality().hash(_parts));
+int get hashCode => Object.hash(runtimeType,id,label,weight,const DeepCollectionEquality().hash(_parts));
 
 @override
 String toString() {
-  return 'SmartTileCandidate(id: $id, weight: $weight, parts: $parts)';
+  return 'SmartTileCandidate(id: $id, label: $label, weight: $weight, parts: $parts)';
 }
 
 
@@ -4018,7 +4020,7 @@ abstract mixin class _$SmartTileCandidateCopyWith<$Res> implements $SmartTileCan
   factory _$SmartTileCandidateCopyWith(_SmartTileCandidate value, $Res Function(_SmartTileCandidate) _then) = __$SmartTileCandidateCopyWithImpl;
 @override @useResult
 $Res call({
- String id, int weight, List<SmartTileVisualPart> parts
+ String id, String label, int weight, List<SmartTileVisualPart> parts
 });
 
 
@@ -4035,9 +4037,10 @@ class __$SmartTileCandidateCopyWithImpl<$Res>
 
 /// Create a copy of SmartTileCandidate
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? weight = null,Object? parts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? label = null,Object? weight = null,Object? parts = null,}) {
   return _then(_SmartTileCandidate(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
 as int,parts: null == parts ? _self._parts : parts // ignore: cast_nullable_to_non_nullable
 as List<SmartTileVisualPart>,

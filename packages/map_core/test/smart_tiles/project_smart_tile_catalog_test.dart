@@ -4,6 +4,20 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('candidate labels survive JSON without changing selection data', () {
+    final candidate = SmartTileCandidate.fromJson({
+      'id': 'grass-flowers',
+      'label': 'Petites fleurs crème',
+      'weight': 57,
+      'parts': <Object?>[],
+    });
+
+    expect(candidate.toJson()['label'], 'Petites fleurs crème');
+    expect(candidate.id, 'grass-flowers');
+    expect(candidate.weight, 57);
+    expect(SmartTileCandidate.fromJson(candidate.toJson()), candidate);
+  });
+
   test('actor occlusion visual parts round-trip through project JSON', () {
     const part = SmartTileVisualPart(
       source: SmartTileVisualSource.frame(

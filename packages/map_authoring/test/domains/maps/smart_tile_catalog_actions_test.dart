@@ -6,6 +6,32 @@ import 'package:test/test.dart';
 
 void main() {
   group('SmartTileCatalogActions', () {
+    test('publishing a candidate label preserves weights and map data', () {
+      final preset =
+          _preset().copyWith(status: SmartTilePresetStatus.published);
+      final rule = preset.rules.single;
+      final candidate = rule.candidates.single;
+      final renamed = preset.copyWith(rules: [
+        rule.copyWith(candidates: [candidate.copyWith(label: 'Fleurs crème')]),
+      ]);
+      final draft = const SmartTileCatalogActions().build(_context(
+        _fixture(preset: preset),
+        actionId: 'smart_tile.preset.publish',
+        parameters: {'preset': renamed.toJson()},
+      ));
+      expect(draft.changeSet.changes.map((change) => change.resource.kind),
+          ['project']);
+      final restored = ProjectManifest.fromJson(
+          jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
+              as Map<String, dynamic>);
+      final actual = restored
+          .smartTileCatalog.presets.single.rules.single.candidates.single;
+      expect(actual.label, 'Fleurs crème');
+      expect(actual.id, candidate.id);
+      expect(actual.weight, candidate.weight);
+      expect(actual.parts, candidate.parts);
+    });
+
     test('advertises the ten canonical catalog mutations', () {
       expect(
         SmartTileCatalogActions.descriptors.map((item) => item.id),

@@ -110,6 +110,11 @@ void main() {
     await tester.pump();
 
     expect(find.byType(WorldMapSmartTileDensitySection), findsOneWidget);
+    final density = tester.widget<WorldMapSmartTileDensitySection>(
+      find.byType(WorldMapSmartTileDensitySection),
+    );
+    expect(density.onRename, isNotNull);
+    expect(density.enlargedSpriteBuilder, isNotNull);
     expect(
       find.byKey(const Key('world-map-density-summary')),
       findsOneWidget,

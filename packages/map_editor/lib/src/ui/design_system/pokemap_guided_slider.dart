@@ -21,6 +21,7 @@ class PokeMapGuidedSlider extends StatefulWidget {
     this.onChangeStart,
     this.onChangeEnd,
     this.description,
+    this.valueFormatter,
     this.min = 0,
     this.max = 100,
     this.layout = PokeMapGuidedSliderLayout.stacked,
@@ -28,6 +29,7 @@ class PokeMapGuidedSlider extends StatefulWidget {
 
   final String label;
   final String? description;
+  final String Function(int value)? valueFormatter;
   final int value;
   final int min;
   final int max;
@@ -151,6 +153,8 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final clampedValue = _clampedValue;
+    final formattedValue =
+        widget.valueFormatter?.call(clampedValue) ?? '$clampedValue %';
     final label = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +187,7 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
       ],
     );
     final valueLabel = Text(
-      '$clampedValue %',
+      formattedValue,
       style: TextStyle(
         color: colors.brandPrimary,
         fontSize: 12,
@@ -294,7 +298,7 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
     return Semantics(
       slider: true,
       label: widget.label,
-      value: '$clampedValue %',
+      value: formattedValue,
       child: content,
     );
   }

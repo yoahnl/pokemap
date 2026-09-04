@@ -448,33 +448,48 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                 switch (smartTileFillRuleOf(activePreset)) {
                   null => const SizedBox.shrink(),
                   final fillRule => WorldMapSmartTileDensitySection(
-                      key: ValueKey<String>(
-                        'world-map-density-${activePreset.id}',
-                      ),
-                      rule: fillRule,
-                      layerWeights: activeLayer.candidateWeights,
-                      spriteBuilder: (candidate) => _candidateSpritePreview(
-                        catalog: snapshot.project!.smartTileCatalog,
-                        tilesets: snapshot.project!.tilesets,
-                        projectRootPath: snapshot.projectRootPath,
-                        candidate: candidate,
-                      ),
-                      isEditable: canEdit,
-                      onApply: (scope, weights) => switch (scope) {
-                        SmartTileDensityScope.layer =>
-                          notifier.applySmartTileLayerVariantWeights(
-                            mapId: snapshot.map!.id,
-                            layerId: activeLayer.id,
-                            weights: weights,
-                          ),
-                        SmartTileDensityScope.preset =>
-                          notifier.applySmartTilePresetVariantWeights(
-                            presetId: activePreset.id,
-                            ruleId: fillRule.id,
-                            weights: weights,
-                          ),
-                      },
+                    key: ValueKey<String>(
+                      'world-map-density-${activePreset.id}',
                     ),
+                    rule: fillRule,
+                    layerWeights: activeLayer.candidateWeights,
+                    spriteBuilder: (candidate) => _candidateSpritePreview(
+                      catalog: snapshot.project!.smartTileCatalog,
+                      tilesets: snapshot.project!.tilesets,
+                      projectRootPath: snapshot.projectRootPath,
+                      candidate: candidate,
+                    ),
+                    enlargedSpriteBuilder: (candidate) =>
+                        _candidateSpritePreview(
+                          catalog: snapshot.project!.smartTileCatalog,
+                          tilesets: snapshot.project!.tilesets,
+                          projectRootPath: snapshot.projectRootPath,
+                          candidate: candidate,
+                          size: 128,
+                        ),
+                    onRename: (candidateId, label) =>
+                        notifier.renameSmartTileCandidate(
+                          presetId: activePreset.id,
+                          ruleId: fillRule.id,
+                          candidateId: candidateId,
+                          label: label,
+                        ),
+                    isEditable: canEdit,
+                    onApply: (scope, weights) => switch (scope) {
+                      SmartTileDensityScope.layer =>
+                        notifier.applySmartTileLayerVariantWeights(
+                          mapId: snapshot.map!.id,
+                          layerId: activeLayer.id,
+                          weights: weights,
+                        ),
+                      SmartTileDensityScope.preset =>
+                        notifier.applySmartTilePresetVariantWeights(
+                          presetId: activePreset.id,
+                          ruleId: fillRule.id,
+                          weights: weights,
+                        ),
+                    },
+                  ),
                 },
               if (activeLayer != null && snapshot.project != null) ...[
                 const SizedBox(height: 10),
@@ -804,6 +819,7 @@ Widget _candidateSpritePreview({
   required Iterable<ProjectTilesetEntry> tilesets,
   required String? projectRootPath,
   required SmartTileCandidate candidate,
+  double size = 24,
 }) {
   final source = candidate.parts.isEmpty ? null : candidate.parts.first.source;
   final frame = switch (source) {
@@ -816,12 +832,12 @@ Widget _candidateSpritePreview({
         ?.frame,
     null => null,
   };
-  if (frame == null) return const SizedBox(width: 24, height: 24);
+  if (frame == null) return SizedBox(width: size, height: size);
   return SmartTileSpritePreview(
     frame: frame,
     atlases: catalog.atlases,
     tilesets: tilesets,
     projectRootPath: projectRootPath,
-    size: 24,
+    size: size,
   );
 }

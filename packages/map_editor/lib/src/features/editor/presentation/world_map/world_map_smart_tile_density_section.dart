@@ -22,6 +22,8 @@ class WorldMapSmartTileDensitySection extends StatefulWidget {
     required this.layerWeights,
     required this.spriteBuilder,
     required this.onApply,
+    this.enlargedSpriteBuilder,
+    this.onRename,
     this.isEditable = true,
   });
 
@@ -33,6 +35,8 @@ class WorldMapSmartTileDensitySection extends StatefulWidget {
   final Map<String, int> layerWeights;
 
   final Widget Function(SmartTileCandidate candidate) spriteBuilder;
+  final Widget Function(SmartTileCandidate candidate)? enlargedSpriteBuilder;
+  final Future<bool> Function(String candidateId, String label)? onRename;
   final Future<void> Function(
     SmartTileDensityScope scope,
     Map<String, int> weights,
@@ -51,6 +55,7 @@ class _WorldMapSmartTileDensitySectionState
   late Map<String, int> _current;
   var _expanded = false;
   var _applying = false;
+  String? _renamingCandidateId;
 
   @override
   void initState() {
@@ -97,6 +102,31 @@ class _WorldMapSmartTileDensitySectionState
   String _label(int permille) => permille == 0
       ? 'jamais'
       : '${(permille / 10).toStringAsFixed(1).replaceAll('.', ',')} %';
+
+  String _candidateLabel(SmartTileCandidate candidate) =>
+      candidate.label.trim().isNotEmpty
+      ? candidate.label.trim()
+      : 'Variante ${widget.rule.candidates.indexOf(candidate) + 1}';
+
+  Future<void> _rename(SmartTileCandidate candidate) async {
+    final controller = TextEditingController(text: candidate.label);
+    try {
+      final confirmed = await showPokeMapPromptDialog(
+        context,
+        title: 'Nommer la variante',
+        controller: controller,
+        placeholder: 'Libellé (vide pour le nom automatique)',
+        cancelLabel: 'Annuler',
+        confirmLabel: 'Enregistrer',
+      );
+      if (!confirmed || !mounted) return;
+      setState(() => _renamingCandidateId = candidate.id);
+      await widget.onRename?.call(candidate.id, controller.text.trim());
+    } finally {
+      controller.dispose();
+      if (mounted) setState(() => _renamingCandidateId = null);
+    }
+  }
 
   Future<void> _apply() async {
     setState(() => _applying = true);
@@ -199,7 +229,9 @@ class _WorldMapSmartTileDensitySectionState
             PokeMapButton(
               key: const Key('world-map-density-clear-override'),
               onPressed:
-                  _applying || !widget.isEditable ? null : _clearOverride,
+                  _applying || _renamingCandidateId != null || !widget.isEditable
+                      ? null
+                      : _clearOverride,
               variant: PokeMapButtonVariant.secondary,
               size: PokeMapButtonSize.compact,
               leading: const Icon(Icons.undo_outlined, size: 14),
@@ -219,17 +251,29 @@ class _WorldMapSmartTileDensitySectionState
               padding: const EdgeInsets.only(bottom: 6),
               child: Row(
                 children: <Widget>[
-                  widget.spriteBuilder(candidate),
+                  PokeMapHoverPreview(
+                    key: ValueKey('world-map-density-preview-${candidate.id}'),
+                    label: _candidateLabel(candidate),
+                    preview: SizedBox(
+                      width: 128,
+                      height: 128,
+                      child:
+                          widget.enlargedSpriteBuilder?.call(candidate) ??
+                          FittedBox(child: widget.spriteBuilder(candidate)),
+                    ),
+                    child: widget.spriteBuilder(candidate),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: PokeMapGuidedSlider(
                       key: ValueKey<String>(
                         'world-map-density-${candidate.id}',
                       ),
-                      label: _label(_current[candidate.id]!),
+                      label: _candidateLabel(candidate),
+                      valueFormatter: _label,
                       value: _current[candidate.id]!,
                       max: kSmartTileVariantWeightTotal,
-                      onChanged: widget.isEditable
+                      onChanged: widget.isEditable && !_applying
                           ? (next) => setState(() {
                                 _current = rescaleSmartTileVariantWeights(
                                   weights: _current,
@@ -240,6 +284,20 @@ class _WorldMapSmartTileDensitySectionState
                           : (_) {},
                     ),
                   ),
+                  if (widget.onRename != null)
+                    PokeMapIconButton(
+                      key: ValueKey('world-map-density-rename-${candidate.id}'),
+                      tooltip: 'Modifier le libellé',
+                      semanticLabel: 'Nommer ${_candidateLabel(candidate)}',
+                      size: 28,
+                      icon: const Icon(Icons.edit_outlined, size: 14),
+                      onPressed:
+                          widget.isEditable &&
+                              !_applying &&
+                              _renamingCandidateId == null
+                          ? () => _rename(candidate)
+                          : null,
+                    ),
                 ],
               ),
             ),
@@ -263,7 +321,10 @@ class _WorldMapSmartTileDensitySectionState
               Expanded(
                 child: PokeMapButton(
                   key: const Key('world-map-density-apply'),
-                  onPressed: _applying || !widget.isEditable || !_dirty
+                  onPressed: _applying ||
+                          _renamingCandidateId != null ||
+                          !widget.isEditable ||
+                          !_dirty
                       ? null
                       : _apply,
                   variant: PokeMapButtonVariant.primary,
