@@ -350,9 +350,21 @@ final class ProjectSnapshotLoader {
         }
       } else {
         final itemCatalogDecodeTimer = profiler?.startStage();
-        itemCatalog = await _decodeExecutor.decodeItemCatalog(
-          itemCatalogBytes.bytes,
-        );
+        try {
+          itemCatalog = await _decodeExecutor.decodeItemCatalog(
+            itemCatalogBytes.bytes,
+          );
+        } on ProjectSnapshotException catch (error) {
+          if (policy != ProjectSnapshotLoadPolicy.editorReadProjection ||
+              error.code != 'project.item_catalog_invalid') {
+            rethrow;
+          }
+          loadDiagnostics.add(ProjectSnapshotLoadDiagnostic(
+            code: error.code,
+            resourceKind: 'itemCatalog',
+            resourceId: 'items',
+          ));
+        }
         resources.add(
           _LoadedProjectResource(
             relativePath: normalizedItemCatalogPath,

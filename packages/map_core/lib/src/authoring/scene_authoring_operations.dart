@@ -1931,8 +1931,16 @@ void _validateConditionSourceForV0(SceneConditionSource source) {
         );
       }
       return;
-    case SceneConditionSourceKind.storyStepActive:
     case SceneConditionSourceKind.inventoryItem:
+      if (source.inventoryQuantityThreshold == null) {
+        throw ArgumentError.value(
+          source,
+          'source',
+          'Inventory conditions require isTrue/isFalse and a positive minimum quantity.',
+        );
+      }
+      return;
+    case SceneConditionSourceKind.storyStepActive:
     case SceneConditionSourceKind.partyState:
     case SceneConditionSourceKind.trainerDefeated:
     case SceneConditionSourceKind.dialogueOutcome:

@@ -5,6 +5,56 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('system playback resumes after a pause longer than the cinematic',
+      () async {
+    final frames = <PresentationFrame?>[];
+    final firstFrame = Completer<void>();
+    final execution = RuntimePresentationExecutionController(
+      mediaController: RuntimePresentationMediaPlaybackController(
+        catalog: ProjectMediaCatalog(),
+        targetPlatform: PresentationMediaTargetPlatform.macos,
+        resolveUri: (_) => Uri(),
+        videoDriver: _UnusedVideoDriver(),
+      ),
+    );
+    final player = RuntimePresentationScenePlaybackController(
+      executionController: execution,
+      onFrame: (_, frame) {
+        frames.add(frame);
+        if (frame != null && !firstFrame.isCompleted) firstFrame.complete();
+      },
+    );
+    addTearDown(player.dispose);
+    final terminal = player.playPresentationCinematic(
+      ScenePresentationCinematicRuntimeRequest(
+        requestId: 'runtime:opening:lifecycle',
+        createdAtEpochMs: 1,
+        projectRevision:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        contentHash:
+            'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        presentationCinematicId: 'opening',
+        asset: PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 200000,
+        ),
+      ),
+    );
+    await firstFrame.future;
+    await player.pauseForLifecycle();
+    final pausedAt = frames.whereType<PresentationFrame>().last.timeUs;
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    expect(frames.whereType<PresentationFrame>().last.timeUs, pausedAt);
+    await player.resumeAfterLifecycle();
+    expect(
+      (await terminal.timeout(const Duration(seconds: 2))).result,
+      RuntimePresentationExecutionResult.completed,
+    );
+    expect(frames.whereType<PresentationFrame>().last.timeUs, 200000);
+    expect(frames.last, isNull);
+  });
+
   test('evaluates frames and completes one Presentation run', () async {
     final frames = <PresentationFrame?>[];
     final media = RuntimePresentationMediaPlaybackController(

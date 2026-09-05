@@ -43,7 +43,7 @@ final class SceneBattleRuntimeOutcomeAdapter {
     SceneRuntimePlanIntent intent,
   ) async {
     final battleKind = intent.battleKind?.trim();
-    if (battleKind != 'trainer' && battleKind != 'static') {
+    if (battleKind != 'trainer' && battleKind != 'static' && battleKind != 'wild') {
       return SceneBattleRuntimeOutcomeResult.failed(
         errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedBattleKind,
         message: 'Scene battle kind "$battleKind" is not supported in V0.',
@@ -51,14 +51,14 @@ final class SceneBattleRuntimeOutcomeAdapter {
     }
 
     final trainerId = intent.trainerId?.trim();
-    if (trainerId == null || trainerId.isEmpty) {
+    if (battleKind != 'wild' && (trainerId == null || trainerId.isEmpty)) {
       return const SceneBattleRuntimeOutcomeResult.failed(
         errorCode: SceneBattleRuntimeOutcomeErrorCode.missingTrainerId,
         message: 'Scene battle intent is missing trainerId.',
       );
     }
     final battleTemplateId = intent.battleTemplateId?.trim();
-    if (battleKind == 'static' &&
+    if ((battleKind == 'static' || battleKind == 'wild') &&
         (battleTemplateId == null || battleTemplateId.isEmpty)) {
       return const SceneBattleRuntimeOutcomeResult.failed(
         errorCode:
@@ -77,9 +77,9 @@ final class SceneBattleRuntimeOutcomeAdapter {
 
     final now = createdAtEpochMs();
     final request = SceneBattleRuntimeBattleRequest(
-      requestId: '$runtimeSourceId:$trainerId:$now',
+      requestId: '$runtimeSourceId:${trainerId ?? battleTemplateId}:$now',
       createdAtEpochMs: now,
-      trainerId: trainerId,
+      trainerId: trainerId ?? '',
       npcEntityId: npcEntityId,
       battleKind: battleKind!,
       battleTemplateId: battleTemplateId,

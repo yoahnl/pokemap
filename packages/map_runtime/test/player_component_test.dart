@@ -212,6 +212,54 @@ void main() {
       expect(component.debugAnimationSource?.imageId, 'hero');
       expect(component.debugAnimationSource?.usesLegacyGrid, isTrue);
     });
+
+    test('run step selects the dedicated run source and faster cadence',
+        () async {
+      const character = ProjectCharacterEntry(
+        id: 'player',
+        name: 'Player',
+        tilesetId: 'hero',
+        animations: <CharacterAnimation>[
+          CharacterAnimation(
+            state: CharacterAnimationState.run,
+            direction: EntityFacing.east,
+            sourceAssetId: 'hero_run',
+            frames: <CharacterAnimationFrame>[
+              CharacterAnimationFrame(
+                source: TilesetSourceRect(x: 64, y: 0, width: 64, height: 64),
+              ),
+            ],
+          ),
+        ],
+      );
+      final component = PlayerComponent(
+        bundle: _bundle(),
+        state: _stateAt(const GridPos(x: 0, y: 0)),
+        characterEntry: character,
+        tileImages: <String, RuntimeTilesetImage>{
+          'hero': _emptyImage(),
+          characterAnimationRuntimeImageId('hero_run'): _emptyImage(),
+        },
+        mapOrigin: Vector2.zero(),
+      );
+
+      await component.onLoad();
+      component.startStep(
+        _stateAt(const GridPos(x: 1, y: 0)),
+        durationSeconds: PlayerComponent.kRunStepSeconds,
+        animationState: CharacterAnimationState.run,
+      );
+
+      expect(component.debugStepAnimationState, CharacterAnimationState.run);
+      expect(
+        component.debugAnimationSource?.imageId,
+        characterAnimationRuntimeImageId('hero_run'),
+      );
+      expect(
+        PlayerComponent.kRunStepSeconds,
+        lessThan(PlayerComponent.kDefaultStepSeconds),
+      );
+    });
   });
 }
 

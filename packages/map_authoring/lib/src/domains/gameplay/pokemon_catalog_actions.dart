@@ -34,6 +34,9 @@ final class PokemonJsonDocument {
   final Map<String, Object?> _json;
 
   String get identity {
+    if (kind == PokemonDocumentKind.catalog && !_json.containsKey('catalog')) {
+      return 'items';
+    }
     final key = kind == PokemonDocumentKind.catalog
         ? 'catalog'
         : kind == PokemonDocumentKind.species
@@ -48,6 +51,10 @@ final class PokemonJsonDocument {
       );
 
   void _validateIdentity() {
+    if (kind == PokemonDocumentKind.catalog && !_json.containsKey('catalog')) {
+      decodeProjectItemCatalog(Map<String, dynamic>.from(_json));
+      return;
+    }
     final key = kind == PokemonDocumentKind.catalog
         ? 'catalog'
         : kind == PokemonDocumentKind.species
@@ -253,6 +260,8 @@ final class PokemonCatalogActions {
     }
     final relativePath = _string(parameters, 'relativePath');
     _validateStoragePath(context.snapshot.manifest.pokemon, kind, relativePath);
+    final isItemCatalog = kind == PokemonDocumentKind.catalog &&
+        relativePath == context.snapshot.manifest.pokemon.catalogFiles['items'];
     final beforeBytes = _optionalBytes(parameters['beforeBytesBase64']);
     final PokemonJsonDocument? document = deleting
         ? null
@@ -262,6 +271,10 @@ final class PokemonCatalogActions {
           );
     final resourceId =
         deleting ? _string(parameters, 'resourceId') : document!.identity;
+    if (!deleting && kind == PokemonDocumentKind.catalog &&
+        ((resourceId == 'items') != isItemCatalog)) {
+      throw const FormatException('An item catalog must use its configured canonical path.');
+    }
     if (deleting && beforeBytes == null) {
       throw ArgumentError('Delete requires exact beforeBytesBase64.');
     }
@@ -270,12 +283,14 @@ final class PokemonCatalogActions {
       if (raw is! Map) {
         throw const FormatException('Before bytes must contain a JSON object.');
       }
-      final before = PokemonJsonDocument.fromJson(
-        kind,
-        Map<String, dynamic>.from(raw),
-      );
-      if (before.identity != resourceId) {
-        throw const FormatException('Before document identity mismatch.');
+      if (!isItemCatalog) {
+        final before = PokemonJsonDocument.fromJson(
+          kind,
+          Map<String, dynamic>.from(raw),
+        );
+        if (before.identity != resourceId) {
+          throw const FormatException('Before document identity mismatch.');
+        }
       }
     }
     final afterBytes = document == null ? null : _encode(document.toJson());
@@ -439,7 +454,9 @@ Map<String, Object?> _canonicalSharedPokemonDocument(
   Map<String, dynamic> json,
 ) =>
     switch (kind) {
-      PokemonDocumentKind.catalog => PokemonCatalogFile.fromJson(json).toJson(),
+      PokemonDocumentKind.catalog => !json.containsKey('catalog') || json['catalog'] == 'items'
+          ? encodeProjectItemCatalog(decodeProjectItemCatalog(json))
+          : PokemonCatalogFile.fromJson(json).toJson(),
       PokemonDocumentKind.species => PokemonSpeciesFile.fromJson(json).toJson(),
       PokemonDocumentKind.learnset =>
         PokemonLearnsetFile.fromJson(json).toJson(),

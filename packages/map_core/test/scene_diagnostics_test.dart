@@ -1390,10 +1390,10 @@ void main() {
             kind: SceneNodeKind.condition,
             payload: SceneConditionPayload(
               conditionSource: SceneConditionSource(
-                sourceKind: SceneConditionSourceKind.inventoryItem,
-                sourceId: 'item_potion',
+                sourceKind: SceneConditionSourceKind.worldState,
+                sourceId: 'weather_rain',
                 operator: SceneConditionOperator.isTrue,
-                label: 'Potion possédée',
+                label: 'Il pleut',
               ),
             ),
           ),

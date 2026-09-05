@@ -18,6 +18,7 @@ import 'overworld_actor_component.dart';
 /// désynchronisent (effet saccadé / 3 frames visibles).
 class PlayerComponent extends PositionComponent {
   static const double kDefaultStepSeconds = 0.12;
+  static const double kRunStepSeconds = 0.075;
 
   PlayerComponent({
     required this.bundle,
@@ -51,6 +52,7 @@ class PlayerComponent extends PositionComponent {
   Vector2? _moveTo;
   double _moveRemaining = 0.0;
   double _stepDurationSeconds = kDefaultStepSeconds;
+  CharacterAnimationState _stepAnimationState = CharacterAnimationState.walk;
   bool _deferStepProgressUntilNextUpdate = false;
 
   /// Facteur gameplay px → monde Flame (écran), identique pour X/Y si tuiles carrées.
@@ -128,6 +130,8 @@ class PlayerComponent extends PositionComponent {
 
   ResolvedCharacterAnimationFrameSource? get debugAnimationSource =>
       _actor?.debugAnimationSource;
+
+  CharacterAnimationState get debugStepAnimationState => _stepAnimationState;
 
   bool canPlayCustomAnimation(CharacterCustomAnimationClip clip) =>
       _actor?.canPlayCustomAnimation(clip) == true;
@@ -207,6 +211,7 @@ class PlayerComponent extends PositionComponent {
         _moveFrom = null;
         _moveTo = null;
         _moveRemaining = 0.0;
+        _stepAnimationState = CharacterAnimationState.walk;
         _actor?.setMotion(
           EntityFacing.values.byName(_state.facing.name),
           CharacterAnimationState.idle,
@@ -254,16 +259,18 @@ class PlayerComponent extends PositionComponent {
     } else {
       // Ne pas forcer idle pendant l’interpolation d’un pas (sinon tout appel
       // à syncState — ex. changement de mode — écrase l’anim marche).
-      _actor?.setMotion(facing, CharacterAnimationState.walk);
+      _actor?.setMotion(facing, _stepAnimationState);
     }
   }
 
   void startStep(
     GameplayPlayerState state, {
     double durationSeconds = kDefaultStepSeconds,
+    CharacterAnimationState animationState = CharacterAnimationState.walk,
   }) {
     _state = state;
     _stepDurationSeconds = durationSeconds;
+    _stepAnimationState = animationState;
     size.setFrom(_computeWorldSpriteSize(bundle: bundle, state: _state));
     _layoutActor();
     _moveFrom = position.clone();
@@ -276,7 +283,7 @@ class PlayerComponent extends PositionComponent {
     _deferStepProgressUntilNextUpdate = false;
     _actor?.setMotion(
       EntityFacing.values.byName(state.facing.name),
-      CharacterAnimationState.walk,
+      animationState,
     );
   }
 
@@ -287,6 +294,7 @@ class PlayerComponent extends PositionComponent {
   }) {
     _state = state;
     _stepDurationSeconds = durationSeconds;
+    _stepAnimationState = CharacterAnimationState.walk;
     size.setFrom(_computeWorldSpriteSize(bundle: bundle, state: _state));
     _layoutActor();
     position = fromWorldTopLeft.clone();

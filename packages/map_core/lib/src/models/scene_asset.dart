@@ -207,6 +207,19 @@ final class SceneConditionSource {
   final NarrativeFactOperator? factOperator;
   final NarrativeValue? expectedFactValue;
 
+  int? get inventoryQuantityThreshold {
+    if (sourceKind != SceneConditionSourceKind.inventoryItem ||
+        (field != null && field != 'minimumQuantity') ||
+        (operator != SceneConditionOperator.isTrue &&
+            operator != SceneConditionOperator.isFalse)) {
+      return null;
+    }
+    if (value == null) return 1;
+    return RegExp(r'^[1-9][0-9]*$').hasMatch(value!)
+        ? int.tryParse(value!)
+        : null;
+  }
+
   NarrativeFactOperator get resolvedFactOperator => switch (operator) {
         SceneConditionOperator.isTrue ||
         SceneConditionOperator.equals =>

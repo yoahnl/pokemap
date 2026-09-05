@@ -846,8 +846,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             runtimeSourceId: standaloneRuntimeProfileId,
             catalog: media.catalog,
             mediaUris: media.mediaUris,
-            targetPlatform:
-                player_ui.currentPresentationMediaTargetPlatform(),
+            targetPlatform: player_ui.currentPresentationMediaTargetPlatform(),
             audioMixer: RuntimeAudioMixer(),
             reducedMotion: false,
           );
@@ -1333,9 +1332,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         sessionBuilder: (_, _) {
           final game = _game;
           final viewController = _startupViewController;
-          if (game == null ||
-              viewController == null ||
-              activeGameSurface == null) {
+          if (viewController == null) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
@@ -1347,15 +1344,18 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             pauseMenuLabels: playerPresentation.pauseMenuLabels,
             pausePresentation: playerPresentation.pausePresentation,
             gameplayInputRoute: host.sessionController.handleInput,
-            gameplayInputAuthority: game.inputAuthorityListenable,
-            dialoguePresentation: game.dialoguePresentationListenable,
-            onDialogueCommand: game.dispatchDialoguePresentationCommand,
-            battlePresentation: game.battleCommandOverlayListenable,
-            onBattleCommand: game.dispatchBattlePresentationCommand,
+            gameplayInputAuthority: game?.inputAuthorityListenable,
+            dialoguePresentation: game?.dialoguePresentationListenable,
+            onDialogueCommand: game?.dispatchDialoguePresentationCommand,
+            battlePresentation: game?.battleCommandOverlayListenable,
+            onBattleCommand: game?.dispatchBattlePresentationCommand,
+            presentationFrame: host.presentationSession?.controller,
+            presentationContentPort: host.presentationSession?.controller,
             touchControlsAvailable:
                 _supportsTouchControls && !_touchControlsHiddenByUser,
             controllerInputEnabled: false,
-            gameSceneBuilder: (_) => activeGameSurface,
+            gameSceneBuilder: (_) =>
+                activeGameSurface ?? const SizedBox.shrink(),
           );
         },
       ),
@@ -1431,7 +1431,10 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
           children: [
             RepaintBoundary(
               key: _interactiveGameSurfaceKey,
-              child: GameWidget(game: game),
+              child: GameWidget(
+                game: game,
+                autofocus: _startupViewController == null,
+              ),
             ),
             if (_startupViewController == null &&
                 touchControlsVisibility.showControls)

@@ -20,6 +20,10 @@ RuntimeInputControl? runtimeInputControlFromLogicalKey(LogicalKeyboardKey key) {
   if (key == LogicalKeyboardKey.arrowRight || key == LogicalKeyboardKey.keyD) {
     return RuntimeInputControl.right;
   }
+  if (key == LogicalKeyboardKey.shiftLeft ||
+      key == LogicalKeyboardKey.shiftRight) {
+    return RuntimeInputControl.sprint;
+  }
   if (key == LogicalKeyboardKey.keyE ||
       key == LogicalKeyboardKey.space ||
       key == LogicalKeyboardKey.enter ||

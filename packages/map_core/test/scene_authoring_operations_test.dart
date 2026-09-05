@@ -1713,6 +1713,24 @@ void main() {
       expect(result.updatedPayload.conditionLabel, 'Réputation suffisante');
     });
 
+    test('authors a quantity condition through the public scene API', () {
+      final result = updateSceneConditionSource(
+        _edgeAuthoringScene(),
+        nodeId: 'node_condition',
+        source: SceneConditionSource(
+          sourceKind: SceneConditionSourceKind.inventoryItem,
+          sourceId: 'oran_berry',
+          field: 'minimumQuantity',
+          value: '3',
+          operator: SceneConditionOperator.isTrue,
+          label: 'Au moins trois Baies Oran',
+        ),
+      );
+      final restored = SceneConditionPayload.fromJson(result.updatedPayload.toJson());
+      expect(restored.conditionSource!.inventoryQuantityThreshold, 3);
+      expect(restored.conditionLabel, 'Au moins trois Baies Oran');
+    });
+
     test('rejects invalid condition source updates', () {
       final scene = _edgeAuthoringScene();
 
@@ -1736,6 +1754,7 @@ void main() {
             sourceKind: SceneConditionSourceKind.inventoryItem,
             sourceId: 'item_potion',
             operator: SceneConditionOperator.isTrue,
+            value: '0',
           ),
         ),
         throwsArgumentError,

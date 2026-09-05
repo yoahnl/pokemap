@@ -5,6 +5,24 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('standard profile exposes sprint on every supported device', () {
+    expect(
+      PlayerControlProfile.standard.bindingFor(
+        PlayerControlDevice.keyboard,
+        RuntimeInputControl.sprint,
+      ),
+      'shiftLeft',
+    );
+    expect(
+      PlayerControlProfile.standard.controlForGamepadButton(GamepadButton.y),
+      RuntimeInputControl.sprint,
+    );
+    expect(
+      PlayerControlProfile.standard.controlForTouchInput('sprintButton'),
+      RuntimeInputControl.sprint,
+    );
+  });
+
   test('rejects a duplicate physical binding inside one device profile', () {
     final result = PlayerControlProfile.standard.rebind(
       device: PlayerControlDevice.keyboard,

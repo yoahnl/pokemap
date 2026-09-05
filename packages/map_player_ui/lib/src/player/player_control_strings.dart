@@ -31,6 +31,7 @@ final class PlayerControlStrings {
         RuntimeInputControl.down => _isFrench ? 'Bas' : 'Down',
         RuntimeInputControl.left => _isFrench ? 'Gauche' : 'Left',
         RuntimeInputControl.right => _isFrench ? 'Droite' : 'Right',
+        RuntimeInputControl.sprint => _isFrench ? 'Course' : 'Sprint',
         RuntimeInputControl.primary =>
           _isFrench ? 'Action principale' : 'Primary action',
         RuntimeInputControl.secondary =>

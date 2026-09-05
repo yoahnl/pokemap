@@ -117,61 +117,61 @@ class _PlayerSceneInteractionSurfaceState
                     child: PlayerSurfacePaletteScope(
                       role: ProjectPresentationSurfaceRole.dialogue,
                       child: PlayerPanel(
-                      role: PlayerPanelRole.dialogue,
-                      elevated: true,
-                      child: Semantics(
-                        scopesRoute: true,
-                        namesRoute: true,
-                        explicitChildNodes: true,
-                        label: prompt,
-                        child: FocusTraversalGroup(
-                          key: ValueKey<String>(
-                            'scene-interaction-${request.requestId}-${request.revision}',
-                          ),
-                          policy: OrderedTraversalPolicy(),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              Text(
-                                prompt,
-                                style:
-                                    Theme.of(context).textTheme.headlineSmall,
-                              ),
-                              const SizedBox(height: PlayerSpacing.md),
-                              _buildRequest(context, request, strings),
-                              if (_validationIssue
-                                  case final issue?) ...<Widget>[
-                                const SizedBox(height: PlayerSpacing.sm),
-                                Semantics(
-                                  key: const ValueKey<String>(
-                                    'scene-interaction-error',
-                                  ),
-                                  liveRegion: true,
-                                  child: Text(
-                                    strings.validation(issue),
-                                    style: TextStyle(
-                                      color: context.playerColors.danger,
+                        role: PlayerPanelRole.dialogue,
+                        elevated: true,
+                        child: Semantics(
+                          scopesRoute: true,
+                          namesRoute: true,
+                          explicitChildNodes: true,
+                          label: prompt,
+                          child: FocusTraversalGroup(
+                            key: ValueKey<String>(
+                              'scene-interaction-${request.requestId}-${request.revision}',
+                            ),
+                            policy: OrderedTraversalPolicy(),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: <Widget>[
+                                Text(
+                                  prompt,
+                                  style:
+                                      Theme.of(context).textTheme.headlineSmall,
+                                ),
+                                const SizedBox(height: PlayerSpacing.md),
+                                _buildRequest(context, request, strings),
+                                if (_validationIssue
+                                    case final issue?) ...<Widget>[
+                                  const SizedBox(height: PlayerSpacing.sm),
+                                  Semantics(
+                                    key: const ValueKey<String>(
+                                      'scene-interaction-error',
+                                    ),
+                                    liveRegion: true,
+                                    child: Text(
+                                      strings.validation(issue),
+                                      style: TextStyle(
+                                        color: context.playerColors.danger,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                              if (widget.allowCancellation) ...<Widget>[
-                                const SizedBox(height: PlayerSpacing.sm),
-                                PlayerActionButton(
-                                  key: const ValueKey<String>(
-                                    'scene-interaction-cancel',
+                                ],
+                                if (widget.allowCancellation) ...<Widget>[
+                                  const SizedBox(height: PlayerSpacing.sm),
+                                  PlayerActionButton(
+                                    key: const ValueKey<String>(
+                                      'scene-interaction-cancel',
+                                    ),
+                                    label: strings.cancel,
+                                    icon: Icons.close,
+                                    secondary: true,
+                                    onPressed: _terminal ? null : _cancel,
                                   ),
-                                  label: strings.cancel,
-                                  icon: Icons.close,
-                                  secondary: true,
-                                  onPressed: _terminal ? null : _cancel,
-                                ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
-                      ),
                       ),
                     ),
                   ),
@@ -196,8 +196,7 @@ class _PlayerSceneInteractionSurfaceState
     final graphemes = fullText.characters;
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final revealed =
-        reduceMotion ? graphemes.length : _revealedGraphemes;
+    final revealed = reduceMotion ? graphemes.length : _revealedGraphemes;
     final fullyRevealed = revealed >= graphemes.length;
     if (!fullyRevealed && _revealTimer == null) {
       _revealTimer = Timer.periodic(_typewriterInterval, (_) {
@@ -518,6 +517,7 @@ class _PlayerSceneInteractionSurfaceState
         }
       case PlayerInputAction.back:
         _cancel();
+      case PlayerInputAction.sprint:
       case PlayerInputAction.menu:
         break;
     }

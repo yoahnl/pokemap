@@ -451,13 +451,11 @@ String _defaultVisualMediaResolver(
 ) =>
     clip.resourceId;
 
-Stream<int> _systemFrameDeltas(int durationUs) async* {
-  var elapsedPlaybackUs = 0;
-  while (elapsedPlaybackUs < durationUs) {
+Stream<int> _systemFrameDeltas(int _) async* {
+  while (true) {
     final frameStopwatch = Stopwatch()..start();
     await Future<void>.delayed(const Duration(milliseconds: 16));
     final deltaUs = frameStopwatch.elapsedMicroseconds;
-    elapsedPlaybackUs += deltaUs;
     yield deltaUs;
   }
 }

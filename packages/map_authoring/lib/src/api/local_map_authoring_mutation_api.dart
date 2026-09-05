@@ -180,7 +180,10 @@ final class LocalMapAuthoringMutationApi
       );
     }
     final canonicalRoot = await _policy.authorizeProjectRoot(projectRootPath);
-    final snapshot = await _snapshotLoader.load(projectHandle);
+    final snapshot = await _snapshotLoader.load(
+      projectHandle,
+      policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+    );
     await _requireRootMatchesSnapshot(canonicalRoot, snapshot);
     final projectId = _projectIdentity(canonicalRoot);
     final session = await _LocalMapAuthoringSession.open(
@@ -568,6 +571,7 @@ final class _LocalMapAuthoringSession {
     );
     final snapshot = await _loadSnapshot(
       cacheValidation: ProjectSnapshotCacheValidation.session,
+      repairRequest: request.actionId == 'pokemon.catalog.write' ? request : null,
     );
     final span = _performanceObserver?.startSpan(
       AuthoringPerformanceSpanName.plan,
@@ -594,6 +598,7 @@ final class _LocalMapAuthoringSession {
   ) async {
     final snapshot = await _loadSnapshot(
       cacheValidation: ProjectSnapshotCacheValidation.session,
+      repairRequest: _plans.resolveActive(planId).request,
     );
     final plan = _plans.resolve(
       _safeIdentity(planId, 'planId'),
@@ -631,7 +636,7 @@ final class _LocalMapAuthoringSession {
         message: 'Mutation apply requires an idempotency key.',
       );
     }
-    final snapshot = await _loadSnapshot();
+    final snapshot = await _loadSnapshot(repairRequest: plan.request);
     final descriptor = _dispatcher.descriptor(plan.request.actionId);
     final payloadWasReleased = plan.appliedPayloadReleased;
     final changes = payloadWasReleased ? null : plan.changeSet.changes;
@@ -727,15 +732,28 @@ final class _LocalMapAuthoringSession {
   Future<ProjectSnapshot> _loadSnapshot({
     ProjectSnapshotCacheValidation cacheValidation =
         ProjectSnapshotCacheValidation.canonical,
+    AuthoringRequest? repairRequest,
   }) async {
     final span = _performanceObserver?.startSpan(
       AuthoringPerformanceSpanName.snapshot,
     );
     try {
-      return await _snapshotLoader.load(
+      final snapshot = await _snapshotLoader.load(
         projectHandle,
         cacheValidation: cacheValidation,
+        policy: repairRequest == null
+            ? ProjectSnapshotLoadPolicy.strict
+            : ProjectSnapshotLoadPolicy.editorReadProjection,
       );
+      if (snapshot.loadDiagnostics.isNotEmpty) {
+        final repairsItems = repairRequest?.actionId == 'pokemon.catalog.write' &&
+            repairRequest?.parameters['relativePath'] == snapshot.manifest.pokemon.catalogFiles['items'] &&
+            snapshot.loadDiagnostics.every((diagnostic) => diagnostic.code == 'project.item_catalog_invalid');
+        if (!repairsItems) {
+          throw ProjectSnapshotException(snapshot.loadDiagnostics.first.code, 'Repair the invalid resource before applying other changes.');
+        }
+      }
+      return snapshot;
     } finally {
       span?.finish();
     }

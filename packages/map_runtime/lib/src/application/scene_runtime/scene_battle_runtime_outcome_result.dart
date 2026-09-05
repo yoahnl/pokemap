@@ -6,6 +6,8 @@ enum SceneBattleRuntimeOutcomeStatus {
 enum SceneBattleRuntimeOutcomePort {
   victory,
   defeat,
+  captured,
+  runaway,
 }
 
 enum SceneBattleRuntimeOutcomeErrorCode {
@@ -52,6 +54,8 @@ final class SceneBattleRuntimeOutcomeResult {
     return switch (port) {
       SceneBattleRuntimeOutcomePort.victory => 'victory',
       SceneBattleRuntimeOutcomePort.defeat => 'defeat',
+      SceneBattleRuntimeOutcomePort.captured => 'captured',
+      SceneBattleRuntimeOutcomePort.runaway => 'runaway',
       null => null,
     };
   }

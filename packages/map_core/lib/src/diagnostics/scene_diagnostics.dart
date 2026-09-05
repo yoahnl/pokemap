@@ -515,6 +515,27 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
       case SceneBattlePayload():
         final isTrainer = payload.battleKind == 'trainer';
         final isStatic = payload.battleKind == 'static';
+        if (payload.battleKind == 'wild') {
+          final tables = project.encounterTables.where(
+            (table) => table.id == payload.battleTemplateId,
+          );
+          final valid = tables.length == 1 &&
+              tables.single.entries.length == 1 &&
+              tables.single.entries.single.minLevel > 0 &&
+              tables.single.entries.single.minLevel == tables.single.entries.single.maxLevel &&
+              tables.single.entries.single.weight > 0;
+          if (!valid) {
+            diagnostics.add(SceneDiagnostic(
+              code: SceneDiagnosticCode.battleTemplateRefMissing,
+              severity: SceneDiagnosticSeverity.error,
+              message: 'La rencontre sauvage doit référencer une table avec un seul Pokémon à niveau fixe.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel: 'Choisir une table de rencontre à niveau fixe.',
+            ));
+          }
+        }
         final validTrainerIds = isStatic
             ? staticEncounterTrainerIds
             : trainerIds;
@@ -1833,9 +1854,9 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.storyStepCompletion ||
+    SceneConditionSourceKind.inventoryItem ||
     SceneConditionSourceKind.consumedEvent => true,
     SceneConditionSourceKind.storyStepActive ||
-    SceneConditionSourceKind.inventoryItem ||
     SceneConditionSourceKind.partyState ||
     SceneConditionSourceKind.trainerDefeated ||
     SceneConditionSourceKind.dialogueOutcome ||
@@ -1864,8 +1885,9 @@ bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
           source.operator == SceneConditionOperator.isFalse,
     SceneConditionSourceKind.storyStepCompletion =>
       source.operator == SceneConditionOperator.equals,
+    SceneConditionSourceKind.inventoryItem =>
+      source.inventoryQuantityThreshold != null,
     SceneConditionSourceKind.storyStepActive ||
-    SceneConditionSourceKind.inventoryItem ||
     SceneConditionSourceKind.partyState ||
     SceneConditionSourceKind.trainerDefeated ||
     SceneConditionSourceKind.dialogueOutcome ||

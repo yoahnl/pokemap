@@ -25,6 +25,7 @@ import '../../application/battle_start_request.dart';
 import '../../application/dialogue_runtime_models.dart';
 import '../../application/dialogue_variable_interpolation.dart';
 import '../../application/encounter_to_battle_request.dart';
+import '../../application/scene_runtime/scene_wild_battle_request.dart';
 import '../../application/field_move_dialogue.dart';
 import '../../application/global_story_chapter_runtime.dart';
 import '../../application/load_dialogue_content.dart';
@@ -515,6 +516,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Set<RuntimeInputControl> _pressedMovementControls =
       <RuntimeInputControl>{};
   RuntimeInputControl? _lastMovementControl;
+  bool _sprintPressed = false;
   TriggeredWarp? _pendingWarp;
   final PlacedElementWarpTraversalController
       _placedElementWarpTraversalController =
@@ -3990,6 +3992,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (_isMovementControl(control)) {
         _releaseMovementControl(control);
       }
+      if (control == RuntimeInputControl.sprint) {
+        _sprintPressed = false;
+      }
       return true;
     }
 
@@ -3997,6 +4002,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
     final inputAuthority = inputAuthoritySnapshot;
+
+    if (control == RuntimeInputControl.sprint) {
+      _sprintPressed =
+          inputAuthority.context == RuntimeInputContext.overworld &&
+              event.isPress;
+      return true;
+    }
 
     if (inputAuthority.context == RuntimeInputContext.cinematic) {
       if (_isMovementControl(control)) {
@@ -4578,6 +4590,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return Direction.west;
       case RuntimeInputControl.right:
         return Direction.east;
+      case RuntimeInputControl.sprint:
       case RuntimeInputControl.primary:
       case RuntimeInputControl.secondary:
       case RuntimeInputControl.menu:
@@ -4721,7 +4734,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _applyFieldActionExitAfterStep();
       _player.startStep(
         _world.player,
-        durationSeconds: PlayerComponent.kDefaultStepSeconds,
+        durationSeconds: _sprintPressed
+            ? PlayerComponent.kRunStepSeconds
+            : PlayerComponent.kDefaultStepSeconds,
+        animationState: _sprintPressed
+            ? CharacterAnimationState.run
+            : CharacterAnimationState.walk,
       );
       _checkStepEncounter();
       _checkTrainerLineOfSight(); // Check LoS only when player position changes
@@ -6422,6 +6440,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _clearPressedMovementControls() {
     _pressedMovementControls.clear();
     _lastMovementControl = null;
+    _sprintPressed = false;
   }
 
   int _beginBlockingInteraction({
@@ -8384,14 +8403,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         const SceneBattleRuntimeOutcomeResult.completed(
           port: SceneBattleRuntimeOutcomePort.defeat,
         ),
-      BattleOutcomeType.runaway => const SceneBattleRuntimeOutcomeResult.failed(
-          errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedOutcome,
-          message: 'Scene trainer battle does not support runaway outcome.',
+      BattleOutcomeType.runaway => const SceneBattleRuntimeOutcomeResult.completed(
+          port: SceneBattleRuntimeOutcomePort.runaway,
         ),
       BattleOutcomeType.captured =>
-        const SceneBattleRuntimeOutcomeResult.failed(
-          errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedOutcome,
-          message: 'Scene trainer battle does not support captured outcome.',
+        const SceneBattleRuntimeOutcomeResult.completed(
+          port: SceneBattleRuntimeOutcomePort.captured,
         ),
     };
   }
@@ -10971,6 +10988,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       playerFacing: _world.player.facing,
     );
     final battleRequest = switch (request.battleKind) {
+      'wild' => buildSceneWildBattleRequest(
+          request: request,
+          manifest: _bundle.manifest,
+          returnContext: returnContext,
+        ),
       'trainer' => TrainerBattleStartRequest(
           requestId: request.requestId,
           createdAtEpochMs: request.createdAtEpochMs,
@@ -11013,6 +11035,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final source = intent.conditionSource;
     if (source == null) {
       throw StateError('Scene condition intent is missing a condition source.');
+    }
+
+    if (source.sourceKind == SceneConditionSourceKind.inventoryItem) {
+      return evaluateSceneInventoryCondition(source: source, gameState: gameState)
+          ? 'true'
+          : 'false';
     }
 
     if (source.sourceKind == SceneConditionSourceKind.fact) {

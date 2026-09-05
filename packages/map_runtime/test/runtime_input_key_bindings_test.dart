@@ -156,12 +156,35 @@ void main() {
       );
     });
 
-    test('ignores unsupported keys', () {
+    test('maps both shift keys to sprint press and release events', () {
       expect(
         runtimeInputEventFromKeyEvent(
           const KeyDownEvent(
             physicalKey: PhysicalKeyboardKey.shiftLeft,
             logicalKey: LogicalKeyboardKey.shiftLeft,
+            timeStamp: Duration.zero,
+          ),
+        ),
+        const RuntimeInputEvent.press(RuntimeInputControl.sprint),
+      );
+      expect(
+        runtimeInputEventFromKeyEvent(
+          const KeyUpEvent(
+            physicalKey: PhysicalKeyboardKey.shiftRight,
+            logicalKey: LogicalKeyboardKey.shiftRight,
+            timeStamp: Duration.zero,
+          ),
+        ),
+        const RuntimeInputEvent.release(RuntimeInputControl.sprint),
+      );
+    });
+
+    test('ignores unsupported keys', () {
+      expect(
+        runtimeInputEventFromKeyEvent(
+          const KeyDownEvent(
+            physicalKey: PhysicalKeyboardKey.keyQ,
+            logicalKey: LogicalKeyboardKey.keyQ,
             timeStamp: Duration.zero,
           ),
         ),

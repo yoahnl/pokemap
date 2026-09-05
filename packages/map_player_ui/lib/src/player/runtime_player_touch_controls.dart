@@ -146,6 +146,10 @@ class _RuntimePlayerTouchControlsState
                     'secondaryButton',
                     pressed,
                   ),
+                  onSprintChanged: (pressed) => _dispatchButton(
+                    'sprintButton',
+                    pressed,
+                  ),
                 ),
               ),
             ),
@@ -206,12 +210,14 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
     required this.buttonSize,
     required this.onPrimaryChanged,
     required this.onSecondaryChanged,
+    required this.onSprintChanged,
   });
 
   final bool portrait;
   final double buttonSize;
   final ValueChanged<bool> onPrimaryChanged;
   final ValueChanged<bool> onSecondaryChanged;
+  final ValueChanged<bool> onSprintChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -235,16 +241,24 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
       primary: true,
       onChanged: onPrimaryChanged,
     );
+    final sprint = _RuntimePlayerTouchButton(
+      key: const ValueKey<String>('runtime-player-touch-sprint-button'),
+      label: 'R',
+      semanticLabel: 'Course',
+      size: buttonSize * .78,
+      primary: false,
+      onChanged: onSprintChanged,
+    );
     const gap = SizedBox.square(dimension: PlayerSpacing.sm);
     return portrait
         ? Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[secondary, gap, primary],
+            children: <Widget>[sprint, gap, secondary, gap, primary],
           )
         : Row(
             mainAxisSize: MainAxisSize.min,
-            children: <Widget>[secondary, gap, primary],
+            children: <Widget>[sprint, gap, secondary, gap, primary],
           );
   }
 }

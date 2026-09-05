@@ -392,6 +392,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         }
       case PlayerInputAction.back:
         await _dispatchBack();
+      case PlayerInputAction.sprint:
       case PlayerInputAction.menu:
         // Menu/Start is intercepted by PlayerInputRouter.
         break;

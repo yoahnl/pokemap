@@ -56,6 +56,7 @@ final class PlayerControlProfile {
       RuntimeInputControl.down: 'arrowDown',
       RuntimeInputControl.left: 'arrowLeft',
       RuntimeInputControl.right: 'arrowRight',
+      RuntimeInputControl.sprint: 'shiftLeft',
       RuntimeInputControl.primary: 'keyE',
       RuntimeInputControl.secondary: 'escape',
       RuntimeInputControl.menu: 'keyM',
@@ -65,6 +66,7 @@ final class PlayerControlProfile {
       RuntimeInputControl.down: 'dpadDown',
       RuntimeInputControl.left: 'dpadLeft',
       RuntimeInputControl.right: 'dpadRight',
+      RuntimeInputControl.sprint: 'y',
       RuntimeInputControl.primary: 'a',
       RuntimeInputControl.secondary: 'b',
       RuntimeInputControl.menu: 'start',
@@ -74,6 +76,7 @@ final class PlayerControlProfile {
       RuntimeInputControl.down: 'joystickDown',
       RuntimeInputControl.left: 'joystickLeft',
       RuntimeInputControl.right: 'joystickRight',
+      RuntimeInputControl.sprint: 'sprintButton',
       RuntimeInputControl.primary: 'primaryButton',
       RuntimeInputControl.secondary: 'secondaryButton',
       RuntimeInputControl.menu: 'menuButton',
@@ -248,6 +251,7 @@ const Map<String, LogicalKeyboardKey> playerKeyboardInputs =
   'escape': LogicalKeyboardKey.escape,
   'tab': LogicalKeyboardKey.tab,
   'keyM': LogicalKeyboardKey.keyM,
+  'shiftLeft': LogicalKeyboardKey.shiftLeft,
 };
 
 const List<String> playerGamepadInputs = <String>[
@@ -271,6 +275,7 @@ const List<String> playerTouchInputs = <String>[
   'primaryButton',
   'secondaryButton',
   'menuButton',
+  'sprintButton',
 ];
 
 const Map<String, String> _glyphs = <String, String>{
@@ -291,6 +296,7 @@ const Map<String, String> _glyphs = <String, String>{
   'escape': 'Esc',
   'tab': 'Tab',
   'keyM': 'M',
+  'shiftLeft': '⇧',
   'dpadUp': 'D-pad ↑',
   'dpadDown': 'D-pad ↓',
   'dpadLeft': 'D-pad ←',
@@ -308,6 +314,7 @@ const Map<String, String> _glyphs = <String, String>{
   'primaryButton': 'A',
   'secondaryButton': 'B',
   'menuButton': '☰',
+  'sprintButton': 'R',
 };
 
 String? _keyboardInputId(LogicalKeyboardKey key) {

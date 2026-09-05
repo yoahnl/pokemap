@@ -124,7 +124,10 @@ final class AuthoringReadApi
     ProjectHandle projectHandle,
     AuthoringQueryRequest request,
   ) async {
-    final snapshot = await _snapshotLoader.load(projectHandle);
+    final snapshot = await _snapshotLoader.load(
+      projectHandle,
+      policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+    );
     return _queryService.query(snapshot, request);
   }
 
