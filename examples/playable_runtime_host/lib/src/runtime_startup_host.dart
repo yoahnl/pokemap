@@ -5,12 +5,14 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_player_ui/map_player_ui.dart' show PlayerPreferences;
 import 'package:map_player_ui/presentation_renderer.dart'
     show RuntimePresentationSessionRuntime, resolveProjectDirectoryAssetFile;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'runtime_launch_save.dart';
+import 'runtime_atomic_json.dart';
 
 const standaloneRuntimeProfileId = 'default';
 const standaloneRuntimeSlotId = 'main';
@@ -44,9 +46,10 @@ abstract interface class StandaloneRuntimeSessionPort
 /// Callback implementation used by the Flutter developer host and focused
 /// launch tests. It deliberately contains no startup or title-screen state.
 final class CallbackStandaloneRuntimeSessionPort
-    implements StandaloneRuntimeSessionPort {
+    implements StandaloneRuntimeSessionPort, RuntimePlayerPreferencesPort {
   CallbackStandaloneRuntimeSessionPort({
     required this.onLaunch,
+    this.onPreferencesChanged,
     Future<void> Function()? onPause,
     Future<void> Function()? onResume,
     Future<GameSessionCheckpoint?> Function()? onCaptureCheckpoint,
@@ -71,6 +74,12 @@ final class CallbackStandaloneRuntimeSessionPort
     RuntimeInitialMapPreloadResult? preloadedInitialMap,
   )
   onLaunch;
+  final void Function(PlayerPreferencesSnapshot)? onPreferencesChanged;
+
+  @override
+  void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    onPreferencesChanged?.call(preferences);
+  }
   final Future<void> Function() _onPause;
   final Future<void> Function() _onResume;
   final Future<GameSessionCheckpoint?> Function() _onCaptureCheckpoint;
@@ -128,6 +137,8 @@ final class StandaloneRuntimeStartupHost {
     required ProjectManifest manifest,
     required StandaloneRuntimeSessionPort sessionPort,
     PlayerPreferencesGateway? preferencesGateway,
+    Future<File> Function()? preferencesFile,
+    RuntimeAudioMixer? sharedAudioMixer,
     PlayerInventoryPreferencesGateway? inventoryPreferencesGateway,
     Future<void> Function()? onExternalExit,
     Future<void> Function()? stopIntroPlayback,
@@ -141,7 +152,7 @@ final class StandaloneRuntimeStartupHost {
          projectFilePath: projectFilePath,
          manifest: manifest,
        ),
-       audioMixer = RuntimeAudioMixer() {
+       audioMixer = sharedAudioMixer ?? RuntimeAudioMixer() {
     identity = buildStandaloneRuntimeGameIdentity(
       projectFilePath: projectFilePath,
       projectFormat: manifest.version.name,
@@ -152,7 +163,10 @@ final class StandaloneRuntimeStartupHost {
     );
     final preferences =
         preferencesGateway ??
-        StandalonePlayerPreferencesGateway(audioMixer: audioMixer);
+        StandalonePlayerPreferencesGateway(
+          audioMixer: audioMixer,
+          preferencesFile: preferencesFile,
+        );
     initialMapPreloader = RuntimeInitialMapPreloader(
       projectFilePath: () async => projectFilePath,
       loadSave: (_) => saves.readEnvelope(),
@@ -445,36 +459,66 @@ final class StandalonePlayerSaveGateway implements PlayerSaveGateway {
         ),
       ),
     );
-    await _saveFile.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(saveData.toJson()),
-      flush: true,
+    await writeRuntimeJsonAtomically(
+      destination: _saveFile,
+      json: saveData.toJson(),
+      validate: SaveData.fromJson,
     );
   }
 }
 
-/// In-memory player preferences for the developer host. They still cross the
-/// same runtime port as Avelune and update the shared mixer immediately.
 final class StandalonePlayerPreferencesGateway
     implements PlayerPreferencesGateway {
   StandalonePlayerPreferencesGateway({
     required RuntimeAudioMixer audioMixer,
+    Future<File> Function()? preferencesFile,
     PlayerPreferencesSnapshot initial = const PlayerPreferencesSnapshot(
       locale: 'fr',
       accessibility: GameSessionAccessibilityOptions(),
     ),
   }) : _audioMixer = audioMixer,
+       _preferencesFile = preferencesFile,
+       defaultPreferences = initial,
        _snapshot = initial;
 
   final RuntimeAudioMixer _audioMixer;
+  final Future<File> Function()? _preferencesFile;
+  @override
+  final PlayerPreferencesSnapshot defaultPreferences;
   PlayerPreferencesSnapshot _snapshot;
 
   @override
-  Future<PlayerPreferencesSnapshot> load() async => _snapshot;
+  Future<PlayerPreferencesSnapshot> load() async {
+    final file = await _preferencesFile?.call();
+    if (file != null && await file.exists()) {
+      final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      _snapshot = PlayerPreferences.fromJson(json).toRuntimeSnapshot(
+        fallbackLocale: _snapshot.locale,
+      );
+    }
+    await _audioMixer.transitionTo(_snapshot.audioMix);
+    return _snapshot;
+  }
 
   @override
   Future<void> save(PlayerPreferencesSnapshot preferences) async {
-    _snapshot = preferences;
-    await _audioMixer.transitionTo(preferences.audioMix);
+    final confirmed = _snapshot;
+    final file = await _preferencesFile?.call();
+    try {
+      await _audioMixer.transitionTo(preferences.audioMix);
+      if (file != null) {
+        await file.parent.create(recursive: true);
+        await writeRuntimeJsonAtomically(
+          destination: file,
+          json: const PlayerPreferences().copyWithRuntimeSnapshot(preferences).toJson(),
+          validate: PlayerPreferences.fromJson,
+        );
+      }
+      _snapshot = preferences;
+    } on Object {
+      await _audioMixer.transitionTo(confirmed.audioMix);
+      rethrow;
+    }
   }
 }
 
@@ -558,6 +602,7 @@ final class _StandaloneRuntimeGameSource implements RuntimeGameSource {
 final class _StandaloneInProcessSessionRuntime
     implements
         InProcessGameSessionRuntime,
+        RuntimePlayerPreferencesPort,
         RuntimePlayerPauseDataPort,
         RuntimePlayerPauseCommandPort {
   _StandaloneInProcessSessionRuntime({
@@ -569,7 +614,18 @@ final class _StandaloneInProcessSessionRuntime
     required this.preloadedInitialMap,
   });
 
+  @override
+  void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    if (!_disposed) {
+      _playerPreferences = preferences;
+      if (sessionPort case final RuntimePlayerPreferencesPort port) {
+        port.applyPlayerPreferences(preferences);
+      }
+    }
+  }
+
   final GameSessionDescriptor descriptor;
+  PlayerPreferencesSnapshot? _playerPreferences;
   final ProjectManifest manifest;
   late final _portraitResolver = DialoguePortraitResolver(
     manifest: manifest,
@@ -643,6 +699,7 @@ final class _StandaloneInProcessSessionRuntime
       projectRootDirectory: File(projectFilePath).parent.path,
       pokemonConfig: manifest.pokemon,
       locale: descriptor.locale,
+      uiLocale: _playerPreferences?.locale,
       mapEnabled: true,
       projectMaps: manifest.maps,
       projectBadges: manifest.badges,

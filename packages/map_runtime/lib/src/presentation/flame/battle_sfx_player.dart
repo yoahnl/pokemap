@@ -1,7 +1,8 @@
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'battle_se_manifest.dart';
+import '../../player/runtime_audio_mixer.dart';
 
 /// Joue un son de combat nommé — BETA-BAT-014.
 ///
@@ -25,12 +26,18 @@ typedef BattleSfxPlayer = void Function(
 final class FlameAudioBattleSfxPlayer {
   FlameAudioBattleSfxPlayer({
     Map<String, String> manifest = battleSeManifest,
-  }) : _manifest = manifest;
+    RuntimeAudioMixer? mixer,
+    AudioPlayer Function()? playerFactory,
+  }) : _manifest = manifest,
+       _mixer = mixer,
+       _playerFactory = playerFactory ?? AudioPlayer.new;
 
   static const String _assetPrefix =
       'packages/map_runtime/assets/audio/battle/se/';
 
   final Map<String, String> _manifest;
+  final RuntimeAudioMixer? _mixer;
+  final AudioPlayer Function() _playerFactory;
   final Set<String> _reportedMisses = <String>{};
   final Set<AudioPlayer> _livePlayers = <AudioPlayer>{};
   var _disposed = false;
@@ -70,18 +77,24 @@ final class FlameAudioBattleSfxPlayer {
       }
       return;
     }
-    final player = AudioPlayer()..audioCache = _sharedAssetCache;
+    final player = _playerFactory()..audioCache = _sharedAssetCache;
     _livePlayers.add(player);
-    player.onPlayerComplete.first.whenComplete(() => _release(player));
+    player.onPlayerComplete.first.then<void>(
+      (_) => _release(player),
+      onError: (Object error, StackTrace stackTrace) => _release(player),
+    );
     () async {
       try {
         await player.setReleaseMode(ReleaseMode.release);
         if (pitch != 100 && pitch > 0) {
           await player.setPlaybackRate(pitch / 100);
         }
+        final sourceVolume = volume.clamp(0, 100) / 100;
+        await _register(player, sourceVolume);
+        if (_disposed || !_livePlayers.contains(player)) return;
         await player.play(
           AssetSource('$_assetPrefix$fileName'),
-          volume: (volume.clamp(0, 100)) / 100,
+          volume: _volume(sourceVolume),
         );
       } on Object catch (error) {
         // Un échec de lecture ne doit jamais casser le tour : la référence
@@ -100,13 +113,18 @@ final class FlameAudioBattleSfxPlayer {
   /// même cycle de vie que les sons nommés, même tolérance aux échecs.
   void playProjectFile(String absolutePath) {
     if (_disposed) return;
-    final player = AudioPlayer()..audioCache = AudioCache(prefix: '');
+    final player = _playerFactory()..audioCache = AudioCache(prefix: '');
     _livePlayers.add(player);
-    player.onPlayerComplete.first.whenComplete(() => _release(player));
+    player.onPlayerComplete.first.then<void>(
+      (_) => _release(player),
+      onError: (Object error, StackTrace stackTrace) => _release(player),
+    );
     () async {
       try {
         await player.setReleaseMode(ReleaseMode.release);
-        await player.play(DeviceFileSource(absolutePath));
+        await _register(player, 1);
+        if (_disposed || !_livePlayers.contains(player)) return;
+        await player.play(DeviceFileSource(absolutePath), volume: _volume(1));
       } on Object catch (error) {
         if (_reportedMisses.add(absolutePath)) {
           debugPrint(
@@ -121,6 +139,7 @@ final class FlameAudioBattleSfxPlayer {
 
   Future<void> _release(AudioPlayer player) async {
     if (!_livePlayers.remove(player)) return;
+    _mixer?.unregister(player);
     try {
       await player.dispose();
     } on Object {
@@ -134,6 +153,7 @@ final class FlameAudioBattleSfxPlayer {
     final players = _livePlayers.toList();
     _livePlayers.clear();
     for (final player in players) {
+      _mixer?.unregister(player);
       try {
         await player.stop();
         await player.dispose();
@@ -145,4 +165,21 @@ final class FlameAudioBattleSfxPlayer {
 
   @visibleForTesting
   int get livePlayerCount => _livePlayers.length;
+
+  double _volume(double sourceVolume) =>
+      _mixer?.mix.volumeFor(
+        RuntimeAudioRoute.battleEffects,
+        sourceVolume: sourceVolume,
+      ) ?? sourceVolume;
+
+  Future<void> _register(AudioPlayer player, double sourceVolume) async {
+    if (_disposed || !_livePlayers.contains(player)) return;
+    await _mixer?.register(
+      channel: player,
+      route: RuntimeAudioRoute.battleEffects,
+      sourceVolume: sourceVolume,
+      setVolume: player.setVolume,
+      applyImmediately: false,
+    );
+  }
 }

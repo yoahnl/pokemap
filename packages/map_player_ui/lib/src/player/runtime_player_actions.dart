@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -5,6 +7,83 @@ import 'package:map_runtime/map_runtime.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'runtime_player_layout.dart';
+import 'player_control_profile.dart';
+
+class RuntimePlayerInputBindings extends StatefulWidget {
+  const RuntimePlayerInputBindings(
+      {super.key,
+      required this.child,
+      this.controlProfile,
+      this.hardwareGamepadEnabled = true});
+
+  final Widget child;
+  final PlayerControlProfile? controlProfile;
+  final bool hardwareGamepadEnabled;
+
+  @override
+  State<RuntimePlayerInputBindings> createState() =>
+      _RuntimePlayerInputBindingsState();
+}
+
+class _RuntimePlayerInputBindingsState
+    extends State<RuntimePlayerInputBindings> {
+  @override
+  void initState() {
+    super.initState();
+    FocusManager.instance.addEarlyKeyEventHandler(_routeKeyEvent);
+  }
+
+  @override
+  void dispose() {
+    FocusManager.instance.removeEarlyKeyEventHandler(_routeKeyEvent);
+    super.dispose();
+  }
+
+  KeyEventResult _routeKeyEvent(KeyEvent event) {
+    final target = FocusManager.instance.primaryFocus?.context;
+    if (!mounted ||
+        target == null ||
+        target.findAncestorStateOfType<_RuntimePlayerInputBindingsState>() !=
+            this) {
+      return KeyEventResult.ignored;
+    }
+    if (!widget.hardwareGamepadEnabled &&
+        event.deviceType == ui.KeyEventDeviceType.gamepad) {
+      return KeyEventResult.handled;
+    }
+    if (target.widget is EditableText ||
+        target.findAncestorWidgetOfExactType<EditableText>() != null) {
+      return KeyEventResult.ignored;
+    }
+    final input = (widget.controlProfile ?? PlayerControlProfile.standard)
+        .runtimeEventFromKeyEvent(event);
+    if (input == null ||
+        Actions.maybeFind<RuntimePlayerLogicalIntent>(target) == null) {
+      return KeyEventResult.ignored;
+    }
+    final source = event.deviceType == ui.KeyEventDeviceType.gamepad
+        ? PlayerInputSource.controller
+        : PlayerInputSource.keyboard;
+    final command = playerInputCommandFromRuntimeEvent(input, source: source);
+    final directional = switch (command.action) {
+      PlayerInputAction.up ||
+      PlayerInputAction.down ||
+      PlayerInputAction.left ||
+      PlayerInputAction.right =>
+        true,
+      _ => false,
+    };
+    if (command.isPress && (!command.isRepeat || directional)) {
+      Actions.invoke(
+          target, RuntimePlayerLogicalIntent(command.action, source: source));
+    }
+    return KeyEventResult.handled;
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      Focus(skipTraversal: true, child: widget.child);
+}
 
 final class RuntimePlayerLogicalIntent extends Intent {
   const RuntimePlayerLogicalIntent(

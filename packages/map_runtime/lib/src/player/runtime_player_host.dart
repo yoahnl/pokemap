@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../session/game_session_contract.dart';
+import '../presentation/flame/dialogue_text_speed.dart';
 import 'runtime_audio_mixer.dart';
 
 /// Host-provided source for one game selected by the player.
@@ -113,6 +114,8 @@ abstract interface class PlayerSaveGateway {
 }
 
 /// Global player preferences transported as data.
+enum RuntimePlayerMenuEffects { full, reduced, opaque }
+
 final class PlayerPreferencesSnapshot {
   const PlayerPreferencesSnapshot({
     required this.locale,
@@ -121,6 +124,8 @@ final class PlayerPreferencesSnapshot {
     this.audioMix = const RuntimeAudioMix(),
     this.highContrast = false,
     this.showInputHints = true,
+    this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
+    this.menuEffects = RuntimePlayerMenuEffects.full,
   })  : assert(locale != ''),
         assert(
           touchControlsOpacity >= 0.3 && touchControlsOpacity <= 1,
@@ -133,6 +138,8 @@ final class PlayerPreferencesSnapshot {
   final RuntimeAudioMix audioMix;
   final bool highContrast;
   final bool showInputHints;
+  final RuntimeDialogueTextSpeed dialogueTextSpeed;
+  final RuntimePlayerMenuEffects menuEffects;
 
   PlayerPreferencesSnapshot copyWith({
     String? locale,
@@ -141,6 +148,8 @@ final class PlayerPreferencesSnapshot {
     RuntimeAudioMix? audioMix,
     bool? highContrast,
     bool? showInputHints,
+    RuntimeDialogueTextSpeed? dialogueTextSpeed,
+    RuntimePlayerMenuEffects? menuEffects,
   }) =>
       PlayerPreferencesSnapshot(
         locale: locale ?? this.locale,
@@ -149,14 +158,22 @@ final class PlayerPreferencesSnapshot {
         audioMix: audioMix ?? this.audioMix,
         highContrast: highContrast ?? this.highContrast,
         showInputHints: showInputHints ?? this.showInputHints,
+        dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
+        menuEffects: menuEffects ?? this.menuEffects,
       );
 }
 
 /// Host-owned persistence for global player preferences.
 abstract interface class PlayerPreferencesGateway {
+  PlayerPreferencesSnapshot get defaultPreferences;
+
   Future<PlayerPreferencesSnapshot> load();
 
   Future<void> save(PlayerPreferencesSnapshot preferences);
+}
+
+abstract interface class RuntimePlayerPreferencesPort {
+  void applyPlayerPreferences(PlayerPreferencesSnapshot preferences);
 }
 
 /// Exit boundary implemented by the embedding application.

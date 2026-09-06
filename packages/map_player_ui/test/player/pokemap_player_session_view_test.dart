@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui' as ui show KeyEventDeviceType;
+import 'dart:ui' as ui show KeyEventDeviceType, PointerDeviceKind;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -185,6 +186,11 @@ void main() {
           phase: RuntimePlayerPhase.title,
           gameTitle: 'Aube',
           pauseSection: RuntimePlayerPauseSection.options,
+          defaultPreferences: const PlayerPreferencesSnapshot(
+            locale: 'en',
+            accessibility: GameSessionAccessibilityOptions(),
+            audioMix: RuntimeAudioMix(musicVolume: 0.8, effectsVolume: 0.8),
+          ),
           preferences: const PlayerPreferencesSnapshot(
             locale: 'fr',
             accessibility: GameSessionAccessibilityOptions(),
@@ -206,6 +212,12 @@ void main() {
 
       await tester.pumpWidget(_app(_view(controller)));
 
+      final options = tester.widget<RuntimePlayerOptions>(
+        find.byType(RuntimePlayerOptions),
+      );
+      expect(options.defaultPreferences.locale, 'en');
+      expect(options.defaultPreferences.audioMix.musicVolume, 0.8);
+
       expect(
         find.byKey(
           const ValueKey<String>('runtime-player-title-options'),
@@ -214,7 +226,7 @@ void main() {
       );
       expect(
         find.byKey(
-          const ValueKey<String>('touch-controls-opacity-slider'),
+          const ValueKey<String>('options-text-speed-choice'),
         ),
         findsOneWidget,
       );
@@ -228,6 +240,151 @@ void main() {
       expect(controller.commands, isEmpty);
     },
   );
+
+  testWidgets(
+      'title options route controller slider changes and back through the coordinator',
+      (tester) async {
+    final events = StreamController<RuntimeInputEvent>.broadcast();
+    addTearDown(events.close);
+    final controller = _FakeRuntimePlayerCoordinator(_titleOptionsSnapshot());
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+        _app(_view(controller, controllerInputEvents: events.stream)));
+    await _selectOptionsCategory(tester, 'audio');
+    final slider = find.byKey(const ValueKey('options-master-slider'));
+    await tester.ensureVisible(slider);
+    tester.widget<Slider>(slider).focusNode!.requestFocus();
+    await tester.pumpAndSettle();
+    events.add(const RuntimeInputEvent.press(RuntimeInputControl.left));
+    await tester.pumpAndSettle();
+    expect(controller.commands, hasLength(1));
+    expect(controller.commands.single.action,
+        RuntimePlayerAction.updatePreferences);
+    expect(controller.commands.single.snapshotRevision, 86);
+    expect(
+        (controller.commands.single.payload! as PlayerPreferencesSnapshot)
+            .audioMix
+            .masterVolume,
+        .95);
+    expect(tester.widget<Slider>(slider).value, .95);
+    events.add(const RuntimeInputEvent.press(RuntimeInputControl.right));
+    await tester.pumpAndSettle();
+    expect(controller.commands, hasLength(2));
+    expect(
+        (controller.commands.last.payload! as PlayerPreferencesSnapshot)
+            .audioMix
+            .masterVolume,
+        1);
+    events.add(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    await tester.pumpAndSettle();
+    expect(controller.commands, hasLength(3));
+    expect(controller.commands.last.action, RuntimePlayerAction.returnToTitle);
+    expect(controller.commands.last.snapshotRevision, 86);
+    controller.publish(controller.snapshot.next(clearPauseSection: true));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('runtime-player-title-options')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('test-game-scene')), findsNothing);
+  });
+
+  testWidgets(
+      'title options receive controller keyboard and touch source changes',
+      (tester) async {
+    final events = StreamController<RuntimeInputEvent>.broadcast();
+    addTearDown(events.close);
+    final controller = _FakeRuntimePlayerCoordinator(_titleOptionsSnapshot());
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+        _app(_view(controller, controllerInputEvents: events.stream)));
+    await _selectOptionsCategory(tester, 'controls');
+    events.add(const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
+            .activeInputSource,
+        PlayerInputSource.controller);
+    expect(find.text('Manette'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
+            .activeInputSource,
+        PlayerInputSource.keyboard);
+    expect(find.text('Clavier'), findsOneWidget);
+    await tester.tapAt(
+        tester.getTopLeft(find.byKey(const ValueKey('options-settings'))) +
+            const Offset(8, 8),
+        kind: ui.PointerDeviceKind.touch);
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
+            .activeInputSource,
+        PlayerInputSource.touch);
+    expect(find.text('Tactile'), findsOneWidget);
+    expect(controller.commands, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('title option popups consume duplicate hardware gamepad events',
+      (tester) async {
+    final events = StreamController<RuntimeInputEvent>.broadcast();
+    addTearDown(events.close);
+    final controller = _FakeRuntimePlayerCoordinator(_titleOptionsSnapshot());
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+        _app(_view(controller, controllerInputEvents: events.stream)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')));
+    await tester.pumpAndSettle();
+    await _hardwareGamepadPress(
+        tester, LogicalKeyboardKey.keyE, PhysicalKeyboardKey.gameButtonA);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-choice-back')), findsOneWidget);
+    expect(controller.commands, isEmpty);
+    events.add(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
+    expect(controller.commands, hasLength(1));
+    expect(controller.commands.single.action,
+        RuntimePlayerAction.updatePreferences);
+    tester
+        .widget<Focus>(find
+            .descendant(
+                of: find.byKey(const ValueKey('options-text-speed-choice')),
+                matching: find.byType(Focus))
+            .first)
+        .focusNode!
+        .requestFocus();
+    await tester.pump();
+    await _hardwareGamepadPress(
+        tester, LogicalKeyboardKey.keyE, PhysicalKeyboardKey.gameButtonA);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
+    expect(controller.commands, hasLength(1));
+    await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')));
+    await tester.pumpAndSettle();
+    events.add(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
+    expect(controller.commands, hasLength(1));
+    tester
+        .widget<Focus>(find
+            .descendant(
+                of: find.byKey(const ValueKey('options-text-speed-choice')),
+                matching: find.byType(Focus))
+            .first)
+        .focusNode!
+        .requestFocus();
+    await tester.pump();
+    await _hardwareGamepadPress(
+        tester, LogicalKeyboardKey.escape, PhysicalKeyboardKey.gameButtonB);
+    await tester.pumpAndSettle();
+    expect(controller.commands, hasLength(1));
+    expect(controller.backRequests, isEmpty);
+  });
 
   testWidgets('projects readability preferences and accessible input hints',
       (tester) async {
@@ -394,67 +551,84 @@ void main() {
     expect(hapticCalls, 1);
   });
 
-  testWidgets('title options expose every runtime accessibility preference',
-      (tester) async {
-    final controller = _FakeRuntimePlayerCoordinator(
-      RuntimePlayerSnapshot(
-        revision: 85,
-        phase: RuntimePlayerPhase.title,
-        gameTitle: 'Aube',
-        pauseSection: RuntimePlayerPauseSection.options,
-        preferences: const PlayerPreferencesSnapshot(
-          locale: 'fr',
-          accessibility: GameSessionAccessibilityOptions(),
-        ),
-        actions: const <RuntimePlayerActionAvailability>[
-          RuntimePlayerActionAvailability.enabled(
-            RuntimePlayerAction.updatePreferences,
+  for (final platform in [TargetPlatform.macOS, TargetPlatform.android]) {
+    testWidgets(
+        'title options expose supported accessibility preferences on $platform',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+        RuntimePlayerSnapshot(
+          revision: 85,
+          phase: RuntimePlayerPhase.title,
+          gameTitle: 'Aube',
+          pauseSection: RuntimePlayerPauseSection.options,
+          preferences: const PlayerPreferencesSnapshot(
+            locale: 'fr',
+            accessibility: GameSessionAccessibilityOptions(),
           ),
-        ],
-      ),
-    );
-    addTearDown(controller.dispose);
+          actions: const <RuntimePlayerActionAvailability>[
+            RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.updatePreferences,
+            ),
+          ],
+        ),
+      );
+      addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller)));
+      await tester.pumpWidget(_app(_view(controller), platform: platform));
+      await _selectOptionsCategory(tester, 'accessibility');
 
-    expect(
-      find.byKey(
-        const ValueKey<String>('runtime-player-reduced-motion-toggle'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(
+      expect(
+        find.byKey(
+          const ValueKey<String>('runtime-player-reduced-motion-toggle'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('runtime-player-high-contrast-toggle'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('runtime-player-haptics-toggle')),
+        platform == TargetPlatform.android ? findsOneWidget : findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('runtime-player-text-scale-slider')),
+        findsOneWidget,
+      );
+
+      await tester.ensureVisible(find.byKey(
         const ValueKey<String>('runtime-player-high-contrast-toggle'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('runtime-player-haptics-toggle')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('runtime-player-input-hints-toggle')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('runtime-player-text-scale-slider')),
-      findsOneWidget,
-    );
-
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-high-contrast-toggle'),
-      ),
-    );
-    await tester.pump();
-    final command = controller.commands.single;
-    expect(command.action, RuntimePlayerAction.updatePreferences);
-    expect(
-      (command.payload! as PlayerPreferencesSnapshot).highContrast,
-      isTrue,
-    );
-  });
+      ));
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('runtime-player-high-contrast-toggle'),
+        ),
+      );
+      await tester.pump();
+      final command = controller.commands.single;
+      expect(command.action, RuntimePlayerAction.updatePreferences);
+      expect(
+        (command.payload! as PlayerPreferencesSnapshot).highContrast,
+        isTrue,
+      );
+      await _selectOptionsCategory(tester, 'controls');
+      final hints = find
+          .byKey(const ValueKey<String>('runtime-player-input-hints-toggle'));
+      expect(hints, findsOneWidget);
+      await tester.ensureVisible(hints);
+      await tester.tap(hints);
+      await tester.pumpAndSettle();
+      expect(controller.commands, hasLength(2));
+      expect(controller.commands.last.action,
+          RuntimePlayerAction.updatePreferences);
+      final updated =
+          controller.commands.last.payload! as PlayerPreferencesSnapshot;
+      expect(updated.showInputHints, isFalse);
+      expect(updated.highContrast, isTrue);
+    });
+  }
 
   testWidgets('shows localized title credits before game completion',
       (tester) async {
@@ -1862,11 +2036,66 @@ Finder _allCanonicalSurfaces() => find.byWidgetPredicate(
               .startsWith('runtime-player-surface-'),
     );
 
-Widget _app(Widget child) => MaterialApp(
+Future<void> _hardwareGamepadPress(WidgetTester tester,
+    LogicalKeyboardKey logical, PhysicalKeyboardKey physical) async {
+  Future<bool> send(bool isDown) async {
+    final response = Completer<bool>();
+    final data = KeyEventSimulator.getKeyData(logical,
+        platform: 'android', isDown: isDown, physicalKey: physical)
+      ..['source'] = 0x00000401;
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      SystemChannels.keyEvent.name,
+      SystemChannels.keyEvent.codec.encodeMessage(data),
+      (reply) {
+        final value = SystemChannels.keyEvent.codec.decodeMessage(reply)
+            as Map<Object?, Object?>?;
+        response.complete(value?['handled'] == true);
+      },
+    );
+    return response.future;
+  }
+
+  try {
+    expect(await send(true), isTrue);
+  } finally {
+    await send(false);
+  }
+}
+
+RuntimePlayerSnapshot _titleOptionsSnapshot() => RuntimePlayerSnapshot(
+      revision: 86,
+      phase: RuntimePlayerPhase.title,
+      gameTitle: 'Aube',
+      pauseSection: RuntimePlayerPauseSection.options,
+      preferences: const PlayerPreferencesSnapshot(
+          locale: 'fr', accessibility: GameSessionAccessibilityOptions()),
+      actions: const [
+        RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openOptions),
+        RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.updatePreferences),
+        RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.returnToTitle),
+      ],
+    );
+
+Future<void> _selectOptionsCategory(
+    WidgetTester tester, String category) async {
+  final target = find.byKey(ValueKey('options-category-$category'));
+  if (target.evaluate().isEmpty) {
+    await tester.tap(find.byKey(const ValueKey('options-category-picker')));
+    await tester.pumpAndSettle();
+  }
+  await tester.ensureVisible(target);
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
+
+Widget _app(Widget child, {TargetPlatform? platform}) => MaterialApp(
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.dark(),
+      theme: PokeMapPlayerTheme.dark().copyWith(platform: platform),
       home: child,
     );
 

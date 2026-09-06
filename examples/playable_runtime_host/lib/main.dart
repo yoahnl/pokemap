@@ -785,7 +785,12 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         _prefersBattleFlutterCommandOverlay,
       );
       nextGame.setDialogueFlutterOverlayPreferred(true);
-      nextGame.setDialogueTextSpeed(_playerOptions.dialogueTextSpeed);
+      final preferences = _startupHost?.playerCoordinator.snapshot.preferences;
+      if (preferences == null) {
+        nextGame.setDialogueTextSpeed(_playerOptions.dialogueTextSpeed);
+      } else {
+        nextGame.applyPlayerPreferences(preferences);
+      }
       await WidgetsBinding.instance.endOfFrame;
       await nextGame.loaded;
       if (!mounted || !identical(_game, nextGame)) {
@@ -836,6 +841,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
 
     await _disposeStartupHost();
     if (!mounted) return;
+    final audioMixer = RuntimeAudioMixer();
     // BETA-CIN-082: compose the shared interactive Presentation stack from
     // the project directory before the host starts, so New Game runs cues
     // and branches here exactly as it does in the Hub.
@@ -851,7 +857,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             catalog: media.catalog,
             mediaUris: media.mediaUris,
             targetPlatform: player_ui.currentPresentationMediaTargetPlatform(),
-            audioMixer: RuntimeAudioMixer(),
+            audioMixer: audioMixer,
             reducedMotion: false,
           );
         }
@@ -869,7 +875,13 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       projectFilePath: _projectFilePath,
       manifest: manifest,
       presentationSession: presentationSession,
+      sharedAudioMixer: audioMixer,
+      preferencesFile: () async => File(p.join(
+        (await getApplicationSupportDirectory()).path,
+        'runtime-player-preferences.json',
+      )),
       sessionPort: CallbackStandaloneRuntimeSessionPort(
+        onPreferencesChanged: (preferences) => _game?.applyPlayerPreferences(preferences),
         onLaunch: (descriptor, reportProgress, preloadedInitialMap) async {
           await _load(
             launchMode: descriptor.launchMode,
@@ -1189,15 +1201,29 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     );
   }
 
-  void _updatePlayerOptions(RuntimePlayerOptions options) {
+  Future<void> _updatePlayerOptions(RuntimePlayerOptions options) async {
     if (!mounted) {
       return;
+    }
+    final controller = _startupHost?.playerCoordinator;
+    final preferences = controller?.snapshot.preferences;
+    if (controller != null && preferences != null) {
+      final result = await controller.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.updatePreferences,
+        snapshotRevision: controller.snapshot.revision,
+        payload: preferences.copyWith(dialogueTextSpeed: options.dialogueTextSpeed),
+      ));
+      if (!mounted) return;
+      if (result.status != RuntimePlayerCommandStatus.accepted) {
+        setState(() => _error = result.safeMessage);
+        return;
+      }
     }
     setState(() {
       _playerOptions = options;
       _touchControlsHiddenByUser = !options.showTouchControls;
     });
-    _game?.setDialogueTextSpeed(options.dialogueTextSpeed);
+    if (controller == null) _game?.setDialogueTextSpeed(options.dialogueTextSpeed);
     unawaited(_persistLastSession());
   }
 
@@ -1333,11 +1359,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         reducedMotion: reducedMotion,
         onStartupCommand: (command) =>
             unawaited(host.coordinator.dispatch(command)),
-        onPlayerCommand: (command) => unawaited(
-          host.coordinator.dispatchPlayerCommand(
-            startupSnapshotRevision: snapshot.revision,
-            command: command,
-          ),
+        onPlayerCommand: (command) => host.coordinator.dispatchPlayerCommand(
+          startupSnapshotRevision: snapshot.revision,
+          command: command,
         ),
         onIntroPlaybackCompleted: (revision) => unawaited(
           host.coordinator.introPlaybackCompleted(snapshotRevision: revision),

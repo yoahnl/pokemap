@@ -11,6 +11,7 @@ import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_move_catalog_loader.dart';
 import '../application/runtime_pokemon_species_loader.dart';
 import '../player/runtime_player_pause_data.dart';
+import '../player/runtime_player_host.dart';
 import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_audio_mixer.dart';
 import '../player/runtime_initial_map_preloader.dart';
@@ -42,6 +43,7 @@ typedef SessionPreloadedInitialMapLoader
 final class PlayableMapGameSessionRuntime
     implements
         InProcessGameSessionRuntime,
+        RuntimePlayerPreferencesPort,
         GameSessionInputLockPort,
         RuntimePlayerPauseDataPort,
         RuntimePlayerPauseCommandPort,
@@ -83,6 +85,7 @@ final class PlayableMapGameSessionRuntime
   final Stopwatch _playWatch = Stopwatch();
 
   PlayableMapGame? _game;
+  PlayerPreferencesSnapshot? _playerPreferences;
   PlayerServiceRuntimeController? _playerServices;
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _playerServiceSnapshots;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
@@ -101,6 +104,12 @@ final class PlayableMapGameSessionRuntime
   bool _disposed = false;
 
   PlayableMapGame? get game => _game;
+
+  @override
+  void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    _playerPreferences = preferences;
+    _game?.applyPlayerPreferences(preferences);
+  }
 
   RuntimeSessionStrings get _strings =>
       RuntimeSessionStrings.forLocale(descriptor.locale.toLowerCase());
@@ -263,6 +272,9 @@ final class PlayableMapGameSessionRuntime
       preloadedInitialMap?.dispose();
     }
     _game = game;
+    if (_playerPreferences case final preferences?) {
+      game.applyPlayerPreferences(preferences);
+    }
     final playerServices = PlayerServiceRuntimeController.contextual(
       currentGameState: () => game.playerServiceGameStateSnapshot,
       commitAndSave: game.commitAndSavePlayerServiceState,
@@ -336,6 +348,7 @@ final class PlayableMapGameSessionRuntime
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
       locale: descriptor.locale,
+      uiLocale: _playerPreferences?.locale,
       mapEnabled: descriptor.grantedCapabilities.contains('map.v1'),
       projectMaps: _projectMaps,
       projectBadges: _projectBadges,

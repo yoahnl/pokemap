@@ -9,6 +9,8 @@ import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'runtime_player_party.dart';
+import 'runtime_player_options.dart';
+import 'player_control_profile.dart';
 import 'runtime_player_bag.dart';
 import 'runtime_player_pokedex.dart';
 import 'runtime_player_profile.dart';
@@ -25,15 +27,26 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
     this.bagNavigation,
     this.pokedexNavigation,
     this.onFavoriteChanged,
+    this.onReturnToTitle,
+    this.controlProfile,
+    this.hardwareGamepadEnabled = true,
+    this.activeInputSource,
+    this.onControlProfileChanged,
   });
 
   final RuntimePlayerSnapshot snapshot;
-  final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
+  final FutureOr<void> Function(PlayerPreferencesSnapshot)?
+      onPreferencesChanged;
   final FutureOr<void> Function(RuntimePlayerPauseCommand)? onPauseCommand;
   final RuntimePlayerPartyNavigation? partyNavigation;
   final RuntimePlayerBagNavigation? bagNavigation;
   final RuntimePlayerPokedexNavigation? pokedexNavigation;
   final Future<void> Function(String, bool)? onFavoriteChanged;
+  final VoidCallback? onReturnToTitle;
+  final PlayerControlProfile? controlProfile;
+  final bool hardwareGamepadEnabled;
+  final PlayerInputSource? activeInputSource;
+  final FutureOr<void> Function(PlayerControlProfile)? onControlProfileChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -59,13 +72,23 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
 
     final preferences = snapshot.preferences;
     if (section == RuntimePlayerPauseSection.options && preferences != null) {
-      return _RuntimePlayerOptions(
-        preferences: preferences,
-        onChanged:
-            snapshot.isActionEnabled(RuntimePlayerAction.updatePreferences)
-                ? onPreferencesChanged
-                : null,
-      );
+      return PlayerMenuThemeScope(
+          role: ProjectPresentationSurfaceRole.options,
+          child: RuntimePlayerOptions(
+            preferences: preferences,
+            defaultPreferences: snapshot.defaultPreferences,
+            onReturnToTitle: onReturnToTitle,
+            controlProfile: controlProfile,
+            hardwareGamepadEnabled: hardwareGamepadEnabled,
+            onControlProfileChanged: onControlProfileChanged,
+            activeInputSource: activeInputSource ??
+                snapshot.activeInputSource ??
+                PlayerInputSource.keyboard,
+            onChanged:
+                snapshot.isActionEnabled(RuntimePlayerAction.updatePreferences)
+                    ? onPreferencesChanged
+                    : null,
+          ));
     }
 
     final detail = snapshot.pauseDetailFor(section);
@@ -232,165 +255,4 @@ class _RuntimePlayerMap extends StatelessWidget {
           ],
         ],
       );
-}
-
-class _RuntimePlayerOptions extends StatefulWidget {
-  const _RuntimePlayerOptions({
-    required this.preferences,
-    required this.onChanged,
-  });
-
-  final PlayerPreferencesSnapshot preferences;
-  final ValueChanged<PlayerPreferencesSnapshot>? onChanged;
-
-  @override
-  State<_RuntimePlayerOptions> createState() => _RuntimePlayerOptionsState();
-}
-
-class _RuntimePlayerOptionsState extends State<_RuntimePlayerOptions> {
-  late double _touchControlsOpacity = widget.preferences.touchControlsOpacity;
-  late double _textScale = widget.preferences.accessibility.textScale;
-
-  @override
-  void didUpdateWidget(covariant _RuntimePlayerOptions oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.preferences.touchControlsOpacity !=
-        widget.preferences.touchControlsOpacity) {
-      _touchControlsOpacity = widget.preferences.touchControlsOpacity;
-    }
-    if (oldWidget.preferences.accessibility.textScale !=
-        widget.preferences.accessibility.textScale) {
-      _textScale = widget.preferences.accessibility.textScale;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PlayerPanel(
-      key: const ValueKey<String>('runtime-player-options'),
-      surfaceRole: ProjectPresentationSurfaceRole.options,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            context.playerL10n.accessibility,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: PlayerSpacing.xs),
-          SwitchListTile.adaptive(
-            key: const ValueKey<String>(
-              'runtime-player-reduced-motion-toggle',
-            ),
-            contentPadding: EdgeInsets.zero,
-            title: Text(context.playerL10n.reducedMotion),
-            value: widget.preferences.accessibility.reducedMotion,
-            onChanged: widget.onChanged == null
-                ? null
-                : (value) => widget.onChanged!(
-                      widget.preferences.copyWith(
-                        accessibility:
-                            widget.preferences.accessibility.copyWith(
-                          reducedMotion: value,
-                        ),
-                      ),
-                    ),
-          ),
-          SwitchListTile.adaptive(
-            key: const ValueKey<String>(
-              'runtime-player-high-contrast-toggle',
-            ),
-            contentPadding: EdgeInsets.zero,
-            title: Text(context.playerL10n.highContrast),
-            value: widget.preferences.highContrast,
-            onChanged: widget.onChanged == null
-                ? null
-                : (value) => widget.onChanged!(
-                      widget.preferences.copyWith(highContrast: value),
-                    ),
-          ),
-          SwitchListTile.adaptive(
-            key: const ValueKey<String>('runtime-player-haptics-toggle'),
-            contentPadding: EdgeInsets.zero,
-            title: Text(context.playerL10n.haptics),
-            value: widget.preferences.accessibility.hapticsEnabled,
-            onChanged: widget.onChanged == null
-                ? null
-                : (value) => widget.onChanged!(
-                      widget.preferences.copyWith(
-                        accessibility:
-                            widget.preferences.accessibility.copyWith(
-                          hapticsEnabled: value,
-                        ),
-                      ),
-                    ),
-          ),
-          SwitchListTile.adaptive(
-            key: const ValueKey<String>('runtime-player-input-hints-toggle'),
-            contentPadding: EdgeInsets.zero,
-            title: Text(context.playerL10n.inputHints),
-            value: widget.preferences.showInputHints,
-            onChanged: widget.onChanged == null
-                ? null
-                : (value) => widget.onChanged!(
-                      widget.preferences.copyWith(showInputHints: value),
-                    ),
-          ),
-          Text(context.playerL10n.textSize),
-          // La valeur vit ici, en continu. Le `label:` du Slider la repetait
-          // dans une bulle qui se posait pile sur ce Text pendant le
-          // glissement : deux fois la meme information, superposees.
-          Text('${(_textScale * 100).round()} %'),
-          Slider(
-            key: const ValueKey<String>('runtime-player-text-scale-slider'),
-            value: _textScale,
-            min: 0.8,
-            max: 1.6,
-            divisions: 8,
-            onChanged: widget.onChanged == null
-                ? null
-                : (value) => setState(() => _textScale = value),
-            onChangeEnd: widget.onChanged == null
-                ? null
-                : (value) => widget.onChanged!(
-                      widget.preferences.copyWith(
-                        accessibility:
-                            widget.preferences.accessibility.copyWith(
-                          textScale: value,
-                        ),
-                      ),
-                    ),
-          ),
-          const Divider(),
-          Text(
-            context.playerL10n.touchControlsOpacity,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: PlayerSpacing.xs),
-          Text('${(_touchControlsOpacity * 100).round()} %'),
-          Slider(
-            key: const ValueKey<String>(
-              'touch-controls-opacity-slider',
-            ),
-            value: _touchControlsOpacity,
-            min: 0.3,
-            max: 1,
-            divisions: 14,
-            onChanged: widget.onChanged == null
-                ? null
-                : (value) => setState(
-                      () => _touchControlsOpacity = value,
-                    ),
-            onChangeEnd: widget.onChanged == null
-                ? null
-                : (value) => widget.onChanged!(
-                      widget.preferences.copyWith(
-                        touchControlsOpacity: value,
-                      ),
-                    ),
-          ),
-        ],
-      ),
-    );
-  }
 }

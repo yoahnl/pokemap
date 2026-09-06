@@ -48,6 +48,7 @@ import '../../application/rail_journey_runtime_coordinator.dart';
 import '../../application/rail_journey_runtime_transaction.dart';
 import '../../player/runtime_input_lock_manager.dart';
 import '../../player/runtime_audio_mixer.dart';
+import '../../player/runtime_player_host.dart';
 import '../../player/runtime_music_service.dart';
 import '../../player/runtime_world_service_models.dart';
 import '../../application/resolve_dialogue.dart';
@@ -439,7 +440,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// La décision produit (Yoahn, 2026-08-20) est de RACCOURCIR, pas de sauter :
   /// chaque étape du plan est encore jouée, chaque dégât encore appliqué, seule
   /// la durée change. Voir `battleReducedMotionSpeedFactor`.
-  final bool reducedMotion;
+  bool reducedMotion;
 
   /// Échelle de texte demandée par le joueur, transmise à la scène de combat.
   ///
@@ -447,7 +448,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// GameSessionAccessibilityOptions côté shell, elle n atteignait pas le
   /// runtime. Bornée dans la scène plutôt qu ici, pour que la borne vive avec le
   /// rendu qui la subit.
-  final double textScale;
+  double textScale;
 
   /// La safe area réelle du device (notch, barre home), poussée par le shell
   /// Flutter — recette du 2026-08-24 : le HUD de combat passait sous la
@@ -1904,6 +1905,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   RuntimeDialogueTextSpeed get dialogueTextSpeed => _dialogueTextSpeed;
+
+  void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    reducedMotion = preferences.accessibility.reducedMotion;
+    textScale = preferences.accessibility.textScale;
+    setDialogueTextSpeed(preferences.dialogueTextSpeed);
+  }
 
   /// Confie la boîte de dialogue au shell Flutter sans déplacer la machine
   /// d'état Yarn hors du runtime.
@@ -7829,7 +7836,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final battleStartSePath =
         _bundle.manifest.battleAudio?.battleStartSePath?.trim();
     if (battleStartSePath != null && battleStartSePath.isNotEmpty) {
-      (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer()).playProjectFile(
+      (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer)).playProjectFile(
         p.normalize(
           p.join(_bundle.projectRootDirectory, battleStartSePath),
         ),
@@ -8117,7 +8124,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           // test `debugOpenBattleForTest` et tout chemin sans transition
           // montent la scène immédiatement jouable, comme avant BAT-016.
           introEnabled: _battleTransitionOverlay != null,
-          playSfx: (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer()).play,
+          playSfx: (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer)).play,
           // BETA-BAT-028 : les cris viennent de la DONNÉE du projet
           // (assets/pokemon/cries/<espèce>.ogg, 721 fichiers dans le Train),
           // pas des assets embarqués — d'où le chemin projet. Un cri absent
@@ -8265,7 +8272,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
       if (File(path).existsSync()) {
-        (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer())
+        (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer))
             .playProjectFile(path);
         return;
       }

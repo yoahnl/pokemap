@@ -29,6 +29,7 @@ final class RuntimePlayerPauseDataBuilder {
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
     required String locale,
+    String? uiLocale,
     bool mapEnabled = false,
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
     ItemCatalogSnapshot? itemCatalog,
@@ -62,7 +63,7 @@ final class RuntimePlayerPauseDataBuilder {
     } on Object {
       moveCatalog = null;
     }
-    final isFrench = locale.toLowerCase().startsWith('fr');
+    final isFrench = (uiLocale ?? locale).toLowerCase().startsWith('fr');
     final evolutionItemIds = await _loadEvolutionItemIds(
       gameState,
       projectRootDirectory: projectRootDirectory,

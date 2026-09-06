@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../player/runtime_player_pause_data.dart';
+import '../player/runtime_player_host.dart';
 import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
 
@@ -41,6 +42,7 @@ typedef InProcessGameSessionRuntimeFactory = InProcessGameSessionRuntime
 final class InProcessGameSessionAdapter
     implements
         GameSessionAdapter,
+        RuntimePlayerPreferencesPort,
         GameSessionInputLockPort,
         RuntimePlayerPauseDataPort,
         RuntimePlayerPauseCommandPort,
@@ -65,6 +67,14 @@ final class InProcessGameSessionAdapter
 
   @override
   Stream<GameSessionAdapterEvent> get events => _events.stream;
+
+  @override
+  void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    if (_disposed) return;
+    if (_runtime case final RuntimePlayerPreferencesPort port) {
+      port.applyPlayerPreferences(preferences);
+    }
+  }
 
   @override
   Future<void> prepare(GameSessionDescriptor descriptor) async {

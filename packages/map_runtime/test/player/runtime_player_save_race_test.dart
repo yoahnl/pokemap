@@ -7,6 +7,134 @@ import 'package:map_runtime/map_runtime.dart';
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  test('manual save rejects a missing checkpoint without issuing a receipt',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    harness.adapter.checkpoint = null;
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.save,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.failed);
+    expect(result.saveReceipt, isNull);
+    expect(harness.coordinator.snapshot.saveReceipt, isNull);
+    expect(harness.saves.commits, isEmpty);
+    expect(harness.adapter.disposeCalls, 0);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.paused);
+  });
+
+  test('save and exit rejects a missing checkpoint and keeps the session',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    harness.adapter.checkpoint = null;
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.returnToTitle,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: const RuntimePlayerExitRequest(saveBeforeExit: true),
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.failed);
+    expect(result.saveReceipt, isNull);
+    expect(harness.coordinator.snapshot.saveReceipt, isNull);
+    expect(harness.saves.commits, isEmpty);
+    expect(harness.adapter.disposeCalls, 0);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.paused);
+  });
+
+  test('explicit save and exit saves even without automatic exit checkpoints',
+      () async {
+    final harness = RuntimePlayerTestHarness(
+      savePolicy: const GameSessionSavePolicy(autosaveOnSessionExit: false),
+    );
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    harness.adapter.checkpoint = testPlayerCheckpoint();
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.returnToTitle,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: const RuntimePlayerExitRequest(saveBeforeExit: true),
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.saves.commits, hasLength(1));
+    expect(harness.adapter.disposeCalls, 1);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+  });
+
+  test('a failed save never retains the preceding successful receipt', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    harness.adapter.checkpoint = testPlayerCheckpoint();
+    await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.save,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    expect(harness.coordinator.snapshot.saveReceipt, isNotNull);
+    expect(harness.coordinator.snapshot.continueSave?.updatedAt,
+        harness.adapter.checkpoint!.updatedAt);
+    harness.saves.commitError = StateError('disk full');
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.save,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.failed);
+    expect(harness.coordinator.snapshot.saveReceipt, isNull);
+    expect(harness.saves.commits, hasLength(1));
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.paused);
+  });
+
+  test('explicit discard returns to title without committing a checkpoint',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    harness.adapter.checkpoint = testPlayerCheckpoint();
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.returnToTitle,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: const RuntimePlayerExitRequest(saveBeforeExit: false),
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.saves.commitAttempts, isEmpty);
+    expect(harness.adapter.disposeCalls, 1);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+  });
+
+  test('save and exit failure stays paused and allows explicit discard',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    harness.adapter.checkpoint = testPlayerCheckpoint();
+    harness.saves.commitError = StateError('disk full');
+    final saveAndExit = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.returnToTitle,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: const RuntimePlayerExitRequest(saveBeforeExit: true),
+    ));
+    expect(saveAndExit.status, RuntimePlayerCommandStatus.failed);
+    expect(harness.adapter.disposeCalls, 0);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.paused);
+    final discard = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.returnToTitle,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: const RuntimePlayerExitRequest(saveBeforeExit: false),
+    ));
+    expect(discard.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.saves.commitAttempts, hasLength(1));
+    expect(harness.adapter.disposeCalls, 1);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+  });
+
   test('a second Save is refused while one checkpoint transaction is active',
       () async {
     final harness = RuntimePlayerTestHarness();

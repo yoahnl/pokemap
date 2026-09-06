@@ -39,6 +39,55 @@ void main() {
     expect(snapshot.audioMix.effectsVolume, 0.8);
   });
 
+  test('storage rejection restores the confirmed mix and preferences', () async {
+    if (Platform.isWindows) return;
+    await store.save(const PlayerPreferences());
+    final mixer = RuntimeAudioMixer();
+    final live = HubPlayerPreferencesGateway(
+      store: store,
+      fallbackLocale: 'fr',
+      audioMixer: mixer,
+    );
+    final confirmed = await live.load();
+    try {
+      expect((await Process.run('chmod', ['a-w', root.path])).exitCode, 0);
+      await expectLater(
+        live.save(confirmed.copyWith(
+          audioMix: const RuntimeAudioMix(masterVolume: 0),
+        )),
+        throwsA(isA<Object>()),
+      );
+      expect(mixer.mix.masterVolume, confirmed.audioMix.masterVolume);
+      expect((await store.load()).preferences.masterVolume, 1);
+    } finally {
+      await Process.run('chmod', ['u+w', root.path]);
+    }
+  });
+
+  test('host defaults keep the system locale and Hub mix after user changes',
+      () async {
+    final english = HubPlayerPreferencesGateway(
+      store: store,
+      fallbackLocale: 'en-GB',
+    );
+    await english.save((await english.load()).copyWith(
+      locale: 'fr',
+      audioMix: const RuntimeAudioMix(masterVolume: 0.2, musicVolume: 0),
+    ));
+    final defaults = english.defaultPreferences;
+    expect(defaults.locale, 'en-GB');
+    expect(defaults.audioMix.masterVolume, 1);
+    expect(defaults.audioMix.musicVolume, 0.8);
+    expect(defaults.audioMix.effectsVolume, 0.8);
+    expect((await english.load()).locale, 'fr');
+    await english.save(defaults);
+    final restored = await english.load();
+    expect(restored.locale, 'en');
+    expect(restored.audioMix.masterVolume, 1);
+    expect(restored.audioMix.musicVolume, 0.8);
+    expect(restored.audioMix.effectsVolume, 0.8);
+  });
+
   test('persists runtime accessibility and every audio bus', () async {
     await store.save(
       const PlayerPreferences(

@@ -9,6 +9,7 @@ enum RuntimeAudioRoute {
   battle,
   cinematicMusic,
   cinematicEffects,
+  battleEffects,
 }
 
 enum RuntimeAudioBus { music, effects }
@@ -21,7 +22,8 @@ extension RuntimeAudioRouteBus on RuntimeAudioRoute {
         RuntimeAudioRoute.battle ||
         RuntimeAudioRoute.cinematicMusic =>
           RuntimeAudioBus.music,
-        RuntimeAudioRoute.cinematicEffects => RuntimeAudioBus.effects,
+        RuntimeAudioRoute.cinematicEffects || RuntimeAudioRoute.battleEffects =>
+          RuntimeAudioBus.effects,
       };
 }
 
@@ -199,7 +201,9 @@ final class RuntimeAudioMixer {
   }
 
   Future<void> _applyAll() async {
-    for (final channel in _channels.values.toList(growable: false)) {
+    for (final entry in _channels.entries.toList(growable: false)) {
+      if (!identical(_channels[entry.key], entry.value)) continue;
+      final channel = entry.value;
       await channel.apply(_mix, _duckingGainFor(channel.route.bus));
     }
   }
@@ -235,7 +239,9 @@ final class RuntimeAudioMixer {
   }
 
   Future<void> _applyBus(RuntimeAudioBus bus) async {
-    for (final channel in _channels.values.toList(growable: false)) {
+    for (final entry in _channels.entries.toList(growable: false)) {
+      if (!identical(_channels[entry.key], entry.value)) continue;
+      final channel = entry.value;
       if (channel.route.bus == bus) {
         await channel.apply(_mix, _duckingGainFor(bus));
       }

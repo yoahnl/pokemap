@@ -1,7 +1,34 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('a channel removed during a mix update is never written after disposal',
+      () async {
+    final mixer = RuntimeAudioMixer();
+    final gate = Completer<void>();
+    var disposedWrites = 0;
+    await mixer.register(
+      channel: 'slow',
+      route: RuntimeAudioRoute.title,
+      applyImmediately: false,
+      setVolume: (_) => gate.future,
+    );
+    await mixer.register(
+      channel: 'short-effect',
+      route: RuntimeAudioRoute.battleEffects,
+      applyImmediately: false,
+      setVolume: (_) async => disposedWrites++,
+    );
+    final update = mixer.transitionTo(const RuntimeAudioMix(masterVolume: 0.5));
+    await Future<void>.delayed(Duration.zero);
+    mixer.unregister('short-effect');
+    gate.complete();
+    await update;
+    expect(disposedWrites, 0);
+  });
+
   test('routes every runtime identity through the expected audio bus', () {
     const mix = RuntimeAudioMix(
       masterVolume: 0.5,

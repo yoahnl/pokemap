@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -208,6 +209,11 @@ void main() {
       phase: RuntimePlayerPhase.paused,
       gameTitle: 'Aube',
       pauseSection: RuntimePlayerPauseSection.options,
+      defaultPreferences: const PlayerPreferencesSnapshot(
+        locale: 'en',
+        accessibility: GameSessionAccessibilityOptions(),
+        audioMix: RuntimeAudioMix(musicVolume: 0.8, effectsVolume: 0.8),
+      ),
       preferences: const PlayerPreferencesSnapshot(
         locale: 'fr',
         accessibility: GameSessionAccessibilityOptions(),
@@ -229,11 +235,25 @@ void main() {
         onPreferencesChanged: (preferences) => changed = preferences,
       ),
     ));
+    expect(
+      tester.widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
+          .defaultPreferences,
+      same(snapshot.defaultPreferences),
+    );
+    final controls = find.byKey(const ValueKey('options-category-controls'));
+    if (controls.evaluate().isEmpty) {
+      await tester.tap(find.byKey(const ValueKey('options-category-picker')));
+      await tester.pumpAndSettle();
+    }
+    await tester.ensureVisible(controls);
+    await tester.tap(controls);
+    await tester.pumpAndSettle();
 
     final slider = find.byKey(
       const ValueKey<String>('touch-controls-opacity-slider'),
     );
     expect(slider, findsOneWidget);
+    await tester.ensureVisible(slider);
     await tester.drag(slider, const Offset(-120, 0));
     await tester.pump();
 

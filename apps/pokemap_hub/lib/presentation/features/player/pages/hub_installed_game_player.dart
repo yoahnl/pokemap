@@ -313,14 +313,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
           onStartupCommand: (command) {
             unawaited(startup.dispatch(command));
           },
-          onPlayerCommand: (command) {
-            unawaited(
-              startup.dispatchPlayerCommand(
-                startupSnapshotRevision: effectiveSnapshot.revision,
-                command: command,
-              ),
-            );
-          },
+          onPlayerCommand: (command) => startup.dispatchPlayerCommand(
+            startupSnapshotRevision: effectiveSnapshot.revision,
+            command: command,
+          ),
           onIntroPlaybackCompleted: (revision) {
             unawaited(
               startup.introPlaybackCompleted(snapshotRevision: revision),
@@ -341,7 +337,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                       _buildSessionView(viewController, playerPresentation),
       ),
     );
-    final playerLocale = _playerLocale;
+    final locale = effectiveSnapshot.playerSnapshot?.preferences?.locale;
+    final playerLocale = locale == null
+        ? _playerLocale
+        : Locale(locale.split(RegExp('[-_]')).first);
     if (playerLocale == null) return player;
     return Localizations.override(
       context: context,
@@ -408,11 +407,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     );
   }
 
-  void _updateControlProfile(player_ui.PlayerControlProfile profile) {
+  Future<void> _updateControlProfile(player_ui.PlayerControlProfile profile) async {
     if (profile == _controlProfile) return;
-    setState(() => _controlProfile = profile);
     final store = _controlProfileStore;
-    if (store != null) unawaited(store.save(profile));
+    if (store == null) throw StateError('Control profile storage is unavailable.');
+    await store.save(profile);
+    if (mounted) setState(() => _controlProfile = profile);
   }
 
   @override

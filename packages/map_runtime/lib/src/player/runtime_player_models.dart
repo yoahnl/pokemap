@@ -90,6 +90,12 @@ final class RuntimePlayerSaveReceipt {
   final GameSessionCheckpointTrigger trigger;
 }
 
+final class RuntimePlayerExitRequest {
+  const RuntimePlayerExitRequest({required this.saveBeforeExit});
+
+  final bool saveBeforeExit;
+}
+
 /// Explicit UI availability for one runtime-owned player action.
 final class RuntimePlayerActionAvailability {
   const RuntimePlayerActionAvailability.enabled(this.action)
@@ -182,10 +188,12 @@ final class RuntimePlayerCommandResult {
   const RuntimePlayerCommandResult({
     required this.status,
     this.safeMessage,
+    this.saveReceipt,
   });
 
   final RuntimePlayerCommandStatus status;
   final String? safeMessage;
+  final RuntimePlayerSaveReceipt? saveReceipt;
 }
 
 /// Immutable presentation state owned by the runtime player coordinator.
@@ -206,6 +214,10 @@ final class RuntimePlayerSnapshot {
     this.activeInputSource,
     this.worldService,
     this.preferences,
+    this.defaultPreferences = const PlayerPreferencesSnapshot(
+      locale: 'fr',
+      accessibility: GameSessionAccessibilityOptions(),
+    ),
     this.hasDiscoveredSave = false,
     this.continueSave,
     this.activeSaveAddress,
@@ -269,6 +281,7 @@ final class RuntimePlayerSnapshot {
   final PlayerInputSource? activeInputSource;
   final RuntimeWorldServiceSnapshot? worldService;
   final PlayerPreferencesSnapshot? preferences;
+  final PlayerPreferencesSnapshot defaultPreferences;
   final bool hasDiscoveredSave;
   final PlayerSaveSummary? continueSave;
   final RuntimePlayerSaveAddress? activeSaveAddress;
@@ -320,6 +333,7 @@ final class RuntimePlayerSnapshot {
     RuntimeWorldServiceSnapshot? worldService,
     bool clearWorldService = false,
     PlayerPreferencesSnapshot? preferences,
+    PlayerPreferencesSnapshot? defaultPreferences,
     bool? hasDiscoveredSave,
     PlayerSaveSummary? continueSave,
     bool clearContinueSave = false,
@@ -366,6 +380,7 @@ final class RuntimePlayerSnapshot {
       worldService:
           clearWorldService ? null : worldService ?? this.worldService,
       preferences: preferences ?? this.preferences,
+      defaultPreferences: defaultPreferences ?? this.defaultPreferences,
       hasDiscoveredSave: hasDiscoveredSave ?? this.hasDiscoveredSave,
       continueSave:
           clearContinueSave ? null : continueSave ?? this.continueSave,

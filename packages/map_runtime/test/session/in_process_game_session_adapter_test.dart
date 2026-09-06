@@ -19,6 +19,13 @@ void main() {
 
     await adapter.prepare(descriptor);
     await adapter.start();
+    const preferences = PlayerPreferencesSnapshot(
+      locale: 'fr',
+      accessibility: GameSessionAccessibilityOptions(textScale: 1.4),
+      dialogueTextSpeed: RuntimeDialogueTextSpeed.fast,
+    );
+    adapter.applyPlayerPreferences(preferences);
+    expect(runtime.preferences, same(preferences));
     await Future<void>.delayed(Duration.zero);
     expect(
       events.whereType<GameSessionReady>().single.sessionId,
@@ -141,10 +148,17 @@ GameSessionDescriptor _descriptor() => GameSessionDescriptor(
       ),
     );
 
-class _FakeInProcessRuntime implements InProcessGameSessionRuntime {
+class _FakeInProcessRuntime
+    implements InProcessGameSessionRuntime, RuntimePlayerPreferencesPort {
   _FakeInProcessRuntime(this.sessionId);
 
   final String sessionId;
+  PlayerPreferencesSnapshot? preferences;
+
+  @override
+  void applyPlayerPreferences(PlayerPreferencesSnapshot value) {
+    preferences = value;
+  }
   final calls = <String>[];
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
 

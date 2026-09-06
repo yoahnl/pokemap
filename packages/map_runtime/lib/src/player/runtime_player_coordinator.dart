@@ -38,6 +38,7 @@ final class RuntimePlayerCoordinator {
           revision: 0,
           phase: RuntimePlayerPhase.boot,
           gameTitle: gameSource.displayTitle,
+          defaultPreferences: preferencesGateway.defaultPreferences,
         ) {
     if (gameSource.identity != saveGateway.identity) {
       throw ArgumentError(
@@ -675,6 +676,7 @@ final class RuntimePlayerCoordinator {
             safeMessage: 'Des préférences joueur valides sont requises.',
           );
         }
+        final localeChanged = _preferences?.locale != preferences.locale;
         try {
           await _preferencesGateway.save(preferences);
         } on Object {
@@ -684,6 +686,26 @@ final class RuntimePlayerCoordinator {
           );
         }
         _preferences = preferences;
+        _sessions.applyPlayerPreferences(preferences);
+        if (localeChanged && _snapshot.phase == RuntimePlayerPhase.paused) {
+          final sessionId = _sessions.snapshot.descriptor?.sessionId;
+          Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> details;
+          try {
+            details = await _sessions.loadPauseDetails();
+          } on Object {
+            details = const {};
+            _pauseDataFailure = _isFrench
+                ? 'Le menu n’a pas pu être actualisé. Rouvrez-le pour réessayer.'
+                : 'The menu could not be refreshed. Reopen it to retry.';
+          }
+          if (_canPublishPauseData(sessionId)) {
+            _publishPause(
+              _snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
+              logicalSelectionId: _snapshot.logicalSelectionId,
+              pauseDetails: details,
+            );
+          }
+        }
         _publish(_snapshot.next(preferences: preferences));
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
@@ -708,24 +730,34 @@ final class RuntimePlayerCoordinator {
             phase: RuntimePlayerPhase.saving,
             actions: const <RuntimePlayerActionAvailability>[],
             clearFailure: true,
+            clearSaveReceipt: true,
           ),
         );
         try {
           final saved = await _sessions.requestCheckpoint();
+          final receipt = saved
+              ? RuntimePlayerSaveReceipt(
+                  address: _activeSaveAddress!,
+                  trigger: GameSessionCheckpointTrigger.manual,
+                )
+              : null;
+          if (saved) {
+            try {
+              _latestSave = await _saveGateway.readLatestSummary();
+            } on Object {
+              _latestSave = null;
+            }
+          }
           _publishPause(
             section,
             logicalSelectionId: logicalSelectionId,
             failure: saved ? null : _sessions.snapshot.failure,
             clearFailure: saved,
-            saveReceipt: saved
-                ? RuntimePlayerSaveReceipt(
-                    address: _activeSaveAddress!,
-                    trigger: GameSessionCheckpointTrigger.manual,
-                  )
-                : null,
+            saveReceipt: receipt,
           );
           boundary.complete(saved);
           return RuntimePlayerCommandResult(
+            saveReceipt: receipt,
             status: saved
                 ? RuntimePlayerCommandStatus.accepted
                 : RuntimePlayerCommandStatus.failed,
@@ -788,6 +820,16 @@ final class RuntimePlayerCoordinator {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.accepted,
           );
+        }
+        if (command.payload case RuntimePlayerExitRequest(:final saveBeforeExit)) {
+          if (saveBeforeExit) {
+            final saved = await _dispatchSerialized(RuntimePlayerCommand(
+              action: RuntimePlayerAction.save,
+              snapshotRevision: _snapshot.revision,
+            ));
+            if (saved.status != RuntimePlayerCommandStatus.accepted) return saved;
+          }
+          return _returnToTitle(checkpoint: false);
         }
         return _returnToTitle(
           checkpoint: _snapshot.phase == RuntimePlayerPhase.paused,
@@ -1325,6 +1367,9 @@ final class RuntimePlayerCoordinator {
         await _sessions.terminate();
         return _finishCancelledLaunch();
       }
+      if (_preferences case final preferences?) {
+        _sessions.applyPlayerPreferences(preferences);
+      }
       await _sessions.start();
       if (generation != _launchGeneration) {
         await _cancelLiveSession();
@@ -1579,6 +1624,7 @@ final class RuntimePlayerCoordinator {
         clearSaveReceipt: true,
         clearPauseMenuState: true,
         preferences: _preferences,
+        defaultPreferences: _preferencesGateway.defaultPreferences,
         favoriteItemIds: _favoriteItemIds,
         bagFavoritesAvailable: _bagFavoritesAvailable,
         hasDiscoveredSave: _latestSave != null,
@@ -1636,6 +1682,8 @@ final class RuntimePlayerCoordinator {
         pauseDetails: effectivePauseDetails,
         pauseMenuState: effectivePauseMenuState,
         saveReceipt: saveReceipt,
+        continueSave: _latestSave,
+        clearContinueSave: _latestSave == null,
         actions: _pauseActions(
           section: section,
           includeReturnToRoot: section != RuntimePlayerPauseSection.root,

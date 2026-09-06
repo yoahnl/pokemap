@@ -12,6 +12,63 @@ import 'package:pokemap_loader/src/runtime_startup_host.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('a blocked atomic replacement preserves the last standalone save',
+      () async {
+    if (Platform.isWindows) return;
+    final root = await Directory.systemTemp.createTemp('menu8-atomic-save-');
+    addTearDown(() async {
+      await Process.run('chmod', ['u+w', root.path]);
+      await root.delete(recursive: true);
+    });
+    final projectPath = '${root.path}/project.json';
+    final fixture = (await loadRuntimeHostLaunchSaveData(
+      projectFilePath: _goldenProjectPath(),
+    ))!;
+    final saveFile = File('${root.path}/$kRuntimeHostLaunchSaveFileName');
+    await saveFile.writeAsString(jsonEncode(fixture.toJson()));
+    final before = await saveFile.readAsBytes();
+    final identity = buildStandaloneRuntimeGameIdentity(
+      projectFilePath: projectPath,
+      projectFormat: (await _loadManifest(_goldenProjectPath())).version.name,
+    );
+    final descriptor = GameSessionDescriptor(
+      sessionId: 'menu8-atomic-save',
+      sessionToken: 'menu8-atomic-token',
+      identity: identity,
+      profileId: standaloneRuntimeProfileId,
+      slotId: standaloneRuntimeSlotId,
+      launchMode: GameSessionLaunchMode.newGame,
+      installedVersionHandle: 'menu8-atomic-fixture',
+      initialGameState: gameStateFromSaveData(fixture),
+      runtimeApiVersion: '1.0.0',
+      grantedCapabilities: const {},
+      locale: 'fr',
+      accessibility: const GameSessionAccessibilityOptions(),
+    );
+    final gateway = StandalonePlayerSaveGateway(
+      projectFilePath: projectPath,
+      identity: identity,
+    );
+    final timestamp = DateTime.utc(2026, 9, 6);
+    final locked = await Process.run('chmod', ['a-w', root.path]);
+    expect(locked.exitCode, 0);
+    await expectLater(
+      gateway.commit(GameSessionCheckpointCommit(
+        descriptor: descriptor.publicContext,
+        checkpoint: GameSessionCheckpoint(
+          saveId: fixture.saveId,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          playTimeSeconds: 7654,
+          state: strictGameStateSaveJson(gameStateFromSaveData(fixture)),
+        ),
+        status: SaveStatus.active,
+      )),
+      throwsA(isA<FileSystemException>()),
+    );
+    expect(await saveFile.readAsBytes(), before);
+  });
+
   test(
     'the versioned Phase A golden slice exposes a real launch save',
     () async {
@@ -46,13 +103,16 @@ void main() {
       );
       final launches = <GameSessionDescriptor>[];
       final loadedMapIds = <String>[];
+      final appliedPreferences = <PlayerPreferencesSnapshot>[];
       final host = StandaloneRuntimeStartupHost(
         projectFilePath: projectFilePath,
         manifest: manifest,
         clock: const _ImmediateClock(),
         minimumSplashDuration: Duration.zero,
         sessionPort: CallbackStandaloneRuntimeSessionPort(
+          onPreferencesChanged: appliedPreferences.add,
           onLaunch: (descriptor, reportProgress, preloadedInitialMap) async {
+            expect(appliedPreferences, hasLength(1));
             launches.add(descriptor);
             final bundle =
                 preloadedInitialMap?.bundle ??

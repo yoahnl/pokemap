@@ -312,6 +312,12 @@ final class MemoryPlayerSaveGateway implements PlayerSaveGateway {
 }
 
 final class MemoryPlayerPreferencesGateway implements PlayerPreferencesGateway {
+  @override
+  PlayerPreferencesSnapshot defaultPreferences = const PlayerPreferencesSnapshot(
+    locale: 'fr',
+    accessibility: GameSessionAccessibilityOptions(),
+  );
+
   PlayerPreferencesSnapshot current = const PlayerPreferencesSnapshot(
     locale: 'fr',
     accessibility: GameSessionAccessibilityOptions(),
@@ -319,6 +325,7 @@ final class MemoryPlayerPreferencesGateway implements PlayerPreferencesGateway {
   int loads = 0;
   int saves = 0;
   Object? loadError;
+  Object? saveError;
   Completer<void>? loadGate;
 
   @override
@@ -332,6 +339,7 @@ final class MemoryPlayerPreferencesGateway implements PlayerPreferencesGateway {
   @override
   Future<void> save(PlayerPreferencesSnapshot preferences) async {
     saves++;
+    if (saveError case final error?) throw error;
     current = preferences;
   }
 }
@@ -351,6 +359,7 @@ final class MemoryRuntimeExternalExit implements RuntimeExternalExit {
 final class FakeRuntimeSessionAdapter
     implements
         GameSessionAdapter,
+        RuntimePlayerPreferencesPort,
         RuntimePlayerPauseDataPort,
         RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort {
@@ -358,6 +367,12 @@ final class FakeRuntimeSessionAdapter
 
   final String sessionId;
   final calls = <String>[];
+  final appliedPreferences = <PlayerPreferencesSnapshot>[];
+
+  @override
+  void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    appliedPreferences.add(preferences);
+  }
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
   final _worldServices =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();

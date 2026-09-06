@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../player/runtime_player_pause_data.dart';
+import '../player/runtime_player_host.dart';
 import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
 
@@ -60,6 +61,13 @@ final class GameSessionController
   GameCompletionEvent? _committedCompletion;
 
   GameSessionSnapshot get snapshot => _snapshot;
+
+  void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    if (_controllerDisposed) return;
+    if (_adapter case final RuntimePlayerPreferencesPort port) {
+      port.applyPlayerPreferences(preferences);
+    }
+  }
   Stream<GameSessionSnapshot> get snapshots => _snapshots.stream;
   GameCompletionEvent? get committedCompletion => _committedCompletion;
 
@@ -692,7 +700,9 @@ final class GameSessionController
     required GameSessionCheckpointTrigger trigger,
   }) async {
     final checkpoint = await _adapter!.captureCheckpoint();
-    if (checkpoint == null) return true;
+    if (checkpoint == null) {
+      return trigger != GameSessionCheckpointTrigger.manual;
+    }
     try {
       await _commitCheckpoint(
         GameSessionCheckpointCommit(

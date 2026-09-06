@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -5,8 +7,10 @@ import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'runtime_player_detail_router.dart';
+import 'runtime_player_actions.dart';
 import 'player_control_profile.dart';
-import 'player_control_remapping_panel.dart';
+import '../foundation/player_menu_components.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 
 /// Standalone options surface opened from the title screen.
 ///
@@ -19,75 +23,59 @@ class PlayerTitleOptionsSurface extends StatelessWidget {
     required this.onReturnToTitle,
     this.onPreferencesChanged,
     this.controlProfile,
+    this.hardwareGamepadEnabled = true,
+    this.activeInputSource,
     this.onControlProfileChanged,
   });
 
   final RuntimePlayerSnapshot snapshot;
   final VoidCallback? onReturnToTitle;
-  final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
+  final FutureOr<void> Function(PlayerPreferencesSnapshot)?
+      onPreferencesChanged;
   final PlayerControlProfile? controlProfile;
-  final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
+  final bool hardwareGamepadEnabled;
+  final PlayerInputSource? activeInputSource;
+  final FutureOr<void> Function(PlayerControlProfile)? onControlProfileChanged;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: PlayerSurface(
-          maxWidth: 760,
-          child: LayoutBuilder(
-            builder: (context, constraints) => SingleChildScrollView(
-              key: const ValueKey<String>('runtime-player-title-options'),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    Icon(
-                      Icons.tune_rounded,
-                      size: 56,
-                      color: context.playerColors.primary,
+        body: RuntimePlayerActions(
+            onBack: onReturnToTitle ?? () {},
+            onMenu: () {},
+            onInputSourceChanged: (_) {},
+            child: RuntimePlayerInputBindings(
+                controlProfile: controlProfile,
+                hardwareGamepadEnabled: hardwareGamepadEnabled,
+                child: PlayerMenuThemeScope(
+                  child: PlayerMenuFrame(
+                    key: const ValueKey<String>('runtime-player-title-options'),
+                    scrollable: false,
+                    header: Padding(
+                      padding: const EdgeInsets.all(PlayerSpacing.lg),
+                      child: Text(context.playerL10n.options,
+                          style: Theme.of(context).textTheme.headlineMedium),
                     ),
-                    const SizedBox(height: PlayerSpacing.sm),
-                    Text(
-                      context.playerL10n.options,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium,
+                    footer: Padding(
+                      padding: const EdgeInsets.all(PlayerSpacing.sm),
+                      child: PlayerActionButton(
+                        key: const ValueKey<String>(
+                            'runtime-player-title-options-back'),
+                        label: context.playerL10n.returnToTitle,
+                        icon: Icons.arrow_back_rounded,
+                        secondary: true,
+                        labelMaxLines: 3,
+                        onPressed: onReturnToTitle,
+                      ),
                     ),
-                    const SizedBox(height: PlayerSpacing.xs),
-                    Text(
-                      snapshot.gameTitle,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: PlayerSpacing.lg),
-                    RuntimePlayerDetailRouter(
+                    child: RuntimePlayerDetailRouter(
                       snapshot: snapshot,
                       onPreferencesChanged: onPreferencesChanged,
+                      controlProfile: controlProfile,
+                      hardwareGamepadEnabled: hardwareGamepadEnabled,
+                      activeInputSource: activeInputSource,
+                      onControlProfileChanged: onControlProfileChanged,
                     ),
-                    if (controlProfile case final profile?) ...<Widget>[
-                      const SizedBox(height: PlayerSpacing.lg),
-                      PlayerControlRemappingPanel(
-                        profile: profile,
-                        onChanged: onControlProfileChanged ?? (_) {},
-                      ),
-                    ],
-                    const SizedBox(height: PlayerSpacing.lg),
-                    PlayerActionButton(
-                      key: const ValueKey<String>(
-                        'runtime-player-title-options-back',
-                      ),
-                      label: context.playerL10n.returnToTitle,
-                      icon: Icons.arrow_back_rounded,
-                      secondary: true,
-                      autofocus: true,
-                      onPressed: onReturnToTitle,
-                      disabledReason: onReturnToTitle == null
-                          ? context.playerL10n.actionUnavailable
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+                  ),
+                ))),
       );
 }

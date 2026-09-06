@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 import 'pokemap_player_surface_palette_theme.dart';
 import 'pokemap_player_theme.dart';
@@ -69,6 +70,7 @@ final class PokeMapPlayerMenuTheme {
         theme.extension<PokeMapPlayerAuthoredSemanticTheme>()?.semantic;
     final colors = theme.extension<PokeMapPlayerColors>();
     final media = MediaQuery.maybeOf(context);
+    final effects = PlayerMenuEffectsScope.of(context);
     final contrast =
         (media?.highContrast ?? false) || (colors?.highContrast ?? false);
     Color resolve(String? value, Color fallback) =>
@@ -124,9 +126,10 @@ final class PokeMapPlayerMenuTheme {
       danger: contrast ? preset.text : authored?.danger ?? preset.danger,
       highContrast: contrast,
       reducedMotion: (media?.disableAnimations ?? false) ||
+          effects != RuntimePlayerMenuEffects.full ||
           (media?.accessibleNavigation ?? false) ||
           theme.extension<PokeMapPlayerMotion>()?.standard == Duration.zero,
-      opaque: opaque || contrast,
+      opaque: opaque || contrast || effects == RuntimePlayerMenuEffects.opaque,
       typography: context.playerTypography,
     );
   }
@@ -277,6 +280,28 @@ final class PokeMapPlayerMenuTheme {
           ),
         ],
       );
+}
+
+class PlayerMenuEffectsScope extends InheritedTheme {
+  const PlayerMenuEffectsScope({
+    super.key,
+    required this.effects,
+    required super.child,
+  });
+
+  final RuntimePlayerMenuEffects effects;
+
+  static RuntimePlayerMenuEffects of(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<PlayerMenuEffectsScope>()?.effects ??
+      RuntimePlayerMenuEffects.full;
+
+  @override
+  Widget wrap(BuildContext context, Widget child) =>
+      PlayerMenuEffectsScope(effects: effects, child: child);
+
+  @override
+  bool updateShouldNotify(PlayerMenuEffectsScope oldWidget) =>
+      effects != oldWidget.effects;
 }
 
 class PlayerMenuThemeScope extends InheritedWidget {

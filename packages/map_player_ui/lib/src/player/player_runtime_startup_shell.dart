@@ -6,6 +6,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_intro_video_player.dart';
 import 'player_intro_video_surface.dart';
@@ -16,8 +17,10 @@ import 'player_title_options_surface.dart';
 import 'player_title_motion.dart';
 import 'player_title_prompt_surface.dart';
 import 'player_title_screen.dart';
+import 'pokemap_player_session_view.dart';
 import 'runtime_player_actions.dart';
 import 'runtime_player_focus_controller.dart';
+import 'runtime_player_options.dart';
 
 typedef PlayerStartupIntroFailure = void Function(
   int snapshotRevision,
@@ -78,7 +81,6 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
     this.titleMotionDriverFactory,
     this.onPresentationOrientationChanged,
     this.payloadForAction,
-    this.onPreferencesChanged,
     this.reducedMotion = false,
     this.splashAnimationProgress,
     this.splashLoadingProgress,
@@ -96,7 +98,8 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
   final RuntimeStartupSnapshot snapshot;
   final RuntimePlayerTitlePresentation titlePresentation;
   final ValueChanged<RuntimeStartupCommand> onStartupCommand;
-  final ValueChanged<RuntimePlayerCommand> onPlayerCommand;
+  final FutureOr<RuntimePlayerCommandResult> Function(RuntimePlayerCommand)
+      onPlayerCommand;
   final ValueChanged<int> onIntroPlaybackCompleted;
   final PlayerStartupIntroFailure onIntroPlaybackFailed;
   final PlayerRuntimeStartupShellController? controller;
@@ -114,7 +117,6 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
   final ValueChanged<RuntimePresentationOrientation>?
       onPresentationOrientationChanged;
   final Object? Function(RuntimePlayerAction action)? payloadForAction;
-  final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
   final bool reducedMotion;
   final double? splashAnimationProgress;
   final double? splashLoadingProgress;
@@ -216,7 +218,10 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         _buildSplash(),
       RuntimeStartupPhase.intro => _buildIntro(),
       RuntimeStartupPhase.titlePrompt => _buildTitlePrompt(),
-      RuntimeStartupPhase.titleMenu => _buildTitleState(),
+      RuntimeStartupPhase.titleMenu => RuntimePlayerPreferencesScope(
+          preferences: widget.snapshot.playerSnapshot?.preferences,
+          child: Builder(builder: _buildTitleState),
+        ),
       RuntimeStartupPhase.recoverableError => _buildError(context),
       RuntimeStartupPhase.launchingSession ||
       RuntimeStartupPhase.completed =>
@@ -383,7 +388,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     );
   }
 
-  Widget _buildTitleState() {
+  Widget _buildTitleState(BuildContext context) {
     final player = widget.snapshot.playerSnapshot;
     if (player == null) return _buildPreparing();
     if (_isTitleOptions(player)) {
@@ -391,15 +396,19 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         snapshot: player,
         onReturnToTitle: () {
           _focusController.select('title.openOptions');
-          _dispatchPlayer(RuntimePlayerAction.returnToTitle, player);
+          unawaited(_dispatchPlayer(RuntimePlayerAction.returnToTitle, player));
         },
-        onPreferencesChanged: (preferences) {
-          widget.onPreferencesChanged?.call(preferences);
-          _dispatchPlayer(
+        onPreferencesChanged: (preferences) async {
+          final unavailableMessage = context.playerL10n.actionUnavailable;
+          final result = await _dispatchPlayer(
             RuntimePlayerAction.updatePreferences,
             player,
             payload: preferences,
           );
+          if (result.status != RuntimePlayerCommandStatus.accepted) {
+            throw RuntimePlayerOptionsFailure(
+                result.safeMessage ?? unavailableMessage);
+          }
         },
       );
     }
@@ -522,7 +531,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       'title.${runtimeAction.name}',
       source: PlayerInputSource.touch,
     );
-    _dispatchPlayer(runtimeAction, player);
+    unawaited(_dispatchPlayer(runtimeAction, player));
   }
 
   void _dispatchStartup(RuntimeStartupAction action) {
@@ -534,13 +543,17 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     );
   }
 
-  void _dispatchPlayer(
+  Future<RuntimePlayerCommandResult> _dispatchPlayer(
     RuntimePlayerAction action,
     RuntimePlayerSnapshot player, {
     Object? payload,
-  }) {
-    if (!_active || !player.isActionEnabled(action)) return;
-    widget.onPlayerCommand(
+  }) async {
+    if (!_active || !player.isActionEnabled(action)) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.unavailable,
+      );
+    }
+    return widget.onPlayerCommand(
       RuntimePlayerCommand(
         action: action,
         snapshotRevision: player.revision,

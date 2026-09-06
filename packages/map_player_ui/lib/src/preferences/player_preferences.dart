@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 enum PlayerLanguage { system, fr, en }
 
@@ -20,6 +21,8 @@ final class PlayerPreferences {
     this.showInputHints = true,
     this.touchControlsOpacity = 0.82,
     this.launchMostRecentGameOnStartup = false,
+    this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
+    this.menuEffects = RuntimePlayerMenuEffects.full,
   });
 
   factory PlayerPreferences.fromJson(Map<String, Object?> json) {
@@ -37,6 +40,8 @@ final class PlayerPreferences {
       'showInputHints',
       'touchControlsOpacity',
       'launchMostRecentGameOnStartup',
+      'dialogueTextSpeed',
+      'menuEffects',
     };
     if (json.keys.toSet().difference(keys).isNotEmpty ||
         json['schemaVersion'] != 1) {
@@ -56,6 +61,15 @@ final class PlayerPreferences {
         .firstOrNull;
     if (language == null || theme == null) {
       throw const FormatException('Invalid player preference enum.');
+    }
+    final dialogueTextSpeed = RuntimeDialogueTextSpeed.values
+        .where((value) => value.name == (json['dialogueTextSpeed'] ?? 'normal'))
+        .firstOrNull;
+    final menuEffects = RuntimePlayerMenuEffects.values
+        .where((value) => value.name == (json['menuEffects'] ?? 'full'))
+        .firstOrNull;
+    if (dialogueTextSpeed == null || menuEffects == null) {
+      throw const FormatException('Invalid player presentation preference.');
     }
     final masterVolume = read<num>('masterVolume').toDouble();
     final musicVolume = read<num>('musicVolume').toDouble();
@@ -90,6 +104,8 @@ final class PlayerPreferences {
     return PlayerPreferences(
       language: language,
       theme: theme,
+      dialogueTextSpeed: dialogueTextSpeed,
+      menuEffects: menuEffects,
       masterVolume: masterVolume,
       musicVolume: musicVolume,
       effectsVolume: effectsVolume,
@@ -117,6 +133,8 @@ final class PlayerPreferences {
   final bool showInputHints;
   final double touchControlsOpacity;
   final bool launchMostRecentGameOnStartup;
+  final RuntimeDialogueTextSpeed dialogueTextSpeed;
+  final RuntimePlayerMenuEffects menuEffects;
 
   Locale? get locale => switch (language) {
         PlayerLanguage.system => null,
@@ -129,6 +147,46 @@ final class PlayerPreferences {
         PlayerThemePreference.light => ThemeMode.light,
         PlayerThemePreference.dark => ThemeMode.dark,
       };
+
+  PlayerPreferencesSnapshot toRuntimeSnapshot({required String fallbackLocale}) =>
+      PlayerPreferencesSnapshot(
+        locale: locale?.languageCode ?? fallbackLocale,
+        accessibility: GameSessionAccessibilityOptions(
+          reducedMotion: reducedMotion,
+          textScale: textScale,
+          hapticsEnabled: hapticsEnabled,
+        ),
+        touchControlsOpacity: touchControlsOpacity,
+        audioMix: RuntimeAudioMix(
+          masterVolume: masterVolume,
+          musicVolume: musicVolume,
+          effectsVolume: effectsVolume,
+        ),
+        highContrast: highContrast,
+        showInputHints: showInputHints,
+        dialogueTextSpeed: dialogueTextSpeed,
+        menuEffects: menuEffects,
+      );
+
+  PlayerPreferences copyWithRuntimeSnapshot(PlayerPreferencesSnapshot snapshot) =>
+      copyWith(
+        language: switch (snapshot.locale.split(RegExp('[-_]')).first.toLowerCase()) {
+          'fr' => PlayerLanguage.fr,
+          'en' => PlayerLanguage.en,
+          _ => PlayerLanguage.system,
+        },
+        reducedMotion: snapshot.accessibility.reducedMotion,
+        textScale: snapshot.accessibility.textScale,
+        hapticsEnabled: snapshot.accessibility.hapticsEnabled,
+        touchControlsOpacity: snapshot.touchControlsOpacity,
+        masterVolume: snapshot.audioMix.masterVolume,
+        musicVolume: snapshot.audioMix.musicVolume,
+        effectsVolume: snapshot.audioMix.effectsVolume,
+        highContrast: snapshot.highContrast,
+        showInputHints: snapshot.showInputHints,
+        dialogueTextSpeed: snapshot.dialogueTextSpeed,
+        menuEffects: snapshot.menuEffects,
+      );
 
   PlayerPreferences copyWith({
     PlayerLanguage? language,
@@ -143,9 +201,13 @@ final class PlayerPreferences {
     bool? showInputHints,
     double? touchControlsOpacity,
     bool? launchMostRecentGameOnStartup,
+    RuntimeDialogueTextSpeed? dialogueTextSpeed,
+    RuntimePlayerMenuEffects? menuEffects,
   }) =>
       PlayerPreferences(
         language: language ?? this.language,
+        dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
+        menuEffects: menuEffects ?? this.menuEffects,
         theme: theme ?? this.theme,
         masterVolume: masterVolume ?? this.masterVolume,
         musicVolume: musicVolume ?? this.musicVolume,
@@ -163,6 +225,8 @@ final class PlayerPreferences {
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
         'language': language.name,
+        'dialogueTextSpeed': dialogueTextSpeed.name,
+        'menuEffects': menuEffects.name,
         'theme': theme.name,
         'masterVolume': masterVolume,
         'musicVolume': musicVolume,
@@ -181,6 +245,8 @@ final class PlayerPreferences {
       other is PlayerPreferences &&
       schemaVersion == other.schemaVersion &&
       language == other.language &&
+      dialogueTextSpeed == other.dialogueTextSpeed &&
+      menuEffects == other.menuEffects &&
       theme == other.theme &&
       masterVolume == other.masterVolume &&
       musicVolume == other.musicVolume &&
@@ -197,6 +263,8 @@ final class PlayerPreferences {
   int get hashCode => Object.hash(
         schemaVersion,
         language,
+        dialogueTextSpeed,
+        menuEffects,
         theme,
         masterVolume,
         musicVolume,

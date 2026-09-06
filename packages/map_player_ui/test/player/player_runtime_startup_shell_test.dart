@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -17,6 +18,190 @@ void main() {
     author: 'PokeMap',
     description: 'Une aventure ferroviaire.',
   );
+
+  testWidgets('startup title options apply player locale and language changes',
+      (tester) async {
+    var player = _optionsPlayer().next(
+      pauseSection: RuntimePlayerPauseSection.options,
+      preferences: const PlayerPreferencesSnapshot(
+        locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(),
+      ),
+    );
+    await tester.pumpWidget(_app(
+      StatefulBuilder(builder: (context, setState) {
+        return PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: _startup(RuntimeStartupPhase.titleMenu, player: player),
+          titlePresentation: presentation,
+          onStartupCommand: (_) {},
+          onPlayerCommand: (command) {
+            if (command.action == RuntimePlayerAction.updatePreferences) {
+              setState(() {
+                player = player.next(
+                  preferences: command.payload! as PlayerPreferencesSnapshot,
+                );
+              });
+            }
+            return _acceptPlayerCommand(command);
+          },
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        );
+      }),
+      locale: const Locale('en'),
+    ));
+    await tester.pumpAndSettle();
+    final options = find.byType(RuntimePlayerOptions);
+    expect(Localizations.localeOf(tester.element(options)).languageCode, 'fr');
+    expect(find.text('Général'), findsWidgets);
+    final language = find.byKey(const ValueKey('options-category-language'));
+    if (language.evaluate().isEmpty) {
+      await tester.tap(find.byKey(const ValueKey('options-category-picker')));
+      await tester.pumpAndSettle();
+    }
+    await tester.ensureVisible(language);
+    await tester.tap(language);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('options-locale-choice')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('options-choice-en')));
+    await tester.pumpAndSettle();
+    expect(player.preferences!.locale, 'en');
+    expect(Localizations.localeOf(tester.element(options)).languageCode, 'en');
+    expect(find.text('Language'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('options-locale-choice')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('options-choice-fr')));
+    await tester.pumpAndSettle();
+    expect(player.preferences!.locale, 'fr');
+    expect(Localizations.localeOf(tester.element(options)).languageCode, 'fr');
+    expect(find.text('Langue'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('startup title options apply player accessibility and menu effects',
+      (tester) async {
+    const preferences = PlayerPreferencesSnapshot(
+      locale: 'fr',
+      accessibility: GameSessionAccessibilityOptions(
+        textScale: 1.4,
+        reducedMotion: true,
+      ),
+      highContrast: true,
+      menuEffects: RuntimePlayerMenuEffects.opaque,
+    );
+    Future<void> pump(PlayerPreferencesSnapshot value) async {
+      await tester.pumpWidget(_app(
+        PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: _startup(
+            RuntimeStartupPhase.titleMenu,
+            player: _optionsPlayer().next(
+              pauseSection: RuntimePlayerPauseSection.options,
+              preferences: value,
+            ),
+          ),
+          titlePresentation: presentation,
+          onStartupCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+        textScale: 1.2,
+        locale: const Locale('en'),
+      ));
+      await tester.pumpAndSettle();
+    }
+
+    await pump(preferences);
+    var context = tester.element(find.byType(RuntimePlayerOptions));
+    expect(MediaQuery.textScalerOf(context).scale(10), closeTo(16.8, .001));
+    expect(MediaQuery.disableAnimationsOf(context), isTrue);
+    expect(Theme.of(context).extension<PokeMapPlayerColors>()!.highContrast,
+        isTrue);
+    expect(PlayerMenuEffectsScope.of(context), RuntimePlayerMenuEffects.opaque);
+    await pump(const PlayerPreferencesSnapshot(
+      locale: 'en',
+      accessibility: GameSessionAccessibilityOptions(),
+    ));
+    context = tester.element(find.byType(RuntimePlayerOptions));
+    expect(MediaQuery.textScalerOf(context).scale(10), closeTo(12, .001));
+    expect(MediaQuery.disableAnimationsOf(context), isFalse);
+    expect(Theme.of(context).extension<PokeMapPlayerColors>()!.highContrast,
+        isFalse);
+    expect(PlayerMenuEffectsScope.of(context), RuntimePlayerMenuEffects.full);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('startup title options await rejected persistence and restore values',
+      (tester) async {
+    final completion = Completer<RuntimePlayerCommandResult>();
+    addTearDown(() {
+      if (!completion.isCompleted) {
+        completion.complete(const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.failed,
+          safeMessage: 'Les préférences n’ont pas pu être enregistrées.',
+        ));
+      }
+    });
+    final commands = <RuntimePlayerCommand>[];
+    final player = _optionsPlayer().next(
+      pauseSection: RuntimePlayerPauseSection.options,
+      preferences: const PlayerPreferencesSnapshot(
+        locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(),
+      ),
+    );
+    final confirmed = player.preferences;
+    Future<RuntimePlayerCommandResult> dispatch(RuntimePlayerCommand command) {
+      commands.add(command);
+      return completion.future;
+    }
+
+    await tester.pumpWidget(_app(PlayerRuntimeStartupShell(
+      branding: branding,
+      snapshot: _startup(RuntimeStartupPhase.titleMenu, player: player),
+      titlePresentation: presentation,
+      onStartupCommand: (_) {},
+      onPlayerCommand: dispatch,
+      onIntroPlaybackCompleted: (_) {},
+      onIntroPlaybackFailed: (_, __) {},
+    )));
+    await tester.pumpAndSettle();
+    final audio = find.byKey(const ValueKey('options-category-audio'));
+    if (audio.evaluate().isEmpty) {
+      await tester.tap(find.byKey(const ValueKey('options-category-picker')));
+      await tester.pumpAndSettle();
+    }
+    await tester.ensureVisible(audio);
+    await tester.tap(audio);
+    await tester.pumpAndSettle();
+    final sliderFinder = find.byKey(const ValueKey('options-master-slider'));
+    var slider = tester.widget<Slider>(sliderFinder);
+    slider.onChanged!(.2);
+    slider.onChangeEnd!(.2);
+    await tester.pump();
+    expect(commands, hasLength(1));
+    expect(commands.single.action, RuntimePlayerAction.updatePreferences);
+    expect(find.byKey(const ValueKey('options-saving')), findsOneWidget);
+    expect(tester.widget<Slider>(sliderFinder).onChanged, isNull);
+    expect(player.preferences, same(confirmed));
+    completion.complete(const RuntimePlayerCommandResult(
+      status: RuntimePlayerCommandStatus.failed,
+      safeMessage: 'Les préférences n’ont pas pu être enregistrées.',
+    ));
+    await tester.pumpAndSettle();
+    slider = tester.widget<Slider>(sliderFinder);
+    expect(slider.value, 1);
+    expect(slider.onChanged, isNotNull);
+    expect(player.preferences, same(confirmed));
+    expect(find.byKey(const ValueKey('options-saving')), findsNothing);
+    expect(find.byKey(const ValueKey('options-save-error')), findsOneWidget);
+    expect(find.text('Les préférences n’ont pas pu être enregistrées.'),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('keeps host loading progress monotonic during bootstrap handoff',
       (tester) async {
@@ -36,7 +221,7 @@ void main() {
           splashLoadingProgress: .35,
           titlePresentation: presentation,
           onStartupCommand: (_) {},
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -69,7 +254,7 @@ void main() {
           ),
           titlePresentation: presentation,
           onStartupCommand: commands.add,
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -106,7 +291,7 @@ void main() {
           ),
           titlePresentation: presentation,
           onStartupCommand: commands.add,
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -146,7 +331,7 @@ void main() {
           snapshot: startup,
           titlePresentation: presentation,
           onStartupCommand: (_) {},
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         );
@@ -228,7 +413,7 @@ void main() {
           snapshot: startup,
           titlePresentation: presentation,
           onStartupCommand: (_) {},
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         );
@@ -300,7 +485,7 @@ void main() {
           snapshot: _startup(RuntimeStartupPhase.titlePrompt, revision: 12),
           titlePresentation: presentation,
           onStartupCommand: commands.add,
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -345,7 +530,7 @@ void main() {
             ),
             titlePresentation: presentation,
             onStartupCommand: (_) {},
-            onPlayerCommand: (_) {},
+            onPlayerCommand: _acceptPlayerCommand,
             onIntroPlaybackCompleted: (_) {},
             onIntroPlaybackFailed: (_, __) {},
           ),
@@ -394,7 +579,10 @@ void main() {
             layoutVariant: PlayerTitleLayoutVariant.cinematic,
           ),
           onStartupCommand: (_) {},
-          onPlayerCommand: commands.add,
+          onPlayerCommand: (command) {
+            commands.add(command);
+            return _acceptPlayerCommand(command);
+          },
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -437,7 +625,10 @@ void main() {
             ],
           ),
           onStartupCommand: (_) {},
-          onPlayerCommand: commands.add,
+          onPlayerCommand: (command) {
+            commands.add(command);
+            return _acceptPlayerCommand(command);
+          },
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -481,7 +672,7 @@ void main() {
           ),
           titlePresentation: presentation,
           onStartupCommand: (_) {},
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -510,7 +701,7 @@ void main() {
             layoutVariant: PlayerTitleLayoutVariant.cinematic,
           ),
           onStartupCommand: (_) {},
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -540,7 +731,10 @@ void main() {
           ),
           titlePresentation: presentation,
           onStartupCommand: (_) {},
-          onPlayerCommand: commands.add,
+          onPlayerCommand: (command) {
+            commands.add(command);
+            return _acceptPlayerCommand(command);
+          },
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -571,7 +765,10 @@ void main() {
           snapshot: menuSnapshot,
           titlePresentation: presentation,
           onStartupCommand: (_) {},
-          onPlayerCommand: commands.add,
+          onPlayerCommand: (command) {
+            commands.add(command);
+            return _acceptPlayerCommand(command);
+          },
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -591,7 +788,10 @@ void main() {
           ),
           titlePresentation: presentation,
           onStartupCommand: (_) {},
-          onPlayerCommand: commands.add,
+          onPlayerCommand: (command) {
+            commands.add(command);
+            return _acceptPlayerCommand(command);
+          },
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -613,7 +813,10 @@ void main() {
           snapshot: menuSnapshot,
           titlePresentation: presentation,
           onStartupCommand: (_) {},
-          onPlayerCommand: commands.add,
+          onPlayerCommand: (command) {
+            commands.add(command);
+            return _acceptPlayerCommand(command);
+          },
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -649,7 +852,7 @@ void main() {
               ),
               titlePresentation: presentation,
               onStartupCommand: (_) {},
-              onPlayerCommand: (_) {},
+              onPlayerCommand: _acceptPlayerCommand,
               onIntroPlaybackCompleted: (_) {},
               onIntroPlaybackFailed: (_, __) {},
             ),
@@ -676,7 +879,7 @@ void main() {
           snapshot: _startupPaused(RuntimeStartupPhase.titlePrompt),
           titlePresentation: presentation,
           onStartupCommand: commands.add,
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -716,7 +919,7 @@ void main() {
           ),
           introDriverFactory: (_) => playback,
           onStartupCommand: (_) {},
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -762,7 +965,7 @@ void main() {
             Completer<void>()..complete(),
           ),
           onStartupCommand: commands.add,
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         ),
@@ -810,7 +1013,7 @@ void main() {
           ),
           titleMotionDriverFactory: createDriver,
           onStartupCommand: (_) {},
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         );
@@ -847,7 +1050,7 @@ void main() {
           titlePresentation: presentation,
           onPresentationOrientationChanged: orientations.add,
           onStartupCommand: (_) {},
-          onPlayerCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
           onIntroPlaybackCompleted: (_) {},
           onIntroPlaybackFailed: (_, __) {},
         );
@@ -862,6 +1065,9 @@ void main() {
     expect(orientations.last, RuntimePresentationOrientation.landscape);
   });
 }
+
+RuntimePlayerCommandResult _acceptPlayerCommand(RuntimePlayerCommand _) =>
+    const RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.accepted);
 
 RuntimeStartupSnapshot _startup(
   RuntimeStartupPhase phase, {
@@ -949,8 +1155,10 @@ RuntimePlayerSnapshot _optionsPlayer() => RuntimePlayerSnapshot(
       ],
     );
 
-Widget _app(Widget child, {double textScale = 1}) => MaterialApp(
-      locale: const Locale('fr'),
+Widget _app(Widget child,
+        {double textScale = 1, Locale locale = const Locale('fr')}) =>
+    MaterialApp(
+      locale: locale,
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),

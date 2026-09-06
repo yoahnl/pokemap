@@ -177,6 +177,13 @@ final class _MemorySaveGateway implements PlayerSaveGateway {
 final class _MemoryPreferencesGateway implements PlayerPreferencesGateway {
   _MemoryPreferencesGateway(this.current);
 
+  @override
+  final PlayerPreferencesSnapshot defaultPreferences =
+      const PlayerPreferencesSnapshot(
+    locale: 'fr',
+    accessibility: GameSessionAccessibilityOptions(),
+  );
+
   PlayerPreferencesSnapshot current;
 
   @override

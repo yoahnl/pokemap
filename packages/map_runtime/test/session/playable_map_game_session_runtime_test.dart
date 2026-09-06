@@ -136,13 +136,35 @@ void main() {
         'test/fixtures/p3_scenario_runtime_golden_path/project.json',
       ).absolute.path,
       initialSave: () async => save,
-      mountGame: (game) async => mounted = game,
+      mountGame: (game) async {
+        expect(game.dialogueTextSpeed, RuntimeDialogueTextSpeed.slow);
+        mounted = game;
+      },
       unmountGame: (_) async {},
       now: () => DateTime.utc(2026, 8, 20),
     );
     addTearDown(runtime.dispose);
+    runtime.applyPlayerPreferences(const PlayerPreferencesSnapshot(
+      locale: 'fr',
+      accessibility: GameSessionAccessibilityOptions(),
+      dialogueTextSpeed: RuntimeDialogueTextSpeed.slow,
+    ));
     await runtime.load((_) {});
     expect(mounted, isNotNull);
+
+    runtime.applyPlayerPreferences(const PlayerPreferencesSnapshot(
+      locale: 'en',
+      accessibility: GameSessionAccessibilityOptions(
+        reducedMotion: true,
+        textScale: 1.4,
+      ),
+      dialogueTextSpeed: RuntimeDialogueTextSpeed.fast,
+    ));
+    expect(mounted!.dialogueTextSpeed, RuntimeDialogueTextSpeed.fast);
+    expect(mounted!.reducedMotion, isTrue);
+    expect(mounted!.textScale, 1.4);
+    expect(mounted!.runtimeLocale, 'fr-FR');
+    expect((await runtime.loadPauseDetails())[RuntimePlayerPauseSection.map]!.title, 'Map');
 
     final result = await runtime.dispatchPauseCommand(
       const RuntimePlayerPauseCommand.setPartyLead(

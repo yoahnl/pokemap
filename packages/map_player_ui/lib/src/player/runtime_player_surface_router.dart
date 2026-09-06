@@ -12,6 +12,7 @@ import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
 import 'player_pause_menu.dart';
 import 'player_control_profile.dart';
+import 'player_save_dialog.dart';
 import 'player_save_recovery_surface.dart';
 import 'player_save_strings.dart';
 import 'player_scene_interaction_surface.dart';
@@ -37,6 +38,7 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
     required this.titlePresentation,
     required this.gameSceneBuilder,
     required this.onAction,
+    this.onReturnToTitle,
     this.onShowDiagnostics,
     this.gameplayTouchMenuEnabled = true,
     this.touchControlsOpacity = 0.82,
@@ -47,6 +49,8 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
     this.pokedexNavigation,
     this.onFavoriteChanged,
     this.controlProfile,
+    this.hardwareGamepadEnabled = true,
+    this.activeInputSource,
     this.onControlProfileChanged,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
     this.pausePresentation,
@@ -59,17 +63,22 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
   final RuntimePlayerTitlePresentation titlePresentation;
   final WidgetBuilder gameSceneBuilder;
   final RuntimePlayerActionCallback onAction;
+  final Future<RuntimePlayerCommandResult> Function(bool saveBeforeExit)?
+      onReturnToTitle;
   final VoidCallback? onShowDiagnostics;
   final bool gameplayTouchMenuEnabled;
   final double touchControlsOpacity;
-  final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
+  final FutureOr<void> Function(PlayerPreferencesSnapshot)?
+      onPreferencesChanged;
   final FutureOr<void> Function(RuntimePlayerPauseCommand)? onPauseCommand;
   final RuntimePlayerPartyNavigation? partyNavigation;
   final RuntimePlayerBagNavigation? bagNavigation;
   final RuntimePlayerPokedexNavigation? pokedexNavigation;
   final Future<void> Function(String, bool)? onFavoriteChanged;
   final PlayerControlProfile? controlProfile;
-  final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
+  final bool hardwareGamepadEnabled;
+  final PlayerInputSource? activeInputSource;
+  final FutureOr<void> Function(PlayerControlProfile)? onControlProfileChanged;
   final PlayerPauseMenuLabels pauseMenuLabels;
   final PlayerPausePresentation? pausePresentation;
   final RuntimePlayerFocusController? pauseFocusController;
@@ -84,6 +93,9 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
 class _RuntimePlayerSurfaceRouterState
     extends State<RuntimePlayerSurfaceRouter> {
   final _ownedPokedexNavigation = RuntimePlayerPokedexNavigation();
+  ValueNotifier<RuntimePlayerSnapshot>? _dialogSnapshot;
+  DialogRoute<void>? _saveDialogRoute;
+  RuntimePlayerSaveReceipt? _shownSaveReceipt;
 
   RuntimePlayerPokedexNavigation get _pokedexNavigation =>
       widget.pokedexNavigation ?? _ownedPokedexNavigation;
@@ -91,6 +103,24 @@ class _RuntimePlayerSurfaceRouterState
   @override
   void didUpdateWidget(RuntimePlayerSurfaceRouter oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final sessionChanged = widget.snapshot.activeSaveAddress !=
+            oldWidget.snapshot.activeSaveAddress ||
+        widget.snapshot.phase == RuntimePlayerPhase.title ||
+        widget.snapshot.phase == RuntimePlayerPhase.preSession ||
+        widget.snapshot.phase == RuntimePlayerPhase.preparingSession ||
+        widget.snapshot.phase == RuntimePlayerPhase.externalExit;
+    if (sessionChanged) _shownSaveReceipt = null;
+    final relay = _dialogSnapshot;
+    final route = _saveDialogRoute;
+    if (relay != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !identical(_dialogSnapshot, relay)) return;
+        relay.value = widget.snapshot;
+        if (sessionChanged && route?.isActive == true) {
+          route!.navigator?.removeRoute(route);
+        }
+      });
+    }
     if (widget.pokedexNavigation == null &&
         (oldWidget.pokedexNavigation != null ||
             oldWidget.snapshot.phase != widget.snapshot.phase &&
@@ -103,6 +133,12 @@ class _RuntimePlayerSurfaceRouterState
 
   @override
   void dispose() {
+    final route = _saveDialogRoute;
+    if (route != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (route.isActive) route.navigator?.removeRoute(route);
+      });
+    }
     _ownedPokedexNavigation.dispose();
     super.dispose();
   }
@@ -238,6 +274,9 @@ class _RuntimePlayerSurfaceRouterState
           onReturnToTitle: _callbackFor(RuntimePlayerAction.returnToTitle),
           onPreferencesChanged: widget.onPreferencesChanged,
           controlProfile: widget.controlProfile,
+          hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
+          activeInputSource:
+              widget.activeInputSource ?? widget.snapshot.activeInputSource,
           onControlProfileChanged: widget.onControlProfileChanged,
         ),
       RuntimePlayerPhase.title => PlayerTitleScreen(
@@ -318,7 +357,9 @@ class _RuntimePlayerSurfaceRouterState
           presentation:
               (widget.pausePresentation ?? const PlayerPausePresentation())
                   .resolveVisibility(widget.snapshot.pauseMenuState),
-          saveMessage: widget.snapshot.saveReceipt == null
+          saveMessage: _saveDialogRoute != null ||
+                  widget.snapshot.saveReceipt == null ||
+                  identical(widget.snapshot.saveReceipt, _shownSaveReceipt)
               ? null
               : PlayerSaveStrings.of(context)
                   .saved(widget.snapshot.saveReceipt!),
@@ -328,15 +369,26 @@ class _RuntimePlayerSurfaceRouterState
             onFavoriteChanged: widget.onFavoriteChanged,
             partyNavigation: widget.partyNavigation,
             snapshot: widget.snapshot,
+            controlProfile: widget.controlProfile,
+            hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
+            activeInputSource:
+                widget.activeInputSource ?? widget.snapshot.activeInputSource,
+            onControlProfileChanged: widget.onControlProfileChanged,
             onPreferencesChanged: widget.onPreferencesChanged,
             onPauseCommand: widget.onPauseCommand,
+            onReturnToTitle: widget.snapshot
+                    .isActionEnabled(RuntimePlayerAction.returnToTitle)
+                ? () => unawaited(_showSaveDialog(returnToTitle: true))
+                : null,
           ),
           detailOwnsScroll: widget.snapshot.pauseSection ==
                   RuntimePlayerPauseSection.party ||
               widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag ||
               widget.snapshot.pauseSection ==
                   RuntimePlayerPauseSection.pokedex ||
-              widget.snapshot.pauseSection == RuntimePlayerPauseSection.profile,
+              widget.snapshot.pauseSection ==
+                  RuntimePlayerPauseSection.profile ||
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.options,
           detailHeaderSecondary:
               widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag
                   ? _bagMoney(context)
@@ -370,7 +422,9 @@ class _RuntimePlayerSurfaceRouterState
                   : (widget.snapshot.pauseSection ==
                                   RuntimePlayerPauseSection.pokedex ||
                               widget.snapshot.pauseSection ==
-                                  RuntimePlayerPauseSection.profile) &&
+                                  RuntimePlayerPauseSection.profile ||
+                              widget.snapshot.pauseSection ==
+                                  RuntimePlayerPauseSection.options) &&
                           widget.pausePresentation?.style !=
                               ProjectPauseMenuStyle.nightIllustrated
                       ? PlayerActionButton(
@@ -467,36 +521,71 @@ class _RuntimePlayerSurfaceRouterState
     BuildContext context,
     PlayerPauseAction action,
   ) {
-    if (action != PlayerPauseAction.save) {
-      _dispatch(_pauseAction(action));
-      return;
+    if (!widget.snapshot.isActionEnabled(_pauseAction(action))) return;
+    switch (action) {
+      case PlayerPauseAction.save:
+        if (widget.snapshot.activeSaveAddress == null) return;
+        unawaited(_showSaveDialog());
+      case PlayerPauseAction.returnToTitle:
+        unawaited(_showSaveDialog(returnToTitle: true));
+      default:
+        _dispatch(_pauseAction(action));
     }
-    final address = widget.snapshot.activeSaveAddress;
-    if (address == null) return;
-    final strings = PlayerSaveStrings.of(context);
-    showDialog<void>(
+  }
+
+  Future<void> _showSaveDialog({bool returnToTitle = false}) async {
+    if (_saveDialogRoute != null) return;
+    final relay = ValueNotifier(widget.snapshot);
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final locale = Localizations.localeOf(context);
+    final mediaQuery = MediaQuery.of(context);
+    final route = DialogRoute<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(strings.title),
-        content: Text(strings.target(address)),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>('runtime-save-cancel'),
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(strings.cancel),
+      themes: InheritedTheme.capture(from: context, to: navigator.context),
+      barrierDismissible: false,
+      barrierColor:
+          PokeMapPlayerMenuTheme.resolve(context).shadow.withValues(alpha: .32),
+      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+      builder: (context) => Localizations.override(
+        context: context,
+        locale: locale,
+        delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+        child: MediaQuery(
+          data: mediaQuery,
+          child: PlayerMenuThemeScope(
+            role: ProjectPresentationSurfaceRole.confirmation,
+            child: PlayerSaveDialog(
+              snapshot: relay,
+              controlProfile: widget.controlProfile,
+              hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
+              returnToTitle: returnToTitle,
+              onSave: returnToTitle && widget.onReturnToTitle == null
+                  ? null
+                  : () => returnToTitle
+                      ? widget.onReturnToTitle!(true)
+                      : widget.onAction(RuntimePlayerAction.save),
+              onDiscard: widget.onReturnToTitle == null
+                  ? null
+                  : () => widget.onReturnToTitle!(false),
+              onReceiptShown: (receipt) => _shownSaveReceipt = receipt,
+            ),
           ),
-          FilledButton(
-            key: const ValueKey<String>('runtime-save-confirm'),
-            autofocus: true,
-            onPressed: () {
-              Navigator.of(context).pop();
-              _dispatch(RuntimePlayerAction.save);
-            },
-            child: Text(strings.confirm),
-          ),
-        ],
+        ),
       ),
     );
+    setState(() {
+      _dialogSnapshot = relay;
+      _saveDialogRoute = route;
+    });
+    await navigator.push(route);
+    if (mounted && identical(_saveDialogRoute, route)) {
+      setState(() {
+        _dialogSnapshot = null;
+        _saveDialogRoute = null;
+      });
+    }
+    await route.completed;
+    relay.dispose();
   }
 
   PlayerActionAvailability _titleAvailability(
