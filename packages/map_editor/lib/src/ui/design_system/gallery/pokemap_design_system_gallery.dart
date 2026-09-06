@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_player_ui/personalization_preview.dart';
 import '../../../theme/theme.dart';
 import '../design_system.dart';
 
@@ -12,6 +13,7 @@ enum GalleryThemeMode {
 
   /// Split dual-column Side-by-Side preview.
   compare,
+  playerMenus,
 }
 
 /// A comprehensive visual component gallery for the PokeMap design system.
@@ -29,6 +31,11 @@ class PokeMapDesignSystemGallery extends StatefulWidget {
 class _PokeMapDesignSystemGalleryState
     extends State<PokeMapDesignSystemGallery> {
   GalleryThemeMode _viewMode = GalleryThemeMode.compare;
+  bool _playerOpaque = false;
+  bool _playerHighContrast = false;
+  bool _playerReducedMotion = false;
+  double _playerTextScale = 1;
+  PlayerMenuGalleryBackdrop _playerBackdrop = PlayerMenuGalleryBackdrop.dark;
 
   @override
   Widget build(BuildContext context) {
@@ -101,13 +108,61 @@ class _PokeMapDesignSystemGalleryState
                         size: PokeMapButtonSize.small,
                         child: const Text('Compare'),
                       ),
+                      const SizedBox(width: 8),
+                      PokeMapButton(
+                        onPressed: () => setState(
+                            () => _viewMode = GalleryThemeMode.playerMenus),
+                        variant: _viewMode == GalleryThemeMode.playerMenus
+                            ? PokeMapButtonVariant.primary
+                            : PokeMapButtonVariant.ghost,
+                        size: PokeMapButtonSize.small,
+                        child: const Text('Player menus'),
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
 
-            // Content Panel Area
+            if (_viewMode == GalleryThemeMode.playerMenus)
+              PokeMapToolbarSurface(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _playerToggle('Opaque', _playerOpaque,
+                        () => _playerOpaque = !_playerOpaque),
+                    _playerToggle('Contraste', _playerHighContrast,
+                        () => _playerHighContrast = !_playerHighContrast),
+                    _playerToggle('Mouvements réduits', _playerReducedMotion,
+                        () => _playerReducedMotion = !_playerReducedMotion),
+                    PokeMapButton(
+                      size: PokeMapButtonSize.small,
+                      variant: PokeMapButtonVariant.ghost,
+                      onPressed: () => setState(() {
+                        _playerTextScale =
+                            _playerTextScale == 2 ? 1 : _playerTextScale + .5;
+                      }),
+                      child: Text('Texte ×${_playerTextScale.toStringAsFixed(1)}'),
+                    ),
+                    PokeMapButton(
+                      size: PokeMapButtonSize.small,
+                      variant: PokeMapButtonVariant.ghost,
+                      onPressed: () => setState(() {
+                        final values = PlayerMenuGalleryBackdrop.values;
+                        _playerBackdrop =
+                            values[(_playerBackdrop.index + 1) % values.length];
+                      }),
+                      child: Text('Fond : ${switch (_playerBackdrop) {
+                        PlayerMenuGalleryBackdrop.dark => 'sombre',
+                        PlayerMenuGalleryBackdrop.light => 'clair',
+                        PlayerMenuGalleryBackdrop.contrast => 'contrasté',
+                      }}'),
+                    ),
+                  ],
+                ),
+              ),
+
             Expanded(
               child: _buildGalleryContentByMode(),
             ),
@@ -117,8 +172,26 @@ class _PokeMapDesignSystemGalleryState
     );
   }
 
+  Widget _playerToggle(String label, bool selected, VoidCallback toggle) =>
+      PokeMapButton(
+        size: PokeMapButtonSize.small,
+        variant: selected
+            ? PokeMapButtonVariant.primary
+            : PokeMapButtonVariant.ghost,
+        onPressed: () => setState(toggle),
+        child: Text(label),
+      );
+
   Widget _buildGalleryContentByMode() {
     switch (_viewMode) {
+      case GalleryThemeMode.playerMenus:
+        return PlayerMenuPrimitivesGallery(
+          opaque: _playerOpaque,
+          highContrast: _playerHighContrast,
+          reducedMotion: _playerReducedMotion,
+          textScale: _playerTextScale,
+          backdrop: _playerBackdrop,
+        );
       case GalleryThemeMode.light:
         return Theme(
           data: PokeMapTheme.light(),

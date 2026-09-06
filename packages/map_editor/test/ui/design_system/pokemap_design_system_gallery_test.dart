@@ -2,8 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/gallery/pokemap_design_system_gallery.dart';
+import 'package:map_player_ui/personalization_preview.dart';
 
 void main() {
+  testWidgets('opens Player primitives in the existing gallery only',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(MaterialApp(
+      theme: PokeMapTheme.dark(),
+      home: const PokeMapDesignSystemGallery(),
+    ));
+    expect(find.byType(PlayerMenuPrimitivesGallery), findsNothing);
+    await tester.tap(find.text('Player menus'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(PlayerMenuPrimitivesGallery), findsOneWidget);
+    await tester.tap(find.text('Opaque'));
+    await tester.tap(find.text('Contraste'));
+    await tester.tap(find.text('Mouvements réduits'));
+    await tester.tap(find.text('Texte ×1.0'));
+    await tester.pump();
+    await tester.tap(find.text('Texte ×1.5'));
+    await tester.tap(find.text('Fond : sombre'));
+    await tester.pump(const Duration(milliseconds: 300));
+    final scene = tester.widget<PlayerMenuPrimitivesGallery>(
+        find.byType(PlayerMenuPrimitivesGallery));
+    expect(scene.opaque, isTrue);
+    expect(scene.highContrast, isTrue);
+    expect(scene.reducedMotion, isTrue);
+    expect(scene.textScale, 2);
+    expect(scene.backdrop, PlayerMenuGalleryBackdrop.light);
+    expect(find.text('Retour').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Dark'));
+    await tester.pump();
+    expect(find.byType(PlayerMenuPrimitivesGallery), findsNothing);
+    expect(find.text('Buttons (PokeMapButton)'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
   group('PokeMapDesignSystemGallery Widget Tests', () {
     Widget buildTestWidget({
       required ThemeData theme,

@@ -314,6 +314,24 @@ final class PokeMapPlayerSemanticTheme
 }
 
 @immutable
+final class PokeMapPlayerAuthoredSemanticTheme
+    extends ThemeExtension<PokeMapPlayerAuthoredSemanticTheme> {
+  const PokeMapPlayerAuthoredSemanticTheme(this.semantic);
+  final PokeMapPlayerSemanticTheme semantic;
+
+  @override
+  PokeMapPlayerAuthoredSemanticTheme copyWith(
+          {PokeMapPlayerSemanticTheme? semantic}) =>
+      PokeMapPlayerAuthoredSemanticTheme(semantic ?? this.semantic);
+
+  @override
+  PokeMapPlayerAuthoredSemanticTheme lerp(
+          covariant ThemeExtension<PokeMapPlayerAuthoredSemanticTheme>? other,
+          double t) =>
+      t < .5 || other is! PokeMapPlayerAuthoredSemanticTheme ? this : other;
+}
+
+@immutable
 final class PokeMapPlayerMotion extends ThemeExtension<PokeMapPlayerMotion> {
   const PokeMapPlayerMotion({
     required this.fast,
@@ -587,8 +605,9 @@ abstract final class PokeMapPlayerTheme {
 
   static ThemeData withSemanticTheme(
     ThemeData theme,
-    PokeMapPlayerSemanticTheme semantic,
-  ) {
+    PokeMapPlayerSemanticTheme semantic, {
+    bool authored = true,
+  }) {
     final baseColors = theme.extension<PokeMapPlayerColors>();
     if (baseColors == null) return theme;
     final colors = baseColors.copyWith(
@@ -608,11 +627,13 @@ abstract final class PokeMapPlayerTheme {
         .where(
           (extension) =>
               extension is! PokeMapPlayerColors &&
-              extension is! PokeMapPlayerSemanticTheme,
+              extension is! PokeMapPlayerSemanticTheme &&
+              (!authored || extension is! PokeMapPlayerAuthoredSemanticTheme),
         )
         .toList(growable: true)
       ..add(colors)
       ..add(semantic);
+    if (authored) extensions.add(PokeMapPlayerAuthoredSemanticTheme(semantic));
     final colorScheme = theme.colorScheme.copyWith(
       primary: colors.primary,
       onPrimary: colors.onPrimary,
@@ -724,6 +745,7 @@ abstract final class PokeMapPlayerTheme {
         overworldHudSurface: surface,
         battleHudSurface: surface,
       ),
+      authored: false,
     );
     final colors = resolved.extension<PokeMapPlayerColors>()!.copyWith(
           focus: selection,
