@@ -161,6 +161,11 @@ _ProjectManifest _$ProjectManifestFromJson(
       : ProjectPresentationProfile.fromJson(
           json['presentation'] as Map<String, dynamic>,
         ),
+  regionalMap: json['regionalMap'] == null
+      ? null
+      : ProjectRegionalMapCatalog.fromJson(
+          json['regionalMap'] as Map<String, dynamic>,
+        ),
   presentationPresets:
       (json['presentationPresets'] as List<dynamic>?)
           ?.map(
@@ -243,6 +248,7 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'pokemon': instance.pokemon.toJson(),
   'newGame': instance.newGame.toJson(),
   'presentation': ?instance.presentation?.toJson(),
+  'regionalMap': ?instance.regionalMap?.toJson(),
   'presentationPresets': instance.presentationPresets
       .map((e) => e.toJson())
       .toList(),

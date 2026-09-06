@@ -203,6 +203,9 @@ export 'src/runtime_map_projection.dart'
     show
         RuntimeMapLocation,
         RuntimeMapLocationStatus,
+        RuntimeRegionalMapRegion,
+        RuntimeRegionalMapPoint,
+        projectRuntimeRegionalMap,
         projectRuntimeMapLocations;
 export 'src/new_game_state_builder.dart'
     show

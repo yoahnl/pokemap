@@ -9,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/l10n/l10n.dart';
 
 import '../../../app/providers/core/repository_providers.dart';
+import '../../../application/authoring_api/regional_map_authoring_gateway.dart';
 import '../../../ui/design_system/pokemap_action_banner.dart';
 import '../../../ui/design_system/pokemap_badge.dart';
 import '../../../ui/design_system/pokemap_button.dart';
@@ -55,6 +56,7 @@ import 'project_presentation_preset_library.dart';
 import 'project_theme_token_dialog.dart';
 import 'project_typography_editor.dart';
 import 'project_window_studio.dart';
+import 'regional_map_workshop.dart';
 
 typedef PersonalizationStudioExportLauncher =
     Future<void> Function(
@@ -316,6 +318,43 @@ class _PersonalizationStudioWorkspaceState
     } finally {
       if (mounted) setState(() => _isImportingAsset = false);
     }
+  }
+
+  Future<void> _openRegionalMapWorkshop({
+    required String projectRootPath,
+    required EditorNotifier notifier,
+  }) async {
+    _deferredCommitCoordinator.flush();
+    if (!await notifier.savePersonalizationStudio()) {
+      if (mounted) {
+        setState(() {
+          _assetFeedbackIsError = true;
+          _assetFeedback =
+              'Enregistrez les réglages du Studio avant d’ouvrir la carte régionale.';
+        });
+      }
+      return;
+    }
+    if (!mounted || _requestedProjectRootPath != projectRootPath) return;
+    final gateway = RegionalMapAuthoringGateway(
+      mutations: ref.read(authoringMutationAdapterProvider),
+      queries: ref.read(authoringQueryAdapterProvider),
+    );
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => RegionalMapWorkshop(
+        projectRootPath: projectRootPath,
+        gateway: gateway,
+        onProjectChanged: (manifest) {
+          if (_requestedProjectRootPath != projectRootPath) return;
+          notifier.acceptCanonicalProjectManifest(
+            manifest,
+            statusMessage: 'Carte régionale enregistrée.',
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _importBrandingImage({
@@ -1863,6 +1902,12 @@ class _PersonalizationStudioWorkspaceState
         ignoring: !canEdit || _isImportingAsset,
         child: PersonalizationPauseInspector(
           profile: profile,
+          onConfigureRegionalMap: () => unawaited(
+            _openRegionalMapWorkshop(
+              projectRootPath: projectRootPath,
+              notifier: notifier,
+            ),
+          ),
           onImportBackground: () => unawaited(
             _importMenuBackground(
               projectRootPath: projectRootPath,

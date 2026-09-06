@@ -466,6 +466,23 @@ final class AuthoringResourceKindRegistry {
         summary: 'One typed station-to-station journey definition',
       ),
       AuthoringResourceKindDescriptor(
+          id: 'regionalMap',
+          version: 1,
+          displayName: 'Regional map',
+          summary:
+              'Author-owned illustrated regions and normalized points of interest'),
+      AuthoringResourceKindDescriptor(
+          id: 'regionalMapRegion',
+          version: 1,
+          displayName: 'Regional map region',
+          summary: 'One illustrated region independent from tile coordinates'),
+      AuthoringResourceKindDescriptor(
+          id: 'regionalMapPoi',
+          version: 1,
+          displayName: 'Regional point of interest',
+          summary:
+              'One localized place with visibility and map-visit discovery'),
+      AuthoringResourceKindDescriptor(
         id: 'cinematic',
         version: 1,
         displayName: 'Cinematic',
@@ -613,6 +630,9 @@ final class AuthoringResourceKindRegistry {
       'presentationVisualFolder',
       'presentationMedia',
       'railJourney',
+      'regionalMap',
+      'regionalMapRegion',
+      'regionalMapPoi',
       'scene',
       'script',
       'smartTileAnimation',

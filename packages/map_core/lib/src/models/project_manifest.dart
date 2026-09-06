@@ -16,6 +16,7 @@ import 'pokemon_ruleset_profile.dart';
 import 'save_data.dart';
 import 'project_presentation_profile.dart';
 import 'project_presentation_preset.dart';
+import 'project_regional_map.dart';
 import 'presentation_cinematic_asset.dart';
 import 'project_tileset_source.dart';
 import 'cinematic_asset.dart';
@@ -515,6 +516,7 @@ abstract class ProjectManifest with _$ProjectManifest {
     ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
     @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
+    @JsonKey(includeIfNull: false) ProjectRegionalMapCatalog? regionalMap,
     @Default([]) List<ProjectPresentationPresetRecord> presentationPresets,
     @Default({}) Map<String, dynamic> globalProperties,
     @Default(ProjectSmartTileCatalog.empty())

@@ -53,6 +53,8 @@ export 'src/player/runtime_player_focus_controller.dart';
 export 'src/player/runtime_player_gamepad_bridge.dart';
 export 'src/player/runtime_player_layout.dart';
 export 'src/player/runtime_player_detail_router.dart';
+export 'src/player/runtime_player_region_map.dart';
+export 'src/player/region_map_geometry.dart';
 export 'src/player/runtime_player_pause_shell.dart';
 export 'src/player/runtime_player_touch_controls.dart';
 export 'src/preferences/player_preferences.dart';

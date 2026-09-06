@@ -40,6 +40,8 @@ export 'src/read_models/project_item_reference_index.dart';
 export 'src/read_models/presentation_reference_graph.dart';
 export 'src/models/project_tileset_source.dart';
 export 'src/models/project_presentation_profile.dart';
+export 'src/models/project_regional_map.dart';
+export 'src/validation/project_regional_map_validator.dart';
 export 'src/models/presentation_dialogue_contract.dart';
 export 'src/models/presentation_interaction_outcome.dart';
 export 'src/models/presentation_text_interpolation.dart';

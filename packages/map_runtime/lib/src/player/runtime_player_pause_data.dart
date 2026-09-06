@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'runtime_pokemon_summary.dart';
+import 'runtime_regional_map.dart';
 
 enum RuntimePlayerPauseSection {
   root,
@@ -303,6 +304,7 @@ final class RuntimePlayerPauseDetailSnapshot {
     this.emptyMessage,
     this.message,
     this.profile,
+    this.regionalMap,
     this.bagMoney,
     this.bagCurrencyLabel,
     List<RuntimePlayerBagPocketSnapshot> bagPockets = const [],
@@ -330,6 +332,7 @@ final class RuntimePlayerPauseDetailSnapshot {
   final String? emptyMessage;
   final String? message;
   final RuntimePlayerProfileSnapshot? profile;
+  final RuntimePlayerRegionMapSnapshot? regionalMap;
   final List<RuntimePlayerBagPartyTargetSnapshot> bagTargets;
   final List<RuntimePlayerBagPocketSnapshot> bagPockets;
   final int? bagMoney;
@@ -343,6 +346,7 @@ final class RuntimePlayerPauseDetailSnapshot {
         emptyMessage: emptyMessage,
         message: message,
         profile: profile,
+        regionalMap: regionalMap,
         bagTargets: bagTargets,
         bagPockets: bagPockets,
         bagMoney: bagMoney,

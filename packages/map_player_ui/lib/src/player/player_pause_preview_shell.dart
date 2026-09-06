@@ -11,6 +11,7 @@ import 'runtime_player_detail_router.dart';
 import 'runtime_player_focus_controller.dart';
 import 'runtime_player_pause_shell.dart';
 import 'runtime_player_pokedex.dart';
+import 'runtime_player_region_map.dart';
 
 @immutable
 final class PlayerPausePreviewEntryData {
@@ -38,6 +39,7 @@ final class PlayerPausePreviewDetailData {
     required this.title,
     required this.message,
     this.profile,
+    this.regionalMap,
     this.entries = const <PlayerPausePreviewEntryData>[],
   });
 
@@ -66,6 +68,7 @@ final class PlayerPausePreviewDetailData {
   final String title;
   final String message;
   final RuntimePlayerProfileSnapshot? profile;
+  final RuntimePlayerRegionMapSnapshot? regionalMap;
   final List<PlayerPausePreviewEntryData> entries;
 }
 
@@ -93,6 +96,7 @@ class PlayerPausePreviewShell extends StatefulWidget {
 class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
   late final RuntimePlayerFocusController _focusController;
   final _pokedexNavigation = RuntimePlayerPokedexNavigation();
+  final _regionMapNavigation = RuntimePlayerRegionMapNavigation();
   PlayerPauseAction? _selectedAction;
   var _detailOpen = false;
   var _touchControlsOpacity = .82;
@@ -119,6 +123,7 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
   @override
   void dispose() {
     _pokedexNavigation.dispose();
+    _regionMapNavigation.dispose();
     _focusController.dispose();
     super.dispose();
   }
@@ -164,6 +169,7 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
               gameTitle: widget.gameTitle,
               data: detailData,
               pokedexNavigation: _pokedexNavigation,
+              regionMapNavigation: _regionMapNavigation,
               touchControlsOpacity: _touchControlsOpacity,
               onTouchControlsOpacityChanged: (value) {
                 setState(() => _touchControlsOpacity = value);
@@ -187,6 +193,10 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
 
   void _backToRoot() {
     if (!_detailOpen) return;
+    if (_selectedAction == PlayerPauseAction.map &&
+        _regionMapNavigation.back()) {
+      return;
+    }
     if (_selectedAction == PlayerPauseAction.pokedex &&
         _pokedexNavigation.back()) {
       return;
@@ -201,6 +211,7 @@ class _PlayerPausePreviewDetail extends StatelessWidget {
     required this.gameTitle,
     required this.data,
     required this.pokedexNavigation,
+    required this.regionMapNavigation,
     required this.touchControlsOpacity,
     required this.onTouchControlsOpacityChanged,
   });
@@ -208,6 +219,7 @@ class _PlayerPausePreviewDetail extends StatelessWidget {
   final String gameTitle;
   final PlayerPausePreviewDetailData data;
   final RuntimePlayerPokedexNavigation pokedexNavigation;
+  final RuntimePlayerRegionMapNavigation regionMapNavigation;
   final double touchControlsOpacity;
   final ValueChanged<double> onTouchControlsOpacityChanged;
 
@@ -221,6 +233,7 @@ class _PlayerPausePreviewDetail extends StatelessWidget {
         Localizations.localeOf(context).toLanguageTag(),
       ),
       pokedexNavigation: pokedexNavigation,
+      regionMapNavigation: regionMapNavigation,
       onPreferencesChanged: (preferences) => onTouchControlsOpacityChanged(
         preferences.touchControlsOpacity,
       ),
@@ -290,6 +303,7 @@ RuntimePlayerSnapshot _snapshot(
           section: section,
           title: data.title,
           profile: data.profile,
+          regionalMap: data.regionalMap,
           message:
               section == RuntimePlayerPauseSection.map ? data.message : null,
           entries: <RuntimePlayerDetailEntrySnapshot>[
@@ -309,7 +323,9 @@ RuntimePlayerSnapshot _snapshot(
 }
 
 bool _detailOwnsScroll(PlayerPauseAction action) =>
-    action == PlayerPauseAction.pokedex || action == PlayerPauseAction.profile;
+    action == PlayerPauseAction.pokedex ||
+    action == PlayerPauseAction.profile ||
+    action == PlayerPauseAction.map;
 
 bool _isRuntimeSection(PlayerPauseAction action) => switch (action) {
       PlayerPauseAction.party ||

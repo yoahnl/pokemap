@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../contracts/resource_ref.dart';
 import '../domains/assets/asset_store.dart';
 import '../domains/assets/project_media_store.dart';
+import '../domains/project/regional_map_authoring_gate.dart';
 import '../workspace/project_snapshot.dart';
 
 enum ProjectReferenceSeverity { info, warning, error }
@@ -274,7 +275,9 @@ final class ProjectReferenceIndex {
       mediaCatalog: projectMediaCatalog,
       sourceAssets: sourceAssets,
     );
-    return narrative._withPresentationGraph(presentation);
+    return narrative
+        ._withPresentationGraph(presentation)
+        ._withRegionalMap(snapshot);
   }
 
   factory ProjectReferenceIndex.fromNarrativeIndex(
@@ -333,6 +336,119 @@ final class ProjectReferenceIndex {
   }
 
   final NarrativeDependencyIndex _narrativeIndex;
+
+  ProjectReferenceIndex _withRegionalMap(ProjectSnapshot snapshot) {
+    final catalog = snapshot.manifest.regionalMap;
+    if (catalog == null) return this;
+    final mergedNodes = {for (final node in nodes) node.key: node};
+    final mergedEdges = [...edges];
+    final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
+    final assets = bytes == null
+        ? AssetCatalog(records: const [])
+        : AssetCatalog.fromJson(
+            Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map));
+    void define(ProjectReferenceKey key, String label) => mergedNodes[key] =
+        ProjectReferenceNode(key: key, label: label, defined: true);
+    void link(ProjectReferenceKey owner, ProjectReferenceKey target,
+        String path, bool defined) {
+      mergedNodes.putIfAbsent(
+          target,
+          () => ProjectReferenceNode(
+              key: target, label: target.id, defined: defined));
+      mergedEdges.add(ProjectReferenceEdge(
+          owner: owner,
+          target: target,
+          path: path,
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+          resolution: defined
+              ? NarrativeDependencyResolution.resolved
+              : NarrativeDependencyResolution.missing));
+    }
+
+    for (final region in catalog.regions) {
+      final owner =
+          ProjectReferenceKey(kind: 'regionalMapRegion', id: region.id);
+      define(owner, region.label);
+      if (region.imagePath case final path?) {
+        final asset = assets.findByLogicalPath(path);
+        link(owner, ProjectReferenceKey(kind: 'asset', id: asset?.id ?? path),
+            'regionalMap.regions[${region.id}].imagePath', asset != null);
+      }
+    }
+    final mapIds = snapshot.manifest.maps.map((map) => map.id).toSet();
+    for (final point in catalog.pointsOfInterest) {
+      final owner = ProjectReferenceKey(kind: 'regionalMapPoi', id: point.id);
+      define(owner, point.label);
+      final path = 'regionalMap.pointsOfInterest[${point.id}]';
+      link(
+          owner,
+          ProjectReferenceKey(kind: 'regionalMapRegion', id: point.regionId),
+          '$path.regionId',
+          catalog.regions.any((region) => region.id == point.regionId));
+      for (final mapId in point.mapIds) {
+        link(
+            owner,
+            ProjectReferenceKey.fromNarrativeKey(
+                NarrativeDependencyKey.map(mapId)),
+            '$path.mapIds',
+            mapIds.contains(mapId));
+      }
+      if (point.destination case final destination?) {
+        link(
+            owner,
+            ProjectReferenceKey.fromNarrativeKey(
+                NarrativeDependencyKey.map(destination.mapId)),
+            '$path.destination.mapId',
+            mapIds.contains(destination.mapId));
+        if (destination.spawnId case final spawnId?) {
+          final spawn = snapshot
+              .mapById(destination.mapId)
+              ?.entities
+              .where((entity) =>
+                  entity.kind == MapEntityKind.spawn &&
+                  (entity.id == spawnId || entity.spawn?.spawnKey == spawnId))
+              .firstOrNull;
+          link(
+              owner,
+              ProjectReferenceKey.fromNarrativeKey(
+                  NarrativeDependencyKey.mapSource(
+                      mapId: destination.mapId,
+                      sourceKind: 'entity',
+                      sourceId: spawn?.id ?? spawnId)),
+              '$path.destination.spawnId',
+              spawn != null);
+        }
+      }
+      if (point.thumbnailPath case final thumbnailPath?) {
+        final asset = assets.findByLogicalPath(thumbnailPath);
+        link(
+            owner,
+            ProjectReferenceKey(kind: 'asset', id: asset?.id ?? thumbnailPath),
+            '$path.thumbnailPath',
+            asset != null);
+      }
+    }
+    final regionalDiagnostics = const RegionalMapAuthoringGate().inspect(
+        project: snapshot.manifest, assets: assets, maps: snapshot.maps);
+    return ProjectReferenceIndex._(
+      narrativeIndex: _narrativeIndex,
+      nodes: mergedNodes.values.toList()
+        ..sort((a, b) => compareProjectReferenceKeys(a.key, b.key)),
+      edges: mergedEdges..sort(compareProjectReferenceEdges),
+      diagnostics: [
+        ...diagnostics,
+        for (final diagnostic in regionalDiagnostics)
+          ProjectReferenceDiagnostic(
+              code: diagnostic.code,
+              severity: ProjectReferenceSeverity.error,
+              message: diagnostic.message,
+              target:
+                  ProjectReferenceKey(kind: 'regionalMap', id: 'regional-map'),
+              fieldPath: diagnostic.path)
+      ]..sort(compareProjectReferenceDiagnostics),
+    );
+  }
+
   final List<ProjectReferenceNode> nodes;
   final List<ProjectReferenceEdge> edges;
   final List<ProjectReferenceDiagnostic> diagnostics;

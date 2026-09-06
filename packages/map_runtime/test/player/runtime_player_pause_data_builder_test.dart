@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/player/runtime_player_pause_data.dart';
 import 'package:map_runtime/src/player/runtime_player_pause_data_builder.dart';
+import 'package:map_runtime/src/player/runtime_regional_map.dart';
 
 ItemCatalogSnapshot _catalogWith(List<ProjectItemDefinition> entries) {
   return ItemCatalogSnapshot.fromCatalog(
@@ -185,9 +186,14 @@ void main() {
       'Bourg Selbrume',
       '???',
     ]);
-    expect(map.entries.first.trailingLabel, 'Ici');
-    expect(map.entries.last.subtitle, 'Zone non découverte');
-    expect(map.message, contains('voyage rapide'));
+    expect(map.regionalMap!.regions.single.points.first.status,
+        RuntimePlayerMapPointStatus.current);
+    expect(
+        map.regionalMap!.regions.single.points
+            .every((point) => !point.isLocated),
+        isTrue);
+    expect(map.entries.last.subtitle, 'Lieu non découvert');
+    expect(map.message, isNull);
   });
 
   test('projects empty catalog pockets, inventory order, balance and icon',

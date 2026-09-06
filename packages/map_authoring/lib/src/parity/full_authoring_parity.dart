@@ -509,6 +509,17 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId.startsWith('regionalMap.')) {
+    return const {
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_regional_map_flow_test.dart',
+      AuthoringTransport.cli: 'test/tooling/jsonl_regional_map_flow_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/regional_map_authoring_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/regional_map_server.test.ts',
+    };
+  }
   if (actionId.startsWith('rail_journey.')) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
@@ -1065,6 +1076,8 @@ final class _ContractEvidenceRule {
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
+      ['regionalMap.'], 'test/domains/project/regional_map_actions_test.dart'),
+  _ContractEvidenceRule(
     [
       'cinematicLibraryAsset.',
       'cinematicLibraryFolder.',
@@ -1205,6 +1218,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/project/battle_transition_default_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['project.battle_audio.', 'map.audio.'],
+    'test/domains/project/runtime_audio_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['presentationMedia.import'],
     'test/domains/assets/presentation_media_import_transaction_test.dart',
   ),
@@ -1319,6 +1336,9 @@ const _semanticOwners = <String, String>{
   'scene': 'scene',
   'storyline': 'storyline',
   'railJourney': 'railJourney',
+  'regionalMap': 'regionalMap',
+  'regionalMapRegion': 'regionalMap',
+  'regionalMapPoi': 'regionalMap',
   'cinematic': 'cinematic',
   'cinematicMediaAsset': 'cinematic',
   'cinematicLibraryCatalog': 'project',
@@ -1379,6 +1399,9 @@ const _requiredDirectReadResourceKinds = <String>{
   'presentationVisualFolder',
   'presentationPreviewContext',
   'railJourney',
+  'regionalMap',
+  'regionalMapRegion',
+  'regionalMapPoi',
 };
 
 const _visualResources = <String>{

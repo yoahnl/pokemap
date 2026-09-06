@@ -110,7 +110,26 @@ void main() {
       );
       final host = StandaloneRuntimeStartupHost(
         projectFilePath: projectFile,
-        manifest: manifest,
+        manifest: manifest.copyWith(
+          regionalMap: ProjectRegionalMapCatalog(
+            regions: [
+              ProjectRegionDefinition(
+                id: 'test-region',
+                label: 'Région du test',
+              ),
+            ],
+            pointsOfInterest: [
+              ProjectRegionPointOfInterest(
+                id: 'test-place',
+                regionId: 'test-region',
+                label: 'Lieu du test',
+                u: .25,
+                v: .75,
+                mapIds: [state.currentMapId],
+              ),
+            ],
+          ),
+        ),
         sessionPort: port,
       );
       addTearDown(host.dispose);
@@ -184,6 +203,13 @@ void main() {
       expect(persisted.party.members.first.individualId, 'member-0');
       expect(persisted.bag.entries.single.quantity, 2);
       final details = await host.sessionController.loadPauseDetails();
+      final regionalMap = details[RuntimePlayerPauseSection.map]!.regionalMap!;
+      expect(regionalMap.regions.single.id, 'test-region');
+      expect(regionalMap.regions.single.points.single.id, 'test-place');
+      expect(
+        regionalMap.regions.single.points.single.status,
+        RuntimePlayerMapPointStatus.current,
+      );
       expect(
         details[RuntimePlayerPauseSection.party]!.entries.first.id,
         'pokemon.member-0',

@@ -13,6 +13,7 @@ import '../application/runtime_move_catalog_loader.dart';
 import '../application/runtime_move_machine_loader.dart';
 import 'runtime_player_pause_data.dart';
 import 'runtime_bag_item_icon_resolver.dart';
+import 'runtime_regional_map_builder.dart';
 import 'runtime_pokemon_summary.dart';
 import 'runtime_pokemon_summary_media_resolver.dart';
 
@@ -32,6 +33,7 @@ final class RuntimePlayerPauseDataBuilder {
     String? uiLocale,
     bool mapEnabled = false,
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
+    ProjectRegionalMapCatalog? regionalMap,
     ItemCatalogSnapshot? itemCatalog,
     int? playtimeSeconds,
     String? currencyLabel,
@@ -150,10 +152,13 @@ final class RuntimePlayerPauseDataBuilder {
         ),
         if (pokedex != null) RuntimePlayerPauseSection.pokedex: pokedex,
         if (mapEnabled)
-          RuntimePlayerPauseSection.map: _buildMap(
-            gameState,
-            projectMaps,
-            isFrench: isFrench,
+          RuntimePlayerPauseSection.map:
+              await const RuntimeRegionalMapBuilder().build(
+            gameState: gameState,
+            projectMaps: projectMaps,
+            catalog: regionalMap,
+            projectRootDirectory: projectRootDirectory,
+            locale: uiLocale ?? locale,
           ),
       },
     );
@@ -302,58 +307,6 @@ final class RuntimePlayerPauseDataBuilder {
     } on FileSystemException {
       return null;
     }
-  }
-
-  RuntimePlayerPauseDetailSnapshot _buildMap(
-    GameState gameState,
-    List<ProjectMapEntry> projectMaps, {
-    required bool isFrench,
-  }) {
-    final locations = projectRuntimeMapLocations(
-      maps: projectMaps,
-      gameState: gameState,
-    );
-    return RuntimePlayerPauseDetailSnapshot(
-      section: RuntimePlayerPauseSection.map,
-      title: isFrench ? 'Carte' : 'Map',
-      message: isFrench
-          ? 'Carte consultable uniquement : le voyage rapide sera ajouté '
-              'avec la mécanique Vol.'
-          : 'View-only map: fast travel will be added with the Fly mechanic.',
-      entries: locations.map((location) {
-        final isCurrent = location.status == RuntimeMapLocationStatus.current;
-        final isDiscovered =
-            location.status == RuntimeMapLocationStatus.discovered;
-        return RuntimePlayerDetailEntrySnapshot(
-          id: 'map.${location.mapId}',
-          title: location.displayName.isEmpty
-              ? switch (location.status) {
-                  RuntimeMapLocationStatus.current =>
-                    isFrench ? 'Zone actuelle' : 'Current area',
-                  RuntimeMapLocationStatus.discovered =>
-                    isFrench ? 'Zone découverte' : 'Discovered area',
-                  RuntimeMapLocationStatus.unknown => '???',
-                }
-              : location.displayName,
-          subtitle: switch (location.status) {
-            RuntimeMapLocationStatus.current =>
-              isFrench ? 'Position actuelle' : 'Current location',
-            RuntimeMapLocationStatus.discovered =>
-              isFrench ? 'Zone découverte' : 'Discovered area',
-            RuntimeMapLocationStatus.unknown =>
-              isFrench ? 'Zone non découverte' : 'Undiscovered area',
-          },
-          trailingLabel: isCurrent
-              ? (isFrench ? 'Ici' : 'Here')
-              : isDiscovered
-                  ? (isFrench ? 'Connue' : 'Known')
-                  : (isFrench ? 'Inconnue' : 'Unknown'),
-        );
-      }).toList(growable: false),
-      emptyMessage: isFrench
-          ? 'Aucune zone n’est disponible sur cette carte.'
-          : 'No area is available on this map.',
-    );
   }
 
   Future<RuntimePlayerPauseDetailSnapshot> _buildParty(

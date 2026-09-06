@@ -13,6 +13,7 @@ import 'runtime_player_options.dart';
 import 'player_control_profile.dart';
 import 'runtime_player_bag.dart';
 import 'runtime_player_pokedex.dart';
+import 'runtime_player_region_map.dart';
 import 'runtime_player_profile.dart';
 import 'player_session_surfaces.dart';
 
@@ -26,6 +27,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
     this.partyNavigation,
     this.bagNavigation,
     this.pokedexNavigation,
+    this.regionMapNavigation,
     this.onFavoriteChanged,
     this.onReturnToTitle,
     this.controlProfile,
@@ -41,6 +43,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
   final RuntimePlayerPartyNavigation? partyNavigation;
   final RuntimePlayerBagNavigation? bagNavigation;
   final RuntimePlayerPokedexNavigation? pokedexNavigation;
+  final RuntimePlayerRegionMapNavigation? regionMapNavigation;
   final Future<void> Function(String, bool)? onFavoriteChanged;
   final VoidCallback? onReturnToTitle;
   final PlayerControlProfile? controlProfile;
@@ -130,6 +133,16 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         child: RuntimePlayerProfile(profile: detail!.profile!),
       );
     }
+    if (section == RuntimePlayerPauseSection.map && detail != null) {
+      return PlayerMenuThemeScope(
+        role: ProjectPresentationSurfaceRole.map,
+        child: RuntimePlayerRegionMap(
+            detail: detail,
+            navigation: regionMapNavigation,
+            controlProfile: controlProfile,
+            hardwareGamepadEnabled: hardwareGamepadEnabled),
+      );
+    }
     if (detail == null || detail.entries.isEmpty) {
       return PlayerEmptyState(
         key: const ValueKey<String>('runtime-player-detail-empty'),
@@ -138,10 +151,6 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         message:
             detail?.emptyMessage ?? context.playerL10n.noPlayerDetailAvailable,
       );
-    }
-
-    if (section == RuntimePlayerPauseSection.map) {
-      return _RuntimePlayerMap(detail: detail);
     }
 
     return Column(
@@ -220,39 +229,4 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.root =>
           ProjectPresentationSurfaceRole.pauseMenu,
       };
-}
-
-class _RuntimePlayerMap extends StatelessWidget {
-  const _RuntimePlayerMap({required this.detail});
-
-  final RuntimePlayerPauseDetailSnapshot detail;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        key: const ValueKey<String>('runtime-player-detail-map'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          if (detail.message case final message?
-              when message.trim().isNotEmpty) ...<Widget>[
-            PlayerPanel(
-              surfaceRole: ProjectPresentationSurfaceRole.map,
-              child: Text(
-                message,
-                key: const ValueKey<String>('runtime-player-map-message'),
-              ),
-            ),
-            const SizedBox(height: PlayerSpacing.sm),
-          ],
-          for (var index = 0;
-              index < detail.entries.length;
-              index++) ...<Widget>[
-            PlayerDetailEntryCard(
-              entry: detail.entries[index],
-              surfaceRole: ProjectPresentationSurfaceRole.map,
-            ),
-            if (index != detail.entries.length - 1)
-              const SizedBox(height: PlayerSpacing.sm),
-          ],
-        ],
-      );
 }

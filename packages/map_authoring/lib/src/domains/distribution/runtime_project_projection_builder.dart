@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import '../../contracts/artifact_ref.dart';
 import '../assets/asset_store.dart';
 import '../assets/project_media_store.dart';
+import '../project/regional_map_authoring_gate.dart';
 import 'game_package_export_profile.dart';
 
 final class RuntimeProjectProjection {
@@ -160,6 +161,29 @@ final class RuntimeProjectProjectionBuilder {
     final authorProject = ProjectManifest.fromJson(
       (projectScrub.value as Map).cast<String, dynamic>(),
     );
+    final regionalMapTargets = {
+      for (final point in authorProject.regionalMap?.pointsOfInterest ??
+          const <ProjectRegionPointOfInterest>[])
+        if (point.destination?.spawnId != null) point.destination!.mapId
+    };
+    final regionalMaps = <MapData>[];
+    for (final entry in authorProject.maps
+        .where((map) => regionalMapTargets.contains(map.id))) {
+      regionalMaps.add(MapData.fromJson(_decodeJsonObject(
+          await authorFiles.read(entry.relativePath, budget, jsonLike: true),
+          entry.relativePath)));
+    }
+    final regionalDiagnostics = const RegionalMapAuthoringGate().inspect(
+        project: authorProject,
+        assets: authorFiles.catalog,
+        maps: regionalMaps);
+    if (regionalDiagnostics.isNotEmpty) {
+      final diagnostic = regionalDiagnostics.first;
+      throw GamePackageExportException(
+          code: diagnostic.code,
+          path: diagnostic.path,
+          message: diagnostic.message);
+    }
     final presentation = authorProject.presentation ??
         ProjectPresentationProfile(
           branding: ProjectBrandingProfile(
@@ -186,6 +210,28 @@ final class RuntimeProjectProjectionBuilder {
         path: blockingPresentationDiagnostic.path,
         message: blockingPresentationDiagnostic.message,
       );
+    }
+    final regionalImagePaths = {
+      for (final region in authorProject.regionalMap?.regions ??
+          const <ProjectRegionDefinition>[])
+        if (region.imagePath != null) region.imagePath!,
+      for (final point in authorProject.regionalMap?.pointsOfInterest ??
+          const <ProjectRegionPointOfInterest>[])
+        if (point.thumbnailPath != null) point.thumbnailPath!,
+    };
+    for (final path in regionalImagePaths) {
+      final bytes = await authorFiles.read(path, budget);
+      try {
+        if (image.decodeImage(Uint8List.fromList(bytes)) == null) {
+          throw const FormatException('Invalid image.');
+        }
+      } on Object catch (error) {
+        throw GamePackageExportException(
+            code: 'regional_map.image_invalid',
+            path: path,
+            message: 'The regional map image cannot be decoded.',
+            cause: error);
+      }
     }
 
     final payload = <String, List<int>>{};
@@ -269,6 +315,10 @@ final class RuntimeProjectProjectionBuilder {
       authorProject,
       authorFiles,
       budget,
+      retainedSourceAssetIds: authorFiles.catalog.records
+          .where((record) => regionalImagePaths.contains(record.logicalPath))
+          .map((record) => record.id)
+          .toSet(),
     );
 
     await _addPortableAssetClosure(
@@ -522,8 +572,9 @@ final class RuntimeProjectProjectionBuilder {
   Future<_PresentationPackageProjection?> _preparePresentationPackage(
     ProjectManifest project,
     _AuthorProjectFileResolver authorFiles,
-    _ProjectionBudget budget,
-  ) async {
+    _ProjectionBudget budget, {
+    Set<String> retainedSourceAssetIds = const {},
+  }) async {
     final storedCatalog = await authorFiles.readProjectMediaCatalog(budget);
     if (storedCatalog == null && project.presentationCinematics.isEmpty) {
       return null;
@@ -566,8 +617,9 @@ final class RuntimeProjectProjectionBuilder {
     }
     final presentationSourceAssetIds =
         sourceCatalog.entries.map((media) => media.sourceAssetId).toSet();
-    final excludedSourceAssetIds =
-        presentationSourceAssetIds.difference(packagedSourceAssetIds);
+    final excludedSourceAssetIds = presentationSourceAssetIds
+        .difference(packagedSourceAssetIds)
+        .difference(retainedSourceAssetIds);
     final excludedLogicalPaths = authorFiles.catalog.records
         .where((record) => excludedSourceAssetIds.contains(record.id))
         .map((record) => record.logicalPath)

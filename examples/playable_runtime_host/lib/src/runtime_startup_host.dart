@@ -702,6 +702,7 @@ final class _StandaloneInProcessSessionRuntime
       uiLocale: _playerPreferences?.locale,
       mapEnabled: true,
       projectMaps: manifest.maps,
+      regionalMap: manifest.regionalMap,
       projectBadges: manifest.badges,
       projectCharacters: manifest.characters,
       portraitLookup: _portraitResolver.resolve,

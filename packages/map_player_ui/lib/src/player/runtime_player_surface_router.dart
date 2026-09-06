@@ -26,6 +26,7 @@ import 'runtime_player_focus_controller.dart';
 import 'runtime_player_party.dart';
 import 'runtime_player_bag.dart';
 import 'runtime_player_pokedex.dart';
+import 'runtime_player_region_map.dart';
 
 typedef RuntimePlayerActionCallback = Future<RuntimePlayerCommandResult>
     Function(RuntimePlayerAction action);
@@ -93,6 +94,7 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
 class _RuntimePlayerSurfaceRouterState
     extends State<RuntimePlayerSurfaceRouter> {
   final _ownedPokedexNavigation = RuntimePlayerPokedexNavigation();
+  final _regionMapNavigation = RuntimePlayerRegionMapNavigation();
   ValueNotifier<RuntimePlayerSnapshot>? _dialogSnapshot;
   DialogRoute<void>? _saveDialogRoute;
   RuntimePlayerSaveReceipt? _shownSaveReceipt;
@@ -110,6 +112,7 @@ class _RuntimePlayerSurfaceRouterState
         widget.snapshot.phase == RuntimePlayerPhase.preparingSession ||
         widget.snapshot.phase == RuntimePlayerPhase.externalExit;
     if (sessionChanged) _shownSaveReceipt = null;
+    if (sessionChanged) _regionMapNavigation.clearForNewSession();
     final relay = _dialogSnapshot;
     final route = _saveDialogRoute;
     if (relay != null) {
@@ -140,6 +143,7 @@ class _RuntimePlayerSurfaceRouterState
       });
     }
     _ownedPokedexNavigation.dispose();
+    _regionMapNavigation.dispose();
     super.dispose();
   }
 
@@ -162,6 +166,10 @@ class _RuntimePlayerSurfaceRouterState
   }
 
   void _backFromPause() {
+    if (widget.snapshot.pauseSection == RuntimePlayerPauseSection.map &&
+        _regionMapNavigation.back()) {
+      return;
+    }
     if (widget.snapshot.pauseSection == RuntimePlayerPauseSection.pokedex &&
         _pokedexNavigation.back()) {
       return;
@@ -365,6 +373,7 @@ class _RuntimePlayerSurfaceRouterState
                   .saved(widget.snapshot.saveReceipt!),
           detail: RuntimePlayerDetailRouter(
             pokedexNavigation: _pokedexNavigation,
+            regionMapNavigation: _regionMapNavigation,
             bagNavigation: widget.bagNavigation,
             onFavoriteChanged: widget.onFavoriteChanged,
             partyNavigation: widget.partyNavigation,
@@ -388,7 +397,9 @@ class _RuntimePlayerSurfaceRouterState
                   RuntimePlayerPauseSection.pokedex ||
               widget.snapshot.pauseSection ==
                   RuntimePlayerPauseSection.profile ||
-              widget.snapshot.pauseSection == RuntimePlayerPauseSection.options,
+              widget.snapshot.pauseSection ==
+                  RuntimePlayerPauseSection.options ||
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.map,
           detailHeaderSecondary:
               widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag
                   ? _bagMoney(context)

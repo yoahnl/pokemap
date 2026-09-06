@@ -88,3 +88,96 @@ List<RuntimeMapLocation> projectRuntimeMapLocations({
     locations.map((entry) => entry.location),
   );
 }
+
+final class RuntimeRegionalMapRegion {
+  RuntimeRegionalMapRegion(
+      {required this.id,
+      required this.displayName,
+      this.imagePath,
+      required this.sampling,
+      required List<RuntimeRegionalMapPoint> points})
+      : points = List.unmodifiable(points);
+  final String id;
+  final String displayName;
+  final String? imagePath;
+  final ProjectMenuImageSampling sampling;
+  final List<RuntimeRegionalMapPoint> points;
+}
+
+final class RuntimeRegionalMapPoint {
+  const RuntimeRegionalMapPoint(
+      {required this.id,
+      required this.regionId,
+      required this.u,
+      required this.v,
+      required this.displayName,
+      required this.status,
+      this.description,
+      this.thumbnailPath,
+      this.destination});
+  final String id;
+  final String regionId;
+  final double u;
+  final double v;
+  final String displayName;
+  final RuntimeMapLocationStatus status;
+  final String? description;
+  final String? thumbnailPath;
+  final ProjectRegionDestination? destination;
+}
+
+List<RuntimeRegionalMapRegion> projectRuntimeRegionalMap(
+    {required ProjectRegionalMapCatalog catalog,
+    required GameState gameState,
+    required String locale}) {
+  final visited = {
+    ...gameState.narrativeEventProgress.visitedNarrativeMapIds,
+    gameState.currentMapId
+  };
+  final visible = <String, List<RuntimeRegionalMapPoint>>{};
+  final points = catalog.pointsOfInterest.toList()
+    ..sort((a, b) {
+      final order = a.sortOrder.compareTo(b.sortOrder);
+      return order == 0 ? a.id.compareTo(b.id) : order;
+    });
+  for (final point in points) {
+    if (point.visibility == ProjectRegionPointVisibility.hidden) continue;
+    final known = point.discovery == ProjectRegionPointDiscovery.always ||
+        point.mapIds.any(visited.contains);
+    if (!known &&
+        point.visibility == ProjectRegionPointVisibility.discoveredOnly) {
+      continue;
+    }
+    final current = point.mapIds.contains(gameState.currentMapId);
+    visible.putIfAbsent(point.regionId, () => []).add(RuntimeRegionalMapPoint(
+          id: point.id,
+          regionId: point.regionId,
+          u: point.u,
+          v: point.v,
+          displayName: known ? point.labelFor(locale) : '???',
+          status: current
+              ? RuntimeMapLocationStatus.current
+              : known
+                  ? RuntimeMapLocationStatus.discovered
+                  : RuntimeMapLocationStatus.unknown,
+          description: known ? point.descriptionFor(locale) : null,
+          thumbnailPath: known ? point.thumbnailPath : null,
+          destination: known ? point.destination : null,
+        ));
+  }
+  final regions = catalog.regions.toList()
+    ..sort((a, b) {
+      final order = a.sortOrder.compareTo(b.sortOrder);
+      return order == 0 ? a.id.compareTo(b.id) : order;
+    });
+  return List.unmodifiable([
+    for (final region in regions)
+      if (visible[region.id]?.isNotEmpty ?? false)
+        RuntimeRegionalMapRegion(
+            id: region.id,
+            displayName: region.labelFor(locale),
+            imagePath: region.imagePath,
+            sampling: region.sampling,
+            points: visible[region.id]!),
+  ]);
+}

@@ -96,6 +96,7 @@ final class PlayableMapGameSessionRuntime
   DialoguePortraitResolver? _pausePortraitResolver;
   ProjectPokemonConfig? _pokemonConfig;
   List<ProjectMapEntry> _projectMaps = const <ProjectMapEntry>[];
+  ProjectRegionalMapCatalog? _regionalMap;
   List<BadgeDefinition> _projectBadges = const [];
   List<ProjectCharacterEntry> _projectCharacters = const [];
   DateTime? _createdAt;
@@ -240,6 +241,7 @@ final class PlayableMapGameSessionRuntime
     );
     _pokemonConfig = bundle.manifest.pokemon;
     _projectMaps = List<ProjectMapEntry>.unmodifiable(bundle.manifest.maps);
+    _regionalMap = bundle.manifest.regionalMap;
     _projectBadges = List<BadgeDefinition>.unmodifiable(bundle.manifest.badges);
     _projectCharacters =
         List<ProjectCharacterEntry>.unmodifiable(bundle.manifest.characters);
@@ -355,6 +357,7 @@ final class PlayableMapGameSessionRuntime
       uiLocale: _playerPreferences?.locale,
       mapEnabled: descriptor.grantedCapabilities.contains('map.v1'),
       projectMaps: _projectMaps,
+      regionalMap: _regionalMap,
       projectBadges: _projectBadges,
       projectCharacters: _projectCharacters,
       portraitLookup: _pausePortraitResolver?.resolve,

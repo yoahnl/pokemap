@@ -1,0 +1,199 @@
+{
+  "ticket": "POST-UI-MENU-007",
+  "lot": "MENU-I / lot 9",
+  "date": "2026-09-06",
+  "status": "TO_REVIEW",
+  "baseline": {
+    "branch": "main",
+    "sha": "50b8f0bcb865169de21419edff409e103795fe69",
+    "clean": true
+  },
+  "sourceImport": {
+    "project": "/Users/karim/Desktop/pokeMap Project/le_train_de_17h42",
+    "receipt": "/Users/karim/Desktop/pokeMap Project/menu9-backup-20260906/train-regional-map.json",
+    "backupManifest": "train-regional-map.json.project-before.json",
+    "backupAssetCatalog": "train-regional-map.json.assets-before.json",
+    "actions": [
+      "asset.import",
+      "regionalMap.region.upsert",
+      "regionalMap.poi.upsert",
+      "regionalMap.poi.upsert",
+      "regionalMap.poi.upsert",
+      "regionalMap.poi.upsert"
+    ],
+    "valid": true,
+    "regionalMapDiagnostics": [],
+    "unchangedOtherJsonFiles": 9317,
+    "unchangedOtherJsonSha256": "ce458171b311d4dbd55d11c090fdd596544294fad464f9bebdfce2cc412c801b",
+    "existingNonBlockingReferenceDiagnostics": 5
+  },
+  "native": {
+    "project": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/menu9_qa_20260906",
+    "build": "/tmp/menu9r-isolated/examples/playable_runtime_host",
+    "mapId": "hanazuki-village",
+    "position": {
+      "x": 16,
+      "y": 9
+    },
+    "partySize": 6,
+    "checks": {
+      "regionalImageVisible": true,
+      "localInfoBackPreservesMap": true,
+      "zoom125Preserved": true,
+      "unknownNameDescriptionMasked": true,
+      "selectionPreservedAfterReopen": true,
+      "recenter100": true,
+      "returnToOverworld": true
+    },
+    "screenshots": [
+      "native-map-125.png",
+      "native-unknown.png",
+      "native-map-recenter.png"
+    ]
+  },
+  "automated": [
+    {
+      "scope": "map_core",
+      "command": "dart test test/project_regional_map_test.dart",
+      "result": "6 PASS"
+    },
+    {
+      "scope": "map_gameplay",
+      "command": "dart test test/runtime_regional_map_projection_test.dart",
+      "result": "4 PASS"
+    },
+    {
+      "scope": "map_authoring, index isolé",
+      "command": "dart test test/domains/project/regional_map_actions_test.dart test/domains/distribution/regional_map_export_test.dart test/tooling/jsonl_regional_map_flow_test.dart test/parity/full_authoring_parity_test.dart",
+      "result": "32 PASS"
+    },
+    {
+      "scope": "map_player_ui, index isolé",
+      "command": "flutter test test/player/menu9_region_map_test.dart test/player/region_map_geometry_test.dart --concurrency=1 --no-pub",
+      "result": "18 PASS"
+    },
+    {
+      "scope": "map_editor, index isolé",
+      "command": "flutter test test/authoring_api/regional_map_authoring_test.dart --reporter expanded --no-pub",
+      "result": "7 PASS"
+    },
+    {
+      "scope": "map_runtime, index isolé",
+      "command": "flutter test test/player/runtime_regional_map_builder_test.dart test/player/runtime_player_pause_data_builder_test.dart test/phase_a_golden_battle_slice_smoke_test.dart --concurrency=1 --no-pub",
+      "result": "15 PASS"
+    },
+    {
+      "scope": "playable_runtime_host, index isolé",
+      "command": "flutter test test/standalone_pause_commands_test.dart test/phase_a_golden_slice_launch_test.dart --concurrency=1 --no-pub",
+      "result": "15 PASS"
+    },
+    {
+      "scope": "tools/pokemap_mcp, index isolé",
+      "command": "npm run build && node --import tsx --test --test-concurrency=1 test/regional_map_server.test.ts",
+      "result": "1 PASS / 0 échec"
+    }
+  ],
+  "review": {
+    "reviewers": [
+      "menu9r_contract",
+      "menu9r_player",
+      "menu9r_editor"
+    ],
+    "verdict": "APPROVED after six confirmed edge-case fixes and regression tests; fresh native replay on staged-source build.",
+    "artisticVerdict": "PENDING_USER_REVIEW",
+    "nativeEditorReplay": "NOT_PERFORMED",
+    "physicalGamepad": "NOT_REPLAYED"
+  },
+  "limitations": [
+    "Existing authoring package_boundary_test.dart:162 fails with environment_actions.dart 1304 lines in HEAD (limit <1300).",
+    "Three pre-existing use_null_aware_elements infos in validators.dart:138-140.",
+    "No fast travel capability; map is consultation-only.",
+    "Global PMCP085 transport certification remains false outside this lot; regional MCP test passes."
+  ],
+  "initialAutomated": [
+    {
+      "scope": "map_core, initial",
+      "command": "dart test test/project_regional_map_test.dart test/project_manifest_narrative_canonical_json_test.dart test/rail_journey_project_manifest_test.dart test/project_manifest_presentation_cinematics_test.dart",
+      "result": "34 PASS"
+    },
+    {
+      "scope": "map_gameplay",
+      "command": "dart test test/runtime_map_projection_test.dart test/runtime_regional_map_projection_test.dart",
+      "result": "6 PASS"
+    },
+    {
+      "scope": "map_authoring, initial",
+      "command": "dart test test/domains/project/regional_map_actions_test.dart test/tooling/jsonl_regional_map_flow_test.dart test/domains/distribution/regional_map_export_test.dart test/domains/maps/map_lifecycle_contract_test.dart test/domains/maps/map_lifecycle_transaction_test.dart",
+      "result": "23 PASS"
+    },
+    {
+      "scope": "map_authoring, catalogue",
+      "command": "dart test test/parity/full_authoring_parity_test.dart --plain-name 'registers every approved semantic resource without hidden gaps'",
+      "result": "1 PASS"
+    },
+    {
+      "scope": "map_core, correctif spawn",
+      "command": "dart test test/project_regional_map_test.dart test/project_validator_test.dart test/map_entity_editor_visual_test.dart",
+      "result": "12 PASS"
+    },
+    {
+      "scope": "map_authoring, correctif spawn",
+      "command": "dart test test/domains/project/regional_map_actions_test.dart test/tooling/jsonl_regional_map_flow_test.dart test/domains/maps/spatial_object_contract_test.dart test/references/project_reference_index_test.dart test/domains/distribution/regional_map_export_test.dart",
+      "result": "28 PASS"
+    },
+    {
+      "scope": "map_runtime",
+      "command": "flutter test test/player/runtime_regional_map_builder_test.dart test/player/runtime_player_pause_data_builder_test.dart --concurrency=1",
+      "result": "12 PASS"
+    },
+    {
+      "scope": "map_player_ui, final",
+      "command": "flutter test test/player/menu9_region_map_test.dart test/player/region_map_geometry_test.dart --concurrency=1",
+      "result": "13 PASS"
+    },
+    {
+      "scope": "map_editor, final",
+      "command": "flutter test test/authoring_api/regional_map_authoring_test.dart --concurrency=1 --no-pub",
+      "result": "6 PASS"
+    },
+    {
+      "scope": "playable_runtime_host",
+      "command": "flutter test test/standalone_pause_commands_test.dart test/phase_a_golden_slice_launch_test.dart --concurrency=1",
+      "result": "15 PASS"
+    },
+    {
+      "scope": "map_runtime, golden battle",
+      "command": "flutter test test/phase_a_golden_battle_slice_smoke_test.dart --concurrency=1",
+      "result": "3 PASS"
+    },
+    {
+      "scope": "tools/pokemap_mcp",
+      "command": "node --import tsx --test --test-concurrency=1 test/regional_map_server.test.ts",
+      "result": "1 PASS / 0 échec"
+    }
+  ],
+  "revalidation": {
+    "date": "2026-09-06",
+    "initialGit": {
+      "branch": "main",
+      "sha": "50b8f0bcb865169de21419edff409e103795fe69",
+      "changedPaths": 65,
+      "stagedPaths": 0
+    },
+    "scopedFiles": 59,
+    "foreignChangesPreserved": true,
+    "commit": "Local commit on main; SHA recorded in Notion",
+    "push": false,
+    "fixes": [
+      "Missing regional image layout at 200% text scale: overflow484px eliminated",
+      "Discarded region artwork restored before creating/selecting a POI",
+      "Wide and compact scroll preserved across Info/back",
+      "Fresh session selects new current location even with unchanged IDs",
+      "Changing region resets offsets restored on reopening (500 to0)",
+      "Export retains regional/thumbnail assets shared with unused presentation media"
+    ],
+    "redGreenProof": true,
+    "stagedCopy": "/tmp/menu9r-isolated",
+    "nativeReplay": "Info/Back, zoom125, unknown masking, reopen selection, recenter100, return overworld(16,9), party6"
+  }
+}

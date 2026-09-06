@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_distribution/map_distribution.dart';
 
 import '../contracts/action_descriptor.dart';
+import '../domains/project/regional_map_actions.dart';
 import '../domains/project/battle_transition_default_actions.dart';
 import '../domains/assets/asset_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
@@ -163,6 +164,9 @@ final class MapMutationDispatcher {
     const storylines = StorylineActions();
     const railJourneys = RailJourneyActions();
     return MapMutationDispatcher([
+      for (final descriptor in RegionalMapActions.descriptors)
+        MapMutationActionRegistration(
+            descriptor: descriptor, build: const RegionalMapActions().build),
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,

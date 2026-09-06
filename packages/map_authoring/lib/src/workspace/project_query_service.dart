@@ -1113,6 +1113,45 @@ List<_QueryRecord> _records(
             },
           ),
       ];
+    case 'regionalMap':
+      final catalog = snapshot.manifest.regionalMap;
+      if (catalog == null) return const [];
+      final record = <String, Object?>{
+        'id': 'regional-map',
+        'name': 'Regional map',
+        'resourceKind': 'regionalMap',
+        ...catalog.toJson()
+      };
+      return [_QueryRecord(summary: record, detail: record)];
+    case 'regionalMapRegion':
+      return [
+        for (final region in snapshot.manifest.regionalMap?.regions ??
+            const <ProjectRegionDefinition>[])
+          _QueryRecord(summary: {
+            'id': region.id,
+            'name': region.label,
+            'resourceKind': 'regionalMapRegion'
+          }, detail: {
+            ...region.toJson(),
+            'name': region.label,
+            'resourceKind': 'regionalMapRegion'
+          })
+      ];
+    case 'regionalMapPoi':
+      return [
+        for (final point in snapshot.manifest.regionalMap?.pointsOfInterest ??
+            const <ProjectRegionPointOfInterest>[])
+          _QueryRecord(summary: {
+            'id': point.id,
+            'name': point.label,
+            'regionId': point.regionId,
+            'resourceKind': 'regionalMapPoi'
+          }, detail: {
+            ...point.toJson(),
+            'name': point.label,
+            'resourceKind': 'regionalMapPoi'
+          })
+      ];
     default:
       throw StateError(
         'Canonical queryable resource kind has no query route: '

@@ -710,7 +710,7 @@ packages:
     source: path
     version: "0.1.0"
   map_runtime:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../map_runtime"
       relative: true

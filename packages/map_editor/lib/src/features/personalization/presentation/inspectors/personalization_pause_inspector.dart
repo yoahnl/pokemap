@@ -30,6 +30,7 @@ class PersonalizationPauseInspector extends StatelessWidget {
     required this.onUseSystemBodyFont,
     this.onPausePreviewChanged,
     this.onImportBackground,
+    this.onConfigureRegionalMap,
     this.onBackgroundChanged,
     this.onStyleChanged,
     this.commitCoordinator,
@@ -40,6 +41,7 @@ class PersonalizationPauseInspector extends StatelessWidget {
 
   final ProjectPresentationProfile profile;
   final VoidCallback? onImportBackground;
+  final VoidCallback? onConfigureRegionalMap;
   final ValueChanged<ProjectPauseBackgroundProfile?>? onBackgroundChanged;
   final ValueChanged<ProjectPauseMenuStyle>? onStyleChanged;
   final ValueChanged<ProjectPausePresentationProfile?> onPauseChanged;
@@ -84,6 +86,13 @@ class PersonalizationPauseInspector extends StatelessWidget {
               key: const ValueKey('pause-import-background'),
               onPressed: onImportBackground,
               child: const Text('Choisir le fond du menu'),
+            ),
+            const SizedBox(height: 8),
+            PokeMapButton(
+              key: const ValueKey('pause-configure-regional-map'),
+              onPressed: onConfigureRegionalMap,
+              variant: PokeMapButtonVariant.secondary,
+              child: const Text('Carte régionale et lieux…'),
             ),
             if (profile.pause?.background case final background?) ...[
               const SizedBox(height: 8),

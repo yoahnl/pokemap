@@ -28,6 +28,7 @@ import '../operations/smart_tile_catalog_validation.dart';
 import '../operations/smart_tile_layer_operations.dart';
 import 'dialogue_validation.dart';
 import 'entity_editor_visual_validation.dart';
+import 'project_regional_map_validator.dart';
 
 class ProjectValidator {
   // Scenario action/source kinds partagés avec l'éditeur/runtime.
@@ -156,6 +157,17 @@ class ProjectValidator {
       );
     }
     _validateUniqueness(manifest);
+    for (final diagnostic in validateProjectRegionalMap(
+      catalog: manifest.regionalMap,
+      projectMapIds: manifest.maps.map((map) => map.id),
+      maps: maps,
+    )) {
+      throw ValidationException(
+        diagnostic.message,
+        code: diagnostic.code,
+        details: {'path': diagnostic.path},
+      );
+    }
     _validateRailJourneys(manifest, maps: maps, itemCatalog: itemCatalog);
     _validateSceneRailJourneyReferences(manifest);
     _validateHierarchy(manifest);
@@ -2640,6 +2652,22 @@ class MapValidator {
       (entity) => entity.id,
       duplicateMessagePrefix: 'Duplicate entity ID',
     );
+    if (projectDialogueContext != null) {
+      for (final diagnostic in validateProjectRegionalMap(
+        catalog: projectDialogueContext.regionalMap,
+        projectMapIds: projectDialogueContext.maps.map((entry) => entry.id),
+        maps: [map],
+      )) {
+        if (diagnostic.code != 'regional_map.destination_spawn_missing') {
+          continue;
+        }
+        throw ValidationException(
+          diagnostic.message,
+          code: diagnostic.code,
+          details: {'path': diagnostic.path},
+        );
+      }
+    }
 
     final layerById = <String, MapLayer>{
       for (final layer in map.layers) layer.id: layer,
