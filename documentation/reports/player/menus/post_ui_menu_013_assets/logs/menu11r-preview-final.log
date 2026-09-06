@@ -1,0 +1,22 @@
+Command: flutter test --concurrency=2 --timeout=40s --reporter=expanded test/personalization/personalization_player_surface_adapter_test.dart test/personalization/personalization_pause_inspector_test.dart
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_player_surface_adapter_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_player_surface_adapter_test.dart: mounts the shared widget for every player scene
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: menu background controls preserve ownership through callbacks
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: menu background controls preserve ownership through callbacks
+00:01 +3: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: menu background controls preserve ownership through callbacks
+00:01 +4: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_player_surface_adapter_test.dart: labels every runtime surface in the global style collage
+00:01 +5: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: restores required Resume before publishing an incomplete draft
+00:01 +6: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_player_surface_adapter_test.dart: opens supported pause actions and keeps quests unavailable
+00:02 +7: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: offers focused pause placement size colors and typography
+00:02 +8: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: offers focused pause placement size colors and typography
+00:02 +9: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: offers focused pause placement size colors and typography
+00:02 +10: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: offers focused pause placement size colors and typography
+00:02 +11: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: offers focused pause placement size colors and typography
+00:02 +12: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_player_surface_adapter_test.dart: plays the responsive intro with real captions and focal point
+00:02 +13: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: Pokedex becomes Bestiaire in the runtime pause surface
+00:03 +14: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: Pokedex becomes Bestiaire in the runtime pause surface
+00:03 +15: /Users/karim/Project/pokemonProject/packages/map_editor/test/personalization/personalization_pause_inspector_test.dart: Pokedex becomes Bestiaire in the runtime pause surface
+00:03 +16: All tests passed!
+
+Exit code: 0
+Elapsed seconds: 11.39

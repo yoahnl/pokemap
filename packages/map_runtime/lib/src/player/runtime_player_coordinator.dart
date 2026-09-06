@@ -322,6 +322,11 @@ final class RuntimePlayerCoordinator {
   Future<RuntimePlayerCommandResult> _dispatchSerialized(
     RuntimePlayerCommand command,
   ) async {
+    if (_disposed) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.cancelled,
+      );
+    }
     if (command.snapshotRevision != _snapshot.revision) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
@@ -527,40 +532,10 @@ final class RuntimePlayerCoordinator {
         final reorderSessionId = _sessions.snapshot.descriptor?.sessionId;
         final reorderResult =
             await _sessions.dispatchPauseCommand(reorderCommand);
-        if (!_canPublishPauseData(reorderSessionId)) {
-          return const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.cancelled,
-          );
-        }
-        final reorderDetails = Map<RuntimePlayerPauseSection,
-            RuntimePlayerPauseDetailSnapshot>.from(
-          await _sessions.loadPauseDetails(),
-        );
-        final party = reorderDetails[RuntimePlayerPauseSection.party];
-        if (!_canPublishPauseData(reorderSessionId)) {
-          return const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.cancelled,
-          );
-        }
-        if (party != null) {
-          reorderDetails[RuntimePlayerPauseSection.party] =
-              party.withMessage(reorderResult.safeMessage);
-        }
-        _publishPause(
+        return _refreshPauseAfterCommand(
           RuntimePlayerPauseSection.party,
-          logicalSelectionId: _snapshot.logicalSelectionId,
-          pauseDetails: reorderDetails,
-        );
-        return RuntimePlayerCommandResult(
-          status: switch (reorderResult.status) {
-            RuntimePlayerPauseCommandStatus.accepted =>
-              RuntimePlayerCommandStatus.accepted,
-            RuntimePlayerPauseCommandStatus.unavailable =>
-              RuntimePlayerCommandStatus.unavailable,
-            RuntimePlayerPauseCommandStatus.failed =>
-              RuntimePlayerCommandStatus.failed,
-          },
-          safeMessage: reorderResult.safeMessage,
+          sessionId: reorderSessionId,
+          result: reorderResult,
         );
       case RuntimePlayerAction.useBagItem:
         final pauseCommand = command.payload;
@@ -583,40 +558,10 @@ final class RuntimePlayerCoordinator {
         }
         final bagSessionId = _sessions.snapshot.descriptor?.sessionId;
         final result = await _sessions.dispatchPauseCommand(pauseCommand);
-        if (!_canPublishPauseData(bagSessionId)) {
-          return const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.cancelled,
-          );
-        }
-        final pauseDetails = Map<RuntimePlayerPauseSection,
-            RuntimePlayerPauseDetailSnapshot>.from(
-          await _sessions.loadPauseDetails(),
-        );
-        final currentDetail = pauseDetails[commandSection];
-        if (!_canPublishPauseData(bagSessionId)) {
-          return const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.cancelled,
-          );
-        }
-        if (currentDetail != null) {
-          pauseDetails[commandSection!] =
-              currentDetail.withMessage(result.safeMessage);
-        }
-        _publishPause(
+        return _refreshPauseAfterCommand(
           commandSection!,
-          logicalSelectionId: _snapshot.logicalSelectionId,
-          pauseDetails: pauseDetails,
-        );
-        return RuntimePlayerCommandResult(
-          status: switch (result.status) {
-            RuntimePlayerPauseCommandStatus.accepted =>
-              RuntimePlayerCommandStatus.accepted,
-            RuntimePlayerPauseCommandStatus.unavailable =>
-              RuntimePlayerCommandStatus.unavailable,
-            RuntimePlayerPauseCommandStatus.failed =>
-              RuntimePlayerCommandStatus.failed,
-          },
-          safeMessage: result.safeMessage,
+          sessionId: bagSessionId,
+          result: result,
         );
       case RuntimePlayerAction.openPokedex:
         _publishPause(
@@ -677,34 +622,49 @@ final class RuntimePlayerCoordinator {
           );
         }
         final localeChanged = _preferences?.locale != preferences.locale;
+        final preferencesSessionId = _sessions.snapshot.descriptor?.sessionId;
         try {
           await _preferencesGateway.save(preferences);
         } on Object {
+          if (!_isCurrentSession(preferencesSessionId)) {
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.cancelled,
+            );
+          }
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.failed,
             safeMessage: 'Les préférences du joueur n’ont pas pu être sauvegardées.',
           );
         }
+        if (!_isCurrentSession(preferencesSessionId)) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
+          );
+        }
         _preferences = preferences;
         _sessions.applyPlayerPreferences(preferences);
         if (localeChanged && _snapshot.phase == RuntimePlayerPhase.paused) {
-          final sessionId = _sessions.snapshot.descriptor?.sessionId;
           Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> details;
+          String? pauseDataFailure;
           try {
             details = await _sessions.loadPauseDetails();
           } on Object {
             details = const {};
-            _pauseDataFailure = _isFrench
+            pauseDataFailure = _isFrench
                 ? 'Le menu n’a pas pu être actualisé. Rouvrez-le pour réessayer.'
                 : 'The menu could not be refreshed. Reopen it to retry.';
           }
-          if (_canPublishPauseData(sessionId)) {
-            _publishPause(
-              _snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
-              logicalSelectionId: _snapshot.logicalSelectionId,
-              pauseDetails: details,
+          if (!_canPublishPauseData(preferencesSessionId)) {
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.cancelled,
             );
           }
+          _pauseDataFailure = pauseDataFailure;
+          _publishPause(
+            _snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
+            logicalSelectionId: _snapshot.logicalSelectionId,
+            pauseDetails: details,
+          );
         }
         _publish(_snapshot.next(preferences: preferences));
         return const RuntimePlayerCommandResult(
@@ -719,6 +679,7 @@ final class RuntimePlayerCoordinator {
           status: RuntimePlayerCommandStatus.accepted,
         );
       case RuntimePlayerAction.save:
+        final saveSessionId = _sessions.snapshot.descriptor?.sessionId;
         final section =
             _snapshot.pauseSection ?? RuntimePlayerPauseSection.root;
         final logicalSelectionId = _snapshot.logicalSelectionId;
@@ -735,6 +696,12 @@ final class RuntimePlayerCoordinator {
         );
         try {
           final saved = await _sessions.requestCheckpoint();
+          if (!_canPublishPauseData(saveSessionId)) {
+            boundary.complete(saved);
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.cancelled,
+            );
+          }
           final receipt = saved
               ? RuntimePlayerSaveReceipt(
                   address: _activeSaveAddress!,
@@ -742,11 +709,19 @@ final class RuntimePlayerCoordinator {
                 )
               : null;
           if (saved) {
+            PlayerSaveSummary? latestSave;
             try {
-              _latestSave = await _saveGateway.readLatestSummary();
+              latestSave = await _saveGateway.readLatestSummary();
             } on Object {
-              _latestSave = null;
+              latestSave = null;
             }
+            if (!_canPublishPauseData(saveSessionId)) {
+              boundary.complete(saved);
+              return const RuntimePlayerCommandResult(
+                status: RuntimePlayerCommandStatus.cancelled,
+              );
+            }
+            _latestSave = latestSave;
           }
           _publishPause(
             section,
@@ -848,6 +823,11 @@ final class RuntimePlayerCoordinator {
   Future<RuntimePlayerCommandResult> _requestBackSerialized(
     int snapshotRevision,
   ) async {
+    if (_disposed) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.cancelled,
+      );
+    }
     if (snapshotRevision != _snapshot.revision) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
@@ -1021,6 +1001,11 @@ final class RuntimePlayerCoordinator {
     Future<bool> boundary,
   ) async {
     final saved = await boundary;
+    if (_disposed) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.cancelled,
+      );
+    }
     if (!saved) {
       return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
@@ -1659,6 +1644,75 @@ final class RuntimePlayerCoordinator {
     );
   }
 
+  Future<RuntimePlayerCommandResult> _refreshPauseAfterCommand(
+    RuntimePlayerPauseSection section, {
+    required String? sessionId,
+    required RuntimePlayerPauseCommandResult result,
+  }) async {
+    if (!_canPublishPauseData(sessionId)) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.cancelled,
+      );
+    }
+    Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> details;
+    try {
+      details = Map.from(await _sessions.loadPauseDetails());
+    } catch (_) {
+      if (!_canPublishPauseData(sessionId)) {
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.cancelled,
+        );
+      }
+      _pauseDataFailure = _isFrench
+          ? 'Lecture impossible. Fermez puis rouvrez le menu pour réessayer.'
+          : 'Unable to load. Close and reopen the menu to try again.';
+      final message = [
+        if (result.safeMessage.isNotEmpty) result.safeMessage,
+        _pauseDataFailure!,
+      ].join(' ');
+      _publishPause(
+        section,
+        logicalSelectionId: _snapshot.logicalSelectionId,
+        pauseDetails: {
+          section: RuntimePlayerPauseDetailSnapshot(
+            section: section,
+            title: _snapshot.pauseDetailFor(section)?.title ?? '',
+            emptyMessage: message,
+            message: message,
+          ),
+        },
+      );
+      return RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.failed,
+        safeMessage: message,
+      );
+    }
+    if (!_canPublishPauseData(sessionId)) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.cancelled,
+      );
+    }
+    if (details[section] case final detail?) {
+      details[section] = detail.withMessage(result.safeMessage);
+    }
+    _publishPause(
+      section,
+      logicalSelectionId: _snapshot.logicalSelectionId,
+      pauseDetails: details,
+    );
+    return RuntimePlayerCommandResult(
+      status: switch (result.status) {
+        RuntimePlayerPauseCommandStatus.accepted =>
+          RuntimePlayerCommandStatus.accepted,
+        RuntimePlayerPauseCommandStatus.unavailable =>
+          RuntimePlayerCommandStatus.unavailable,
+        RuntimePlayerPauseCommandStatus.failed =>
+          RuntimePlayerCommandStatus.failed,
+      },
+      safeMessage: result.safeMessage,
+    );
+  }
+
   void _publishPause(
     RuntimePlayerPauseSection section, {
     String? logicalSelectionId,
@@ -1827,9 +1881,15 @@ final class RuntimePlayerCoordinator {
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.openParty,
         ),
-        const RuntimePlayerActionAvailability.enabled(
-          RuntimePlayerAction.reorderParty,
-        ),
+        if (_pauseDataFailure case final reason?)
+          RuntimePlayerActionAvailability.disabled(
+            RuntimePlayerAction.reorderParty,
+            reason: reason,
+          )
+        else
+          const RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.reorderParty,
+          ),
       ],
       if (_isPauseActionVisible(ProjectPauseActionId.bag, pauseMenuState))
         const RuntimePlayerActionAvailability.enabled(
@@ -1838,9 +1898,15 @@ final class RuntimePlayerCoordinator {
       if (_isPauseActionVisible(ProjectPauseActionId.bag, pauseMenuState) ||
           section == RuntimePlayerPauseSection.party &&
               _isPauseActionVisible(ProjectPauseActionId.party, pauseMenuState))
-        const RuntimePlayerActionAvailability.enabled(
-          RuntimePlayerAction.useBagItem,
-        ),
+        if (_pauseDataFailure case final reason?)
+          RuntimePlayerActionAvailability.disabled(
+            RuntimePlayerAction.useBagItem,
+            reason: reason,
+          )
+        else
+          const RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.useBagItem,
+          ),
       if (_isPauseActionVisible(ProjectPauseActionId.pokedex, pauseMenuState))
         if (pauseDetails.containsKey(RuntimePlayerPauseSection.pokedex))
           const RuntimePlayerActionAvailability.enabled(
@@ -1929,10 +1995,13 @@ final class RuntimePlayerCoordinator {
         false;
   }
 
-  bool _canPublishPauseData(String? sessionId) =>
+  bool _isCurrentSession(String? sessionId) =>
       !_disposed &&
-      _sessions.snapshot.state == GameSessionState.paused &&
       _sessions.snapshot.descriptor?.sessionId == sessionId;
+
+  bool _canPublishPauseData(String? sessionId) =>
+      _isCurrentSession(sessionId) &&
+      _sessions.snapshot.state == GameSessionState.paused;
 
   bool get _isFrench =>
       (_preferences?.locale ?? _sessions.snapshot.descriptor?.locale ?? 'en')

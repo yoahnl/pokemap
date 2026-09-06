@@ -39,10 +39,10 @@ void main() {
     expect(body.size, const Size(1296, 644));
     expect(column.width, 448);
     expect(search.height, 48);
-    expect(filters.height, 44);
+    expect(filters.height, 48);
     expect(filters.top - search.bottom, 12);
     expect(list.top - filters.bottom, 16);
-    expect(list.height, 524);
+    expect(list.height, 520);
     expect(detail.width, 824);
     expect(detail.left - column.right, 24);
     expect(row.height, 64);

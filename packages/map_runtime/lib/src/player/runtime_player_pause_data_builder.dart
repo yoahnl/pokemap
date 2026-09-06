@@ -686,17 +686,26 @@ final class RuntimePlayerPauseDataBuilder {
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
   }) async {
+    final ownedItemIds = gameState.bag.entries
+        .where((entry) => entry.quantity > 0)
+        .map((entry) => entry.itemId)
+        .toSet();
+    if (ownedItemIds.isEmpty) return const <String>{};
     final itemIds = <String>{};
     final loadedSpeciesIds = <String>{};
     final loader = RuntimePokemonEvolutionLoader();
     for (final pokemon in gameState.party.members) {
       if (!loadedSpeciesIds.add(pokemon.speciesId)) continue;
       try {
-        final candidates = await loader.loadItemUseCandidates(
-          projectRootDirectory: projectRootDirectory,
-          pokemonConfig: pokemonConfig,
-          sourceSpeciesId: pokemon.speciesId,
-        );
+        final candidates = <PokemonEvolutionCandidate>[];
+        for (final itemId in ownedItemIds) {
+          candidates.addAll(await loader.loadItemUseCandidates(
+            projectRootDirectory: projectRootDirectory,
+            pokemonConfig: pokemonConfig,
+            sourceSpeciesId: pokemon.speciesId,
+            itemId: itemId,
+          ));
+        }
         itemIds.addAll(
           candidates
               .where(
@@ -912,6 +921,7 @@ final class RuntimePlayerPauseDataBuilder {
     }
     try {
       if (!await speciesDirectory.exists()) {
+        _speciesCatalogByDirectory.remove(speciesDirectory.path);
         return const _RuntimeSpeciesCatalog(invalid: true);
       }
       final files = <File>[];
@@ -927,24 +937,39 @@ final class RuntimePlayerPauseDataBuilder {
       // signature (chemin, mtime, taille) de chaque fichier garantit qu'une
       // édition des données sur disque invalide le cache.
       final signatureBuffer = StringBuffer();
-      for (final file in files) {
-        final stat = await file.stat();
-        signatureBuffer
-          ..write(file.path)
-          ..write('|')
-          ..write(stat.modified.microsecondsSinceEpoch)
-          ..write('|')
-          ..write(stat.size)
-          ..write(';');
+      for (var offset = 0;
+          offset < files.length;
+          offset += _speciesCatalogBatchSize) {
+        final batch = files
+            .skip(offset)
+            .take(_speciesCatalogBatchSize)
+            .toList(growable: false);
+        final stats = await Future.wait(batch.map((file) => file.stat()));
+        for (var index = 0; index < batch.length; index++) {
+          signatureBuffer
+            ..write(batch[index].path)
+            ..write('|')
+            ..write(stats[index].modified.microsecondsSinceEpoch)
+            ..write('|')
+            ..write(stats[index].size)
+            ..write(';');
+        }
       }
       final signature = signatureBuffer.toString();
-      final cached = _speciesCatalogByDirectory[speciesDirectory.path];
+      final cached = _speciesCatalogByDirectory.remove(speciesDirectory.path);
       if (cached != null && cached.signature == signature) {
+        _speciesCatalogByDirectory[speciesDirectory.path] = cached;
         return cached.catalog;
       }
-      final presentations = await Future.wait(
-        files.map(_readSpeciesPresentation),
-      );
+      final presentations = <_RuntimeSpeciesPresentation?>[];
+      for (var offset = 0;
+          offset < files.length;
+          offset += _speciesCatalogBatchSize) {
+        presentations.addAll(await Future.wait(files
+            .skip(offset)
+            .take(_speciesCatalogBatchSize)
+            .map(_readSpeciesPresentation)));
+      }
       final result = <_RuntimeSpeciesPresentation>[
         for (final presentation in presentations)
           if (presentation != null) presentation,
@@ -960,10 +985,17 @@ final class RuntimePlayerPauseDataBuilder {
         invalid: presentations.any((entry) => entry == null) ||
             result.map((entry) => entry.id).toSet().length != result.length,
       );
-      _speciesCatalogByDirectory[speciesDirectory.path] =
-          _CachedSpeciesCatalog(signature: signature, catalog: catalog);
+      if (!catalog.invalid) {
+        _speciesCatalogByDirectory[speciesDirectory.path] =
+            _CachedSpeciesCatalog(signature: signature, catalog: catalog);
+        while (_speciesCatalogByDirectory.length > _speciesCatalogCacheLimit) {
+          _speciesCatalogByDirectory
+              .remove(_speciesCatalogByDirectory.keys.first);
+        }
+      }
       return catalog;
     } on FileSystemException {
+      _speciesCatalogByDirectory.remove(speciesDirectory.path);
       return const _RuntimeSpeciesCatalog(invalid: true);
     }
   }
@@ -1026,6 +1058,9 @@ final class RuntimePlayerPauseDataBuilder {
     }
   }
 }
+
+const _speciesCatalogBatchSize = 32;
+const _speciesCatalogCacheLimit = 4;
 
 /// Cache process-level du catalogue d'espèces présenté par le menu pause,
 /// clé = dossier, validé par la signature stat de ses fichiers.

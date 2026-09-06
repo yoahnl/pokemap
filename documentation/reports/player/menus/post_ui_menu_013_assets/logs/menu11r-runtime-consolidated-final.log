@@ -1,0 +1,160 @@
+Command: flutter test --no-pub test/player/runtime_player_pause_evolution_items_test.dart test/player/runtime_player_pause_data_builder_test.dart test/player/runtime_player_pause_pokedex_test.dart test/player/runtime_player_pause_profile_test.dart test/player/runtime_player_coordinator_pause_test.dart test/player/runtime_player_preferences_apply_test.dart test/player/runtime_player_coordinator_lifecycle_test.dart test/player/runtime_player_save_race_test.dart test/player/menu5_party_commands_test.dart test/runtime_pokemon_evolution_loader_test.dart test/player/runtime_player_back_policy_test.dart test/phase_a_golden_battle_slice_smoke_test.dart --reporter expanded
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart: keeps an owned evolution item usable without loading unowned targets
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart: keeps an owned evolution item usable without loading unowned targets
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_data_builder_test.dart: projects empty catalog pockets, inventory order, balance and icon
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart: keeps every owned item with a valid evolution target usable
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart: keeps every owned item with a valid evolution target usable
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_data_builder_test.dart: projects TM availability with 1 known moves
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_data_builder_test.dart: projects TM availability with 1 known moves
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_data_builder_test.dart: projects TM availability with 1 known moves
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_profile_test.dart: projects the current player and resolves the exact authored portrait
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_profile_test.dart: projects the current player and resolves the exact authored portrait
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_profile_test.dart: projects the current player and resolves the exact authored portrait
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: public media and description follow knowledge and exact form
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: public media and description follow knowledge and exact form
+00:00 +13: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: public media and description follow knowledge and exact form
+00:00 +14: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: public media and description follow knowledge and exact form
+00:00 +15: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: public media and description follow knowledge and exact form
+00:00 +16: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: public media and description follow knowledge and exact form
+00:00 +17: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: public media and description follow knowledge and exact form
+00:00 +18: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: public media and description follow knowledge and exact form
+00:00 +19: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: pause projection failure replaces loading and supports resume and retry
+00:00 +20: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: pause projection failure replaces loading and supports resume and retry
+00:00 +21: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: pause projection failure replaces loading and supports resume and retry
+00:00 +22: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: pause projection failure replaces loading and supports resume and retry
+00:00 +23: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: pause projection failure replaces loading and supports resume and retry
+00:00 +24: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: pause projection failure replaces loading and supports resume and retry
+00:00 +25: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: pause projection failure replaces loading and supports resume and retry
+00:00 +26: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: species cache evicts the least recently used project after four roots
+00:00 +27: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: species cache evicts the least recently used project after four roots
+00:00 +28: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: species cache evicts the least recently used project after four roots
+00:00 +29: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: species cache evicts the least recently used project after four roots
+00:00 +30: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: late bag refresh result cannot replace a disposed snapshot
+00:00 +31: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: invalid species catalogs are retried even with an unchanged signature
+00:00 +32: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: invalid species catalogs are retried even with an unchanged signature
+00:00 +33: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: party refresh failure rejects a queued duplicate mutation
+00:00 +34: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state an unknown species hides its name and shows Inconnu
+00:00 +35: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state an unknown species hides its name and shows Inconnu
+00:00 +36: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: late party refresh failure cannot replace a disposed snapshot
+00:00 +37: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state a seen species shows its localized name, state and types
+00:00 +38: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state a seen species shows its localized name, state and types
+00:00 +39: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: returning to title clears the previous session profile
+00:00 +40: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state owning a species dominates: party and PC both mean Capturé
+00:00 +41: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state owning a species dominates: party and PC both mean Capturé
+00:00 +42: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state owning a species dominates: party and PC both mean Capturé
+00:00 +43: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state owning a species dominates: party and PC both mean Capturé
+00:00 +44: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state owning a species dominates: party and PC both mean Capturé
+00:00 +45: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: late preferences refresh cannot replace a disposed snapshot
+00:00 +46: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state entries are ordered by national dex number
+00:00 +47: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state entries are ordered by national dex number
+00:00 +48: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state entries are ordered by national dex number
+00:00 +49: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: queued preferences is cancelled after coordinator disposal
+00:00 +50: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state a species without names falls back to a humanized id once seen
+00:00 +51: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state a species without names falls back to a humanized id once seen
+00:00 +52: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: queued service back is cancelled after coordinator disposal
+00:00 +53: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state the english locale localizes the knowledge states
+00:00 +54: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: BETA-SYS-001 the pokedex projection answers to the game state the english locale localizes the knowledge states
+00:00 +55: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: profile navigation shares root data and preserves command guards
+00:00 +56: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: profile without a typed projection remains unavailable
+00:00 +57: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: narrative override hides profile while retaining root summary and resume
+00:00 +58: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: pause surfaces receive live data from the active runtime
+00:00 +59: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: a narrative visibility override removes and guards the pause action
+00:00 +60: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: a save override can reveal an entry hidden by the project default
+00:00 +61: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: navigates to a detail section and returns to the pause root
+00:00 +62: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: uses a bag item through the runtime and refreshes pause feedback
+00:00 +63: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: reorders the party from the pause party section
+00:00 +64: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: refuses a reorder outside the party section
+00:00 +65: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: refuses an unavailable section without changing pause state
+00:00 +66: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: resume closes every pause section and restores gameplay
+00:00 +67: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: stale detail commands cannot move the active pause section
+00:01 +68: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_preferences_apply_test.dart: host defaults remain distinct from saved preferences across snapshots
+00:02 +69: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_save_race_test.dart: manual save rejects a missing checkpoint without issuing a receipt
+00:02 +70: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_save_race_test.dart: manual save rejects a missing checkpoint without issuing a receipt
+00:02 +71: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_save_race_test.dart: manual save rejects a missing checkpoint without issuing a receipt
+00:02 +72: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_lifecycle_test.dart: playing lifecycle pause and resume are idempotent
+00:02 +73: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_lifecycle_test.dart: playing lifecycle pause and resume are idempotent
+00:02 +74: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_lifecycle_test.dart: playing lifecycle pause and resume are idempotent
+00:02 +75: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_lifecycle_test.dart: playing lifecycle pause and resume are idempotent
+00:02 +76: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_lifecycle_test.dart: playing lifecycle pause and resume are idempotent
+00:02 +77: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_lifecycle_test.dart: playing lifecycle pause and resume are idempotent
+00:02 +78: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +79: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +80: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +81: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +82: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +83: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +84: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +85: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +86: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +87: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +88: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +89: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +90: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +91: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +92: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +93: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +94: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +95: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +96: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +97: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +98: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: equipHeldItem refreshes party without opening bag
+00:02 +99: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader does not execute documented conditional evolution as a level rule
+00:02 +100: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader does not execute documented conditional evolution as a level rule
+00:02 +101: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: held item remains available with party visible and bag hidden
+00:02 +102: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: held item remains available with party visible and bag hidden
+00:02 +103: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader fails closed on declared source mismatch or malformed level rule
+00:02 +104: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader fails closed on declared source mismatch or malformed level rule
+00:02 +105: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: party bag channel rejects useBagItem
+00:02 +106: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader fails closed when target species or target abilities are invalid
+00:02 +107: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader fails closed when target species or target abilities are invalid
+00:02 +108: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/menu5_party_commands_test.dart: bag channel rejects a reorder payload even while bag is open
+00:02 +109: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader fails with a typed setup error for non-object target abilities
+00:02 +110: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader fails with a typed setup error for non-object target abilities
+00:02 +111: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader fails with a typed setup error for non-object target abilities
+00:02 +112: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader target species invalid stats or progression fail closed
+00:02 +113: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader rejects unsafe target ids even when an external file exists
+00:02 +114: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_pokemon_evolution_loader_test.dart: RuntimePokemonEvolutionLoader rejects absolute, escaping, and source-traversal paths
+00:03 +115: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real wild battle
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] project manifest lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json
+[runtime_loader] project manifest read ok bytes=2079
+00:03 +116: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real wild battle
+00:03 +117: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real wild battle
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice tilesets=0
+00:03 +118: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real wild battle
+00:03 +119: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real wild battle
+00:03 +120: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real wild battle
+00:03 +121: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real wild battle
+00:03 +122: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice starts a real trainer battle
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] project manifest lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json
+[runtime_loader] project manifest read ok bytes=2079
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice tilesets=0
+00:03 +123: /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart: Phase A golden battle-ready slice smoke the versioned golden slice resolves distinct wild and trainer backgrounds
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] project manifest lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json
+[runtime_loader] project manifest read ok bytes=2079
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice tilesets=0
+00:03 +124: All tests passed!
+
+Exit code: 0
+Elapsed seconds: 8.73

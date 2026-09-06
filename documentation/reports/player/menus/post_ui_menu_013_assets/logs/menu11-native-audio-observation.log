@@ -1,0 +1,8 @@
+Observed in both /tmp/menu11-baseline-native.log and /tmp/menu11-localized-native.log.
+Isolated builds, same disposable Train project snapshot, media changes outside MENU-K excluded.
+
+AudioPlayers Exception: AudioPlayerException(
+  DeviceFileSource(path: /Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/menu11_qa_20260906/assets/.pokemap-store/d4a118c23a6c83cd5820efeffc537f3012e03e33795ccdc3c4b4e7128181e83e.blob, mimeType: null),
+  PlatformException(DarwinAudioError, Failed to set source. AVPlayerItem.Status.failed on setSourceUrl: error("Failed to set playerItem"), null)
+
+This is a remaining native startup/media limitation, not a passing audio check.

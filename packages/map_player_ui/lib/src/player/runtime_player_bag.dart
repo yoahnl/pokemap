@@ -48,6 +48,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
   static const _favorites = '@favorites';
   final _selections = <String, String>{};
   final _scrolls = <String, ScrollController>{};
+  final _listStorage = PageStorageBucket();
   final _nodes = <String, FocusNode>{};
   final _pocketsScroll = ScrollController();
   final _detailFocus = FocusNode();
@@ -239,9 +240,13 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
             if (_failure ?? widget.detail.message case final message?)
               Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: Text(message,
-                      key: const ValueKey('runtime-player-bag-message'),
-                      style: context.playerMenuTheme.meta)),
+                  child: Semantics(
+                      liveRegion: true,
+                      label: message,
+                      excludeSemantics: true,
+                      child: Text(message,
+                          key: const ValueKey('runtime-player-bag-message'),
+                          style: context.playerMenuTheme.meta))),
             if (widget.navigation == null) _actions(context),
           ]);
     });
@@ -423,53 +428,57 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
         const SizedBox(height: 12),
       ],
       Expanded(
-          child: FocusTraversalGroup(
-              child: ListView.separated(
-        key: ValueKey('bag-list-$_pocket'),
-        controller: _scrolls.putIfAbsent(_pocket!, ScrollController.new),
-        itemCount: _visible.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final entry = _visible[index];
-          final id = _id(entry);
-          return PlayerMenuSelectableRow(
-            key: ValueKey('bag-item-$id'),
-            id: 'bag-item-$id',
-            label: entry.title,
-            selected: id == _id(_selected!),
-            focusNode: _node(id),
-            minimumHeight: 52,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 4.5),
-            leading: PlayerBagItemImage(entry: entry, size: 40),
-            semanticValue:
-                '${entry.bagItem?.quantity ?? entry.trailingLabel ?? ''}',
-            trailing: SizedBox(
-                key: ValueKey('bag-quantity-$id'),
-                width: 72,
-                child: Text(
-                    '${widget.favoriteItemIds.contains(id) ? '★ ' : ''}× ${entry.bagItem?.quantity ?? entry.trailingLabel ?? '—'}',
-                    textAlign: TextAlign.right)),
-            trailingWidth: 72,
-            onFocusChanged: (focused) {
-              if (focused) {
-                setState(() => _selections[_pocket!] = id);
-              }
-            },
-            onPressed: () {
-              setState(() {
-                _selections[_pocket!] = id;
-                _showDetail = compact;
-              });
-              if (compact) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) _focusDetail();
-                });
-              }
-            },
-          );
-        },
-      ))),
+          child: PageStorage(
+              bucket: _listStorage,
+              child: FocusTraversalGroup(
+                  key: PageStorageKey('bag-scroll-pocket-$_pocket'),
+                  child: ListView.separated(
+                    key: ValueKey('bag-list-$_pocket'),
+                    controller:
+                        _scrolls.putIfAbsent(_pocket!, ScrollController.new),
+                    itemCount: _visible.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final entry = _visible[index];
+                      final id = _id(entry);
+                      return PlayerMenuSelectableRow(
+                        key: ValueKey('bag-item-$id'),
+                        id: 'bag-item-$id',
+                        label: entry.title,
+                        selected: id == _id(_selected!),
+                        focusNode: _node(id),
+                        minimumHeight: 52,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4.5),
+                        leading: PlayerBagItemImage(entry: entry, size: 40),
+                        semanticValue:
+                            '${entry.bagItem?.quantity ?? entry.trailingLabel ?? ''}',
+                        trailing: SizedBox(
+                            key: ValueKey('bag-quantity-$id'),
+                            width: 72,
+                            child: Text(
+                                '${widget.favoriteItemIds.contains(id) ? '★ ' : ''}× ${entry.bagItem?.quantity ?? entry.trailingLabel ?? '—'}',
+                                textAlign: TextAlign.right)),
+                        trailingWidth: 72,
+                        onFocusChanged: (focused) {
+                          if (focused) {
+                            setState(() => _selections[_pocket!] = id);
+                          }
+                        },
+                        onPressed: () {
+                          setState(() {
+                            _selections[_pocket!] = id;
+                            _showDetail = compact;
+                          });
+                          if (compact) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) _focusDetail();
+                            });
+                          }
+                        },
+                      );
+                    },
+                  )))),
     ]);
   }
 
@@ -589,16 +598,26 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
       RuntimePlayerBagItemActionSnapshot action) async {
     if (_busy || _targetDialogOpen) return;
     _targetDialogOpen = true;
+    final locale = Localizations.localeOf(context);
+    final mediaQuery = MediaQuery.of(context);
+    final opaque = context.playerMenuTheme.opaque;
     RuntimePlayerPauseCommand? command;
     try {
       command = await showDialog<RuntimePlayerPauseCommand>(
           context: context,
-          builder: (_) => PlayerMenuThemeScope(
-              role: ProjectPresentationSurfaceRole.bag,
-              child: _BagTargetDialog(
-                  entry: entry,
-                  action: action,
-                  targets: widget.detail.bagTargets)));
+          builder: (context) => Localizations.override(
+              context: context,
+              locale: locale,
+              delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+              child: MediaQuery(
+                  data: mediaQuery,
+                  child: PlayerMenuThemeScope(
+                      role: ProjectPresentationSurfaceRole.bag,
+                      opaque: opaque,
+                      child: _BagTargetDialog(
+                          entry: entry,
+                          action: action,
+                          targets: widget.detail.bagTargets)))));
     } finally {
       _targetDialogOpen = false;
     }

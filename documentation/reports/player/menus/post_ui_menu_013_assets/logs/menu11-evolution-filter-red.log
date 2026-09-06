@@ -1,0 +1,45 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart
+00:00 +0: keeps an owned evolution item usable without loading unowned targets
+00:00 +0 -1: keeps an owned evolution item usable without loading unowned targets [E]
+  Expected: true
+    Actual: <false>
+
+  package:matcher                                                  expect
+  package:flutter_test/src/widget_tester.dart 473:18               expect
+  test/player/runtime_player_pause_evolution_items_test.dart 86:5  main.<fn>
+
+00:00 +0 -1: does not rescan species for empty inventory
+00:00 +0 -2: does not rescan species for empty inventory [E]
+  Expected: <1>
+    Actual: <2>
+
+  package:matcher                                                   expect
+  package:flutter_test/src/widget_tester.dart 473:18                expect
+  test/player/runtime_player_pause_evolution_items_test.dart 100:7  main.<fn>
+
+00:00 +0 -2: does not rescan species for depleted evolution item
+00:00 +0 -3: does not rescan species for depleted evolution item [E]
+  Expected: <1>
+    Actual: <2>
+
+  package:matcher                                                   expect
+  package:flutter_test/src/widget_tester.dart 473:18                expect
+  test/player/runtime_player_pause_evolution_items_test.dart 100:7  main.<fn>
+
+00:00 +0 -3: does not rescan species for unrelated inventory item
+00:00 +0 -4: does not rescan species for unrelated inventory item [E]
+  Expected: <1>
+    Actual: <2>
+
+  package:matcher                                                   expect
+  package:flutter_test/src/widget_tester.dart 473:18                expect
+  test/player/runtime_player_pause_evolution_items_test.dart 100:7  main.<fn>
+
+00:00 +0 -4: keeps an owned item unavailable when its evolution target is absent
+00:00 +1 -4: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart: does not rescan species for depleted evolution item
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart: does not rescan species for empty inventory
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart: does not rescan species for unrelated inventory item
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart: keeps an owned evolution item usable without loading unowned targets

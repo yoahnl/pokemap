@@ -135,29 +135,34 @@ void main() {
     RuntimePlayerPauseSection.bag,
     RuntimePlayerPauseSection.party,
   ]) {
-    test('late ${section.name} refresh cannot replace a disposed snapshot',
+    test('${section.name} refresh failure rejects a queued duplicate mutation',
         () async {
       final harness = RuntimePlayerTestHarness();
       addTearDown(harness.dispose);
       await launchHarnessToPlaying(harness);
+      harness.adapter.pauseDetails = {
+        section: RuntimePlayerPauseDetailSnapshot(
+          section: section,
+          title: section.name,
+          entries: [
+            RuntimePlayerDetailEntrySnapshot(id: 'old', title: 'Old data'),
+          ],
+        ),
+      };
       await _openMenu(harness);
       final isBag = section == RuntimePlayerPauseSection.bag;
+      final action = isBag
+          ? RuntimePlayerAction.useBagItem
+          : RuntimePlayerAction.reorderParty;
       await harness.coordinator.dispatch(RuntimePlayerCommand(
         action:
             isBag ? RuntimePlayerAction.openBag : RuntimePlayerAction.openParty,
         snapshotRevision: harness.coordinator.snapshot.revision,
       ));
-      final started = Completer<void>();
-      final pending = Completer<
-          Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>();
-      harness.adapter.pauseDetailsLoader = () {
-        started.complete();
-        return pending.future;
-      };
-      final command = harness.coordinator.dispatch(RuntimePlayerCommand(
-        action: isBag
-            ? RuntimePlayerAction.useBagItem
-            : RuntimePlayerAction.reorderParty,
+      harness.adapter.pauseDetailsLoader =
+          () async => throw StateError('projection failed after mutation');
+      final command = RuntimePlayerCommand(
+        action: action,
         snapshotRevision: harness.coordinator.snapshot.revision,
         payload: isBag
             ? const RuntimePlayerPauseCommand.useBagItem(
@@ -167,27 +172,114 @@ void main() {
             : const RuntimePlayerPauseCommand.setPartyLead(
                 partyTargetId: 'pokemon.current',
               ),
-      ));
-      await started.future;
-      await harness.coordinator.dispose();
-      final disposedSnapshot = harness.coordinator.snapshot;
-      pending.complete({
-        RuntimePlayerPauseSection.profile: RuntimePlayerPauseDetailSnapshot(
-          section: RuntimePlayerPauseSection.profile,
-          title: 'Profile',
-          profile: RuntimePlayerProfileSnapshot(
-            playerName: 'Expired',
-            currentMapId: 'old-map',
-            money: 9,
-          ),
-        ),
-      });
-      final result = await command;
-      expect(result.status, RuntimePlayerCommandStatus.cancelled);
-      expect(harness.coordinator.snapshot, same(disposedSnapshot));
-      expect(harness.coordinator.snapshot.playerProfile, isNull);
+      );
+      final results = await Future.wait([
+        harness.coordinator.dispatch(command),
+        harness.coordinator.dispatch(command),
+      ].map((future) => future.then<Object>((result) => result,
+          onError: (Object error) => error)));
+
       expect(harness.adapter.pauseCommands, hasLength(1));
+      expect(results.first, isA<RuntimePlayerCommandResult>());
+      expect((results.first as RuntimePlayerCommandResult).status,
+          RuntimePlayerCommandStatus.failed);
+      expect((results.last as RuntimePlayerCommandResult).status,
+          RuntimePlayerCommandStatus.stale);
+      expect(harness.coordinator.snapshot.pauseSection, section);
+      expect(harness.coordinator.snapshot.pauseDetailFor(section)?.entries,
+          isEmpty);
+      expect(harness.coordinator.snapshot.pauseDetailFor(section)?.emptyMessage,
+          contains('Lecture impossible'));
+      expect(harness.coordinator.snapshot.isActionEnabled(action), isFalse);
+      expect(
+          harness.coordinator.snapshot
+              .isActionEnabled(RuntimePlayerAction.resume),
+          isTrue);
+      final rejected = await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: action,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: command.payload,
+      ));
+      expect(rejected.status, RuntimePlayerCommandStatus.unavailable);
+      expect(harness.adapter.pauseCommands, hasLength(1));
+
+      await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.resume,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+      harness.adapter.pauseDetailsLoader = null;
+      await _openMenu(harness);
+      expect(harness.coordinator.snapshot.isActionEnabled(action), isTrue);
+      expect(
+          harness.coordinator.snapshot
+              .pauseDetailFor(section)
+              ?.entries
+              .single
+              .id,
+          'old');
     });
+
+    for (final refreshFails in [false, true]) {
+      test(
+          'late ${section.name} refresh ${refreshFails ? 'failure' : 'result'} cannot replace a disposed snapshot',
+          () async {
+        final harness = RuntimePlayerTestHarness();
+        addTearDown(harness.dispose);
+        await launchHarnessToPlaying(harness);
+        await _openMenu(harness);
+        final isBag = section == RuntimePlayerPauseSection.bag;
+        await harness.coordinator.dispatch(RuntimePlayerCommand(
+          action: isBag
+              ? RuntimePlayerAction.openBag
+              : RuntimePlayerAction.openParty,
+          snapshotRevision: harness.coordinator.snapshot.revision,
+        ));
+        final started = Completer<void>();
+        final pending = Completer<
+            Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>();
+        harness.adapter.pauseDetailsLoader = () {
+          started.complete();
+          return pending.future;
+        };
+        final command = harness.coordinator.dispatch(RuntimePlayerCommand(
+          action: isBag
+              ? RuntimePlayerAction.useBagItem
+              : RuntimePlayerAction.reorderParty,
+          snapshotRevision: harness.coordinator.snapshot.revision,
+          payload: isBag
+              ? const RuntimePlayerPauseCommand.useBagItem(
+                  itemTargetId: 'potion',
+                  partyTargetId: 'pokemon.current',
+                )
+              : const RuntimePlayerPauseCommand.setPartyLead(
+                  partyTargetId: 'pokemon.current',
+                ),
+        ));
+        await started.future;
+        await harness.coordinator.dispose();
+        final disposedSnapshot = harness.coordinator.snapshot;
+        if (refreshFails) {
+          pending.completeError(StateError('late projection failure'));
+        } else {
+          pending.complete({
+            RuntimePlayerPauseSection.profile: RuntimePlayerPauseDetailSnapshot(
+              section: RuntimePlayerPauseSection.profile,
+              title: 'Profile',
+              profile: RuntimePlayerProfileSnapshot(
+                playerName: 'Expired',
+                currentMapId: 'old-map',
+                money: 9,
+              ),
+            ),
+          });
+        }
+        final result = await command;
+        expect(result.status, RuntimePlayerCommandStatus.cancelled);
+        expect(harness.coordinator.snapshot, same(disposedSnapshot));
+        expect(harness.coordinator.snapshot.playerProfile, isNull);
+        expect(harness.adapter.pauseCommands, hasLength(1));
+      });
+    }
   }
 
   test('late pause data cannot replace a disposed player snapshot', () async {
@@ -346,6 +438,161 @@ void main() {
       harness.coordinator.snapshot.preferences?.touchControlsOpacity,
       0.45,
     );
+  });
+
+  for (final stage in ['persistence', 'refresh', 'refresh failure']) {
+    test('late preferences $stage cannot replace a disposed snapshot',
+        () async {
+      final harness = RuntimePlayerTestHarness();
+      addTearDown(harness.dispose);
+      await launchHarnessToPlaying(harness);
+      await _openMenu(harness);
+      await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.openOptions,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+      final started = Completer<void>();
+      final projection = Completer<
+          Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>();
+      if (stage == 'persistence') {
+        harness.preferences.saveGate = Completer<void>();
+      } else {
+        harness.adapter.pauseDetailsLoader = () {
+          started.complete();
+          return projection.future;
+        };
+      }
+      final requested = harness.preferences.current.copyWith(locale: 'en');
+      final command = harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.updatePreferences,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: requested,
+      ));
+      if (stage == 'persistence') {
+        await Future<void>.delayed(Duration.zero);
+        expect(harness.preferences.saves, 1);
+      } else {
+        await started.future;
+      }
+      final appliedCount = harness.adapter.appliedPreferences.length;
+      await harness.coordinator.dispose();
+      final disposedSnapshot = harness.coordinator.snapshot;
+      if (stage == 'persistence') {
+        harness.preferences.saveGate!.complete();
+      } else if (stage == 'refresh failure') {
+        projection.completeError(StateError('late locale projection failure'));
+      } else {
+        projection.complete({});
+      }
+      final result = await command;
+      expect(harness.coordinator.snapshot, same(disposedSnapshot));
+      expect(result.status, RuntimePlayerCommandStatus.cancelled);
+      expect(harness.adapter.appliedPreferences, hasLength(appliedCount));
+    });
+  }
+
+  for (final queuedAction in [
+    'open bag',
+    'preferences',
+    'back',
+    'service back'
+  ]) {
+    test('queued $queuedAction is cancelled after coordinator disposal',
+        () async {
+      final harness = RuntimePlayerTestHarness();
+      addTearDown(harness.dispose);
+      await launchHarnessToPlaying(harness);
+      await _openMenu(harness);
+      await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.openOptions,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+      if (queuedAction == 'service back') {
+        harness.adapter.publishWorldService(RuntimeWorldServiceSnapshot(
+          revision: 4,
+          request: const OpenShopService(
+            interactionId: 'merchant',
+            shopId: 'station-shop',
+          ),
+          stage: RuntimeWorldServiceStage.active,
+          actions: const [
+            RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.close,
+            ),
+          ],
+        ));
+        await harness.coordinator.settle();
+      }
+      final gate = Completer<void>();
+      harness.preferences.saveGate = gate;
+      final revision = harness.coordinator.snapshot.revision;
+      final requested = harness.preferences.current.copyWith(locale: 'en');
+      final pendingPreferences =
+          harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.updatePreferences,
+        snapshotRevision: revision,
+        payload: requested,
+      ));
+      await Future<void>.delayed(Duration.zero);
+      expect(harness.preferences.saves, 1);
+      final pendingCommand = queuedAction.endsWith('back')
+          ? harness.coordinator.requestBack(snapshotRevision: revision)
+          : harness.coordinator.dispatch(RuntimePlayerCommand(
+              action: queuedAction == 'preferences'
+                  ? RuntimePlayerAction.updatePreferences
+                  : RuntimePlayerAction.openBag,
+              snapshotRevision: revision,
+              payload: queuedAction == 'preferences' ? requested : null,
+            ));
+      final appliedCount = harness.adapter.appliedPreferences.length;
+      await harness.coordinator.dispose();
+      final disposedSnapshot = harness.coordinator.snapshot;
+      gate.complete();
+      expect((await pendingPreferences).status,
+          RuntimePlayerCommandStatus.cancelled);
+      expect(
+          (await pendingCommand).status, RuntimePlayerCommandStatus.cancelled);
+      expect(harness.coordinator.snapshot, same(disposedSnapshot));
+      expect(harness.preferences.saves, 1);
+      expect(harness.adapter.appliedPreferences, hasLength(appliedCount));
+      expect(harness.adapter.worldServiceCommands, isEmpty);
+    });
+  }
+
+  test('successful locale refresh restores pause mutations after a read error',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseDetailsLoader =
+        () async => throw StateError('invalid catalog');
+    await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openMenu,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    expect(
+        harness.coordinator.snapshot
+            .isActionEnabled(RuntimePlayerAction.useBagItem),
+        isFalse);
+    await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openOptions,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    harness.adapter.pauseDetailsLoader = null;
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.updatePreferences,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: harness.preferences.current.copyWith(locale: 'en'),
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(
+        harness.coordinator.snapshot
+            .isActionEnabled(RuntimePlayerAction.useBagItem),
+        isTrue);
+    expect(
+        harness.coordinator.snapshot
+            .isActionEnabled(RuntimePlayerAction.reorderParty),
+        isTrue);
   });
 
   test('profile navigation shares root data and preserves command guards',

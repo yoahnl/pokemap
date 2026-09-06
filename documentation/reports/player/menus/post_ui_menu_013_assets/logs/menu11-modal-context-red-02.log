@@ -1,0 +1,293 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: bag confirmation preserves nested session context: session effects
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: {
+            'locale': Locale:fr,
+            'scale': 2.0,
+            'reducedMotion': true,
+            'opaque': true,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.opaque
+          }
+  Actual: {
+            'locale': Locale:en,
+            'scale': 1.0,
+            'reducedMotion': false,
+            'opaque': true,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.opaque
+          }
+   Which: at location ['locale'] is Locale:<en> instead of Locale:<fr>
+
+When the exception was thrown, this was the stack:
+#4      _expectModalContext (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:149:3)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:30:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart line 149
+The test description was:
+  bag confirmation preserves nested session context: session effects
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:00 +0 -1: bag confirmation preserves nested session context: session effects [E]
+  Test failed. See exception logs above.
+  The test description was: bag confirmation preserves nested session context: session effects
+
+00:00 +0 -1: party actions preserve nested session context: session effects
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: {
+            'locale': Locale:fr,
+            'scale': 1.5,
+            'reducedMotion': true,
+            'opaque': true,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.opaque
+          }
+  Actual: {
+            'locale': Locale:en,
+            'scale': 1.0,
+            'reducedMotion': false,
+            'opaque': true,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.opaque
+          }
+   Which: at location ['locale'] is Locale:<en> instead of Locale:<fr>
+
+When the exception was thrown, this was the stack:
+#4      _expectModalContext (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:149:3)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:51:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart line 149
+The test description was:
+  party actions preserve nested session context: session effects
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +0 -2: party actions preserve nested session context: session effects [E]
+  Test failed. See exception logs above.
+  The test description was: party actions preserve nested session context: session effects
+
+00:01 +0 -2: held item dialog preserves nested session context: session effects
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: {
+            'locale': Locale:fr,
+            'scale': 2.0,
+            'reducedMotion': true,
+            'opaque': true,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.opaque
+          }
+  Actual: {
+            'locale': Locale:en,
+            'scale': 1.0,
+            'reducedMotion': false,
+            'opaque': true,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.opaque
+          }
+   Which: at location ['locale'] is Locale:<en> instead of Locale:<fr>
+
+When the exception was thrown, this was the stack:
+#4      _expectModalContext (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:149:3)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:71:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart line 149
+The test description was:
+  held item dialog preserves nested session context: session effects
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +0 -3: held item dialog preserves nested session context: session effects [E]
+  Test failed. See exception logs above.
+  The test description was: held item dialog preserves nested session context: session effects
+
+00:01 +0 -3: summary dialog preserves nested session context: session effects
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+Player menu components require PlayerMenuThemeScope.
+
+When the exception was thrown, this was the stack:
+#0      PlayerMenuThemeContext.playerMenuTheme (package:map_player_ui/src/theme/pokemap_player_menu_theme.dart:327:7)
+#1      _expectModalContext (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:153:23)
+#2      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:89:7)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  summary dialog preserves nested session context: session effects
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +0 -4: summary dialog preserves nested session context: session effects [E]
+  Test failed. See exception logs above.
+  The test description was: summary dialog preserves nested session context: session effects
+
+00:01 +0 -4: bag confirmation preserves nested session context: local opaque scope
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: {
+            'locale': Locale:fr,
+            'scale': 2.0,
+            'reducedMotion': true,
+            'opaque': true,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.full
+          }
+  Actual: {
+            'locale': Locale:en,
+            'scale': 1.0,
+            'reducedMotion': false,
+            'opaque': false,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.full
+          }
+   Which: at location ['locale'] is Locale:<en> instead of Locale:<fr>
+
+When the exception was thrown, this was the stack:
+#4      _expectModalContext (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:149:3)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:30:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart line 149
+The test description was:
+  bag confirmation preserves nested session context: local opaque scope
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +0 -5: bag confirmation preserves nested session context: local opaque scope [E]
+  Test failed. See exception logs above.
+  The test description was: bag confirmation preserves nested session context: local opaque scope
+
+00:01 +0 -5: party actions preserve nested session context: local opaque scope
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: {
+            'locale': Locale:fr,
+            'scale': 1.5,
+            'reducedMotion': true,
+            'opaque': true,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.full
+          }
+  Actual: {
+            'locale': Locale:en,
+            'scale': 1.0,
+            'reducedMotion': false,
+            'opaque': false,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.full
+          }
+   Which: at location ['locale'] is Locale:<en> instead of Locale:<fr>
+
+When the exception was thrown, this was the stack:
+#4      _expectModalContext (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:149:3)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:51:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart line 149
+The test description was:
+  party actions preserve nested session context: local opaque scope
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -6: party actions preserve nested session context: local opaque scope [E]
+  Test failed. See exception logs above.
+  The test description was: party actions preserve nested session context: local opaque scope
+
+00:02 +0 -6: held item dialog preserves nested session context: local opaque scope
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: {
+            'locale': Locale:fr,
+            'scale': 2.0,
+            'reducedMotion': true,
+            'opaque': true,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.full
+          }
+  Actual: {
+            'locale': Locale:en,
+            'scale': 1.0,
+            'reducedMotion': false,
+            'opaque': false,
+            'effects': RuntimePlayerMenuEffects:RuntimePlayerMenuEffects.full
+          }
+   Which: at location ['locale'] is Locale:<en> instead of Locale:<fr>
+
+When the exception was thrown, this was the stack:
+#4      _expectModalContext (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:149:3)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:71:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart line 149
+The test description was:
+  held item dialog preserves nested session context: local opaque scope
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -7: held item dialog preserves nested session context: local opaque scope [E]
+  Test failed. See exception logs above.
+  The test description was: held item dialog preserves nested session context: local opaque scope
+
+00:02 +0 -7: summary dialog preserves nested session context: local opaque scope
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+Player menu components require PlayerMenuThemeScope.
+
+When the exception was thrown, this was the stack:
+#0      PlayerMenuThemeContext.playerMenuTheme (package:map_player_ui/src/theme/pokemap_player_menu_theme.dart:327:7)
+#1      _expectModalContext (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:153:23)
+#2      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart:89:7)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  summary dialog preserves nested session context: local opaque scope
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -8: summary dialog preserves nested session context: local opaque scope [E]
+  Test failed. See exception logs above.
+  The test description was: summary dialog preserves nested session context: local opaque scope
+
+00:02 +0 -8: (tearDownAll)
+00:02 +0 -8: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: local opaque scope
+  /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+  /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: held item dialog preserves nested session context: local opaque scope
+  /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: held item dialog preserves nested session context: session effects
+  ... and 4 more

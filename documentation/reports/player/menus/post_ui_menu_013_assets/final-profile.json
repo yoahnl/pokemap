@@ -1,0 +1,9604 @@
+{
+  "generatedAt": "2026-09-06T20:36:55.743Z",
+  "firstOpen": "cold",
+  "measurement": "French Train fixture. VM keyboard dispatch to observed shell/data readiness including numeric Pokedex summary; 10 ms polling; includes service overhead. Frame timings include menu transitions and 180 ms resumed dwell. Cold means a manually verified process restart, not an automated cache reset.",
+  "initial": {
+    "projectFilePath": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/menu11_qa_20260906/project.json",
+    "gameCreated": true,
+    "loaded": true,
+    "paused": false,
+    "inputContext": "overworld",
+    "dialogueTextSpeed": "fast",
+    "reducedMotion": false,
+    "textScale": 1,
+    "mapId": "hanazuki-village",
+    "position": {
+      "x": 16,
+      "y": 9
+    },
+    "facing": "south",
+    "metadata": {},
+    "battle": null,
+    "facts": {
+      "fact_opening_complete": true,
+      "fact_qh05_lantern_2": true,
+      "fact_qh05_lantern_5": true,
+      "fact_qh05_started": true,
+      "fact_starter_chikorita": true,
+      "fact_starter_received": true
+    },
+    "trainer": {
+      "name": "Voyageur",
+      "avatarCharacterId": "joueur-hanazuki",
+      "pronounSet": "neutral",
+      "badgeIds": [],
+      "money": 3000,
+      "playtimeSeconds": 1498
+    },
+    "bag": {
+      "entries": [
+        {
+          "itemId": "item_rail_notebook",
+          "quantity": 1
+        },
+        {
+          "itemId": "item_sealed_letter",
+          "quantity": 1
+        },
+        {
+          "itemId": "miracle_seed",
+          "quantity": 2
+        },
+        {
+          "itemId": "poke_ball",
+          "quantity": 4
+        },
+        {
+          "itemId": "potion",
+          "quantity": 1
+        },
+        {
+          "itemId": "spell_tag",
+          "quantity": 1
+        }
+      ]
+    },
+    "rail": {
+      "activeJourneyId": null,
+      "direction": null,
+      "lifecycle": "idle_at_origin",
+      "unlockedJourneyIds": [],
+      "firstUnlockPaidJourneyIds": [],
+      "unlockedStationMapIds": [],
+      "earnedStampIds": [],
+      "semanticCurrencyBalances": {},
+      "appliedOperations": {},
+      "appliedProgressionOperations": {}
+    },
+    "party": [
+      {
+        "speciesId": "bulbasaur",
+        "level": 15,
+        "hp": 38
+      },
+      {
+        "speciesId": "charmander",
+        "level": 14,
+        "hp": 34
+      },
+      {
+        "speciesId": "squirtle",
+        "level": 13,
+        "hp": 0
+      },
+      {
+        "speciesId": "pikachu",
+        "level": 18,
+        "hp": 40
+      },
+      {
+        "speciesId": "eevee",
+        "level": 16,
+        "hp": 43
+      },
+      {
+        "speciesId": "chikorita",
+        "level": 5,
+        "hp": 19
+      }
+    ],
+    "type": "_extensionType",
+    "method": "ext.flutter.player.qaContext",
+    "status": "Success"
+  },
+  "before": {
+    "mode": "profile",
+    "revision": "87226620c-menu11-reviewed",
+    "recording": false,
+    "elapsedMicros": 0,
+    "framesBuildRasterMicros": [],
+    "droppedFrames": 0,
+    "rssBytes": 400408576,
+    "maxRssBytes": 593903616,
+    "imageCacheBytes": 7372800,
+    "imageCacheEntries": 2,
+    "imageCacheLiveEntries": 0,
+    "imageCachePendingEntries": 0,
+    "devicePixelRatio": 1,
+    "physicalWidth": 1920,
+    "physicalHeight": 921,
+    "type": "_extensionType",
+    "method": "ext.flutter.player.qaPerformance",
+    "status": "Success"
+  },
+  "results": [
+    {
+      "cycle": 1,
+      "shellMs": 47.27075000000001,
+      "readyMs": 430.794292,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 806573,
+      "framesBuildRasterMicros": [
+        [
+          947,
+          1088
+        ],
+        [
+          1142,
+          1105
+        ],
+        [
+          6182,
+          1104
+        ],
+        [
+          1039,
+          14497
+        ],
+        [
+          720,
+          3925
+        ],
+        [
+          610,
+          4078
+        ],
+        [
+          2588,
+          3759
+        ],
+        [
+          766,
+          3266
+        ],
+        [
+          761,
+          3240
+        ],
+        [
+          711,
+          3111
+        ],
+        [
+          651,
+          3990
+        ],
+        [
+          753,
+          4355
+        ],
+        [
+          599,
+          5059
+        ],
+        [
+          784,
+          4987
+        ],
+        [
+          611,
+          3486
+        ],
+        [
+          540,
+          3187
+        ],
+        [
+          590,
+          2996
+        ],
+        [
+          565,
+          4351
+        ],
+        [
+          516,
+          3716
+        ],
+        [
+          481,
+          3190
+        ],
+        [
+          273,
+          3307
+        ],
+        [
+          232,
+          6503
+        ],
+        [
+          137,
+          4319
+        ],
+        [
+          124,
+          2867
+        ],
+        [
+          1690,
+          3839
+        ],
+        [
+          214,
+          3746
+        ],
+        [
+          240,
+          3466
+        ],
+        [
+          2466,
+          7586
+        ],
+        [
+          863,
+          4128
+        ],
+        [
+          307,
+          3475
+        ],
+        [
+          366,
+          4864
+        ],
+        [
+          262,
+          5390
+        ],
+        [
+          247,
+          6411
+        ],
+        [
+          244,
+          4592
+        ],
+        [
+          266,
+          4440
+        ],
+        [
+          247,
+          4999
+        ],
+        [
+          233,
+          3394
+        ],
+        [
+          260,
+          2887
+        ],
+        [
+          277,
+          3106
+        ],
+        [
+          254,
+          2808
+        ],
+        [
+          1741,
+          4413
+        ],
+        [
+          273,
+          3692
+        ],
+        [
+          2056,
+          1116
+        ],
+        [
+          1151,
+          1093
+        ],
+        [
+          1060,
+          1102
+        ],
+        [
+          981,
+          1053
+        ],
+        [
+          1007,
+          1260
+        ],
+        [
+          1019,
+          1117
+        ],
+        [
+          990,
+          1074
+        ],
+        [
+          1362,
+          1099
+        ],
+        [
+          1357,
+          1080
+        ],
+        [
+          1048,
+          1177
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 421724160,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 2,
+      "shellMs": 22.355125000000044,
+      "readyMs": 170.520667,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 545899,
+      "framesBuildRasterMicros": [
+        [
+          978,
+          946
+        ],
+        [
+          1306,
+          1078
+        ],
+        [
+          1011,
+          1059
+        ],
+        [
+          931,
+          1067
+        ],
+        [
+          1063,
+          1047
+        ],
+        [
+          2725,
+          1177
+        ],
+        [
+          1624,
+          4066
+        ],
+        [
+          553,
+          4194
+        ],
+        [
+          443,
+          2224
+        ],
+        [
+          524,
+          2993
+        ],
+        [
+          657,
+          2915
+        ],
+        [
+          817,
+          4265
+        ],
+        [
+          572,
+          3271
+        ],
+        [
+          2038,
+          4423
+        ],
+        [
+          922,
+          4509
+        ],
+        [
+          772,
+          5544
+        ],
+        [
+          841,
+          2416
+        ],
+        [
+          1310,
+          2837
+        ],
+        [
+          675,
+          4221
+        ],
+        [
+          728,
+          2949
+        ],
+        [
+          529,
+          5411
+        ],
+        [
+          548,
+          3714
+        ],
+        [
+          1961,
+          4709
+        ],
+        [
+          572,
+          4973
+        ],
+        [
+          595,
+          4965
+        ],
+        [
+          278,
+          7370
+        ],
+        [
+          397,
+          2965
+        ],
+        [
+          267,
+          3310
+        ],
+        [
+          2228,
+          1034
+        ],
+        [
+          1494,
+          1059
+        ],
+        [
+          1058,
+          1076
+        ],
+        [
+          1030,
+          1071
+        ],
+        [
+          1289,
+          1240
+        ],
+        [
+          1164,
+          1074
+        ],
+        [
+          1015,
+          954
+        ],
+        [
+          910,
+          978
+        ],
+        [
+          1065,
+          1096
+        ],
+        [
+          1073,
+          1148
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 422133760,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 3,
+      "shellMs": 23.36570800000004,
+      "readyMs": 192.00458300000014,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 563305,
+      "framesBuildRasterMicros": [
+        [
+          1139,
+          1130
+        ],
+        [
+          968,
+          1091
+        ],
+        [
+          1039,
+          1065
+        ],
+        [
+          1786,
+          1028
+        ],
+        [
+          969,
+          1022
+        ],
+        [
+          2653,
+          1017
+        ],
+        [
+          1441,
+          4246
+        ],
+        [
+          569,
+          4084
+        ],
+        [
+          739,
+          4096
+        ],
+        [
+          610,
+          3339
+        ],
+        [
+          606,
+          3314
+        ],
+        [
+          676,
+          2697
+        ],
+        [
+          679,
+          3227
+        ],
+        [
+          791,
+          2364
+        ],
+        [
+          729,
+          3337
+        ],
+        [
+          2460,
+          5288
+        ],
+        [
+          763,
+          4073
+        ],
+        [
+          774,
+          2933
+        ],
+        [
+          899,
+          4574
+        ],
+        [
+          733,
+          5062
+        ],
+        [
+          1892,
+          4060
+        ],
+        [
+          582,
+          2530
+        ],
+        [
+          607,
+          3076
+        ],
+        [
+          297,
+          3814
+        ],
+        [
+          282,
+          2684
+        ],
+        [
+          303,
+          4473
+        ],
+        [
+          368,
+          2826
+        ],
+        [
+          330,
+          3217
+        ],
+        [
+          333,
+          5027
+        ],
+        [
+          256,
+          3395
+        ],
+        [
+          269,
+          3351
+        ],
+        [
+          2278,
+          1103
+        ],
+        [
+          1233,
+          1122
+        ],
+        [
+          1527,
+          1116
+        ],
+        [
+          1039,
+          1028
+        ],
+        [
+          1031,
+          1284
+        ],
+        [
+          980,
+          1040
+        ],
+        [
+          1036,
+          1061
+        ],
+        [
+          2185,
+          1051
+        ],
+        [
+          1112,
+          1150
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 425771008,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 4,
+      "shellMs": 22.044834000000037,
+      "readyMs": 172.91495899999995,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 544569,
+      "framesBuildRasterMicros": [
+        [
+          979,
+          1018
+        ],
+        [
+          1021,
+          1086
+        ],
+        [
+          1166,
+          1189
+        ],
+        [
+          1039,
+          1098
+        ],
+        [
+          1028,
+          990
+        ],
+        [
+          2626,
+          2500
+        ],
+        [
+          859,
+          4212
+        ],
+        [
+          701,
+          2578
+        ],
+        [
+          670,
+          3056
+        ],
+        [
+          584,
+          3347
+        ],
+        [
+          525,
+          3038
+        ],
+        [
+          674,
+          2888
+        ],
+        [
+          553,
+          4027
+        ],
+        [
+          574,
+          4904
+        ],
+        [
+          1964,
+          3845
+        ],
+        [
+          686,
+          4431
+        ],
+        [
+          611,
+          2355
+        ],
+        [
+          645,
+          2494
+        ],
+        [
+          627,
+          3749
+        ],
+        [
+          613,
+          3178
+        ],
+        [
+          543,
+          4335
+        ],
+        [
+          688,
+          3029
+        ],
+        [
+          301,
+          4167
+        ],
+        [
+          291,
+          5100
+        ],
+        [
+          328,
+          5036
+        ],
+        [
+          316,
+          5043
+        ],
+        [
+          352,
+          3189
+        ],
+        [
+          308,
+          3200
+        ],
+        [
+          247,
+          4514
+        ],
+        [
+          2199,
+          1024
+        ],
+        [
+          1256,
+          1018
+        ],
+        [
+          1055,
+          1016
+        ],
+        [
+          1012,
+          1068
+        ],
+        [
+          1684,
+          1257
+        ],
+        [
+          1025,
+          1070
+        ],
+        [
+          1011,
+          1038
+        ],
+        [
+          1079,
+          1028
+        ],
+        [
+          1014,
+          1089
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 424083456,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 5,
+      "shellMs": 22.487750000000233,
+      "readyMs": 180.1403750000004,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 555250,
+      "framesBuildRasterMicros": [
+        [
+          997,
+          1092
+        ],
+        [
+          1046,
+          1053
+        ],
+        [
+          876,
+          998
+        ],
+        [
+          1030,
+          1053
+        ],
+        [
+          942,
+          1023
+        ],
+        [
+          2534,
+          1009
+        ],
+        [
+          786,
+          4200
+        ],
+        [
+          723,
+          6701
+        ],
+        [
+          613,
+          2679
+        ],
+        [
+          456,
+          2665
+        ],
+        [
+          431,
+          4227
+        ],
+        [
+          570,
+          2764
+        ],
+        [
+          868,
+          4514
+        ],
+        [
+          681,
+          3350
+        ],
+        [
+          1372,
+          2866
+        ],
+        [
+          1903,
+          6586
+        ],
+        [
+          642,
+          2652
+        ],
+        [
+          843,
+          3146
+        ],
+        [
+          859,
+          2803
+        ],
+        [
+          648,
+          3530
+        ],
+        [
+          640,
+          6028
+        ],
+        [
+          635,
+          4761
+        ],
+        [
+          529,
+          3045
+        ],
+        [
+          291,
+          5013
+        ],
+        [
+          288,
+          5040
+        ],
+        [
+          306,
+          3883
+        ],
+        [
+          343,
+          2455
+        ],
+        [
+          312,
+          2646
+        ],
+        [
+          266,
+          2684
+        ],
+        [
+          268,
+          2965
+        ],
+        [
+          2163,
+          1422
+        ],
+        [
+          1231,
+          1076
+        ],
+        [
+          1051,
+          1069
+        ],
+        [
+          983,
+          1077
+        ],
+        [
+          1035,
+          1288
+        ],
+        [
+          963,
+          1006
+        ],
+        [
+          1011,
+          1006
+        ],
+        [
+          960,
+          1073
+        ],
+        [
+          981,
+          1007
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 423903232,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 6,
+      "shellMs": 22.065708000000086,
+      "readyMs": 174.29270799999995,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 546119,
+      "framesBuildRasterMicros": [
+        [
+          1037,
+          1019
+        ],
+        [
+          891,
+          1070
+        ],
+        [
+          1033,
+          1015
+        ],
+        [
+          1050,
+          1088
+        ],
+        [
+          1003,
+          1063
+        ],
+        [
+          1150,
+          1050
+        ],
+        [
+          2604,
+          1284
+        ],
+        [
+          1984,
+          3932
+        ],
+        [
+          565,
+          3610
+        ],
+        [
+          1200,
+          3406
+        ],
+        [
+          499,
+          4205
+        ],
+        [
+          607,
+          3139
+        ],
+        [
+          759,
+          4183
+        ],
+        [
+          812,
+          2631
+        ],
+        [
+          570,
+          3381
+        ],
+        [
+          1727,
+          5310
+        ],
+        [
+          620,
+          3022
+        ],
+        [
+          853,
+          4601
+        ],
+        [
+          791,
+          2498
+        ],
+        [
+          811,
+          3813
+        ],
+        [
+          634,
+          3085
+        ],
+        [
+          708,
+          3877
+        ],
+        [
+          668,
+          4362
+        ],
+        [
+          567,
+          4257
+        ],
+        [
+          308,
+          5633
+        ],
+        [
+          314,
+          2874
+        ],
+        [
+          328,
+          2840
+        ],
+        [
+          1788,
+          4062
+        ],
+        [
+          298,
+          3170
+        ],
+        [
+          253,
+          2875
+        ],
+        [
+          278,
+          3657
+        ],
+        [
+          2234,
+          1098
+        ],
+        [
+          1085,
+          1083
+        ],
+        [
+          990,
+          991
+        ],
+        [
+          1014,
+          1028
+        ],
+        [
+          989,
+          1230
+        ],
+        [
+          1005,
+          1008
+        ],
+        [
+          980,
+          947
+        ],
+        [
+          1059,
+          989
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 425820160,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 7,
+      "shellMs": 22.821000000000367,
+      "readyMs": 173.93029100000012,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 547246,
+      "framesBuildRasterMicros": [
+        [
+          967,
+          1090
+        ],
+        [
+          1007,
+          1040
+        ],
+        [
+          1036,
+          1088
+        ],
+        [
+          1039,
+          1032
+        ],
+        [
+          954,
+          974
+        ],
+        [
+          983,
+          980
+        ],
+        [
+          2882,
+          1130
+        ],
+        [
+          797,
+          4956
+        ],
+        [
+          679,
+          6353
+        ],
+        [
+          569,
+          3619
+        ],
+        [
+          659,
+          4538
+        ],
+        [
+          702,
+          2613
+        ],
+        [
+          556,
+          3718
+        ],
+        [
+          2130,
+          6928
+        ],
+        [
+          829,
+          3694
+        ],
+        [
+          807,
+          4189
+        ],
+        [
+          803,
+          3875
+        ],
+        [
+          632,
+          2879
+        ],
+        [
+          784,
+          2562
+        ],
+        [
+          655,
+          4824
+        ],
+        [
+          623,
+          2683
+        ],
+        [
+          1926,
+          3857
+        ],
+        [
+          552,
+          4346
+        ],
+        [
+          613,
+          4748
+        ],
+        [
+          535,
+          7537
+        ],
+        [
+          325,
+          4811
+        ],
+        [
+          333,
+          5776
+        ],
+        [
+          268,
+          2803
+        ],
+        [
+          244,
+          3019
+        ],
+        [
+          2197,
+          1067
+        ],
+        [
+          1180,
+          1011
+        ],
+        [
+          994,
+          1089
+        ],
+        [
+          1109,
+          1032
+        ],
+        [
+          934,
+          1272
+        ],
+        [
+          1038,
+          943
+        ],
+        [
+          1044,
+          1019
+        ],
+        [
+          1004,
+          1102
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 423936000,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 8,
+      "shellMs": 20.163416999999754,
+      "readyMs": 177.90845900000022,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 549012,
+      "framesBuildRasterMicros": [
+        [
+          993,
+          1135
+        ],
+        [
+          1025,
+          1049
+        ],
+        [
+          1140,
+          1051
+        ],
+        [
+          2449,
+          1075
+        ],
+        [
+          982,
+          1067
+        ],
+        [
+          957,
+          1062
+        ],
+        [
+          2463,
+          968
+        ],
+        [
+          761,
+          4366
+        ],
+        [
+          529,
+          2997
+        ],
+        [
+          562,
+          4317
+        ],
+        [
+          2950,
+          5820
+        ],
+        [
+          596,
+          3324
+        ],
+        [
+          801,
+          3684
+        ],
+        [
+          621,
+          3950
+        ],
+        [
+          1978,
+          3834
+        ],
+        [
+          767,
+          4431
+        ],
+        [
+          686,
+          3432
+        ],
+        [
+          747,
+          3417
+        ],
+        [
+          635,
+          2276
+        ],
+        [
+          2276,
+          2690
+        ],
+        [
+          725,
+          3580
+        ],
+        [
+          700,
+          3540
+        ],
+        [
+          560,
+          3555
+        ],
+        [
+          248,
+          4516
+        ],
+        [
+          297,
+          6193
+        ],
+        [
+          303,
+          2940
+        ],
+        [
+          383,
+          2754
+        ],
+        [
+          334,
+          2829
+        ],
+        [
+          245,
+          2952
+        ],
+        [
+          268,
+          3175
+        ],
+        [
+          2067,
+          998
+        ],
+        [
+          1121,
+          1116
+        ],
+        [
+          1035,
+          1061
+        ],
+        [
+          1010,
+          1018
+        ],
+        [
+          1019,
+          1249
+        ],
+        [
+          1020,
+          1059
+        ],
+        [
+          1002,
+          1136
+        ],
+        [
+          1962,
+          986
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 435208192,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 9,
+      "shellMs": 20.513084000000163,
+      "readyMs": 174.4697500000002,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 545830,
+      "framesBuildRasterMicros": [
+        [
+          1025,
+          1027
+        ],
+        [
+          975,
+          1070
+        ],
+        [
+          1050,
+          1045
+        ],
+        [
+          1066,
+          1104
+        ],
+        [
+          979,
+          1034
+        ],
+        [
+          926,
+          990
+        ],
+        [
+          2217,
+          1012
+        ],
+        [
+          884,
+          3871
+        ],
+        [
+          689,
+          4125
+        ],
+        [
+          614,
+          4285
+        ],
+        [
+          523,
+          2999
+        ],
+        [
+          602,
+          4723
+        ],
+        [
+          759,
+          4232
+        ],
+        [
+          660,
+          3345
+        ],
+        [
+          597,
+          3333
+        ],
+        [
+          2073,
+          3457
+        ],
+        [
+          730,
+          4689
+        ],
+        [
+          774,
+          3537
+        ],
+        [
+          981,
+          2291
+        ],
+        [
+          748,
+          3626
+        ],
+        [
+          625,
+          3523
+        ],
+        [
+          541,
+          4688
+        ],
+        [
+          507,
+          4325
+        ],
+        [
+          298,
+          4730
+        ],
+        [
+          311,
+          3790
+        ],
+        [
+          284,
+          5075
+        ],
+        [
+          319,
+          4789
+        ],
+        [
+          309,
+          6873
+        ],
+        [
+          329,
+          3330
+        ],
+        [
+          272,
+          5244
+        ],
+        [
+          2143,
+          1127
+        ],
+        [
+          1203,
+          997
+        ],
+        [
+          1063,
+          1003
+        ],
+        [
+          1037,
+          1032
+        ],
+        [
+          1836,
+          1315
+        ],
+        [
+          1042,
+          1056
+        ],
+        [
+          1018,
+          1081
+        ],
+        [
+          965,
+          997
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 430096384,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 10,
+      "shellMs": 21.950417000000016,
+      "readyMs": 163.2619590000004,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 538849,
+      "framesBuildRasterMicros": [
+        [
+          972,
+          909
+        ],
+        [
+          972,
+          1054
+        ],
+        [
+          944,
+          920
+        ],
+        [
+          1027,
+          1001
+        ],
+        [
+          1018,
+          1030
+        ],
+        [
+          997,
+          1046
+        ],
+        [
+          2406,
+          984
+        ],
+        [
+          647,
+          5341
+        ],
+        [
+          674,
+          4335
+        ],
+        [
+          523,
+          3960
+        ],
+        [
+          583,
+          3015
+        ],
+        [
+          721,
+          4447
+        ],
+        [
+          1871,
+          3406
+        ],
+        [
+          520,
+          5205
+        ],
+        [
+          1039,
+          2805
+        ],
+        [
+          682,
+          3058
+        ],
+        [
+          584,
+          3347
+        ],
+        [
+          707,
+          3367
+        ],
+        [
+          715,
+          4078
+        ],
+        [
+          778,
+          4686
+        ],
+        [
+          589,
+          6290
+        ],
+        [
+          546,
+          2548
+        ],
+        [
+          671,
+          2352
+        ],
+        [
+          581,
+          4423
+        ],
+        [
+          553,
+          3722
+        ],
+        [
+          161,
+          3011
+        ],
+        [
+          159,
+          3701
+        ],
+        [
+          129,
+          5334
+        ],
+        [
+          2034,
+          1014
+        ],
+        [
+          1779,
+          963
+        ],
+        [
+          894,
+          1005
+        ],
+        [
+          980,
+          1037
+        ],
+        [
+          1227,
+          1354
+        ],
+        [
+          1037,
+          999
+        ],
+        [
+          1044,
+          995
+        ],
+        [
+          897,
+          982
+        ],
+        [
+          907,
+          1085
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 424558592,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 11,
+      "shellMs": 20.670334000000366,
+      "readyMs": 188.8904590000002,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 561845,
+      "framesBuildRasterMicros": [
+        [
+          987,
+          1129
+        ],
+        [
+          1035,
+          1065
+        ],
+        [
+          1393,
+          1021
+        ],
+        [
+          959,
+          1078
+        ],
+        [
+          1031,
+          1152
+        ],
+        [
+          1190,
+          1113
+        ],
+        [
+          2509,
+          1124
+        ],
+        [
+          955,
+          5543
+        ],
+        [
+          628,
+          3758
+        ],
+        [
+          601,
+          3294
+        ],
+        [
+          2148,
+          3606
+        ],
+        [
+          600,
+          3148
+        ],
+        [
+          1083,
+          4490
+        ],
+        [
+          536,
+          4989
+        ],
+        [
+          502,
+          7127
+        ],
+        [
+          1803,
+          2482
+        ],
+        [
+          679,
+          3597
+        ],
+        [
+          820,
+          2435
+        ],
+        [
+          830,
+          3743
+        ],
+        [
+          873,
+          2747
+        ],
+        [
+          601,
+          3075
+        ],
+        [
+          515,
+          4677
+        ],
+        [
+          580,
+          4626
+        ],
+        [
+          265,
+          6460
+        ],
+        [
+          355,
+          3179
+        ],
+        [
+          316,
+          2767
+        ],
+        [
+          300,
+          2853
+        ],
+        [
+          1834,
+          4149
+        ],
+        [
+          247,
+          4191
+        ],
+        [
+          262,
+          2596
+        ],
+        [
+          252,
+          2912
+        ],
+        [
+          2175,
+          1053
+        ],
+        [
+          1180,
+          1037
+        ],
+        [
+          1259,
+          981
+        ],
+        [
+          972,
+          1016
+        ],
+        [
+          993,
+          1340
+        ],
+        [
+          953,
+          1019
+        ],
+        [
+          1340,
+          1033
+        ],
+        [
+          963,
+          919
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 427737088,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 12,
+      "shellMs": 21.40587499999947,
+      "readyMs": 178.10170899999957,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 548760,
+      "framesBuildRasterMicros": [
+        [
+          942,
+          1000
+        ],
+        [
+          941,
+          1043
+        ],
+        [
+          986,
+          1053
+        ],
+        [
+          1064,
+          1087
+        ],
+        [
+          935,
+          997
+        ],
+        [
+          988,
+          1034
+        ],
+        [
+          2291,
+          1063
+        ],
+        [
+          999,
+          4395
+        ],
+        [
+          513,
+          2951
+        ],
+        [
+          518,
+          3194
+        ],
+        [
+          687,
+          2594
+        ],
+        [
+          624,
+          4070
+        ],
+        [
+          1068,
+          3924
+        ],
+        [
+          723,
+          3323
+        ],
+        [
+          551,
+          3020
+        ],
+        [
+          2267,
+          3957
+        ],
+        [
+          983,
+          3072
+        ],
+        [
+          864,
+          2962
+        ],
+        [
+          688,
+          2905
+        ],
+        [
+          866,
+          4415
+        ],
+        [
+          1119,
+          3592
+        ],
+        [
+          599,
+          6670
+        ],
+        [
+          1704,
+          4622
+        ],
+        [
+          321,
+          3983
+        ],
+        [
+          340,
+          5221
+        ],
+        [
+          311,
+          2749
+        ],
+        [
+          275,
+          2774
+        ],
+        [
+          296,
+          3724
+        ],
+        [
+          354,
+          2845
+        ],
+        [
+          300,
+          3762
+        ],
+        [
+          2199,
+          1029
+        ],
+        [
+          1098,
+          1104
+        ],
+        [
+          928,
+          999
+        ],
+        [
+          969,
+          1094
+        ],
+        [
+          938,
+          1175
+        ],
+        [
+          1007,
+          971
+        ],
+        [
+          961,
+          963
+        ],
+        [
+          1006,
+          1107
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 427245568,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 13,
+      "shellMs": 21.587084000000687,
+      "readyMs": 170.06366700000035,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 541073,
+      "framesBuildRasterMicros": [
+        [
+          1056,
+          1097
+        ],
+        [
+          1011,
+          1037
+        ],
+        [
+          1076,
+          1022
+        ],
+        [
+          1955,
+          1065
+        ],
+        [
+          1012,
+          1107
+        ],
+        [
+          1043,
+          1080
+        ],
+        [
+          2391,
+          963
+        ],
+        [
+          809,
+          3861
+        ],
+        [
+          557,
+          4388
+        ],
+        [
+          656,
+          4221
+        ],
+        [
+          521,
+          3481
+        ],
+        [
+          648,
+          2848
+        ],
+        [
+          556,
+          2935
+        ],
+        [
+          1939,
+          4616
+        ],
+        [
+          906,
+          2977
+        ],
+        [
+          815,
+          4203
+        ],
+        [
+          622,
+          2636
+        ],
+        [
+          755,
+          4286
+        ],
+        [
+          1874,
+          3835
+        ],
+        [
+          633,
+          2587
+        ],
+        [
+          547,
+          3508
+        ],
+        [
+          518,
+          5094
+        ],
+        [
+          538,
+          4960
+        ],
+        [
+          673,
+          3677
+        ],
+        [
+          529,
+          3133
+        ],
+        [
+          325,
+          4826
+        ],
+        [
+          361,
+          3841
+        ],
+        [
+          285,
+          7294
+        ],
+        [
+          333,
+          3538
+        ],
+        [
+          2166,
+          1171
+        ],
+        [
+          1149,
+          1052
+        ],
+        [
+          1042,
+          1062
+        ],
+        [
+          975,
+          952
+        ],
+        [
+          892,
+          1172
+        ],
+        [
+          914,
+          1085
+        ],
+        [
+          998,
+          1070
+        ],
+        [
+          1948,
+          959
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 427360256,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 14,
+      "shellMs": 21.60504200000014,
+      "readyMs": 169.12216699999954,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 544273,
+      "framesBuildRasterMicros": [
+        [
+          971,
+          956
+        ],
+        [
+          1029,
+          1044
+        ],
+        [
+          1029,
+          1182
+        ],
+        [
+          999,
+          1094
+        ],
+        [
+          945,
+          1021
+        ],
+        [
+          953,
+          1020
+        ],
+        [
+          2574,
+          1094
+        ],
+        [
+          797,
+          4983
+        ],
+        [
+          546,
+          2599
+        ],
+        [
+          537,
+          3151
+        ],
+        [
+          380,
+          4039
+        ],
+        [
+          721,
+          3632
+        ],
+        [
+          664,
+          2808
+        ],
+        [
+          704,
+          4224
+        ],
+        [
+          1781,
+          5109
+        ],
+        [
+          531,
+          5280
+        ],
+        [
+          2755,
+          3632
+        ],
+        [
+          698,
+          2617
+        ],
+        [
+          839,
+          4242
+        ],
+        [
+          839,
+          2836
+        ],
+        [
+          931,
+          3833
+        ],
+        [
+          627,
+          4231
+        ],
+        [
+          631,
+          4414
+        ],
+        [
+          560,
+          4520
+        ],
+        [
+          298,
+          3849
+        ],
+        [
+          371,
+          3568
+        ],
+        [
+          304,
+          4754
+        ],
+        [
+          301,
+          3039
+        ],
+        [
+          333,
+          6770
+        ],
+        [
+          286,
+          5057
+        ],
+        [
+          287,
+          2828
+        ],
+        [
+          2263,
+          1091
+        ],
+        [
+          1098,
+          1033
+        ],
+        [
+          1038,
+          1086
+        ],
+        [
+          1022,
+          1070
+        ],
+        [
+          2063,
+          1266
+        ],
+        [
+          1074,
+          1002
+        ],
+        [
+          1070,
+          1022
+        ],
+        [
+          1062,
+          1089
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 428130304,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 15,
+      "shellMs": 21.163249999999607,
+      "readyMs": 170.56116699999893,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 543239,
+      "framesBuildRasterMicros": [
+        [
+          1013,
+          1064
+        ],
+        [
+          1034,
+          1160
+        ],
+        [
+          1306,
+          1066
+        ],
+        [
+          1044,
+          991
+        ],
+        [
+          955,
+          933
+        ],
+        [
+          843,
+          997
+        ],
+        [
+          2603,
+          1191
+        ],
+        [
+          806,
+          4478
+        ],
+        [
+          620,
+          4008
+        ],
+        [
+          503,
+          3152
+        ],
+        [
+          527,
+          3812
+        ],
+        [
+          702,
+          2758
+        ],
+        [
+          863,
+          3448
+        ],
+        [
+          1075,
+          2565
+        ],
+        [
+          1680,
+          4096
+        ],
+        [
+          696,
+          4920
+        ],
+        [
+          727,
+          2561
+        ],
+        [
+          698,
+          3109
+        ],
+        [
+          1985,
+          4390
+        ],
+        [
+          1115,
+          2528
+        ],
+        [
+          1023,
+          4937
+        ],
+        [
+          756,
+          4966
+        ],
+        [
+          707,
+          5003
+        ],
+        [
+          535,
+          3187
+        ],
+        [
+          497,
+          2963
+        ],
+        [
+          345,
+          4120
+        ],
+        [
+          374,
+          3324
+        ],
+        [
+          291,
+          3902
+        ],
+        [
+          192,
+          3895
+        ],
+        [
+          137,
+          5485
+        ],
+        [
+          2043,
+          1076
+        ],
+        [
+          1846,
+          960
+        ],
+        [
+          989,
+          1010
+        ],
+        [
+          1029,
+          1110
+        ],
+        [
+          1009,
+          1383
+        ],
+        [
+          933,
+          977
+        ],
+        [
+          1048,
+          1016
+        ],
+        [
+          951,
+          1052
+        ],
+        [
+          975,
+          1137
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 425345024,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 16,
+      "shellMs": 22.092208000000028,
+      "readyMs": 173.18137500000012,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 545708,
+      "framesBuildRasterMicros": [
+        [
+          1017,
+          1098
+        ],
+        [
+          1043,
+          1073
+        ],
+        [
+          1087,
+          1010
+        ],
+        [
+          904,
+          1078
+        ],
+        [
+          943,
+          1044
+        ],
+        [
+          869,
+          1065
+        ],
+        [
+          2615,
+          1066
+        ],
+        [
+          805,
+          4719
+        ],
+        [
+          623,
+          3011
+        ],
+        [
+          508,
+          2942
+        ],
+        [
+          522,
+          3175
+        ],
+        [
+          2387,
+          2925
+        ],
+        [
+          838,
+          4574
+        ],
+        [
+          976,
+          2388
+        ],
+        [
+          1905,
+          2834
+        ],
+        [
+          526,
+          4506
+        ],
+        [
+          861,
+          2734
+        ],
+        [
+          715,
+          3098
+        ],
+        [
+          1128,
+          4219
+        ],
+        [
+          949,
+          4950
+        ],
+        [
+          725,
+          4278
+        ],
+        [
+          644,
+          3604
+        ],
+        [
+          505,
+          4910
+        ],
+        [
+          512,
+          2625
+        ],
+        [
+          312,
+          4153
+        ],
+        [
+          337,
+          3171
+        ],
+        [
+          301,
+          2670
+        ],
+        [
+          243,
+          4991
+        ],
+        [
+          1709,
+          3881
+        ],
+        [
+          253,
+          6037
+        ],
+        [
+          328,
+          3912
+        ],
+        [
+          2166,
+          1042
+        ],
+        [
+          1056,
+          1067
+        ],
+        [
+          1080,
+          1130
+        ],
+        [
+          934,
+          934
+        ],
+        [
+          1076,
+          1436
+        ],
+        [
+          1042,
+          1088
+        ],
+        [
+          1022,
+          993
+        ],
+        [
+          985,
+          992
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 427868160,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 17,
+      "shellMs": 21.736667000001034,
+      "readyMs": 170.09512500000164,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 540532,
+      "framesBuildRasterMicros": [
+        [
+          957,
+          953
+        ],
+        [
+          988,
+          1078
+        ],
+        [
+          1053,
+          1145
+        ],
+        [
+          1037,
+          1040
+        ],
+        [
+          1040,
+          1058
+        ],
+        [
+          948,
+          1030
+        ],
+        [
+          2352,
+          1031
+        ],
+        [
+          1499,
+          4286
+        ],
+        [
+          546,
+          3437
+        ],
+        [
+          502,
+          3013
+        ],
+        [
+          644,
+          7097
+        ],
+        [
+          846,
+          3814
+        ],
+        [
+          697,
+          3773
+        ],
+        [
+          786,
+          2707
+        ],
+        [
+          1968,
+          2813
+        ],
+        [
+          633,
+          5254
+        ],
+        [
+          756,
+          2765
+        ],
+        [
+          770,
+          2908
+        ],
+        [
+          792,
+          3719
+        ],
+        [
+          637,
+          2980
+        ],
+        [
+          586,
+          3462
+        ],
+        [
+          680,
+          4712
+        ],
+        [
+          560,
+          4048
+        ],
+        [
+          511,
+          2817
+        ],
+        [
+          1810,
+          4528
+        ],
+        [
+          275,
+          4965
+        ],
+        [
+          343,
+          5024
+        ],
+        [
+          319,
+          3556
+        ],
+        [
+          296,
+          6552
+        ],
+        [
+          288,
+          3192
+        ],
+        [
+          2221,
+          1015
+        ],
+        [
+          1036,
+          1056
+        ],
+        [
+          985,
+          1040
+        ],
+        [
+          979,
+          997
+        ],
+        [
+          943,
+          1251
+        ],
+        [
+          1070,
+          1128
+        ],
+        [
+          1046,
+          1066
+        ],
+        [
+          1121,
+          1023
+        ],
+        [
+          1004,
+          1045
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 427704320,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 18,
+      "shellMs": 8.815208000001803,
+      "readyMs": 174.3369580000017,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 550064,
+      "framesBuildRasterMicros": [
+        [
+          968,
+          1027
+        ],
+        [
+          929,
+          1070
+        ],
+        [
+          1093,
+          1048
+        ],
+        [
+          1380,
+          996
+        ],
+        [
+          1839,
+          1097
+        ],
+        [
+          2524,
+          1075
+        ],
+        [
+          806,
+          4557
+        ],
+        [
+          644,
+          6058
+        ],
+        [
+          595,
+          3905
+        ],
+        [
+          529,
+          3046
+        ],
+        [
+          677,
+          4834
+        ],
+        [
+          667,
+          2738
+        ],
+        [
+          687,
+          3037
+        ],
+        [
+          614,
+          3061
+        ],
+        [
+          2062,
+          4589
+        ],
+        [
+          1083,
+          3818
+        ],
+        [
+          852,
+          4749
+        ],
+        [
+          704,
+          4528
+        ],
+        [
+          681,
+          5427
+        ],
+        [
+          627,
+          7375
+        ],
+        [
+          1869,
+          3920
+        ],
+        [
+          509,
+          2755
+        ],
+        [
+          303,
+          4876
+        ],
+        [
+          290,
+          3450
+        ],
+        [
+          304,
+          4204
+        ],
+        [
+          401,
+          2687
+        ],
+        [
+          312,
+          3347
+        ],
+        [
+          262,
+          4917
+        ],
+        [
+          281,
+          3315
+        ],
+        [
+          2320,
+          1035
+        ],
+        [
+          1244,
+          1023
+        ],
+        [
+          1103,
+          1078
+        ],
+        [
+          978,
+          1070
+        ],
+        [
+          1010,
+          1180
+        ],
+        [
+          918,
+          915
+        ],
+        [
+          956,
+          1249
+        ],
+        [
+          1061,
+          1023
+        ],
+        [
+          1000,
+          1061
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 427343872,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 19,
+      "shellMs": 21.029875000000175,
+      "readyMs": 169.45308399999885,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 540720,
+      "framesBuildRasterMicros": [
+        [
+          1960,
+          963
+        ],
+        [
+          955,
+          1021
+        ],
+        [
+          981,
+          987
+        ],
+        [
+          1044,
+          1157
+        ],
+        [
+          1031,
+          1059
+        ],
+        [
+          932,
+          1072
+        ],
+        [
+          2438,
+          1085
+        ],
+        [
+          761,
+          5100
+        ],
+        [
+          597,
+          2609
+        ],
+        [
+          503,
+          3667
+        ],
+        [
+          677,
+          3194
+        ],
+        [
+          625,
+          2566
+        ],
+        [
+          901,
+          4221
+        ],
+        [
+          477,
+          3268
+        ],
+        [
+          1835,
+          4283
+        ],
+        [
+          972,
+          2295
+        ],
+        [
+          2282,
+          4140
+        ],
+        [
+          1042,
+          2701
+        ],
+        [
+          618,
+          3720
+        ],
+        [
+          1078,
+          3397
+        ],
+        [
+          746,
+          3409
+        ],
+        [
+          468,
+          4967
+        ],
+        [
+          634,
+          4777
+        ],
+        [
+          907,
+          3078
+        ],
+        [
+          594,
+          2420
+        ],
+        [
+          620,
+          2777
+        ],
+        [
+          294,
+          5003
+        ],
+        [
+          293,
+          5156
+        ],
+        [
+          251,
+          7243
+        ],
+        [
+          2057,
+          1146
+        ],
+        [
+          1025,
+          1078
+        ],
+        [
+          1028,
+          1087
+        ],
+        [
+          1022,
+          983
+        ],
+        [
+          950,
+          1243
+        ],
+        [
+          1070,
+          1090
+        ],
+        [
+          1918,
+          1033
+        ],
+        [
+          1031,
+          1086
+        ],
+        [
+          1088,
+          1044
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 428294144,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 20,
+      "shellMs": 8.497708000000785,
+      "readyMs": 177.23091600000043,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 549306,
+      "framesBuildRasterMicros": [
+        [
+          972,
+          1054
+        ],
+        [
+          980,
+          1112
+        ],
+        [
+          1059,
+          1134
+        ],
+        [
+          971,
+          1090
+        ],
+        [
+          1085,
+          998
+        ],
+        [
+          2498,
+          1089
+        ],
+        [
+          833,
+          4842
+        ],
+        [
+          603,
+          3847
+        ],
+        [
+          547,
+          4705
+        ],
+        [
+          555,
+          3033
+        ],
+        [
+          853,
+          4243
+        ],
+        [
+          862,
+          4005
+        ],
+        [
+          791,
+          3600
+        ],
+        [
+          699,
+          2825
+        ],
+        [
+          2022,
+          4124
+        ],
+        [
+          499,
+          6107
+        ],
+        [
+          861,
+          4294
+        ],
+        [
+          817,
+          4192
+        ],
+        [
+          787,
+          3906
+        ],
+        [
+          774,
+          5001
+        ],
+        [
+          534,
+          6654
+        ],
+        [
+          583,
+          2167
+        ],
+        [
+          305,
+          3324
+        ],
+        [
+          314,
+          2716
+        ],
+        [
+          339,
+          3582
+        ],
+        [
+          304,
+          4879
+        ],
+        [
+          276,
+          3070
+        ],
+        [
+          130,
+          4465
+        ],
+        [
+          134,
+          2740
+        ],
+        [
+          126,
+          3161
+        ],
+        [
+          2082,
+          1005
+        ],
+        [
+          1716,
+          1014
+        ],
+        [
+          962,
+          1006
+        ],
+        [
+          949,
+          1099
+        ],
+        [
+          1050,
+          1413
+        ],
+        [
+          1089,
+          985
+        ],
+        [
+          989,
+          1017
+        ],
+        [
+          974,
+          1073
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 425345024,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 21,
+      "shellMs": 22.25579199999993,
+      "readyMs": 197.69079199999942,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 581621,
+      "framesBuildRasterMicros": [
+        [
+          988,
+          1187
+        ],
+        [
+          1004,
+          1084
+        ],
+        [
+          1050,
+          1053
+        ],
+        [
+          1349,
+          1103
+        ],
+        [
+          1011,
+          1039
+        ],
+        [
+          941,
+          1210
+        ],
+        [
+          2598,
+          1049
+        ],
+        [
+          2099,
+          4656
+        ],
+        [
+          598,
+          4337
+        ],
+        [
+          534,
+          3518
+        ],
+        [
+          711,
+          2432
+        ],
+        [
+          2011,
+          4044
+        ],
+        [
+          646,
+          3900
+        ],
+        [
+          650,
+          5681
+        ],
+        [
+          3864,
+          3997
+        ],
+        [
+          769,
+          4198
+        ],
+        [
+          1231,
+          2217
+        ],
+        [
+          714,
+          3446
+        ],
+        [
+          735,
+          3148
+        ],
+        [
+          699,
+          3041
+        ],
+        [
+          538,
+          3095
+        ],
+        [
+          428,
+          4998
+        ],
+        [
+          340,
+          4875
+        ],
+        [
+          401,
+          4706
+        ],
+        [
+          842,
+          3485
+        ],
+        [
+          338,
+          3539
+        ],
+        [
+          1833,
+          3737
+        ],
+        [
+          308,
+          3811
+        ],
+        [
+          281,
+          3850
+        ],
+        [
+          312,
+          3658
+        ],
+        [
+          2665,
+          1151
+        ],
+        [
+          1459,
+          1042
+        ],
+        [
+          1104,
+          1058
+        ],
+        [
+          1113,
+          1270
+        ],
+        [
+          1940,
+          1531
+        ],
+        [
+          1045,
+          1109
+        ],
+        [
+          1071,
+          1072
+        ],
+        [
+          1761,
+          1188
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 428965888,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 22,
+      "shellMs": 41.11108400000012,
+      "readyMs": 278.4305000000004,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 651690,
+      "framesBuildRasterMicros": [
+        [
+          1244,
+          1525
+        ],
+        [
+          1232,
+          1151
+        ],
+        [
+          1283,
+          1051
+        ],
+        [
+          1185,
+          1144
+        ],
+        [
+          1084,
+          1742
+        ],
+        [
+          969,
+          1082
+        ],
+        [
+          2641,
+          1132
+        ],
+        [
+          2913,
+          1119
+        ],
+        [
+          850,
+          5576
+        ],
+        [
+          670,
+          4443
+        ],
+        [
+          626,
+          5116
+        ],
+        [
+          791,
+          3500
+        ],
+        [
+          1694,
+          4532
+        ],
+        [
+          986,
+          2722
+        ],
+        [
+          635,
+          2640
+        ],
+        [
+          690,
+          5743
+        ],
+        [
+          540,
+          3037
+        ],
+        [
+          594,
+          2986
+        ],
+        [
+          851,
+          3368
+        ],
+        [
+          607,
+          4348
+        ],
+        [
+          821,
+          4024
+        ],
+        [
+          1490,
+          5040
+        ],
+        [
+          2132,
+          5387
+        ],
+        [
+          496,
+          3745
+        ],
+        [
+          343,
+          3705
+        ],
+        [
+          326,
+          4840
+        ],
+        [
+          341,
+          5052
+        ],
+        [
+          370,
+          3163
+        ],
+        [
+          315,
+          6086
+        ],
+        [
+          296,
+          3055
+        ],
+        [
+          238,
+          2884
+        ],
+        [
+          270,
+          2927
+        ],
+        [
+          302,
+          4800
+        ],
+        [
+          359,
+          7208
+        ],
+        [
+          393,
+          4637
+        ],
+        [
+          271,
+          4609
+        ],
+        [
+          272,
+          3003
+        ],
+        [
+          231,
+          2827
+        ],
+        [
+          2199,
+          1172
+        ],
+        [
+          1110,
+          1219
+        ],
+        [
+          1812,
+          1062
+        ],
+        [
+          1127,
+          1089
+        ],
+        [
+          1027,
+          1314
+        ],
+        [
+          887,
+          1008
+        ],
+        [
+          1076,
+          1061
+        ],
+        [
+          959,
+          1022
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 436928512,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 23,
+      "shellMs": 22.568874999999025,
+      "readyMs": 182.99158299999908,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 554850,
+      "framesBuildRasterMicros": [
+        [
+          1014,
+          1116
+        ],
+        [
+          1072,
+          1061
+        ],
+        [
+          1016,
+          1037
+        ],
+        [
+          1015,
+          1041
+        ],
+        [
+          978,
+          1686
+        ],
+        [
+          1008,
+          1105
+        ],
+        [
+          2814,
+          1027
+        ],
+        [
+          709,
+          4652
+        ],
+        [
+          770,
+          4268
+        ],
+        [
+          574,
+          3333
+        ],
+        [
+          642,
+          3941
+        ],
+        [
+          747,
+          3167
+        ],
+        [
+          1039,
+          4892
+        ],
+        [
+          2315,
+          2365
+        ],
+        [
+          1238,
+          2353
+        ],
+        [
+          643,
+          3064
+        ],
+        [
+          2042,
+          2944
+        ],
+        [
+          598,
+          4224
+        ],
+        [
+          667,
+          4135
+        ],
+        [
+          769,
+          2451
+        ],
+        [
+          791,
+          3472
+        ],
+        [
+          702,
+          3032
+        ],
+        [
+          573,
+          2831
+        ],
+        [
+          597,
+          4541
+        ],
+        [
+          376,
+          4969
+        ],
+        [
+          309,
+          7190
+        ],
+        [
+          300,
+          2847
+        ],
+        [
+          363,
+          3048
+        ],
+        [
+          303,
+          4196
+        ],
+        [
+          1956,
+          3978
+        ],
+        [
+          270,
+          4662
+        ],
+        [
+          396,
+          5018
+        ],
+        [
+          2112,
+          1167
+        ],
+        [
+          1258,
+          998
+        ],
+        [
+          1101,
+          1031
+        ],
+        [
+          956,
+          1059
+        ],
+        [
+          1010,
+          1271
+        ],
+        [
+          984,
+          1241
+        ],
+        [
+          1028,
+          1092
+        ],
+        [
+          1570,
+          1027
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 435683328,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 24,
+      "shellMs": 21.9989170000008,
+      "readyMs": 199.15237499999967,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 570069,
+      "framesBuildRasterMicros": [
+        [
+          920,
+          983
+        ],
+        [
+          981,
+          1057
+        ],
+        [
+          949,
+          1108
+        ],
+        [
+          1086,
+          1110
+        ],
+        [
+          1325,
+          1043
+        ],
+        [
+          1025,
+          1077
+        ],
+        [
+          3844,
+          1090
+        ],
+        [
+          973,
+          5248
+        ],
+        [
+          1588,
+          3190
+        ],
+        [
+          574,
+          2442
+        ],
+        [
+          576,
+          3536
+        ],
+        [
+          695,
+          3236
+        ],
+        [
+          588,
+          4236
+        ],
+        [
+          647,
+          4793
+        ],
+        [
+          1958,
+          6469
+        ],
+        [
+          604,
+          3367
+        ],
+        [
+          899,
+          4132
+        ],
+        [
+          872,
+          3094
+        ],
+        [
+          746,
+          4331
+        ],
+        [
+          670,
+          2553
+        ],
+        [
+          521,
+          2803
+        ],
+        [
+          319,
+          3581
+        ],
+        [
+          1889,
+          4175
+        ],
+        [
+          338,
+          4296
+        ],
+        [
+          368,
+          5068
+        ],
+        [
+          323,
+          6182
+        ],
+        [
+          238,
+          2923
+        ],
+        [
+          301,
+          2748
+        ],
+        [
+          265,
+          2848
+        ],
+        [
+          282,
+          3250
+        ],
+        [
+          2359,
+          1118
+        ],
+        [
+          1093,
+          1129
+        ],
+        [
+          1046,
+          1110
+        ],
+        [
+          1048,
+          1037
+        ],
+        [
+          1009,
+          1248
+        ],
+        [
+          1036,
+          1074
+        ],
+        [
+          1039,
+          1130
+        ],
+        [
+          999,
+          1184
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 430522368,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 25,
+      "shellMs": 23.953750000000582,
+      "readyMs": 198.1470420000005,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 573402,
+      "framesBuildRasterMicros": [
+        [
+          996,
+          1078
+        ],
+        [
+          1038,
+          1023
+        ],
+        [
+          1326,
+          1260
+        ],
+        [
+          3126,
+          1036
+        ],
+        [
+          975,
+          1094
+        ],
+        [
+          972,
+          1089
+        ],
+        [
+          2558,
+          1117
+        ],
+        [
+          920,
+          4218
+        ],
+        [
+          579,
+          2952
+        ],
+        [
+          594,
+          2905
+        ],
+        [
+          694,
+          3706
+        ],
+        [
+          743,
+          3150
+        ],
+        [
+          641,
+          3557
+        ],
+        [
+          798,
+          2996
+        ],
+        [
+          955,
+          2803
+        ],
+        [
+          645,
+          3111
+        ],
+        [
+          719,
+          3066
+        ],
+        [
+          2111,
+          3956
+        ],
+        [
+          646,
+          5599
+        ],
+        [
+          3005,
+          2437
+        ],
+        [
+          749,
+          3071
+        ],
+        [
+          786,
+          3968
+        ],
+        [
+          719,
+          3835
+        ],
+        [
+          490,
+          2766
+        ],
+        [
+          444,
+          2360
+        ],
+        [
+          397,
+          2723
+        ],
+        [
+          326,
+          3113
+        ],
+        [
+          392,
+          5867
+        ],
+        [
+          459,
+          4178
+        ],
+        [
+          275,
+          3034
+        ],
+        [
+          287,
+          6369
+        ],
+        [
+          299,
+          3828
+        ],
+        [
+          249,
+          4285
+        ],
+        [
+          2780,
+          1258
+        ],
+        [
+          1971,
+          1116
+        ],
+        [
+          1102,
+          1083
+        ],
+        [
+          1072,
+          1064
+        ],
+        [
+          1061,
+          1463
+        ],
+        [
+          1829,
+          1102
+        ],
+        [
+          1143,
+          1057
+        ],
+        [
+          1123,
+          1142
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 433356800,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 26,
+      "shellMs": 21.649374999999054,
+      "readyMs": 180.50483299999905,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 551078,
+      "framesBuildRasterMicros": [
+        [
+          990,
+          1093
+        ],
+        [
+          1139,
+          1082
+        ],
+        [
+          928,
+          1144
+        ],
+        [
+          1107,
+          1068
+        ],
+        [
+          1028,
+          1139
+        ],
+        [
+          1070,
+          1172
+        ],
+        [
+          2803,
+          1040
+        ],
+        [
+          773,
+          4212
+        ],
+        [
+          556,
+          3365
+        ],
+        [
+          590,
+          2971
+        ],
+        [
+          482,
+          3806
+        ],
+        [
+          629,
+          2999
+        ],
+        [
+          639,
+          4582
+        ],
+        [
+          814,
+          3736
+        ],
+        [
+          1594,
+          3892
+        ],
+        [
+          2145,
+          3771
+        ],
+        [
+          659,
+          5548
+        ],
+        [
+          907,
+          6316
+        ],
+        [
+          1677,
+          4549
+        ],
+        [
+          948,
+          3973
+        ],
+        [
+          699,
+          7257
+        ],
+        [
+          831,
+          6135
+        ],
+        [
+          2075,
+          6581
+        ],
+        [
+          318,
+          6828
+        ],
+        [
+          329,
+          3748
+        ],
+        [
+          403,
+          7104
+        ],
+        [
+          316,
+          3292
+        ],
+        [
+          372,
+          2873
+        ],
+        [
+          249,
+          2289
+        ],
+        [
+          257,
+          2333
+        ],
+        [
+          2095,
+          1032
+        ],
+        [
+          1735,
+          1019
+        ],
+        [
+          1052,
+          1144
+        ],
+        [
+          1314,
+          1074
+        ],
+        [
+          1006,
+          1321
+        ],
+        [
+          955,
+          1108
+        ],
+        [
+          1019,
+          1123
+        ],
+        [
+          977,
+          1053
+        ],
+        [
+          896,
+          1027
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 428605440,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 27,
+      "shellMs": 9.69233400000121,
+      "readyMs": 202.3040000000001,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 571348,
+      "framesBuildRasterMicros": [
+        [
+          927,
+          1045
+        ],
+        [
+          998,
+          1088
+        ],
+        [
+          1046,
+          1122
+        ],
+        [
+          1003,
+          1109
+        ],
+        [
+          1043,
+          998
+        ],
+        [
+          2726,
+          1001
+        ],
+        [
+          870,
+          5195
+        ],
+        [
+          633,
+          3421
+        ],
+        [
+          634,
+          3192
+        ],
+        [
+          625,
+          4657
+        ],
+        [
+          1538,
+          4409
+        ],
+        [
+          673,
+          4745
+        ],
+        [
+          711,
+          5221
+        ],
+        [
+          578,
+          6390
+        ],
+        [
+          2191,
+          4015
+        ],
+        [
+          838,
+          2627
+        ],
+        [
+          718,
+          3371
+        ],
+        [
+          819,
+          2687
+        ],
+        [
+          746,
+          4410
+        ],
+        [
+          614,
+          2775
+        ],
+        [
+          329,
+          2841
+        ],
+        [
+          347,
+          3262
+        ],
+        [
+          313,
+          5012
+        ],
+        [
+          327,
+          6183
+        ],
+        [
+          358,
+          4879
+        ],
+        [
+          1920,
+          2950
+        ],
+        [
+          277,
+          3310
+        ],
+        [
+          413,
+          3435
+        ],
+        [
+          268,
+          5091
+        ],
+        [
+          2165,
+          1032
+        ],
+        [
+          1080,
+          997
+        ],
+        [
+          1115,
+          1047
+        ],
+        [
+          1014,
+          1067
+        ],
+        [
+          980,
+          1200
+        ],
+        [
+          1039,
+          984
+        ],
+        [
+          1145,
+          1147
+        ],
+        [
+          1167,
+          1050
+        ],
+        [
+          1096,
+          1022
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 429785088,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 28,
+      "shellMs": 22.073625000000902,
+      "readyMs": 180.75887500000135,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 554477,
+      "framesBuildRasterMicros": [
+        [
+          1055,
+          1019
+        ],
+        [
+          1019,
+          973
+        ],
+        [
+          1012,
+          1017
+        ],
+        [
+          1044,
+          1044
+        ],
+        [
+          954,
+          1028
+        ],
+        [
+          2342,
+          1033
+        ],
+        [
+          2624,
+          5377
+        ],
+        [
+          625,
+          5167
+        ],
+        [
+          932,
+          3180
+        ],
+        [
+          501,
+          3999
+        ],
+        [
+          847,
+          3366
+        ],
+        [
+          783,
+          3466
+        ],
+        [
+          719,
+          5685
+        ],
+        [
+          875,
+          3696
+        ],
+        [
+          622,
+          2751
+        ],
+        [
+          2053,
+          4228
+        ],
+        [
+          693,
+          3913
+        ],
+        [
+          1400,
+          4491
+        ],
+        [
+          955,
+          4502
+        ],
+        [
+          724,
+          4815
+        ],
+        [
+          781,
+          4995
+        ],
+        [
+          510,
+          5078
+        ],
+        [
+          1763,
+          4442
+        ],
+        [
+          294,
+          6951
+        ],
+        [
+          272,
+          3215
+        ],
+        [
+          362,
+          3388
+        ],
+        [
+          302,
+          3323
+        ],
+        [
+          284,
+          3966
+        ],
+        [
+          260,
+          4413
+        ],
+        [
+          301,
+          5285
+        ],
+        [
+          368,
+          3361
+        ],
+        [
+          2138,
+          1082
+        ],
+        [
+          1580,
+          1040
+        ],
+        [
+          976,
+          997
+        ],
+        [
+          1015,
+          1082
+        ],
+        [
+          970,
+          1336
+        ],
+        [
+          1268,
+          1072
+        ],
+        [
+          1618,
+          1030
+        ],
+        [
+          1024,
+          1082
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 428949504,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 29,
+      "shellMs": 21.145249999999578,
+      "readyMs": 171.21912499999962,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 543041,
+      "framesBuildRasterMicros": [
+        [
+          951,
+          1016
+        ],
+        [
+          990,
+          1010
+        ],
+        [
+          1870,
+          1034
+        ],
+        [
+          1337,
+          1076
+        ],
+        [
+          1031,
+          1063
+        ],
+        [
+          987,
+          988
+        ],
+        [
+          2447,
+          1115
+        ],
+        [
+          1946,
+          4110
+        ],
+        [
+          511,
+          3164
+        ],
+        [
+          482,
+          5010
+        ],
+        [
+          571,
+          2914
+        ],
+        [
+          670,
+          4329
+        ],
+        [
+          578,
+          2746
+        ],
+        [
+          1922,
+          3208
+        ],
+        [
+          580,
+          4067
+        ],
+        [
+          664,
+          3901
+        ],
+        [
+          772,
+          4383
+        ],
+        [
+          1712,
+          4214
+        ],
+        [
+          663,
+          3511
+        ],
+        [
+          593,
+          2289
+        ],
+        [
+          610,
+          2526
+        ],
+        [
+          501,
+          3627
+        ],
+        [
+          606,
+          3854
+        ],
+        [
+          561,
+          5676
+        ],
+        [
+          690,
+          4519
+        ],
+        [
+          360,
+          4962
+        ],
+        [
+          287,
+          2955
+        ],
+        [
+          253,
+          3131
+        ],
+        [
+          261,
+          4235
+        ],
+        [
+          2068,
+          1045
+        ],
+        [
+          951,
+          1029
+        ],
+        [
+          1000,
+          1143
+        ],
+        [
+          995,
+          1072
+        ],
+        [
+          1066,
+          1201
+        ],
+        [
+          1000,
+          1168
+        ],
+        [
+          1535,
+          1054
+        ],
+        [
+          1769,
+          1094
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 427999232,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 30,
+      "shellMs": 22.018958000000566,
+      "readyMs": 178.4862920000014,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 550125,
+      "framesBuildRasterMicros": [
+        [
+          1030,
+          1060
+        ],
+        [
+          833,
+          939
+        ],
+        [
+          982,
+          1122
+        ],
+        [
+          1020,
+          1039
+        ],
+        [
+          1063,
+          1115
+        ],
+        [
+          886,
+          1116
+        ],
+        [
+          2432,
+          1082
+        ],
+        [
+          921,
+          4393
+        ],
+        [
+          622,
+          3375
+        ],
+        [
+          445,
+          2773
+        ],
+        [
+          302,
+          5243
+        ],
+        [
+          610,
+          5814
+        ],
+        [
+          782,
+          4377
+        ],
+        [
+          653,
+          2924
+        ],
+        [
+          1409,
+          2958
+        ],
+        [
+          2092,
+          5066
+        ],
+        [
+          734,
+          5057
+        ],
+        [
+          909,
+          2920
+        ],
+        [
+          655,
+          4189
+        ],
+        [
+          804,
+          4576
+        ],
+        [
+          641,
+          4784
+        ],
+        [
+          637,
+          3925
+        ],
+        [
+          554,
+          3335
+        ],
+        [
+          332,
+          4251
+        ],
+        [
+          293,
+          4586
+        ],
+        [
+          306,
+          3231
+        ],
+        [
+          288,
+          4758
+        ],
+        [
+          272,
+          5371
+        ],
+        [
+          269,
+          6943
+        ],
+        [
+          281,
+          4859
+        ],
+        [
+          2007,
+          1083
+        ],
+        [
+          982,
+          1047
+        ],
+        [
+          1018,
+          1058
+        ],
+        [
+          1734,
+          1033
+        ],
+        [
+          874,
+          1367
+        ],
+        [
+          1009,
+          1081
+        ],
+        [
+          937,
+          1052
+        ],
+        [
+          952,
+          1027
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 430260224,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 31,
+      "shellMs": 20.23199999999997,
+      "readyMs": 180.52799999999843,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 554562,
+      "framesBuildRasterMicros": [
+        [
+          966,
+          1032
+        ],
+        [
+          1064,
+          1389
+        ],
+        [
+          1649,
+          1093
+        ],
+        [
+          1624,
+          1093
+        ],
+        [
+          1634,
+          1040
+        ],
+        [
+          996,
+          1021
+        ],
+        [
+          2393,
+          1026
+        ],
+        [
+          850,
+          4286
+        ],
+        [
+          661,
+          3083
+        ],
+        [
+          544,
+          3721
+        ],
+        [
+          545,
+          2683
+        ],
+        [
+          604,
+          2961
+        ],
+        [
+          2099,
+          3933
+        ],
+        [
+          963,
+          4148
+        ],
+        [
+          1861,
+          2836
+        ],
+        [
+          396,
+          5051
+        ],
+        [
+          569,
+          2220
+        ],
+        [
+          635,
+          3482
+        ],
+        [
+          782,
+          3575
+        ],
+        [
+          767,
+          4376
+        ],
+        [
+          694,
+          4871
+        ],
+        [
+          563,
+          3790
+        ],
+        [
+          571,
+          6673
+        ],
+        [
+          267,
+          3372
+        ],
+        [
+          298,
+          2488
+        ],
+        [
+          314,
+          2686
+        ],
+        [
+          326,
+          3980
+        ],
+        [
+          265,
+          3503
+        ],
+        [
+          129,
+          2647
+        ],
+        [
+          1701,
+          3729
+        ],
+        [
+          2040,
+          1026
+        ],
+        [
+          1377,
+          1094
+        ],
+        [
+          976,
+          1013
+        ],
+        [
+          971,
+          1076
+        ],
+        [
+          1006,
+          1314
+        ],
+        [
+          1039,
+          1053
+        ],
+        [
+          998,
+          1057
+        ],
+        [
+          1110,
+          1077
+        ],
+        [
+          1063,
+          1141
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 428736512,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 32,
+      "shellMs": 21.79833299999882,
+      "readyMs": 214.24204100000134,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 585048,
+      "framesBuildRasterMicros": [
+        [
+          998,
+          1169
+        ],
+        [
+          1034,
+          1021
+        ],
+        [
+          1340,
+          1068
+        ],
+        [
+          995,
+          1032
+        ],
+        [
+          999,
+          1105
+        ],
+        [
+          1043,
+          1043
+        ],
+        [
+          2698,
+          1011
+        ],
+        [
+          841,
+          4920
+        ],
+        [
+          572,
+          3533
+        ],
+        [
+          2493,
+          3657
+        ],
+        [
+          663,
+          2809
+        ],
+        [
+          552,
+          4052
+        ],
+        [
+          605,
+          4579
+        ],
+        [
+          614,
+          3703
+        ],
+        [
+          488,
+          2905
+        ],
+        [
+          1821,
+          4541
+        ],
+        [
+          595,
+          3942
+        ],
+        [
+          797,
+          2324
+        ],
+        [
+          680,
+          3229
+        ],
+        [
+          586,
+          3980
+        ],
+        [
+          535,
+          3414
+        ],
+        [
+          311,
+          5046
+        ],
+        [
+          315,
+          2959
+        ],
+        [
+          1709,
+          3224
+        ],
+        [
+          386,
+          3475
+        ],
+        [
+          377,
+          4812
+        ],
+        [
+          271,
+          5056
+        ],
+        [
+          284,
+          2887
+        ],
+        [
+          278,
+          3114
+        ],
+        [
+          251,
+          2815
+        ],
+        [
+          2075,
+          1064
+        ],
+        [
+          1138,
+          966
+        ],
+        [
+          1033,
+          1011
+        ],
+        [
+          984,
+          1011
+        ],
+        [
+          945,
+          1190
+        ],
+        [
+          966,
+          941
+        ],
+        [
+          943,
+          963
+        ],
+        [
+          1040,
+          1040
+        ],
+        [
+          971,
+          1042
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 428277760,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 33,
+      "shellMs": 21.54070900000079,
+      "readyMs": 169.48287499999788,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 541338,
+      "framesBuildRasterMicros": [
+        [
+          902,
+          916
+        ],
+        [
+          1005,
+          1034
+        ],
+        [
+          1022,
+          1061
+        ],
+        [
+          1837,
+          1037
+        ],
+        [
+          956,
+          1065
+        ],
+        [
+          923,
+          1050
+        ],
+        [
+          2514,
+          957
+        ],
+        [
+          2196,
+          5422
+        ],
+        [
+          592,
+          2609
+        ],
+        [
+          533,
+          3217
+        ],
+        [
+          536,
+          4048
+        ],
+        [
+          668,
+          4123
+        ],
+        [
+          599,
+          3454
+        ],
+        [
+          624,
+          4318
+        ],
+        [
+          2358,
+          2782
+        ],
+        [
+          595,
+          4819
+        ],
+        [
+          569,
+          2434
+        ],
+        [
+          686,
+          2342
+        ],
+        [
+          628,
+          2958
+        ],
+        [
+          1757,
+          3629
+        ],
+        [
+          582,
+          3696
+        ],
+        [
+          608,
+          4925
+        ],
+        [
+          550,
+          5287
+        ],
+        [
+          535,
+          4354
+        ],
+        [
+          267,
+          2742
+        ],
+        [
+          290,
+          2934
+        ],
+        [
+          281,
+          4991
+        ],
+        [
+          323,
+          3084
+        ],
+        [
+          295,
+          3713
+        ],
+        [
+          260,
+          2818
+        ],
+        [
+          2175,
+          1122
+        ],
+        [
+          1055,
+          1124
+        ],
+        [
+          1033,
+          1081
+        ],
+        [
+          1069,
+          1124
+        ],
+        [
+          1035,
+          1293
+        ],
+        [
+          984,
+          1042
+        ],
+        [
+          1003,
+          978
+        ],
+        [
+          884,
+          1067
+        ],
+        [
+          1726,
+          1047
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 430473216,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 34,
+      "shellMs": 9.004708000000392,
+      "readyMs": 177.7149169999975,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 552108,
+      "framesBuildRasterMicros": [
+        [
+          952,
+          1042
+        ],
+        [
+          948,
+          1117
+        ],
+        [
+          1041,
+          1104
+        ],
+        [
+          1306,
+          1114
+        ],
+        [
+          981,
+          1087
+        ],
+        [
+          2913,
+          1028
+        ],
+        [
+          848,
+          4128
+        ],
+        [
+          591,
+          2559
+        ],
+        [
+          667,
+          2770
+        ],
+        [
+          495,
+          3769
+        ],
+        [
+          619,
+          3165
+        ],
+        [
+          625,
+          3726
+        ],
+        [
+          612,
+          3466
+        ],
+        [
+          589,
+          3337
+        ],
+        [
+          1777,
+          2959
+        ],
+        [
+          591,
+          4790
+        ],
+        [
+          3091,
+          2888
+        ],
+        [
+          681,
+          3701
+        ],
+        [
+          678,
+          2758
+        ],
+        [
+          644,
+          3551
+        ],
+        [
+          635,
+          4579
+        ],
+        [
+          585,
+          3890
+        ],
+        [
+          627,
+          7437
+        ],
+        [
+          415,
+          3279
+        ],
+        [
+          323,
+          3986
+        ],
+        [
+          324,
+          3075
+        ],
+        [
+          293,
+          5023
+        ],
+        [
+          335,
+          6027
+        ],
+        [
+          369,
+          4843
+        ],
+        [
+          294,
+          6272
+        ],
+        [
+          301,
+          5194
+        ],
+        [
+          2306,
+          1078
+        ],
+        [
+          1035,
+          959
+        ],
+        [
+          1033,
+          1059
+        ],
+        [
+          976,
+          1189
+        ],
+        [
+          2162,
+          1335
+        ],
+        [
+          1090,
+          1167
+        ],
+        [
+          910,
+          1029
+        ],
+        [
+          947,
+          1064
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 430374912,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 35,
+      "shellMs": 21.54737500000192,
+      "readyMs": 186.23500000000058,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 560083,
+      "framesBuildRasterMicros": [
+        [
+          1011,
+          1108
+        ],
+        [
+          941,
+          1104
+        ],
+        [
+          1111,
+          1072
+        ],
+        [
+          961,
+          1081
+        ],
+        [
+          1169,
+          1137
+        ],
+        [
+          1250,
+          1159
+        ],
+        [
+          2652,
+          1078
+        ],
+        [
+          748,
+          5327
+        ],
+        [
+          555,
+          3000
+        ],
+        [
+          598,
+          3794
+        ],
+        [
+          494,
+          3883
+        ],
+        [
+          609,
+          4722
+        ],
+        [
+          731,
+          3855
+        ],
+        [
+          1881,
+          3501
+        ],
+        [
+          550,
+          7418
+        ],
+        [
+          890,
+          2779
+        ],
+        [
+          691,
+          2408
+        ],
+        [
+          864,
+          2544
+        ],
+        [
+          746,
+          2870
+        ],
+        [
+          713,
+          2704
+        ],
+        [
+          541,
+          2639
+        ],
+        [
+          575,
+          3029
+        ],
+        [
+          310,
+          3189
+        ],
+        [
+          294,
+          3342
+        ],
+        [
+          340,
+          4291
+        ],
+        [
+          270,
+          3224
+        ],
+        [
+          189,
+          2841
+        ],
+        [
+          137,
+          4027
+        ],
+        [
+          128,
+          5575
+        ],
+        [
+          1846,
+          2475
+        ],
+        [
+          2286,
+          1144
+        ],
+        [
+          1084,
+          1059
+        ],
+        [
+          1068,
+          1051
+        ],
+        [
+          1025,
+          1132
+        ],
+        [
+          952,
+          1381
+        ],
+        [
+          1069,
+          1023
+        ],
+        [
+          945,
+          1066
+        ],
+        [
+          1001,
+          1019
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 431210496,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 36,
+      "shellMs": 22.622666000002937,
+      "readyMs": 187.87525000000096,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 592702,
+      "framesBuildRasterMicros": [
+        [
+          963,
+          1040
+        ],
+        [
+          1028,
+          980
+        ],
+        [
+          1256,
+          1273
+        ],
+        [
+          1057,
+          1214
+        ],
+        [
+          1053,
+          1101
+        ],
+        [
+          1068,
+          1115
+        ],
+        [
+          2587,
+          1116
+        ],
+        [
+          904,
+          4337
+        ],
+        [
+          599,
+          2447
+        ],
+        [
+          579,
+          2583
+        ],
+        [
+          1441,
+          2894
+        ],
+        [
+          564,
+          2958
+        ],
+        [
+          598,
+          3835
+        ],
+        [
+          835,
+          3212
+        ],
+        [
+          839,
+          3472
+        ],
+        [
+          3327,
+          3778
+        ],
+        [
+          571,
+          5363
+        ],
+        [
+          882,
+          3315
+        ],
+        [
+          1940,
+          3075
+        ],
+        [
+          872,
+          3228
+        ],
+        [
+          790,
+          4451
+        ],
+        [
+          602,
+          4694
+        ],
+        [
+          772,
+          3017
+        ],
+        [
+          306,
+          3849
+        ],
+        [
+          318,
+          5131
+        ],
+        [
+          1745,
+          4274
+        ],
+        [
+          410,
+          6790
+        ],
+        [
+          818,
+          4910
+        ],
+        [
+          277,
+          3760
+        ],
+        [
+          307,
+          4234
+        ],
+        [
+          3333,
+          3400
+        ],
+        [
+          2127,
+          1067
+        ],
+        [
+          1142,
+          1096
+        ],
+        [
+          1683,
+          1412
+        ],
+        [
+          1198,
+          1285
+        ],
+        [
+          1339,
+          1585
+        ],
+        [
+          1006,
+          1112
+        ],
+        [
+          949,
+          1189
+        ],
+        [
+          3967,
+          1360
+        ],
+        [
+          1284,
+          1335
+        ],
+        [
+          1234,
+          1275
+        ],
+        [
+          962,
+          1083
+        ],
+        [
+          971,
+          1033
+        ],
+        [
+          1685,
+          1231
+        ],
+        [
+          2149,
+          1015
+        ],
+        [
+          1022,
+          1522
+        ],
+        [
+          1035,
+          1063
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 434798592,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 37,
+      "shellMs": 30.59745899999689,
+      "readyMs": 552.2434169999979,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 938647,
+      "framesBuildRasterMicros": [
+        [
+          1102,
+          1104
+        ],
+        [
+          1240,
+          1106
+        ],
+        [
+          4036,
+          1110
+        ],
+        [
+          1064,
+          1186
+        ],
+        [
+          2682,
+          1216
+        ],
+        [
+          974,
+          7014
+        ],
+        [
+          796,
+          3763
+        ],
+        [
+          631,
+          3051
+        ],
+        [
+          783,
+          4472
+        ],
+        [
+          649,
+          4446
+        ],
+        [
+          598,
+          4392
+        ],
+        [
+          633,
+          3288
+        ],
+        [
+          789,
+          3743
+        ],
+        [
+          1037,
+          4656
+        ],
+        [
+          2688,
+          3416
+        ],
+        [
+          1510,
+          4104
+        ],
+        [
+          3211,
+          3825
+        ],
+        [
+          842,
+          2933
+        ],
+        [
+          661,
+          4022
+        ],
+        [
+          754,
+          5384
+        ],
+        [
+          653,
+          3462
+        ],
+        [
+          887,
+          3751
+        ],
+        [
+          493,
+          5080
+        ],
+        [
+          561,
+          5099
+        ],
+        [
+          298,
+          5560
+        ],
+        [
+          283,
+          4803
+        ],
+        [
+          323,
+          3799
+        ],
+        [
+          306,
+          3421
+        ],
+        [
+          209,
+          5538
+        ],
+        [
+          115,
+          6501
+        ],
+        [
+          193,
+          5961
+        ],
+        [
+          1969,
+          4761
+        ],
+        [
+          357,
+          3570
+        ],
+        [
+          654,
+          4300
+        ],
+        [
+          350,
+          5430
+        ],
+        [
+          236,
+          3522
+        ],
+        [
+          2181,
+          4586
+        ],
+        [
+          422,
+          4176
+        ],
+        [
+          336,
+          5189
+        ],
+        [
+          308,
+          3649
+        ],
+        [
+          362,
+          5707
+        ],
+        [
+          290,
+          4032
+        ],
+        [
+          263,
+          5247
+        ],
+        [
+          245,
+          5157
+        ],
+        [
+          266,
+          3479
+        ],
+        [
+          361,
+          5176
+        ],
+        [
+          1870,
+          4039
+        ],
+        [
+          287,
+          2983
+        ],
+        [
+          320,
+          3169
+        ],
+        [
+          300,
+          3598
+        ],
+        [
+          374,
+          3980
+        ],
+        [
+          265,
+          4633
+        ],
+        [
+          2185,
+          1144
+        ],
+        [
+          1164,
+          1074
+        ],
+        [
+          1023,
+          1155
+        ],
+        [
+          1048,
+          1102
+        ],
+        [
+          1416,
+          1352
+        ],
+        [
+          1028,
+          1008
+        ],
+        [
+          1141,
+          1180
+        ],
+        [
+          1081,
+          1737
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 433979392,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 38,
+      "shellMs": 20.404750000001513,
+      "readyMs": 196.33987500000148,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 567806,
+      "framesBuildRasterMicros": [
+        [
+          1033,
+          1107
+        ],
+        [
+          1061,
+          1051
+        ],
+        [
+          922,
+          986
+        ],
+        [
+          974,
+          1027
+        ],
+        [
+          926,
+          1208
+        ],
+        [
+          1904,
+          1008
+        ],
+        [
+          2726,
+          1041
+        ],
+        [
+          994,
+          5207
+        ],
+        [
+          673,
+          3219
+        ],
+        [
+          564,
+          3101
+        ],
+        [
+          587,
+          3941
+        ],
+        [
+          603,
+          5492
+        ],
+        [
+          662,
+          2874
+        ],
+        [
+          1272,
+          4227
+        ],
+        [
+          613,
+          5624
+        ],
+        [
+          2147,
+          5887
+        ],
+        [
+          678,
+          2636
+        ],
+        [
+          699,
+          2716
+        ],
+        [
+          766,
+          2997
+        ],
+        [
+          906,
+          4138
+        ],
+        [
+          2010,
+          4684
+        ],
+        [
+          506,
+          4697
+        ],
+        [
+          349,
+          4464
+        ],
+        [
+          304,
+          6025
+        ],
+        [
+          307,
+          5094
+        ],
+        [
+          294,
+          2980
+        ],
+        [
+          331,
+          3984
+        ],
+        [
+          263,
+          3259
+        ],
+        [
+          266,
+          3553
+        ],
+        [
+          258,
+          4074
+        ],
+        [
+          255,
+          3261
+        ],
+        [
+          2170,
+          1059
+        ],
+        [
+          1138,
+          1119
+        ],
+        [
+          1052,
+          1038
+        ],
+        [
+          1016,
+          978
+        ],
+        [
+          1037,
+          1594
+        ],
+        [
+          985,
+          1306
+        ],
+        [
+          1030,
+          1029
+        ],
+        [
+          1051,
+          1077
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 432553984,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 39,
+      "shellMs": 21.203166999999667,
+      "readyMs": 172.56266700000197,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 545173,
+      "framesBuildRasterMicros": [
+        [
+          1861,
+          974
+        ],
+        [
+          1038,
+          1584
+        ],
+        [
+          1035,
+          1087
+        ],
+        [
+          1064,
+          1058
+        ],
+        [
+          1013,
+          1046
+        ],
+        [
+          931,
+          1050
+        ],
+        [
+          3070,
+          1081
+        ],
+        [
+          916,
+          4676
+        ],
+        [
+          717,
+          4043
+        ],
+        [
+          450,
+          2984
+        ],
+        [
+          296,
+          4127
+        ],
+        [
+          598,
+          3435
+        ],
+        [
+          606,
+          3121
+        ],
+        [
+          618,
+          3569
+        ],
+        [
+          1696,
+          5052
+        ],
+        [
+          1359,
+          4120
+        ],
+        [
+          641,
+          3081
+        ],
+        [
+          649,
+          4665
+        ],
+        [
+          1140,
+          4323
+        ],
+        [
+          658,
+          5325
+        ],
+        [
+          649,
+          3838
+        ],
+        [
+          635,
+          2445
+        ],
+        [
+          473,
+          3852
+        ],
+        [
+          259,
+          3685
+        ],
+        [
+          314,
+          3694
+        ],
+        [
+          340,
+          2950
+        ],
+        [
+          299,
+          3019
+        ],
+        [
+          277,
+          5113
+        ],
+        [
+          292,
+          4883
+        ],
+        [
+          2055,
+          1087
+        ],
+        [
+          1182,
+          1080
+        ],
+        [
+          1045,
+          1039
+        ],
+        [
+          959,
+          1039
+        ],
+        [
+          970,
+          1326
+        ],
+        [
+          1833,
+          1039
+        ],
+        [
+          1063,
+          1032
+        ],
+        [
+          1066,
+          1027
+        ],
+        [
+          956,
+          1034
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 435568640,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 40,
+      "shellMs": 20.561541999999463,
+      "readyMs": 189.94295799999963,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 562212,
+      "framesBuildRasterMicros": [
+        [
+          1104,
+          980
+        ],
+        [
+          1000,
+          930
+        ],
+        [
+          956,
+          1023
+        ],
+        [
+          1388,
+          1250
+        ],
+        [
+          1412,
+          1095
+        ],
+        [
+          1166,
+          1001
+        ],
+        [
+          2556,
+          2347
+        ],
+        [
+          814,
+          5371
+        ],
+        [
+          573,
+          4264
+        ],
+        [
+          462,
+          2308
+        ],
+        [
+          543,
+          2736
+        ],
+        [
+          616,
+          3235
+        ],
+        [
+          725,
+          3322
+        ],
+        [
+          648,
+          4817
+        ],
+        [
+          1561,
+          3118
+        ],
+        [
+          1894,
+          4290
+        ],
+        [
+          731,
+          5004
+        ],
+        [
+          840,
+          4684
+        ],
+        [
+          774,
+          3014
+        ],
+        [
+          1120,
+          3229
+        ],
+        [
+          716,
+          3251
+        ],
+        [
+          628,
+          4328
+        ],
+        [
+          581,
+          4149
+        ],
+        [
+          344,
+          3674
+        ],
+        [
+          282,
+          4999
+        ],
+        [
+          332,
+          3797
+        ],
+        [
+          366,
+          7072
+        ],
+        [
+          330,
+          5304
+        ],
+        [
+          253,
+          6012
+        ],
+        [
+          253,
+          5376
+        ],
+        [
+          1670,
+          3920
+        ],
+        [
+          2000,
+          1026
+        ],
+        [
+          1153,
+          1059
+        ],
+        [
+          958,
+          1029
+        ],
+        [
+          1057,
+          1064
+        ],
+        [
+          1046,
+          1492
+        ],
+        [
+          1093,
+          1045
+        ],
+        [
+          1010,
+          1026
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 438009856,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 41,
+      "shellMs": 21.14587499999834,
+      "readyMs": 181.38066699999763,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 696496,
+      "framesBuildRasterMicros": [
+        [
+          989,
+          1026
+        ],
+        [
+          976,
+          1018
+        ],
+        [
+          1035,
+          1119
+        ],
+        [
+          909,
+          1000
+        ],
+        [
+          918,
+          988
+        ],
+        [
+          1264,
+          1132
+        ],
+        [
+          1053,
+          1103
+        ],
+        [
+          2698,
+          1068
+        ],
+        [
+          761,
+          4115
+        ],
+        [
+          582,
+          4201
+        ],
+        [
+          692,
+          3655
+        ],
+        [
+          1666,
+          2998
+        ],
+        [
+          802,
+          4299
+        ],
+        [
+          578,
+          4816
+        ],
+        [
+          796,
+          2635
+        ],
+        [
+          881,
+          2231
+        ],
+        [
+          1996,
+          2874
+        ],
+        [
+          866,
+          3352
+        ],
+        [
+          803,
+          4559
+        ],
+        [
+          736,
+          4613
+        ],
+        [
+          750,
+          5696
+        ],
+        [
+          720,
+          4800
+        ],
+        [
+          641,
+          4505
+        ],
+        [
+          506,
+          4059
+        ],
+        [
+          271,
+          2647
+        ],
+        [
+          314,
+          4098
+        ],
+        [
+          355,
+          2619
+        ],
+        [
+          1845,
+          3875
+        ],
+        [
+          281,
+          4783
+        ],
+        [
+          235,
+          4968
+        ],
+        [
+          274,
+          6092
+        ],
+        [
+          240,
+          5044
+        ],
+        [
+          2096,
+          1117
+        ],
+        [
+          1039,
+          1055
+        ],
+        [
+          991,
+          1120
+        ],
+        [
+          1193,
+          1018
+        ],
+        [
+          1084,
+          1367
+        ],
+        [
+          1042,
+          1239
+        ],
+        [
+          1363,
+          1109
+        ],
+        [
+          1672,
+          1081
+        ],
+        [
+          4726,
+          1179
+        ],
+        [
+          2170,
+          1360
+        ],
+        [
+          3626,
+          2491
+        ],
+        [
+          4886,
+          3359
+        ],
+        [
+          2961,
+          2557
+        ],
+        [
+          1385,
+          1761
+        ],
+        [
+          5597,
+          1043
+        ],
+        [
+          4030,
+          1196
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 428867584,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 42,
+      "shellMs": 32.58583400000134,
+      "readyMs": 241.54449999999997,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 624363,
+      "framesBuildRasterMicros": [
+        [
+          5486,
+          1975
+        ],
+        [
+          1095,
+          2659
+        ],
+        [
+          3414,
+          1174
+        ],
+        [
+          1281,
+          1211
+        ],
+        [
+          2277,
+          1532
+        ],
+        [
+          1576,
+          1098
+        ],
+        [
+          1518,
+          1045
+        ],
+        [
+          921,
+          1124
+        ],
+        [
+          2367,
+          1134
+        ],
+        [
+          1373,
+          1158
+        ],
+        [
+          3328,
+          1154
+        ],
+        [
+          859,
+          5789
+        ],
+        [
+          666,
+          4981
+        ],
+        [
+          731,
+          4506
+        ],
+        [
+          969,
+          3209
+        ],
+        [
+          1636,
+          2573
+        ],
+        [
+          535,
+          4066
+        ],
+        [
+          869,
+          2820
+        ],
+        [
+          629,
+          4092
+        ],
+        [
+          800,
+          2724
+        ],
+        [
+          763,
+          6441
+        ],
+        [
+          2198,
+          4481
+        ],
+        [
+          750,
+          4665
+        ],
+        [
+          752,
+          4804
+        ],
+        [
+          752,
+          4873
+        ],
+        [
+          722,
+          2856
+        ],
+        [
+          429,
+          2974
+        ],
+        [
+          443,
+          3257
+        ],
+        [
+          302,
+          3045
+        ],
+        [
+          312,
+          4722
+        ],
+        [
+          321,
+          2968
+        ],
+        [
+          1727,
+          6497
+        ],
+        [
+          262,
+          3556
+        ],
+        [
+          299,
+          6262
+        ],
+        [
+          264,
+          3229
+        ],
+        [
+          263,
+          3014
+        ],
+        [
+          265,
+          4180
+        ],
+        [
+          383,
+          3297
+        ],
+        [
+          2171,
+          1190
+        ],
+        [
+          988,
+          1040
+        ],
+        [
+          986,
+          1101
+        ],
+        [
+          996,
+          1027
+        ],
+        [
+          1072,
+          1283
+        ],
+        [
+          1038,
+          1090
+        ],
+        [
+          1036,
+          1104
+        ],
+        [
+          996,
+          1079
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 434470912,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 43,
+      "shellMs": 21.93316699999923,
+      "readyMs": 173.03945899999962,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 545268,
+      "framesBuildRasterMicros": [
+        [
+          913,
+          961
+        ],
+        [
+          1186,
+          1043
+        ],
+        [
+          828,
+          1001
+        ],
+        [
+          978,
+          1043
+        ],
+        [
+          1902,
+          994
+        ],
+        [
+          1140,
+          1023
+        ],
+        [
+          2568,
+          1054
+        ],
+        [
+          793,
+          5834
+        ],
+        [
+          586,
+          3950
+        ],
+        [
+          535,
+          2855
+        ],
+        [
+          479,
+          7938
+        ],
+        [
+          567,
+          2388
+        ],
+        [
+          732,
+          2864
+        ],
+        [
+          847,
+          4100
+        ],
+        [
+          1872,
+          5278
+        ],
+        [
+          677,
+          4514
+        ],
+        [
+          610,
+          4567
+        ],
+        [
+          989,
+          2254
+        ],
+        [
+          940,
+          4207
+        ],
+        [
+          635,
+          2711
+        ],
+        [
+          636,
+          3837
+        ],
+        [
+          1857,
+          4551
+        ],
+        [
+          550,
+          4804
+        ],
+        [
+          481,
+          6090
+        ],
+        [
+          332,
+          5094
+        ],
+        [
+          310,
+          4011
+        ],
+        [
+          325,
+          3998
+        ],
+        [
+          306,
+          3848
+        ],
+        [
+          299,
+          3711
+        ],
+        [
+          231,
+          3287
+        ],
+        [
+          2218,
+          1072
+        ],
+        [
+          1223,
+          1074
+        ],
+        [
+          973,
+          1016
+        ],
+        [
+          1249,
+          1027
+        ],
+        [
+          1060,
+          1293
+        ],
+        [
+          926,
+          1073
+        ],
+        [
+          1121,
+          1034
+        ],
+        [
+          1000,
+          1007
+        ],
+        [
+          1002,
+          978
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 434552832,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 44,
+      "shellMs": 20.240375000001222,
+      "readyMs": 169.49745800000164,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 540692,
+      "framesBuildRasterMicros": [
+        [
+          1668,
+          1032
+        ],
+        [
+          992,
+          1074
+        ],
+        [
+          1590,
+          1023
+        ],
+        [
+          993,
+          1055
+        ],
+        [
+          933,
+          976
+        ],
+        [
+          906,
+          953
+        ],
+        [
+          2471,
+          1059
+        ],
+        [
+          781,
+          4692
+        ],
+        [
+          717,
+          2443
+        ],
+        [
+          521,
+          2860
+        ],
+        [
+          591,
+          2536
+        ],
+        [
+          1171,
+          2860
+        ],
+        [
+          712,
+          3910
+        ],
+        [
+          549,
+          3659
+        ],
+        [
+          2008,
+          4390
+        ],
+        [
+          860,
+          2122
+        ],
+        [
+          2546,
+          2492
+        ],
+        [
+          925,
+          2528
+        ],
+        [
+          737,
+          2719
+        ],
+        [
+          627,
+          4683
+        ],
+        [
+          680,
+          3403
+        ],
+        [
+          539,
+          6722
+        ],
+        [
+          542,
+          4380
+        ],
+        [
+          543,
+          2687
+        ],
+        [
+          608,
+          3638
+        ],
+        [
+          924,
+          2518
+        ],
+        [
+          299,
+          3079
+        ],
+        [
+          280,
+          3166
+        ],
+        [
+          257,
+          3125
+        ],
+        [
+          2045,
+          1083
+        ],
+        [
+          1234,
+          1052
+        ],
+        [
+          917,
+          1024
+        ],
+        [
+          1000,
+          1090
+        ],
+        [
+          1005,
+          1333
+        ],
+        [
+          991,
+          1038
+        ],
+        [
+          1957,
+          1005
+        ],
+        [
+          907,
+          996
+        ],
+        [
+          1063,
+          1109
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 433733632,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 45,
+      "shellMs": 9.54583300000013,
+      "readyMs": 172.04620799999975,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 540878,
+      "framesBuildRasterMicros": [
+        [
+          1164,
+          1188
+        ],
+        [
+          930,
+          1080
+        ],
+        [
+          950,
+          983
+        ],
+        [
+          1009,
+          1013
+        ],
+        [
+          964,
+          1082
+        ],
+        [
+          2448,
+          995
+        ],
+        [
+          710,
+          5211
+        ],
+        [
+          634,
+          2579
+        ],
+        [
+          631,
+          3049
+        ],
+        [
+          464,
+          3050
+        ],
+        [
+          598,
+          2983
+        ],
+        [
+          607,
+          4651
+        ],
+        [
+          703,
+          5534
+        ],
+        [
+          1420,
+          3246
+        ],
+        [
+          1903,
+          4024
+        ],
+        [
+          756,
+          4935
+        ],
+        [
+          616,
+          2591
+        ],
+        [
+          672,
+          2662
+        ],
+        [
+          797,
+          4345
+        ],
+        [
+          762,
+          2763
+        ],
+        [
+          498,
+          2752
+        ],
+        [
+          492,
+          4513
+        ],
+        [
+          319,
+          3304
+        ],
+        [
+          301,
+          7354
+        ],
+        [
+          280,
+          2949
+        ],
+        [
+          309,
+          3215
+        ],
+        [
+          266,
+          4270
+        ],
+        [
+          224,
+          2713
+        ],
+        [
+          267,
+          4855
+        ],
+        [
+          2017,
+          1039
+        ],
+        [
+          1090,
+          1046
+        ],
+        [
+          2095,
+          1033
+        ],
+        [
+          922,
+          1078
+        ],
+        [
+          1019,
+          1228
+        ],
+        [
+          1027,
+          1009
+        ],
+        [
+          954,
+          1035
+        ],
+        [
+          982,
+          1125
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 433930240,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 46,
+      "shellMs": 20.92791600000055,
+      "readyMs": 163.74487500000032,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 533207,
+      "framesBuildRasterMicros": [
+        [
+          997,
+          1078
+        ],
+        [
+          1005,
+          993
+        ],
+        [
+          931,
+          988
+        ],
+        [
+          1045,
+          994
+        ],
+        [
+          926,
+          1039
+        ],
+        [
+          1000,
+          1060
+        ],
+        [
+          2943,
+          970
+        ],
+        [
+          684,
+          4115
+        ],
+        [
+          546,
+          2460
+        ],
+        [
+          603,
+          2850
+        ],
+        [
+          538,
+          3044
+        ],
+        [
+          1409,
+          5504
+        ],
+        [
+          1670,
+          2896
+        ],
+        [
+          491,
+          3260
+        ],
+        [
+          608,
+          3117
+        ],
+        [
+          614,
+          4020
+        ],
+        [
+          689,
+          3870
+        ],
+        [
+          667,
+          3542
+        ],
+        [
+          652,
+          2886
+        ],
+        [
+          568,
+          4290
+        ],
+        [
+          622,
+          4868
+        ],
+        [
+          527,
+          5422
+        ],
+        [
+          537,
+          2535
+        ],
+        [
+          609,
+          2382
+        ],
+        [
+          530,
+          4114
+        ],
+        [
+          326,
+          2650
+        ],
+        [
+          273,
+          4281
+        ],
+        [
+          2062,
+          1028
+        ],
+        [
+          1033,
+          1117
+        ],
+        [
+          962,
+          1034
+        ],
+        [
+          1051,
+          1042
+        ],
+        [
+          911,
+          1272
+        ],
+        [
+          937,
+          1034
+        ],
+        [
+          959,
+          1044
+        ],
+        [
+          1015,
+          1013
+        ],
+        [
+          1191,
+          1028
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 432521216,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 47,
+      "shellMs": 21.47700000000259,
+      "readyMs": 163.48825000000215,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 534271,
+      "framesBuildRasterMicros": [
+        [
+          916,
+          1026
+        ],
+        [
+          1047,
+          1102
+        ],
+        [
+          989,
+          1091
+        ],
+        [
+          948,
+          1022
+        ],
+        [
+          1013,
+          1023
+        ],
+        [
+          2497,
+          1075
+        ],
+        [
+          764,
+          4148
+        ],
+        [
+          571,
+          2556
+        ],
+        [
+          1233,
+          2485
+        ],
+        [
+          536,
+          3087
+        ],
+        [
+          591,
+          4403
+        ],
+        [
+          1741,
+          3175
+        ],
+        [
+          627,
+          4235
+        ],
+        [
+          659,
+          2707
+        ],
+        [
+          787,
+          4342
+        ],
+        [
+          687,
+          2448
+        ],
+        [
+          616,
+          3619
+        ],
+        [
+          582,
+          4938
+        ],
+        [
+          747,
+          4506
+        ],
+        [
+          495,
+          6121
+        ],
+        [
+          495,
+          2235
+        ],
+        [
+          519,
+          3361
+        ],
+        [
+          501,
+          3773
+        ],
+        [
+          463,
+          3917
+        ],
+        [
+          1589,
+          4283
+        ],
+        [
+          421,
+          4202
+        ],
+        [
+          286,
+          5710
+        ],
+        [
+          2005,
+          1003
+        ],
+        [
+          1042,
+          1049
+        ],
+        [
+          921,
+          1007
+        ],
+        [
+          1125,
+          1027
+        ],
+        [
+          1878,
+          1279
+        ],
+        [
+          996,
+          1102
+        ],
+        [
+          1160,
+          1421
+        ],
+        [
+          959,
+          959
+        ],
+        [
+          1052,
+          1077
+        ],
+        [
+          946,
+          1110
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 444547072,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 48,
+      "shellMs": 22.177999999999884,
+      "readyMs": 180.83704200000284,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 550344,
+      "framesBuildRasterMicros": [
+        [
+          1010,
+          1110
+        ],
+        [
+          929,
+          988
+        ],
+        [
+          1038,
+          1010
+        ],
+        [
+          1023,
+          1045
+        ],
+        [
+          3552,
+          1027
+        ],
+        [
+          763,
+          5054
+        ],
+        [
+          1819,
+          3156
+        ],
+        [
+          563,
+          3300
+        ],
+        [
+          616,
+          4636
+        ],
+        [
+          583,
+          4063
+        ],
+        [
+          674,
+          4617
+        ],
+        [
+          608,
+          4438
+        ],
+        [
+          684,
+          4146
+        ],
+        [
+          539,
+          2947
+        ],
+        [
+          2212,
+          3805
+        ],
+        [
+          661,
+          3300
+        ],
+        [
+          794,
+          4114
+        ],
+        [
+          791,
+          3355
+        ],
+        [
+          634,
+          4336
+        ],
+        [
+          654,
+          2413
+        ],
+        [
+          527,
+          3915
+        ],
+        [
+          493,
+          3997
+        ],
+        [
+          281,
+          2698
+        ],
+        [
+          1725,
+          4248
+        ],
+        [
+          342,
+          4970
+        ],
+        [
+          308,
+          7061
+        ],
+        [
+          310,
+          4965
+        ],
+        [
+          264,
+          3777
+        ],
+        [
+          238,
+          4181
+        ],
+        [
+          200,
+          2724
+        ],
+        [
+          2013,
+          1057
+        ],
+        [
+          1033,
+          1059
+        ],
+        [
+          981,
+          1071
+        ],
+        [
+          976,
+          1020
+        ],
+        [
+          1048,
+          1270
+        ],
+        [
+          944,
+          1033
+        ],
+        [
+          1213,
+          1044
+        ],
+        [
+          997,
+          1136
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 438124544,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 49,
+      "shellMs": 21.421666999998706,
+      "readyMs": 169.89137499999924,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 539528,
+      "framesBuildRasterMicros": [
+        [
+          996,
+          1047
+        ],
+        [
+          1021,
+          1034
+        ],
+        [
+          982,
+          944
+        ],
+        [
+          1777,
+          1035
+        ],
+        [
+          944,
+          1050
+        ],
+        [
+          941,
+          1071
+        ],
+        [
+          4238,
+          1012
+        ],
+        [
+          688,
+          4836
+        ],
+        [
+          547,
+          3692
+        ],
+        [
+          489,
+          2963
+        ],
+        [
+          517,
+          2436
+        ],
+        [
+          1001,
+          2355
+        ],
+        [
+          662,
+          3328
+        ],
+        [
+          553,
+          4047
+        ],
+        [
+          1587,
+          3932
+        ],
+        [
+          564,
+          4609
+        ],
+        [
+          980,
+          4304
+        ],
+        [
+          744,
+          2281
+        ],
+        [
+          714,
+          2585
+        ],
+        [
+          1313,
+          2673
+        ],
+        [
+          1754,
+          2756
+        ],
+        [
+          630,
+          4125
+        ],
+        [
+          620,
+          4515
+        ],
+        [
+          546,
+          4586
+        ],
+        [
+          289,
+          4572
+        ],
+        [
+          307,
+          4246
+        ],
+        [
+          288,
+          3524
+        ],
+        [
+          319,
+          5146
+        ],
+        [
+          360,
+          3781
+        ],
+        [
+          298,
+          5074
+        ],
+        [
+          2116,
+          1085
+        ],
+        [
+          1113,
+          1003
+        ],
+        [
+          971,
+          1163
+        ],
+        [
+          948,
+          981
+        ],
+        [
+          993,
+          1259
+        ],
+        [
+          1177,
+          1022
+        ],
+        [
+          948,
+          1039
+        ],
+        [
+          955,
+          1138
+        ],
+        [
+          995,
+          984
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 434421760,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    },
+    {
+      "cycle": 50,
+      "shellMs": 20.13720900000044,
+      "readyMs": 164.8629170000022,
+      "pokedexSummary": "Pokédex : 8 / 1101",
+      "mode": "profile",
+      "revision": "87226620c-menu11-reviewed",
+      "recording": false,
+      "elapsedMicros": 539794,
+      "framesBuildRasterMicros": [
+        [
+          1703,
+          1007
+        ],
+        [
+          951,
+          940
+        ],
+        [
+          966,
+          1090
+        ],
+        [
+          963,
+          1018
+        ],
+        [
+          918,
+          857
+        ],
+        [
+          2521,
+          1038
+        ],
+        [
+          767,
+          4533
+        ],
+        [
+          662,
+          3818
+        ],
+        [
+          503,
+          6690
+        ],
+        [
+          539,
+          3870
+        ],
+        [
+          1053,
+          3058
+        ],
+        [
+          495,
+          3000
+        ],
+        [
+          1963,
+          3114
+        ],
+        [
+          608,
+          2656
+        ],
+        [
+          2759,
+          3154
+        ],
+        [
+          677,
+          3885
+        ],
+        [
+          683,
+          2458
+        ],
+        [
+          640,
+          2941
+        ],
+        [
+          612,
+          5071
+        ],
+        [
+          603,
+          4565
+        ],
+        [
+          575,
+          6766
+        ],
+        [
+          467,
+          2852
+        ],
+        [
+          557,
+          2589
+        ],
+        [
+          524,
+          4077
+        ],
+        [
+          270,
+          3819
+        ],
+        [
+          525,
+          5486
+        ],
+        [
+          301,
+          4677
+        ],
+        [
+          268,
+          6775
+        ],
+        [
+          4070,
+          1130
+        ],
+        [
+          1580,
+          1037
+        ],
+        [
+          1701,
+          1019
+        ],
+        [
+          919,
+          1081
+        ],
+        [
+          2756,
+          1317
+        ],
+        [
+          1931,
+          999
+        ],
+        [
+          1207,
+          1081
+        ],
+        [
+          2149,
+          1149
+        ],
+        [
+          1003,
+          1135
+        ]
+      ],
+      "droppedFrames": 0,
+      "rssBytes": 434716672,
+      "maxRssBytes": 593903616,
+      "imageCacheBytes": 8949760,
+      "imageCacheEntries": 4,
+      "imageCacheLiveEntries": 0,
+      "imageCachePendingEntries": 0,
+      "devicePixelRatio": 1,
+      "physicalWidth": 1920,
+      "physicalHeight": 921,
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaPerformance",
+      "status": "Success"
+    }
+  ],
+  "after": {
+    "mode": "profile",
+    "revision": "87226620c-menu11-reviewed",
+    "recording": false,
+    "elapsedMicros": 539794,
+    "framesBuildRasterMicros": [
+      [
+        1703,
+        1007
+      ],
+      [
+        951,
+        940
+      ],
+      [
+        966,
+        1090
+      ],
+      [
+        963,
+        1018
+      ],
+      [
+        918,
+        857
+      ],
+      [
+        2521,
+        1038
+      ],
+      [
+        767,
+        4533
+      ],
+      [
+        662,
+        3818
+      ],
+      [
+        503,
+        6690
+      ],
+      [
+        539,
+        3870
+      ],
+      [
+        1053,
+        3058
+      ],
+      [
+        495,
+        3000
+      ],
+      [
+        1963,
+        3114
+      ],
+      [
+        608,
+        2656
+      ],
+      [
+        2759,
+        3154
+      ],
+      [
+        677,
+        3885
+      ],
+      [
+        683,
+        2458
+      ],
+      [
+        640,
+        2941
+      ],
+      [
+        612,
+        5071
+      ],
+      [
+        603,
+        4565
+      ],
+      [
+        575,
+        6766
+      ],
+      [
+        467,
+        2852
+      ],
+      [
+        557,
+        2589
+      ],
+      [
+        524,
+        4077
+      ],
+      [
+        270,
+        3819
+      ],
+      [
+        525,
+        5486
+      ],
+      [
+        301,
+        4677
+      ],
+      [
+        268,
+        6775
+      ],
+      [
+        4070,
+        1130
+      ],
+      [
+        1580,
+        1037
+      ],
+      [
+        1701,
+        1019
+      ],
+      [
+        919,
+        1081
+      ],
+      [
+        2756,
+        1317
+      ],
+      [
+        1931,
+        999
+      ],
+      [
+        1207,
+        1081
+      ],
+      [
+        2149,
+        1149
+      ],
+      [
+        1003,
+        1135
+      ]
+    ],
+    "droppedFrames": 0,
+    "rssBytes": 434814976,
+    "maxRssBytes": 593903616,
+    "imageCacheBytes": 8949760,
+    "imageCacheEntries": 4,
+    "imageCacheLiveEntries": 0,
+    "imageCachePendingEntries": 0,
+    "devicePixelRatio": 1,
+    "physicalWidth": 1920,
+    "physicalHeight": 921,
+    "type": "_extensionType",
+    "method": "ext.flutter.player.qaPerformance",
+    "status": "Success"
+  },
+  "final": {
+    "projectFilePath": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/menu11_qa_20260906/project.json",
+    "gameCreated": true,
+    "loaded": true,
+    "paused": false,
+    "inputContext": "overworld",
+    "dialogueTextSpeed": "fast",
+    "reducedMotion": false,
+    "textScale": 1,
+    "mapId": "hanazuki-village",
+    "position": {
+      "x": 16,
+      "y": 9
+    },
+    "facing": "south",
+    "metadata": {},
+    "battle": null,
+    "facts": {
+      "fact_opening_complete": true,
+      "fact_qh05_lantern_2": true,
+      "fact_qh05_lantern_5": true,
+      "fact_qh05_started": true,
+      "fact_starter_chikorita": true,
+      "fact_starter_received": true
+    },
+    "trainer": {
+      "name": "Voyageur",
+      "avatarCharacterId": "joueur-hanazuki",
+      "pronounSet": "neutral",
+      "badgeIds": [],
+      "money": 3000,
+      "playtimeSeconds": 1498
+    },
+    "bag": {
+      "entries": [
+        {
+          "itemId": "item_rail_notebook",
+          "quantity": 1
+        },
+        {
+          "itemId": "item_sealed_letter",
+          "quantity": 1
+        },
+        {
+          "itemId": "miracle_seed",
+          "quantity": 2
+        },
+        {
+          "itemId": "poke_ball",
+          "quantity": 4
+        },
+        {
+          "itemId": "potion",
+          "quantity": 1
+        },
+        {
+          "itemId": "spell_tag",
+          "quantity": 1
+        }
+      ]
+    },
+    "rail": {
+      "activeJourneyId": null,
+      "direction": null,
+      "lifecycle": "idle_at_origin",
+      "unlockedJourneyIds": [],
+      "firstUnlockPaidJourneyIds": [],
+      "unlockedStationMapIds": [],
+      "earnedStampIds": [],
+      "semanticCurrencyBalances": {},
+      "appliedOperations": {},
+      "appliedProgressionOperations": {}
+    },
+    "party": [
+      {
+        "speciesId": "bulbasaur",
+        "level": 15,
+        "hp": 38
+      },
+      {
+        "speciesId": "charmander",
+        "level": 14,
+        "hp": 34
+      },
+      {
+        "speciesId": "squirtle",
+        "level": 13,
+        "hp": 0
+      },
+      {
+        "speciesId": "pikachu",
+        "level": 18,
+        "hp": 40
+      },
+      {
+        "speciesId": "eevee",
+        "level": 16,
+        "hp": 43
+      },
+      {
+        "speciesId": "chikorita",
+        "level": 5,
+        "hp": 19
+      }
+    ],
+    "type": "_extensionType",
+    "method": "ext.flutter.player.qaContext",
+    "status": "Success"
+  }
+}

@@ -1,0 +1,545 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: (setUpAll)
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/menu11_contrast_test.dart: root hint has composed AA contrast in full over Color(alpha: 1.0000, red: 1.0000, green: 1.0000, blue: 1.0000, colorSpace: ColorSpace.sRGB) at Size(1440.0, 900.0)
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +13: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +14: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +15: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +16: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +17: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +18: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +19: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +20: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +21: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +22: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +23: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +24: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.0 standard
+00:00 +25: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 1440x900 DPR1 text1.0 standard
+00:01 +26: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1440x900 DPR1 text1.0 standard
+00:01 +27: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1440x900 DPR1 text1.0 standard
+00:01 +28: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 1440x900 DPR1 text1.0 standard
+00:01 +29: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/menu11_announcements_test.dart: short exit dialog retains three reachable large text actions
+00:02 +30: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/menu11_announcements_test.dart: short exit dialog retains three reachable large text actions
+00:02 +31: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/menu11_announcements_test.dart: short exit dialog retains three reachable large text actions
+00:02 +32: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/menu11_announcements_test.dart: short exit dialog retains three reachable large text actions
+00:02 +33: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1440x900 DPR1 text1.0 standard
+00:02 +34: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/menu11_announcements_test.dart: save pending is one live announcement
+00:02 +35: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/menu11_announcements_test.dart: save pending is one live announcement
+00:02 +36: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 1440x900 DPR1 text1.0 insets reduced opaque
+00:02 +37: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 1440x900 DPR1 text1.0 insets reduced opaque
+00:02 +38: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/menu11_announcements_test.dart: bag snapshot messages update one live announcement
+00:02 +39: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1440x900 DPR1 text1.0 insets reduced opaque
+00:02 +40: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/menu11_announcements_test.dart: bag command failure announces only the safe message
+00:02 +41: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1440x900 DPR1 text1.0 insets reduced opaque
+00:02 +42: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 1440x900 DPR1 text1.0 insets reduced opaque
+00:03 +43: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 1440x900 DPR1 text1.0 insets reduced opaque
+00:03 +44: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 1440x900 DPR1 text1.0 insets reduced opaque
+00:03 +45: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 1440x900 DPR1 text1.0 insets reduced opaque
+00:03 +46: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1440x900 DPR1 text1.0 insets reduced opaque
+00:03 +47: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text1.5 standard
+00:03 +48: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 1440x900 DPR1 text1.5 standard
+00:03 +49: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1440x900 DPR1 text1.5 standard
+00:03 +50: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:03 +51: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:03 +52: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:04 +53: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:04 +54: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:04 +55: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:04 +56: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:04 +57: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:04 +58: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:04 +59: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:04 +60: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: session effects
+00:04 +61: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 1440x900 DPR1 text1.5 insets reduced opaque
+00:04 +62: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: party actions preserve nested session context: session effects
+00:04 +63: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: party actions preserve nested session context: session effects
+00:04 +64: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: party actions preserve nested session context: session effects
+00:04 +65: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 1440x900 DPR1 text1.5 insets reduced opaque
+00:04 +66: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: held item dialog preserves nested session context: session effects
+00:05 +67: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: held item dialog preserves nested session context: session effects
+00:05 +68: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text2.0 standard
+00:05 +69: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: summary dialog preserves nested session context: session effects
+00:05 +70: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: summary dialog preserves nested session context: session effects
+00:05 +71: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1440x900 DPR1 text2.0 standard
+00:05 +72: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: bag confirmation preserves nested session context: local opaque scope
+00:05 +73: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1440x900 DPR1 text2.0 standard
+00:05 +74: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: party actions preserve nested session context: local opaque scope
+00:05 +75: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: party actions preserve nested session context: local opaque scope
+00:05 +76: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 1440x900 DPR1 text2.0 standard
+00:05 +77: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: held item dialog preserves nested session context: local opaque scope
+00:05 +78: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: held item dialog preserves nested session context: local opaque scope
+00:05 +79: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 1440x900 DPR1 text2.0 standard
+00:05 +80: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_modal_context_test.dart: summary dialog preserves nested session context: local opaque scope
+00:05 +81: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1440x900 DPR1 text2.0 standard
+00:05 +82: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1440x900 DPR1 text2.0 insets reduced opaque
+00:05 +83: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 1440x900 DPR1 text2.0 insets reduced opaque
+00:05 +84: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1440x900 DPR1 text2.0 insets reduced opaque
+00:05 +85: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1440x900 DPR1 text2.0 insets reduced opaque
+00:06 +86: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 1440x900 DPR1 text2.0 insets reduced opaque
+00:06 +87: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 1440x900 DPR1 text2.0 insets reduced opaque
+00:06 +88: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 1440x900 DPR1 text2.0 insets reduced opaque
+00:06 +89: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 1440x900 DPR1 text2.0 insets reduced opaque
+00:06 +90: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1440x900 DPR1 text2.0 insets reduced opaque
+00:06 +91: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1280x720 DPR1 text1.0 standard
+00:06 +92: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 1280x720 DPR1 text1.0 standard
+00:06 +93: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1280x720 DPR1 text1.0 standard
+00:06 +94: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: (setUpAll)
+00:06 +94: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1280x720 DPR1 text1.0 standard
+00:06 +95: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:06 +96: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:06 +97: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:06 +98: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:06 +99: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:06 +100: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +101: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +102: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +103: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +104: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +105: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +106: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +107: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +108: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +109: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +110: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to summary modal
+00:07 +111: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 1280x720 DPR1 text1.5 standard
+00:07 +112: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to held item modal
+00:07 +113: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to held item modal
+00:07 +114: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to held item modal
+00:07 +115: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: desktop actions hands keyboard focus to held item modal
+00:07 +116: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 1280x720 DPR1 text1.5 standard
+00:08 +117: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: six nominal rows fit completely in the 1296x644 reference body
+00:08 +118: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 1280x720 DPR1 text1.5 standard
+00:08 +119: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: two logical confirms open compact detail then the focused summary
+00:08 +120: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: two logical confirms open compact detail then the focused summary
+00:08 +121: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1280x720 DPR1 text1.5 standard
+00:08 +122: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: a portrait desktop window uses a readable list then detail
+00:08 +123: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1280x720 DPR1 text1.5 insets reduced opaque
+00:08 +124: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: ProjectPauseMenuStyle.standard footer keeps party commands accessible at Size(1440.0, 900.0)
+00:08 +125: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: ProjectPauseMenuStyle.standard footer keeps party commands accessible at Size(1440.0, 900.0)
+00:08 +126: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1280x720 DPR1 text1.5 insets reduced opaque
+00:08 +127: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: ProjectPauseMenuStyle.standard footer keeps party commands accessible at Size(390.0, 844.0)
+00:08 +128: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1280x720 DPR1 text1.5 insets reduced opaque
+00:08 +129: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: ProjectPauseMenuStyle.nightIllustrated footer keeps party commands accessible at Size(1440.0, 900.0)
+00:08 +130: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: ProjectPauseMenuStyle.nightIllustrated footer keeps party commands accessible at Size(1440.0, 900.0)
+00:08 +131: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 1280x720 DPR1 text1.5 insets reduced opaque
+00:08 +132: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: ProjectPauseMenuStyle.nightIllustrated footer keeps party commands accessible at Size(390.0, 844.0)
+00:08 +133: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 1280x720 DPR1 text1.5 insets reduced opaque
+00:08 +134: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: wide illustrated party shows all four moves above its real footer
+00:08 +135: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 1280x720 DPR1 text1.5 insets reduced opaque
+00:08 +136: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: renders 0 real members without duplicating empty slots
+00:08 +137: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1280x720 DPR1 text1.5 insets reduced opaque
+00:08 +138: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1280x720 DPR1 text1.5 insets reduced opaque
+00:08 +139: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1280x720 DPR1 text1.5 insets reduced opaque
+00:08 +140: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: renders 6 real members without duplicating empty slots
+00:08 +141: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1280x720 DPR1 text2.0 standard
+00:08 +142: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: focus selects by identity and fresh snapshots replace the detail
+00:08 +143: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: focus selects by identity and fresh snapshots replace the detail
+00:09 +144: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: focus selects by identity and fresh snapshots replace the detail
+00:09 +145: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1280x720 DPR1 text2.0 standard
+00:09 +146: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: disappearing selection chooses the nearest valid member
+00:09 +147: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: disappearing selection chooses the nearest valid member
+00:09 +148: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 1280x720 DPR1 text2.0 standard
+00:09 +149: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: swap cancel emits nothing and confirmed swap follows its source
+00:09 +150: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: swap cancel emits nothing and confirmed swap follows its source
+00:09 +151: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: swap cancel emits nothing and confirmed swap follows its source
+00:09 +152: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: swap cancel emits nothing and confirmed swap follows its source
+00:09 +153: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1280x720 DPR1 text2.0 insets reduced opaque
+00:09 +154: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: swap is absent when the runtime does not authorize it
+00:09 +155: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 1280x720 DPR1 text2.0 insets reduced opaque
+00:09 +156: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: navigation back consumes compact detail and cancels swap locally
+00:09 +157: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: navigation back consumes compact detail and cancels swap locally
+00:09 +158: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1280x720 DPR1 text2.0 insets reduced opaque
+00:09 +159: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: real footer follows selection, settles, and detaches on disposal
+00:09 +160: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 1280x720 DPR1 text2.0 insets reduced opaque
+00:09 +161: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: held modal at 568x320 and text 2 keeps return and removal reachable
+00:09 +162: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: held modal at 568x320 and text 2 keeps return and removal reachable
+00:09 +163: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: held modal at 568x320 and text 2 keeps return and removal reachable
+00:09 +164: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 1280x720 DPR1 text2.0 insets reduced opaque
+00:09 +165: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: typed command failure exposes its safe reason without raw exception
+00:09 +166: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1280x720 DPR1 text2.0 insets reduced opaque
+00:10 +167: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: held command waits for completion and prevents another activation
+00:10 +168: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: held command waits for completion and prevents another activation
+00:10 +169: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: held command waits for completion and prevents another activation
+00:10 +170: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 800x600 DPR1 text1.0 standard
+00:10 +171: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: held item removal targets the member and command errors stay safe
+00:10 +172: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 800x600 DPR1 text1.0 standard
+00:10 +173: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: compact Size(390.0, 844.0) at text 2 keeps detail and return usable
+00:10 +174: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 800x600 DPR1 text1.0 standard
+00:10 +175: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 800x600 DPR1 text1.0 standard
+00:10 +176: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: summary returns to the selected member without losing its fields
+00:10 +177: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: summary returns to the selected member without losing its fields
+00:10 +178: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: summary returns to the selected member without losing its fields
+00:10 +179: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 800x600 DPR1 text1.0 standard
+00:10 +180: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: missing images retain member labels through rapid focus changes
+00:10 +181: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 800x600 DPR1 text1.0 standard
+00:10 +182: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: late image completion cannot replace the newly selected member
+00:10 +183: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu5_party_test.dart: late image completion cannot replace the newly selected member
+00:10 +184: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 800x600 DPR1 text1.0 insets reduced opaque
+00:10 +185: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 800x600 DPR1 text1.0 insets reduced opaque
+00:10 +186: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 800x600 DPR1 text1.0 insets reduced opaque
+00:10 +187: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 800x600 DPR1 text1.0 insets reduced opaque
+00:10 +188: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 800x600 DPR1 text1.0 insets reduced opaque
+00:10 +189: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 800x600 DPR1 text1.0 insets reduced opaque
+00:10 +190: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 800x600 DPR1 text1.0 insets reduced opaque
+00:11 +191: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 800x600 DPR1 text1.0 insets reduced opaque
+00:11 +192: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 800x600 DPR1 text1.5 standard
+00:11 +193: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 800x600 DPR1 text1.5 standard
+00:11 +194: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 800x600 DPR1 text1.5 standard
+00:11 +195: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 800x600 DPR1 text1.5 standard
+00:11 +196: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 800x600 DPR1 text1.5 standard
+00:11 +197: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 800x600 DPR1 text1.5 standard
+00:11 +198: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 800x600 DPR1 text1.5 standard
+00:11 +199: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 800x600 DPR1 text1.5 standard
+00:11 +200: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: (setUpAll)
+00:11 +200: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 800x600 DPR1 text1.5 standard
+00:11 +201: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:11 +202: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:11 +203: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:11 +204: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:11 +205: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:11 +206: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:11 +207: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:11 +208: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +209: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +210: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +211: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +212: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +213: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +214: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +215: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +216: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +217: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: nine rows fit reference list with fixed pockets and footer
+00:12 +218: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 800x600 DPR1 text2.0 standard
+00:12 +219: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: real surface router supplies the bag money theme without an outer scope
+00:12 +220: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 800x600 DPR1 text2.0 standard
+00:12 +221: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: pockets restore selected item and empty pockets remain available
+00:12 +222: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: pockets restore selected item and empty pockets remain available
+00:12 +223: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: pockets restore selected item and empty pockets remain available
+00:12 +224: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: pockets restore selected item and empty pockets remain available
+00:12 +225: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 800x600 DPR1 text2.0 insets reduced opaque
+00:12 +226: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: last unit removed selects nearest item and keeps canonical quantity
+00:12 +227: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: last unit removed selects nearest item and keeps canonical quantity
+00:12 +228: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: last unit removed selects nearest item and keeps canonical quantity
+00:13 +229: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: last unit removed selects nearest item and keeps canonical quantity
+00:13 +230: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 800x600 DPR1 text2.0 insets reduced opaque
+00:13 +231: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(1440.0, 900.0) text 1.0
+00:13 +232: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(1440.0, 900.0) text 1.0
+00:13 +233: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(1440.0, 900.0) text 1.0
+00:13 +234: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(1440.0, 900.0) text 1.0
+00:13 +235: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(1440.0, 900.0) text 1.0
+00:13 +236: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 844x390 DPR1 text1.0 standard
+00:13 +237: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(1440.0, 900.0) text 2.0
+00:13 +238: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(1440.0, 900.0) text 2.0
+00:13 +239: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 844x390 DPR1 text1.0 standard
+00:13 +240: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(844.0, 390.0) text 1.0
+00:13 +241: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(844.0, 390.0) text 1.0
+00:13 +242: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(844.0, 390.0) text 1.0
+00:13 +243: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 844x390 DPR1 text1.0 standard
+00:13 +244: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(844.0, 390.0) text 2.0
+00:13 +245: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(844.0, 390.0) text 2.0
+00:13 +246: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 844x390 DPR1 text1.0 insets reduced opaque
+00:13 +247: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(390.0, 844.0) text 1.0
+00:13 +248: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(390.0, 844.0) text 1.0
+00:13 +249: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(390.0, 844.0) text 1.0
+00:13 +250: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 844x390 DPR1 text1.0 insets reduced opaque
+00:14 +251: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(390.0, 844.0) text 2.0
+00:14 +252: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(390.0, 844.0) text 2.0
+00:14 +253: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: bag list and detail readable at Size(390.0, 844.0) text 2.0
+00:14 +254: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 844x390 DPR1 text1.0 insets reduced opaque
+00:14 +255: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMember with 4 moves requires confirmation and emits once
+00:14 +256: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMember with 4 moves requires confirmation and emits once
+00:14 +257: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 844x390 DPR1 text1.5 standard
+00:14 +258: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMove with 4 moves requires confirmation and emits once
+00:14 +259: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMove with 4 moves requires confirmation and emits once
+00:14 +260: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMove with 4 moves requires confirmation and emits once
+00:14 +261: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 844x390 DPR1 text1.5 standard
+00:14 +262: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMoveReplacement with 2 moves requires confirmation and emits once
+00:14 +263: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMoveReplacement with 2 moves requires confirmation and emits once
+00:14 +264: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMoveReplacement with 2 moves requires confirmation and emits once
+00:14 +265: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 844x390 DPR1 text1.5 standard
+00:14 +266: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMoveReplacement with 4 moves requires confirmation and emits once
+00:14 +267: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: RuntimePlayerBagUseTargetKind.partyMoveReplacement with 4 moves requires confirmation and emits once
+00:14 +268: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 844x390 DPR1 text1.5 standard
+00:14 +269: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: replacement back cancels each depth without teaching
+00:14 +270: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: replacement back cancels each depth without teaching
+00:14 +271: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: replacement back cancels each depth without teaching
+00:14 +272: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 844x390 DPR1 text1.5 insets reduced opaque
+00:14 +273: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: two immediate use activations open only one target dialog
+00:14 +274: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: two immediate use activations open only one target dialog
+00:15 +275: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 844x390 DPR1 text1.5 insets reduced opaque
+00:15 +276: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: held Enter cannot advance bag target stages
+00:15 +277: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: held Enter cannot advance bag target stages
+00:15 +278: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: held Enter cannot advance bag target stages
+00:15 +279: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 844x390 DPR1 text1.5 insets reduced opaque
+00:15 +280: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: held Enter cannot reopen bag use after completion
+00:15 +281: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: held Enter cannot reopen bag use after completion
+00:15 +282: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 844x390 DPR1 text2.0 standard
+00:15 +283: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: held Space cannot advance bag target stages
+00:15 +284: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: held Space cannot advance bag target stages
+00:15 +285: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 844x390 DPR1 text2.0 standard
+00:15 +286: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: held Space cannot reopen bag use after completion
+00:15 +287: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: held Space cannot reopen bag use after completion
+00:15 +288: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 844x390 DPR1 text2.0 standard
+00:15 +289: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: controller confirms every replacement stage without pointer input
+00:15 +290: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: controller confirms every replacement stage without pointer input
+00:15 +291: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: controller confirms every replacement stage without pointer input
+00:15 +292: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 844x390 DPR1 text2.0 standard
+00:15 +293: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: long description scrolls with logical controller and keyboard
+00:15 +294: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 844x390 DPR1 text2.0 standard
+00:15 +295: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: compact target cancellation restores visible use focus
+00:15 +296: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 844x390 DPR1 text2.0 insets reduced opaque
+00:15 +297: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: logical controller reaches offscreen pockets and restores selection
+00:15 +298: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: logical controller reaches offscreen pockets and restores selection
+00:15 +299: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 844x390 DPR1 text2.0 insets reduced opaque
+00:15 +300: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: favorite waits for persistence, filter updates and errors stay safe
+00:15 +301: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: favorite waits for persistence, filter updates and errors stay safe
+00:16 +302: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: favorite waits for persistence, filter updates and errors stay safe
+00:16 +303: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 844x390 DPR1 text2.0 insets reduced opaque
+00:16 +304: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: late failed command after leaving bag does not mutate disposed UI
+00:16 +305: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: late failed command after leaving bag does not mutate disposed UI
+00:16 +306: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 844x390 DPR1 text2.0 insets reduced opaque
+00:16 +307: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: logical controller selection opens compact detail and back restores list
+00:16 +308: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu6_bag_test.dart: logical controller selection opens compact detail and back restores list
+00:16 +309: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 390x844 DPR1 text1.0 standard
+00:16 +309 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 390x844 DPR1 text1.0 standard
+00:16 +310 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 390x844 DPR1 text1.0 standard
+00:16 +311 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 390x844 DPR1 text1.0 standard
+00:16 +312 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 390x844 DPR1 text1.0 standard
+00:16 +313 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 390x844 DPR1 text1.0 standard
+00:16 +314 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 390x844 DPR1 text1.0 standard
+00:16 +315 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 390x844 DPR1 text1.0 standard
+00:16 +316 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 390x844 DPR1 text1.0 standard
+00:16 +317 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 390x844 DPR1 text1.0 standard
+00:16 +318 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 390x844 DPR1 text1.0 insets reduced opaque
+00:16 +319 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 390x844 DPR1 text1.0 insets reduced opaque
+00:16 +320 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 390x844 DPR1 text1.0 insets reduced opaque
+00:16 +321 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 390x844 DPR1 text1.0 insets reduced opaque
+00:16 +322 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 390x844 DPR1 text1.0 insets reduced opaque
+00:17 +323 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 390x844 DPR1 text1.0 insets reduced opaque
+00:17 +324 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 390x844 DPR1 text1.0 insets reduced opaque
+00:17 +325 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +326 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +327 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +328 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +329 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +330 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +331 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +332 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +333 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +334 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +335 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +336 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +337 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +338 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +339 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +340 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: reference geometry reserves the list and illustration areas
+00:17 +341 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 390x844 DPR1 text1.5 insets reduced opaque
+00:17 +342 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: unknown entries cannot expose a hidden title or identity
+00:17 +343 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: unknown entries cannot expose a hidden title or identity
+00:18 +344 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: unknown entries cannot expose a hidden title or identity
+00:18 +345 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: unknown entries cannot expose a hidden title or identity
+00:18 +346 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: unknown entries cannot expose a hidden title or identity
+00:18 +347 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 390x844 DPR1 text2.0 standard
+00:18 +348 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: search folds accents and case and matches public dex numbers
+00:18 +349 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: search folds accents and case and matches public dex numbers
+00:18 +350 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: search folds accents and case and matches public dex numbers
+00:18 +351 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: search folds accents and case and matches public dex numbers
+00:18 +352 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 390x844 DPR1 text2.0 standard
+00:18 +353 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: local filters distinguish seen caught and unknown
+00:18 +354 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: local filters distinguish seen caught and unknown
+00:18 +355 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: local filters distinguish seen caught and unknown
+00:18 +356 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: local filters distinguish seen caught and unknown
+00:18 +357 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 390x844 DPR1 text2.0 standard
+00:18 +358 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: search retains public knowledge and localized type matching
+00:18 +359 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: search retains public knowledge and localized type matching
+00:18 +360 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: search retains public knowledge and localized type matching
+00:18 +361 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 390x844 DPR1 text2.0 insets reduced opaque
+00:18 +362 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: clear restores selection and remount retains local browsing
+00:18 +363 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: clear restores selection and remount retains local browsing
+00:18 +364 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: clear restores selection and remount retains local browsing
+00:18 +365 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: clear restores selection and remount retains local browsing
+00:18 +366 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: clear restores selection and remount retains local browsing
+00:19 +367 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: clear restores selection and remount retains local browsing
+00:19 +368 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 390x844 DPR1 text2.0 insets reduced opaque
+00:19 +369 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +370 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +371 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +372 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +373 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +374 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +375 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +376 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +377 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +378 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +379 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +380 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +381 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +382 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +383 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +384 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:19 +385 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:20 +386 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:20 +387 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:20 +388 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:20 +389 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:20 +390 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:20 +391 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: deep list browsing survives compact detail and menu remount
+00:20 +392 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 1920x1080 DPR1 text1.5 standard
+00:20 +393 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: snapshot replacement repairs stale selection and public status
+00:20 +394 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: snapshot replacement repairs stale selection and public status
+00:20 +395 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: snapshot replacement repairs stale selection and public status
+00:20 +396 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 1920x1080 DPR1 text1.5 standard
+00:20 +397 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: empty catalog and filtered empty state remain distinct
+00:20 +398 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1920x1080 DPR1 text1.5 standard
+00:20 +399 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: missing media keeps truthful placeholders and public description
+00:20 +400 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: missing media keeps truthful placeholders and public description
+00:20 +401 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: missing media keeps truthful placeholders and public description
+00:20 +402 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1920x1080 DPR1 text1.5 insets reduced opaque
+00:20 +403 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: list detail and return remain readable at Size(1440.0, 900.0) text 1.0
+00:20 +404 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1920x1080 DPR1 text1.5 insets reduced opaque
+00:20 +405 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: list detail and return remain readable at Size(1440.0, 900.0) text 2.0
+00:20 +406 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 1920x1080 DPR1 text1.5 insets reduced opaque
+00:20 +407 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: list detail and return remain readable at Size(844.0, 390.0) text 1.0
+00:20 +408 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: list detail and return remain readable at Size(844.0, 390.0) text 1.0
+00:20 +409 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 1920x1080 DPR1 text1.5 insets reduced opaque
+00:21 +410 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: list detail and return remain readable at Size(844.0, 390.0) text 2.0
+00:21 +411 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: list detail and return remain readable at Size(844.0, 390.0) text 2.0
+00:21 +412 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1920x1080 DPR1 text1.5 insets reduced opaque
+00:21 +413 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: list detail and return remain readable at Size(390.0, 844.0) text 1.0
+00:21 +414 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1920x1080 DPR1 text2.0 standard
+00:21 +415 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: list detail and return remain readable at Size(390.0, 844.0) text 2.0
+00:21 +416 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: list detail and return remain readable at Size(390.0, 844.0) text 2.0
+00:21 +417 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1920x1080 DPR1 text2.0 standard
+00:21 +418 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: compact detail accepts controller scroll and internal return
+00:21 +419 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1920x1080 DPR1 text2.0 standard
+00:21 +420 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: keyboard browsing and controller confirm keep the back depth
+00:21 +421 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: keyboard browsing and controller confirm keep the back depth
+00:21 +422 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_pokedex_test.dart: keyboard browsing and controller confirm keep the back depth
+00:21 +423 ~1: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 1920x1080 DPR1 text2.0 standard
+00:21 +423 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 1920x1080 DPR1 text2.0 standard
+00:21 +424 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 1920x1080 DPR1 text2.0 standard
+00:21 +425 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1920x1080 DPR1 text2.0 standard
+00:21 +426 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 root 1920x1080 DPR1 text2.0 insets reduced opaque
+00:21 +427 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party 1920x1080 DPR1 text2.0 insets reduced opaque
+00:21 +428 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag 1920x1080 DPR1 text2.0 insets reduced opaque
+00:21 +429 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 map 1920x1080 DPR1 text2.0 insets reduced opaque
+00:21 +430 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex 1920x1080 DPR1 text2.0 insets reduced opaque
+00:21 +431 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile 1920x1080 DPR1 text2.0 insets reduced opaque
+00:21 +432 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 options 1920x1080 DPR1 text2.0 insets reduced opaque
+00:21 +433 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 save 1920x1080 DPR1 text2.0 insets reduced opaque
+00:21 +434 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 exit 1920x1080 DPR1 text2.0 insets reduced opaque
+00:22 +435 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 Pokédex filter targets are at least 48 logical pixels
+00:22 +436 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 party empty data does not invent content
+00:22 +437 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 bag empty data does not invent content
+00:22 +438 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 pokedex empty data does not invent content
+00:22 +439 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: (setUpAll)
+00:22 +439 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart: MENU11 profile empty data does not invent content
+00:22 +440 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: reference layout reserves identity and progression columns
+00:22 +441 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: reference layout reserves identity and progression columns
+00:22 +442 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: reference layout reserves identity and progression columns
+00:22 +443 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: reference layout reserves identity and progression columns
+00:22 +444 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: reference layout reserves identity and progression columns
+00:22 +445 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: statistics use public session values and localized numbers
+00:22 +446 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: partial profile keeps a safe silhouette and no invented fields
+00:23 +447 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: badges are labelled read only images without hidden placeholders
+00:23 +448 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: long names and large playtime preserve public values
+00:23 +449 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: profile remains readable at Size(1440.0, 900.0) text 1.0
+00:23 +450 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: profile remains readable at Size(1440.0, 900.0) text 2.0
+00:23 +451 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: profile remains readable at Size(844.0, 390.0) text 1.0
+00:23 +452 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_profile_test.dart: profile remains readable at Size(844.0, 390.0) text 2.0
+00:23 +453 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_surface_router_test.dart: direct ProjectPauseMenuStyle.standard pokedex preserves back depth with keyboard false
+00:23 +454 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_surface_router_test.dart: direct ProjectPauseMenuStyle.standard pokedex preserves back depth with keyboard false
+00:23 +455 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_surface_router_test.dart: direct ProjectPauseMenuStyle.standard pokedex preserves back depth with keyboard false
+00:23 +456 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_surface_router_test.dart: direct ProjectPauseMenuStyle.standard pokedex preserves back depth with keyboard false
+00:23 +457 ~2: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_surface_router_test.dart: direct ProjectPauseMenuStyle.standard pokedex preserves back depth with keyboard false
+00:23 +457 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_surface_router_test.dart: direct ProjectPauseMenuStyle.standard pokedex preserves back depth with keyboard false
+00:24 +458 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs honor remapped confirmation and back
+00:24 +459 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs honor remapped confirmation and back
+00:24 +460 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs honor remapped confirmation and back
+00:24 +461 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs honor remapped confirmation and back
+00:25 +462 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs honor remapped confirmation and back
+00:25 +463 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs honor remapped confirmation and back
+00:25 +464 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs honor remapped confirmation and back
+00:25 +465 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs honor remapped confirmation and back
+00:25 +466 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs honor remapped confirmation and back
+00:25 +467 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu7_surface_router_test.dart: borrowed navigation remains usable after the router disposes
+00:25 +468 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save dialogs keep the player text scale below the Navigator
+00:25 +469 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: confirmation is read only and initially focuses Cancel
+00:26 +470 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: pending save survives Back lifecycle and duplicate activation
+00:26 +471 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: success uses one live result and the real receipt
+00:26 +472 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: a failed write remains visible and retries only on request
+00:26 +473 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: removing Options dismisses its choice dialog
+00:27 +474 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: removing Options dismisses its choice dialog
+00:27 +475 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: removing Options dismisses its choice dialog
+00:27 +476 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: removing Options dismisses its choice dialog
+00:27 +477 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: Return to title initially focuses Stay and makes no request
+00:27 +478 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: removing Options dismisses its reset dialog
+00:27 +479 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: save and quit emits one typed request and waits for completion
+00:28 +480 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: touch controls can exchange confirm and back
+00:28 +481 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: touch controls can exchange confirm and back
+00:28 +482 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: discard emits only the explicit false exit request
+00:28 +483 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: discard emits only the explicit false exit request
+00:28 +484 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: audio sliders persist their channels without changing category
+00:28 +485 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: audio sliders persist their channels without changing category
+00:28 +486 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: discard follows live exit availability before confirmation
+00:29 +487 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: failed persistence restores slider and keeps a visible error
+00:29 +488 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: a new receipt from another operation is not a save success
+00:29 +489 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: cancelled category reset never writes preferences
+00:29 +490 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: cancelled category reset never writes preferences
+00:29 +491 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: a known timestamp is shown only for the active address
+00:29 +492 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: confirmed reset only restores current category
+00:29 +493 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_save_test.dart: a receipt from a different slot never reports success
+00:29 +494 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: interface language keeps selected category after reload
+00:29 +495 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: interface language keeps selected category after reload
+00:29 +496 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: category reset restores the host defaults
+00:30 +497 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: choice dialog back leaves preference unchanged
+00:30 +498 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: return to title delegates to existing confirmation flow
+00:30 +499 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: desktop accessibility omits unsupported vibrations
+00:30 +500 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: help sits at the bottom of the desktop settings panel
+00:30 +501 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: keyboard and controller adjust the focused audio slider by five percent
+00:30 +502 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: control binding conflict never writes the profile
+00:30 +503 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: wide layout uses the reference split and pins use the contained image
+00:31 +504 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: wide layout uses the reference split and pins use the contained image
+00:31 +505 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: wide layout uses the reference split and pins use the contained image
+00:31 +506 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: wide layout uses the reference split and pins use the contained image
+00:31 +507 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: dialogs preserve the local player text scale above the navigator
+00:31 +508 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: unknown details cannot leak labels images or descriptions
+00:32 +509 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: option dialogs use remapped confirm and back keys
+00:32 +510 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: zoom is bounded and selection survives closing then reopening
+00:32 +511 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: zoom is bounded and selection survives closing then reopening
+00:32 +512 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: all options remain reachable at Size(1440.0, 900.0) text 2.0
+00:32 +513 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: all options remain reachable at Size(1440.0, 900.0) text 2.0
+00:32 +514 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: missing map keeps a useful list and deleted selection is invalidated
+00:33 +515 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: all options remain reachable at Size(844.0, 390.0) text 1.0
+00:33 +516 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: compact and large text remain scrollable without overflow
+00:33 +517 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: all options remain reachable at Size(844.0, 390.0) text 2.0
+00:33 +518 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: local info closes before leaving the map with remapped back
+00:33 +519 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: all options remain reachable at Size(390.0, 844.0) text 1.0
+00:33 +520 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: all options remain reachable at Size(390.0, 844.0) text 1.0
+00:33 +521 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: local info preserves the scrolled location list
+00:33 +522 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu8_options_test.dart: all options remain reachable at Size(390.0, 844.0) text 2.0
+00:33 +523 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: local info preserves compact scrolling
+00:34 +524 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: new session uses the new current location with stable IDs
+00:34 +525 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: changing region resets scroll restored on reopening
+00:34 +526 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: region choice respects configured movement confirm and cancel
+00:34 +527 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu9_region_map_test.dart: compact overlapping choice is revealed above the fold
+00:34 +528 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/player_pokemon_summary_parity_test.dart: BETA-PTY-001 Party and PC render one shared sheet the same summary renders identical text on both surfaces
+00:35 +529 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/player_pokemon_summary_parity_test.dart: BETA-PTY-001 Party and PC render one shared sheet the sheet shows the localized species, never the raw id
+00:35 +530 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/player_pokemon_summary_parity_test.dart: BETA-PTY-001 Party and PC render one shared sheet every canonical field reaches the screen
+00:35 +531 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/player_pokemon_summary_parity_test.dart: BETA-PTY-001 Party and PC render one shared sheet the HP gauge carries the same threshold as the battle HUD
+00:35 +532 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/player_pokemon_summary_parity_test.dart: BETA-PTY-001 Party and PC render one shared sheet the gauge track never reads as a full bar
+00:35 +533 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/player_pokemon_summary_parity_test.dart: BETA-PTY-001 Party and PC render one shared sheet a move without PP tracking shows a dash, never zero
+00:35 +534 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/player_pokemon_summary_parity_test.dart: BETA-PTY-001 Party and PC render one shared sheet a summary without stats hides the stats block entirely
+00:35 +535 ~3: /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/player_pokemon_summary_parity_test.dart: BETA-PTY-001 Party and PC render one shared sheet the sheet survives a narrow portrait viewport
+00:35 +536 ~3: All tests passed!

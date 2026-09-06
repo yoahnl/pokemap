@@ -1,0 +1,231 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 103.0.0 (107.0.0 available)
+  analyzer 13.3.0 (14.3.0 available)
+  archive 4.0.9 (4.2.0 available)
+  clock 1.1.2 (1.1.3 available)
+  code_assets 1.2.1 (2.0.0 available)
+  cross_file 0.3.5+4 (0.3.5+5 available)
+  dbus 0.7.13 (0.7.15 available)
+  file_picker 11.0.3 (12.2.0 available)
+  file_selector_android 0.5.2+9 (0.5.2+10 available)
+  file_selector_ios 0.5.3+5 (0.5.3+6 available)
+  file_selector_linux 0.9.4 (0.9.4+1 available)
+  file_selector_macos 0.9.5 (0.9.5+1 available)
+  file_selector_windows 0.9.3+5 (0.9.3+6 available)
+  flame 1.38.0 (1.38.2 available)
+  flutter_riverpod 3.2.1 (3.4.3 available)
+  gamepads 0.1.10+5 (0.1.11 available)
+  gamepads_android 0.1.8+2 (0.1.9 available)
+! gamepads_darwin 0.1.2+4 from path ../../packages/gamepads_darwin (overridden)
+! gamepads_ios 0.1.3+3 from path ../../packages/gamepads_ios (overridden)
+  gamepads_web 0.1.1+1 (0.1.2 available)
+  gamepads_windows 0.3.0+1 (0.3.1 available)
+  glob 2.1.3 (2.2.0 available)
+  hooks 2.1.0 (2.2.0 available)
+  html 0.15.6 (0.15.7 available)
+  image 4.9.1 (4.9.2 available)
+  image_picker_android 0.8.13+15 (0.8.13+22 available)
+  image_picker_ios 0.8.13+6 (0.8.13+7 available)
+  io 1.0.5 (1.1.0 available)
+  jni_flutter 1.0.2 (1.0.3 available)
+  json_annotation 4.10.0 (4.12.0 available)
+  liquid_glass_easy 3.5.0 (4.2.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  mime 2.0.0 (2.1.0 available)
+  objective_c 9.5.0 (9.6.0 available)
+  package_config 2.2.0 (3.0.0 available)
+  package_info_plus 9.0.1 (10.2.1 available)
+  package_info_plus_platform_interface 3.2.1 (4.1.0 available)
+  pool 1.5.2 (1.5.3 available)
+  pub_semver 2.2.0 (2.2.1 available)
+  record_use 1.0.0 (1.1.1 available)
+  riverpod 3.2.1 (3.4.3 available)
+  riverpod_annotation 4.0.2 (4.0.7 available)
+  source_maps 0.10.13 (0.10.14 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  synchronized 3.4.1+1 (3.4.1+2 available)
+  test 1.31.1 (1.32.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  test_core 0.6.18 (0.6.20 available)
+  url_launcher_android 6.3.32 (6.3.33 available)
+  url_launcher_ios 6.4.1 (6.4.2 available)
+  url_launcher_linux 3.2.2 (3.2.3 available)
+  url_launcher_macos 3.2.5 (3.2.6 available)
+  url_launcher_windows 3.1.5 (3.1.6 available)
+  video_player 2.13.0 (2.14.0 available)
+  video_player_android 2.12.0 (2.12.2 available)
+  video_player_avfoundation 2.11.0 (2.12.0 available)
+  vm_service 15.2.0 (15.3.0 available)
+  win32 5.15.0 (6.4.0 available)
+  yaml 3.1.3 (3.1.4 available)
+Got dependencies!
+57 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /private/tmp/menu11-isolated/examples/playable_runtime_host/test/phase_a_golden_slice_launch_test.dart
+00:00 +0: a blocked atomic replacement preserves the last standalone save
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+00:00 +1: the versioned Phase A golden slice exposes a real launch save
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+00:00 +2: startup shell launches New Game through the standalone session port
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_loader] bundle load start projectFilePath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice tilesets=0
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_loader] bundle load start projectFilePath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice tilesets=0
+00:00 +3: startup shell discovers and continues the canonical adjacent save
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_loader] bundle load start projectFilePath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice tilesets=0
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+00:00 +4: standalone pause projects the live checkpoint and visibility overrides
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/project.json mapId=golden_field
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/maps/golden_field.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X tilesets=0
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu-d-playtime-NFaz3X/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+00:00 +5: standalone forwards the complete V10 presentation
+00:00 +6: standalone loads the complete V3 acceptance project
+[runtime_loader] bundle load start projectFilePath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_personalization_v3/project.json mapId=vermeil_village
+[runtime_loader] project manifest lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_personalization_v3/project.json
+[runtime_loader] project manifest read ok bytes=17143
+[runtime_loader] project manifest validated maps=1 tilesets=2 scenarios=0
+[runtime_loader] bundle map resolved mapId=vermeil_village relativePath=maps/vermeil_village.json mapPath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_personalization_v3/maps/vermeil_village.json
+[runtime_loader] map file lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_personalization_v3/maps/vermeil_village.json
+[runtime_loader] map file read ok bytes=1460
+[runtime_loader] map validated id=vermeil_village size=1x1 layers=1 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=vermeil-stage,leo-overworld
+[runtime_loader] bundle tileset path id=vermeil-stage path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_personalization_v3/assets/maps/vermeil-village-stage.png
+[runtime_loader] bundle tileset path id=leo-overworld path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_personalization_v3/assets/characters/leo-happy.png
+[runtime_loader] bundle load ok mapId=vermeil_village projectRoot=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_personalization_v3 tilesets=2
+00:00 +7: standalone presentation resolution cannot escape the project root
+00:00 +8: missing standalone presentation media stays non-blocking
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_loader] bundle load start projectFilePath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice tilesets=0
+00:00 +9: a malformed adjacent save becomes a recoverable startup error
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-standalone-invalid-save-Jw7nKB/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-standalone-invalid-save-Jw7nKB/runtime_host_launch_save.json
+00:00 +10: the standalone canonical slot commits through the runtime gateway
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-standalone-save-commit-o7FiU9/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-standalone-save-commit-o7FiU9/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-standalone-save-commit-o7FiU9/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-standalone-save-commit-o7FiU9/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-standalone-save-commit-o7FiU9/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-standalone-save-commit-o7FiU9/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+00:00 +11: the standalone splash waits for the real minimum gate
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_host_save] launch save lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save read start path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json
+[runtime_host_save] launch save parsed mapId=golden_field party=2
+[runtime_loader] bundle load start projectFilePath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/project.json mapId=golden_field
+[runtime_loader] bundle map resolved mapId=golden_field relativePath=maps/golden_field.json mapPath=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file lookup path=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json
+[runtime_loader] map file read ok bytes=1124
+[runtime_loader] map validated id=golden_field size=4x3 layers=0 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=golden_field projectRoot=/private/tmp/menu11-isolated/examples/playable_runtime_host/golden_battle_slice tilesets=0
+00:00 +12: the developer picker adopts the canonical startup and session surfaces
+00:00 +13: All tests passed!

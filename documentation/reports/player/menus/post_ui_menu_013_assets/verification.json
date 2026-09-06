@@ -1,0 +1,817 @@
+{
+  "ticket": "POST-UI-MENU-013",
+  "lot": 11,
+  "lotCode": "MENU-K",
+  "date": "2026-09-06",
+  "verdict": "PARTIAL",
+  "notionStatus": "TO REVIEW",
+  "readiness": "Bloqué par dépendance",
+  "git": {
+    "sha": "87226620ca85b1d08d64aa039d59d9360a1e5fba",
+    "branch": "main",
+    "foreign": [
+      "examples/playable_runtime_host/lib/src/runtime_startup_host.dart",
+      "examples/playable_runtime_host/test/phase_a_golden_slice_launch_test.dart",
+      "packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart",
+      "packages/map_player_ui/lib/src/player/player_intro_video_player.dart",
+      "packages/map_player_ui/lib/src/player/presentation_media_alias_store.dart",
+      "packages/map_player_ui/test/player/presentation_media_alias_store_test.dart",
+      "packages/map_authoring/lib/src/domains/project/runtime_audio_actions.dart",
+      "packages/map_authoring/test/domains/project/runtime_audio_actions_test.dart"
+    ],
+    "finalState": "25 scoped source/test/tool files plus this evidence pack prepared for a local commit; 8 pre-existing foreign files preserved and excluded.",
+    "initialDeliveryWritesPerformed": false,
+    "commitAuthorized": true,
+    "commitReference": "Local commit containing this receipt; exact resulting SHA and final worktree status recorded in the linked Notion ticket.",
+    "pushPerformed": false
+  },
+  "sourceFiles": {
+    "examples/playable_runtime_host/dev/marionette_main.dart": {
+      "sha256": "6419d0fe8e8cb0af57f5fc3b0325f89d84894490ae0682c43cec2971e35e8936",
+      "lines": 102
+    },
+    "examples/playable_runtime_host/dev/menu_performance_probe.dart": {
+      "sha256": "c5cdf3649dc96fc7dbb6198dcfd2bbb6e63316e29e47413f0796d6e8aba65c0d",
+      "lines": 66
+    },
+    "examples/playable_runtime_host/tool/menu11_profile_check.mjs": {
+      "sha256": "6d548c43a5baa6ed2f362b990b18336d5399f2e14d9276514edb04771b852d11",
+      "lines": 114
+    },
+    "examples/playable_runtime_host/tool/menu11_profile_check.test.mjs": {
+      "sha256": "90305168e4e1877f2fd9446e5a056227b97bb9cf341d70939ee030e0a5a4f150",
+      "lines": 112
+    },
+    "packages/map_editor/test/personalization/personalization_player_surface_adapter_test.dart": {
+      "sha256": "8501ca5728d2667a70dd5cf257cef581199c20385db3caff7c556a4fe0965c6b",
+      "lines": 820
+    },
+    "packages/map_player_ui/lib/src/player/player_pause_illustrated_root.dart": {
+      "sha256": "8178dac3e06d6b9e46c6f14264ac8088c9345d5ccfa555d8ab1fd0210bcbef6b",
+      "lines": 223
+    },
+    "packages/map_player_ui/lib/src/player/player_pause_preview_shell.dart": {
+      "sha256": "fcbe3b0f4eab09c5dca46075aef23daab70753cf01ddc3a96bf77dd22059cc96",
+      "lines": 400
+    },
+    "packages/map_player_ui/lib/src/player/player_pokemon_summary_sheet.dart": {
+      "sha256": "397d76864f1d49d9a551c9cfd36179e9b36c3bbd87d33ffc1fedef1fa1843228",
+      "lines": 341
+    },
+    "packages/map_player_ui/lib/src/player/player_save_dialog.dart": {
+      "sha256": "30c3ad4fe6ee7fdc1f4c519171da66a3ee49b991056c2209d5610fe4bd856d2f",
+      "lines": 406
+    },
+    "packages/map_player_ui/lib/src/player/runtime_player_bag.dart": {
+      "sha256": "cf07571fe7dfeee68a2c9a84e243551baaef19a6e5b45e3c7f34f93848b6a5e6",
+      "lines": 901
+    },
+    "packages/map_player_ui/lib/src/player/runtime_player_options.dart": {
+      "sha256": "3f968fe9d6d2e6f57e861b4853e875c5dba3c81dad8ad4f0a141ab2f17b42aa9",
+      "lines": 869
+    },
+    "packages/map_player_ui/lib/src/player/runtime_player_party.dart": {
+      "sha256": "b7c1dab937a1f8446272754eb4b3118bc34b5d64a22aa91fc919412fac51e70c",
+      "lines": 624
+    },
+    "packages/map_player_ui/lib/src/player/runtime_player_pokedex.dart": {
+      "sha256": "af00bd508beb3b88b00ebe4d5128cee4fd0e4ec131fc56b248944584928ae3be",
+      "lines": 601
+    },
+    "packages/map_player_ui/test/menu11_announcements_test.dart": {
+      "sha256": "62e994b24f3b9256bded1e4dbbd6b25a09e2642ce84b86d6b85a2a1a92506960",
+      "lines": 205
+    },
+    "packages/map_player_ui/test/menu11_contrast_test.dart": {
+      "sha256": "9a8c35ab1fc5068a3b5aa51875a994aa8f85aacb17c07dce65b4d69a0b608ec5",
+      "lines": 146
+    },
+    "packages/map_player_ui/test/player/menu11_certification_test.dart": {
+      "sha256": "5fc7433c7c00a053d4b59e6a7d01bc5a657708641470a110f897270beb2fa137",
+      "lines": 583
+    },
+    "packages/map_player_ui/test/player/menu11_modal_context_test.dart": {
+      "sha256": "4a7d9c3f2130474117bbec1aa42c0f7552c8c4b0e4eb1be6ab386a8c3fb5c4b6",
+      "lines": 247
+    },
+    "packages/map_player_ui/test/player/menu7_pokedex_test.dart": {
+      "sha256": "1d06774a612ae6c4e776070cbe284dd4981239c6024b6cabfef325070c528632",
+      "lines": 597
+    },
+    "packages/map_runtime/lib/src/player/runtime_player_coordinator.dart": {
+      "sha256": "2d0c8f0fb32d98cb7a5ef12ccab27410418a907e4f422e293ae5af0c7206a7cb",
+      "lines": 2185
+    },
+    "packages/map_runtime/lib/src/player/runtime_player_pause_data_builder.dart": {
+      "sha256": "0b2bac4cf17f48b7c1a03840d0e32f82df0a3b7abf208932a91bc89fe8706258",
+      "lines": 1262
+    },
+    "packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart": {
+      "sha256": "bd9c02bae9ca0f14fe1ce63b088631167b2c56c938d47456ae89a2e22723d42d",
+      "lines": 1151
+    },
+    "packages/map_runtime/test/player/runtime_player_pause_evolution_items_test.dart": {
+      "sha256": "405325967262d7e3fca8aa8d474e4921c17da01ee2a5acea4336e8b7493d0e58",
+      "lines": 180
+    },
+    "packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart": {
+      "sha256": "3fd80cd0dc34cd3c68b75970339cf55b40ea267a5ea8444bd95f43d25defeb0b",
+      "lines": 390
+    },
+    "packages/map_runtime/test/player/runtime_player_save_race_test.dart": {
+      "sha256": "0c17025a87b6dfbfa61aea610a77195427119bc5fc33696965983d62142a83e1",
+      "lines": 370
+    },
+    "packages/map_runtime/test/player/support/runtime_player_test_harness.dart": {
+      "sha256": "58d8814c320f01d4a8219f70ea43db6f0522d8f9568e753b1bf30d96aebfb7e2",
+      "lines": 625
+    }
+  },
+  "sourceProject": {
+    "path": "/Users/karim/Desktop/pokeMap Project/le_train_de_17h42",
+    "initialFingerprint": {
+      "count": 9319,
+      "sha256": "2de975940587c0370e16211f73c4c67bfb8cb9b57cca6b56d60286e6ac98af5f"
+    },
+    "finalFingerprint": {
+      "algorithm": "SHA256 of sorted relative UTF8 path immediately followed by raw file bytes, no delimiters",
+      "jsonCount": 9319,
+      "sha256": "5e1201b16cd995f322495c0918e6d921d0fdfcbecff2fc3c1b45beb3344d6d69",
+      "comparableToInitial": false
+    },
+    "finalComparisonWithClone": {
+      "identicalJsonFiles": 9316,
+      "different": [
+        "project.json",
+        "assets/.pokemap-assets.json",
+        "assets/.pokemap-media.json"
+      ],
+      "missing": 0
+    },
+    "note": "Source presentation/media changed after clone creation during concurrent work. This lot wrote gameplay only into the disposable clone. No claim that the live source remained byte-identical; no overwrite of concurrent changes."
+  },
+  "native": {
+    "clone": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/menu11_qa_20260906",
+    "saveProvenance": "Existing menu9_qa_20260906/runtime_host_launch_save.json; synthetic six-member QA party, actual Train project assets. Not a newly completed campaign.",
+    "audioLimitation": {
+      "observedOn": [
+        "87226620c-baseline",
+        "87226620c-menu11-localized"
+      ],
+      "kind": "DarwinAudioError: AVPlayerItem.Status.failed",
+      "sourceAsset": "assets/.pokemap-store/d4a118c23a6c83cd5820efeffc537f3012e03e33795ccdc3c4b4e7128181e83e.blob",
+      "evidence": "logs/menu11-native-audio-observation.log",
+      "scope": "Existing on baseline and final isolated native build; parallel media work not integrated."
+    },
+    "performanceBuild": "87226620c-menu11-reviewed",
+    "performanceBuildDifference": "Four explicit localization delegate overrides plus summary import; no root/performance code changed after the 50-cycle measurement.",
+    "finalScreenshots": {
+      "logicalWidth": 1440,
+      "logicalHeight": 900,
+      "devicePixelRatio": 1,
+      "textScale": 1,
+      "exceptions": {
+        "native-summary.png": 1.6,
+        "native-bag-target-fr.png": 1.6,
+        "native-suspended.png": "Earlier native build, 1920x921"
+      }
+    },
+    "healed": {
+      "projectFilePath": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/menu11_qa_20260906/project.json",
+      "gameCreated": true,
+      "loaded": true,
+      "paused": true,
+      "inputContext": "overworld",
+      "dialogueTextSpeed": "normal",
+      "reducedMotion": false,
+      "textScale": 1,
+      "mapId": "hanazuki-village",
+      "position": {
+        "x": 16,
+        "y": 9
+      },
+      "facing": "south",
+      "metadata": {},
+      "battle": null,
+      "facts": {
+        "fact_opening_complete": true,
+        "fact_qh05_lantern_2": true,
+        "fact_qh05_lantern_5": true,
+        "fact_qh05_started": true,
+        "fact_starter_chikorita": true,
+        "fact_starter_received": true
+      },
+      "trainer": {
+        "name": "Voyageur",
+        "avatarCharacterId": "joueur-hanazuki",
+        "pronounSet": "neutral",
+        "badgeIds": [],
+        "money": 3000,
+        "playtimeSeconds": 1375
+      },
+      "bag": {
+        "entries": [
+          {
+            "itemId": "item_rail_notebook",
+            "quantity": 1
+          },
+          {
+            "itemId": "item_sealed_letter",
+            "quantity": 1
+          },
+          {
+            "itemId": "miracle_seed",
+            "quantity": 2
+          },
+          {
+            "itemId": "poke_ball",
+            "quantity": 4
+          },
+          {
+            "itemId": "potion",
+            "quantity": 1
+          },
+          {
+            "itemId": "spell_tag",
+            "quantity": 1
+          }
+        ]
+      },
+      "rail": {
+        "activeJourneyId": null,
+        "direction": null,
+        "lifecycle": "idle_at_origin",
+        "unlockedJourneyIds": [],
+        "firstUnlockPaidJourneyIds": [],
+        "unlockedStationMapIds": [],
+        "earnedStampIds": [],
+        "semanticCurrencyBalances": {},
+        "appliedOperations": {},
+        "appliedProgressionOperations": {}
+      },
+      "party": [
+        {
+          "speciesId": "bulbasaur",
+          "level": 15,
+          "hp": 38
+        },
+        {
+          "speciesId": "charmander",
+          "level": 14,
+          "hp": 34
+        },
+        {
+          "speciesId": "squirtle",
+          "level": 13,
+          "hp": 0
+        },
+        {
+          "speciesId": "pikachu",
+          "level": 18,
+          "hp": 40
+        },
+        {
+          "speciesId": "eevee",
+          "level": 16,
+          "hp": 43
+        },
+        {
+          "speciesId": "chikorita",
+          "level": 5,
+          "hp": 19
+        }
+      ],
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaContext",
+      "status": "Success"
+    },
+    "reloaded": {
+      "projectFilePath": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/menu11_qa_20260906/project.json",
+      "gameCreated": true,
+      "loaded": true,
+      "paused": false,
+      "inputContext": "blocked",
+      "dialogueTextSpeed": "fast",
+      "reducedMotion": false,
+      "textScale": 1,
+      "mapId": "hanazuki-village",
+      "position": {
+        "x": 16,
+        "y": 9
+      },
+      "facing": "south",
+      "metadata": {},
+      "battle": null,
+      "facts": {
+        "fact_opening_complete": true,
+        "fact_qh05_lantern_2": true,
+        "fact_qh05_lantern_5": true,
+        "fact_qh05_started": true,
+        "fact_starter_chikorita": true,
+        "fact_starter_received": true
+      },
+      "trainer": {
+        "name": "Voyageur",
+        "avatarCharacterId": "joueur-hanazuki",
+        "pronounSet": "neutral",
+        "badgeIds": [],
+        "money": 3000,
+        "playtimeSeconds": 1521
+      },
+      "bag": {
+        "entries": [
+          {
+            "itemId": "item_rail_notebook",
+            "quantity": 1
+          },
+          {
+            "itemId": "item_sealed_letter",
+            "quantity": 1
+          },
+          {
+            "itemId": "miracle_seed",
+            "quantity": 2
+          },
+          {
+            "itemId": "poke_ball",
+            "quantity": 4
+          },
+          {
+            "itemId": "potion",
+            "quantity": 1
+          },
+          {
+            "itemId": "spell_tag",
+            "quantity": 1
+          }
+        ]
+      },
+      "rail": {
+        "activeJourneyId": null,
+        "direction": null,
+        "lifecycle": "idle_at_origin",
+        "unlockedJourneyIds": [],
+        "firstUnlockPaidJourneyIds": [],
+        "unlockedStationMapIds": [],
+        "earnedStampIds": [],
+        "semanticCurrencyBalances": {},
+        "appliedOperations": {},
+        "appliedProgressionOperations": {}
+      },
+      "party": [
+        {
+          "speciesId": "bulbasaur",
+          "level": 15,
+          "hp": 38
+        },
+        {
+          "speciesId": "charmander",
+          "level": 14,
+          "hp": 34
+        },
+        {
+          "speciesId": "squirtle",
+          "level": 13,
+          "hp": 0
+        },
+        {
+          "speciesId": "pikachu",
+          "level": 18,
+          "hp": 40
+        },
+        {
+          "speciesId": "eevee",
+          "level": 16,
+          "hp": 43
+        },
+        {
+          "speciesId": "chikorita",
+          "level": 5,
+          "hp": 19
+        }
+      ],
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaContext",
+      "status": "Success"
+    },
+    "final": {
+      "projectFilePath": "/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/menu11_qa_20260906/project.json",
+      "gameCreated": true,
+      "loaded": true,
+      "paused": true,
+      "inputContext": "overworld",
+      "dialogueTextSpeed": "fast",
+      "reducedMotion": false,
+      "textScale": 1,
+      "mapId": "hanazuki-village",
+      "position": {
+        "x": 16,
+        "y": 9
+      },
+      "facing": "south",
+      "metadata": {},
+      "battle": null,
+      "facts": {
+        "fact_opening_complete": true,
+        "fact_qh05_lantern_2": true,
+        "fact_qh05_lantern_5": true,
+        "fact_qh05_started": true,
+        "fact_starter_chikorita": true,
+        "fact_starter_received": true
+      },
+      "trainer": {
+        "name": "Voyageur",
+        "avatarCharacterId": "joueur-hanazuki",
+        "pronounSet": "neutral",
+        "badgeIds": [],
+        "money": 3000,
+        "playtimeSeconds": 1521
+      },
+      "bag": {
+        "entries": [
+          {
+            "itemId": "item_rail_notebook",
+            "quantity": 1
+          },
+          {
+            "itemId": "item_sealed_letter",
+            "quantity": 1
+          },
+          {
+            "itemId": "miracle_seed",
+            "quantity": 2
+          },
+          {
+            "itemId": "poke_ball",
+            "quantity": 4
+          },
+          {
+            "itemId": "potion",
+            "quantity": 1
+          },
+          {
+            "itemId": "spell_tag",
+            "quantity": 1
+          }
+        ]
+      },
+      "rail": {
+        "activeJourneyId": null,
+        "direction": null,
+        "lifecycle": "idle_at_origin",
+        "unlockedJourneyIds": [],
+        "firstUnlockPaidJourneyIds": [],
+        "unlockedStationMapIds": [],
+        "earnedStampIds": [],
+        "semanticCurrencyBalances": {},
+        "appliedOperations": {},
+        "appliedProgressionOperations": {}
+      },
+      "party": [
+        {
+          "speciesId": "bulbasaur",
+          "level": 15,
+          "hp": 38
+        },
+        {
+          "speciesId": "charmander",
+          "level": 14,
+          "hp": 34
+        },
+        {
+          "speciesId": "squirtle",
+          "level": 13,
+          "hp": 0
+        },
+        {
+          "speciesId": "pikachu",
+          "level": 18,
+          "hp": 40
+        },
+        {
+          "speciesId": "eevee",
+          "level": 16,
+          "hp": 43
+        },
+        {
+          "speciesId": "chikorita",
+          "level": 5,
+          "hp": 19
+        }
+      ],
+      "type": "_extensionType",
+      "method": "ext.flutter.player.qaContext",
+      "status": "Success"
+    },
+    "heldItemAfterReload": "Salamèche holds Rune Sort; native held-item dialog read after process restart.",
+    "modalChecks": {
+      "bagBack": "Retour",
+      "summaryClose": "Fermer",
+      "sessionTextScale": 1.6,
+      "confirmedOnFinalNativeBuild": true
+    },
+    "firstDeliveryBuild": "87226620c-menu11-localized"
+  },
+  "performance": {
+    "hardware": "MacBookPro18,3",
+    "ramBytes": 34359738368,
+    "os": "macOS 27.0 (26A5406e)",
+    "backend": "Impeller MetalSDF",
+    "mode": "profile",
+    "logicalSize": [
+      1920,
+      921
+    ],
+    "dpr": 1,
+    "baseline": "baseline-profile.json",
+    "final": "final-profile.json",
+    "baselineWarmCycles": 50,
+    "finalColdCycles": 1,
+    "finalWarmCycles": 49,
+    "baselineReadyP95Ms": 942.249125,
+    "finalReadyP95Ms": 241.5445,
+    "finalColdReadyMs": 430.794292,
+    "baselineBuildP95Ms": 1.823,
+    "finalBuildP95Ms": 2.218,
+    "baselineRasterP95Ms": 4.497,
+    "finalRasterP95Ms": 5.422,
+    "baselineRssBytes": [
+      389185536,
+      414875648
+    ],
+    "finalRssBytes": [
+      400408576,
+      434814976
+    ],
+    "decodedCacheBytesAfterFirstOpen": 8949760,
+    "decodedCacheStableAcross50Cycles": true,
+    "note": "Observed data readiness includes numeric Pokedex summary, VM overhead and 10ms polling. Frames include transitions and 180ms resumed dwell. No universal frame-time or leak-free guarantee. Bag inventory had no evolution stones."
+  },
+  "tests": {
+    "uiCombined": {
+      "passed": 536,
+      "skipped": 3,
+      "exitCode": 0,
+      "log": "logs/menu11-complete-ui-final.log",
+      "note": "Combined run before final explicit-delegates delta."
+    },
+    "finalModalDelta": {
+      "passed": 8,
+      "exitCode": 0,
+      "log": "logs/menu11-modal-delegates-green.log"
+    },
+    "matrix": {
+      "configurations": 324,
+      "targetedCases": 9,
+      "sizes": [
+        [
+          1440,
+          900
+        ],
+        [
+          1280,
+          720
+        ],
+        [
+          800,
+          600
+        ],
+        [
+          844,
+          390
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          1920,
+          1080
+        ]
+      ],
+      "scales": [
+        1,
+        1.5,
+        2
+      ],
+      "modes": [
+        "standard",
+        "insets 24/30/24/20 + reduced animation + opaque"
+      ]
+    },
+    "runtimeCatalogEvolutionCoordinator": {
+      "passed": 78,
+      "exitCode": 0,
+      "log": "logs/menu11-evolution-filter-green.log"
+    },
+    "runtimePreferencesLifecycleCommands": {
+      "passed": 62,
+      "exitCode": 0,
+      "log": "logs/menu11-runtime-green-final.log"
+    },
+    "preview": {
+      "passed": 16,
+      "exitCode": 0,
+      "log": "logs/menu11-preview-final.log"
+    },
+    "runtimeSmoke": {
+      "passed": 3,
+      "exitCode": 0,
+      "log": "logs/menu11-runtime-smoke.log"
+    },
+    "hostSmoke": {
+      "passed": 13,
+      "exitCode": 0,
+      "log": "logs/menu11-host-smoke.log"
+    },
+    "exportApi": {
+      "passed": 1,
+      "exitCode": 0,
+      "log": "logs/menu11-export-api.log"
+    },
+    "distributionPreflight": {
+      "passed": 9,
+      "exitCode": 0,
+      "log": "logs/menu11-export-preflight.log"
+    },
+    "mcpLive": {
+      "passed": 1,
+      "exitCode": 0,
+      "log": "logs/menu11-mcp-live.log"
+    },
+    "initialDelivery": true
+  },
+  "reportVerification": {
+    "linksAndAnchors": "passed",
+    "browserRender": "NOT_VERIFIED: browser URL security policy blocked local-file navigation"
+  },
+  "limits": [
+    "Lot 10 Quest Book / FS-NAR-004 remains absent; quest journey not certifiable.",
+    "No fresh Train export installed into Hub and replayed; native isolated runtime host only.",
+    "No physical controller, mobile device or screen-reader acceptance.",
+    "No fresh native PP-item/move-learning/replacement/capture journey, or native injected save failure.",
+    "Visual acceptance and approved implementation goldens pending Yoahn.",
+    "Catalog lacks item art and contains English descriptions/ability/nature labels. No borrowed PSDK art imported.",
+    "Contrast regression measures root hint; not a WCAG audit of every text.",
+    "Preview contains summary placeholders and does not prove every installed route.",
+    "Massive inventories and actual owned-stone catalog load are outside measured performance case."
+  ],
+  "review": {
+    "date": "2026-09-06",
+    "verdict": "PARTIAL",
+    "status": "TO REVIEW",
+    "fixes": [
+      "Explicit 48px macOS switch hit target, verified using macOS theme construction and edge clicks.",
+      "Cancel queued commands and back actions after coordinator disposal.",
+      "Finish an active save transaction without publishing stale UI/latestSave after session disposal; cancel queued title return.",
+      "Always stop the profile probe, preserve partial cycles and the primary error, report cleanup errors separately."
+    ],
+    "tests": {
+      "ui": {
+        "passed": 538,
+        "skipped": 3,
+        "exitCode": 0,
+        "finalLine": "00:39 +538 ~3: All tests passed!",
+        "log": "logs/menu11r-ui-final.log"
+      },
+      "matrix": {
+        "configurations": 324,
+        "targetedCases": 11,
+        "total": 335
+      },
+      "runtime": {
+        "passed": 124,
+        "exitCode": 0,
+        "finalLine": "00:03 +124: All tests passed!",
+        "log": "logs/menu11r-runtime-consolidated-final.log"
+      },
+      "preview": {
+        "passed": 16,
+        "exitCode": 0,
+        "finalLine": "00:03 +16: All tests passed!",
+        "log": "logs/menu11r-preview-final.log"
+      },
+      "driver": {
+        "passed": 3,
+        "exitCode": 0,
+        "log": "logs/menu11r-driver-final.log"
+      },
+      "mcp": {
+        "buildExitCode": 0,
+        "passed": 1,
+        "exitCode": 0,
+        "log": "logs/menu11r-mcp-live.log"
+      },
+      "analysis": {
+        "dartFiles": 23,
+        "result": "No issues found!",
+        "exitCode": 0,
+        "logs": [
+          "logs/menu11r-ui-analyze-final.log",
+          "logs/menu11r-runtime-analyze-direct-final.log",
+          "logs/menu11r-editor-analyze-final.log",
+          "logs/menu11r-probe-analyze-final.log"
+        ]
+      },
+      "expectedRed": {
+        "macOSHitTargetFailures": 2,
+        "queuedDisposedCommandFailures": 4,
+        "saveDisposedFailures": 2,
+        "driverFailures": 3
+      }
+    },
+    "native": {
+      "revision": "87226620c-menu11-reviewed-2",
+      "mode": "profile",
+      "buildExitCode": 0,
+      "buildSize": "77.7MB",
+      "buildLog": "logs/menu11r-native-build.log",
+      "sourceFileCount": 25,
+      "isolatedSourcesMatchWorkspace": true,
+      "foreignFilesExcluded": 8,
+      "logicalSize": {
+        "width": 1821,
+        "height": 884
+      },
+      "dpr": 1,
+      "viewportStableAcross50Cycles": true,
+      "cycles": 50,
+      "status": "completed",
+      "recordingAfter": false,
+      "mapId": "hanazuki-village",
+      "position": {
+        "x": 16,
+        "y": 9
+      },
+      "positionUnchanged": true,
+      "coldReadyMs": 398.745292,
+      "warmCycles": 49,
+      "warmReadyP95Ms": 194.66391699999986,
+      "buildP95Ms": 2.004,
+      "rasterP95Ms": 4.091,
+      "rssBytes": {
+        "before": 374685696,
+        "after": 405585920
+      },
+      "decodedCacheBytes": {
+        "before": 7372800,
+        "afterFirstCycle": 8949760,
+        "after": 8949760
+      },
+      "decodedCacheStableAfterFirstCycle": true,
+      "frameMeasurementLimit": "Frame samples received through batched callbacks during recording; not exact per-cycle attribution.",
+      "comparisonLimit": "1821x884 differs from the historical 1920x921 before/after benchmark; no direct performance gain claimed between these runs.",
+      "receipt": "review-profile.json",
+      "log": "logs/menu11r-profile.log",
+      "switch": {
+        "size": {
+          "width": 60,
+          "height": 48
+        },
+        "edgeOn": {
+          "x": 1632.5,
+          "y": 297,
+          "reducedMotion": true
+        },
+        "edgeOff": {
+          "x": 1632.5,
+          "y": 343,
+          "reducedMotion": false
+        },
+        "screenshot": "review-native-options.png"
+      },
+      "save": {
+        "confirmation": "Partie sauvegardée",
+        "screenshot": "review-native-save.png"
+      }
+    },
+    "independentReviews": [
+      {
+        "reviewer": "Erdos",
+        "scope": "Runtime lifecycle and save races",
+        "verdict": "Favorable after repairs; 124 tests pass."
+      },
+      {
+        "reviewer": "Noether",
+        "scope": "macOS hit targets and matrix",
+        "verdict": "Favorable after fixing the theme fixture and 48px switch target."
+      },
+      {
+        "reviewer": "Schrodinger",
+        "scope": "Final runtime delta, driver cleanup and evidence",
+        "verdict": "No blocking defect identified in reviewed fixes; global PARTIAL remains."
+      }
+    ],
+    "roadmap": "FG-160 to FG-164: added partial coverage; FG-165 remains DONE as already recorded. Roadmap not modified.",
+    "foreignFileHashes": {
+      "examples/playable_runtime_host/lib/src/runtime_startup_host.dart": "11d0ca4836ebfc67c2b8c7fdff8df4d63e848fa55a0fe1e41b467c8d2c510979",
+      "examples/playable_runtime_host/test/phase_a_golden_slice_launch_test.dart": "fbb87780ddb0c5dc559f6594996a251444cc5678f4a8a557d27ec1ebb427141d",
+      "packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart": "907526ea6ae687bf7278ae7b38d1527919264e9c8b3d1c6cf113edfb57753f55",
+      "packages/map_player_ui/lib/src/player/player_intro_video_player.dart": "337a8b8a62cb3cbf3a073936da3363b82366072f75d09f1453ecbbc0d7c9933b",
+      "packages/map_player_ui/lib/src/player/presentation_media_alias_store.dart": "8d5b6b1081a68e93082d31c46fce84ee03aeff26500ed1098d2fb04ce504e12c",
+      "packages/map_player_ui/test/player/presentation_media_alias_store_test.dart": "c2251c8a15aaf2de5e7ff38aeb89ff2a1492b41d221cd77815b8bb0d4cc0f700",
+      "packages/map_authoring/lib/src/domains/project/runtime_audio_actions.dart": "f3f38d739b09300b1df19b1ffb6a26bf76183127560bbdaee3176e264821e34d",
+      "packages/map_authoring/test/domains/project/runtime_audio_actions_test.dart": "6016d77a109dcd753a359f6c778bb1227d8427ef02b3466bdc7d756775c38e8b"
+    }
+  }
+}

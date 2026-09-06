@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../foundation/player_menu_components.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_pause_summary_card.dart';
 
@@ -163,18 +164,13 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 520),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                        color: theme.base.withValues(alpha: .25),
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(hint!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: theme.subtitle),
-                    ),
+                  child: PlayerMenuPanel(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(hint!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.subtitle),
                   ),
                 ),
               ),
@@ -193,10 +189,13 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
                     if (hasHint && !expanded)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(hint!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.body),
+                        child: PlayerMenuPanel(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(hint!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.body),
+                        ),
                       ),
                     if (showSummary) summary,
                     if (extraDetail != null) extraDetail!

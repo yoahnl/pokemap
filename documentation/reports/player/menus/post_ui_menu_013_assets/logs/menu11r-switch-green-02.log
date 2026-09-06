@@ -1,0 +1,6 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/menu11_certification_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: MENU11 macOS runtime-player-reduced-motion-toggle has a 48 pixel interactive target (variant: TargetPlatform.macOS)
+00:01 +1: MENU11 macOS runtime-player-high-contrast-toggle has a 48 pixel interactive target (variant: TargetPlatform.macOS)
+00:01 +2: (tearDownAll)
+00:01 +2: All tests passed!

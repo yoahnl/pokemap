@@ -1,0 +1,48 @@
+Command: flutter test --no-pub test/player/runtime_player_coordinator_pause_test.dart --plain-name is cancelled after coordinator disposal --reporter expanded
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart
+00:00 +0: queued open bag is cancelled after coordinator disposal
+00:00 +0 -1: queued open bag is cancelled after coordinator disposal [E]
+  Expected: RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.cancelled>
+    Actual: RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.accepted>
+
+  package:matcher                                               expect
+  package:flutter_test/src/widget_tester.dart 473:18            expect
+  test/player/runtime_player_coordinator_pause_test.dart 553:7  main.<fn>
+
+00:00 +0 -1: queued preferences is cancelled after coordinator disposal
+00:00 +0 -2: queued preferences is cancelled after coordinator disposal [E]
+  Expected: <1>
+    Actual: <2>
+
+  package:matcher                                               expect
+  package:flutter_test/src/widget_tester.dart 473:18            expect
+  test/player/runtime_player_coordinator_pause_test.dart 556:7  main.<fn>
+
+00:00 +0 -2: queued back is cancelled after coordinator disposal
+00:00 +0 -3: queued back is cancelled after coordinator disposal [E]
+  Expected: RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.cancelled>
+    Actual: RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.accepted>
+
+  package:matcher                                               expect
+  package:flutter_test/src/widget_tester.dart 473:18            expect
+  test/player/runtime_player_coordinator_pause_test.dart 553:7  main.<fn>
+
+00:00 +0 -3: queued service back is cancelled after coordinator disposal
+00:00 +0 -4: queued service back is cancelled after coordinator disposal [E]
+  Expected: RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.cancelled>
+    Actual: RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.unavailable>
+
+  package:matcher                                               expect
+  package:flutter_test/src/widget_tester.dart 473:18            expect
+  test/player/runtime_player_coordinator_pause_test.dart 553:7  main.<fn>
+
+00:00 +0 -4: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: queued back is cancelled after coordinator disposal
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: queued open bag is cancelled after coordinator disposal
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: queued preferences is cancelled after coordinator disposal
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: queued service back is cancelled after coordinator disposal
+
+Exit code: 1
+Elapsed seconds: 4.74

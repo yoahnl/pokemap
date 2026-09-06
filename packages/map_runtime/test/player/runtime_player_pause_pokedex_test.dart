@@ -88,10 +88,11 @@ void main() {
   Future<RuntimePlayerPauseDetailSnapshot> buildDex(
     GameState gameState, {
     String locale = 'fr',
+    Directory? projectRoot,
   }) async {
     final sections = await const RuntimePlayerPauseDataBuilder().build(
       gameState: gameState,
-      projectRootDirectory: root.path,
+      projectRootDirectory: (projectRoot ?? root).path,
       pokemonConfig: _config,
       locale: locale,
     );
@@ -183,6 +184,94 @@ void main() {
     await directory.delete();
     expect(
         (await buildDex(state)).emptyMessage, contains('ne peut pas être lu'));
+  });
+
+  test('species cache observes edits additions and removals', () async {
+    final state = GameState(
+      saveId: 'dex',
+      progression: const PlayerProgression(seenSpeciesIds: ['ivysaur']),
+    );
+    final file = File('${root.path}/data/pokemon/species/0002-ivysaur.json');
+    final original = await file.readAsString();
+    final originalStat = await file.stat();
+    expect(
+        (await buildDex(state, locale: 'en'))
+            .entries
+            .singleWhere((entry) => entry.id == 'ivysaur')
+            .title,
+        'Ivysaur');
+    await file.writeAsString(original.replaceFirst('Ivysaur', 'Renewed'));
+    await file
+        .setLastModified(originalStat.modified.add(const Duration(seconds: 1)));
+    expect(
+        (await buildDex(state, locale: 'en'))
+            .entries
+            .singleWhere((entry) => entry.id == 'ivysaur')
+            .title,
+        'Renewed');
+    final modifiedTime = (await file.stat()).modified;
+    await file.writeAsString(original.replaceFirst('Ivysaur', 'Longer name'));
+    await file.setLastModified(modifiedTime);
+    expect(
+        (await buildDex(state, locale: 'en'))
+            .entries
+            .singleWhere((entry) => entry.id == 'ivysaur')
+            .title,
+        'Longer name');
+    final added = File('${file.parent.path}/0003-venusaur.json');
+    await added.writeAsString(jsonEncode({'id': 'venusaur', 'nationalDex': 3}));
+    expect((await buildDex(state)).entries.map((entry) => entry.id),
+        ['bulbasaur', 'ivysaur', 'venusaur', 'charmander', 'nameless_relic']);
+    await file.delete();
+    expect((await buildDex(state)).entries.map((entry) => entry.id),
+        ['bulbasaur', 'venusaur', 'charmander', 'nameless_relic']);
+  });
+
+  test('species cache evicts the least recently used project after four roots',
+      () async {
+    final state = GameState(
+      saveId: 'dex',
+      progression: const PlayerProgression(seenSpeciesIds: ['ivysaur']),
+    );
+    await buildDex(state);
+    final projects = <Directory>[];
+    for (var index = 0; index < 4; index++) {
+      final project = await _projectRoot();
+      projects.add(project);
+      addTearDown(() => project.delete(recursive: true));
+      await File('${project.path}/data/pokemon/species/0002-ivysaur.json')
+          .setLastModified(DateTime.utc(2026, 1, 1));
+      if (index == 3) await buildDex(state);
+      await buildDex(state, projectRoot: project);
+    }
+    final evicted = projects.first;
+    final file = File('${evicted.path}/data/pokemon/species/0002-ivysaur.json');
+    final original = await file.readAsString();
+    final originalStat = await file.stat();
+    await file.writeAsString(original.replaceFirst('Ivysaur', 'Renewed'));
+    await file.setLastModified(originalStat.modified);
+    expect((await file.stat()).size, originalStat.size);
+    expect((await file.stat()).modified, originalStat.modified);
+
+    final rebuilt = await buildDex(state, projectRoot: evicted, locale: 'en');
+    expect(rebuilt.entries.singleWhere((entry) => entry.id == 'ivysaur').title,
+        'Renewed');
+  });
+
+  test('invalid species catalogs are retried even with an unchanged signature',
+      () async {
+    final state = GameState(saveId: 'dex');
+    final file = File('${root.path}/data/pokemon/species/0002-ivysaur.json');
+    final valid = await file.readAsString();
+    final originalStat = await file.stat();
+    await file.writeAsString(valid.replaceFirst('{', '!'));
+    await file.setLastModified(originalStat.modified);
+    expect(
+        (await buildDex(state)).emptyMessage, contains('ne peut pas être lu'));
+    await file.writeAsString(valid);
+    await file.setLastModified(originalStat.modified);
+
+    expect((await buildDex(state)).entries, hasLength(4));
   });
 
   group('BETA-SYS-001 the pokedex projection answers to the game state', () {

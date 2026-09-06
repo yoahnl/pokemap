@@ -412,7 +412,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
               RuntimePlayerPokedexFilter.caught => _text('Capturés', 'Caught'),
             },
             selected: _navigation._filter == filter,
-            minimumHeight: 44,
+            minimumHeight: 48,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             onPressed: () {

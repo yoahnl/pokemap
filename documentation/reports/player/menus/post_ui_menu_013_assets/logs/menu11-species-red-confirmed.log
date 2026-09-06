@@ -1,0 +1,40 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart
+00:00 +0: public media and description follow knowledge and exact form
+00:00 +1: unknown projection rejects descriptions and resolved images
+00:00 +2: invalid catalog is distinct from empty and repairs invalidate cache
+00:00 +3: species cache observes edits additions and removals
+00:00 +4: species cache evicts the least recently used project after four roots
+00:00 +4 -1: species cache evicts the least recently used project after four roots [E]
+  Expected: 'Renewed'
+    Actual: 'Ivysaur'
+     Which: is different.
+            Expected: Renewed
+              Actual: Ivysaur
+                      ^
+             Differ at offset 0
+
+  package:matcher                                           expect
+  package:flutter_test/src/widget_tester.dart 473:18        expect
+  test/player/runtime_player_pause_pokedex_test.dart 257:5  main.<fn>
+
+00:00 +4 -1: invalid species catalogs are retried even with an unchanged signature
+00:00 +4 -2: invalid species catalogs are retried even with an unchanged signature [E]
+  Expected: an object with length of <4>
+    Actual: []
+     Which: has length of <0>
+
+  package:matcher                                           expect
+  package:flutter_test/src/widget_tester.dart 473:18        expect
+  test/player/runtime_player_pause_pokedex_test.dart 274:5  main.<fn>
+
+00:00 +4 -2: BETA-SYS-001 the pokedex projection answers to the game state an unknown species hides its name and shows Inconnu
+00:00 +5 -2: BETA-SYS-001 the pokedex projection answers to the game state a seen species shows its localized name, state and types
+00:00 +6 -2: BETA-SYS-001 the pokedex projection answers to the game state owning a species dominates: party and PC both mean Capturé
+00:00 +7 -2: BETA-SYS-001 the pokedex projection answers to the game state entries are ordered by national dex number
+00:00 +8 -2: BETA-SYS-001 the pokedex projection answers to the game state a species without names falls back to a humanized id once seen
+00:00 +9 -2: BETA-SYS-001 the pokedex projection answers to the game state the english locale localizes the knowledge states
+00:00 +10 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: invalid species catalogs are retried even with an unchanged signature
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_pause_pokedex_test.dart: species cache evicts the least recently used project after four roots

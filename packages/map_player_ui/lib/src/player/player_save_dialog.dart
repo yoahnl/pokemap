@@ -155,96 +155,123 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
                   child: PlayerMenuPanel(
                     key: const ValueKey('runtime-save-panel'),
                     primary: true,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Flexible(
-                          child: SingleChildScrollView(
-                            child: Column(
+                    child: LayoutBuilder(
+                        builder: (context, constraints) => Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                if (hasResult)
-                                  Semantics(
-                                    key: const ValueKey('runtime-save-result'),
-                                    container: true,
-                                    liveRegion: true,
+                                Flexible(
+                                  child: SingleChildScrollView(
                                     child: Column(
+                                      mainAxisSize: MainAxisSize.min,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
                                       children: [
-                                        Text(
-                                          _receipt != null
-                                              ? strings.success
-                                              : _lastOperationSaves
-                                                  ? strings.failure
-                                                  : strings.exitFailure,
-                                          style: tokens.title,
-                                        ),
-                                        if (_failure case final failure?) ...[
+                                        if (hasResult)
+                                          Semantics(
+                                            key: const ValueKey(
+                                                'runtime-save-result'),
+                                            container: true,
+                                            liveRegion: true,
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.stretch,
+                                              children: [
+                                                Text(
+                                                  _receipt != null
+                                                      ? strings.success
+                                                      : _lastOperationSaves
+                                                          ? strings.failure
+                                                          : strings.exitFailure,
+                                                  style: tokens.title,
+                                                ),
+                                                if (_failure
+                                                    case final failure?) ...[
+                                                  const SizedBox(
+                                                      height: PlayerSpacing.md),
+                                                  Text(failure,
+                                                      style: tokens.body),
+                                                ],
+                                                if (_receipt
+                                                    case final receipt?) ...[
+                                                  const SizedBox(
+                                                      height: PlayerSpacing.md),
+                                                  Text(
+                                                      strings.target(
+                                                          receipt.address),
+                                                      style: tokens.body),
+                                                ],
+                                              ],
+                                            ),
+                                          )
+                                        else ...[
+                                          Text(
+                                            widget.returnToTitle
+                                                ? strings.exitTitle
+                                                : strings.title,
+                                            style: tokens.title,
+                                          ),
                                           const SizedBox(
-                                              height: PlayerSpacing.md),
-                                          Text(failure, style: tokens.body),
+                                              height: PlayerSpacing.lg),
+                                          _summary(context, strings),
+                                          if (widget.returnToTitle) ...[
+                                            const SizedBox(
+                                                height: PlayerSpacing.md),
+                                            Text(strings.exitWarning,
+                                                style: tokens.body),
+                                          ],
                                         ],
-                                        if (_receipt case final receipt?) ...[
+                                        if (_pending) ...[
                                           const SizedBox(
-                                              height: PlayerSpacing.md),
-                                          Text(strings.target(receipt.address),
-                                              style: tokens.body),
+                                              height: PlayerSpacing.lg),
+                                          Semantics(
+                                            liveRegion: true,
+                                            label: _lastOperationSaves
+                                                ? strings.saving
+                                                : strings.exiting,
+                                            excludeSemantics: true,
+                                            child: Row(
+                                              children: [
+                                                SizedBox.square(
+                                                  dimension: PlayerSpacing.lg,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    color: tokens.accent,
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                    width: PlayerSpacing.sm),
+                                                Expanded(
+                                                  child: Text(
+                                                    _lastOperationSaves
+                                                        ? strings.saving
+                                                        : strings.exiting,
+                                                    style: tokens.body,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         ],
                                       ],
                                     ),
-                                  )
-                                else ...[
-                                  Text(
-                                    widget.returnToTitle
-                                        ? strings.exitTitle
-                                        : strings.title,
-                                    style: tokens.title,
                                   ),
-                                  const SizedBox(height: PlayerSpacing.lg),
-                                  _summary(context, strings),
-                                  if (widget.returnToTitle) ...[
-                                    const SizedBox(height: PlayerSpacing.md),
-                                    Text(strings.exitWarning,
-                                        style: tokens.body),
-                                  ],
-                                ],
-                                if (_pending) ...[
-                                  const SizedBox(height: PlayerSpacing.lg),
-                                  Row(
-                                    children: [
-                                      SizedBox.square(
-                                        dimension: PlayerSpacing.lg,
-                                        child: CircularProgressIndicator(
-                                          color: tokens.accent,
-                                        ),
-                                      ),
-                                      const SizedBox(width: PlayerSpacing.sm),
-                                      Expanded(
-                                        child: Text(
-                                          _lastOperationSaves
-                                              ? strings.saving
-                                              : strings.exiting,
-                                          style: tokens.body,
-                                        ),
-                                      ),
-                                    ],
+                                ),
+                                const SizedBox(height: PlayerSpacing.lg),
+                                ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                      maxHeight: constraints.maxHeight / 2),
+                                  child: SingleChildScrollView(
+                                    child: ValueListenableBuilder<
+                                        RuntimePlayerSnapshot>(
+                                      valueListenable: widget.snapshot,
+                                      builder: (context, snapshot, _) =>
+                                          _actions(context, strings),
+                                    ),
                                   ),
-                                ],
+                                ),
                               ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: PlayerSpacing.lg),
-                        ValueListenableBuilder<RuntimePlayerSnapshot>(
-                          valueListenable: widget.snapshot,
-                          builder: (context, snapshot, _) =>
-                              _actions(context, strings),
-                        ),
-                      ],
-                    ),
+                            )),
                   ),
                 ),
               ),

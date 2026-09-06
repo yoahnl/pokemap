@@ -3,6 +3,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../localization/player_localizations.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_hp_tone.dart';
 import 'player_pokemon_summary_strings.dart';
@@ -282,42 +284,58 @@ Future<void> showPlayerPokemonSummaryDialog(
       ProjectPresentationSurfaceRole.party,
 }) {
   final strings = PlayerPokemonSummaryStrings.of(context);
+  final locale = Localizations.localeOf(context);
+  final mediaQuery = MediaQuery.of(context);
+  final opaque = context
+          .dependOnInheritedWidgetOfExactType<PlayerMenuThemeScope>()
+          ?.opaque ??
+      false;
   return showDialog<void>(
     context: context,
     builder: (context) {
-      final availableHeight = MediaQuery.sizeOf(context).height - 32;
-      return Dialog(
-        insetPadding: const EdgeInsets.all(PlayerSpacing.md),
-        child: SizedBox(
-          width: 520,
-          height: availableHeight.clamp(240, 640).toDouble(),
-          child: PlayerPanel(
-            elevated: true,
-            padding: const EdgeInsets.all(PlayerSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: PlayerPokemonSummarySheet(
-                      summary: summary,
-                      surfaceRole: surfaceRole,
+      final availableHeight = mediaQuery.size.height - 32;
+      return Localizations.override(
+          context: context,
+          locale: locale,
+          delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+          child: MediaQuery(
+              data: mediaQuery,
+              child: PlayerMenuThemeScope(
+                  role: surfaceRole,
+                  opaque: opaque,
+                  child: Dialog(
+                    insetPadding: const EdgeInsets.all(PlayerSpacing.md),
+                    child: SizedBox(
+                      width: 520,
+                      height: availableHeight.clamp(240, 640).toDouble(),
+                      child: PlayerPanel(
+                        elevated: true,
+                        padding: const EdgeInsets.all(PlayerSpacing.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: PlayerPokemonSummarySheet(
+                                  summary: summary,
+                                  surfaceRole: surfaceRole,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: PlayerSpacing.md),
+                            PlayerActionButton(
+                              key: const ValueKey<String>(
+                                  'pokemon-summary-close'),
+                              label: strings.close,
+                              icon: Icons.close,
+                              autofocus: true,
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: PlayerSpacing.md),
-                PlayerActionButton(
-                  key: const ValueKey<String>('pokemon-summary-close'),
-                  label: strings.close,
-                  icon: Icons.close,
-                  autofocus: true,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+                  ))));
     },
   );
 }

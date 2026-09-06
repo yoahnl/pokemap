@@ -1,0 +1,62 @@
+✖ a failed cycle stops recording and preserves successful cycles (560.22325ms)
+✖ cleanup failure preserves the original failure in a partial receipt (178.273875ms)
+✖ successful cold-only run records completion without a warm sample (535.409542ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1431.605625
+
+✖ failing tests:
+
+test at tool/menu11_profile_check.test.mjs:85:1
+✖ a failed cycle stops recording and preserves successful cycles (560.22325ms)
+  Error: ENOENT: no such file or directory, open '/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu11-driver-Xe5z2g/receipt.json'
+      at async open (node:internal/fs/promises:1287:25)
+      at async readFile (node:internal/fs/promises:1938:14)
+      at async runFixture (file:///Users/karim/Project/pokemonProject/examples/playable_runtime_host/tool/menu11_profile_check.test.mjs:78:44)
+      at async TestContext.<anonymous> (file:///Users/karim/Project/pokemonProject/examples/playable_runtime_host/tool/menu11_profile_check.test.mjs:86:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu11-driver-Xe5z2g/receipt.json'
+  }
+
+test at tool/menu11_profile_check.test.mjs:95:1
+✖ cleanup failure preserves the original failure in a partial receipt (178.273875ms)
+  Error: ENOENT: no such file or directory, open '/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu11-driver-iKzAVK/receipt.json'
+      at async open (node:internal/fs/promises:1287:25)
+      at async readFile (node:internal/fs/promises:1938:14)
+      at async runFixture (file:///Users/karim/Project/pokemonProject/examples/playable_runtime_host/tool/menu11_profile_check.test.mjs:78:44)
+      at async TestContext.<anonymous> (file:///Users/karim/Project/pokemonProject/examples/playable_runtime_host/tool/menu11_profile_check.test.mjs:96:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/menu11-driver-iKzAVK/receipt.json'
+  }
+
+test at tool/menu11_profile_check.test.mjs:105:1
+✖ successful cold-only run records completion without a warm sample (535.409542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'completed'
+
+      at TestContext.<anonymous> (file:///Users/karim/Project/pokemonProject/examples/playable_runtime_host/tool/menu11_profile_check.test.mjs:108:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

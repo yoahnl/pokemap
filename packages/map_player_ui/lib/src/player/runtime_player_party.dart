@@ -477,115 +477,148 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
 
   void _showActions() {
     final entry = _selected;
+    final locale = Localizations.localeOf(context);
+    final mediaQuery = MediaQuery.of(context);
+    final opaque = context.playerMenuTheme.opaque;
     showDialog<void>(
         context: context,
-        builder: (_) => PlayerMenuThemeScope(
-            role: ProjectPresentationSurfaceRole.party,
-            child: Dialog(
-                child: SingleChildScrollView(
-                    child: PlayerMenuPanel(
-                        child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                  Text(entry.title, style: context.playerMenuTheme.subtitle),
-                  const SizedBox(height: 12),
-                  _actions(entry, modal: true),
-                  const SizedBox(height: 12),
-                  PlayerActionButton(
-                      label: context.playerL10n.back,
-                      icon: Icons.arrow_back,
-                      secondary: true,
-                      onPressed: () => Navigator.of(context).pop()),
-                ])))))).then((_) => _returnToMember());
+        builder: (_) => Localizations.override(
+            context: context,
+            locale: locale,
+            delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+            child: MediaQuery(
+                data: mediaQuery,
+                child: PlayerMenuThemeScope(
+                    role: ProjectPresentationSurfaceRole.party,
+                    opaque: opaque,
+                    child: Dialog(
+                        child: SingleChildScrollView(
+                            child: PlayerMenuPanel(
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                          Text(entry.title,
+                              style: context.playerMenuTheme.subtitle),
+                          const SizedBox(height: 12),
+                          _actions(entry, modal: true),
+                          const SizedBox(height: 12),
+                          PlayerActionButton(
+                              label: context.playerL10n.back,
+                              icon: Icons.arrow_back,
+                              secondary: true,
+                              onPressed: () => Navigator.of(context).pop()),
+                        ])))))))).then((_) => _returnToMember());
   }
 
   void _showHeldItems(
       BuildContext context, RuntimePlayerHeldItemActionSnapshot action) {
     final strings = PlayerBagStrings.of(context);
+    final locale = Localizations.localeOf(context);
+    final mediaQuery = MediaQuery.of(context);
+    final opaque = context.playerMenuTheme.opaque;
     showDialog<void>(
         context: context,
-        builder: (_) => PlayerMenuThemeScope(
-            role: ProjectPresentationSurfaceRole.party,
-            child: Dialog(
-              insetPadding: const EdgeInsets.all(16),
-              child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(maxWidth: 520, maxHeight: 640),
-                  child: SingleChildScrollView(
-                      key: const ValueKey('party-held-dialog-scroll'),
-                      child: PlayerMenuPanel(
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                            Text(
-                                strings.heldItemSummary(
-                                    action.currentItemLabel ??
-                                        PlayerPokemonSummaryStrings.of(context)
-                                            .none),
-                                style: context.playerMenuTheme.subtitle),
-                            const SizedBox(height: 8),
-                            Text(
-                                _text(
-                                    'Donner retire un objet du sac. Remplacer ou retirer remet l’objet actuel dans le sac.',
-                                    'Giving takes one item from the bag. Replacing or taking returns the current item to the bag.'),
-                                style: context.playerMenuTheme.meta),
-                            const SizedBox(height: 12),
-                            Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  for (final option in action.options)
-                                    Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 8),
-                                        child: PlayerActionButton(
-                                            key: ValueKey(
-                                                'runtime-player-held-option-${action.partyTargetId}-${option.itemTargetId}'),
-                                            label: action.hasCurrentItem
-                                                ? strings.replaceHeldItem(
-                                                    option.label)
-                                                : strings
-                                                    .giveHeldItem(option.label),
-                                            icon: Icons.swap_horiz,
-                                            onPressed: () {
-                                              Navigator.of(context).pop();
-                                              unawaited(_emit(
-                                                  RuntimePlayerPauseCommand
-                                                      .equipHeldItem(
-                                                          itemTargetId: option
-                                                              .itemTargetId,
-                                                          partyTargetId: action
-                                                              .partyTargetId)));
-                                            })),
-                                  if (action.options.isEmpty)
-                                    Text(_text(
-                                        'Aucun objet compatible dans le sac.',
-                                        'No compatible item in the bag.')),
-                                ]),
-                            if (action.currentItemLabel case final item?)
-                              PlayerActionButton(
-                                  key: ValueKey(
-                                      'runtime-player-held-take-${action.partyTargetId}'),
-                                  label: strings.takeHeldItem(item),
-                                  icon: Icons.remove_circle_outline,
-                                  secondary: true,
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                    unawaited(_emit(RuntimePlayerPauseCommand
-                                        .unequipHeldItem(
-                                            partyTargetId:
-                                                action.partyTargetId)));
-                                  }),
-                            const SizedBox(height: 8),
-                            PlayerActionButton(
-                                key:
-                                    const ValueKey('runtime-player-held-close'),
-                                icon: Icons.close,
-                                label: strings.close,
-                                secondary: true,
-                                onPressed: () => Navigator.of(context).pop()),
-                          ])))),
-            ))).then((_) => _returnToMember());
+        builder: (_) => Localizations.override(
+            context: context,
+            locale: locale,
+            delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+            child: MediaQuery(
+                data: mediaQuery,
+                child: PlayerMenuThemeScope(
+                    role: ProjectPresentationSurfaceRole.party,
+                    opaque: opaque,
+                    child: Dialog(
+                      insetPadding: const EdgeInsets.all(16),
+                      child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                              maxWidth: 520, maxHeight: 640),
+                          child: SingleChildScrollView(
+                              key: const ValueKey('party-held-dialog-scroll'),
+                              child: PlayerMenuPanel(
+                                  child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                    Text(
+                                        strings.heldItemSummary(
+                                            action.currentItemLabel ??
+                                                PlayerPokemonSummaryStrings.of(
+                                                        context)
+                                                    .none),
+                                        style:
+                                            context.playerMenuTheme.subtitle),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                        _text(
+                                            'Donner retire un objet du sac. Remplacer ou retirer remet l’objet actuel dans le sac.',
+                                            'Giving takes one item from the bag. Replacing or taking returns the current item to the bag.'),
+                                        style: context.playerMenuTheme.meta),
+                                    const SizedBox(height: 12),
+                                    Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          for (final option in action.options)
+                                            Padding(
+                                                padding: const EdgeInsets.only(
+                                                    bottom: 8),
+                                                child: PlayerActionButton(
+                                                    key: ValueKey(
+                                                        'runtime-player-held-option-${action.partyTargetId}-${option.itemTargetId}'),
+                                                    label: action.hasCurrentItem
+                                                        ? strings
+                                                            .replaceHeldItem(
+                                                                option.label)
+                                                        : strings.giveHeldItem(
+                                                            option.label),
+                                                    icon: Icons.swap_horiz,
+                                                    onPressed: () {
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                      unawaited(_emit(
+                                                          RuntimePlayerPauseCommand
+                                                              .equipHeldItem(
+                                                                  itemTargetId:
+                                                                      option
+                                                                          .itemTargetId,
+                                                                  partyTargetId:
+                                                                      action
+                                                                          .partyTargetId)));
+                                                    })),
+                                          if (action.options.isEmpty)
+                                            Text(_text(
+                                                'Aucun objet compatible dans le sac.',
+                                                'No compatible item in the bag.')),
+                                        ]),
+                                    if (action.currentItemLabel
+                                        case final item?)
+                                      PlayerActionButton(
+                                          key: ValueKey(
+                                              'runtime-player-held-take-${action.partyTargetId}'),
+                                          label: strings.takeHeldItem(item),
+                                          icon: Icons.remove_circle_outline,
+                                          secondary: true,
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            unawaited(_emit(
+                                                RuntimePlayerPauseCommand
+                                                    .unequipHeldItem(
+                                                        partyTargetId: action
+                                                            .partyTargetId)));
+                                          }),
+                                    const SizedBox(height: 8),
+                                    PlayerActionButton(
+                                        key: const ValueKey(
+                                            'runtime-player-held-close'),
+                                        icon: Icons.close,
+                                        label: strings.close,
+                                        secondary: true,
+                                        onPressed: () =>
+                                            Navigator.of(context).pop()),
+                                  ])))),
+                    ))))).then((_) => _returnToMember());
   }
 }

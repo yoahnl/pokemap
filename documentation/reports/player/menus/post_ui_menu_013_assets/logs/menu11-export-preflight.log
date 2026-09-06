@@ -1,0 +1,11 @@
+00:00 +0: loading test/game_package_personalization_preflight_test.dart
+00:00 +0: GamePackagePersonalizationPreflight illustrated menu is verified in the actual packaged inventory
+00:00 +1: GamePackagePersonalizationPreflight certifies hashes, codecs, licenses, and referenced assets
+00:01 +2: GamePackagePersonalizationPreflight certifies every responsive intro and title-motion variant
+00:01 +3: GamePackagePersonalizationPreflight certifies a window-only profile and binds style changes to its hash
+00:02 +4: GamePackagePersonalizationPreflight rejects an embedded font without its redistribution license
+00:02 +5: GamePackagePersonalizationPreflight rejects a playback contract outside the supported codec matrix
+00:02 +6: GamePackagePersonalizationPreflight rejects a receipt whose inspected tree hash no longer matches
+00:02 +7: GamePackagePersonalizationPreflight package builder rejects a missing font license before export
+00:02 +8: GamePackagePersonalizationPreflight package builder rejects an unsupported intro codec before export
+00:02 +9: All tests passed!

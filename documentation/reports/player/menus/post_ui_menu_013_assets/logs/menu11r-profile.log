@@ -1,0 +1,6 @@
+Verified 10/50 cycles.
+Verified 20/50 cycles.
+Verified 30/50 cycles.
+Verified 40/50 cycles.
+Verified 50/50 cycles.
+{"destination":"/tmp/menu11r-profile.json","cycles":50,"firstOpen":"cold","firstReadyMs":398.745292,"warmReadyP95Ms":194.66391699999986,"buildP95Ms":2.004,"rasterP95Ms":4.091,"rssBefore":374685696,"rssAfter":405585920,"cacheBefore":7372800,"cacheAfter":8949760}

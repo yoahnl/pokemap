@@ -1,0 +1,36 @@
+Command: flutter test --no-pub test/player/runtime_player_save_race_test.dart --plain-name cancels its queued return to title --reporter expanded
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_save_race_test.dart
+00:00 +0: disposal during Save commit cancels its queued return to title
+00:00 +0 -1: disposal during Save commit cancels its queued return to title [E]
+  Expected: every element(RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.cancelled>)
+    Actual: MappedListIterable<RuntimePlayerCommandResult, RuntimePlayerCommandStatus>:[
+              RuntimePlayerCommandStatus:RuntimePlayerCommandStatus.accepted,
+              RuntimePlayerCommandStatus:RuntimePlayerCommandStatus.failed
+            ]
+     Which: has value RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.accepted> which doesn't match RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.cancelled> at index 0
+
+  package:matcher                                       expect
+  package:flutter_test/src/widget_tester.dart 473:18    expect
+  test/player/runtime_player_save_race_test.dart 254:7  main.<fn>
+
+00:00 +0 -1: disposal during Save latest summary cancels its queued return to title
+00:00 +0 -2: disposal during Save latest summary cancels its queued return to title [E]
+  Expected: every element(RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.cancelled>)
+    Actual: MappedListIterable<RuntimePlayerCommandResult, RuntimePlayerCommandStatus>:[
+              RuntimePlayerCommandStatus:RuntimePlayerCommandStatus.accepted,
+              RuntimePlayerCommandStatus:RuntimePlayerCommandStatus.failed
+            ]
+     Which: has value RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.accepted> which doesn't match RuntimePlayerCommandStatus:<RuntimePlayerCommandStatus.cancelled> at index 0
+
+  package:matcher                                       expect
+  package:flutter_test/src/widget_tester.dart 473:18    expect
+  test/player/runtime_player_save_race_test.dart 254:7  main.<fn>
+
+00:00 +0 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_save_race_test.dart: disposal during Save commit cancels its queued return to title
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_save_race_test.dart: disposal during Save latest summary cancels its queued return to title
+
+Exit code: 1
+Elapsed seconds: 3.62

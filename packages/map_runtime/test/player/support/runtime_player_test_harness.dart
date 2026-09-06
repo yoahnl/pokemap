@@ -327,6 +327,7 @@ final class MemoryPlayerPreferencesGateway implements PlayerPreferencesGateway {
   Object? loadError;
   Object? saveError;
   Completer<void>? loadGate;
+  Completer<void>? saveGate;
 
   @override
   Future<PlayerPreferencesSnapshot> load() async {
@@ -339,6 +340,7 @@ final class MemoryPlayerPreferencesGateway implements PlayerPreferencesGateway {
   @override
   Future<void> save(PlayerPreferencesSnapshot preferences) async {
     saves++;
+    await saveGate?.future;
     if (saveError case final error?) throw error;
     current = preferences;
   }

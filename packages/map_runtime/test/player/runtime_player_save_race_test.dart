@@ -215,6 +215,55 @@ void main() {
     expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
   });
 
+  for (final stage in ['commit', 'latest summary']) {
+    test('disposal during Save $stage cancels its queued return to title',
+        () async {
+      final harness = RuntimePlayerTestHarness();
+      addTearDown(harness.dispose);
+      await launchHarnessToPlaying(harness);
+      await openHarnessPause(harness);
+      harness.adapter.checkpoint = testPlayerCheckpoint();
+      final originalLatestSave = harness.coordinator.latestSave;
+      final initialSummaryReads = harness.saves.latestSummaryReads;
+      final gate = Completer<void>();
+      if (stage == 'commit') {
+        harness.saves.commitGate = gate;
+      } else {
+        harness.saves.latestSummaryGate = gate;
+      }
+      final save = harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.save,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+      await _waitUntil(() => stage == 'commit'
+          ? harness.saves.activeCommits == 1
+          : harness.saves.latestSummaryReads == initialSummaryReads + 1);
+      final returnToTitle = harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.returnToTitle,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+      final snapshotBeforeDisposal = harness.coordinator.snapshot;
+      final disposal = harness.coordinator.dispose();
+      expect(harness.coordinator.isDisposed, isTrue);
+      if (stage == 'latest summary') await disposal;
+      gate.complete();
+      final results = await Future.wait([save, returnToTitle]);
+      await disposal;
+
+      expect(results.map((result) => result.status),
+          everyElement(RuntimePlayerCommandStatus.cancelled));
+      expect(harness.coordinator.snapshot, same(snapshotBeforeDisposal));
+      expect(harness.coordinator.latestSave, same(originalLatestSave));
+      expect(harness.saves.commitAttempts, hasLength(1));
+      expect(harness.saves.commits, hasLength(1));
+      expect(harness.saves.activeCommits, 0);
+      expect(harness.adapter.disposeCalls, 1);
+      expect(harness.exit.calls, 0);
+      expect(harness.saves.latestSummaryReads,
+          initialSummaryReads + (stage == 'latest summary' ? 1 : 0));
+    });
+  }
+
   test('a confirmed Save enables Continue after returning to title', () async {
     final harness = RuntimePlayerTestHarness();
     addTearDown(harness.dispose);

@@ -202,6 +202,9 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
       return;
     }
     setState(() => _detailOpen = false);
+    if (_selectedAction case final action?) {
+      _focusController.select('pause.${action.name}', requestFocus: true);
+    }
   }
 }
 
@@ -323,9 +326,12 @@ RuntimePlayerSnapshot _snapshot(
 }
 
 bool _detailOwnsScroll(PlayerPauseAction action) =>
+    action == PlayerPauseAction.party ||
+    action == PlayerPauseAction.bag ||
     action == PlayerPauseAction.pokedex ||
     action == PlayerPauseAction.profile ||
-    action == PlayerPauseAction.map;
+    action == PlayerPauseAction.map ||
+    action == PlayerPauseAction.options;
 
 bool _isRuntimeSection(PlayerPauseAction action) => switch (action) {
       PlayerPauseAction.party ||

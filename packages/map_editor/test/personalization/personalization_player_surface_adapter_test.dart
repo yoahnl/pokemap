@@ -260,6 +260,34 @@ void main() {
     );
   });
 
+  testWidgets('keyboard resumes after returning from a touch preview', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_app(_adapter(PersonalizationStudioScene.pause)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('pause.resume')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('runtime-pause-back-to-root')),
+    );
+    await tester.pumpAndSettle();
+    final resume = tester.widget<PlayerActionButton>(
+      find.byKey(const ValueKey<String>('pause.resume')),
+    );
+    expect(resume.selected, isTrue);
+    expect(resume.showFocusHighlight, isFalse);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('player-pause-preview-detail-resume')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('keeps pause keyboard and controller navigation operational', (
     tester,
   ) async {

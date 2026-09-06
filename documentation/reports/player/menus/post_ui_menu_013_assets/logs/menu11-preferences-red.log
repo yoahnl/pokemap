@@ -1,0 +1,34 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart
+00:00 +0: late preferences persistence cannot replace a disposed snapshot
+00:00 +0 -1: late preferences persistence cannot replace a disposed snapshot [E]
+  Expected: same instance as <Instance of 'RuntimePlayerSnapshot'>
+    Actual: <Instance of 'RuntimePlayerSnapshot'>
+
+  package:matcher                                               expect
+  package:flutter_test/src/widget_tester.dart 473:18            expect
+  test/player/runtime_player_coordinator_pause_test.dart 488:7  main.<fn>
+
+00:00 +0 -1: late preferences refresh cannot replace a disposed snapshot
+00:00 +0 -2: late preferences refresh cannot replace a disposed snapshot [E]
+  Expected: same instance as <Instance of 'RuntimePlayerSnapshot'>
+    Actual: <Instance of 'RuntimePlayerSnapshot'>
+
+  package:matcher                                               expect
+  package:flutter_test/src/widget_tester.dart 473:18            expect
+  test/player/runtime_player_coordinator_pause_test.dart 488:7  main.<fn>
+
+00:00 +0 -2: late preferences refresh failure cannot replace a disposed snapshot
+00:00 +0 -3: late preferences refresh failure cannot replace a disposed snapshot [E]
+  Expected: same instance as <Instance of 'RuntimePlayerSnapshot'>
+    Actual: <Instance of 'RuntimePlayerSnapshot'>
+
+  package:matcher                                               expect
+  package:flutter_test/src/widget_tester.dart 473:18            expect
+  test/player/runtime_player_coordinator_pause_test.dart 488:7  main.<fn>
+
+00:00 +0 -3: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: late preferences persistence cannot replace a disposed snapshot
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: late preferences refresh cannot replace a disposed snapshot
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/player/runtime_player_coordinator_pause_test.dart: late preferences refresh failure cannot replace a disposed snapshot

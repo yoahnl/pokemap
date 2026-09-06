@@ -564,6 +564,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                   label: label,
                   child: Switch.adaptive(
                     key: ValueKey(key),
+                    materialTapTargetSize: MaterialTapTargetSize.padded,
                     value: value,
                     onChanged: _enabled ? onChanged : null,
                   ))),

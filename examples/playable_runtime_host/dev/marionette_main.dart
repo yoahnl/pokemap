@@ -4,8 +4,11 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 import 'package:pokemap_loader/main.dart' as runtime_host;
 
+import 'menu_performance_probe.dart';
+
 Future<void> main() async {
   MarionetteBinding.ensureInitialized();
+  registerMenuPerformanceProbe();
   const configuredPath = String.fromEnvironment('MARIONETTE_PROJECT_PATH');
   if (configuredPath.isEmpty || !configuredPath.startsWith('/')) {
     throw StateError(
