@@ -74,6 +74,7 @@ final class RuntimePlayerBagItemSnapshot {
     required this.sortOrder,
     this.pocketId,
     this.description,
+    this.iconFilePath,
   })  : assert(itemId != ''),
         assert(quantity > 0),
         assert(sortOrder >= 0);
@@ -83,6 +84,14 @@ final class RuntimePlayerBagItemSnapshot {
   final int sortOrder;
   final String? pocketId;
   final String? description;
+  final String? iconFilePath;
+}
+
+final class RuntimePlayerBagPocketSnapshot {
+  const RuntimePlayerBagPocketSnapshot({required this.id, required this.label});
+
+  final String id;
+  final String label;
 }
 
 enum RuntimePlayerPokedexKnowledge { unknown, seen, caught }
@@ -119,8 +128,12 @@ final class RuntimePlayerBagItemActionSnapshot {
     required this.usability,
     required this.isEnabled,
     this.unavailableReason,
+    this.learnedMoveLabel,
+    Map<String, String> unavailablePartyTargetReasons = const {},
     Set<String>? eligiblePartyTargetIds,
-  }) : eligiblePartyTargetIds = eligiblePartyTargetIds == null
+  })  : unavailablePartyTargetReasons =
+            Map.unmodifiable(unavailablePartyTargetReasons),
+        eligiblePartyTargetIds = eligiblePartyTargetIds == null
             ? null
             : Set<String>.unmodifiable(eligiblePartyTargetIds) {
     if (itemTargetId.trim().isEmpty) {
@@ -144,9 +157,12 @@ final class RuntimePlayerBagItemActionSnapshot {
   final bool isEnabled;
   final String? unavailableReason;
   final Set<String>? eligiblePartyTargetIds;
+  final String? learnedMoveLabel;
+  final Map<String, String> unavailablePartyTargetReasons;
 
   bool allowsPartyTarget(String targetId) =>
-      eligiblePartyTargetIds?.contains(targetId) ?? true;
+      !unavailablePartyTargetReasons.containsKey(targetId) &&
+      (eligiblePartyTargetIds?.contains(targetId) ?? true);
 }
 
 final class RuntimePlayerBagMoveTargetSnapshot {
@@ -167,6 +183,8 @@ final class RuntimePlayerBagPartyTargetSnapshot {
     required this.targetId,
     required this.label,
     this.subtitle,
+    this.pokemonSummary,
+    this.requiresMoveReplacement = false,
     List<RuntimePlayerBagMoveTargetSnapshot> moves =
         const <RuntimePlayerBagMoveTargetSnapshot>[],
   })  : assert(targetId != ''),
@@ -177,6 +195,8 @@ final class RuntimePlayerBagPartyTargetSnapshot {
   final String label;
   final String? subtitle;
   final List<RuntimePlayerBagMoveTargetSnapshot> moves;
+  final RuntimePokemonSummarySnapshot? pokemonSummary;
+  final bool requiresMoveReplacement;
 }
 
 final class RuntimePlayerHeldItemOptionSnapshot {
@@ -260,9 +280,13 @@ final class RuntimePlayerPauseDetailSnapshot {
     this.emptyMessage,
     this.message,
     this.profile,
+    this.bagMoney,
+    this.bagCurrencyLabel,
+    List<RuntimePlayerBagPocketSnapshot> bagPockets = const [],
     List<RuntimePlayerBagPartyTargetSnapshot> bagTargets =
         const <RuntimePlayerBagPartyTargetSnapshot>[],
-  })  : entries = List<RuntimePlayerDetailEntrySnapshot>.unmodifiable(entries),
+  })  : bagPockets = List.unmodifiable(bagPockets),
+        entries = List<RuntimePlayerDetailEntrySnapshot>.unmodifiable(entries),
         bagTargets =
             List<RuntimePlayerBagPartyTargetSnapshot>.unmodifiable(bagTargets) {
     if (section == RuntimePlayerPauseSection.root) {
@@ -284,6 +308,9 @@ final class RuntimePlayerPauseDetailSnapshot {
   final String? message;
   final RuntimePlayerProfileSnapshot? profile;
   final List<RuntimePlayerBagPartyTargetSnapshot> bagTargets;
+  final List<RuntimePlayerBagPocketSnapshot> bagPockets;
+  final int? bagMoney;
+  final String? bagCurrencyLabel;
 
   RuntimePlayerPauseDetailSnapshot withMessage(String? message) =>
       RuntimePlayerPauseDetailSnapshot(
@@ -294,6 +321,9 @@ final class RuntimePlayerPauseDetailSnapshot {
         message: message,
         profile: profile,
         bagTargets: bagTargets,
+        bagPockets: bagPockets,
+        bagMoney: bagMoney,
+        bagCurrencyLabel: bagCurrencyLabel,
       );
 }
 

@@ -54,14 +54,20 @@ class RuntimePlayerActions extends StatelessWidget {
           PlayerInputAction.right,
           source: PlayerInputSource.keyboard,
         ),
-        SingleActivator(LogicalKeyboardKey.enter): RuntimePlayerLogicalIntent(
+        SingleActivator(LogicalKeyboardKey.enter, includeRepeats: false):
+            RuntimePlayerLogicalIntent(
           PlayerInputAction.confirm,
           source: PlayerInputSource.keyboard,
         ),
-        SingleActivator(LogicalKeyboardKey.space): RuntimePlayerLogicalIntent(
+        SingleActivator(LogicalKeyboardKey.enter):
+            DoNothingAndStopPropagationIntent(),
+        SingleActivator(LogicalKeyboardKey.space, includeRepeats: false):
+            RuntimePlayerLogicalIntent(
           PlayerInputAction.confirm,
           source: PlayerInputSource.keyboard,
         ),
+        SingleActivator(LogicalKeyboardKey.space):
+            DoNothingAndStopPropagationIntent(),
         SingleActivator(LogicalKeyboardKey.escape): RuntimePlayerLogicalIntent(
           PlayerInputAction.back,
           source: PlayerInputSource.keyboard,

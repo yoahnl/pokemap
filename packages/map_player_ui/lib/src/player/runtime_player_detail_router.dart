@@ -9,8 +9,8 @@ import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'runtime_player_party.dart';
+import 'runtime_player_bag.dart';
 import 'player_session_surfaces.dart';
-import 'player_bag_strings.dart';
 
 /// Maps runtime-owned pause detail snapshots to simple player surfaces.
 class RuntimePlayerDetailRouter extends StatelessWidget {
@@ -20,12 +20,16 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
     this.onPreferencesChanged,
     this.onPauseCommand,
     this.partyNavigation,
+    this.bagNavigation,
+    this.onFavoriteChanged,
   });
 
   final RuntimePlayerSnapshot snapshot;
   final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
   final FutureOr<void> Function(RuntimePlayerPauseCommand)? onPauseCommand;
   final RuntimePlayerPartyNavigation? partyNavigation;
+  final RuntimePlayerBagNavigation? bagNavigation;
+  final Future<void> Function(String, bool)? onFavoriteChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +76,17 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
                 snapshot.isActionEnabled(RuntimePlayerAction.reorderParty),
           ));
     }
+    if (section == RuntimePlayerPauseSection.bag && detail != null) {
+      return PlayerMenuThemeScope(
+          role: ProjectPresentationSurfaceRole.bag,
+          child: RuntimePlayerBag(
+              detail: detail,
+              onCommand: onPauseCommand,
+              navigation: bagNavigation,
+              favoriteItemIds: snapshot.favoriteItemIds,
+              onFavoriteChanged:
+                  snapshot.bagFavoritesAvailable ? onFavoriteChanged : null));
+    }
     if (detail == null || detail.entries.isEmpty) {
       return PlayerEmptyState(
         key: const ValueKey<String>('runtime-player-detail-empty'),
@@ -79,13 +94,6 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         title: detail?.title ?? _label(context, section),
         message:
             detail?.emptyMessage ?? context.playerL10n.noPlayerDetailAvailable,
-      );
-    }
-
-    if (section == RuntimePlayerPauseSection.bag) {
-      return _RuntimePlayerBag(
-        detail: detail,
-        onCommand: onPauseCommand,
       );
     }
 
@@ -289,176 +297,6 @@ class _RuntimePlayerMap extends StatelessWidget {
           ],
         ],
       );
-}
-
-class _RuntimePlayerBag extends StatelessWidget {
-  const _RuntimePlayerBag({
-    required this.detail,
-    required this.onCommand,
-  });
-
-  final RuntimePlayerPauseDetailSnapshot detail;
-  final ValueChanged<RuntimePlayerPauseCommand>? onCommand;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        key: const ValueKey<String>('runtime-player-detail-bag'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          if (detail.message case final message?
-              when message.trim().isNotEmpty) ...<Widget>[
-            PlayerPanel(
-              surfaceRole: ProjectPresentationSurfaceRole.bag,
-              child: Text(
-                message,
-                key: const ValueKey<String>('runtime-player-bag-message'),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: PlayerSpacing.sm),
-          ],
-          for (var index = 0;
-              index < detail.entries.length;
-              index++) ...<Widget>[
-            PlayerDetailEntryCard(
-              entry: detail.entries[index],
-              surfaceRole: ProjectPresentationSurfaceRole.bag,
-            ),
-            if (detail.entries[index].bagAction case final action?) ...<Widget>[
-              const SizedBox(height: PlayerSpacing.xs),
-              PlayerActionButton(
-                key: ValueKey<String>(
-                  'runtime-player-bag-use-${action.itemTargetId}',
-                ),
-                label: PlayerBagStrings.of(context).use,
-                icon: Icons.healing_rounded,
-                secondary: true,
-                onPressed: action.isEnabled && onCommand != null
-                    ? () => _showTargets(
-                          context,
-                          action: action,
-                        )
-                    : null,
-                disabledReason: action.unavailableReason,
-              ),
-            ],
-            if (index != detail.entries.length - 1)
-              const SizedBox(height: PlayerSpacing.sm),
-          ],
-        ],
-      );
-
-  void _showTargets(
-    BuildContext context, {
-    required RuntimePlayerBagItemActionSnapshot action,
-  }) {
-    final strings = PlayerBagStrings.of(context);
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        final availableHeight = MediaQuery.sizeOf(context).height - 32;
-        final buttons = <Widget>[];
-        for (final target in detail.bagTargets.where(
-          (target) => action.allowsPartyTarget(target.targetId),
-        )) {
-          if (action.targetKind == RuntimePlayerBagUseTargetKind.partyMember ||
-              (action.targetKind ==
-                      RuntimePlayerBagUseTargetKind.partyMoveReplacement &&
-                  target.moves.length < 4)) {
-            final teachesMove = action.targetKind ==
-                RuntimePlayerBagUseTargetKind.partyMoveReplacement;
-            buttons.add(
-              PlayerActionButton(
-                key: ValueKey<String>(
-                  'runtime-player-bag-target-${target.targetId}',
-                ),
-                label: teachesMove
-                    ? strings.teachTo(target.label)
-                    : strings.useOn(target.label),
-                icon:
-                    teachesMove ? Icons.school_rounded : Icons.catching_pokemon,
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  onCommand!(
-                    RuntimePlayerPauseCommand.useBagItem(
-                      itemTargetId: action.itemTargetId,
-                      partyTargetId: target.targetId,
-                    ),
-                  );
-                },
-              ),
-            );
-          } else {
-            final teachesMove = action.targetKind ==
-                RuntimePlayerBagUseTargetKind.partyMoveReplacement;
-            for (final move in target.moves) {
-              buttons.add(
-                PlayerActionButton(
-                  key: ValueKey<String>(
-                    'runtime-player-bag-target-'
-                    '${target.targetId}-${move.targetId}',
-                  ),
-                  label: teachesMove
-                      ? strings.teachReplacing(target.label, move.label)
-                      : strings.useOnMove(target.label, move.label),
-                  icon: Icons.flash_on_rounded,
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    onCommand!(
-                      RuntimePlayerPauseCommand.useBagItem(
-                        itemTargetId: action.itemTargetId,
-                        partyTargetId: target.targetId,
-                        moveTargetId: move.targetId,
-                      ),
-                    );
-                  },
-                ),
-              );
-            }
-          }
-        }
-        return Dialog(
-          insetPadding: const EdgeInsets.all(PlayerSpacing.md),
-          child: SizedBox(
-            width: 520,
-            height: availableHeight.clamp(240, 640).toDouble(),
-            child: PlayerPanel(
-              elevated: true,
-              surfaceRole: ProjectPresentationSurfaceRole.bag,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Text(
-                    strings.chooseTarget,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: PlayerSpacing.md),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: buttons.length,
-                      itemBuilder: (_, index) => buttons[index],
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: PlayerSpacing.xs),
-                    ),
-                  ),
-                  const SizedBox(height: PlayerSpacing.sm),
-                  PlayerActionButton(
-                    key: const ValueKey<String>(
-                      'runtime-player-bag-target-close',
-                    ),
-                    label: strings.close,
-                    icon: Icons.close,
-                    secondary: true,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 }
 
 class _RuntimePlayerOptions extends StatefulWidget {

@@ -42,7 +42,12 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Contenu ${section.name}'), findsOneWidget);
+      expect(
+        find.text('Contenu ${section.name}'),
+        section == RuntimePlayerPauseSection.bag
+            ? findsNWidgets(2)
+            : findsOneWidget,
+      );
       expect(find.text('Donnée runtime'), findsOneWidget);
     });
   }
@@ -276,18 +281,27 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(command, isNull);
+    await _tapBagControl(tester, 'bag-use-confirm');
+
     expect(command?.itemTargetId, 'potion');
     expect(command?.partyTargetId, 'party.0');
-    final keyItemButton = tester.widget<PlayerActionButton>(
+    await _tapBagControl(tester, 'bag-item-bag.key-items.harbor-pass');
+    expect(
       find.byKey(
         const ValueKey<String>('runtime-player-bag-use-harbor-pass'),
       ),
+      findsNothing,
     );
-    expect(keyItemButton.onPressed, isNull);
-    expect(keyItemButton.disabledReason, contains('pas consommé'));
+    final reason = find.text(
+      'Cet objet clé s’utilise automatiquement et n’est pas consommé.',
+    );
+    await tester.ensureVisible(reason);
+    expect(reason, findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('TM target picker teaches directly or chooses a move to forget',
+  testWidgets('TM replacement requires a compatible target and confirmation',
       (tester) async {
     RuntimePlayerPauseCommand? command;
     final detail = RuntimePlayerPauseDetailSnapshot(
@@ -303,6 +317,10 @@ void main() {
             usability: ItemUsabilityState.usable,
             isEnabled: true,
             eligiblePartyTargetIds: const <String>{'party.0'},
+            learnedMoveLabel: 'Abri',
+            unavailablePartyTargetReasons: const {
+              'party.1': 'Cette espèce ne peut pas apprendre Abri.',
+            },
           ),
         ),
       ],
@@ -328,6 +346,7 @@ void main() {
               label: 'Poudre Dodo',
             ),
           ],
+          requiresMoveReplacement: true,
         ),
         RuntimePlayerBagPartyTargetSnapshot(
           targetId: 'party.1',
@@ -360,15 +379,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Apprendre à Carapuce'), findsNothing);
-    expect(
-      find.text('Apprendre à Bulbizarre en oubliant Rugissement'),
-      findsOneWidget,
+    final incompatible = tester.widget<PlayerMenuSelectableRow>(
+      find.byKey(const ValueKey('runtime-player-bag-target-party.1')),
     );
-    await tester.tap(
-      find.text('Apprendre à Bulbizarre en oubliant Rugissement'),
-    );
-    await tester.pumpAndSettle();
+    expect(incompatible.disabledReason,
+        'Cette espèce ne peut pas apprendre Abri.');
+    await _tapBagControl(tester, 'runtime-player-bag-target-party.1');
+    expect(find.byKey(const ValueKey('bag-use-confirm')), findsNothing);
+    expect(command, isNull);
+    await _tapBagControl(tester, 'runtime-player-bag-target-party.0');
+    await _tapBagControl(tester, 'runtime-player-bag-target-party.0-growl');
+    expect(find.text('Apprendre Abri — oublier Rugissement'), findsOneWidget);
+    expect(command, isNull);
+    await _tapBagControl(tester, 'bag-use-confirm');
 
     expect(command?.itemTargetId, 'tm-protect');
     expect(command?.partyTargetId, 'party.0');
@@ -416,6 +439,7 @@ void main() {
               label: 'Poudre Dodo',
             ),
           ],
+          requiresMoveReplacement: true,
         ),
         RuntimePlayerBagPartyTargetSnapshot(
           targetId: 'party.1',
@@ -442,17 +466,98 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Salamèche'), findsNothing);
-    expect(find.textContaining('hm-surf'), findsNothing);
-    await tester.tap(
-      find.text('Apprendre à Bulbizarre en oubliant Rugissement'),
+    final incompatible = tester.widget<PlayerMenuSelectableRow>(
+      find.byKey(const ValueKey('runtime-player-bag-target-party.1')),
     );
-    await tester.pumpAndSettle();
+    expect(incompatible.disabledReason, isNotEmpty);
+    expect(find.textContaining('hm-surf'), findsNothing);
+    await _tapBagControl(tester, 'runtime-player-bag-target-party.0');
+    await _tapBagControl(tester, 'runtime-player-bag-target-party.0-growl');
+    expect(command, isNull);
+    await _tapBagControl(tester, 'bag-use-confirm');
 
     expect(command?.itemTargetId, 'hm-surf');
     expect(command?.partyTargetId, 'party.0');
     expect(command?.moveTargetId, 'growl');
   });
+
+  for (final targetKind in [
+    RuntimePlayerBagUseTargetKind.partyMove,
+    RuntimePlayerBagUseTargetKind.partyMoveReplacement,
+  ]) {
+    testWidgets('${targetKind.name} cancels without effect then confirms once',
+        (tester) async {
+      final commands = <RuntimePlayerPauseCommand>[];
+      final restoresPp = targetKind == RuntimePlayerBagUseTargetKind.partyMove;
+      final itemId = restoresPp ? 'ether' : 'tm-protect';
+      final detail = RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.bag,
+        title: 'Sac',
+        entries: [
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'bag.$itemId',
+            title: restoresPp ? 'Éther' : 'CT Abri',
+            bagAction: RuntimePlayerBagItemActionSnapshot(
+              itemTargetId: itemId,
+              targetKind: targetKind,
+              usability: ItemUsabilityState.usable,
+              isEnabled: true,
+              learnedMoveLabel: restoresPp ? null : 'Abri',
+            ),
+          ),
+        ],
+        bagTargets: [
+          RuntimePlayerBagPartyTargetSnapshot(
+            targetId: 'party.0',
+            label: 'Bulbizarre',
+            moves: const [
+              RuntimePlayerBagMoveTargetSnapshot(
+                targetId: 'growl',
+                label: 'Rugissement',
+                subtitle: 'PP actuels : 0',
+              ),
+            ],
+          ),
+        ],
+      );
+      await tester.pumpWidget(_app(RuntimePlayerDetailRouter(
+        snapshot:
+            _detailSnapshot(RuntimePlayerPauseSection.bag, detail: detail),
+        onPauseCommand: commands.add,
+      )));
+      await _tapBagControl(tester, 'bag-item-bag.$itemId');
+      await _tapBagControl(tester, 'runtime-player-bag-use-$itemId');
+      await _tapBagControl(tester, 'runtime-player-bag-target-party.0');
+      if (restoresPp) {
+        expect(find.text('PP actuels : 0'), findsOneWidget);
+        await _tapBagControl(tester, 'runtime-player-bag-target-party.0-growl');
+      } else {
+        expect(find.text('Apprendre Abri'), findsOneWidget);
+      }
+      expect(commands, isEmpty);
+      expect(find.byKey(const ValueKey('bag-use-confirm')), findsOneWidget);
+      await _tapBagControl(tester, 'runtime-player-bag-target-close');
+      if (restoresPp) {
+        await _tapBagControl(tester, 'runtime-player-bag-target-close');
+      }
+      await _tapBagControl(tester, 'runtime-player-bag-target-close');
+      expect(find.byType(Dialog), findsNothing);
+      expect(commands, isEmpty);
+
+      await _tapBagControl(tester, 'runtime-player-bag-use-$itemId');
+      await _tapBagControl(tester, 'runtime-player-bag-target-party.0');
+      if (restoresPp) {
+        await _tapBagControl(tester, 'runtime-player-bag-target-party.0-growl');
+      }
+      expect(commands, isEmpty);
+      await _tapBagControl(tester, 'bag-use-confirm');
+      expect(commands, hasLength(1));
+      expect(commands.single.itemTargetId, itemId);
+      expect(commands.single.partyTargetId, 'party.0');
+      expect(commands.single.moveTargetId, restoresPp ? 'growl' : null);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('party gives, swaps and takes held items with guided labels',
       (tester) async {
@@ -817,3 +922,10 @@ Widget _app(Widget child) => MaterialApp(
       theme: PokeMapPlayerTheme.dark(),
       home: child,
     );
+
+Future<void> _tapBagControl(WidgetTester tester, String key) async {
+  final control = find.byKey(ValueKey<String>(key));
+  await tester.ensureVisible(control);
+  await tester.tap(control);
+  await tester.pumpAndSettle();
+}

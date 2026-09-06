@@ -2218,6 +2218,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void setPlayerServiceRuntimeController(
     PlayerServiceRuntimeController controller,
   ) {
+    controller.setPauseMutationGuard(() {
+      if (_activeNarrativeSceneWorkingSession != null) {
+        return 'Terminez la scène en cours avant de modifier le sac.';
+      }
+      if (_hasCheckpointUnsafeRuntimeWorkForSave) {
+        return 'L’action en cours doit se terminer avant de modifier le sac.';
+      }
+      return null;
+    });
     _playerServiceRuntimeController = controller;
   }
 

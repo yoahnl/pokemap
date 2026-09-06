@@ -7,6 +7,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
 import 'player_pause_menu.dart';
 import 'player_control_profile.dart';
@@ -21,6 +22,7 @@ import 'runtime_player_detail_router.dart';
 import 'runtime_player_pause_shell.dart';
 import 'runtime_player_focus_controller.dart';
 import 'runtime_player_party.dart';
+import 'runtime_player_bag.dart';
 
 typedef RuntimePlayerActionCallback = Future<RuntimePlayerCommandResult>
     Function(RuntimePlayerAction action);
@@ -39,6 +41,8 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     this.onPreferencesChanged,
     this.onPauseCommand,
     this.partyNavigation,
+    this.bagNavigation,
+    this.onFavoriteChanged,
     this.controlProfile,
     this.onControlProfileChanged,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
@@ -58,6 +62,8 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
   final FutureOr<void> Function(RuntimePlayerPauseCommand)? onPauseCommand;
   final RuntimePlayerPartyNavigation? partyNavigation;
+  final RuntimePlayerBagNavigation? bagNavigation;
+  final Future<void> Function(String, bool)? onFavoriteChanged;
   final PlayerControlProfile? controlProfile;
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
   final PlayerPauseMenuLabels pauseMenuLabels;
@@ -65,6 +71,23 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final RuntimePlayerFocusController? pauseFocusController;
   final ValueChanged<SceneInteractionResult>? onPreSessionResult;
   final bool showPreSessionInteraction;
+
+  Widget? _bagMoney(BuildContext context) {
+    final detail = snapshot.pauseDetailFor(RuntimePlayerPauseSection.bag);
+    final money = detail?.bagMoney;
+    if (money == null) return null;
+    final currency = detail!.bagCurrencyLabel;
+    final label = Localizations.localeOf(context).languageCode == 'fr'
+        ? 'Argent'
+        : 'Money';
+    return PlayerMenuThemeScope(
+        role: ProjectPresentationSurfaceRole.bag,
+        child: Builder(
+            builder: (context) => Text(
+                '$label : ${MaterialLocalizations.of(context).formatDecimal(money)}${currency == null ? '' : ' $currency'}',
+                key: const ValueKey('bag-money'),
+                style: context.playerMenuTheme.label)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,6 +219,10 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           },
           onSelected: (action) => _dispatchPauseAction(context, action),
           onBackToRoot: () {
+            if (snapshot.pauseSection == RuntimePlayerPauseSection.bag &&
+                (bagNavigation?.back() ?? false)) {
+              return;
+            }
             if (snapshot.pauseSection == RuntimePlayerPauseSection.party &&
                 (partyNavigation?.back() ?? false)) {
               return;
@@ -220,13 +247,20 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
               ? null
               : PlayerSaveStrings.of(context).saved(snapshot.saveReceipt!),
           detail: RuntimePlayerDetailRouter(
+            bagNavigation: bagNavigation,
+            onFavoriteChanged: onFavoriteChanged,
             partyNavigation: partyNavigation,
             snapshot: snapshot,
             onPreferencesChanged: onPreferencesChanged,
             onPauseCommand: onPauseCommand,
           ),
           detailOwnsScroll:
-              snapshot.pauseSection == RuntimePlayerPauseSection.party,
+              snapshot.pauseSection == RuntimePlayerPauseSection.party ||
+                  snapshot.pauseSection == RuntimePlayerPauseSection.bag,
+          detailHeaderSecondary:
+              snapshot.pauseSection == RuntimePlayerPauseSection.bag
+                  ? _bagMoney(context)
+                  : null,
           detailActions: snapshot.pauseSection ==
                       RuntimePlayerPauseSection.party &&
                   snapshot.isActionEnabled(RuntimePlayerAction.openParty) &&
@@ -237,7 +271,16 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
                   listenable: partyNavigation!,
                   builder: (context, _) =>
                       partyNavigation!.buildActions(context))
-              : null,
+              : snapshot.pauseSection == RuntimePlayerPauseSection.bag &&
+                      snapshot.isActionEnabled(RuntimePlayerAction.openBag) &&
+                      snapshot.pauseDetailFor(RuntimePlayerPauseSection.bag) !=
+                          null &&
+                      bagNavigation != null
+                  ? ListenableBuilder(
+                      listenable: bagNavigation!,
+                      builder: (context, _) =>
+                          bagNavigation!.buildActions(context))
+                  : null,
         ),
       RuntimePlayerPhase.saving => PlayerLoadingSurface(
           stage: l10n.save,

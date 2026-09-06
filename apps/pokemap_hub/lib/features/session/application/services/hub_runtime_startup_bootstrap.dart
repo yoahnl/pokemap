@@ -189,6 +189,9 @@ final class HubRuntimeStartupBootstrap
         saveGateway: saveGateway,
         preferencesGateway: preferencesGateway,
         newGameFlow: newGameFlow,
+        inventoryPreferencesGateway: FilePlayerInventoryPreferencesGateway(
+          directory: Directory.fromUri(supportRoot.uri.resolve('inventory_preferences/')),
+        ),
         sessionController: sessions,
         externalExit: HubRuntimeExternalExit(onHubRequested),
         defaultSaveSlot: RuntimePlayerLoadSlot(

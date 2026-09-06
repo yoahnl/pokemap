@@ -6,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../session/game_session_contract.dart';
 import '../session/game_session_controller.dart';
 import 'runtime_player_host.dart';
+import 'player_inventory_preferences_gateway.dart';
 import 'runtime_player_models.dart';
 import 'runtime_new_game_flow.dart';
 import 'runtime_player_pause_data.dart';
@@ -24,9 +25,11 @@ final class RuntimePlayerCoordinator {
     required GameSessionController sessionController,
     required RuntimeExternalExit externalExit,
     RuntimePlayerLoadSlot? defaultSaveSlot,
+    PlayerInventoryPreferencesGateway? inventoryPreferencesGateway,
   })  : _gameSource = gameSource,
         _saveGateway = saveGateway,
         _preferencesGateway = preferencesGateway,
+        _inventoryPreferencesGateway = inventoryPreferencesGateway,
         _newGameFlow = newGameFlow,
         _sessions = sessionController,
         _externalExit = externalExit,
@@ -49,6 +52,7 @@ final class RuntimePlayerCoordinator {
   final RuntimeGameSource _gameSource;
   final PlayerSaveGateway _saveGateway;
   final PlayerPreferencesGateway _preferencesGateway;
+  final PlayerInventoryPreferencesGateway? _inventoryPreferencesGateway;
   final RuntimeNewGameFlowPort _newGameFlow;
   final GameSessionController _sessions;
   final RuntimeExternalExit _externalExit;
@@ -61,6 +65,8 @@ final class RuntimePlayerCoordinator {
 
   RuntimePlayerSnapshot _snapshot;
   PlayerPreferencesSnapshot? _preferences;
+  Set<String> _favoriteItemIds = const <String>{};
+  bool _bagFavoritesAvailable = false;
   PlayerSaveSummary? _latestSave;
   _RuntimeLaunchRequest? _retryLaunch;
   RuntimePlayerSnapshot? _lifecycleResumeSnapshot;
@@ -152,6 +158,70 @@ final class RuntimePlayerCoordinator {
   ) {
     _ensureOpen();
     return _sessions.dispatchWorldService(command);
+  }
+
+  Future<RuntimePlayerCommandResult> setBagItemFavorite({
+    required String itemId,
+    required bool favorite,
+    required int snapshotRevision,
+  }) {
+    _ensureOpen();
+    return _serialize(() async {
+      if (snapshotRevision != _snapshot.revision) {
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.stale,
+          safeMessage: 'Le sac a changé avant l’arrivée de cette action.',
+        );
+      }
+      final gateway = _inventoryPreferencesGateway;
+      final sessionId = _sessions.snapshot.descriptor?.sessionId;
+      final ownsItem = _snapshot.pauseDetailFor(RuntimePlayerPauseSection.bag)
+              ?.entries.any((entry) =>
+                  entry.bagItem?.itemId == itemId &&
+                  entry.bagItem!.quantity > 0) ??
+          false;
+      if (gateway == null ||
+          !_bagFavoritesAvailable ||
+          !_lifecycleActive ||
+          !_canPublishPauseData(sessionId) ||
+          _snapshot.phase != RuntimePlayerPhase.paused ||
+          _snapshot.pauseSection != RuntimePlayerPauseSection.bag ||
+          !ownsItem) {
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.unavailable,
+          safeMessage: 'Les favoris sont indisponibles pour cet objet.',
+        );
+      }
+      final favorites = Set<String>.of(_favoriteItemIds);
+      if (favorite) {
+        favorites.add(itemId);
+      } else {
+        favorites.remove(itemId);
+      }
+      try {
+        await gateway.save(_gameSource.identity.gameId, favorites);
+      } catch (_) {
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.failed,
+          safeMessage: 'Les favoris n’ont pas pu être enregistrés. Réessayez.',
+        );
+      }
+      if (!_canPublishPauseData(sessionId)) {
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.cancelled,
+        );
+      }
+      _favoriteItemIds = Set<String>.unmodifiable(favorites);
+      if (!_lifecycleActive || snapshotRevision != _snapshot.revision) {
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.cancelled,
+        );
+      }
+      _publish(_snapshot.next(favoriteItemIds: _favoriteItemIds));
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.accepted,
+      );
+    });
   }
 
   Future<RuntimePlayerCommandResult> requestBack({
@@ -1312,6 +1382,7 @@ final class RuntimePlayerCoordinator {
         <Future<Object?>>[
           _preferencesGateway.load(),
           _saveGateway.readLatestSummary(),
+          _loadInventoryPreferences(),
         ],
         eagerError: false,
       );
@@ -1330,6 +1401,21 @@ final class RuntimePlayerCoordinator {
         ),
         allowRetry: true,
       );
+      return false;
+    }
+  }
+
+  Future<bool> _loadInventoryPreferences() async {
+    final gateway = _inventoryPreferencesGateway;
+    if (gateway == null) return false;
+    try {
+      final favorites = await gateway.load(_gameSource.identity.gameId);
+      if (_disposed) return false;
+      _favoriteItemIds = Set<String>.unmodifiable(favorites);
+      _bagFavoritesAvailable = true;
+      return true;
+    } catch (_) {
+      _bagFavoritesAvailable = false;
       return false;
     }
   }
@@ -1464,6 +1550,8 @@ final class RuntimePlayerCoordinator {
         clearSaveReceipt: true,
         clearPauseMenuState: true,
         preferences: _preferences,
+        favoriteItemIds: _favoriteItemIds,
+        bagFavoritesAvailable: _bagFavoritesAvailable,
         hasDiscoveredSave: _latestSave != null,
         continueSave: _latestSave,
         clearContinueSave: _latestSave == null,
@@ -1511,6 +1599,8 @@ final class RuntimePlayerCoordinator {
       _snapshot.next(
         phase: RuntimePlayerPhase.paused,
         pauseSection: section,
+        favoriteItemIds: _favoriteItemIds,
+        bagFavoritesAvailable: _bagFavoritesAvailable,
         logicalSelectionId: logicalSelectionId,
         failure: failure,
         clearFailure: clearFailure,

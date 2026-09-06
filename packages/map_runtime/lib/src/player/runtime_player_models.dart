@@ -212,9 +212,12 @@ final class RuntimePlayerSnapshot {
     this.saveReceipt,
     this.saveRecovery,
     this.pauseMenuState = const PlayerPauseMenuState.empty(),
+    Set<String> favoriteItemIds = const <String>{},
+    this.bagFavoritesAvailable = false,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> pauseDetails =
         const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
-  })  : actions = List<RuntimePlayerActionAvailability>.unmodifiable(actions),
+  })  : favoriteItemIds = Set<String>.unmodifiable(favoriteItemIds),
+        actions = List<RuntimePlayerActionAvailability>.unmodifiable(actions),
         pauseDetails = UnmodifiableMapView<RuntimePlayerPauseSection,
             RuntimePlayerPauseDetailSnapshot>(
           Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>.from(
@@ -272,6 +275,8 @@ final class RuntimePlayerSnapshot {
   final RuntimePlayerSaveReceipt? saveReceipt;
   final SaveLoadDiagnostic? saveRecovery;
   final PlayerPauseMenuState pauseMenuState;
+  final Set<String> favoriteItemIds;
+  final bool bagFavoritesAvailable;
   final Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
       pauseDetails;
 
@@ -325,6 +330,8 @@ final class RuntimePlayerSnapshot {
     bool clearSaveRecovery = false,
     bool clearSaveReceipt = false,
     PlayerPauseMenuState? pauseMenuState,
+    Set<String>? favoriteItemIds,
+    bool? bagFavoritesAvailable,
     bool clearPauseMenuState = false,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>?
         pauseDetails,
@@ -332,6 +339,8 @@ final class RuntimePlayerSnapshot {
   }) {
     return RuntimePlayerSnapshot(
       revision: revision + 1,
+      favoriteItemIds: favoriteItemIds ?? this.favoriteItemIds,
+      bagFavoritesAvailable: bagFavoritesAvailable ?? this.bagFavoritesAvailable,
       phase: phase ?? this.phase,
       gameTitle: gameTitle ?? this.gameTitle,
       pauseSection:

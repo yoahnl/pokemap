@@ -12,6 +12,7 @@ import '../application/runtime_battle_combatant_seed_builder.dart';
 import '../application/runtime_move_catalog_loader.dart';
 import '../application/runtime_move_machine_loader.dart';
 import 'runtime_player_pause_data.dart';
+import 'runtime_bag_item_icon_resolver.dart';
 import 'runtime_pokemon_summary.dart';
 import 'runtime_pokemon_summary_media_resolver.dart';
 
@@ -32,6 +33,7 @@ final class RuntimePlayerPauseDataBuilder {
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
     ItemCatalogSnapshot? itemCatalog,
     int? playtimeSeconds,
+    String? currencyLabel,
     List<BadgeDefinition>? projectBadges,
     List<ProjectCharacterEntry> projectCharacters = const [],
     DialoguePortraitLookup? portraitLookup,
@@ -60,12 +62,6 @@ final class RuntimePlayerPauseDataBuilder {
       moveCatalog = null;
     }
     final isFrench = locale.toLowerCase().startsWith('fr');
-    final bagTargets = _buildBagTargets(
-      gameState,
-      speciesById,
-      locale: locale,
-      isFrench: isFrench,
-    );
     final evolutionItemIds = await _loadEvolutionItemIds(
       gameState,
       projectRootDirectory: projectRootDirectory,
@@ -99,28 +95,49 @@ final class RuntimePlayerPauseDataBuilder {
       projectCharacters: projectCharacters,
       portraitLookup: portraitLookup,
       pokedex: species.isEmpty ? null : pokedex,
+      currencyLabel: currencyLabel,
     );
 
+    final party = await _buildParty(
+      gameState,
+      speciesById,
+      locale: locale,
+      isFrench: isFrench,
+      itemCatalog: resolvedItemCatalog,
+      heldItemOptions: heldItemOptions,
+      moveCatalog: moveCatalog,
+      mediaResolver: RuntimePokemonSummaryMediaResolver(
+        projectRootDirectory: projectRootDirectory,
+        pokemonConfig: pokemonConfig,
+      ),
+    );
+    final bagTargets =
+        _buildBagTargets(party, isFrench: isFrench, moveMachines: moveMachines);
+    final iconResolver = RuntimeBagItemIconResolver(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    );
+    final icons = Map.fromEntries(await Future.wait(
+      gameState.bag.entries.where((entry) => entry.quantity > 0).map(
+            (entry) async => MapEntry(
+                entry.itemId,
+                resolvedItemCatalog.definitionFor(entry.itemId) == null
+                    ? null
+                    : await iconResolver.resolve(entry.itemId)),
+          ),
+    ));
     return immutableRuntimePlayerPauseDetails(
       <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
         RuntimePlayerPauseSection.profile: profile,
-        RuntimePlayerPauseSection.party: await _buildParty(
-          gameState,
-          speciesById,
-          locale: locale,
-          isFrench: isFrench,
-          itemCatalog: resolvedItemCatalog,
-          heldItemOptions: heldItemOptions,
-          moveCatalog: moveCatalog,
-          mediaResolver: RuntimePokemonSummaryMediaResolver(
-            projectRootDirectory: projectRootDirectory,
-            pokemonConfig: pokemonConfig,
-          ),
-        ),
+        RuntimePlayerPauseSection.party: party,
         RuntimePlayerPauseSection.bag: _buildBag(
           gameState,
           isFrench: isFrench,
           targets: bagTargets,
+          iconPaths: icons,
+          currencyLabel: currencyLabel,
+          speciesById: speciesById,
+          moveCatalog: moveCatalog,
           evolutionItemIds: evolutionItemIds,
           moveMachines: moveMachines,
           itemCatalog: resolvedItemCatalog,
@@ -145,6 +162,7 @@ final class RuntimePlayerPauseDataBuilder {
     required List<ProjectCharacterEntry> projectCharacters,
     required DialoguePortraitLookup? portraitLookup,
     required RuntimePlayerPauseDetailSnapshot? pokedex,
+    required String? currencyLabel,
   }) {
     final trainer = gameState.trainerProfile;
     final currentMap = projectMaps
@@ -161,6 +179,7 @@ final class RuntimePlayerPauseDataBuilder {
       locationName:
           locationName == null || locationName.isEmpty ? null : locationName,
       money: trainer.money,
+      currencyLabel: currencyLabel,
       playtimeSeconds: playtimeSeconds,
       avatarCharacterId: trainer.avatarCharacterId,
       pronounSet: trainer.pronounSet,
@@ -449,6 +468,10 @@ final class RuntimePlayerPauseDataBuilder {
     required Set<String> evolutionItemIds,
     required _RuntimeMoveMachineAvailability moveMachines,
     required ItemCatalogSnapshot itemCatalog,
+    required Map<String, String?> iconPaths,
+    required String? currencyLabel,
+    required Map<String, _RuntimeSpeciesPresentation> speciesById,
+    required RuntimeMoveCatalog? moveCatalog,
   }) {
     final resolver = ItemCapabilityResolver(itemCatalog);
     final entries = gameState.bag.entries
@@ -504,7 +527,7 @@ final class RuntimePlayerPauseDataBuilder {
         title: definition?.displayName ?? _humanize(entry.itemId),
         subtitle: definition == null
             ? (isFrench ? 'Définition invalide' : 'Invalid definition')
-            : _humanize(definition.pocketId),
+            : _bagPocketLabel(definition.pocketId, isFrench: isFrench),
         trailingLabel: '×${entry.quantity}',
         bagItem: RuntimePlayerBagItemSnapshot(
           itemId: entry.itemId,
@@ -512,6 +535,7 @@ final class RuntimePlayerPauseDataBuilder {
           sortOrder: indexedEntry.key,
           pocketId: definition?.pocketId,
           description: definition?.description,
+          iconFilePath: iconPaths[entry.itemId],
         ),
         bagAction: RuntimePlayerBagItemActionSnapshot(
           itemTargetId: entry.itemId,
@@ -519,6 +543,20 @@ final class RuntimePlayerPauseDataBuilder {
           usability: usability,
           isEnabled: usability == ItemUsabilityState.usable,
           unavailableReason: unavailableReason,
+          learnedMoveLabel: definition?.machine == null
+              ? null
+              : moveCatalog?.lookup(definition!.machine!.moveId)?.name ??
+                  _humanize(definition!.machine!.moveId),
+          unavailablePartyTargetReasons: _unavailableBagTargets(
+            gameState,
+            itemId: entry.itemId,
+            use: capability.use,
+            isMoveMachine: isMoveMachine,
+            moveMachines: moveMachines,
+            speciesById: speciesById,
+            moveCatalog: moveCatalog,
+            isFrench: isFrench,
+          ),
           eligiblePartyTargetIds: isMoveMachine
               ? moveMachines.eligiblePartyTargetIdsFor(entry.itemId)
               : null,
@@ -530,6 +568,16 @@ final class RuntimePlayerPauseDataBuilder {
       title: isFrench ? 'Sac' : 'Bag',
       entries: entries,
       bagTargets: targets,
+      bagMoney: gameState.trainerProfile.money,
+      bagCurrencyLabel: currencyLabel,
+      bagPockets: [
+        for (final pocketId
+            in itemCatalog.definitions.map((item) => item.pocketId).toSet())
+          RuntimePlayerBagPocketSnapshot(
+            id: pocketId,
+            label: _bagPocketLabel(pocketId, isFrench: isFrench),
+          ),
+      ],
       emptyMessage:
           isFrench ? 'Le sac est vide.' : 'There are no items in the bag.',
     );
@@ -584,6 +632,7 @@ final class RuntimePlayerPauseDataBuilder {
     final itemIds = <String>{};
     final compatibleItemIds = <String>{};
     final eligiblePartyTargetIdsByItemId = <String, Set<String>>{};
+    final requiresMoveReplacementTargetIds = <String>{};
     for (final entry
         in gameState.bag.entries.where((entry) => entry.quantity > 0)) {
       try {
@@ -606,10 +655,23 @@ final class RuntimePlayerPauseDataBuilder {
           );
           if (candidate != null &&
               !pokemon.knownMoveIds.contains(candidate.moveId)) {
+            final preview = const PokemonMoveMachineService().apply(
+              gameState,
+              ruleset: pokemonConfig.ruleset,
+              partyIndex: partyEntry.key,
+              candidate: candidate,
+              decision: const PokemonMoveMachineDecision.learn(),
+              itemCatalog: itemCatalog,
+            );
+            if (preview.status ==
+                PokemonMoveMachineUseStatus.replacementRequired) {
+              requiresMoveReplacementTargetIds
+                  .add(_partyTargetId(pokemon, partyEntry.key));
+            }
             compatibleItemIds.add(entry.itemId);
             eligiblePartyTargetIdsByItemId
                 .putIfAbsent(entry.itemId, () => <String>{})
-                .add('party.${partyEntry.key}');
+                .add(_partyTargetId(pokemon, partyEntry.key));
           }
         }
       } on Object {
@@ -619,6 +681,7 @@ final class RuntimePlayerPauseDataBuilder {
     return _RuntimeMoveMachineAvailability(
       itemIds: itemIds,
       compatibleItemIds: compatibleItemIds,
+      requiresMoveReplacementTargetIds: requiresMoveReplacementTargetIds,
       eligiblePartyTargetIdsByItemId: eligiblePartyTargetIdsByItemId,
     );
   }
@@ -659,42 +722,89 @@ final class RuntimePlayerPauseDataBuilder {
   }
 
   List<RuntimePlayerBagPartyTargetSnapshot> _buildBagTargets(
-    GameState gameState,
-    Map<String, _RuntimeSpeciesPresentation> speciesById, {
-    required String locale,
+    RuntimePlayerPauseDetailSnapshot party, {
     required bool isFrench,
+    required _RuntimeMoveMachineAvailability moveMachines,
   }) {
-    return gameState.party.members.asMap().entries.map((entry) {
-      final index = entry.key;
-      final pokemon = entry.value;
-      final species = speciesById[pokemon.speciesId];
-      final persistedHpFloor = pokemon.currentHp > 0 ? pokemon.currentHp : 1;
-      final calculatedMaxHp = species?.maxHpFor(pokemon);
-      final maxHp =
-          calculatedMaxHp == null || calculatedMaxHp < persistedHpFloor
-              ? persistedHpFloor
-              : calculatedMaxHp;
-      final currentHp = pokemon.currentHp.clamp(0, maxHp);
+    return party.entries.map((entry) {
+      final summary = entry.pokemonSummary!;
       return RuntimePlayerBagPartyTargetSnapshot(
-        targetId: _partyTargetId(pokemon, index),
-        label: species?.nameFor(locale) ?? _humanize(pokemon.speciesId),
+        targetId: entry.id,
+        label: summary.displayLabel,
+        pokemonSummary: summary,
+        requiresMoveReplacement:
+            moveMachines.requiresMoveReplacementTargetIds.contains(entry.id),
         subtitle: isFrench
-            ? 'Niv. ${pokemon.level} · PV $currentHp/$maxHp'
-            : 'Lv. ${pokemon.level} · HP $currentHp/$maxHp',
-        moves: pokemon.knownMoveIds.map((moveId) {
-          final currentPp = pokemon.currentPpByMoveId?[moveId];
+            ? 'Niv. ${summary.level} · PV ${summary.currentHp}/${summary.maxHp}'
+            : 'Lv. ${summary.level} · HP ${summary.currentHp}/${summary.maxHp}',
+        moves: summary.moves.map((move) {
           return RuntimePlayerBagMoveTargetSnapshot(
-            targetId: moveId,
-            label: _humanize(moveId),
-            subtitle: currentPp == null
+            targetId: move.moveId,
+            label: move.label,
+            subtitle: move.currentPp == null
                 ? null
-                : (isFrench
-                    ? 'PP actuels : $currentPp'
-                    : 'Current PP: $currentPp'),
+                : 'PP ${move.currentPp}/${move.maxPp ?? '—'}',
           );
         }).toList(growable: false),
       );
     }).toList(growable: false);
+  }
+
+  Map<String, String> _unavailableBagTargets(
+    GameState gameState, {
+    required String itemId,
+    required ProjectItemUseDefinition? use,
+    required bool isMoveMachine,
+    required _RuntimeMoveMachineAvailability moveMachines,
+    required Map<String, _RuntimeSpeciesPresentation> speciesById,
+    required RuntimeMoveCatalog? moveCatalog,
+    required bool isFrench,
+  }) {
+    final reasons = <String, String>{};
+    for (final entry in gameState.party.members.asMap().entries) {
+      final pokemon = entry.value;
+      final targetId = _partyTargetId(pokemon, entry.key);
+      if (isMoveMachine) {
+        if (!moveMachines
+            .eligiblePartyTargetIdsFor(itemId)
+            .contains(targetId)) {
+          reasons[targetId] = isFrench
+              ? 'Incompatible avec cette capacité.'
+              : 'Cannot learn this move.';
+        }
+        continue;
+      }
+      if (use == null || !_isSupportedOverworldEffect(use.effect)) continue;
+      final maxHp = speciesById[pokemon.speciesId]?.maxHpFor(pokemon);
+      if (maxHp == null) continue;
+      final maxPpByMoveId = <String, int>{
+        for (final moveId in pokemon.knownMoveIds)
+          if (moveCatalog?.lookup(moveId) case final move?) moveId: move.pp,
+      };
+      final moves = use.target == ProjectItemTargetKind.partyMove
+          ? pokemon.knownMoveIds.cast<String?>()
+          : <String?>[null];
+      final applications = moves
+          .map((moveId) => applyPlayerItemEffect(
+                pokemon,
+                use: use,
+                maxHp: maxHp,
+                moveId: moveId,
+                maxPpByMoveId: maxPpByMoveId,
+              ))
+          .toList(growable: false);
+      if (applications.any((result) => result.isApplied)) continue;
+      final hasNoEffect = applications
+          .any((result) => result.failure == PlayerItemUseFailure.noEffect);
+      reasons[targetId] = hasNoEffect
+          ? (isFrench
+              ? 'Cet objet n’aurait aucun effet.'
+              : 'This item would have no effect.')
+          : (isFrench
+              ? 'Cet objet ne convient pas à cette cible.'
+              : 'This item cannot be used on this target.');
+    }
+    return reasons;
   }
 
   RuntimePlayerPauseDetailSnapshot _buildPokedex(
@@ -954,22 +1064,21 @@ final class _RuntimeSpeciesPresentation {
       return null;
     }
     try {
-      return const PokemonStatCalculator()
-          .calculate(
-            baseStats: PokemonBaseStats(
-              hp: hp,
-              attack: attack,
-              defense: defense,
-              specialAttack: specialAttack,
-              specialDefense: specialDefense,
-              speed: speed,
-            ),
-            ivs: pokemon.ivs,
-            evs: pokemon.evs,
-            level: pokemon.level,
-            naturePolicy: PokemonNatureStatPolicy.canonical,
-            natureId: pokemon.natureId,
-          );
+      return const PokemonStatCalculator().calculate(
+        baseStats: PokemonBaseStats(
+          hp: hp,
+          attack: attack,
+          defense: defense,
+          specialAttack: specialAttack,
+          specialDefense: specialDefense,
+          speed: speed,
+        ),
+        ivs: pokemon.ivs,
+        evs: pokemon.evs,
+        level: pokemon.level,
+        naturePolicy: PokemonNatureStatPolicy.canonical,
+        natureId: pokemon.natureId,
+      );
     } on Object {
       return null;
     }
@@ -980,9 +1089,12 @@ final class _RuntimeMoveMachineAvailability {
   _RuntimeMoveMachineAvailability({
     required Set<String> itemIds,
     required Set<String> compatibleItemIds,
+    required Set<String> requiresMoveReplacementTargetIds,
     required Map<String, Set<String>> eligiblePartyTargetIdsByItemId,
   })  : itemIds = Set<String>.unmodifiable(itemIds),
         compatibleItemIds = Set<String>.unmodifiable(compatibleItemIds),
+        requiresMoveReplacementTargetIds =
+            Set.unmodifiable(requiresMoveReplacementTargetIds),
         eligiblePartyTargetIdsByItemId = Map<String, Set<String>>.unmodifiable(
           eligiblePartyTargetIdsByItemId.map(
             (itemId, targetIds) => MapEntry(
@@ -994,6 +1106,7 @@ final class _RuntimeMoveMachineAvailability {
 
   final Set<String> itemIds;
   final Set<String> compatibleItemIds;
+  final Set<String> requiresMoveReplacementTargetIds;
   final Map<String, Set<String>> eligiblePartyTargetIdsByItemId;
 
   Set<String> eligiblePartyTargetIdsFor(String itemId) =>
@@ -1031,6 +1144,19 @@ Directory? _resolveProjectDirectory(String projectRoot, String relativePath) {
   }
   return Directory(resolved);
 }
+
+String _bagPocketLabel(String pocketId, {required bool isFrench}) =>
+    switch (pocketId) {
+      'medicine' => isFrench ? 'Soins' : 'Medicine',
+      'items' => isFrench ? 'Objets' : 'Items',
+      'balls' => 'Balls',
+      'held-items' => isFrench ? 'Objets tenus' : 'Held items',
+      'evolution-items' => isFrench ? 'Objets d’évolution' : 'Evolution items',
+      'machines' => isFrench ? 'CT/CS' : 'TMs/HMs',
+      'key-items' => isFrench ? 'Objets clés' : 'Key items',
+      'battle-items' => isFrench ? 'Objets de combat' : 'Battle items',
+      _ => _humanize(pocketId),
+    };
 
 String _humanize(String value) {
   final words = value

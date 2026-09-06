@@ -102,6 +102,59 @@ void main() {
     );
   });
 
+  test('pause bag refuses a scene that becomes active before commit', () async {
+    var state = const GameState(
+      saveId: 'bag-scene-interlock',
+      party: PlayerParty(members: [
+        PlayerPokemon(
+            speciesId: 'lead',
+            individualId: 'lead',
+            natureId: 'hardy',
+            abilityId: 'steadfast',
+            currentHp: 11),
+      ]),
+      bag: Bag(entries: [BagEntry(itemId: 'potion', quantity: 3)]),
+    );
+    final original = state;
+    var sceneActive = false;
+    var activateSceneDuringCaps = true;
+    var commits = 0;
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        commits++;
+        state = next;
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async {
+        if (activateSceneDuringCaps) sceneActive = true;
+        return const RuntimePlayerServiceRecoveryCaps(
+            maxHpByPartyIndex: {0: 34});
+      },
+      itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+    );
+    controller.setPauseMutationGuard(() => sceneActive
+        ? 'Terminez la scène en cours avant de modifier le sac.'
+        : null);
+    addTearDown(controller.dispose);
+    const command = RuntimePlayerPauseCommand.useBagItem(
+        itemTargetId: 'potion', partyTargetId: 'pokemon.lead');
+    final refused = await controller.useBagItemOutsideBattle(command);
+    expect(refused.status, RuntimePlayerPauseCommandStatus.unavailable);
+    expect(refused.safeMessage, contains('scène'));
+    expect(commits, 0);
+    expect(state, same(original));
+    expect((await controller.useBagItemOutsideBattle(command)).status,
+        RuntimePlayerPauseCommandStatus.unavailable);
+    sceneActive = false;
+    activateSceneDuringCaps = false;
+    final accepted = await controller.useBagItemOutsideBattle(command);
+    expect(accepted.status, RuntimePlayerPauseCommandStatus.accepted);
+    expect(commits, 1);
+    expect(state.party.members.single.currentHp, 31);
+    expect(state.bag.entries.single.quantity, 2);
+  });
+
   test('replaying the same bag command heals again or refuses, never doubles',
       () async {
     // BETA-ITM-004 « fermeture/rebuild ne rejoue pas la commande » : un

@@ -152,11 +152,16 @@ class PlayerMenuFrame extends StatelessWidget {
 
 class PlayerMenuHeader extends StatelessWidget {
   const PlayerMenuHeader(
-      {super.key, required this.icon, required this.title, this.secondary});
+      {super.key,
+      required this.icon,
+      required this.title,
+      this.secondary,
+      this.alignSecondaryEnd = false});
 
   final IconData icon;
   final String title;
   final Widget? secondary;
+  final bool alignSecondaryEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +182,7 @@ class PlayerMenuHeader extends StatelessWidget {
               Expanded(child: Text(title, style: theme.title)),
             ]);
       return Container(
+        width: alignSecondaryEnd ? double.infinity : null,
         constraints: BoxConstraints(minHeight: compact ? 44 : 64),
         padding: EdgeInsets.symmetric(
             horizontal: compact ? 12 : 24, vertical: compact ? 4 : 15.5),
@@ -200,9 +206,17 @@ class PlayerMenuHeader extends StatelessWidget {
                 if (secondary != null) ...[
                   const SizedBox(width: PlayerSpacing.lg),
                   Flexible(
-                      child: DefaultTextStyle(
-                          style: theme.meta.copyWith(color: theme.secondary),
-                          child: secondary!)),
+                      child: alignSecondaryEnd
+                          ? Align(
+                              alignment: Alignment.centerRight,
+                              child: DefaultTextStyle(
+                                  style: theme.meta
+                                      .copyWith(color: theme.secondary),
+                                  child: secondary!))
+                          : DefaultTextStyle(
+                              style:
+                                  theme.meta.copyWith(color: theme.secondary),
+                              child: secondary!)),
                 ],
               ]),
       );
@@ -216,10 +230,12 @@ class PlayerMenuFooter extends StatelessWidget {
       required this.hints,
       this.returnAction,
       this.hintsFlex = 1,
+      this.stackActions = false,
       this.alignReturnEnd = false});
   final List<Widget> hints;
   final Widget? returnAction;
   final int hintsFlex;
+  final bool stackActions;
   final bool alignReturnEnd;
 
   @override
@@ -239,33 +255,39 @@ class PlayerMenuFooter extends StatelessWidget {
               runSpacing: PlayerSpacing.xs,
               children: hints,
             )
-          : Row(
-              mainAxisAlignment: alignReturnEnd
-                  ? MainAxisAlignment.spaceBetween
-                  : MainAxisAlignment.start,
-              children: [
-                  Expanded(
-                      flex: hintsFlex,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(children: [
-                          for (var index = 0;
-                              index < hints.length;
-                              index++) ...[
-                            if (index > 0)
-                              const SizedBox(width: PlayerSpacing.lg),
-                            hints[index],
-                          ]
-                        ]),
-                      )),
-                  const SizedBox(width: PlayerSpacing.lg),
-                  Flexible(
-                      flex: 3,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 280),
-                        child: returnAction!,
-                      )),
-                ]),
+          : stackActions
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [...hints, returnAction!],
+                )
+              : Row(
+                  mainAxisAlignment: alignReturnEnd
+                      ? MainAxisAlignment.spaceBetween
+                      : MainAxisAlignment.start,
+                  children: [
+                      Expanded(
+                          flex: hintsFlex,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(children: [
+                              for (var index = 0;
+                                  index < hints.length;
+                                  index++) ...[
+                                if (index > 0)
+                                  const SizedBox(width: PlayerSpacing.lg),
+                                hints[index],
+                              ]
+                            ]),
+                          )),
+                      const SizedBox(width: PlayerSpacing.lg),
+                      Flexible(
+                          flex: 3,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 280),
+                            child: returnAction!,
+                          )),
+                    ]),
     );
   }
 }
@@ -310,8 +332,10 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.onPressed,
     this.leading,
     this.trailing,
+    this.trailingWidth,
     this.subtitle,
     this.supportingContent,
+    this.labelMaxLines,
     this.semanticValue,
     this.onFocusChanged,
     this.selected = false,
@@ -323,6 +347,8 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.focusNode,
     this.integrated = false,
     this.minimumHeight = 48,
+    this.contentPadding =
+        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     this.showFocusHighlight = true,
   });
 
@@ -331,8 +357,10 @@ class PlayerMenuSelectableRow extends StatefulWidget {
   final VoidCallback? onPressed;
   final Widget? leading;
   final Widget? trailing;
+  final double? trailingWidth;
   final String? subtitle;
   final Widget? supportingContent;
+  final int? labelMaxLines;
   final String? semanticValue;
   final ValueChanged<bool>? onFocusChanged;
   final bool selected;
@@ -344,6 +372,7 @@ class PlayerMenuSelectableRow extends StatefulWidget {
   final FocusNode? focusNode;
   final bool integrated;
   final double minimumHeight;
+  final EdgeInsetsGeometry contentPadding;
   final bool showFocusHighlight;
 
   @override
@@ -445,7 +474,7 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
         return Container(
           key: ValueKey('${widget.id}-surface'),
           constraints: BoxConstraints(minHeight: widget.minimumHeight),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: widget.contentPadding,
           decoration: painted.copyWith(
               gradient: LinearGradient(
             begin: gradient.begin,
@@ -478,7 +507,12 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                      Text(widget.label),
+                      if (widget.label.isNotEmpty)
+                        Text(widget.label,
+                            maxLines: widget.labelMaxLines,
+                            overflow: widget.labelMaxLines == null
+                                ? null
+                                : TextOverflow.ellipsis),
                       if (widget.subtitle != null)
                         Text(widget.subtitle!,
                             style: theme.meta.copyWith(color: secondary)),
@@ -493,7 +527,10 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                   Icon(Icons.hourglass_top_rounded, color: foreground),
                 ] else if (widget.trailing != null) ...[
                   const SizedBox(width: PlayerSpacing.sm),
-                  Flexible(child: widget.trailing!),
+                  if (widget.trailingWidth case final width?)
+                    SizedBox(width: width, child: widget.trailing!)
+                  else
+                    Flexible(child: widget.trailing!),
                 ],
               ]),
             ),
@@ -528,8 +565,14 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
         mouseCursor:
             _enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
         shortcuts: const {
-          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.enter, includeRepeats: false):
+              ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.enter):
+              DoNothingAndStopPropagationIntent(),
+          SingleActivator(LogicalKeyboardKey.space, includeRepeats: false):
+              ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space):
+              DoNothingAndStopPropagationIntent(),
         },
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {

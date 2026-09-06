@@ -219,6 +219,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final PlayerServiceGameStateReader _currentGameState;
   final PlayerServiceOverlayHost? _host;
   final PlayerServiceStateTransaction _commitAndSave;
+  String? Function()? _pauseMutationUnavailableReason;
   final PlayerServiceInputLockSetter _setInputLocked;
   final PlayerServiceRecoveryCapsLoader _loadRecoveryCaps;
   final ScriptEvaluationContext _conditionContext;
@@ -466,6 +467,29 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
   }
 
+  void setPauseMutationGuard(String? Function() unavailableReason) {
+    _pauseMutationUnavailableReason = unavailableReason;
+  }
+
+  RuntimePlayerPauseCommandResult? _pauseMutationRefusal() {
+    final reason = _pauseMutationUnavailableReason?.call();
+    return reason == null
+        ? null
+        : RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage: reason,
+          );
+  }
+
+  Future<RuntimePlayerPauseCommandResult?> _commitPauseMutation(
+    GameState state,
+  ) async {
+    final refusal = _pauseMutationRefusal();
+    if (refusal != null) return refusal;
+    await _commitAndSave(state);
+    return null;
+  }
+
   Future<RuntimePlayerPauseCommandResult> useBagItemOutsideBattle(
     RuntimePlayerPauseCommand command,
   ) async {
@@ -475,6 +499,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         safeMessage: 'Le sac est occupé pour le moment.',
       );
     }
+    final refusal = _pauseMutationRefusal();
+    if (refusal != null) return refusal;
     final state = _currentGameState();
     final partyIndex = _partyIndexFromTarget(state, command.partyTargetId);
     if (partyIndex == null) {
@@ -613,7 +639,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           safeMessage: _bagItemFailureMessage(result.failure!),
         );
       }
-      await _commitAndSave(result.state);
+      final refusal = await _commitPauseMutation(result.state);
+      if (refusal != null) return refusal;
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.accepted,
         safeMessage: 'Objet utilisé et progression sauvegardée.',
@@ -666,7 +693,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
     }
     try {
-      await _commitAndSave(result.state);
+      final refusal = await _commitPauseMutation(result.state);
+      if (refusal != null) return refusal;
       return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.accepted,
         safeMessage: result.status == HeldItemTransferStatus.unequipped
@@ -738,7 +766,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       switch (result.status) {
         case PokemonMoveMachineUseStatus.learned:
         case PokemonMoveMachineUseStatus.replaced:
-          await _commitAndSave(result.state);
+          final refusal = await _commitPauseMutation(result.state);
+          if (refusal != null) return refusal;
           return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.accepted,
             safeMessage: result.status == PokemonMoveMachineUseStatus.replaced
@@ -848,7 +877,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           safeMessage: 'Cet objet ne provoque aucune évolution ici.',
         );
       }
-      await _commitAndSave(result.state);
+      final refusal = await _commitPauseMutation(result.state);
+      if (refusal != null) return refusal;
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.accepted,
         safeMessage: 'Évolution réussie et progression sauvegardée.',

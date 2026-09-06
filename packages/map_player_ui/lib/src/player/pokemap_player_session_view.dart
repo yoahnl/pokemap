@@ -27,6 +27,7 @@ import 'runtime_player_focus_controller.dart';
 import 'runtime_player_gamepad_bridge.dart';
 import 'runtime_player_surface_router.dart';
 import 'runtime_player_party.dart';
+import 'runtime_player_bag.dart';
 import 'runtime_player_touch_controls.dart';
 
 /// Small presentation-facing subset of the runtime player coordinator.
@@ -50,11 +51,30 @@ abstract interface class RuntimePlayerViewController {
 }
 
 /// Adapter for the canonical in-process runtime coordinator.
+abstract interface class RuntimePlayerBagFavoritesController {
+  Future<RuntimePlayerCommandResult> setBagItemFavorite(
+      {required String itemId,
+      required bool favorite,
+      required int snapshotRevision});
+}
+
 final class RuntimePlayerCoordinatorViewController
-    implements RuntimePlayerViewController {
+    implements
+        RuntimePlayerViewController,
+        RuntimePlayerBagFavoritesController {
   const RuntimePlayerCoordinatorViewController(this.coordinator);
 
   final RuntimePlayerCoordinator coordinator;
+
+  @override
+  Future<RuntimePlayerCommandResult> setBagItemFavorite(
+          {required String itemId,
+          required bool favorite,
+          required int snapshotRevision}) =>
+      coordinator.setBagItemFavorite(
+          itemId: itemId,
+          favorite: favorite,
+          snapshotRevision: snapshotRevision);
 
   @override
   RuntimePlayerSnapshot get snapshot => coordinator.snapshot;
@@ -166,6 +186,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
 class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   var _pauseFocusController = RuntimePlayerFocusController();
   final _partyNavigation = RuntimePlayerPartyNavigation();
+  final _bagNavigation = RuntimePlayerBagNavigation();
   StreamSubscription<RuntimeInputEvent>? _controllerSubscription;
   late RuntimePlayerSnapshot _latestSnapshot;
   bool _menuTransitionPending = false;
@@ -553,7 +574,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
               snapshot,
               payload: command,
             );
-            if (snapshot.pauseSection == RuntimePlayerPauseSection.party &&
+            if ((snapshot.pauseSection == RuntimePlayerPauseSection.party ||
+                    snapshot.pauseSection == RuntimePlayerPauseSection.bag) &&
                 (result.status == RuntimePlayerCommandStatus.unavailable ||
                     result.status == RuntimePlayerCommandStatus.stale ||
                     result.status == RuntimePlayerCommandStatus.failed)) {
@@ -562,6 +584,24 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
             }
           },
           partyNavigation: _partyNavigation,
+          bagNavigation: _bagNavigation,
+          onFavoriteChanged: widget.controller
+                  is! RuntimePlayerBagFavoritesController
+              ? null
+              : (itemId, favorite) async {
+                  final unavailableMessage =
+                      context.playerL10n.actionUnavailable;
+                  final result = await (widget.controller
+                          as RuntimePlayerBagFavoritesController)
+                      .setBagItemFavorite(
+                          itemId: itemId,
+                          favorite: favorite,
+                          snapshotRevision: snapshot.revision);
+                  if (result.status != RuntimePlayerCommandStatus.accepted) {
+                    throw RuntimePlayerPartyCommandFailure(
+                        result.safeMessage ?? unavailableMessage);
+                  }
+                },
           controlProfile:
               widget.onControlProfileChanged == null ? null : _controlProfile,
           onControlProfileChanged: widget.onControlProfileChanged,
@@ -706,6 +746,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     _pauseFocusController.dispose();
     unawaited(_controllerSubscription?.cancel());
     _partyNavigation.dispose();
+    _bagNavigation.dispose();
     widget.presentationFrame?.removeListener(_handlePresentationFrameChanged);
     _releaseGameplayDirections();
     super.dispose();

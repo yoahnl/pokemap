@@ -8,6 +8,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_player_ui/presentation_renderer.dart'
     show RuntimePresentationSessionRuntime, resolveProjectDirectoryAssetFile;
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'runtime_launch_save.dart';
 
@@ -127,6 +128,7 @@ final class StandaloneRuntimeStartupHost {
     required ProjectManifest manifest,
     required StandaloneRuntimeSessionPort sessionPort,
     PlayerPreferencesGateway? preferencesGateway,
+    PlayerInventoryPreferencesGateway? inventoryPreferencesGateway,
     Future<void> Function()? onExternalExit,
     Future<void> Function()? stopIntroPlayback,
     RuntimeSplashJingleController? splashJingleController,
@@ -201,6 +203,13 @@ final class StandaloneRuntimeStartupHost {
       gameSource: source,
       saveGateway: saves,
       preferencesGateway: preferences,
+      inventoryPreferencesGateway: inventoryPreferencesGateway ??
+          FilePlayerInventoryPreferencesGateway.lazy(
+            directoryProvider: () async => Directory(p.join(
+              (await getApplicationSupportDirectory()).path,
+              'inventory_preferences',
+            )),
+          ),
       newGameFlow: newGameFlow,
       sessionController: sessions,
       externalExit: _CallbackRuntimeExternalExit(onExternalExit ?? _noOp),

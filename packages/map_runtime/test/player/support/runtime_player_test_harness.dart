@@ -15,6 +15,7 @@ final class RuntimePlayerTestHarness {
     Set<ProjectPauseActionId>? defaultVisiblePauseActions,
     ProjectNewGameConfig? newGameConfig,
     List<SceneAsset> scenes = const <SceneAsset>[],
+    PlayerInventoryPreferencesGateway? inventoryPreferencesGateway,
   })  : source = MemoryRuntimeGameSource(
           descriptorGate: descriptorGate,
           descriptorError: descriptorError,
@@ -45,6 +46,7 @@ final class RuntimePlayerTestHarness {
       gameSource: source,
       saveGateway: saves,
       preferencesGateway: preferences,
+      inventoryPreferencesGateway: inventoryPreferencesGateway,
       newGameFlow: newGameFlow,
       sessionController: sessions,
       externalExit: exit,

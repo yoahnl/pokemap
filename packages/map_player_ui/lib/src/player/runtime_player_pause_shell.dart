@@ -40,6 +40,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.portraitImage,
     this.detailOwnsScroll = false,
     this.detailActions,
+    this.detailHeaderSecondary,
   });
 
   const RuntimePlayerPauseShell.root({
@@ -61,6 +62,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.portraitImage,
     this.detailOwnsScroll = false,
     this.detailActions,
+    this.detailHeaderSecondary,
   })  : pauseSection = RuntimePlayerPauseSection.root,
         onBackToRoot = _noop;
 
@@ -83,6 +85,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final ImageProvider? portraitImage;
   final bool detailOwnsScroll;
   final Widget? detailActions;
+  final Widget? detailHeaderSecondary;
 
   static void _noop() {}
 
@@ -326,7 +329,12 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
               header: isRoot || _composition(layout)?.showTitle == false
                   ? const SizedBox.shrink()
                   : PlayerMenuHeader(
-                      icon: Icons.menu,
+                      alignSecondaryEnd:
+                          widget.pauseSection == RuntimePlayerPauseSection.bag,
+                      icon: widget.pauseSection == RuntimePlayerPauseSection.bag
+                          ? Icons.backpack_outlined
+                          : Icons.menu,
+                      secondary: widget.detailHeaderSecondary,
                       title: isRoot
                           ? presentation.title ?? widget.gameTitle
                           : widget.detailTitle ??
@@ -344,6 +352,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                     ),
                   PlayerMenuFooter(
                     alignReturnEnd: true,
+                    stackActions:
+                        widget.pauseSection == RuntimePlayerPauseSection.bag &&
+                            MediaQuery.sizeOf(context).width < 760 &&
+                            MediaQuery.textScalerOf(context).scale(1) >= 1.8,
                     hintsFlex: !isRoot && widget.detailActions != null
                         ? (layout == RuntimePlayerLayoutClass.compactPortrait
                             ? 3
@@ -840,12 +852,19 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [widget.detail, actions],
+              children: [
+                if (widget.detailHeaderSecondary case final secondary?)
+                  Align(alignment: Alignment.centerRight, child: secondary),
+                widget.detail,
+                actions,
+              ],
             );
           }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.detailHeaderSecondary case final secondary?)
+                Align(alignment: Alignment.centerRight, child: secondary),
               Expanded(child: widget.detail),
               ConstrainedBox(
                 constraints:

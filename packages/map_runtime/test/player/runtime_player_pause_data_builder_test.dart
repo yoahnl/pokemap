@@ -155,7 +155,9 @@ void main() {
       RuntimePlayerBagUseTargetKind.partyMember,
     );
     expect(bag.bagTargets.single.targetId, 'party.0');
-    expect(bag.bagTargets.single.label, 'Salamèche');
+    expect(bag.bagTargets.single.label, 'Flamme');
+    expect(bag.bagTargets.single.pokemonSummary,
+        same(party.entries.single.pokemonSummary));
     expect(
       bag.bagTargets.single.moves.map((move) => move.targetId),
       <String>['scratch', 'ember'],
@@ -188,145 +190,300 @@ void main() {
     expect(map.message, contains('voyage rapide'));
   });
 
-  test('marks compatible move machines with the replacement target flow',
+  test('projects empty catalog pockets, inventory order, balance and icon',
       () async {
-    final projectRoot = await Directory.systemTemp.createTemp(
-      'pokemap-runtime-machine-pause-',
-    );
+    final projectRoot =
+        await Directory.systemTemp.createTemp('pause-bag-data-');
     addTearDown(() => projectRoot.delete(recursive: true));
-    final speciesDirectory =
-        Directory('${projectRoot.path}/data/pokemon/species');
-    await speciesDirectory.create(recursive: true);
-    await _writeSpecies(
-      speciesDirectory,
-      fileName: '004-charmander.json',
-      id: 'charmander',
-      nationalDex: 4,
-      names: const <String, String>{'fr': 'Salamèche'},
-      types: const <String>['fire'],
-      baseHp: 39,
-    );
-    await _writeSpecies(
-      speciesDirectory,
-      fileName: '007-squirtle.json',
-      id: 'squirtle',
-      nationalDex: 7,
-      names: const <String, String>{'fr': 'Carapuce'},
-      types: const <String>['water'],
-      baseHp: 44,
-    );
-    await _writeJson(
-      projectRoot,
-      'data/pokemon/catalogs/items.json',
-      <String, Object?>{
-        'catalog': 'items',
-        'entries': <Object?>[
-          <String, Object?>{
-            'id': 'tm-protect',
-            'machine': <String, Object?>{
-              'kind': 'tm',
-              'moveId': 'protect',
-              'consumable': true,
-            },
-          },
-        ],
-      },
-    );
-    await _writeJson(
-      projectRoot,
-      'data/pokemon/catalogs/moves.json',
-      <String, Object?>{
-        'catalog': 'moves',
-        'entries': <Object?>[
-          const PokemonMove(
-            id: 'protect',
-            name: 'Protect',
-            source: 'pause-test',
-            type: 'normal',
-            category: PokemonMoveCategory.status,
-            basePower: 0,
-            accuracy: PokemonMoveAccuracy.alwaysHits(),
-            pp: 10,
-            engineSupportLevel:
-                PokemonMoveEngineSupportLevel.structuredSupported,
-          ).toJson(),
-        ],
-      },
-    );
-    await _writeJson(
-      projectRoot,
-      'data/pokemon/learnsets/charmander.json',
-      <String, Object?>{
-        'speciesId': 'charmander',
-        'startingMoves': <String>[],
-        'relearnMoves': <String>[],
-        'levelUp': <Object?>[],
-        'tm': <Object?>[
-          <String, String>{'moveId': 'protect'},
-        ],
-      },
-    );
-
+    final image = File('${projectRoot.path}/assets/supply.png');
+    await image.parent.create(recursive: true);
+    await image.writeAsString('image');
+    await _writeJson(projectRoot, 'data/pokemon/catalogs/items.json', {
+      'entries': [
+        {'id': 'supply', 'localSpritePath': 'assets/supply.png'},
+      ],
+    });
     final details = await const RuntimePlayerPauseDataBuilder().build(
       gameState: const GameState(
-        saveId: 'machine-pause',
-        party: PlayerParty(
-          members: <PlayerPokemon>[
-            PlayerPokemon(
-              speciesId: 'charmander',
-              natureId: 'hardy',
-              abilityId: 'blaze',
-              currentHp: 20,
-              knownMoveIds: <String>['scratch'],
-            ),
-            PlayerPokemon(
-              speciesId: 'squirtle',
-              natureId: 'hardy',
-              abilityId: 'torrent',
-              currentHp: 20,
-              knownMoveIds: <String>['tackle'],
-            ),
-          ],
-        ),
-        bag: Bag(
-          entries: <BagEntry>[
-            BagEntry(
-              itemId: 'tm-protect',
-              quantity: 1,
-            ),
-          ],
-        ),
+        saveId: 'bag-pockets',
+        trainerProfile: TrainerProfile(name: 'Yoahn', money: 12345),
+        bag: Bag(entries: [
+          BagEntry(itemId: 'supply', quantity: 2),
+          BagEntry(itemId: 'unknown', quantity: 1),
+          BagEntry(itemId: 'z-key', quantity: 1),
+        ]),
       ),
       projectRootDirectory: projectRoot.path,
       pokemonConfig: const ProjectPokemonConfig(
-        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
-      ),
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1),
       locale: 'fr',
-      itemCatalog: _catalogWith(
-        const <ProjectItemDefinition>[
+      currencyLabel: 'crédits',
+      itemCatalog: ItemCatalogSnapshot.fromCatalog(const ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: [
           ProjectItemDefinition(
-            id: 'tm-protect',
-            displayName: 'TM Protect',
-            pocketId: 'machines',
-            machine: ProjectMoveMachineItemDefinition(
-              moveId: 'protect',
-              kind: ProjectMoveMachineKind.tm,
-              consumable: true,
-            ),
-          ),
+              id: 'z-key', displayName: 'Clé', pocketId: 'Outils'),
+          ProjectItemDefinition(
+              id: 'unused', displayName: 'Graine', pocketId: 'Graines'),
+          ProjectItemDefinition(
+              id: 'supply',
+              displayName: 'Trousse',
+              pocketId: 'Secours',
+              description: 'Une description\nsur deux lignes.'),
         ],
-      ),
+      )),
     );
-
-    final action =
-        details[RuntimePlayerPauseSection.bag]!.entries.single.bagAction!;
-    expect(action.isEnabled, isTrue);
-    expect(
-      action.targetKind,
-      RuntimePlayerBagUseTargetKind.partyMoveReplacement,
-    );
-    expect(action.eligiblePartyTargetIds, const <String>{'party.0'});
+    final bag = details[RuntimePlayerPauseSection.bag]!;
+    expect(bag.bagPockets.map((pocket) => pocket.id),
+        ['Outils', 'Graines', 'Secours']);
+    expect(bag.bagPockets.map((pocket) => pocket.label),
+        ['Outils', 'Graines', 'Secours']);
+    expect(bag.entries.map((entry) => entry.bagItem!.itemId),
+        ['supply', 'unknown', 'z-key']);
+    expect(bag.bagMoney, 12345);
+    expect(bag.bagCurrencyLabel, 'crédits');
+    expect(bag.entries.first.bagItem!.iconFilePath,
+        await image.resolveSymbolicLinks());
+    expect(bag.entries.first.bagItem!.description,
+        'Une description\nsur deux lignes.');
+    expect(bag.entries[1].bagItem!.iconFilePath, isNull);
+    expect(bag.entries[1].bagAction!.isEnabled, isFalse);
+    final refreshed = bag.withMessage('Actualisé');
+    expect(refreshed.bagPockets, bag.bagPockets);
+    expect(refreshed.bagMoney, bag.bagMoney);
+    expect(refreshed.bagCurrencyLabel, bag.bagCurrencyLabel);
+    expect(() => bag.bagPockets.clear(), throwsUnsupportedError);
   });
+
+  test('localizes existing pocket labels without changing project order',
+      () async {
+    final root = await Directory.systemTemp.createTemp('pause-pocket-labels-');
+    addTearDown(() => root.delete(recursive: true));
+    const pocketIds = [
+      'held-items',
+      'medicine',
+      'key-items',
+      'machines',
+      'evolution-items',
+      'battle-items',
+      'items',
+      'balls',
+      'camp-supplies',
+    ];
+    final catalog = ItemCatalogSnapshot.fromCatalog(ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: [
+        for (final pocketId in pocketIds)
+          ProjectItemDefinition(
+              id: 'item-$pocketId', displayName: pocketId, pocketId: pocketId),
+      ],
+    ));
+    const labelsByLocale = {
+      'fr': [
+        'Objets tenus',
+        'Soins',
+        'Objets clés',
+        'CT/CS',
+        'Objets d’évolution',
+        'Objets de combat',
+        'Objets',
+        'Balls',
+        'Camp Supplies'
+      ],
+      'en': [
+        'Held items',
+        'Medicine',
+        'Key items',
+        'TMs/HMs',
+        'Evolution items',
+        'Battle items',
+        'Items',
+        'Balls',
+        'Camp Supplies'
+      ],
+    };
+    for (final locale in labelsByLocale.keys) {
+      final details = await const RuntimePlayerPauseDataBuilder().build(
+        gameState: const GameState(saveId: 'pocket-labels'),
+        projectRootDirectory: root.path,
+        pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1),
+        locale: locale,
+        itemCatalog: catalog,
+      );
+      final bag = details[RuntimePlayerPauseSection.bag]!;
+      expect(bag.bagPockets.map((pocket) => pocket.id), pocketIds);
+      expect(
+          bag.bagPockets.map((pocket) => pocket.label), labelsByLocale[locale]);
+      expect(bag.entries, isEmpty);
+    }
+  });
+
+  for (final knownMoves in const [
+    ['scratch'],
+    ['scratch', 'growl', 'ember', 'leer'],
+  ]) {
+    test('projects TM availability with ${knownMoves.length} known moves',
+        () async {
+      final projectRoot = await Directory.systemTemp.createTemp(
+        'pokemap-runtime-machine-pause-',
+      );
+      addTearDown(() => projectRoot.delete(recursive: true));
+      final speciesDirectory =
+          Directory('${projectRoot.path}/data/pokemon/species');
+      await speciesDirectory.create(recursive: true);
+      await _writeSpecies(
+        speciesDirectory,
+        fileName: '004-charmander.json',
+        id: 'charmander',
+        nationalDex: 4,
+        names: const <String, String>{'fr': 'Salamèche'},
+        types: const <String>['fire'],
+        baseHp: 39,
+      );
+      await _writeSpecies(
+        speciesDirectory,
+        fileName: '007-squirtle.json',
+        id: 'squirtle',
+        nationalDex: 7,
+        names: const <String, String>{'fr': 'Carapuce'},
+        types: const <String>['water'],
+        baseHp: 44,
+      );
+      await _writeJson(
+        projectRoot,
+        'data/pokemon/catalogs/items.json',
+        <String, Object?>{
+          'catalog': 'items',
+          'entries': <Object?>[
+            <String, Object?>{
+              'id': 'tm-protect',
+              'machine': <String, Object?>{
+                'kind': 'tm',
+                'moveId': 'protect',
+                'consumable': true,
+              },
+            },
+          ],
+        },
+      );
+      await _writeJson(
+        projectRoot,
+        'data/pokemon/catalogs/moves.json',
+        <String, Object?>{
+          'catalog': 'moves',
+          'entries': <Object?>[
+            const PokemonMove(
+              id: 'protect',
+              name: 'Protect',
+              source: 'pause-test',
+              type: 'normal',
+              category: PokemonMoveCategory.status,
+              basePower: 0,
+              accuracy: PokemonMoveAccuracy.alwaysHits(),
+              pp: 10,
+              engineSupportLevel:
+                  PokemonMoveEngineSupportLevel.structuredSupported,
+            ).toJson(),
+          ],
+        },
+      );
+      await _writeJson(
+        projectRoot,
+        'data/pokemon/learnsets/charmander.json',
+        <String, Object?>{
+          'speciesId': 'charmander',
+          'startingMoves': <String>[],
+          'relearnMoves': <String>[],
+          'levelUp': <Object?>[],
+          'tm': <Object?>[
+            <String, String>{'moveId': 'protect'},
+          ],
+        },
+      );
+
+      final details = await const RuntimePlayerPauseDataBuilder().build(
+        gameState: GameState(
+          saveId: 'machine-pause',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'charmander',
+                individualId: 'starter-1',
+                natureId: 'hardy',
+                abilityId: 'blaze',
+                currentHp: 20,
+                knownMoveIds: knownMoves,
+              ),
+              const PlayerPokemon(
+                speciesId: 'charmander',
+                individualId: 'already-learned',
+                natureId: 'hardy',
+                abilityId: 'blaze',
+                currentHp: 20,
+                knownMoveIds: ['protect'],
+              ),
+              PlayerPokemon(
+                speciesId: 'squirtle',
+                natureId: 'hardy',
+                abilityId: 'torrent',
+                currentHp: 20,
+                knownMoveIds: <String>['tackle'],
+              ),
+            ],
+          ),
+          bag: Bag(
+            entries: <BagEntry>[
+              BagEntry(
+                itemId: 'tm-protect',
+                quantity: 1,
+              ),
+            ],
+          ),
+        ),
+        projectRootDirectory: projectRoot.path,
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
+        locale: 'fr',
+        itemCatalog: _catalogWith(
+          const <ProjectItemDefinition>[
+            ProjectItemDefinition(
+              id: 'tm-protect',
+              displayName: 'TM Protect',
+              pocketId: 'machines',
+              machine: ProjectMoveMachineItemDefinition(
+                moveId: 'protect',
+                kind: ProjectMoveMachineKind.tm,
+                consumable: true,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      final action =
+          details[RuntimePlayerPauseSection.bag]!.entries.single.bagAction!;
+      expect(action.isEnabled, isTrue);
+      expect(
+        action.targetKind,
+        RuntimePlayerBagUseTargetKind.partyMoveReplacement,
+      );
+      expect(
+          action.eligiblePartyTargetIds, const <String>{'pokemon.starter-1'});
+      expect(action.learnedMoveLabel, 'Protect');
+      final target = details[RuntimePlayerPauseSection.bag]!.bagTargets.first;
+      expect(target.moves.map((move) => move.targetId), knownMoves);
+      expect(target.requiresMoveReplacement, knownMoves.length == 4);
+      expect(action.allowsPartyTarget('pokemon.already-learned'), isFalse);
+      expect(action.unavailablePartyTargetReasons['pokemon.already-learned'],
+          isNotEmpty);
+      expect(action.allowsPartyTarget('pokemon.starter-1'), isTrue);
+      expect(action.allowsPartyTarget('party.2'), isFalse);
+      expect(action.unavailablePartyTargetReasons['party.2'],
+          contains('Incompatible'));
+    });
+  }
 
   test('projects only supported held items with player-facing labels',
       () async {
@@ -400,6 +557,148 @@ void main() {
       action.options.map((option) => (option.itemTargetId, option.label)),
       <(String, String)>[('leftovers-charm', 'Restes')],
     );
+  });
+
+  test('previews HP, status and PP target compatibility without mutations',
+      () async {
+    final root = await Directory.systemTemp.createTemp('pause-bag-preview-');
+    addTearDown(() => root.delete(recursive: true));
+    final species = Directory('${root.path}/data/pokemon/species');
+    await species.create(recursive: true);
+    await _writeSpecies(species,
+        fileName: 'sproutle.json',
+        id: 'sproutle',
+        nationalDex: 1,
+        names: {'fr': 'Pousse'},
+        types: ['grass'],
+        baseHp: 50);
+    await _writeJson(root, 'data/pokemon/catalogs/moves.json', {
+      'catalog': 'moves',
+      'entries': [
+        const PokemonMove(
+          id: 'tackle',
+          name: 'Charge',
+          source: 'test',
+          type: 'normal',
+          category: PokemonMoveCategory.physical,
+          basePower: 40,
+          accuracy: PokemonMoveAccuracy.alwaysHits(),
+          pp: 35,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+        ).toJson(),
+      ],
+    });
+    final state = GameState(
+      saveId: 'preview',
+      party: const PlayerParty(members: [
+        PlayerPokemon(
+            individualId: 'hurt',
+            speciesId: 'sproutle',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            level: 10,
+            currentHp: 10,
+            statusId: 'poison',
+            knownMoveIds: ['tackle'],
+            currentPpByMoveId: {'tackle': 5}),
+        PlayerPokemon(
+            individualId: 'healthy',
+            speciesId: 'sproutle',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            level: 10,
+            currentHp: 100,
+            knownMoveIds: ['tackle'],
+            currentPpByMoveId: {'tackle': 35}),
+        PlayerPokemon(
+            individualId: 'burned',
+            speciesId: 'sproutle',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            level: 10,
+            currentHp: 10,
+            statusId: 'burn',
+            knownMoveIds: ['tackle'],
+            currentPpByMoveId: {'tackle': 5}),
+        PlayerPokemon(
+            individualId: 'missing-pp',
+            speciesId: 'sproutle',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            level: 10,
+            currentHp: 10,
+            knownMoveIds: ['tackle']),
+        PlayerPokemon(
+            individualId: 'no-moves',
+            speciesId: 'sproutle',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            level: 10,
+            currentHp: 10),
+      ]),
+      bag: Bag(entries: [
+        for (final item in [
+          'potion',
+          'antidote',
+          'ether',
+          'poke-ball',
+          'key-item'
+        ])
+          BagEntry(itemId: item, quantity: 1),
+      ]),
+    );
+    final before = state.toJson();
+    final details = await const RuntimePlayerPauseDataBuilder().build(
+      gameState: state,
+      projectRootDirectory: root.path,
+      pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1),
+      locale: 'fr',
+      itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+    );
+    final bag = details[RuntimePlayerPauseSection.bag]!;
+    for (final itemId in ['potion', 'antidote', 'ether']) {
+      final action = bag.entries
+          .firstWhere((entry) => entry.bagItem!.itemId == itemId)
+          .bagAction!;
+      expect(action.allowsPartyTarget('pokemon.hurt'), isTrue, reason: itemId);
+      expect(action.allowsPartyTarget('pokemon.healthy'), isFalse,
+          reason: itemId);
+      expect(action.unavailablePartyTargetReasons['pokemon.healthy'],
+          contains('aucun effet'));
+    }
+    expect(
+        bag.entries
+            .firstWhere((entry) => entry.bagItem!.itemId == 'poke-ball')
+            .bagAction!
+            .isEnabled,
+        isFalse);
+    expect(
+        bag.entries
+            .firstWhere((entry) => entry.bagItem!.itemId == 'key-item')
+            .bagAction!
+            .isEnabled,
+        isFalse);
+    final antidote = bag.entries
+        .firstWhere((entry) => entry.bagItem!.itemId == 'antidote')
+        .bagAction!;
+    final ether = bag.entries
+        .firstWhere((entry) => entry.bagItem!.itemId == 'ether')
+        .bagAction!;
+    expect(antidote.targetKind, RuntimePlayerBagUseTargetKind.partyMember);
+    expect(antidote.allowsPartyTarget('pokemon.burned'), isFalse);
+    expect(antidote.unavailablePartyTargetReasons['pokemon.burned'],
+        contains('ne convient pas'));
+    expect(ether.targetKind, RuntimePlayerBagUseTargetKind.partyMove);
+    expect(ether.allowsPartyTarget('pokemon.burned'), isTrue);
+    for (final targetId in ['pokemon.missing-pp', 'pokemon.no-moves']) {
+      expect(ether.allowsPartyTarget(targetId), isFalse);
+      expect(ether.unavailablePartyTargetReasons[targetId],
+          contains('ne convient pas'));
+    }
+    expect(bag.bagTargets.first.moves.single.label, 'Charge');
+    expect(bag.bagTargets.first.moves.single.subtitle, 'PP 5/35');
+    expect(state.toJson(), before);
   });
 
   test('reports the five canonical item usability states', () async {
