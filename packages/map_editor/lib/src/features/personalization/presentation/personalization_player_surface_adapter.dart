@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/personalization_preview.dart';
+import 'package:map_player_ui/presentation_renderer.dart'
+    show resolveProjectDirectoryAssetFile;
 import 'package:path/path.dart' as p;
 
 import '../../../theme/theme.dart';
@@ -628,7 +630,10 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   );
 
   ImageProvider? _imageForPath(String assetPath) {
-    final file = _fileForPath(assetPath);
+    final file = resolveProjectDirectoryAssetFile(
+      projectRootDirectory: projectRootPath,
+      relativePath: assetPath,
+    );
     return file == null || !file.existsSync() ? null : FileImage(file);
   }
 

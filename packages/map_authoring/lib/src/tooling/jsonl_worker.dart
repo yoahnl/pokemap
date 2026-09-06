@@ -774,6 +774,7 @@ AuthoringResult _workspaceFailure(
     'workspace.path_outside_project' =>
       AuthoringErrorCode.permissionDenied,
     'workspace.directory_unavailable' ||
+    'workspace.directory_missing' ||
     'workspace.file_unavailable' =>
       AuthoringErrorCode.notFound,
     _ => AuthoringErrorCode.invalidRequest,

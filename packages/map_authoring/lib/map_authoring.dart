@@ -165,3 +165,6 @@ export 'src/workspace/project_snapshot_loader.dart';
 export 'src/workspace/project_snapshot_map_projector.dart';
 export 'src/workspace/workspace_handle_store.dart';
 export 'src/workspace/workspace_policy.dart';
+
+export 'src/domains/gameplay/pokemon_media_import_actions.dart';
+export 'src/domains/gameplay/pokemon_sprite_source_catalog.dart';

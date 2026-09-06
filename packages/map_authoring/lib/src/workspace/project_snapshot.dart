@@ -57,6 +57,7 @@ final class ProjectSnapshot {
     required this.projectHandle,
     required this.revision,
     required this.manifest,
+    this.pokemonInventoryComplete = false,
     required Iterable<MapData> maps,
     required Map<String, String> resourceFingerprints,
     ProjectItemCatalog? itemCatalog,
@@ -148,6 +149,7 @@ final class ProjectSnapshot {
     required ProjectSnapshot source,
   })  : revision = source.revision,
         manifest = source.manifest,
+        pokemonInventoryComplete = source.pokemonInventoryComplete,
         itemCatalog = source.itemCatalog,
         additionalItemReferences = source.additionalItemReferences,
         maps = source.maps,
@@ -166,6 +168,7 @@ final class ProjectSnapshot {
     required Map<String, List<int>> resourceBytes,
   })  : projectHandle = source.projectHandle,
         manifest = source.manifest,
+        pokemonInventoryComplete = source.pokemonInventoryComplete,
         itemCatalog = source.itemCatalog,
         additionalItemReferences = source.additionalItemReferences,
         maps = List.unmodifiable(
@@ -181,6 +184,7 @@ final class ProjectSnapshot {
   final ProjectHandle projectHandle;
   final String revision;
   final ProjectManifest manifest;
+  final bool pokemonInventoryComplete;
   final ProjectItemCatalog? itemCatalog;
   final List<ProjectItemReference> additionalItemReferences;
   final List<MapData> maps;

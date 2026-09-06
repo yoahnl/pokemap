@@ -231,7 +231,9 @@ final class ProjectSnapshotCache {
   }) async {
     if (!access.canReuseSnapshots) return _rejectAdoption();
     final entry = _entryForHandle(projectHandle);
-    if (entry == null || entry.snapshot.revision != baseRevision) return _rejectAdoption();
+    if (entry == null || entry.snapshot.revision != baseRevision) {
+      return _rejectAdoption();
+    }
     final scope = entry.identities['project.json']!.scope;
     final frozenChanges = changes.toList(growable: false);
     final projected = const ProjectSnapshotMapProjector().project(
@@ -337,6 +339,53 @@ final class ProjectSnapshotCache {
     ProjectWorkspaceAccess access,
     _ProjectSnapshotCacheEntry entry,
   ) async {
+    if (entry.snapshot.manifest.pokemon.enabled &&
+        !entry.snapshot.pokemonInventoryComplete) {
+      var available = 0;
+      for (final directory in <String>[
+        entry.snapshot.manifest.pokemon.speciesDir,
+        entry.snapshot.manifest.pokemon.mediaDir,
+      ]) {
+        try {
+          final listed = await access.listFiles(directory);
+          if (listed != null) {
+            available++;
+            if (listed.any((path) => path.toLowerCase().endsWith('.json'))) {
+              return false;
+            }
+          }
+        } on WorkspaceAccessException {
+          return false;
+        }
+      }
+      if (available == 2) return false;
+    }
+    if (entry.snapshot.pokemonInventoryComplete) {
+      for (final directory in <String>[
+        entry.snapshot.manifest.pokemon.speciesDir,
+        entry.snapshot.manifest.pokemon.mediaDir,
+      ]) {
+        List<String>? listed;
+        try {
+          listed = await access.listFiles(directory);
+        } on WorkspaceAccessException catch (error) {
+          if (error.code != 'workspace.directory_missing') return false;
+          listed = const [];
+        }
+        if (listed == null) return false;
+        final observed = listed
+            .where((path) => path.toLowerCase().endsWith('.json'))
+            .toList()
+          ..sort();
+        final expected = entry.snapshot.resourceStorageKeys.values
+            .where((path) =>
+                path.startsWith('$directory/') &&
+                path.toLowerCase().endsWith('.json'))
+            .toList()
+          ..sort();
+        if (observed.join('\n') != expected.join('\n')) return false;
+      }
+    }
     for (final expected in entry.identities.entries) {
       if (entry.contentAddressedPaths.contains(expected.key)) continue;
       final observed = await _readIdentity(access, expected.key);

@@ -1,3 +1,7 @@
+import '../../../../ui/design_system/pokemap_button.dart';
+import '../../../../ui/design_system/pokemap_dropdown_field.dart';
+import '../../../../ui/design_system/pokemap_guided_slider.dart';
+import '../../../../ui/design_system/pokemap_card.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -25,6 +29,9 @@ class PersonalizationPauseInspector extends StatelessWidget {
     required this.onImportBodyFont,
     required this.onUseSystemBodyFont,
     this.onPausePreviewChanged,
+    this.onImportBackground,
+    this.onBackgroundChanged,
+    this.onStyleChanged,
     this.commitCoordinator,
     this.onBodyMetricsChanged,
     this.onSurfacePalettesChanged,
@@ -32,6 +39,9 @@ class PersonalizationPauseInspector extends StatelessWidget {
   });
 
   final ProjectPresentationProfile profile;
+  final VoidCallback? onImportBackground;
+  final ValueChanged<ProjectPauseBackgroundProfile?>? onBackgroundChanged;
+  final ValueChanged<ProjectPauseMenuStyle>? onStyleChanged;
   final ValueChanged<ProjectPausePresentationProfile?> onPauseChanged;
   final ValueChanged<ProjectPausePresentationProfile?>? onPausePreviewChanged;
   final PersonalizationDeferredCommitCoordinator? commitCoordinator;
@@ -49,6 +59,76 @@ class PersonalizationPauseInspector extends StatelessWidget {
     key: const ValueKey<String>('personalization-pause-inspector'),
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: <Widget>[
+      PokeMapCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PokeMapDropdownField<ProjectPauseMenuStyle>(
+              label: 'Style du menu',
+              value: profile.pause?.style ?? ProjectPauseMenuStyle.standard,
+              enabled: onStyleChanged != null,
+              items: const [
+                PokeMapDropdownItem(
+                  value: ProjectPauseMenuStyle.standard,
+                  label: 'Standard',
+                ),
+                PokeMapDropdownItem(
+                  value: ProjectPauseMenuStyle.nightIllustrated,
+                  label: 'Nuit illustrée',
+                ),
+              ],
+              onChanged: (style) => onStyleChanged?.call(style),
+            ),
+            const SizedBox(height: 8),
+            PokeMapButton(
+              key: const ValueKey('pause-import-background'),
+              onPressed: onImportBackground,
+              child: const Text('Choisir le fond du menu'),
+            ),
+            if (profile.pause?.background case final background?) ...[
+              const SizedBox(height: 8),
+              PokeMapGuidedSlider(
+                label: 'Cadrage horizontal',
+                value: (background.focalX * 100).round(),
+                onChanged: (value) => onBackgroundChanged?.call(
+                  background.copyWith(focalX: value / 100),
+                ),
+              ),
+              PokeMapGuidedSlider(
+                label: 'Cadrage vertical',
+                value: (background.focalY * 100).round(),
+                onChanged: (value) => onBackgroundChanged?.call(
+                  background.copyWith(focalY: value / 100),
+                ),
+              ),
+              PokeMapDropdownField<ProjectMenuImageSampling>(
+                label: 'Style de l’image',
+                value: background.sampling,
+                items: const [
+                  PokeMapDropdownItem(
+                    value: ProjectMenuImageSampling.smooth,
+                    label: 'Illustration',
+                  ),
+                  PokeMapDropdownItem(
+                    value: ProjectMenuImageSampling.pixelArt,
+                    label: 'Pixel art',
+                  ),
+                ],
+                onChanged: (sampling) => onBackgroundChanged?.call(
+                  background.copyWith(sampling: sampling),
+                ),
+              ),
+              PokeMapButton(
+                key: const ValueKey('pause-remove-background'),
+                variant: PokeMapButtonVariant.ghost,
+                onPressed: () => onBackgroundChanged?.call(null),
+                child: const Text('Retirer le fond'),
+              ),
+            ],
+          ],
+        ),
+      ),
+      const SizedBox(height: 18),
       ProjectLayoutStudio(
         profile: profile.layouts,
         brandingLayoutVariant: profile.branding.layoutVariant,

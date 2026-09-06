@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_player_ui/presentation_renderer.dart'
-    show RuntimePresentationSessionRuntime;
+    show RuntimePresentationSessionRuntime, resolveProjectDirectoryAssetFile;
 import 'package:path/path.dart' as p;
 
 import 'runtime_launch_save.dart';
@@ -301,8 +301,11 @@ final class StandaloneRuntimeStartupAdapter
     }
     final candidate = p.normalize(p.join(_projectRoot, trimmed));
     if (!p.isWithin(_projectRoot, candidate)) return null;
-    final file = File(candidate);
-    if (!await file.exists()) return null;
+    final file = resolveProjectDirectoryAssetFile(
+      projectRootDirectory: _projectRoot,
+      relativePath: trimmed,
+    );
+    if (file == null) return null;
     try {
       final realRoot = p.normalize(
         await Directory(_projectRoot).resolveSymbolicLinks(),

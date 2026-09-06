@@ -257,6 +257,67 @@ class _PersonalizationStudioWorkspaceState
     unawaited(notifier.redoPersonalizationStudio());
   }
 
+  Future<void> _importMenuBackground({
+    required String projectRootPath,
+    required EditorNotifier notifier,
+  }) async {
+    if (_isImportingAsset) return;
+    setState(() {
+      _isImportingAsset = true;
+      _assetFeedback = null;
+    });
+    try {
+      final paths = await const PlatformPersonalizationStudioFilePickerBackend()
+          .pick(
+            const PersonalizationStudioFilePickerRequest(
+              dialogTitle: 'Choisir le fond du menu',
+              allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
+            ),
+          );
+      if (!mounted || paths == null || paths.isEmpty) return;
+      if (paths.length != 1) {
+        throw const FormatException('Choisissez une seule image.');
+      }
+      final imported = await ref
+          .read(projectBrandingImageImportServiceProvider)
+          .importIntoProject(
+            projectRoot: Directory(projectRootPath),
+            role: ProjectBrandingImageRole.hero,
+            sourceFile: File(paths.single),
+          );
+      if (!mounted || _requestedProjectRootPath != projectRootPath) return;
+      final applied = await notifier.updatePersonalizationStudioProfile(
+        (current) => current.copyWith(
+          pause:
+              (current.effectivePause ??
+                      const ProjectPausePresentationProfile())
+                  .copyWith(
+                    background: ProjectPauseBackgroundProfile(
+                      imagePath: imported.relativePath,
+                    ),
+                  ),
+        ),
+        label: 'Importer le fond du menu',
+      );
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = !applied;
+        _assetFeedback = applied
+            ? 'Fond importé dans le brouillon.'
+            : 'Le brouillon n’a pas pu être modifié.';
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback =
+            'L’image n’a pas pu être importée. Choisissez une image PNG, JPEG ou WebP valide.';
+      });
+    } finally {
+      if (mounted) setState(() => _isImportingAsset = false);
+    }
+  }
+
   Future<void> _importBrandingImage({
     required String projectRootPath,
     required ProjectPresentationProfile profile,
@@ -1802,6 +1863,34 @@ class _PersonalizationStudioWorkspaceState
         ignoring: !canEdit || _isImportingAsset,
         child: PersonalizationPauseInspector(
           profile: profile,
+          onImportBackground: () => unawaited(
+            _importMenuBackground(
+              projectRootPath: projectRootPath,
+              notifier: notifier,
+            ),
+          ),
+          onBackgroundChanged: (background) => unawaited(
+            notifier.updatePersonalizationStudioProfile(
+              (current) => current.copyWith(
+                pause:
+                    (current.effectivePause ??
+                            const ProjectPausePresentationProfile())
+                        .copyWith(background: background),
+              ),
+              label: 'Modifier le fond du menu',
+            ),
+          ),
+          onStyleChanged: (style) => unawaited(
+            notifier.updatePersonalizationStudioProfile(
+              (current) => current.copyWith(
+                pause:
+                    (current.effectivePause ??
+                            const ProjectPausePresentationProfile())
+                        .copyWith(style: style),
+              ),
+              label: 'Modifier le style du menu',
+            ),
+          ),
           previewFamilies: _fontPreviewFamilies,
           onPauseChanged: (pause) {
             final nextProfile = profile.copyWith(

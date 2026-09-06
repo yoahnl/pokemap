@@ -17,6 +17,46 @@ void main() {
     if (root.existsSync()) root.deleteSync(recursive: true);
   });
 
+  test(
+    'menu background resolves a managed blob without a logical copy',
+    () async {
+      final digest = List.filled(64, 'a').join();
+      _writeBytes(root, 'assets/.pokemap-store/$digest.blob', _onePixelPng);
+      _writeText(
+        root,
+        'assets/.pokemap-assets.json',
+        jsonEncode({
+          'schemaVersion': 1,
+          'records': [
+            {
+              'logicalPath': 'assets/menu.png',
+              'artifact': {'digest': 'sha256:$digest'},
+            },
+          ],
+        }),
+      );
+      final result = await const FileSystemProjectPresentationPreflight()
+          .inspect(
+            projectRoot: root,
+            profile: const ProjectPresentationProfile(
+              pause: ProjectPausePresentationProfile(
+                style: ProjectPauseMenuStyle.nightIllustrated,
+                background: ProjectPauseBackgroundProfile(
+                  imagePath: 'assets/menu.png',
+                ),
+              ),
+            ),
+          );
+      expect(result.checkedAssetCount, 1);
+      expect(
+        result.report.issues.where(
+          (issue) => issue.code == 'presentationAssetMissing',
+        ),
+        isEmpty,
+      );
+    },
+  );
+
   test('certifies real assets, licenses, contrasts, and codecs', () async {
     _writeBytes(root, 'assets/presentation/icon.png', _onePixelPng);
     _writeBytes(

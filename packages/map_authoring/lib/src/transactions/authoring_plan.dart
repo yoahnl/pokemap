@@ -71,8 +71,13 @@ final class AuthoringPlan {
 
   final String projectedRevision;
   bool get appliedPayloadReleased => _changeSet == null;
-  bool get applicable => !request.dryRun;
-  String? get nonApplicableReason => applicable ? null : 'dry_run';
+  bool get applicable =>
+      !request.dryRun && (_changeSet?.changes.isNotEmpty ?? true);
+  String? get nonApplicableReason => request.dryRun
+      ? 'dry_run'
+      : (_changeSet?.changes.isEmpty ?? false)
+          ? 'no_changes'
+          : null;
 
   void releaseAppliedPayload() {
     if (_request.parameters.isNotEmpty) {

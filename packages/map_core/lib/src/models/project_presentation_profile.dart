@@ -338,6 +338,25 @@ const List<ProjectPauseActionProfile> defaultProjectPauseActions =
       ),
     ];
 
+enum ProjectPauseMenuStyle { standard, nightIllustrated }
+
+enum ProjectMenuImageSampling { smooth, pixelArt }
+
+@Freezed(fromJson: true, toJson: true)
+abstract class ProjectPauseBackgroundProfile
+    with _$ProjectPauseBackgroundProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectPauseBackgroundProfile({
+    required String imagePath,
+    @Default(0.5) double focalX,
+    @Default(0.5) double focalY,
+    @Default(ProjectMenuImageSampling.smooth) ProjectMenuImageSampling sampling,
+  }) = _ProjectPauseBackgroundProfile;
+
+  factory ProjectPauseBackgroundProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectPauseBackgroundProfileFromJson(json);
+}
+
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectPausePresentationProfile
     with _$ProjectPausePresentationProfile {
@@ -345,6 +364,8 @@ abstract class ProjectPausePresentationProfile
 
   @JsonSerializable(explicitToJson: true)
   const factory ProjectPausePresentationProfile({
+    @JsonKey(includeIfNull: false) ProjectPauseMenuStyle? style,
+    @JsonKey(includeIfNull: false) ProjectPauseBackgroundProfile? background,
     @JsonKey(includeIfNull: false) String? title,
     @JsonKey(includeIfNull: false) String? hint,
     @JsonKey(includeIfNull: false) List<ProjectPauseActionProfile>? actions,
@@ -1387,6 +1408,37 @@ void _validatePause(
   List<ProjectPresentationDiagnostic> diagnostics,
 ) {
   if (pause == null) return;
+  if (pause.background case final background?) {
+    if (!_isSafeProjectRelativePath(background.imagePath) ||
+        background.imagePath.trim() != background.imagePath ||
+        Uri.tryParse(background.imagePath)?.hasScheme == true) {
+      diagnostics.add(
+        const ProjectPresentationDiagnostic(
+          code: 'presentationAssetPathUnsafe',
+          category: ProjectPresentationCategory.theme,
+          severity: ProjectPresentationDiagnosticSeverity.error,
+          path: r'$.presentation.pause.background.imagePath',
+          message: 'Choose a file located inside the project.',
+        ),
+      );
+    }
+    for (final focal in {
+      'focalX': background.focalX,
+      'focalY': background.focalY,
+    }.entries) {
+      if (!focal.value.isFinite || focal.value < 0 || focal.value > 1) {
+        diagnostics.add(
+          ProjectPresentationDiagnostic(
+            code: 'pauseBackgroundFocalInvalid',
+            category: ProjectPresentationCategory.theme,
+            severity: ProjectPresentationDiagnosticSeverity.error,
+            path: r'$.presentation.pause.background.' + focal.key,
+            message: 'Choose a focal position between zero and one.',
+          ),
+        );
+      }
+    }
+  }
   _validatePauseCopy(
     pause.title,
     field: 'title',

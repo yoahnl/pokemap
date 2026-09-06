@@ -75,6 +75,7 @@ flutter:
     - assets/fonts/pokemap_capture_sans_LICENSE.txt
     - assets/cinematics/emotes/emotions.png
     - assets/cinematics/emotes/emotions2.png
+    - assets/pokemon/menu_sprite_sources.json
 
 dependency_overrides:
   gamepads_darwin:

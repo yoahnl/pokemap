@@ -425,6 +425,12 @@ AssetCatalog _assetCatalog(ProjectSnapshot snapshot) {
 Iterable<_PresentationReference> _presentationReferences(
   ProjectPresentationProfile profile,
 ) sync* {
+  if (profile.pause?.background case final background?) {
+    yield _PresentationReference.image(
+        background.imagePath,
+        ProjectPresentationCategory.theme,
+        r'$.presentation.pause.background.imagePath');
+  }
   final branding = profile.branding;
   for (final item in <({String field, String? value})>[
     (field: 'iconPath', value: branding.iconPath),

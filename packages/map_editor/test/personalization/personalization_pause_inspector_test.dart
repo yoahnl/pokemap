@@ -7,6 +7,39 @@ import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets('menu background controls preserve ownership through callbacks', (
+    tester,
+  ) async {
+    var imports = 0;
+    ProjectPauseBackgroundProfile? updated =
+        const ProjectPauseBackgroundProfile(imagePath: 'assets/background.png');
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationPauseInspector(
+            profile: ProjectPresentationProfile(
+              pause: ProjectPausePresentationProfile(background: updated),
+            ),
+            onPauseChanged: (_) {},
+            onWindowsChanged: (_) {},
+            onLayoutsChanged: (_) {},
+            onImportBodyFont: () {},
+            onUseSystemBodyFont: () {},
+            onImportBackground: () => imports++,
+            onBackgroundChanged: (value) => updated = value,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('pause-import-background')));
+    expect(imports, 1);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('pause-remove-background')),
+    );
+    await tester.tap(find.byKey(const ValueKey('pause-remove-background')));
+    expect(updated, isNull);
+  });
+
   testWidgets(
     'restores required Resume before publishing an incomplete draft',
     (tester) async {
@@ -21,6 +54,10 @@ void main() {
             child: PersonalizationPauseInspector(
               profile: const ProjectPresentationProfile(
                 pause: ProjectPausePresentationProfile(
+                  style: ProjectPauseMenuStyle.nightIllustrated,
+                  background: ProjectPauseBackgroundProfile(
+                    imagePath: 'assets/menu.png',
+                  ),
                   actions: <ProjectPauseActionProfile>[
                     ProjectPauseActionProfile(
                       id: ProjectPauseActionId.pokedex,
@@ -52,6 +89,8 @@ void main() {
       );
       expect(resumeAction.visible, isTrue);
       expect(resumeAction.label, 'Continuer');
+      expect(published!.style, ProjectPauseMenuStyle.nightIllustrated);
+      expect(published!.background!.imagePath, 'assets/menu.png');
       expect(
         validateProjectPresentationProfile(
           ProjectPresentationProfile(pause: published),

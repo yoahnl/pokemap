@@ -62,6 +62,7 @@ final class RuntimePlayerPresentation {
       pauseMenuLabels: _pauseMenuLabels(profile?.menuLabels),
       pausePresentation: PlayerPausePresentation.fromProfile(
         profile?.effectivePause,
+        backgroundImage: imageForAsset(source.menuBackground),
       ),
     );
   }
@@ -106,6 +107,9 @@ final class RuntimePlayerPresentation {
       pauseMenuLabels: _pauseMenuLabels(profile.menuLabels),
       pausePresentation: PlayerPausePresentation.fromProfile(
         profile.effectivePause,
+        backgroundImage: profile.pause?.background == null
+            ? null
+            : imageForPath?.call(profile.pause!.background!.imagePath),
       ),
     );
   }
@@ -202,6 +206,8 @@ final class RuntimePlayerPresentationViewData {
           'returnToTitle': presentation.pauseMenuLabels.returnToTitle,
         },
         'pause': <String, Object?>{
+          'style': presentation.pausePresentation.style?.name,
+          'background': presentation.pausePresentation.background?.toJson(),
           'title': presentation.pausePresentation.title,
           'hint': presentation.pausePresentation.hint,
           'actionOrder': presentation.pausePresentation.actionOrder

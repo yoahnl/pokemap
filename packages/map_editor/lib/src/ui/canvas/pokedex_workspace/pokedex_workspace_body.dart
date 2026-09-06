@@ -123,6 +123,11 @@ class _PokedexWorkspaceBodyState extends State<_PokedexWorkspaceBody> {
                   entry: entry,
                 ),
                 onImportRequested: () => _openImportFlow(workspace),
+                onSpritesImported: () => setState(() {
+                  _entriesFuture = _buildEntriesFuture();
+                  _detailFuture = null;
+                  _selectedSpeciesId = null;
+                }),
                 query: _searchQuery,
                 onQueryChanged: _updateSearchQuery,
                 filtersExpanded: _filtersExpanded,

@@ -348,10 +348,41 @@ final class AssetActions {
       case 'asset.delete':
         parameters.allow(const {'assetId', 'acknowledgedUsages'});
         final current = state.catalog.require(parameters.string('assetId'));
+        final mediaDocuments = <String, Object?>{};
+        if (context.snapshot.manifest.pokemon.enabled) {
+          if (!context.snapshot.pokemonInventoryComplete) {
+            throw AssetActionException('asset.inventory_unavailable',
+                'Complete Pokemon media inventory is required before deleting assets.');
+          }
+          for (final identity in context.snapshot.resourceFingerprints.keys
+              .where((id) => id.startsWith('pokemonMedia:'))) {
+            try {
+              final raw = jsonDecode(
+                  utf8.decode(context.snapshot.resourceBytes(identity)));
+              if (raw is! Map) {
+                throw const FormatException('Expected media document.');
+              }
+              final document =
+                  PokemonMediaFile.fromJson(Map<String, dynamic>.from(raw));
+              if (document.speciesId.isEmpty ||
+                  document.defaultFormId.isEmpty ||
+                  raw['variants'] is! Map) {
+                throw const FormatException(
+                    'Incomplete Pokemon media document.');
+              }
+              mediaDocuments[identity] = raw;
+            } on Object {
+              throw AssetActionException('asset.media_inventory_invalid',
+                  'Repair invalid Pokemon media documents before deleting assets.',
+                  details: {'resource': identity});
+            }
+          }
+        }
         final derivedUsages = deriveAssetUsages(
           manifest: context.snapshot.manifest,
           maps: context.snapshot.maps,
           asset: current,
+          additionalDocuments: mediaDocuments,
         );
         if (derivedUsages.isNotEmpty) {
           throw AssetActionException(

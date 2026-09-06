@@ -19,6 +19,7 @@ List<String> deriveAssetUsages({
   required ProjectManifest manifest,
   required Iterable<MapData> maps,
   required AssetRecord asset,
+  Map<String, Object?> additionalDocuments = const {},
 }) {
   final needles = {
     asset.id,
@@ -42,6 +43,10 @@ List<String> deriveAssetUsages({
       needles: needles,
       output: usages,
     );
+  }
+  for (final entry in additionalDocuments.entries) {
+    _collectAssetUsages(entry.value,
+        owner: entry.key, path: r'$', needles: needles, output: usages);
   }
   return List.unmodifiable(usages.toList()..sort());
 }

@@ -338,7 +338,7 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
 
   ProjectPausePresentationProfile _currentProfile(
     ProjectResponsivePauseCompositionProfile? composition,
-  ) => ProjectPausePresentationProfile(
+  ) => widget.profile.copyWith(
     title: _optional(_title.text),
     hint: _optional(_hint.text),
     actions: List<ProjectPauseActionProfile>.of(_actions),

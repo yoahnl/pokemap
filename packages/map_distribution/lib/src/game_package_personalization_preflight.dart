@@ -225,6 +225,8 @@ final class GamePackagePersonalizationPreflight {
     }
     if (presentation?.pause != null) {
       categories.add(GamePackagePersonalizationCategory.pause);
+      certifyAsset(presentation?.pause?.background?.imagePath,
+          r'$.presentation.pause.background.imagePath');
     }
     if (presentation?.menuLabels != null) {
       categories.add(GamePackagePersonalizationCategory.menuLabels);

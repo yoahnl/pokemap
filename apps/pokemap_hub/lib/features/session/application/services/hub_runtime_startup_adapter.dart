@@ -161,6 +161,8 @@ final class HubRuntimeStartupAdapter
           pause == null
               ? null
               : ProjectPausePresentationProfile(
+                style: pause.style,
+                background: pause.background,
                 title: pause.title,
                 hint: pause.hint,
                 actions: pause.actions

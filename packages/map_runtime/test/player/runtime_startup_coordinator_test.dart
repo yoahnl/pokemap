@@ -9,6 +9,32 @@ import 'package:map_runtime/map_runtime.dart';
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  for (final missing in [false, true]) {
+    test(
+        'menu background is prepared with a nonblocking fallback missing=$missing',
+        () async {
+      const path = 'presentation/menu-background.png';
+      final harness = _RuntimeStartupTestHarness(
+          profile: const ProjectPresentationProfile(
+              pause: ProjectPausePresentationProfile(
+                  style: ProjectPauseMenuStyle.nightIllustrated,
+                  background: ProjectPauseBackgroundProfile(imagePath: path))),
+          assetResolver: _MemoryPresentationAssetResolver(
+              failingImages: missing ? {path} : {}));
+      addTearDown(harness.dispose);
+      harness.startup.start();
+      harness.clock.elapseMinimum();
+      await _flushEvents();
+      expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+      expect(harness.startup.snapshot.presentation!.menuBackground?.assetId,
+          missing ? null : path);
+      expect(
+          harness.startup.snapshot.diagnostics
+              .any((e) => e.code == 'menuBackgroundUnavailable'),
+          missing);
+    });
+  }
+
   test('startup snapshots enforce bounded immutable presentation state', () {
     expect(
       () => RuntimeStartupSnapshot(

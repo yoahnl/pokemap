@@ -100,6 +100,7 @@ Iterable<String> _ownedAssetPaths(ProjectPresentationProfile profile) sync* {
     branding.iconPath,
     branding.coverPath,
     branding.heroPath,
+    profile.pause?.background?.imagePath,
     branding.titleMusicPath,
   ]) {
     if (path != null) yield path;

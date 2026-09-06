@@ -36,6 +36,50 @@ final class ProjectDirectoryPresentationMediaException implements Exception {
 
 final _digestPattern = RegExp(r'^sha256:([a-f0-9]{64})$');
 
+File? resolveProjectDirectoryAssetFile({
+  required String projectRootDirectory,
+  required String relativePath,
+}) {
+  if (relativePath.isEmpty ||
+      p.isAbsolute(relativePath) ||
+      Uri.tryParse(relativePath)?.hasScheme == true) {
+    return null;
+  }
+  try {
+    final root = Directory(projectRootDirectory).resolveSymbolicLinksSync();
+    File? confined(String path) {
+      final file = File(p.normalize(p.join(root, path)));
+      if (!p.isWithin(root, file.path) || !file.existsSync()) return null;
+      final real = file.resolveSymbolicLinksSync();
+      return p.isWithin(root, real) ? File(real) : null;
+    }
+
+    final direct = confined(relativePath);
+    if (direct != null) return direct;
+    final registry = confined('assets/.pokemap-assets.json');
+    if (registry == null) return null;
+    final decoded = jsonDecode(registry.readAsStringSync());
+    if (decoded is! Map ||
+        decoded['schemaVersion'] != 1 ||
+        decoded['records'] is! List) {
+      return null;
+    }
+    for (final record in decoded['records'] as List) {
+      if (record is! Map || record['logicalPath'] != relativePath) continue;
+      final artifact = record['artifact'];
+      final digest = artifact is Map ? artifact['digest'] : null;
+      final match = digest is String ? _digestPattern.firstMatch(digest) : null;
+      if (match == null) return null;
+      return confined('assets/.pokemap-store/${match.group(1)}.blob');
+    }
+  } on FileSystemException {
+    return null;
+  } on FormatException {
+    return null;
+  }
+  return null;
+}
+
 /// Loads the Presentation media of a project directory, or null when the
 /// project simply has no media catalog — a project without cinematics stays
 /// perfectly playable, and previewable.
@@ -141,7 +185,8 @@ Future<Map<String, Object?>> _readObject(File file, String what) async {
     );
   }
   if (decoded is! Map) {
-    throw ProjectDirectoryPresentationMediaException('$what must be an object.');
+    throw ProjectDirectoryPresentationMediaException(
+        '$what must be an object.');
   }
   return Map<String, Object?>.from(decoded);
 }

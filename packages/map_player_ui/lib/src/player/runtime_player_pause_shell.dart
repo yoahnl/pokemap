@@ -5,6 +5,8 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_menu_components.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
@@ -90,6 +92,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       <RuntimePlayerLayoutClass, double>{};
   RuntimePlayerLayoutClass? _lastLayout;
   int _scrollRestoreGeneration = 0;
+  ImageProvider? _failedBackgroundImage;
 
   @override
   void initState() {
@@ -101,6 +104,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   @override
   void didUpdateWidget(covariant RuntimePlayerPauseShell oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.presentation?.backgroundImage !=
+        widget.presentation?.backgroundImage) {
+      _failedBackgroundImage = null;
+    }
     if (oldWidget.focusController != widget.focusController) {
       _detachFocusController();
       _attachFocusController();
@@ -160,16 +167,169 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   Widget build(BuildContext context) => PlayerSurfacePaletteScope(
         role: ProjectPresentationSurfaceRole.pauseMenu,
         child: Builder(
-          builder: (context) =>
-              PlayerPauseSurface.composed(child: _buildSurface(context)),
+          builder: (context) => widget.presentation?.style ==
+                  ProjectPauseMenuStyle.nightIllustrated
+              ? PlayerMenuThemeScope(
+                  child: Builder(builder: _buildIllustratedFrame))
+              : PlayerPauseSurface.composed(child: _buildSurface(context)),
         ),
       );
 
-  Widget _buildSurface(BuildContext context) {
-    return RuntimePlayerActions(
-      onBack: widget.onBackToRoot,
-      onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
-      onInputSourceChanged: _focusController.noteInputSource,
+  bool get _isIllustrated =>
+      widget.presentation?.style == ProjectPauseMenuStyle.nightIllustrated;
+
+  RuntimePlayerLayoutClass _layoutClass(
+    BoxConstraints constraints,
+    ProjectResolvedSurfaceLayout? resolved,
+  ) =>
+      resolved == null
+          ? classifyRuntimePlayerLayout(constraints)
+          : switch (resolved.breakpoint) {
+              ProjectPresentationBreakpoint.compact =>
+                constraints.maxHeight > constraints.maxWidth
+                    ? RuntimePlayerLayoutClass.compactPortrait
+                    : RuntimePlayerLayoutClass.compactLandscape,
+              ProjectPresentationBreakpoint.regular =>
+                RuntimePlayerLayoutClass.compactLandscape,
+              ProjectPresentationBreakpoint.expanded =>
+                RuntimePlayerLayoutClass.expanded,
+            };
+
+  Widget _buildIllustratedFrame(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final resolved = context.playerLayoutTheme?.resolve(
+            ProjectPresentationSurfaceRole.pauseMenu,
+            constraints,
+          );
+          final layout = _layoutClass(constraints, resolved);
+          final tokens = context.playerMenuTheme;
+          final presentation = widget.presentation!;
+          final image = presentation.backgroundImage;
+          final background = presentation.background;
+          final isRoot = widget.pauseSection == RuntimePlayerPauseSection.root;
+          final resume = widget.actions[PlayerPauseAction.resume] ??
+              PlayerActionAvailability.disabled(
+                  context.playerL10n.actionUnavailable);
+          final returnLabel = isRoot
+              ? presentation.actionLabels[PlayerPauseAction.resume] ??
+                  widget.labels.resume ??
+                  context.playerL10n.resume
+              : context.playerL10n.back;
+          final unavailable = background != null &&
+              (image == null || _failedBackgroundImage == image);
+          final fallback = DecoratedBox(
+            key: const ValueKey('runtime-menu-background-fallback'),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [tokens.backdrop, tokens.base],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          );
+          final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+          final decodeWidth =
+              (constraints.maxWidth * pixelRatio).ceil().clamp(1, 1920);
+          final decodeHeight =
+              (constraints.maxHeight * pixelRatio).ceil().clamp(1, 1080);
+          return RuntimePlayerActions(
+            onBack: widget.onBackToRoot,
+            onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
+            onInputSourceChanged: _focusController.noteInputSource,
+            child: PlayerMenuFrame(
+              key: const ValueKey('runtime-night-illustrated-frame'),
+              scrollable: false,
+              backdrop: image == null
+                  ? fallback
+                  : KeyedSubtree(
+                      key: ValueKey(image),
+                      child: Image(
+                        key: const ValueKey('runtime-menu-background'),
+                        image: ResizeImage(image,
+                            width: decodeWidth,
+                            height: decodeHeight,
+                            policy: ResizeImagePolicy.fit),
+                        fit: BoxFit.cover,
+                        alignment: Alignment((background?.focalX ?? .5) * 2 - 1,
+                            (background?.focalY ?? .5) * 2 - 1),
+                        filterQuality: background?.sampling ==
+                                ProjectMenuImageSampling.pixelArt
+                            ? FilterQuality.none
+                            : FilterQuality.medium,
+                        errorBuilder: (_, error, stack) {
+                          if (_failedBackgroundImage != image) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted &&
+                                  widget.presentation?.backgroundImage ==
+                                      image &&
+                                  _failedBackgroundImage != image) {
+                                setState(() => _failedBackgroundImage = image);
+                              }
+                            });
+                          }
+                          return fallback;
+                        },
+                      ),
+                    ),
+              header: _composition(layout)?.showTitle == false
+                  ? const SizedBox.shrink()
+                  : PlayerMenuHeader(
+                      icon: Icons.menu,
+                      title: isRoot
+                          ? presentation.title ?? widget.gameTitle
+                          : widget.detailTitle ??
+                              _sectionLabel(context, widget.pauseSection)),
+              footer: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (unavailable)
+                    Semantics(
+                      key:
+                          const ValueKey('runtime-menu-background-unavailable'),
+                      liveRegion: true,
+                      child: Text(context.playerL10n.menuBackgroundUnavailable,
+                          style: tokens.meta),
+                    ),
+                  PlayerMenuFooter(
+                    hints: const [],
+                    returnAction: PlayerMenuSelectableRow(
+                      id: 'pause-frame-return',
+                      label: returnLabel,
+                      leading: const Icon(Icons.arrow_back),
+                      focusNode: isRoot
+                          ? _focusController.nodeFor('pause.resume',
+                              debugLabel: 'Player action: $returnLabel')
+                          : null,
+                      selected: isRoot &&
+                          _focusController.logicalSelectionId == 'pause.resume',
+                      disabledReason: isRoot ? resume.disabledReason : null,
+                      onPressed: isRoot && !resume.isEnabled
+                          ? null
+                          : () {
+                              if (isRoot) {
+                                _focusController.select('pause.resume');
+                                widget.onSelected(PlayerPauseAction.resume);
+                              } else {
+                                widget.onBackToRoot();
+                              }
+                            },
+                    ),
+                  ),
+                ],
+              ),
+              child: _buildSurface(context,
+                  layoutOverride: layout, resolvedOverride: resolved),
+            ),
+          );
+        },
+      );
+
+  Widget _buildSurface(
+    BuildContext context, {
+    RuntimePlayerLayoutClass? layoutOverride,
+    ProjectResolvedSurfaceLayout? resolvedOverride,
+  }) {
+    return _surfaceActions(
       child: MouseRegion(
         onHover: (_) =>
             _focusController.noteInputSource(PlayerInputSource.mouse),
@@ -189,26 +349,19 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           },
           child: Material(
             key: const ValueKey<String>('runtime-pause-backdrop'),
-            color: context.playerPauseBackdropColor,
+            color: widget.presentation?.style ==
+                    ProjectPauseMenuStyle.nightIllustrated
+                ? context.playerMenuTheme.base.withValues(alpha: 0)
+                : context.playerPauseBackdropColor,
             child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final resolved = context.playerLayoutTheme?.resolve(
-                    ProjectPresentationSurfaceRole.pauseMenu,
-                    constraints,
-                  );
-                  final layout = resolved == null
-                      ? classifyRuntimePlayerLayout(constraints)
-                      : switch (resolved.breakpoint) {
-                          ProjectPresentationBreakpoint.compact =>
-                            constraints.maxHeight > constraints.maxWidth
-                                ? RuntimePlayerLayoutClass.compactPortrait
-                                : RuntimePlayerLayoutClass.compactLandscape,
-                          ProjectPresentationBreakpoint.regular =>
-                            RuntimePlayerLayoutClass.compactLandscape,
-                          ProjectPresentationBreakpoint.expanded =>
-                            RuntimePlayerLayoutClass.expanded,
-                        };
+                  final resolved = layoutOverride == null
+                      ? context.playerLayoutTheme?.resolve(
+                          ProjectPresentationSurfaceRole.pauseMenu, constraints)
+                      : resolvedOverride;
+                  final layout =
+                      layoutOverride ?? _layoutClass(constraints, resolved);
                   if (_lastLayout != layout) {
                     _rememberScrollOffsets(_lastLayout);
                     _lastLayout = layout;
@@ -323,6 +476,15 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     );
   }
 
+  Widget _surfaceActions({required Widget child}) => _isIllustrated
+      ? child
+      : RuntimePlayerActions(
+          onBack: widget.onBackToRoot,
+          onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
+          onInputSourceChanged: _focusController.noteInputSource,
+          child: child,
+        );
+
   Widget _compactPortrait(
     BuildContext context,
     RuntimePlayerLayoutClass layout,
@@ -343,12 +505,13 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     }
     final fullScreen =
         resolved?.variant.slot == ProjectPresentationLayoutSlot.fullScreen;
-    final margin = resolved?.additionalSafeAreaPadding ?? 0;
+    final margin =
+        _isIllustrated ? 0.0 : resolved?.additionalSafeAreaPadding ?? 0;
     return Align(
       alignment: fullScreen ? Alignment.center : Alignment.bottomCenter,
       child: FractionallySizedBox(
-        heightFactor: fullScreen ? 1 : .86,
-        widthFactor: resolved?.maxWidthFactor ?? 1,
+        heightFactor: _isIllustrated || fullScreen ? 1 : .86,
+        widthFactor: _isIllustrated ? 1 : resolved?.maxWidthFactor ?? 1,
         child: Padding(
           padding: EdgeInsets.all(margin),
           child: PlayerPanel(
@@ -392,8 +555,11 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     required ProjectResolvedSurfaceLayout? resolved,
     required ProjectPauseCompositionVariantProfile? composition,
   }) {
-    final effectiveWidthFactor = resolved?.maxWidthFactor ?? widthFactor;
-    final margin = resolved?.additionalSafeAreaPadding ?? PlayerSpacing.md;
+    final effectiveWidthFactor =
+        _isIllustrated ? null : resolved?.maxWidthFactor ?? widthFactor;
+    final margin = _isIllustrated
+        ? 0.0
+        : resolved?.additionalSafeAreaPadding ?? PlayerSpacing.md;
     final alignment = switch (resolved?.variant.slot) {
       ProjectPresentationLayoutSlot.left ||
       ProjectPresentationLayoutSlot.leftPane =>
@@ -407,7 +573,9 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           ? const ValueKey<String>('runtime-pause-expanded-panel')
           : null,
       constraints: BoxConstraints(
-        maxWidth: effectiveWidthFactor == null ? 820 : double.infinity,
+        maxWidth: _isIllustrated || effectiveWidthFactor != null
+            ? double.infinity
+            : 820,
       ),
       child: PlayerPanel(
         role: PlayerPanelRole.menu,
@@ -485,12 +653,28 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         scrollController: controller,
         focusController: _focusController,
         labels: widget.labels,
-        presentation: widget.presentation,
-        showGameTitle: resolved == null ||
-            resolved.variant.visibleSecondaryElements.contains(
-              ProjectPresentationSecondaryElement.pauseGameTitle,
-            ),
-        composition: composition,
+        presentation: _isIllustrated
+            ? PlayerPausePresentation(
+                title: _presentation.title,
+                hint: _presentation.hint,
+                actionOrder: _presentation.actionOrder,
+                actionLabels: _presentation.actionLabels,
+                actionIcons: _presentation.actionIcons,
+                hiddenActions: {
+                  ..._presentation.hiddenActions,
+                  PlayerPauseAction.resume
+                },
+              )
+            : widget.presentation,
+        showGameTitle: !_isIllustrated &&
+            (resolved == null ||
+                resolved.variant.visibleSecondaryElements.contains(
+                  ProjectPresentationSecondaryElement.pauseGameTitle,
+                )),
+        composition: _isIllustrated
+            ? (composition ?? const ProjectPauseCompositionVariantProfile())
+                .copyWith(showTitle: false)
+            : composition,
         compositionLayoutName: layout.name,
       ),
     );
@@ -500,7 +684,12 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     RuntimePlayerLayoutClass layout,
   ) {
     final composition = _presentation.composition;
-    if (composition == null) return null;
+    if (composition == null) {
+      return _isIllustrated
+          ? const ProjectPauseCompositionVariantProfile(
+              showRootDetailPanel: false)
+          : null;
+    }
     return switch (layout) {
       RuntimePlayerLayoutClass.compactPortrait => composition.compactPortrait,
       RuntimePlayerLayoutClass.compactLandscape => composition.compactLandscape,
@@ -522,31 +711,32 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            if (hasDetail)
-              IconButton(
-                key: const ValueKey<String>('runtime-pause-back-to-root'),
-                tooltip: context.playerL10n.back,
-                onPressed: widget.onBackToRoot,
-                constraints: const BoxConstraints.tightFor(
-                  width: 48,
-                  height: 48,
+        if (!_isIllustrated)
+          Row(
+            children: <Widget>[
+              if (hasDetail)
+                IconButton(
+                  key: const ValueKey<String>('runtime-pause-back-to-root'),
+                  tooltip: context.playerL10n.back,
+                  onPressed: widget.onBackToRoot,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 48,
+                    height: 48,
+                  ),
+                  icon: const Icon(Icons.arrow_back_rounded),
                 ),
-                icon: const Icon(Icons.arrow_back_rounded),
+              Expanded(
+                child: Text(
+                  hasDetail
+                      ? widget.detailTitle ??
+                          _sectionLabel(context, widget.pauseSection)
+                      : _presentation.resolvedTitle(context.playerL10n),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
               ),
-            Expanded(
-              child: Text(
-                hasDetail
-                    ? widget.detailTitle ??
-                        _sectionLabel(context, widget.pauseSection)
-                    : _presentation.resolvedTitle(context.playerL10n),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: PlayerSpacing.sm),
+            ],
+          ),
+        if (!_isIllustrated) const SizedBox(height: PlayerSpacing.sm),
         Expanded(
           child: Scrollbar(
             key: const ValueKey<String>('runtime-pause-detail-scrollbar'),
@@ -555,7 +745,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             child: SingleChildScrollView(
               key: const ValueKey<String>('runtime-pause-detail-scroll'),
               controller: controller,
-              child: hasDetail
+              child: hasDetail || _isIllustrated
                   ? widget.detail
                   : PlayerEmptyState(
                       icon: Icons.gamepad_rounded,

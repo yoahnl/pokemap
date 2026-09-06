@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:image/image.dart' as image;
 
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -21,6 +23,7 @@ final class RuntimeProjectProjection {
     this.iconPackagePath,
     this.coverPackagePath,
     this.heroPackagePath,
+    this.menuBackgroundPackagePath,
     this.titleMusicPackagePath,
     this.introMedia,
     this.titlePromptMedia,
@@ -46,6 +49,7 @@ final class RuntimeProjectProjection {
   final String? iconPackagePath;
   final String? coverPackagePath;
   final String? heroPackagePath;
+  final String? menuBackgroundPackagePath;
   final String? titleMusicPackagePath;
   final RuntimeProjectedResponsiveVideo? introMedia;
   final RuntimeProjectedResponsiveVideo? titlePromptMedia;
@@ -355,6 +359,12 @@ final class RuntimeProjectProjectionBuilder {
         );
     }
 
+    final menuBackgroundPackagePath = await _addPresentationAsset(
+        payload,
+        authorFiles,
+        presentation.pause?.background?.imagePath,
+        'menu-background',
+        budget);
     final iconPackagePath = await _addPresentationAsset(
       payload,
       authorFiles,
@@ -473,6 +483,7 @@ final class RuntimeProjectProjectionBuilder {
       iconPackagePath: iconPackagePath,
       coverPackagePath: coverPackagePath,
       heroPackagePath: heroPackagePath,
+      menuBackgroundPackagePath: menuBackgroundPackagePath,
       titleMusicPackagePath: titleMusicPackagePath,
       introMedia: introMedia,
       titlePromptMedia: titlePromptMedia,
@@ -481,12 +492,9 @@ final class RuntimeProjectProjectionBuilder {
     );
   }
 
-  Future<void> _addPortableAssetClosure(
-    Map<String, List<int>> payload,
-    _AuthorProjectFileResolver authorFiles,
-    _ProjectionBudget budget,
-    {Set<String> excludedAssetIds = const <String>{}}
-  ) async {
+  Future<void> _addPortableAssetClosure(Map<String, List<int>> payload,
+      _AuthorProjectFileResolver authorFiles, _ProjectionBudget budget,
+      {Set<String> excludedAssetIds = const <String>{}}) async {
     final records = authorFiles.catalog.records
         .where((record) => !excludedAssetIds.contains(record.id))
         .toList();
@@ -538,7 +546,8 @@ final class RuntimeProjectProjectionBuilder {
         throw GamePackageExportException(
           code: 'presentationMediaSourceMissing',
           path: 'media[${media.id}].sourceAssetId',
-          message: 'Presentation media source is missing from the asset catalog.',
+          message:
+              'Presentation media source is missing from the asset catalog.',
         );
       }
       final metadata = media.technicalMetadata!;
@@ -552,11 +561,10 @@ final class RuntimeProjectProjectionBuilder {
       }
       packagedSourceAssetIds.add(media.sourceAssetId);
     }
-    final presentationSourceAssetIds = sourceCatalog.entries
-        .map((media) => media.sourceAssetId)
-        .toSet();
-    final excludedSourceAssetIds = presentationSourceAssetIds
-        .difference(packagedSourceAssetIds);
+    final presentationSourceAssetIds =
+        sourceCatalog.entries.map((media) => media.sourceAssetId).toSet();
+    final excludedSourceAssetIds =
+        presentationSourceAssetIds.difference(packagedSourceAssetIds);
     final excludedLogicalPaths = authorFiles.catalog.records
         .where((record) => excludedSourceAssetIds.contains(record.id))
         .map((record) => record.logicalPath)
@@ -790,12 +798,24 @@ final class RuntimeProjectProjectionBuilder {
         message: '$role must use an allowlisted image or audio format.',
       );
     }
+    final bytes = await authorFiles.read(relativePath, budget);
+    if (role == 'menu-background') {
+      image.Image? decoded;
+      try {
+        decoded = image.decodeImage(Uint8List.fromList(bytes));
+      } on Object {
+        decoded = null;
+      }
+      if (decoded == null || decoded.width > 4096 || decoded.height > 4096) {
+        throw GamePackageExportException(
+            code: 'invalidMenuBackground',
+            path: relativePath,
+            message:
+                'The menu background must be a decodable image up to 4096 pixels per side.');
+      }
+    }
     final packagePath = 'presentation/$role$extension';
-    budget.addPayload(
-      payload,
-      packagePath,
-      await authorFiles.read(relativePath, budget),
-    );
+    budget.addPayload(payload, packagePath, bytes);
     return packagePath;
   }
 

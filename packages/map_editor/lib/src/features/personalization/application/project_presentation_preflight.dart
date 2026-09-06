@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
+import 'package:map_player_ui/presentation_renderer.dart'
+    show resolveProjectDirectoryAssetFile;
 import 'package:path/path.dart' as p;
 
 import 'personalization_publish_readiness.dart';
@@ -44,7 +46,17 @@ final class FileSystemProjectPresentationPreflight
     var checkedAssetCount = 0;
 
     for (final reference in _references(profile)) {
-      final resolved = _resolveProjectFile(projectRoot, reference.relativePath);
+      final logical = _resolveProjectFile(projectRoot, reference.relativePath);
+      final resolved = logical == null
+          ? null
+          : FileSystemEntity.typeSync(logical.path, followLinks: false) !=
+                FileSystemEntityType.notFound
+          ? logical
+          : resolveProjectDirectoryAssetFile(
+                  projectRootDirectory: projectRoot.path,
+                  relativePath: reference.relativePath,
+                ) ??
+                logical;
       if (resolved == null) {
         // The pure profile validator already reports unsafe authoring paths.
         continue;
@@ -130,6 +142,14 @@ final class _PresentationAssetReference {
 Iterable<_PresentationAssetReference> _references(
   ProjectPresentationProfile profile,
 ) sync* {
+  if (profile.pause?.background case final background?) {
+    yield _PresentationAssetReference(
+      category: ProjectPresentationCategory.theme,
+      relativePath: background.imagePath,
+      profilePath: r'$.presentation.pause.background.imagePath',
+      kind: _PresentationAssetKind.brandingImage,
+    );
+  }
   final branding = profile.branding;
   for (final entry in <({String field, String? path})>[
     (field: 'iconPath', path: branding.iconPath),
@@ -224,21 +244,23 @@ File? _resolveProjectFile(Directory projectRoot, String relativePath) {
 PersonalizationReadinessIssue? _validateAsset(
   _PresentationAssetReference reference,
   List<int> bytes,
-) =>
-    switch (reference.kind) {
-      _PresentationAssetKind.brandingImage =>
-        _validateImage(reference, bytes, isIntroPoster: false),
-      _PresentationAssetKind.titleMusic =>
-        _validateTitleMusic(reference, bytes),
-      _PresentationAssetKind.introVideo =>
-        _validateIntroVideo(reference, bytes),
-      _PresentationAssetKind.introPoster =>
-        _validateImage(reference, bytes, isIntroPoster: true),
-      _PresentationAssetKind.introCaptions =>
-        _validateCaptions(reference, bytes),
-      _PresentationAssetKind.font => _validateFont(reference, bytes),
-      _PresentationAssetKind.fontLicense => _validateLicense(reference, bytes),
-    };
+) => switch (reference.kind) {
+  _PresentationAssetKind.brandingImage => _validateImage(
+    reference,
+    bytes,
+    isIntroPoster: false,
+  ),
+  _PresentationAssetKind.titleMusic => _validateTitleMusic(reference, bytes),
+  _PresentationAssetKind.introVideo => _validateIntroVideo(reference, bytes),
+  _PresentationAssetKind.introPoster => _validateImage(
+    reference,
+    bytes,
+    isIntroPoster: true,
+  ),
+  _PresentationAssetKind.introCaptions => _validateCaptions(reference, bytes),
+  _PresentationAssetKind.font => _validateFont(reference, bytes),
+  _PresentationAssetKind.fontLicense => _validateLicense(reference, bytes),
+};
 
 PersonalizationReadinessIssue? _validateImage(
   _PresentationAssetReference reference,
@@ -333,8 +355,9 @@ PersonalizationReadinessIssue? _validateFont(
 ) {
   final extension = p.extension(reference.relativePath).toLowerCase();
   final valid = switch (extension) {
-    '.ttf' => _startsWith(bytes, const <int>[0x00, 0x01, 0x00, 0x00]) ||
-        _startsWith(bytes, ascii.encode('true')),
+    '.ttf' =>
+      _startsWith(bytes, const <int>[0x00, 0x01, 0x00, 0x00]) ||
+          _startsWith(bytes, ascii.encode('true')),
     '.otf' => _startsWith(bytes, ascii.encode('OTTO')),
     _ => false,
   };
@@ -371,20 +394,25 @@ PersonalizationReadinessIssue? _validateLicense(
 bool _matchesAudioSignature(String extension, List<int> bytes) =>
     switch (extension) {
       '.ogg' => _startsWith(bytes, const <int>[0x4f, 0x67, 0x67, 0x53]),
-      '.wav' => _startsWith(bytes, const <int>[0x52, 0x49, 0x46, 0x46]) &&
-          bytes.length >= 12 &&
-          bytes[8] == 0x57 &&
-          bytes[9] == 0x41 &&
-          bytes[10] == 0x56 &&
-          bytes[11] == 0x45,
-      '.mp3' => _startsWith(bytes, const <int>[0x49, 0x44, 0x33]) ||
-          (bytes.length >= 2 && bytes[0] == 0xff && (bytes[1] & 0xe0) == 0xe0),
+      '.wav' =>
+        _startsWith(bytes, const <int>[0x52, 0x49, 0x46, 0x46]) &&
+            bytes.length >= 12 &&
+            bytes[8] == 0x57 &&
+            bytes[9] == 0x41 &&
+            bytes[10] == 0x56 &&
+            bytes[11] == 0x45,
+      '.mp3' =>
+        _startsWith(bytes, const <int>[0x49, 0x44, 0x33]) ||
+            (bytes.length >= 2 &&
+                bytes[0] == 0xff &&
+                (bytes[1] & 0xe0) == 0xe0),
       '.flac' => _startsWith(bytes, const <int>[0x66, 0x4c, 0x61, 0x43]),
-      '.m4a' => bytes.length >= 12 &&
-          bytes[4] == 0x66 &&
-          bytes[5] == 0x74 &&
-          bytes[6] == 0x79 &&
-          bytes[7] == 0x70,
+      '.m4a' =>
+        bytes.length >= 12 &&
+            bytes[4] == 0x66 &&
+            bytes[5] == 0x74 &&
+            bytes[6] == 0x79 &&
+            bytes[7] == 0x70,
       _ => false,
     };
 
@@ -400,11 +428,10 @@ PersonalizationReadinessIssue _issue(
   _PresentationAssetReference reference, {
   required String code,
   required String message,
-}) =>
-    PersonalizationReadinessIssue(
-      code: code,
-      category: reference.category,
-      severity: ProjectPresentationDiagnosticSeverity.error,
-      path: reference.profilePath,
-      message: message,
-    );
+}) => PersonalizationReadinessIssue(
+  code: code,
+  category: reference.category,
+  severity: ProjectPresentationDiagnosticSeverity.error,
+  path: reference.profilePath,
+  message: message,
+);

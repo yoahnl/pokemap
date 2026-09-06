@@ -27,6 +27,9 @@ final class ProjectPresentationPreset {
     ProjectPresentationCategory category,
   ) {
     if (!supports(category)) return current;
+    if (id == 'nightIllustrated') {
+      return applyNightIllustratedPresentationPreset(current);
+    }
     return switch (category) {
       ProjectPresentationCategory.branding => current.copyWith(
         branding: profile.branding,
@@ -122,7 +125,21 @@ final accessiblePresentationPreset = ProjectPresentationPreset(
   ),
 );
 
+final nightIllustratedPresentationPreset = ProjectPresentationPreset(
+  id: 'nightIllustrated',
+  label: 'Nuit illustrée',
+  description:
+      'Cadre bleu nuit illustré, avec les textes et images de votre jeu.',
+  categories: {ProjectPresentationCategory.theme},
+  profile: const ProjectPresentationProfile(
+    pause: ProjectPausePresentationProfile(
+      style: ProjectPauseMenuStyle.nightIllustrated,
+    ),
+  ),
+);
+
 final projectPresentationPresets = <ProjectPresentationPreset>[
+  nightIllustratedPresentationPreset,
   classicPresentationPreset,
   cinematicPresentationPreset,
   accessiblePresentationPreset,

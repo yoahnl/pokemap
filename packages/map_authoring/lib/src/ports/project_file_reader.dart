@@ -175,7 +175,13 @@ final class LocalProjectFileReader
       return List.unmodifiable(files);
     } on WorkspaceAccessException {
       rethrow;
-    } on FileSystemException {
+    } on FileSystemException catch (error) {
+      if (_isMissing(error)) {
+        throw const WorkspaceAccessException(
+          'workspace.directory_missing',
+          'The requested project directory does not exist.',
+        );
+      }
       throw const WorkspaceAccessException(
         'workspace.directory_unavailable',
         'The requested project directory is unavailable.',

@@ -426,56 +426,132 @@ final class ProjectSnapshotLoader {
       profiler?.recordDecodeModel(dialogueDecodeTimer!);
     }
 
+    var pokemonInventoryComplete = false;
+    final pokemonDirectoryInventory = <String, List<String>>{};
     if (manifest.pokemon.enabled) {
-      final speciesIds = <String>{
-        for (final table in manifest.encounterTables)
-          for (final entry in table.entries) entry.speciesId,
-        for (final pokemon in manifest.newGame.initialParty) pokemon.speciesId,
-        for (final starter in manifest.newGame.starterOptions)
-          starter.pokemon.speciesId,
-      }.toList()
-        ..sort();
-      for (final speciesId in speciesIds) {
-        final speciesPath = validateProjectRelativePath(
-          '${manifest.pokemon.speciesDir}/$speciesId.json',
-        ).join('/');
-        if (!occupiedPaths.add(speciesPath)) {
-          throw const ProjectSnapshotException(
-            'project.resource_path_conflict',
-            'Two project resources resolve to the same storage path.',
-          );
+      for (final directory in <String>[
+        manifest.pokemon.speciesDir,
+        manifest.pokemon.mediaDir,
+      ]) {
+        List<String>? listed;
+        try {
+          listed = await access.listFiles(directory);
+        } on WorkspaceAccessException catch (error) {
+          if (error.code == 'workspace.directory_missing') {
+            listed = const [];
+          } else if (error.code != 'workspace.directory_unavailable') {
+            rethrow;
+          }
         }
-        final speciesBytes = await _readOptional(access, speciesPath);
-        if (speciesBytes != null) {
+        if (listed != null) {
+          pokemonDirectoryInventory[directory] = listed
+              .where((path) => path.toLowerCase().endsWith('.json'))
+              .toList()
+            ..sort();
+        }
+      }
+      pokemonInventoryComplete = pokemonDirectoryInventory.length == 2;
+      if (pokemonInventoryComplete) {
+        final ids = <String>{};
+        for (final entry in pokemonDirectoryInventory.entries) {
+          final isSpecies = entry.key == manifest.pokemon.speciesDir;
+          for (final rawPath in entry.value) {
+            final path = validateProjectRelativePath(rawPath).join('/');
+            if (!path.startsWith('${entry.key}/') || !occupiedPaths.add(path)) {
+              throw const ProjectSnapshotException(
+                'project.resource_path_conflict',
+                'Pokemon inventory paths must be unique and inside their directory.',
+              );
+            }
+            final bytes = await access.readResourceBytes(path);
+            var id = path
+                .split('/')
+                .last
+                .replaceFirst(RegExp(r'\.json$', caseSensitive: false), '');
+            if (isSpecies) {
+              try {
+                final json = jsonDecode(utf8.decode(bytes.bytes));
+                if (json is Map &&
+                    json['id'] is String &&
+                    (json['id'] as String).isNotEmpty) {
+                  id = json['id'] as String;
+                }
+              } on FormatException {
+                id = path
+                    .split('/')
+                    .last
+                    .replaceFirst(RegExp(r'\.json$', caseSensitive: false), '');
+              }
+            }
+            final identity = isSpecies
+                ? pokemonSpeciesResourceIdentity(id)
+                : pokemonMediaResourceIdentity(id);
+            if (!ids.add(identity)) {
+              throw const ProjectSnapshotException(
+                'project.pokemon_identity_conflict',
+                'Pokemon inventory contains duplicate document identities.',
+              );
+            }
+            resources.add(_LoadedProjectResource(
+              relativePath: path,
+              identity: identity,
+              bytes: bytes,
+            ));
+          }
+        }
+      } else {
+        final speciesIds = <String>{
+          for (final table in manifest.encounterTables)
+            for (final entry in table.entries) entry.speciesId,
+          for (final pokemon in manifest.newGame.initialParty)
+            pokemon.speciesId,
+          for (final starter in manifest.newGame.starterOptions)
+            starter.pokemon.speciesId,
+        }.toList()
+          ..sort();
+        for (final speciesId in speciesIds) {
+          final speciesPath = validateProjectRelativePath(
+            '${manifest.pokemon.speciesDir}/$speciesId.json',
+          ).join('/');
+          if (!occupiedPaths.add(speciesPath)) {
+            throw const ProjectSnapshotException(
+              'project.resource_path_conflict',
+              'Two project resources resolve to the same storage path.',
+            );
+          }
+          final speciesBytes = await _readOptional(access, speciesPath);
+          if (speciesBytes != null) {
+            resources.add(
+              _LoadedProjectResource(
+                relativePath: speciesPath,
+                identity: pokemonSpeciesResourceIdentity(speciesId),
+                bytes: speciesBytes,
+              ),
+            );
+          }
+          final mediaPath = validateProjectRelativePath(
+            '${manifest.pokemon.mediaDir}/$speciesId.json',
+          ).join('/');
+          if (!occupiedPaths.add(mediaPath)) {
+            throw const ProjectSnapshotException(
+              'project.resource_path_conflict',
+              'Two project resources resolve to the same storage path.',
+            );
+          }
+          final mediaBytes = await _readOptional(access, mediaPath);
+          if (mediaBytes == null) continue;
           resources.add(
             _LoadedProjectResource(
-              relativePath: speciesPath,
-              identity: pokemonSpeciesResourceIdentity(speciesId),
-              bytes: speciesBytes,
+              relativePath: mediaPath,
+              identity: pokemonMediaResourceIdentity(speciesId),
+              bytes: mediaBytes,
             ),
           );
         }
-        final mediaPath = validateProjectRelativePath(
-          '${manifest.pokemon.mediaDir}/$speciesId.json',
-        ).join('/');
-        if (!occupiedPaths.add(mediaPath)) {
-          throw const ProjectSnapshotException(
-            'project.resource_path_conflict',
-            'Two project resources resolve to the same storage path.',
-          );
-        }
-        final mediaBytes = await _readOptional(access, mediaPath);
-        if (mediaBytes == null) continue;
-        resources.add(
-          _LoadedProjectResource(
-            relativePath: mediaPath,
-            identity: pokemonMediaResourceIdentity(speciesId),
-            bytes: mediaBytes,
-          ),
-        );
       }
     }
 
+    final absentMenuAssetPaths = <String>[];
     final assetCatalogReadTimer = profiler?.startStage();
     final assetCatalogBytes = await _readOptional(
       access,
@@ -494,6 +570,26 @@ final class ProjectSnapshotLoader {
           bytes: assetCatalogBytes,
         ),
       );
+      for (final record in catalog.records) {
+        if (!record.logicalPath.startsWith('assets/pokemon/menu/')) continue;
+        final path = validateProjectRelativePath(record.logicalPath).join('/');
+        if (!occupiedPaths.add(path)) {
+          throw const ProjectSnapshotException(
+            'project.resource_path_conflict',
+            'A Pokemon menu asset conflicts with another project resource.',
+          );
+        }
+        final bytes = await _readOptional(access, path);
+        if (bytes == null) {
+          absentMenuAssetPaths.add(path);
+        } else {
+          resources.add(_LoadedProjectResource(
+            relativePath: path,
+            identity: 'asset:${record.id}',
+            bytes: bytes,
+          ));
+        }
+      }
       final digests = catalog.records
           .map((record) => record.artifact)
           .toSet()
@@ -582,6 +678,34 @@ final class ProjectSnapshotLoader {
         );
       }
     }
+    for (final path in absentMenuAssetPaths) {
+      if (await _readOptional(access, path) != null) {
+        throw const ProjectSnapshotException(
+          'project.changed_during_snapshot',
+          'A Pokemon menu image appeared while the snapshot was loading.',
+        );
+      }
+    }
+
+    for (final entry in pokemonDirectoryInventory.entries) {
+      List<String>? listed;
+      try {
+        listed = await access.listFiles(entry.key);
+      } on WorkspaceAccessException catch (error) {
+        if (error.code != 'workspace.directory_missing') rethrow;
+        listed = const [];
+      }
+      final observed = listed
+          ?.where((path) => path.toLowerCase().endsWith('.json'))
+          .toList()
+        ?..sort();
+      if (observed == null || observed.join('\n') != entry.value.join('\n')) {
+        throw const ProjectSnapshotException(
+          'project.changed_during_snapshot',
+          'Pokemon inventory changed while the snapshot was loading.',
+        );
+      }
+    }
     profiler?.recordSecondObservation(secondObservationTimer!);
 
     final fingerprintTimer = profiler?.startStage();
@@ -660,6 +784,7 @@ final class ProjectSnapshotLoader {
       projectHandle: projectHandle,
       revision: revision,
       manifest: manifest,
+      pokemonInventoryComplete: pokemonInventoryComplete,
       maps: maps,
       itemCatalog: itemCatalog,
       resourceFingerprints: resourceFingerprints,
@@ -685,9 +810,10 @@ final class ProjectSnapshotLoader {
       _snapshotCache?.store(
         snapshot: snapshot,
         identities: completeIdentities,
-        absentResourcePaths: assetCatalogBytes == null
-            ? const [assetCatalogStorageKey]
-            : const [],
+        absentResourcePaths: [
+          if (assetCatalogBytes == null) assetCatalogStorageKey,
+          ...absentMenuAssetPaths,
+        ],
       );
     }
     profiler?.recordProjection(projectionTimer!);

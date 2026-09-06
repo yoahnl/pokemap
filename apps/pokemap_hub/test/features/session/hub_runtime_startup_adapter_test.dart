@@ -52,6 +52,12 @@ void main() {
       expect(profile?.theme?.titleSurface, '#D9F4F6');
       expect(profile?.surfacePalettes?.title?.surface, '#102030');
       expect(profile?.pause?.title, 'Interlude');
+      expect(profile?.pause?.style, ProjectPauseMenuStyle.nightIllustrated);
+      expect(
+        profile?.pause?.background?.imagePath,
+        'presentation/menu-background.png',
+      );
+      expect(profile?.pause?.background?.focalX, .8);
       expect(profile?.pause?.actions?.first.id, ProjectPauseActionId.pokedex);
       expect(profile?.pause?.actions?.first.label, 'Carnet');
       expect(profile?.pause?.actions?.last.visible, isFalse);
@@ -188,7 +194,7 @@ final _manifest = GamePackageManifest(
     supported: const <String>['fr'],
   ),
   presentation: GamePackagePresentation(
-    schemaVersion: 10,
+    schemaVersion: 11,
     title: const GamePackageTitlePresentation(
       title: 'Aube sur Hanazuki',
       subtitle: 'Studio Brume',
@@ -267,6 +273,11 @@ final _manifest = GamePackageManifest(
       ),
     ),
     pause: GamePackagePausePresentation(
+      style: ProjectPauseMenuStyle.nightIllustrated,
+      background: const ProjectPauseBackgroundProfile(
+        imagePath: 'presentation/menu-background.png',
+        focalX: .8,
+      ),
       title: 'Interlude',
       actions: const <GamePackagePauseAction>[
         GamePackagePauseAction(id: 'pokedex', label: 'Carnet', icon: 'book'),

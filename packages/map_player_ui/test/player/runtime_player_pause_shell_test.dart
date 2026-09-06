@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -5,6 +8,309 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final size in [
+    const Size(1440, 900),
+    const Size(390, 844),
+    const Size(844, 390)
+  ]) {
+    testWidgets(
+        'illustrated shared shell preserves resume with missing media $size',
+        (tester) async {
+      await _setSurface(tester, size);
+      PlayerPauseAction? selected;
+      await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+          gameTitle: 'Voyage',
+          actions: _actions(),
+          onSelected: (action) => selected = action,
+          detail: const Text('Contenu existant'),
+          presentation: const PlayerPausePresentation(
+              style: ProjectPauseMenuStyle.nightIllustrated,
+              background: ProjectPauseBackgroundProfile(
+                  imagePath: 'assets/missing.png')))));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('runtime-night-illustrated-frame')),
+          findsOneWidget);
+      expect(find.text('Voyage'), findsOneWidget);
+      expect(find.text('Reprendre'), findsOneWidget);
+      expect(find.byType(PlayerEmptyState), findsNothing);
+      expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
+      expect(find.byKey(const ValueKey('runtime-player-actions-context')),
+          findsOneWidget);
+      expect(find.text('Fond du menu indisponible.'), findsOneWidget);
+      await tester
+          .tap(find.byKey(const ValueKey('pause-frame-return-surface')));
+      expect(selected, PlayerPauseAction.resume);
+    });
+  }
+
+  testWidgets('illustrated footer respects pending resume availability',
+      (tester) async {
+    await _setSurface(tester, const Size(1440, 900));
+    var commands = 0;
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+        gameTitle: 'Voyage',
+        actions: {
+          ..._actions(),
+          PlayerPauseAction.resume:
+              const PlayerActionAvailability.disabled('Enregistrement')
+        },
+        onSelected: (_) => commands++,
+        detail: const SizedBox(),
+        presentation: const PlayerPausePresentation(
+            style: ProjectPauseMenuStyle.nightIllustrated))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('pause-frame-return-surface')));
+    expect(commands, 0);
+  });
+
+  testWidgets('illustrated header and body use the outer landscape composition',
+      (tester) async {
+    await _setSurface(tester, const Size(844, 390));
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+      gameTitle: 'Voyage',
+      actions: _actions(),
+      onSelected: (_) {},
+      detail: const Text('Résumé du voyage'),
+      presentation: const PlayerPausePresentation(
+        style: ProjectPauseMenuStyle.nightIllustrated,
+        title: 'Titre auteur',
+        composition: ProjectResponsivePauseCompositionProfile(
+          compactPortrait:
+              ProjectPauseCompositionVariantProfile(showTitle: true),
+          compactLandscape: ProjectPauseCompositionVariantProfile(
+            showTitle: false,
+            showRootDetailPanel: false,
+          ),
+        ),
+      ),
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Titre auteur'), findsNothing);
+    expect(find.byKey(const ValueKey('runtime-pause-layout-compactLandscape')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('runtime-menu-background-unavailable')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('illustrated root preserves explicitly enabled authored detail',
+      (tester) async {
+    await _setSurface(tester, const Size(1440, 900));
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+      gameTitle: 'Voyage',
+      actions: _actions(),
+      onSelected: (_) {},
+      detail: const Text('Résumé du voyage'),
+      presentation: const PlayerPausePresentation(
+        style: ProjectPauseMenuStyle.nightIllustrated,
+        title: 'Titre auteur',
+        composition: ProjectResponsivePauseCompositionProfile(),
+      ),
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Titre auteur'), findsOneWidget);
+    expect(find.text('Résumé du voyage'), findsOneWidget);
+    expect(find.byType(PlayerEmptyState), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('illustrated authored narrow layout applies width only once',
+      (tester) async {
+    await _setSurface(tester, const Size(1280, 720));
+    final base = suggestedProjectPresentationLayouts('standard');
+    final layouts = base.copyWith(
+        pauseMenu: base.pauseMenu.copyWith(
+      expanded: base.pauseMenu.expanded.copyWith(
+        width: ProjectPresentationContentWidth.narrow,
+        spacing: ProjectPresentationSpacing.airy,
+      ),
+    ));
+    await tester.pumpWidget(_app(
+        RuntimePlayerPauseShell.root(
+          gameTitle: 'Voyage',
+          actions: _actions(),
+          onSelected: (_) {},
+          detail: const Text('Résumé du voyage'),
+          presentation: const PlayerPausePresentation(
+            style: ProjectPauseMenuStyle.nightIllustrated,
+            composition: ProjectResponsivePauseCompositionProfile(),
+          ),
+        ),
+        layouts: layouts));
+    await tester.pumpAndSettle();
+    expect(find.text('Résumé du voyage'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('illustrated detail has one title and one working return',
+      (tester) async {
+    await _setSurface(tester, const Size(390, 844));
+    var returns = 0;
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell(
+      gameTitle: 'Voyage',
+      pauseSection: RuntimePlayerPauseSection.party,
+      actions: _actions(),
+      onSelected: (_) {},
+      onBackToRoot: () => returns++,
+      detailTitle: 'Compagnons',
+      detail: const Text('Contenu de l’équipe'),
+      presentation: const PlayerPausePresentation(
+          style: ProjectPauseMenuStyle.nightIllustrated),
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Compagnons'), findsOneWidget);
+    expect(find.text('Contenu de l’équipe'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('runtime-pause-back-to-root')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('pause-frame-return-surface')));
+    expect(returns, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('illustrated footer retains logical controller resume identity',
+      (tester) async {
+    await _setSurface(tester, const Size(1440, 900));
+    final focus = RuntimePlayerFocusController(
+        logicalSelectionId: 'pause.resume',
+        activeInputSource: PlayerInputSource.controller);
+    addTearDown(focus.dispose);
+    final selected = <PlayerPauseAction>[];
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+      gameTitle: 'Voyage',
+      actions: _actions(),
+      onSelected: selected.add,
+      detail: const SizedBox.shrink(),
+      focusController: focus,
+      logicalSelectionId: 'pause.resume',
+      presentation: const PlayerPausePresentation(
+          style: ProjectPauseMenuStyle.nightIllustrated,
+          actionLabels: {PlayerPauseAction.resume: 'Poursuivre'}),
+    )));
+    await tester.pumpAndSettle();
+    expect(focus.logicalSelectionId, 'pause.resume');
+    expect(
+        FocusManager.instance.primaryFocus?.debugLabel, contains('Poursuivre'));
+    Actions.invoke(
+      tester.element(
+          find.byKey(const ValueKey('runtime-player-actions-context'))),
+      const RuntimePlayerLogicalIntent(PlayerInputAction.confirm,
+          source: PlayerInputSource.controller),
+    );
+    await tester.pump();
+    expect(selected, [PlayerPauseAction.resume]);
+  });
+
+  testWidgets('corrupt illustrated background reports failure and keeps return',
+      (tester) async {
+    await _setSurface(tester, const Size(390, 844));
+    PlayerPauseAction? selected;
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+      gameTitle: 'Voyage',
+      actions: _actions(),
+      onSelected: (action) => selected = action,
+      detail: const SizedBox.shrink(),
+      presentation: PlayerPausePresentation(
+        style: ProjectPauseMenuStyle.nightIllustrated,
+        background:
+            const ProjectPauseBackgroundProfile(imagePath: 'broken.png'),
+        backgroundImage: MemoryImage(Uint8List.fromList([137, 80, 78, 71])),
+      ),
+    )));
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('runtime-menu-background-fallback')),
+        findsOneWidget);
+    expect(find.text('Fond du menu indisponible.'), findsOneWidget);
+    final diagnostic = tester.widget<Semantics>(
+        find.byKey(const ValueKey('runtime-menu-background-unavailable')));
+    expect(diagnostic.properties.liveRegion, isTrue);
+    await tester.tap(find.byKey(const ValueKey('pause-frame-return-surface')));
+    expect(selected, PlayerPauseAction.resume);
+    expect(tester.takeException(), isNull);
+    final recoveredBytes = await tester.runAsync(() async {
+      final recorder = ui.PictureRecorder();
+      Canvas(recorder).drawColor(const Color(0xFF204060), BlendMode.src);
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(1, 1);
+      final png = (await image.toByteData(format: ui.ImageByteFormat.png))!;
+      image.dispose();
+      picture.dispose();
+      return png.buffer.asUint8List();
+    });
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+      gameTitle: 'Voyage',
+      actions: _actions(),
+      onSelected: (action) => selected = action,
+      detail: const SizedBox.shrink(),
+      presentation: PlayerPausePresentation(
+        style: ProjectPauseMenuStyle.nightIllustrated,
+        background: const ProjectPauseBackgroundProfile(imagePath: 'fixed.png'),
+        backgroundImage: MemoryImage(recoveredBytes!),
+      ),
+    )));
+    final recovered = await _waitForMenuImage(tester);
+    expect(recovered.width, 1);
+    expect(recovered.height, 1);
+    expect(find.byKey(const ValueKey('runtime-menu-background-unavailable')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('runtime-menu-background-fallback')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'illustrated background decodes within its viewport budget without distortion',
+      (tester) async {
+    await _setSurface(tester, const Size(3840, 2160));
+    final baselineLiveImages =
+        PaintingBinding.instance.imageCache.liveImageCount;
+    final bytes = await tester.runAsync(() async {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawColor(const Color(0xFF204060), BlendMode.src);
+      final picture = recorder.endRecording();
+      final source = await picture.toImage(4096, 2048);
+      final png = (await source.toByteData(format: ui.ImageByteFormat.png))!;
+      source.dispose();
+      picture.dispose();
+      return png.buffer.asUint8List();
+    });
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+      gameTitle: 'Voyage',
+      actions: _actions(),
+      onSelected: (_) {},
+      detail: const SizedBox.shrink(),
+      presentation: PlayerPausePresentation(
+        style: ProjectPauseMenuStyle.nightIllustrated,
+        background: const ProjectPauseBackgroundProfile(
+            imagePath: 'panorama.png',
+            focalX: .8,
+            sampling: ProjectMenuImageSampling.pixelArt),
+        backgroundImage: MemoryImage(bytes!),
+      ),
+    )));
+    final imageWidget = tester
+        .widget<Image>(find.byKey(const ValueKey('runtime-menu-background')));
+    expect(imageWidget.fit, BoxFit.cover);
+    expect((imageWidget.alignment as Alignment).x, closeTo(.6, .001));
+    expect(imageWidget.filterQuality, FilterQuality.none);
+    final provider = imageWidget.image as ResizeImage;
+    expect(provider.width, 1920);
+    expect(provider.height, 1080);
+    expect(provider.policy, ResizeImagePolicy.fit);
+    final decoded = await _waitForMenuImage(tester);
+    expect(Size(decoded.width.toDouble(), decoded.height.toDouble()),
+        const Size(1920, 960));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    expect(
+        PaintingBinding.instance.imageCache.liveImageCount, baselineLiveImages);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('pause preview refuses unavailable quests', (tester) async {
     await _setSurface(tester, const Size(390, 844));
     PlayerPauseAction? selected;
@@ -747,6 +1053,26 @@ void main() {
     expect(backdrop.color?.a, closeTo(.82, .01));
     expect(tester.takeException(), isNull);
   });
+}
+
+Future<ui.Image> _waitForMenuImage(WidgetTester tester) async {
+  final rawImage = find.descendant(
+    of: find.byKey(const ValueKey('runtime-menu-background')),
+    matching: find.byType(RawImage),
+  );
+  for (var attempt = 0; attempt < 50; attempt++) {
+    await tester.pump();
+    final decoded = tester
+        .widgetList<RawImage>(rawImage)
+        .map((widget) => widget.image)
+        .nonNulls
+        .firstOrNull;
+    if (decoded != null) return decoded;
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+  }
+  fail('The menu background did not finish decoding.');
 }
 
 Map<PlayerPauseAction, PlayerActionAvailability> _actions() =>

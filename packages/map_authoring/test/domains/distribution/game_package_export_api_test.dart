@@ -2,12 +2,49 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
+  test('canonical export includes and remaps the authored menu background',
+      () async {
+    final projectRoot = await _createPlayableProject(illustrated: true);
+    final exportRoot = await Directory.systemTemp.createTemp('menu_export_');
+    addTearDown(() => projectRoot.delete(recursive: true));
+    addTearDown(() => exportRoot.delete(recursive: true));
+    await GamePackageExportProfileStore(projectRoot: projectRoot)
+        .save(_profile());
+    final output = File(p.join(exportRoot.path, 'menu.avelunegame'));
+    final api = await LocalGamePackageExportApi.create(
+        allowedProjectRoots: [projectRoot.path],
+        allowedExportRoots: [exportRoot.path],
+        exportService: CanonicalGamePackageExportService(
+            pokemonValidator: _acceptPokemonProjection));
+    await api.export(projectRoot: projectRoot.path, outputPath: output.path);
+    final inspection =
+        const GamePackageInspector().inspect(await output.readAsBytes());
+    final pause = inspection.manifest.presentation!.pause!;
+    expect(pause.title, 'Voyage');
+    expect(pause.style, ProjectPauseMenuStyle.nightIllustrated);
+    expect(pause.background!.imagePath, 'presentation/menu-background.png');
+    expect(pause.background!.focalX, .8);
+    expect(
+        const GamePackagePersonalizationPreflight()
+            .certify(inspection)
+            .assetSha256
+            .keys,
+        contains('presentation/menu-background.png'));
+    await File(p.join(projectRoot.path, 'assets/menu/background.png'))
+      .writeAsBytes([0x89, 0x50, 0x4e, 0x47]);
+    await expectLater(api.export(projectRoot: projectRoot.path,
+      outputPath: p.join(exportRoot.path, 'invalid.avelunegame')),
+      throwsA(isA<GamePackageExportException>().having((error) => error.code, 'code', 'invalidMenuBackground')));
+
+  });
+
   test('exports a certified package inside the configured output root',
       () async {
     final projectRoot = await _createPlayableProject();
@@ -44,11 +81,13 @@ void main() {
   test('rejects a destination outside the configured output root', () async {
     final projectRoot = await _createPlayableProject();
     final exportRoot = await Directory.systemTemp.createTemp('avelune_export_');
-    final outsideRoot = await Directory.systemTemp.createTemp('avelune_outside_');
+    final outsideRoot =
+        await Directory.systemTemp.createTemp('avelune_outside_');
     addTearDown(() => projectRoot.delete(recursive: true));
     addTearDown(() => exportRoot.delete(recursive: true));
     addTearDown(() => outsideRoot.delete(recursive: true));
-    await GamePackageExportProfileStore(projectRoot: projectRoot).save(_profile());
+    await GamePackageExportProfileStore(projectRoot: projectRoot)
+        .save(_profile());
     final api = await LocalGamePackageExportApi.create(
       allowedProjectRoots: <String>[projectRoot.path],
       allowedExportRoots: <String>[exportRoot.path],
@@ -73,7 +112,7 @@ void main() {
   });
 }
 
-Future<Directory> _createPlayableProject() async {
+Future<Directory> _createPlayableProject({bool illustrated = false}) async {
   final root = await Directory.systemTemp.createTemp('authoring_export_');
   final project = ProjectManifest(
     name: 'Export Fixture',
@@ -85,6 +124,14 @@ Future<Directory> _createPlayableProject() async {
       ),
     ],
     tilesets: const <ProjectTilesetEntry>[],
+    presentation: illustrated
+        ? const ProjectPresentationProfile(
+            pause: ProjectPausePresentationProfile(
+                style: ProjectPauseMenuStyle.nightIllustrated,
+                title: 'Voyage',
+                background: ProjectPauseBackgroundProfile(
+                    imagePath: 'assets/menu/background.png', focalX: .8)))
+        : null,
     scenes: <SceneAsset>[_completionScene()],
     eventRegistry: NarrativeEventRegistry(
       schemaVersion: 1,
@@ -127,6 +174,12 @@ Future<Directory> _createPlayableProject() async {
       ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     ),
   );
+  if (illustrated) {
+    final imageFile = File(p.join(root.path, 'assets/menu/background.png'));
+    await imageFile.parent.create(recursive: true);
+    await imageFile
+        .writeAsBytes(image.encodePng(image.Image(width: 2, height: 2)));
+  }
   await File(p.join(root.path, 'project.json')).writeAsString(
     jsonEncode(project.toJson()),
     flush: true,

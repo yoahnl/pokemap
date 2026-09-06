@@ -172,6 +172,11 @@ final class AuthoringMutationAdapter
     }
   }
 
+  Future<String> readRevision(String projectRootPath) async {
+    final session = await _open(projectRootPath);
+    return session.use(() async => (await session.snapshot()).revision);
+  }
+
   /// Stages one exact file selected by the local user into an opaque handle.
   ///
   /// The source path never enters an action request, receipt, plan or project

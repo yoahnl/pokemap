@@ -278,6 +278,9 @@ final class CanonicalGamePackageExportService {
           pause: projection.presentation.pause == null
               ? null
               : GamePackagePausePresentation(
+                  style: projection.presentation.pause!.style,
+                  background: projection.presentation.pause!.background
+                      ?.copyWith(imagePath: projection.menuBackgroundPackagePath!),
                   title: projection.presentation.pause!.title,
                   hint: projection.presentation.pause!.hint,
                   actions: projection.presentation.pause!.actions

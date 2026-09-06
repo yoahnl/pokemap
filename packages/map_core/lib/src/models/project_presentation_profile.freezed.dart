@@ -2593,9 +2593,281 @@ as bool,
 
 
 /// @nodoc
+mixin _$ProjectPauseBackgroundProfile {
+
+ String get imagePath; double get focalX; double get focalY; ProjectMenuImageSampling get sampling;
+/// Create a copy of ProjectPauseBackgroundProfile
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectPauseBackgroundProfileCopyWith<ProjectPauseBackgroundProfile> get copyWith => _$ProjectPauseBackgroundProfileCopyWithImpl<ProjectPauseBackgroundProfile>(this as ProjectPauseBackgroundProfile, _$identity);
+
+  /// Serializes this ProjectPauseBackgroundProfile to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPauseBackgroundProfile&&(identical(other.imagePath, imagePath) || other.imagePath == imagePath)&&(identical(other.focalX, focalX) || other.focalX == focalX)&&(identical(other.focalY, focalY) || other.focalY == focalY)&&(identical(other.sampling, sampling) || other.sampling == sampling));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,imagePath,focalX,focalY,sampling);
+
+@override
+String toString() {
+  return 'ProjectPauseBackgroundProfile(imagePath: $imagePath, focalX: $focalX, focalY: $focalY, sampling: $sampling)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectPauseBackgroundProfileCopyWith<$Res>  {
+  factory $ProjectPauseBackgroundProfileCopyWith(ProjectPauseBackgroundProfile value, $Res Function(ProjectPauseBackgroundProfile) _then) = _$ProjectPauseBackgroundProfileCopyWithImpl;
+@useResult
+$Res call({
+ String imagePath, double focalX, double focalY, ProjectMenuImageSampling sampling
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectPauseBackgroundProfileCopyWithImpl<$Res>
+    implements $ProjectPauseBackgroundProfileCopyWith<$Res> {
+  _$ProjectPauseBackgroundProfileCopyWithImpl(this._self, this._then);
+
+  final ProjectPauseBackgroundProfile _self;
+  final $Res Function(ProjectPauseBackgroundProfile) _then;
+
+/// Create a copy of ProjectPauseBackgroundProfile
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? imagePath = null,Object? focalX = null,Object? focalY = null,Object? sampling = null,}) {
+  return _then(_self.copyWith(
+imagePath: null == imagePath ? _self.imagePath : imagePath // ignore: cast_nullable_to_non_nullable
+as String,focalX: null == focalX ? _self.focalX : focalX // ignore: cast_nullable_to_non_nullable
+as double,focalY: null == focalY ? _self.focalY : focalY // ignore: cast_nullable_to_non_nullable
+as double,sampling: null == sampling ? _self.sampling : sampling // ignore: cast_nullable_to_non_nullable
+as ProjectMenuImageSampling,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ProjectPauseBackgroundProfile].
+extension ProjectPauseBackgroundProfilePatterns on ProjectPauseBackgroundProfile {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectPauseBackgroundProfile value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectPauseBackgroundProfile() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectPauseBackgroundProfile value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectPauseBackgroundProfile():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectPauseBackgroundProfile value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectPauseBackgroundProfile() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String imagePath,  double focalX,  double focalY,  ProjectMenuImageSampling sampling)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectPauseBackgroundProfile() when $default != null:
+return $default(_that.imagePath,_that.focalX,_that.focalY,_that.sampling);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String imagePath,  double focalX,  double focalY,  ProjectMenuImageSampling sampling)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectPauseBackgroundProfile():
+return $default(_that.imagePath,_that.focalX,_that.focalY,_that.sampling);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String imagePath,  double focalX,  double focalY,  ProjectMenuImageSampling sampling)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectPauseBackgroundProfile() when $default != null:
+return $default(_that.imagePath,_that.focalX,_that.focalY,_that.sampling);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _ProjectPauseBackgroundProfile implements ProjectPauseBackgroundProfile {
+  const _ProjectPauseBackgroundProfile({required this.imagePath, this.focalX = 0.5, this.focalY = 0.5, this.sampling = ProjectMenuImageSampling.smooth});
+  factory _ProjectPauseBackgroundProfile.fromJson(Map<String, dynamic> json) => _$ProjectPauseBackgroundProfileFromJson(json);
+
+@override final  String imagePath;
+@override@JsonKey() final  double focalX;
+@override@JsonKey() final  double focalY;
+@override@JsonKey() final  ProjectMenuImageSampling sampling;
+
+/// Create a copy of ProjectPauseBackgroundProfile
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectPauseBackgroundProfileCopyWith<_ProjectPauseBackgroundProfile> get copyWith => __$ProjectPauseBackgroundProfileCopyWithImpl<_ProjectPauseBackgroundProfile>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectPauseBackgroundProfileToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPauseBackgroundProfile&&(identical(other.imagePath, imagePath) || other.imagePath == imagePath)&&(identical(other.focalX, focalX) || other.focalX == focalX)&&(identical(other.focalY, focalY) || other.focalY == focalY)&&(identical(other.sampling, sampling) || other.sampling == sampling));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,imagePath,focalX,focalY,sampling);
+
+@override
+String toString() {
+  return 'ProjectPauseBackgroundProfile(imagePath: $imagePath, focalX: $focalX, focalY: $focalY, sampling: $sampling)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectPauseBackgroundProfileCopyWith<$Res> implements $ProjectPauseBackgroundProfileCopyWith<$Res> {
+  factory _$ProjectPauseBackgroundProfileCopyWith(_ProjectPauseBackgroundProfile value, $Res Function(_ProjectPauseBackgroundProfile) _then) = __$ProjectPauseBackgroundProfileCopyWithImpl;
+@override @useResult
+$Res call({
+ String imagePath, double focalX, double focalY, ProjectMenuImageSampling sampling
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectPauseBackgroundProfileCopyWithImpl<$Res>
+    implements _$ProjectPauseBackgroundProfileCopyWith<$Res> {
+  __$ProjectPauseBackgroundProfileCopyWithImpl(this._self, this._then);
+
+  final _ProjectPauseBackgroundProfile _self;
+  final $Res Function(_ProjectPauseBackgroundProfile) _then;
+
+/// Create a copy of ProjectPauseBackgroundProfile
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? imagePath = null,Object? focalX = null,Object? focalY = null,Object? sampling = null,}) {
+  return _then(_ProjectPauseBackgroundProfile(
+imagePath: null == imagePath ? _self.imagePath : imagePath // ignore: cast_nullable_to_non_nullable
+as String,focalX: null == focalX ? _self.focalX : focalX // ignore: cast_nullable_to_non_nullable
+as double,focalY: null == focalY ? _self.focalY : focalY // ignore: cast_nullable_to_non_nullable
+as double,sampling: null == sampling ? _self.sampling : sampling // ignore: cast_nullable_to_non_nullable
+as ProjectMenuImageSampling,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ProjectPausePresentationProfile {
 
-@JsonKey(includeIfNull: false) String? get title;@JsonKey(includeIfNull: false) String? get hint;@JsonKey(includeIfNull: false) List<ProjectPauseActionProfile>? get actions;@JsonKey(includeIfNull: false) ProjectResponsivePauseCompositionProfile? get composition;
+@JsonKey(includeIfNull: false) ProjectPauseMenuStyle? get style;@JsonKey(includeIfNull: false) ProjectPauseBackgroundProfile? get background;@JsonKey(includeIfNull: false) String? get title;@JsonKey(includeIfNull: false) String? get hint;@JsonKey(includeIfNull: false) List<ProjectPauseActionProfile>? get actions;@JsonKey(includeIfNull: false) ProjectResponsivePauseCompositionProfile? get composition;
 /// Create a copy of ProjectPausePresentationProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2608,16 +2880,16 @@ $ProjectPausePresentationProfileCopyWith<ProjectPausePresentationProfile> get co
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPausePresentationProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.hint, hint) || other.hint == hint)&&const DeepCollectionEquality().equals(other.actions, actions)&&(identical(other.composition, composition) || other.composition == composition));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPausePresentationProfile&&(identical(other.style, style) || other.style == style)&&(identical(other.background, background) || other.background == background)&&(identical(other.title, title) || other.title == title)&&(identical(other.hint, hint) || other.hint == hint)&&const DeepCollectionEquality().equals(other.actions, actions)&&(identical(other.composition, composition) || other.composition == composition));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,hint,const DeepCollectionEquality().hash(actions),composition);
+int get hashCode => Object.hash(runtimeType,style,background,title,hint,const DeepCollectionEquality().hash(actions),composition);
 
 @override
 String toString() {
-  return 'ProjectPausePresentationProfile(title: $title, hint: $hint, actions: $actions, composition: $composition)';
+  return 'ProjectPausePresentationProfile(style: $style, background: $background, title: $title, hint: $hint, actions: $actions, composition: $composition)';
 }
 
 
@@ -2628,11 +2900,11 @@ abstract mixin class $ProjectPausePresentationProfileCopyWith<$Res>  {
   factory $ProjectPausePresentationProfileCopyWith(ProjectPausePresentationProfile value, $Res Function(ProjectPausePresentationProfile) _then) = _$ProjectPausePresentationProfileCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? title,@JsonKey(includeIfNull: false) String? hint,@JsonKey(includeIfNull: false) List<ProjectPauseActionProfile>? actions,@JsonKey(includeIfNull: false) ProjectResponsivePauseCompositionProfile? composition
+@JsonKey(includeIfNull: false) ProjectPauseMenuStyle? style,@JsonKey(includeIfNull: false) ProjectPauseBackgroundProfile? background,@JsonKey(includeIfNull: false) String? title,@JsonKey(includeIfNull: false) String? hint,@JsonKey(includeIfNull: false) List<ProjectPauseActionProfile>? actions,@JsonKey(includeIfNull: false) ProjectResponsivePauseCompositionProfile? composition
 });
 
 
-$ProjectResponsivePauseCompositionProfileCopyWith<$Res>? get composition;
+$ProjectPauseBackgroundProfileCopyWith<$Res>? get background;$ProjectResponsivePauseCompositionProfileCopyWith<$Res>? get composition;
 
 }
 /// @nodoc
@@ -2645,9 +2917,11 @@ class _$ProjectPausePresentationProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPausePresentationProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = freezed,Object? hint = freezed,Object? actions = freezed,Object? composition = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? style = freezed,Object? background = freezed,Object? title = freezed,Object? hint = freezed,Object? actions = freezed,Object? composition = freezed,}) {
   return _then(_self.copyWith(
-title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+style: freezed == style ? _self.style : style // ignore: cast_nullable_to_non_nullable
+as ProjectPauseMenuStyle?,background: freezed == background ? _self.background : background // ignore: cast_nullable_to_non_nullable
+as ProjectPauseBackgroundProfile?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String?,hint: freezed == hint ? _self.hint : hint // ignore: cast_nullable_to_non_nullable
 as String?,actions: freezed == actions ? _self.actions : actions // ignore: cast_nullable_to_non_nullable
 as List<ProjectPauseActionProfile>?,composition: freezed == composition ? _self.composition : composition // ignore: cast_nullable_to_non_nullable
@@ -2655,6 +2929,18 @@ as ProjectResponsivePauseCompositionProfile?,
   ));
 }
 /// Create a copy of ProjectPausePresentationProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectPauseBackgroundProfileCopyWith<$Res>? get background {
+    if (_self.background == null) {
+    return null;
+  }
+
+  return $ProjectPauseBackgroundProfileCopyWith<$Res>(_self.background!, (value) {
+    return _then(_self.copyWith(background: value));
+  });
+}/// Create a copy of ProjectPausePresentationProfile
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
@@ -2748,10 +3034,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? hint, @JsonKey(includeIfNull: false)  List<ProjectPauseActionProfile>? actions, @JsonKey(includeIfNull: false)  ProjectResponsivePauseCompositionProfile? composition)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  ProjectPauseMenuStyle? style, @JsonKey(includeIfNull: false)  ProjectPauseBackgroundProfile? background, @JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? hint, @JsonKey(includeIfNull: false)  List<ProjectPauseActionProfile>? actions, @JsonKey(includeIfNull: false)  ProjectResponsivePauseCompositionProfile? composition)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectPausePresentationProfile() when $default != null:
-return $default(_that.title,_that.hint,_that.actions,_that.composition);case _:
+return $default(_that.style,_that.background,_that.title,_that.hint,_that.actions,_that.composition);case _:
   return orElse();
 
 }
@@ -2769,10 +3055,10 @@ return $default(_that.title,_that.hint,_that.actions,_that.composition);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? hint, @JsonKey(includeIfNull: false)  List<ProjectPauseActionProfile>? actions, @JsonKey(includeIfNull: false)  ProjectResponsivePauseCompositionProfile? composition)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  ProjectPauseMenuStyle? style, @JsonKey(includeIfNull: false)  ProjectPauseBackgroundProfile? background, @JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? hint, @JsonKey(includeIfNull: false)  List<ProjectPauseActionProfile>? actions, @JsonKey(includeIfNull: false)  ProjectResponsivePauseCompositionProfile? composition)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPausePresentationProfile():
-return $default(_that.title,_that.hint,_that.actions,_that.composition);case _:
+return $default(_that.style,_that.background,_that.title,_that.hint,_that.actions,_that.composition);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2789,10 +3075,10 @@ return $default(_that.title,_that.hint,_that.actions,_that.composition);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? hint, @JsonKey(includeIfNull: false)  List<ProjectPauseActionProfile>? actions, @JsonKey(includeIfNull: false)  ProjectResponsivePauseCompositionProfile? composition)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  ProjectPauseMenuStyle? style, @JsonKey(includeIfNull: false)  ProjectPauseBackgroundProfile? background, @JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? hint, @JsonKey(includeIfNull: false)  List<ProjectPauseActionProfile>? actions, @JsonKey(includeIfNull: false)  ProjectResponsivePauseCompositionProfile? composition)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPausePresentationProfile() when $default != null:
-return $default(_that.title,_that.hint,_that.actions,_that.composition);case _:
+return $default(_that.style,_that.background,_that.title,_that.hint,_that.actions,_that.composition);case _:
   return null;
 
 }
@@ -2804,9 +3090,11 @@ return $default(_that.title,_that.hint,_that.actions,_that.composition);case _:
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectPausePresentationProfile extends ProjectPausePresentationProfile {
-  const _ProjectPausePresentationProfile({@JsonKey(includeIfNull: false) this.title, @JsonKey(includeIfNull: false) this.hint, @JsonKey(includeIfNull: false) final  List<ProjectPauseActionProfile>? actions, @JsonKey(includeIfNull: false) this.composition}): _actions = actions,super._();
+  const _ProjectPausePresentationProfile({@JsonKey(includeIfNull: false) this.style, @JsonKey(includeIfNull: false) this.background, @JsonKey(includeIfNull: false) this.title, @JsonKey(includeIfNull: false) this.hint, @JsonKey(includeIfNull: false) final  List<ProjectPauseActionProfile>? actions, @JsonKey(includeIfNull: false) this.composition}): _actions = actions,super._();
   factory _ProjectPausePresentationProfile.fromJson(Map<String, dynamic> json) => _$ProjectPausePresentationProfileFromJson(json);
 
+@override@JsonKey(includeIfNull: false) final  ProjectPauseMenuStyle? style;
+@override@JsonKey(includeIfNull: false) final  ProjectPauseBackgroundProfile? background;
 @override@JsonKey(includeIfNull: false) final  String? title;
 @override@JsonKey(includeIfNull: false) final  String? hint;
  final  List<ProjectPauseActionProfile>? _actions;
@@ -2833,16 +3121,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPausePresentationProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.hint, hint) || other.hint == hint)&&const DeepCollectionEquality().equals(other._actions, _actions)&&(identical(other.composition, composition) || other.composition == composition));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPausePresentationProfile&&(identical(other.style, style) || other.style == style)&&(identical(other.background, background) || other.background == background)&&(identical(other.title, title) || other.title == title)&&(identical(other.hint, hint) || other.hint == hint)&&const DeepCollectionEquality().equals(other._actions, _actions)&&(identical(other.composition, composition) || other.composition == composition));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,hint,const DeepCollectionEquality().hash(_actions),composition);
+int get hashCode => Object.hash(runtimeType,style,background,title,hint,const DeepCollectionEquality().hash(_actions),composition);
 
 @override
 String toString() {
-  return 'ProjectPausePresentationProfile(title: $title, hint: $hint, actions: $actions, composition: $composition)';
+  return 'ProjectPausePresentationProfile(style: $style, background: $background, title: $title, hint: $hint, actions: $actions, composition: $composition)';
 }
 
 
@@ -2853,11 +3141,11 @@ abstract mixin class _$ProjectPausePresentationProfileCopyWith<$Res> implements 
   factory _$ProjectPausePresentationProfileCopyWith(_ProjectPausePresentationProfile value, $Res Function(_ProjectPausePresentationProfile) _then) = __$ProjectPausePresentationProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? title,@JsonKey(includeIfNull: false) String? hint,@JsonKey(includeIfNull: false) List<ProjectPauseActionProfile>? actions,@JsonKey(includeIfNull: false) ProjectResponsivePauseCompositionProfile? composition
+@JsonKey(includeIfNull: false) ProjectPauseMenuStyle? style,@JsonKey(includeIfNull: false) ProjectPauseBackgroundProfile? background,@JsonKey(includeIfNull: false) String? title,@JsonKey(includeIfNull: false) String? hint,@JsonKey(includeIfNull: false) List<ProjectPauseActionProfile>? actions,@JsonKey(includeIfNull: false) ProjectResponsivePauseCompositionProfile? composition
 });
 
 
-@override $ProjectResponsivePauseCompositionProfileCopyWith<$Res>? get composition;
+@override $ProjectPauseBackgroundProfileCopyWith<$Res>? get background;@override $ProjectResponsivePauseCompositionProfileCopyWith<$Res>? get composition;
 
 }
 /// @nodoc
@@ -2870,9 +3158,11 @@ class __$ProjectPausePresentationProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPausePresentationProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = freezed,Object? hint = freezed,Object? actions = freezed,Object? composition = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? style = freezed,Object? background = freezed,Object? title = freezed,Object? hint = freezed,Object? actions = freezed,Object? composition = freezed,}) {
   return _then(_ProjectPausePresentationProfile(
-title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+style: freezed == style ? _self.style : style // ignore: cast_nullable_to_non_nullable
+as ProjectPauseMenuStyle?,background: freezed == background ? _self.background : background // ignore: cast_nullable_to_non_nullable
+as ProjectPauseBackgroundProfile?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String?,hint: freezed == hint ? _self.hint : hint // ignore: cast_nullable_to_non_nullable
 as String?,actions: freezed == actions ? _self._actions : actions // ignore: cast_nullable_to_non_nullable
 as List<ProjectPauseActionProfile>?,composition: freezed == composition ? _self.composition : composition // ignore: cast_nullable_to_non_nullable
@@ -2881,6 +3171,18 @@ as ProjectResponsivePauseCompositionProfile?,
 }
 
 /// Create a copy of ProjectPausePresentationProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectPauseBackgroundProfileCopyWith<$Res>? get background {
+    if (_self.background == null) {
+    return null;
+  }
+
+  return $ProjectPauseBackgroundProfileCopyWith<$Res>(_self.background!, (value) {
+    return _then(_self.copyWith(background: value));
+  });
+}/// Create a copy of ProjectPausePresentationProfile
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')

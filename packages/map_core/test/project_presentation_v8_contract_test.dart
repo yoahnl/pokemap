@@ -126,7 +126,8 @@ void main() {
       };
 
       expect(
-        () => ProjectPresentationProfile.fromJson(json('quests', 'play')),
+        () =>
+            ProjectPresentationProfile.fromJson(json('unknownAction', 'play')),
         throwsA(isA<ArgumentError>()),
       );
       expect(

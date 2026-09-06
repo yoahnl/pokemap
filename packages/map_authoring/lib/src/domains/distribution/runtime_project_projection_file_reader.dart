@@ -50,7 +50,7 @@ final class RuntimeProjectProjectionFileReader
     if (!_payloadDirectories.contains('project/$directory') &&
         !_payloadFiles.keys.any((path) => path.startsWith(prefix))) {
       throw const WorkspaceAccessException(
-        'workspace.directory_unavailable',
+        'workspace.directory_missing',
         'The requested projected directory is unavailable.',
       );
     }

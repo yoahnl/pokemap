@@ -8,6 +8,36 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test(
+      'preview and installed presentation resolve the same menu image contract',
+      () {
+    const profile = ProjectPresentationProfile(
+        pause: ProjectPausePresentationProfile(
+            style: ProjectPauseMenuStyle.nightIllustrated,
+            background: ProjectPauseBackgroundProfile(
+                imagePath: 'presentation/menu-background.png',
+                focalX: .8,
+                sampling: ProjectMenuImageSampling.pixelArt)));
+    const image = AssetImage('local-background');
+    final preview =
+        RuntimePlayerPresentation.fromProfile(profile, imageForPath: (path) {
+      expect(path, profile.pause!.background!.imagePath);
+      return image;
+    });
+    final installed = RuntimePlayerPresentation.fromRuntime(
+        RuntimeStartupResolvedPresentation(
+            profile: profile,
+            menuBackground: const RuntimeStartupPresentationAsset(
+                assetId: 'menu-background', mediaType: 'image/png')),
+        imageForAsset: (asset) =>
+            asset?.assetId == 'menu-background' ? image : null);
+    expect(preview.pausePresentation.backgroundImage, image);
+    expect(installed.pausePresentation.backgroundImage, image);
+    expect(preview.pausePresentation.background,
+        installed.pausePresentation.background);
+    expect(preview.pausePresentation.style, installed.pausePresentation.style);
+  });
+
   test('profile preview owns explicit demonstration data', () {
     final preview = PlayerPausePreviewDetailData.demonstrationProfile();
     expect(preview.action, PlayerPauseAction.profile);

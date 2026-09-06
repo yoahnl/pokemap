@@ -14,6 +14,7 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
     required this.selectedSpeciesId,
     required this.onEntrySelected,
     required this.onImportRequested,
+    this.onSpritesImported,
     required this.query,
     required this.onQueryChanged,
     required this.filtersExpanded,
@@ -41,6 +42,7 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
   final String? selectedSpeciesId;
   final ValueChanged<PokemonDatabaseIndexEntry> onEntrySelected;
   final VoidCallback onImportRequested;
+  final VoidCallback? onSpritesImported;
   final String query;
   final ValueChanged<String> onQueryChanged;
   final bool filtersExpanded;
@@ -145,6 +147,14 @@ class PokedexWorkspaceSpeciesList extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
+              if (onSpritesImported != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PokemonMenuSpritesButton(
+                    projectRoot: projectRootPath,
+                    onImported: onSpritesImported!,
+                  ),
+                ),
               if (feedbackMessage != null) ...[
                 const SizedBox(height: 12),
                 PokedexWorkspaceFeedbackBanner(

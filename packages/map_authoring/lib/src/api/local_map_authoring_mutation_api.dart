@@ -762,6 +762,13 @@ final class _LocalMapAuthoringSession {
 
 void _requireApplicablePlan(AuthoringPlan plan) {
   if (plan.applicable) return;
+  if (plan.nonApplicableReason == 'no_changes') {
+    throw AuthoringPlanException(
+      code: 'plan.no_changes',
+      message: 'This preview preserves every existing choice and has no changes to apply.',
+      remediation: const ['Review the preserved choices in the preview.'],
+    );
+  }
   throw AuthoringPlanException(
     code: 'plan.dry_run_not_applicable',
     message:

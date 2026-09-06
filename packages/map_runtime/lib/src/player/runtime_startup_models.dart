@@ -169,6 +169,7 @@ final class RuntimeStartupResolvedPresentation {
     this.introVideo,
     this.introPoster,
     this.titleHero,
+    this.menuBackground,
     this.titleLogo,
     this.titleMusic,
     this.titlePromptVideo,
@@ -185,6 +186,7 @@ final class RuntimeStartupResolvedPresentation {
   final RuntimeStartupPresentationAsset? introVideo;
   final RuntimeStartupPresentationAsset? introPoster;
   final RuntimeStartupPresentationAsset? titleHero;
+  final RuntimeStartupPresentationAsset? menuBackground;
   final RuntimeStartupPresentationAsset? titleLogo;
   final RuntimeStartupPresentationAsset? titleMusic;
   final RuntimeStartupPresentationAsset? titlePromptVideo;

@@ -73,6 +73,9 @@ final class PlayerPauseMenuLabels {
 @immutable
 final class PlayerPausePresentation {
   const PlayerPausePresentation({
+    this.style,
+    this.background,
+    this.backgroundImage,
     this.title,
     this.hint,
     this.actionOrder,
@@ -83,11 +86,15 @@ final class PlayerPausePresentation {
   });
 
   factory PlayerPausePresentation.fromProfile(
-    ProjectPausePresentationProfile? profile,
-  ) {
+    ProjectPausePresentationProfile? profile, {
+    ImageProvider? backgroundImage,
+  }) {
     if (profile == null) return const PlayerPausePresentation();
     final actions = profile.effectiveActions;
     return PlayerPausePresentation(
+      style: profile.style,
+      background: profile.background,
+      backgroundImage: backgroundImage,
       title: profile.title,
       hint: profile.hint,
       actionOrder: <PlayerPauseAction>[
@@ -130,6 +137,9 @@ final class PlayerPausePresentation {
         },
       );
 
+  final ProjectPauseMenuStyle? style;
+  final ProjectPauseBackgroundProfile? background;
+  final ImageProvider? backgroundImage;
   final String? title;
   final String? hint;
   final List<PlayerPauseAction>? actionOrder;
@@ -140,6 +150,9 @@ final class PlayerPausePresentation {
 
   PlayerPausePresentation resolveVisibility(PlayerPauseMenuState state) {
     return PlayerPausePresentation(
+      style: style,
+      background: background,
+      backgroundImage: backgroundImage,
       title: title,
       hint: hint,
       actionOrder: actionOrder,

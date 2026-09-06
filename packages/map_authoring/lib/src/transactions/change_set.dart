@@ -83,6 +83,16 @@ final class AuthoringResourceChange {
 
 /// Deterministically ordered resource payloads plus their structured diff.
 final class AuthoringChangeSet {
+  AuthoringChangeSet.noChanges()
+      : changes = const [],
+        diff = AuthoringDiff(const []) {
+    affectedResources = const [];
+    projectedRevision = computeAuthoringJsonFingerprint(
+      const [],
+      logicalName: 'projected-change-set.json',
+    );
+  }
+
   AuthoringChangeSet({
     required Iterable<AuthoringResourceChange> changes,
     required this.diff,

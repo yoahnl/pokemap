@@ -109,6 +109,8 @@ final class PokeMapPlayerLocalizations {
       _fr ? 'Aucun problème détecté' : 'No issue detected';
   String get actionUnavailable =>
       _fr ? 'Action indisponible' : 'Action unavailable';
+  String get menuBackgroundUnavailable =>
+      _fr ? 'Fond du menu indisponible.' : 'Menu background unavailable.';
   String get confirmShortcut => _fr ? 'Entrée / bouton A' : 'Enter / A button';
   String get choose => _fr ? 'Choisir' : 'Choose';
   String get validate => _fr ? 'Valider' : 'Confirm';

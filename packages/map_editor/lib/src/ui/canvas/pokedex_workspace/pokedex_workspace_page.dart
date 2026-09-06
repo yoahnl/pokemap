@@ -38,6 +38,7 @@ import '../../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart'
 import '../../../features/editor/state/editor_notifier.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../../design_system/pokemap_toggle_tile.dart';
+import 'pokemon_menu_sprites_button.dart';
 import '../pokedex_workspace_loader.dart';
 import '../../shared/cupertino_editor_widgets.dart';
 

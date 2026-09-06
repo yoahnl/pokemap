@@ -14,6 +14,8 @@ import 'package:map_core/map_core.dart'
         ProjectPauseEntrySize,
         ProjectPauseEntrySpacing,
         ProjectPausePresentationProfile,
+        ProjectPauseMenuStyle,
+        ProjectPauseBackgroundProfile,
         ProjectResponsivePauseCompositionProfile,
         ProjectPresentationBreakpoint,
         ProjectPresentationContentWidth,
@@ -218,6 +220,21 @@ final class GamePackageManifestCodec {
         json.containsKey('signature') ? _signature(json['signature']) : null;
 
     final contentPaths = content.files.map((file) => file.path).toSet();
+    if (presentation?.pause?.background case final background?) {
+      if (!background.imagePath.startsWith('presentation/')) {
+        _fail(
+            'invalidPauseBackgroundReference',
+            r'$.presentation.pause.background.imagePath',
+            'Menu background must reference packaged presentation content.');
+      }
+      if (!contentPaths.contains(background.imagePath)) {
+        _fail(
+            'pauseBackgroundReferenceMissing',
+            r'$.presentation.pause.background.imagePath',
+            'Menu background is not present in content.files.');
+      }
+    }
+
     for (final reference in <({String field, String? value, String prefix})>[
       (field: 'icon', value: branding?.icon, prefix: 'presentation/'),
       (field: 'cover', value: branding?.cover, prefix: 'presentation/'),
@@ -1243,10 +1260,36 @@ final class GamePackageManifestCodec {
       value,
       path,
       required: const <String>{},
-      optional: const <String>{'title', 'hint', 'actions', 'composition'},
+      optional: const <String>{
+        'title',
+        'hint',
+        'actions',
+        'composition',
+        'style',
+        'background'
+      },
     );
     String? copy(String field) =>
         json.containsKey(field) ? _string(json[field], '$path.$field') : null;
+    ProjectPauseMenuStyle? style;
+    ProjectPauseBackgroundProfile? background;
+    try {
+      if (json['style'] case final String value) {
+        style = ProjectPauseMenuStyle.values.byName(value);
+      } else if (json.containsKey('style')) {
+        throw const FormatException('Invalid menu style.');
+      }
+      if (json.containsKey('background')) {
+        background = ProjectPauseBackgroundProfile.fromJson(
+            Map<String, dynamic>.from(_object(
+                json['background'], '$path.background',
+                required: const {'imagePath'},
+                optional: const {'focalX', 'focalY', 'sampling'})));
+      }
+    } on Object {
+      _fail('invalidPausePresentation', path,
+          'Invalid menu style or background.');
+    }
     final packagedActions = <GamePackagePauseAction>[];
     final projectActions = <ProjectPauseActionProfile>[];
     if (json.containsKey('actions')) {
@@ -1299,6 +1342,8 @@ final class GamePackageManifestCodec {
     final diagnostic = validateProjectPresentationProfile(
       ProjectPresentationProfile(
         pause: ProjectPausePresentationProfile(
+          style: style,
+          background: background,
           title: title,
           hint: hint,
           actions: json.containsKey('actions') ? projectActions : null,
@@ -1314,6 +1359,8 @@ final class GamePackageManifestCodec {
       );
     }
     return GamePackagePausePresentation(
+      style: style,
+      background: background,
       title: title,
       hint: hint,
       actions: json.containsKey('actions') ? packagedActions : null,

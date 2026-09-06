@@ -539,3 +539,25 @@ bool _listEquals<T>(List<T> left, List<T> right) {
   }
   return true;
 }
+
+ProjectPresentationProfile applyNightIllustratedPresentationPreset(
+  ProjectPresentationProfile current,
+) {
+  final pause =
+      current.effectivePause ?? const ProjectPausePresentationProfile();
+  const composition = ProjectPauseCompositionVariantProfile(
+    showRootDetailPanel: false,
+  );
+  return current.copyWith(
+    pause: pause.copyWith(
+      style: ProjectPauseMenuStyle.nightIllustrated,
+      composition:
+          pause.composition ??
+          const ProjectResponsivePauseCompositionProfile(
+            compactPortrait: composition,
+            compactLandscape: composition,
+            expanded: composition,
+          ),
+    ),
+  );
+}

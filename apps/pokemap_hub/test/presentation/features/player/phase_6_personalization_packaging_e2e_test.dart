@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,173 @@ import 'package:pub_semver/pub_semver.dart';
 import '../../../support/runtime_owned_player_package_fixture.dart';
 
 void main() {
+  testWidgets(
+    'illustrated menu installs and decodes from verified files with network disabled',
+    (tester) async {
+      late RuntimePlayerPresentation installedView;
+      await tester.runAsync(
+        () => HttpOverrides.runZoned(
+          () async {
+            final source = await _readGoldenPresentation();
+            const background = ProjectPauseBackgroundProfile(
+              imagePath: 'presentation/menu-background.png',
+              focalX: .75,
+              sampling: ProjectMenuImageSampling.pixelArt,
+            );
+            final profile = source.copyWith(
+              pause: source.pause!.copyWith(
+                style: ProjectPauseMenuStyle.nightIllustrated,
+                background: background,
+              ),
+            );
+            final imageBytes =
+                await File(
+                  '../../examples/playable_runtime_host/golden_personalization_v3/assets/presentation/hero.png',
+                ).readAsBytes();
+            final built = const GamePackageBuilder().build(
+              manifest: _manifest(profile),
+              payloadFiles: {
+                'project/project.json': utf8.encode(
+                  jsonEncode(
+                    const ProjectManifest(
+                      name: 'Menu offline',
+                      maps: [],
+                      tilesets: [],
+                      pokemon: ProjectPokemonConfig(
+                        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+                      ),
+                    ).toJson(),
+                  ),
+                ),
+                ..._presentationPayload(),
+                background.imagePath: imageBytes,
+              },
+            );
+            final root = await Directory.systemTemp.createTemp(
+              'menu-installed-offline-',
+            );
+            addTearDown(() => root.delete(recursive: true));
+            final archive = await File(
+              p.join(root.path, 'menu.avelunegame'),
+            ).writeAsBytes(built.packageBytes);
+            final support = Directory(p.join(root.path, 'installation'));
+            final inspector = GamePackageInspector(
+              hostCompatibility: _hostCompatibility(),
+            );
+            final installed = await GamePackageInstaller(
+              supportRoot: support,
+              inspector: inspector,
+              availableDiskBytes: (_) async => 2 * 1024 * 1024 * 1024,
+              loadSmoke: (_, _) async {},
+              prepareSavesForUpdate:
+                  (_, _) async => const SaveUpdatePreparation(),
+            ).install(archive, source: GamePackageInstallSource.localFile);
+            await archive.delete();
+            final launch = await InstalledGameLaunchResolver(
+              supportRoot: support,
+              hostCompatibility: _hostCompatibility(),
+            ).resolve(installed.game);
+            final adapter = HubRuntimeStartupAdapter(
+              manifest: launch.manifest,
+              assets: launch.assets,
+            );
+            final installedProfile = (await adapter.loadPresentationProfile())!;
+            final resolved =
+                (await adapter.resolveImage(
+                  installedProfile.pause!.background!.imagePath,
+                ))!;
+            expect(resolved.resolvedUri.scheme, 'file');
+            final bytes =
+                await File.fromUri(resolved.resolvedUri).readAsBytes();
+            expect(bytes, orderedEquals(imageBytes));
+            final codec = await ui.instantiateImageCodec(bytes);
+            final frame = await codec.getNextFrame();
+            expect(frame.image.width, 1672);
+            expect(frame.image.height, 941);
+            frame.image.dispose();
+            codec.dispose();
+            final view = RuntimePlayerPresentation.fromRuntime(
+              RuntimeStartupResolvedPresentation(
+                profile: installedProfile,
+                menuBackground: resolved.presentationAsset,
+              ),
+              imageForAsset:
+                  (asset) =>
+                      asset?.assetId == resolved.assetId
+                          ? FileImage(File.fromUri(resolved.resolvedUri))
+                          : null,
+            );
+            expect(
+              view.pausePresentation.style,
+              ProjectPauseMenuStyle.nightIllustrated,
+            );
+            expect(view.pausePresentation.background, background);
+            expect(view.pausePresentation.backgroundImage, isA<FileImage>());
+            expect(installedProfile.pause!.title, profile.pause!.title);
+            expect(installedProfile.pause!.actions, profile.pause!.actions);
+            installedView = view;
+          },
+          createHttpClient:
+              (_) => throw StateError('Network disabled for menu proof'),
+        ),
+      );
+      await tester.binding.setSurfaceSize(const Size(1280, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await HttpOverrides.runZoned(
+        () async {
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: installedView.applyTo(PokeMapPlayerTheme.dark()),
+              home: RuntimePlayerPauseShell.root(
+                gameTitle: 'Menu offline',
+                actions: {
+                  for (final action in PlayerPauseAction.values)
+                    action: PlayerActionAvailability.enabled,
+                },
+                onSelected: (_) {},
+                detail: const SizedBox.shrink(),
+                presentation: installedView.pausePresentation,
+              ),
+            ),
+          );
+          await tester.runAsync(() async {
+            await Future<void>.delayed(const Duration(milliseconds: 100));
+          });
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(
+            find.byKey(const ValueKey('runtime-night-illustrated-frame')),
+            findsOneWidget,
+          );
+          final background = find.descendant(
+            of: find.byKey(const ValueKey('runtime-menu-background')),
+            matching: find.byType(RawImage),
+          );
+          for (
+            var attempt = 0;
+            attempt < 20 && tester.widget<RawImage>(background).image == null;
+            attempt++
+          ) {
+            await tester.runAsync(() async {
+              await Future<void>.delayed(const Duration(milliseconds: 50));
+            });
+            await tester.pump();
+          }
+          expect(tester.widget<RawImage>(background).image, isNotNull);
+          expect(
+            find.byKey(const ValueKey('runtime-menu-background-unavailable')),
+            findsNothing,
+          );
+          await tester.pumpWidget(const SizedBox.shrink());
+          PaintingBinding.instance.imageCache.clear();
+          PaintingBinding.instance.imageCache.clearLiveImages();
+        },
+        createHttpClient:
+            (_) => throw StateError('Network disabled for installed widget'),
+      );
+    },
+  );
+
   test(
     'Phase 6 golden package exports, installs, presents, and starts gameplay',
     () async {
@@ -695,6 +863,8 @@ GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
 GamePackagePausePresentation _packagePause(
   ProjectPausePresentationProfile pause,
 ) => GamePackagePausePresentation(
+  style: pause.style,
+  background: pause.background,
   title: pause.title,
   hint: pause.hint,
   actions: pause.actions?.map(

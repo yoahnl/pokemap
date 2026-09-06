@@ -9,6 +9,30 @@ import 'package:test/test.dart';
 void main() {
   group('GamePackagePersonalizationPreflight', () {
     const preflight = GamePackagePersonalizationPreflight();
+    test('illustrated menu is verified in the actual packaged inventory', () {
+      final pause = GamePackagePausePresentation(
+          style: ProjectPauseMenuStyle.nightIllustrated,
+          background: const ProjectPauseBackgroundProfile(
+              imagePath: 'presentation/menu-background.png', focalX: .8));
+      final payload = _windowOnlyPayload()
+        ..['presentation/menu-background.png'] = _onePixelPngHeader();
+      final built = const GamePackageBuilder().build(
+          manifest: _windowOnlyManifest(cornerRadius: 16, pause: pause),
+          payloadFiles: payload);
+      final inspection =
+          const GamePackageInspector().inspect(built.packageBytes);
+      expect(inspection.manifest.presentation!.pause!.background,
+          pause.background);
+      expect(inspection.manifest.presentation!.pause!.style, pause.style);
+      final receipt = preflight.certify(inspection);
+      expect(receipt.assetSha256['presentation/menu-background.png'],
+          hasLength(64));
+      expect(
+          () => const GamePackageBuilder().build(
+              manifest: _windowOnlyManifest(cornerRadius: 16, pause: pause),
+              payloadFiles: _windowOnlyPayload()),
+          throwsA(isA<GamePackageFormatException>()));
+    });
 
     test('certifies hashes, codecs, licenses, and referenced assets', () {
       final inspection = _validInspection();
@@ -286,7 +310,8 @@ Map<String, List<int>> _windowOnlyPayload() => <String, List<int>>{
       ),
     };
 
-GamePackageManifest _windowOnlyManifest({required int cornerRadius}) =>
+GamePackageManifest _windowOnlyManifest(
+        {required int cornerRadius, GamePackagePausePresentation? pause}) =>
     GamePackageManifest(
       packageFormat: 1,
       gameId: 'games.example.windows',
@@ -306,7 +331,8 @@ GamePackageManifest _windowOnlyManifest({required int cornerRadius}) =>
         supported: const <String>['fr'],
       ),
       presentation: GamePackagePresentation(
-        schemaVersion: 3,
+        schemaVersion: pause == null ? 3 : 10,
+        pause: pause,
         windows: GamePackagePresentationWindows(
           styles: <GamePackageWindowStyle>[
             GamePackageWindowStyle(

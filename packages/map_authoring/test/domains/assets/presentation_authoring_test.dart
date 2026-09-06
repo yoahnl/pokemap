@@ -7,6 +7,25 @@ import 'package:test/test.dart';
 
 void main() {
   group('presentation authoring', () {
+    test(
+        'menu background validates existence and image type before publication',
+        () {
+      for (final path in ['presentation/absent.png', 'presentation/body.ttf']) {
+        final result = const PresentationAuthoringGate().inspect(
+            ProjectPresentationProfile(
+                pause: ProjectPausePresentationProfile(
+                    style: ProjectPauseMenuStyle.nightIllustrated,
+                    background:
+                        ProjectPauseBackgroundProfile(imagePath: path))),
+            _catalog());
+        expect(result.canPublish, isFalse);
+        expect(
+            result.diagnostics.any(
+                (e) => e.path == r'$.presentation.pause.background.imagePath'),
+            isTrue);
+      }
+    });
+
     test('validates every media reference against the canonical asset catalog',
         () {
       final profile = _profile(

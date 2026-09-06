@@ -784,6 +784,11 @@ final class RuntimeStartupCoordinator {
       menuVideo,
       menuPoster,
     ]);
+    attempt.menuBackground =
+        switch (attempt.profile?.pause?.background?.imagePath) {
+      final String path => await _resolveImageSafely(path),
+      null => null,
+    };
     attempt.titleHero = assets[0];
     attempt.titleLogo = assets[1];
     attempt.titleMusic = assets[2];
@@ -792,6 +797,12 @@ final class RuntimeStartupCoordinator {
     attempt.titleMenuVideo = assets[5];
     attempt.titleMenuPoster = assets[6];
     final diagnostics = <RuntimeStartupDiagnostic>[];
+    if (attempt.profile?.pause?.background != null &&
+        attempt.menuBackground == null) {
+      diagnostics.add(const RuntimeStartupDiagnostic(
+          code: 'menuBackgroundUnavailable',
+          safeMessage: 'Le fond du menu est indisponible.'));
+    }
     if (branding.titleMusicPath != null && attempt.titleMusic == null) {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
@@ -1035,6 +1046,7 @@ final class RuntimeStartupCoordinator {
         introVideo: attempt.introVideo?.presentationAsset,
         introPoster: attempt.introPoster?.presentationAsset,
         titleHero: attempt.titleHero?.presentationAsset,
+        menuBackground: attempt.menuBackground?.presentationAsset,
         titleLogo: attempt.titleLogo?.presentationAsset,
         titleMusic: attempt.titleMusic?.presentationAsset,
         titlePromptVideo: attempt.titlePromptVideo?.presentationAsset,
@@ -1291,6 +1303,7 @@ final class _RuntimeStartupAttemptContext {
   RuntimeResolvedAsset? introVideo;
   RuntimeResolvedAsset? introPoster;
   RuntimeResolvedAsset? titleHero;
+  RuntimeResolvedAsset? menuBackground;
   RuntimeResolvedAsset? titleLogo;
   RuntimeResolvedAsset? titleMusic;
   RuntimeResolvedAsset? titlePromptVideo;

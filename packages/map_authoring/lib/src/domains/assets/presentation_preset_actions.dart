@@ -570,6 +570,7 @@ List<({String projectPath, String? licenseProjectPath})>
   add(profile.branding.iconPath);
   add(profile.branding.coverPath);
   add(profile.branding.heroPath);
+  add(profile.pause?.background?.imagePath);
   add(profile.branding.titleMusicPath);
   addVideo(profile.intro?.media);
   addVideo(profile.titleMotion?.promptLoop);

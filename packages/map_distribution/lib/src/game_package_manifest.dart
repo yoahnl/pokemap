@@ -1,4 +1,6 @@
 import 'package:pub_semver/pub_semver.dart';
+import 'package:map_core/map_core.dart'
+    show ProjectPauseMenuStyle, ProjectPauseBackgroundProfile;
 
 final class GamePackageParty {
   const GamePackageParty({required this.name, this.url});
@@ -191,6 +193,8 @@ final class GamePackagePauseAction {
 
 final class GamePackagePausePresentation {
   GamePackagePausePresentation({
+    this.style,
+    this.background,
     this.title,
     this.hint,
     Iterable<GamePackagePauseAction>? actions,
@@ -199,12 +203,16 @@ final class GamePackagePausePresentation {
             ? null
             : List<GamePackagePauseAction>.unmodifiable(actions);
 
+  final ProjectPauseMenuStyle? style;
+  final ProjectPauseBackgroundProfile? background;
   final String? title;
   final String? hint;
   final List<GamePackagePauseAction>? actions;
   final GamePackageResponsivePauseComposition? composition;
 
   Map<String, Object?> toJson() => <String, Object?>{
+        if (style != null) 'style': style!.name,
+        if (background != null) 'background': background!.toJson(),
         if (title != null) 'title': title,
         if (hint != null) 'hint': hint,
         if (actions != null)

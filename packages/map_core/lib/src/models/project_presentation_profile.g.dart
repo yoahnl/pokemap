@@ -229,8 +229,8 @@ const _$ProjectPauseActionIdEnumMap = {
   ProjectPauseActionId.party: 'party',
   ProjectPauseActionId.bag: 'bag',
   ProjectPauseActionId.pokedex: 'pokedex',
-  ProjectPauseActionId.map: 'map',
   ProjectPauseActionId.quests: 'quests',
+  ProjectPauseActionId.map: 'map',
   ProjectPauseActionId.profile: 'profile',
   ProjectPauseActionId.save: 'save',
   ProjectPauseActionId.options: 'options',
@@ -249,9 +249,43 @@ const _$ProjectPauseActionIconEnumMap = {
   ProjectPauseActionIcon.exit: 'exit',
 };
 
+_ProjectPauseBackgroundProfile _$ProjectPauseBackgroundProfileFromJson(
+  Map<String, dynamic> json,
+) => _ProjectPauseBackgroundProfile(
+  imagePath: json['imagePath'] as String,
+  focalX: (json['focalX'] as num?)?.toDouble() ?? 0.5,
+  focalY: (json['focalY'] as num?)?.toDouble() ?? 0.5,
+  sampling:
+      $enumDecodeNullable(
+        _$ProjectMenuImageSamplingEnumMap,
+        json['sampling'],
+      ) ??
+      ProjectMenuImageSampling.smooth,
+);
+
+Map<String, dynamic> _$ProjectPauseBackgroundProfileToJson(
+  _ProjectPauseBackgroundProfile instance,
+) => <String, dynamic>{
+  'imagePath': instance.imagePath,
+  'focalX': instance.focalX,
+  'focalY': instance.focalY,
+  'sampling': _$ProjectMenuImageSamplingEnumMap[instance.sampling]!,
+};
+
+const _$ProjectMenuImageSamplingEnumMap = {
+  ProjectMenuImageSampling.smooth: 'smooth',
+  ProjectMenuImageSampling.pixelArt: 'pixelArt',
+};
+
 _ProjectPausePresentationProfile _$ProjectPausePresentationProfileFromJson(
   Map<String, dynamic> json,
 ) => _ProjectPausePresentationProfile(
+  style: $enumDecodeNullable(_$ProjectPauseMenuStyleEnumMap, json['style']),
+  background: json['background'] == null
+      ? null
+      : ProjectPauseBackgroundProfile.fromJson(
+          json['background'] as Map<String, dynamic>,
+        ),
   title: json['title'] as String?,
   hint: json['hint'] as String?,
   actions: (json['actions'] as List<dynamic>?)
@@ -269,10 +303,17 @@ _ProjectPausePresentationProfile _$ProjectPausePresentationProfileFromJson(
 Map<String, dynamic> _$ProjectPausePresentationProfileToJson(
   _ProjectPausePresentationProfile instance,
 ) => <String, dynamic>{
+  'style': ?_$ProjectPauseMenuStyleEnumMap[instance.style],
+  'background': ?instance.background?.toJson(),
   'title': ?instance.title,
   'hint': ?instance.hint,
   'actions': ?instance.actions?.map((e) => e.toJson()).toList(),
   'composition': ?instance.composition?.toJson(),
+};
+
+const _$ProjectPauseMenuStyleEnumMap = {
+  ProjectPauseMenuStyle.standard: 'standard',
+  ProjectPauseMenuStyle.nightIllustrated: 'nightIllustrated',
 };
 
 _ProjectTitlePresentationProfile _$ProjectTitlePresentationProfileFromJson(
