@@ -24,6 +24,8 @@ Future<Directory> _projectRoot() async {
     'id': 'ivysaur',
     'nationalDex': 2,
     'names': <String, String>{'fr': 'Herbizarre', 'en': 'Ivysaur'},
+    'dexContent': {'flavorText': 'Une fleur grandit sur son dos.'},
+    'forms': {'formId': 'bloom'},
     'typing': <String, Object?>{
       'types': <String>['grass', 'poison'],
     },
@@ -95,6 +97,93 @@ void main() {
     );
     return sections[RuntimePlayerPauseSection.pokedex]!;
   }
+
+  test('public media and description follow knowledge and exact form',
+      () async {
+    final mediaDirectory = Directory('${root.path}/data/pokemon/media');
+    await mediaDirectory.create(recursive: true);
+    final image = File('${root.path}/portrait.png');
+    await image.writeAsBytes([1, 2, 3]);
+    await File('${root.path}/wrong.png').writeAsBytes([3, 2, 1]);
+    await File('${mediaDirectory.path}/ivysaur.json').writeAsString(jsonEncode(
+      PokemonMediaFile(
+        speciesId: 'ivysaur',
+        defaultFormId: 'default',
+        variants: const {
+          'default':
+              PokemonMediaVariant(party: 'wrong.png', portrait: 'wrong.png'),
+          'bloom': PokemonMediaVariant(
+              party: 'portrait.png', portrait: 'portrait.png'),
+        },
+      ).toJson(),
+    ));
+    final initial = GameState(saveId: 'dex');
+    final before = jsonEncode(initial.toJson());
+    final unknown = (await buildDex(initial))
+        .entries
+        .singleWhere((entry) => entry.id == 'ivysaur')
+        .pokedexEntry!;
+    expect(unknown.identity, isNull);
+    expect(unknown.media.thumbnail, isNull);
+    expect(unknown.media.illustration, isNull);
+    expect(unknown.description, isNull);
+    expect(jsonEncode(initial.toJson()), before);
+    final seen = (await buildDex(initial.copyWith(
+      progression: const PlayerProgression(seenSpeciesIds: ['ivysaur']),
+    )))
+        .entries
+        .singleWhere((entry) => entry.id == 'ivysaur')
+        .pokedexEntry!;
+    expect(seen.media.thumbnail?.absoluteFilePath,
+        await image.resolveSymbolicLinks());
+    expect(seen.identity?.formId, 'bloom');
+    expect(seen.media.illustration?.absoluteFilePath,
+        await image.resolveSymbolicLinks());
+    expect(seen.description, 'Une fleur grandit sur son dos.');
+  });
+
+  test('unknown projection rejects descriptions and resolved images', () {
+    expect(
+        () => RuntimePlayerPokedexEntrySnapshot(
+              knowledge: RuntimePlayerPokedexKnowledge.unknown,
+              description: 'A secret description',
+            ),
+        throwsArgumentError);
+    expect(
+        () => RuntimePlayerPokedexEntrySnapshot(
+              knowledge: RuntimePlayerPokedexKnowledge.unknown,
+              media: const RuntimePokemonSummaryMediaSnapshot(
+                illustration: RuntimePokemonLocalImageSnapshot(
+                  absoluteFilePath: '/secret.png',
+                  sampling: ProjectMenuImageSampling.smooth,
+                ),
+              ),
+            ),
+        throwsArgumentError);
+  });
+
+  test('invalid catalog is distinct from empty and repairs invalidate cache',
+      () async {
+    final state = GameState(saveId: 'dex');
+    final file = File('${root.path}/data/pokemon/species/0002-ivysaur.json');
+    final valid = await file.readAsString();
+    await file.writeAsString('{invalid');
+    final broken = await buildDex(state);
+    expect(broken.entries, isEmpty);
+    expect(broken.emptyMessage, contains('ne peut pas être lu'));
+    await file.writeAsString(valid);
+    expect((await buildDex(state)).entries, hasLength(4));
+    final directory = file.parent;
+    await for (final entity in directory.list()) {
+      await entity.delete();
+    }
+    final empty = await buildDex(state);
+    expect(empty.entries, isEmpty);
+    expect(empty.emptyMessage, contains('Aucune espèce'));
+    await directory.delete();
+    expect(
+        (await buildDex(state)).emptyMessage, contains('ne peut pas être lu'));
+  });
 
   group('BETA-SYS-001 the pokedex projection answers to the game state', () {
     test('an unknown species hides its name and shows Inconnu', () async {

@@ -61,7 +61,9 @@ void main() {
     expect(profile.avatarCharacterId, 'hero');
     expect(profile.pronounSet, PlayerPronounSet.feminine);
     expect(profile.badgeIds, ['tide', 'mist']);
-    expect(profile.badgeTotal, 3);
+    expect(profile.badgeTotal, isNull);
+    expect(profile.badges.map((badge) => badge.label), ['Marée', 'Brume']);
+    expect(() => profile.badges.clear(), throwsUnsupportedError);
     expect(profile.portraits, _characters.last.portraits);
     expect(profile.portraitFilePath, portraitFile);
     expect(requests, [(characterId: 'hero', portraitStateId: 'travel')]);
@@ -78,6 +80,50 @@ void main() {
     expect(profile.avatarCharacterId, 'hero');
     expect(profile.portraits.first.assetId, 'catalogue.hero.travel');
     expect(profile.portraitFilePath, isNull);
+  });
+
+  test('only earned badges expose public names and safe local icons', () async {
+    final icon = File('${root.path}/badge.png');
+    await icon.writeAsBytes([1, 2, 3]);
+    final outside = await Directory.systemTemp.createTemp('outside-badge-');
+    addTearDown(() => outside.delete(recursive: true));
+    final secret = File('${outside.path}/secret.png');
+    await secret.writeAsBytes([1, 2, 3]);
+    await Link('${root.path}/outside.png').create(secret.path);
+    final state = _state().copyWith(
+      trainerProfile: TrainerProfile(
+        name: 'Camille',
+        badgeIds: ['tide', 'unknown-internal', 'linked', 'absolute'],
+      ),
+    );
+    final before = jsonEncode(state.toJson());
+    final details = await const RuntimePlayerPauseDataBuilder().build(
+      gameState: state,
+      projectRootDirectory: root.path,
+      pokemonConfig: _pokemonConfig,
+      locale: 'fr',
+      projectBadges: [
+        const BadgeDefinition(
+            id: 'tide', label: 'Marée', iconRelativePath: 'badge.png'),
+        const BadgeDefinition(
+            id: 'secret',
+            label: 'Récompense secrète',
+            iconRelativePath: 'badge.png'),
+        const BadgeDefinition(
+            id: 'linked', label: 'Lien', iconRelativePath: 'outside.png'),
+        BadgeDefinition(
+            id: 'absolute', label: 'Absolu', iconRelativePath: secret.path),
+      ],
+    );
+    final profile = details[RuntimePlayerPauseSection.profile]!.profile!;
+    expect(profile.badges.map((badge) => badge.label),
+        ['Marée', 'Badge obtenu', 'Lien', 'Absolu']);
+    expect(
+        profile.badges.first.iconFilePath, await icon.resolveSymbolicLinks());
+    expect(profile.badges.skip(1).map((badge) => badge.iconFilePath),
+        everyElement(isNull));
+    expect(profile.badgeTotal, isNull);
+    expect(jsonEncode(state.toJson()), before);
   });
 
   test('unknown avatar never resolves a different canonical character',

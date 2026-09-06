@@ -329,11 +329,19 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
               header: isRoot || _composition(layout)?.showTitle == false
                   ? const SizedBox.shrink()
                   : PlayerMenuHeader(
-                      alignSecondaryEnd:
-                          widget.pauseSection == RuntimePlayerPauseSection.bag,
-                      icon: widget.pauseSection == RuntimePlayerPauseSection.bag
-                          ? Icons.backpack_outlined
-                          : Icons.menu,
+                      alignSecondaryEnd: widget.pauseSection ==
+                              RuntimePlayerPauseSection.bag ||
+                          widget.pauseSection ==
+                              RuntimePlayerPauseSection.pokedex,
+                      icon: switch (widget.pauseSection) {
+                        RuntimePlayerPauseSection.bag =>
+                          Icons.backpack_outlined,
+                        RuntimePlayerPauseSection.pokedex =>
+                          Icons.menu_book_outlined,
+                        RuntimePlayerPauseSection.profile =>
+                          Icons.person_outline,
+                        _ => Icons.menu,
+                      },
                       secondary: widget.detailHeaderSecondary,
                       title: isRoot
                           ? presentation.title ?? widget.gameTitle

@@ -28,6 +28,7 @@ import 'runtime_player_gamepad_bridge.dart';
 import 'runtime_player_surface_router.dart';
 import 'runtime_player_party.dart';
 import 'runtime_player_bag.dart';
+import 'runtime_player_pokedex.dart';
 import 'runtime_player_touch_controls.dart';
 
 /// Small presentation-facing subset of the runtime player coordinator.
@@ -187,6 +188,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   var _pauseFocusController = RuntimePlayerFocusController();
   final _partyNavigation = RuntimePlayerPartyNavigation();
   final _bagNavigation = RuntimePlayerBagNavigation();
+  final _pokedexNavigation = RuntimePlayerPokedexNavigation();
   StreamSubscription<RuntimeInputEvent>? _controllerSubscription;
   late RuntimePlayerSnapshot _latestSnapshot;
   bool _menuTransitionPending = false;
@@ -212,6 +214,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   void didUpdateWidget(covariant PokeMapPlayerSessionView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
+      _pokedexNavigation.clearForNewSession();
       _pauseFocusController.dispose();
       _pauseFocusController = RuntimePlayerFocusController();
       _latestSnapshot = widget.controller.snapshot;
@@ -496,6 +499,11 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         initialData: widget.controller.snapshot,
         builder: (context, asyncSnapshot) {
           final snapshot = asyncSnapshot.data ?? widget.controller.snapshot;
+          if (snapshot.phase != _latestSnapshot.phase &&
+              (snapshot.phase == RuntimePlayerPhase.title ||
+                  snapshot.phase == RuntimePlayerPhase.preparingSession)) {
+            _pokedexNavigation.clearForNewSession();
+          }
           _latestSnapshot = snapshot;
           final authority = widget.gameplayInputAuthority;
           if (authority == null) {
@@ -585,6 +593,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           },
           partyNavigation: _partyNavigation,
           bagNavigation: _bagNavigation,
+          pokedexNavigation: _pokedexNavigation,
           onFavoriteChanged: widget.controller
                   is! RuntimePlayerBagFavoritesController
               ? null
@@ -747,6 +756,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     unawaited(_controllerSubscription?.cancel());
     _partyNavigation.dispose();
     _bagNavigation.dispose();
+    _pokedexNavigation.dispose();
     widget.presentationFrame?.removeListener(_handlePresentationFrameChanged);
     _releaseGameplayDirections();
     super.dispose();

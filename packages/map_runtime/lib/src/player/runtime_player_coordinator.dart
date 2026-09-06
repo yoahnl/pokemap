@@ -67,6 +67,8 @@ final class RuntimePlayerCoordinator {
   PlayerPreferencesSnapshot? _preferences;
   Set<String> _favoriteItemIds = const <String>{};
   bool _bagFavoritesAvailable = false;
+  bool _loadingPauseDetails = false;
+  String? _pauseDataFailure;
   PlayerSaveSummary? _latestSave;
   _RuntimeLaunchRequest? _retryLaunch;
   RuntimePlayerSnapshot? _lifecycleResumeSnapshot;
@@ -427,35 +429,62 @@ final class RuntimePlayerCoordinator {
             : _launch(retry);
       case RuntimePlayerAction.openMenu:
         final pauseSessionId = _sessions.snapshot.descriptor?.sessionId;
-        await _sessions.pause();
-        if (!_canPublishPauseData(pauseSessionId)) {
-          return const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.cancelled,
+        PlayerPauseMenuState? pauseMenuState;
+        _pauseDataFailure = null;
+        _loadingPauseDetails = true;
+        try {
+          await _sessions.pause();
+          if (!_canPublishPauseData(pauseSessionId)) {
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.cancelled,
+            );
+          }
+          pauseMenuState = await _sessions.loadPauseMenuState();
+          if (!_canPublishPauseData(pauseSessionId)) {
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.cancelled,
+            );
+          }
+          final pauseDetails = Map<RuntimePlayerPauseSection,
+              RuntimePlayerPauseDetailSnapshot>.from(
+            await _sessions.loadPauseDetails(),
           );
-        }
-        final pauseMenuState = await _sessions.loadPauseMenuState();
-        if (!_canPublishPauseData(pauseSessionId)) {
-          return const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.cancelled,
+          if (!_canPublishPauseData(pauseSessionId)) {
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.cancelled,
+            );
+          }
+          _loadingPauseDetails = false;
+          _publishPause(
+            RuntimePlayerPauseSection.root,
+            pauseMenuState: pauseMenuState,
+            pauseDetails: pauseDetails,
           );
-        }
-        final pauseDetails = Map<RuntimePlayerPauseSection,
-            RuntimePlayerPauseDetailSnapshot>.from(
-          await _sessions.loadPauseDetails(),
-        );
-        if (!_canPublishPauseData(pauseSessionId)) {
           return const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.cancelled,
+            status: RuntimePlayerCommandStatus.accepted,
           );
+        } catch (_) {
+          if (!_canPublishPauseData(pauseSessionId)) {
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.cancelled,
+            );
+          }
+          _loadingPauseDetails = false;
+          _pauseDataFailure = _isFrench
+              ? 'Lecture impossible. Fermez puis rouvrez le menu pour réessayer.'
+              : 'Unable to load. Close and reopen the menu to try again.';
+          _publishPause(
+            RuntimePlayerPauseSection.root,
+            pauseMenuState: pauseMenuState,
+            pauseDetails: const {},
+          );
+          return RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.failed,
+            safeMessage: _pauseDataFailure,
+          );
+        } finally {
+          _loadingPauseDetails = false;
         }
-        _publishPause(
-          RuntimePlayerPauseSection.root,
-          pauseMenuState: pauseMenuState,
-          pauseDetails: pauseDetails,
-        );
-        return const RuntimePlayerCommandResult(
-          status: RuntimePlayerCommandStatus.accepted,
-        );
       case RuntimePlayerAction.resume:
         await _sessions.resume();
         if (_snapshot.phase != RuntimePlayerPhase.playing) {
@@ -1771,7 +1800,12 @@ final class RuntimePlayerCoordinator {
         else
           RuntimePlayerActionAvailability.disabled(
             RuntimePlayerAction.openPokedex,
-            reason: 'This game does not provide a Pokédex.',
+            reason: _loadingPauseDetails
+                ? (_isFrench ? 'Chargement du Pokédex…' : 'Loading Pokédex…')
+                : _pauseDataFailure ??
+                    (_isFrench
+                        ? 'Ce jeu ne propose pas de Pokédex.'
+                        : 'This game does not provide a Pokédex.'),
           ),
       if (_isPauseActionVisible(ProjectPauseActionId.map, pauseMenuState))
         if (_hasCapability('map.v1'))
@@ -1796,9 +1830,12 @@ final class RuntimePlayerCoordinator {
         else
           RuntimePlayerActionAvailability.disabled(
             RuntimePlayerAction.openProfile,
-            reason: _isFrench
-                ? 'Le profil de cette partie n’est pas disponible.'
-                : 'The current player profile is unavailable.',
+            reason: _loadingPauseDetails
+                ? (_isFrench ? 'Chargement du profil…' : 'Loading profile…')
+                : _pauseDataFailure ??
+                    (_isFrench
+                        ? 'Le profil de cette partie n’est pas disponible.'
+                        : 'The current player profile is unavailable.'),
           ),
       if (_isPauseActionVisible(ProjectPauseActionId.save, pauseMenuState))
         const RuntimePlayerActionAvailability.enabled(

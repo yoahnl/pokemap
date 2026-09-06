@@ -10,6 +10,8 @@ import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'runtime_player_party.dart';
 import 'runtime_player_bag.dart';
+import 'runtime_player_pokedex.dart';
+import 'runtime_player_profile.dart';
 import 'player_session_surfaces.dart';
 
 /// Maps runtime-owned pause detail snapshots to simple player surfaces.
@@ -21,6 +23,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
     this.onPauseCommand,
     this.partyNavigation,
     this.bagNavigation,
+    this.pokedexNavigation,
     this.onFavoriteChanged,
   });
 
@@ -29,6 +32,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
   final FutureOr<void> Function(RuntimePlayerPauseCommand)? onPauseCommand;
   final RuntimePlayerPartyNavigation? partyNavigation;
   final RuntimePlayerBagNavigation? bagNavigation;
+  final RuntimePlayerPokedexNavigation? pokedexNavigation;
   final Future<void> Function(String, bool)? onFavoriteChanged;
 
   @override
@@ -87,6 +91,22 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
               onFavoriteChanged:
                   snapshot.bagFavoritesAvailable ? onFavoriteChanged : null));
     }
+    if (section == RuntimePlayerPauseSection.pokedex && detail != null) {
+      return PlayerMenuThemeScope(
+        role: ProjectPresentationSurfaceRole.pokedex,
+        child: RuntimePlayerPokedex(
+          detail: detail,
+          navigation: pokedexNavigation,
+        ),
+      );
+    }
+    if (section == RuntimePlayerPauseSection.profile &&
+        detail?.profile != null) {
+      return PlayerMenuThemeScope(
+        role: ProjectPresentationSurfaceRole.pauseMenu,
+        child: RuntimePlayerProfile(profile: detail!.profile!),
+      );
+    }
     if (detail == null || detail.entries.isEmpty) {
       return PlayerEmptyState(
         key: const ValueKey<String>('runtime-player-detail-empty'),
@@ -99,10 +119,6 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
 
     if (section == RuntimePlayerPauseSection.map) {
       return _RuntimePlayerMap(detail: detail);
-    }
-
-    if (section == RuntimePlayerPauseSection.pokedex) {
-      return _RuntimePlayerPokedex(detail: detail);
     }
 
     return Column(
@@ -181,87 +197,6 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.root =>
           ProjectPresentationSurfaceRole.pauseMenu,
       };
-}
-
-/// Liste Pokédex filtrable — BETA-SYS-001.
-///
-/// La recherche est un état de SURFACE, locale à la vue : elle filtre les
-/// entrées déjà projetées par le runtime (nom affiché, numéro, état
-/// Vu/Capturé, types), sans nouveau canal de commande. Une espèce inconnue
-/// s'affiche « ??? » : son nom n'est pas cherchable — on ne peut pas chercher
-/// ce qu'on n'a pas vu — mais son numéro l'est.
-class _RuntimePlayerPokedex extends StatefulWidget {
-  const _RuntimePlayerPokedex({required this.detail});
-
-  final RuntimePlayerPauseDetailSnapshot detail;
-
-  @override
-  State<_RuntimePlayerPokedex> createState() => _RuntimePlayerPokedexState();
-}
-
-class _RuntimePlayerPokedexState extends State<_RuntimePlayerPokedex> {
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  List<RuntimePlayerDetailEntrySnapshot> get _visibleEntries {
-    final query = _searchController.text.trim().toLowerCase();
-    if (query.isEmpty) {
-      return widget.detail.entries;
-    }
-    return widget.detail.entries
-        .where(
-          (entry) =>
-              entry.title.toLowerCase().contains(query) ||
-              (entry.subtitle?.toLowerCase().contains(query) ?? false),
-        )
-        .toList(growable: false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = _visibleEntries;
-    return Column(
-      key: const ValueKey<String>('runtime-player-detail-pokedex'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Material(
-          type: MaterialType.transparency,
-          child: TextField(
-            key: const ValueKey<String>('runtime-player-pokedex-search'),
-            controller: _searchController,
-            decoration: InputDecoration(
-              labelText: context.playerL10n.searchPokedex,
-              prefixIcon: const Icon(Icons.search_rounded),
-              isDense: true,
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-        ),
-        const SizedBox(height: PlayerSpacing.sm),
-        if (entries.isEmpty)
-          PlayerEmptyState(
-            key: const ValueKey<String>('runtime-player-pokedex-no-match'),
-            icon: Icons.search_off_rounded,
-            title: context.playerL10n.noPokedexMatch,
-            message: context.playerL10n.tryAnotherSearch,
-          )
-        else
-          for (var index = 0; index < entries.length; index++) ...<Widget>[
-            PlayerDetailEntryCard(
-              entry: entries[index],
-              surfaceRole: ProjectPresentationSurfaceRole.pokedex,
-            ),
-            if (index != entries.length - 1)
-              const SizedBox(height: PlayerSpacing.sm),
-          ],
-      ],
-    );
-  }
 }
 
 class _RuntimePlayerMap extends StatelessWidget {

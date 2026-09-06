@@ -10,6 +10,7 @@ import 'player_pause_surface.dart';
 import 'runtime_player_detail_router.dart';
 import 'runtime_player_focus_controller.dart';
 import 'runtime_player_pause_shell.dart';
+import 'runtime_player_pokedex.dart';
 
 @immutable
 final class PlayerPausePreviewEntryData {
@@ -19,6 +20,7 @@ final class PlayerPausePreviewEntryData {
     this.subtitle,
     this.trailingLabel,
     this.progress,
+    this.pokedexEntry,
   });
 
   final String id;
@@ -26,6 +28,7 @@ final class PlayerPausePreviewEntryData {
   final String? subtitle;
   final String? trailingLabel;
   final double? progress;
+  final RuntimePlayerPokedexEntrySnapshot? pokedexEntry;
 }
 
 @immutable
@@ -89,6 +92,7 @@ class PlayerPausePreviewShell extends StatefulWidget {
 
 class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
   late final RuntimePlayerFocusController _focusController;
+  final _pokedexNavigation = RuntimePlayerPokedexNavigation();
   PlayerPauseAction? _selectedAction;
   var _detailOpen = false;
   var _touchControlsOpacity = .82;
@@ -114,6 +118,7 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
 
   @override
   void dispose() {
+    _pokedexNavigation.dispose();
     _focusController.dispose();
     super.dispose();
   }
@@ -139,6 +144,18 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
           ? widget.presentation.label(selected, context.playerL10n)
           : null,
       detailSurfaceRole: detailOpen ? _surfaceRoleFor(selected) : null,
+      detailOwnsScroll: detailOpen && _detailOwnsScroll(selected),
+      detailActions: detailOpen &&
+              _detailOwnsScroll(selected) &&
+              widget.presentation.style !=
+                  ProjectPauseMenuStyle.nightIllustrated
+          ? PlayerActionButton(
+              key: const ValueKey('runtime-pause-back-to-root'),
+              label: context.playerL10n.back,
+              icon: Icons.arrow_back_rounded,
+              onPressed: _backToRoot,
+            )
+          : null,
       detail: detailOpen
           ? _PlayerPausePreviewDetail(
               key: ValueKey<String>(
@@ -146,6 +163,7 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
               ),
               gameTitle: widget.gameTitle,
               data: detailData,
+              pokedexNavigation: _pokedexNavigation,
               touchControlsOpacity: _touchControlsOpacity,
               onTouchControlsOpacityChanged: (value) {
                 setState(() => _touchControlsOpacity = value);
@@ -169,6 +187,10 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
 
   void _backToRoot() {
     if (!_detailOpen) return;
+    if (_selectedAction == PlayerPauseAction.pokedex &&
+        _pokedexNavigation.back()) {
+      return;
+    }
     setState(() => _detailOpen = false);
   }
 }
@@ -178,17 +200,31 @@ class _PlayerPausePreviewDetail extends StatelessWidget {
     super.key,
     required this.gameTitle,
     required this.data,
+    required this.pokedexNavigation,
     required this.touchControlsOpacity,
     required this.onTouchControlsOpacityChanged,
   });
 
   final String gameTitle;
   final PlayerPausePreviewDetailData data;
+  final RuntimePlayerPokedexNavigation pokedexNavigation;
   final double touchControlsOpacity;
   final ValueChanged<double> onTouchControlsOpacityChanged;
 
   @override
   Widget build(BuildContext context) {
+    final router = RuntimePlayerDetailRouter(
+      snapshot: _snapshot(
+        gameTitle,
+        data,
+        touchControlsOpacity,
+        Localizations.localeOf(context).toLanguageTag(),
+      ),
+      pokedexNavigation: pokedexNavigation,
+      onPreferencesChanged: (preferences) => onTouchControlsOpacityChanged(
+        preferences.touchControlsOpacity,
+      ),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -202,18 +238,7 @@ class _PlayerPausePreviewDetail extends StatelessWidget {
         ),
         const SizedBox(height: PlayerSpacing.sm),
         if (_isRuntimeSection(data.action))
-          RuntimePlayerDetailRouter(
-            snapshot: _snapshot(
-              gameTitle,
-              data,
-              touchControlsOpacity,
-              Localizations.localeOf(context).toLanguageTag(),
-            ),
-            onPreferencesChanged: (preferences) =>
-                onTouchControlsOpacityChanged(
-              preferences.touchControlsOpacity,
-            ),
-          )
+          _detailOwnsScroll(data.action) ? Expanded(child: router) : router
         else
           PlayerEmptyState(
             icon: _icon(data.action),
@@ -275,12 +300,16 @@ RuntimePlayerSnapshot _snapshot(
                 subtitle: entry.subtitle,
                 trailingLabel: entry.trailingLabel,
                 progress: entry.progress,
+                pokedexEntry: entry.pokedexEntry,
               ),
           ],
         ),
     },
   );
 }
+
+bool _detailOwnsScroll(PlayerPauseAction action) =>
+    action == PlayerPauseAction.pokedex || action == PlayerPauseAction.profile;
 
 bool _isRuntimeSection(PlayerPauseAction action) => switch (action) {
       PlayerPauseAction.party ||

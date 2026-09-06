@@ -42,11 +42,13 @@ final class RuntimePlayerProfileSnapshot {
     this.pronounSet = PlayerPronounSet.neutral,
     List<CharacterPortraitVariant> portraits = const [],
     List<String> badgeIds = const [],
+    List<RuntimePlayerProfileBadgeSnapshot> badges = const [],
     this.badgeTotal,
     this.pokedex,
     this.currencyLabel,
   })  : portraits = List<CharacterPortraitVariant>.unmodifiable(portraits),
         badgeIds = List<String>.unmodifiable(badgeIds),
+        badges = List<RuntimePlayerProfileBadgeSnapshot>.unmodifiable(badges),
         assert(playerName != ''),
         assert(money >= 0),
         assert(playtimeSeconds == null || playtimeSeconds >= 0),
@@ -62,9 +64,22 @@ final class RuntimePlayerProfileSnapshot {
   final PlayerPronounSet pronounSet;
   final List<CharacterPortraitVariant> portraits;
   final List<String> badgeIds;
+  final List<RuntimePlayerProfileBadgeSnapshot> badges;
   final int? badgeTotal;
   final RuntimePlayerPokedexProgressSnapshot? pokedex;
   final String? currencyLabel;
+}
+
+final class RuntimePlayerProfileBadgeSnapshot {
+  const RuntimePlayerProfileBadgeSnapshot({
+    required this.id,
+    required this.label,
+    this.iconFilePath,
+  });
+
+  final String id;
+  final String label;
+  final String? iconFilePath;
 }
 
 final class RuntimePlayerBagItemSnapshot {
@@ -101,17 +116,25 @@ final class RuntimePlayerPokedexEntrySnapshot {
     required this.knowledge,
     this.nationalDex,
     this.identity,
+    this.media = const RuntimePokemonSummaryMediaSnapshot(),
+    this.description,
     List<String> typeIds = const [],
   }) : typeIds = List<String>.unmodifiable(typeIds) {
     if (knowledge == RuntimePlayerPokedexKnowledge.unknown &&
-        (identity != null || typeIds.isNotEmpty)) {
-      throw ArgumentError('Unknown species cannot expose identity or types.');
+        (identity != null ||
+            typeIds.isNotEmpty ||
+            media.thumbnail != null ||
+            media.illustration != null ||
+            description != null)) {
+      throw ArgumentError('Unknown species cannot expose private details.');
     }
   }
 
   final RuntimePlayerPokedexKnowledge knowledge;
   final int? nationalDex;
   final RuntimePokemonMediaIdentity? identity;
+  final RuntimePokemonSummaryMediaSnapshot media;
+  final String? description;
   final List<String> typeIds;
 }
 

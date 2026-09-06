@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
+import '../foundation/player_components.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
@@ -23,12 +24,13 @@ import 'runtime_player_pause_shell.dart';
 import 'runtime_player_focus_controller.dart';
 import 'runtime_player_party.dart';
 import 'runtime_player_bag.dart';
+import 'runtime_player_pokedex.dart';
 
 typedef RuntimePlayerActionCallback = Future<RuntimePlayerCommandResult>
     Function(RuntimePlayerAction action);
 
 /// Pure presentation router for the runtime-owned player state machine.
-class RuntimePlayerSurfaceRouter extends StatelessWidget {
+class RuntimePlayerSurfaceRouter extends StatefulWidget {
   const RuntimePlayerSurfaceRouter({
     super.key,
     required this.snapshot,
@@ -42,6 +44,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     this.onPauseCommand,
     this.partyNavigation,
     this.bagNavigation,
+    this.pokedexNavigation,
     this.onFavoriteChanged,
     this.controlProfile,
     this.onControlProfileChanged,
@@ -63,6 +66,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final FutureOr<void> Function(RuntimePlayerPauseCommand)? onPauseCommand;
   final RuntimePlayerPartyNavigation? partyNavigation;
   final RuntimePlayerBagNavigation? bagNavigation;
+  final RuntimePlayerPokedexNavigation? pokedexNavigation;
   final Future<void> Function(String, bool)? onFavoriteChanged;
   final PlayerControlProfile? controlProfile;
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
@@ -72,8 +76,40 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final ValueChanged<SceneInteractionResult>? onPreSessionResult;
   final bool showPreSessionInteraction;
 
+  @override
+  State<RuntimePlayerSurfaceRouter> createState() =>
+      _RuntimePlayerSurfaceRouterState();
+}
+
+class _RuntimePlayerSurfaceRouterState
+    extends State<RuntimePlayerSurfaceRouter> {
+  final _ownedPokedexNavigation = RuntimePlayerPokedexNavigation();
+
+  RuntimePlayerPokedexNavigation get _pokedexNavigation =>
+      widget.pokedexNavigation ?? _ownedPokedexNavigation;
+
+  @override
+  void didUpdateWidget(RuntimePlayerSurfaceRouter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pokedexNavigation == null &&
+        (oldWidget.pokedexNavigation != null ||
+            oldWidget.snapshot.phase != widget.snapshot.phase &&
+                (widget.snapshot.phase == RuntimePlayerPhase.title ||
+                    widget.snapshot.phase ==
+                        RuntimePlayerPhase.preparingSession))) {
+      _ownedPokedexNavigation.clearForNewSession();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ownedPokedexNavigation.dispose();
+    super.dispose();
+  }
+
   Widget? _bagMoney(BuildContext context) {
-    final detail = snapshot.pauseDetailFor(RuntimePlayerPauseSection.bag);
+    final detail =
+        widget.snapshot.pauseDetailFor(RuntimePlayerPauseSection.bag);
     final money = detail?.bagMoney;
     if (money == null) return null;
     final currency = detail!.bagCurrencyLabel;
@@ -89,25 +125,74 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
                 style: context.playerMenuTheme.label)));
   }
 
+  void _backFromPause() {
+    if (widget.snapshot.pauseSection == RuntimePlayerPauseSection.pokedex &&
+        _pokedexNavigation.back()) {
+      return;
+    }
+    if (widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag &&
+        (widget.bagNavigation?.back() ?? false)) {
+      return;
+    }
+    if (widget.snapshot.pauseSection == RuntimePlayerPauseSection.party &&
+        (widget.partyNavigation?.back() ?? false)) {
+      return;
+    }
+    _dispatch(widget.snapshot.pauseSection == null ||
+            widget.snapshot.pauseSection == RuntimePlayerPauseSection.root
+        ? RuntimePlayerAction.resume
+        : RuntimePlayerAction.returnToPauseRoot);
+  }
+
+  Widget? _pokedexProgress(BuildContext context) {
+    final entries = widget.snapshot
+        .pauseDetailFor(RuntimePlayerPauseSection.pokedex)
+        ?.entries;
+    if (entries == null || entries.isEmpty) return null;
+    final seen = entries
+        .where((entry) =>
+            entry.pokedexEntry?.knowledge ==
+                RuntimePlayerPokedexKnowledge.seen ||
+            entry.pokedexEntry?.knowledge ==
+                RuntimePlayerPokedexKnowledge.caught)
+        .length;
+    final caught = entries
+        .where((entry) =>
+            entry.pokedexEntry?.knowledge ==
+            RuntimePlayerPokedexKnowledge.caught)
+        .length;
+    final french = Localizations.localeOf(context).languageCode == 'fr';
+    final format = MaterialLocalizations.of(context).formatDecimal;
+    return PlayerMenuThemeScope(
+      role: ProjectPresentationSurfaceRole.pokedex,
+      child: Builder(
+          builder: (context) => Text(
+                '${french ? 'Vus' : 'Seen'} ${format(seen)} · ${french ? 'Capturés' : 'Caught'} ${format(caught)} / ${format(entries.length)}',
+                key: const ValueKey('pokedex-progress'),
+                style: context.playerMenuTheme.meta,
+              )),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final overlay = _overlay(context);
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        if (_usesGameScene(snapshot.phase))
+        if (_usesGameScene(widget.snapshot.phase))
           KeyedSubtree(
             key: const ValueKey<String>('runtime-player-game-scene'),
-            child: gameSceneBuilder(context),
+            child: widget.gameSceneBuilder(context),
           ),
         Positioned.fill(
           key: ValueKey<String>(
-            'runtime-player-surface-${snapshot.phase.name}',
+            'runtime-player-surface-${widget.snapshot.phase.name}',
           ),
           child: overlay ?? const SizedBox.shrink(),
         ),
-        if (snapshot.saveRecovery case final recovery?
-            when snapshot.phase == RuntimePlayerPhase.title)
+        if (widget.snapshot.saveRecovery case final recovery?
+            when widget.snapshot.phase == RuntimePlayerPhase.title)
           Positioned(
             left: 0,
             right: 0,
@@ -141,49 +226,51 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
 
   Widget? _overlay(BuildContext context) {
     final l10n = context.playerL10n;
-    return switch (snapshot.phase) {
+    return switch (widget.snapshot.phase) {
       RuntimePlayerPhase.boot => PlayerLoadingSurface(
           stage: l10n.preparing,
         ),
       RuntimePlayerPhase.title
-          when snapshot.pauseSection == RuntimePlayerPauseSection.options =>
+          when widget.snapshot.pauseSection ==
+              RuntimePlayerPauseSection.options =>
         PlayerTitleOptionsSurface(
-          snapshot: snapshot,
+          snapshot: widget.snapshot,
           onReturnToTitle: _callbackFor(RuntimePlayerAction.returnToTitle),
-          onPreferencesChanged: onPreferencesChanged,
-          controlProfile: controlProfile,
-          onControlProfileChanged: onControlProfileChanged,
+          onPreferencesChanged: widget.onPreferencesChanged,
+          controlProfile: widget.controlProfile,
+          onControlProfileChanged: widget.onControlProfileChanged,
         ),
       RuntimePlayerPhase.title => PlayerTitleScreen(
           data: PlayerTitleViewData(
-            gameTitle: titlePresentation.resolveTitle(snapshot.gameTitle),
-            author: titlePresentation.author,
-            description: titlePresentation.description,
-            background: titlePresentation.background,
-            logo: titlePresentation.logo,
-            accentColor: titlePresentation.accentColor,
-            layoutVariant: titlePresentation.layoutVariant,
-            continueSave: snapshot.continueSave,
-            actions: titlePresentation.projectActions(
+            gameTitle: widget.titlePresentation
+                .resolveTitle(widget.snapshot.gameTitle),
+            author: widget.titlePresentation.author,
+            description: widget.titlePresentation.description,
+            background: widget.titlePresentation.background,
+            logo: widget.titlePresentation.logo,
+            accentColor: widget.titlePresentation.accentColor,
+            layoutVariant: widget.titlePresentation.layoutVariant,
+            continueSave: widget.snapshot.continueSave,
+            actions: widget.titlePresentation.projectActions(
               <PlayerTitleMenuAction, PlayerActionAvailability>{
                 for (final action in PlayerTitleMenuAction.values)
                   action: _titleAvailability(context, action),
               },
             ),
-            actionLabels: titlePresentation.actionLabels,
-            actionIcons: titlePresentation.actionIcons,
+            actionLabels: widget.titlePresentation.actionLabels,
+            actionIcons: widget.titlePresentation.actionIcons,
           ),
           onSelected: (action) => _dispatch(_titleAction(action)),
         ),
       RuntimePlayerPhase.preSession
-          when snapshot.preSessionRequest != null &&
-              showPreSessionInteraction =>
+          when widget.snapshot.preSessionRequest != null &&
+              widget.showPreSessionInteraction =>
         PlayerSceneInteractionSurface(
-          request: snapshot.preSessionRequest!,
-          interactionEnabled: snapshot.isActionEnabled(
+          request: widget.snapshot.preSessionRequest!,
+          interactionEnabled: widget.snapshot.isActionEnabled(
             RuntimePlayerAction.resolvePreSessionInteraction,
           ),
-          onResult: onPreSessionResult ?? (_) {},
+          onResult: widget.onPreSessionResult ?? (_) {},
         ),
       RuntimePlayerPhase.preSession => PlayerLoadingSurface(
           stage: l10n.preparingSession,
@@ -194,93 +281,105 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
         ),
       RuntimePlayerPhase.loadingSession => PlayerLoadingSurface(
-          stage: snapshot.loadingProgress?.stage ?? l10n.loadingGame,
+          stage: widget.snapshot.loadingProgress?.stage ?? l10n.loadingGame,
           progress: _progress,
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
         ),
       RuntimePlayerPhase.playing => RuntimePlayerTouchMenuButton(
-          onPressed: gameplayTouchMenuEnabled
+          onPressed: widget.gameplayTouchMenuEnabled
               ? _callbackFor(RuntimePlayerAction.openMenu)
               : null,
-          activeInputSource: snapshot.activeInputSource,
-          opacity: touchControlsOpacity,
+          activeInputSource: widget.snapshot.activeInputSource,
+          opacity: widget.touchControlsOpacity,
         ),
       RuntimePlayerPhase.paused => RuntimePlayerPauseShell(
-          focusController: pauseFocusController,
-          playerProfile: snapshot.playerProfile,
-          portraitImage: snapshot.playerProfile?.portraitFilePath == null
+          focusController: widget.pauseFocusController,
+          playerProfile: widget.snapshot.playerProfile,
+          portraitImage: widget.snapshot.playerProfile?.portraitFilePath == null
               ? null
-              : FileImage(File(snapshot.playerProfile!.portraitFilePath!)),
-          gameTitle: snapshot.gameTitle,
-          pauseSection: snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
+              : FileImage(
+                  File(widget.snapshot.playerProfile!.portraitFilePath!)),
+          gameTitle: widget.snapshot.gameTitle,
+          pauseSection:
+              widget.snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
           actions: <PlayerPauseAction, PlayerActionAvailability>{
             for (final action in PlayerPauseAction.values)
               action: _pauseAvailability(context, action),
           },
           onSelected: (action) => _dispatchPauseAction(context, action),
-          onBackToRoot: () {
-            if (snapshot.pauseSection == RuntimePlayerPauseSection.bag &&
-                (bagNavigation?.back() ?? false)) {
-              return;
-            }
-            if (snapshot.pauseSection == RuntimePlayerPauseSection.party &&
-                (partyNavigation?.back() ?? false)) {
-              return;
-            }
-            _dispatch(
-              snapshot.pauseSection == null ||
-                      snapshot.pauseSection == RuntimePlayerPauseSection.root
-                  ? RuntimePlayerAction.resume
-                  : RuntimePlayerAction.returnToPauseRoot,
-            );
-          },
-          onTouchMenu: snapshot.pauseSection == null ||
-                  snapshot.pauseSection == RuntimePlayerPauseSection.root
+          onBackToRoot: _backFromPause,
+          onTouchMenu: widget.snapshot.pauseSection == null ||
+                  widget.snapshot.pauseSection == RuntimePlayerPauseSection.root
               ? _callbackFor(RuntimePlayerAction.resume)
               : _callbackFor(RuntimePlayerAction.returnToPauseRoot),
-          activeInputSource: snapshot.activeInputSource,
-          logicalSelectionId: snapshot.logicalSelectionId,
-          labels: pauseMenuLabels,
-          presentation: (pausePresentation ?? const PlayerPausePresentation())
-              .resolveVisibility(snapshot.pauseMenuState),
-          saveMessage: snapshot.saveReceipt == null
+          activeInputSource: widget.snapshot.activeInputSource,
+          logicalSelectionId: widget.snapshot.logicalSelectionId,
+          labels: widget.pauseMenuLabels,
+          presentation:
+              (widget.pausePresentation ?? const PlayerPausePresentation())
+                  .resolveVisibility(widget.snapshot.pauseMenuState),
+          saveMessage: widget.snapshot.saveReceipt == null
               ? null
-              : PlayerSaveStrings.of(context).saved(snapshot.saveReceipt!),
+              : PlayerSaveStrings.of(context)
+                  .saved(widget.snapshot.saveReceipt!),
           detail: RuntimePlayerDetailRouter(
-            bagNavigation: bagNavigation,
-            onFavoriteChanged: onFavoriteChanged,
-            partyNavigation: partyNavigation,
-            snapshot: snapshot,
-            onPreferencesChanged: onPreferencesChanged,
-            onPauseCommand: onPauseCommand,
+            pokedexNavigation: _pokedexNavigation,
+            bagNavigation: widget.bagNavigation,
+            onFavoriteChanged: widget.onFavoriteChanged,
+            partyNavigation: widget.partyNavigation,
+            snapshot: widget.snapshot,
+            onPreferencesChanged: widget.onPreferencesChanged,
+            onPauseCommand: widget.onPauseCommand,
           ),
-          detailOwnsScroll:
-              snapshot.pauseSection == RuntimePlayerPauseSection.party ||
-                  snapshot.pauseSection == RuntimePlayerPauseSection.bag,
+          detailOwnsScroll: widget.snapshot.pauseSection ==
+                  RuntimePlayerPauseSection.party ||
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag ||
+              widget.snapshot.pauseSection ==
+                  RuntimePlayerPauseSection.pokedex ||
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.profile,
           detailHeaderSecondary:
-              snapshot.pauseSection == RuntimePlayerPauseSection.bag
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag
                   ? _bagMoney(context)
-                  : null,
-          detailActions: snapshot.pauseSection ==
+                  : widget.snapshot.pauseSection ==
+                          RuntimePlayerPauseSection.pokedex
+                      ? _pokedexProgress(context)
+                      : null,
+          detailActions: widget.snapshot.pauseSection ==
                       RuntimePlayerPauseSection.party &&
-                  snapshot.isActionEnabled(RuntimePlayerAction.openParty) &&
-                  snapshot.pauseDetailFor(RuntimePlayerPauseSection.party) !=
+                  widget.snapshot
+                      .isActionEnabled(RuntimePlayerAction.openParty) &&
+                  widget.snapshot
+                          .pauseDetailFor(RuntimePlayerPauseSection.party) !=
                       null &&
-                  partyNavigation != null
+                  widget.partyNavigation != null
               ? ListenableBuilder(
-                  listenable: partyNavigation!,
+                  listenable: widget.partyNavigation!,
                   builder: (context, _) =>
-                      partyNavigation!.buildActions(context))
-              : snapshot.pauseSection == RuntimePlayerPauseSection.bag &&
-                      snapshot.isActionEnabled(RuntimePlayerAction.openBag) &&
-                      snapshot.pauseDetailFor(RuntimePlayerPauseSection.bag) !=
+                      widget.partyNavigation!.buildActions(context))
+              : widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag &&
+                      widget.snapshot
+                          .isActionEnabled(RuntimePlayerAction.openBag) &&
+                      widget.snapshot
+                              .pauseDetailFor(RuntimePlayerPauseSection.bag) !=
                           null &&
-                      bagNavigation != null
+                      widget.bagNavigation != null
                   ? ListenableBuilder(
-                      listenable: bagNavigation!,
+                      listenable: widget.bagNavigation!,
                       builder: (context, _) =>
-                          bagNavigation!.buildActions(context))
-                  : null,
+                          widget.bagNavigation!.buildActions(context))
+                  : (widget.snapshot.pauseSection ==
+                                  RuntimePlayerPauseSection.pokedex ||
+                              widget.snapshot.pauseSection ==
+                                  RuntimePlayerPauseSection.profile) &&
+                          widget.pausePresentation?.style !=
+                              ProjectPauseMenuStyle.nightIllustrated
+                      ? PlayerActionButton(
+                          key: const ValueKey('runtime-pause-detail-return'),
+                          label: context.playerL10n.back,
+                          icon: Icons.arrow_back_rounded,
+                          onPressed: _backFromPause,
+                        )
+                      : null,
         ),
       RuntimePlayerPhase.saving => PlayerLoadingSurface(
           stage: l10n.save,
@@ -288,22 +387,24 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
       RuntimePlayerPhase.lifecyclePaused => PlayerLoadingSurface(
           stage: l10n.sessionSuspended,
         ),
-      RuntimePlayerPhase.completing when snapshot.failure != null =>
+      RuntimePlayerPhase.completing when widget.snapshot.failure != null =>
         _error(context),
       RuntimePlayerPhase.completing => PlayerLoadingSurface(
           stage: l10n.validatingCompletion,
         ),
       RuntimePlayerPhase.result => PlayerResultSurface(
-          title: snapshot.result?.title ?? l10n.completedFallback,
-          summary: snapshot.result?.summary ?? l10n.completedSummaryFallback,
-          details: snapshot.result?.details ?? const <String>[],
+          title: widget.snapshot.result?.title ?? l10n.completedFallback,
+          summary:
+              widget.snapshot.result?.summary ?? l10n.completedSummaryFallback,
+          details: widget.snapshot.result?.details ?? const <String>[],
           onShowCredits: _callbackFor(RuntimePlayerAction.showCredits),
         ),
       RuntimePlayerPhase.credits => PlayerCreditsSurface(
-          title: snapshot.credits?.title ?? snapshot.gameTitle,
-          author: snapshot.credits?.author ?? titlePresentation.author,
-          endingLabel:
-              snapshot.credits?.endingLabel ?? titlePresentation.description,
+          title: widget.snapshot.credits?.title ?? widget.snapshot.gameTitle,
+          author: widget.snapshot.credits?.author ??
+              widget.titlePresentation.author,
+          endingLabel: widget.snapshot.credits?.endingLabel ??
+              widget.titlePresentation.description,
           onReturnToTitle: _callbackFor(RuntimePlayerAction.returnToTitle),
           onReturnToHub: _callbackFor(RuntimePlayerAction.returnToHost),
         ),
@@ -319,16 +420,16 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
 
   PlayerErrorSurface _error(BuildContext context) {
     final l10n = context.playerL10n;
-    final failure = snapshot.failure;
+    final failure = widget.snapshot.failure;
     return PlayerErrorSurface(
       title: l10n.sessionErrorTitle,
       message: failure?.safeMessage ?? l10n.sessionCannotContinue,
       recommendation: _recommendation(context, failure),
       code: failure?.code.name,
-      stage: snapshot.loadingProgress?.stage,
+      stage: widget.snapshot.loadingProgress?.stage,
       onRetry: _callbackFor(RuntimePlayerAction.retry),
       onCancel: _callbackFor(RuntimePlayerAction.cancel),
-      onShowDiagnostics: onShowDiagnostics,
+      onShowDiagnostics: widget.onShowDiagnostics,
     );
   }
 
@@ -347,19 +448,19 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   }
 
   double? get _progress {
-    final progress = snapshot.loadingProgress;
+    final progress = widget.snapshot.loadingProgress;
     final total = progress?.total;
     if (progress == null || total == null || total == 0) return null;
     return (progress.current / total).clamp(0, 1);
   }
 
   VoidCallback? _callbackFor(RuntimePlayerAction action) {
-    if (!snapshot.isActionEnabled(action)) return null;
+    if (!widget.snapshot.isActionEnabled(action)) return null;
     return () => _dispatch(action);
   }
 
   void _dispatch(RuntimePlayerAction action) {
-    unawaited(onAction(action));
+    unawaited(widget.onAction(action));
   }
 
   void _dispatchPauseAction(
@@ -370,7 +471,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
       _dispatch(_pauseAction(action));
       return;
     }
-    final address = snapshot.activeSaveAddress;
+    final address = widget.snapshot.activeSaveAddress;
     if (address == null) return;
     final strings = PlayerSaveStrings.of(context);
     showDialog<void>(
@@ -420,7 +521,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     BuildContext context,
     RuntimePlayerAction action,
   ) {
-    for (final availability in snapshot.actions) {
+    for (final availability in widget.snapshot.actions) {
       if (availability.action != action) continue;
       return availability.isEnabled
           ? PlayerActionAvailability.enabled

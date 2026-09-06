@@ -855,6 +855,23 @@ void main() {
           ],
         ),
       );
+      Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
+          projectDex(GameState state) =>
+              const RuntimePlayerPauseDataBuilder().build(
+                gameState: state,
+                projectRootDirectory: tempProjectRoot.path,
+                pokemonConfig: manifest.pokemon,
+                locale: 'fr',
+              );
+      final beforeDex = await projectDex(initialState);
+      expect(
+        beforeDex[RuntimePlayerPauseSection.pokedex]!
+            .entries
+            .singleWhere((entry) => entry.id == 'sparkitten')
+            .pokedexEntry!
+            .knowledge,
+        RuntimePlayerPokedexKnowledge.unknown,
+      );
       final game = PlayableMapGame(
         bundle: _buildBundle(tempProjectRoot.path, manifest, map),
         projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
@@ -961,6 +978,27 @@ void main() {
       expect(reloaded.party.members.last.speciesId, equals('sparkitten'));
       expect(reloaded.party.members.last, capturedPokemon);
       expect(reloaded.progression.caughtSpeciesIds, contains('sparkitten'));
+      for (final state in [snapshot, reloaded]) {
+        final projected = await projectDex(state);
+        expect(
+          projected[RuntimePlayerPauseSection.pokedex]!
+              .entries
+              .singleWhere((entry) => entry.id == 'sparkitten')
+              .pokedexEntry!
+              .knowledge,
+          RuntimePlayerPokedexKnowledge.caught,
+        );
+        final progress =
+            projected[RuntimePlayerPauseSection.profile]!.profile!.pokedex!;
+        expect(
+            progress.caught,
+            beforeDex[RuntimePlayerPauseSection.profile]!
+                    .profile!
+                    .pokedex!
+                    .caught +
+                1);
+        expect(progress.seen, greaterThanOrEqualTo(progress.caught));
+      }
     });
 
     test('PlayableMapGame can use a potion in a PSDK battle', () async {

@@ -8,10 +8,8 @@ void main() {
   for (final section in <RuntimePlayerPauseSection>[
     RuntimePlayerPauseSection.party,
     RuntimePlayerPauseSection.bag,
-    RuntimePlayerPauseSection.pokedex,
     RuntimePlayerPauseSection.map,
     RuntimePlayerPauseSection.quests,
-    RuntimePlayerPauseSection.profile,
   ]) {
     testWidgets('${section.name} renders runtime-provided detail data',
         (tester) async {
@@ -52,6 +50,36 @@ void main() {
     });
   }
 
+  testWidgets('profile renders its typed projection without generic rows',
+      (tester) async {
+    await tester.pumpWidget(_app(RuntimePlayerDetailRouter(
+      snapshot: _detailSnapshot(
+        RuntimePlayerPauseSection.profile,
+        detail: RuntimePlayerPauseDetailSnapshot(
+          section: RuntimePlayerPauseSection.profile,
+          title: 'Profil',
+          profile: RuntimePlayerProfileSnapshot(
+            playerName: 'Camille',
+            currentMapId: 'map.internal.port',
+            locationName: 'Port des Brumes',
+            money: 4321,
+            playtimeSeconds: 25 * 3600 + 7 * 60,
+          ),
+          entries: [
+            RuntimePlayerDetailEntrySnapshot(
+                id: 'profile.internal.row', title: 'Ancienne carte générique'),
+          ],
+        ),
+      ),
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Camille'), findsOneWidget);
+    expect(find.text('Port des Brumes'), findsOneWidget);
+    expect(find.text('Ancienne carte générique'), findsNothing);
+    expect(find.text('map.internal.port'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   group('BETA-SYS-001 pokedex search filters the projected entries', () {
     RuntimePlayerSnapshot dexSnapshot() => _detailSnapshot(
           RuntimePlayerPauseSection.pokedex,
@@ -64,17 +92,31 @@ void main() {
                 title: 'Bulbizarre',
                 subtitle: '#001 · Capturé · Grass / Poison',
                 trailingLabel: '●',
+                pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+                  knowledge: RuntimePlayerPokedexKnowledge.caught,
+                  nationalDex: 1,
+                  typeIds: ['grass', 'poison'],
+                ),
               ),
               RuntimePlayerDetailEntrySnapshot(
                 id: 'ivysaur',
                 title: 'Herbizarre',
                 subtitle: '#002 · Vu · Grass / Poison',
                 trailingLabel: '○',
+                pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+                  knowledge: RuntimePlayerPokedexKnowledge.seen,
+                  nationalDex: 2,
+                  typeIds: ['grass', 'poison'],
+                ),
               ),
               RuntimePlayerDetailEntrySnapshot(
                 id: 'charmander',
                 title: '???',
                 subtitle: '#004 · Inconnu',
+                pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+                  knowledge: RuntimePlayerPokedexKnowledge.unknown,
+                  nationalDex: 4,
+                ),
               ),
             ],
           ),
@@ -89,7 +131,7 @@ void main() {
       expect(find.text('Herbizarre'), findsOneWidget);
 
       await tester.enterText(
-        find.byKey(const ValueKey<String>('runtime-player-pokedex-search')),
+        find.byKey(const ValueKey<String>('pokedex-search')),
         'herbi',
       );
       await tester.pump();
@@ -106,8 +148,7 @@ void main() {
       await tester.pumpWidget(_app(
         RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
       ));
-      final search =
-          find.byKey(const ValueKey<String>('runtime-player-pokedex-search'));
+      final search = find.byKey(const ValueKey<String>('pokedex-search'));
 
       await tester.enterText(search, '#004');
       await tester.pump();
@@ -126,7 +167,7 @@ void main() {
       ));
 
       await tester.enterText(
-        find.byKey(const ValueKey<String>('runtime-player-pokedex-search')),
+        find.byKey(const ValueKey<String>('pokedex-search')),
         'CAPTURÉ',
       );
       await tester.pump();
@@ -140,14 +181,13 @@ void main() {
       await tester.pumpWidget(_app(
         RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
       ));
-      final search =
-          find.byKey(const ValueKey<String>('runtime-player-pokedex-search'));
+      final search = find.byKey(const ValueKey<String>('pokedex-search'));
 
       await tester.enterText(search, 'zzz-aucune-espece');
       await tester.pump();
       expect(
         find.byKey(
-          const ValueKey<String>('runtime-player-pokedex-no-match'),
+          const ValueKey<String>('pokedex-no-results'),
         ),
         findsOneWidget,
       );
@@ -920,7 +960,7 @@ Widget _app(Widget child) => MaterialApp(
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
-      home: child,
+      home: Material(child: child),
     );
 
 Future<void> _tapBagControl(WidgetTester tester, String key) async {

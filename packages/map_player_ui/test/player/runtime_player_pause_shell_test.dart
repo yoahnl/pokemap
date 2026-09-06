@@ -346,6 +346,128 @@ void main() {
         findsNothing);
   });
 
+  for (final size in [const Size(1440, 900), const Size(390, 844)]) {
+    testWidgets('pause preview renders typed Pokédex and profile at $size',
+        (tester) async {
+      await _setSurface(tester, size);
+      final selected = <PlayerPauseAction>[];
+      await tester.pumpWidget(_app(PlayerPausePreviewShell(
+        gameTitle: 'Aube',
+        actions: _actions(),
+        presentation: const PlayerPausePresentation(
+            style: ProjectPauseMenuStyle.nightIllustrated),
+        details: {
+          PlayerPauseAction.pokedex: PlayerPausePreviewDetailData(
+            action: PlayerPauseAction.pokedex,
+            title: 'Pokédex',
+            message: 'Catalogue de démonstration.',
+            entries: [
+              PlayerPausePreviewEntryData(
+                id: 'preview.species.133',
+                title: 'Évoli',
+                pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+                  knowledge: RuntimePlayerPokedexKnowledge.caught,
+                  nationalDex: 133,
+                  typeIds: ['normal'],
+                  description: 'Son évolution réserve bien des surprises.',
+                ),
+              ),
+              PlayerPausePreviewEntryData(
+                id: 'preview.species.secret',
+                title: 'Nom privé du catalogue',
+                pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+                  knowledge: RuntimePlayerPokedexKnowledge.unknown,
+                  nationalDex: 151,
+                ),
+              ),
+            ],
+          ),
+          PlayerPauseAction.profile:
+              PlayerPausePreviewDetailData.demonstrationProfile(),
+        },
+        onSelected: selected.add,
+      )));
+      await tester.pumpAndSettle();
+      await _tapPreviewControl(tester, 'pause.pokedex');
+      expect(find.byKey(const ValueKey('pokedex-search')), findsOneWidget);
+      expect(find.text('Évoli'), findsWidgets);
+      expect(find.text('Nom privé du catalogue'), findsNothing);
+      expect(find.text('preview.species.133'), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      await tester.enterText(
+          find.byKey(const ValueKey('pokedex-search')), 'evo');
+      await tester.pump();
+      await _tapPreviewControl(tester, 'pokedex-entry-preview.species.133');
+      expect(find.text('Son évolution réserve bien des surprises.'),
+          findsOneWidget);
+      expect(find.text('#133 · Capturé'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await _tapPreviewControl(tester, 'pause-frame-return-surface');
+      if (size.width < size.height) {
+        expect(find.byKey(const ValueKey('pokedex-search')), findsOneWidget);
+        expect(
+            find.byKey(const ValueKey('player-pause-preview-detail-pokedex')),
+            findsOneWidget);
+        await _tapPreviewControl(tester, 'pause-frame-return-surface');
+      }
+      expect(find.byKey(const ValueKey('pokedex-search')), findsNothing);
+      await _tapPreviewControl(tester, 'pause.pokedex');
+      expect(
+          tester
+              .widget<TextField>(find.byKey(const ValueKey('pokedex-search')))
+              .controller!
+              .text,
+          'evo');
+      expect(
+          tester
+              .widget<PlayerMenuSelectableRow>(find
+                  .byKey(const ValueKey('pokedex-entry-preview.species.133')))
+              .selected,
+          isTrue);
+      await _tapPreviewControl(tester, 'pause-frame-return-surface');
+      await _tapPreviewControl(tester, 'pause.profile');
+      expect(find.text('Camille'), findsOneWidget);
+      expect(find.text('Village de démonstration'), findsOneWidget);
+      expect(find.text('preview-village'), findsNothing);
+      expect(find.text('Aperçu uniquement'), findsOneWidget);
+      expect(
+          tester
+              .widget<RuntimePlayerPauseShell>(
+                  find.byType(RuntimePlayerPauseShell))
+              .detailOwnsScroll,
+          isTrue);
+      expect(tester.takeException(), isNull);
+      expect(selected, [
+        PlayerPauseAction.pokedex,
+        PlayerPauseAction.pokedex,
+        PlayerPauseAction.profile,
+      ]);
+    });
+  }
+
+  testWidgets('classic profile preview retains its visible return control',
+      (tester) async {
+    await _setSurface(tester, const Size(390, 844));
+    await tester.pumpWidget(_app(PlayerPausePreviewShell(
+      gameTitle: 'Aube',
+      actions: _actions(),
+      presentation: const PlayerPausePresentation(),
+      details: {
+        PlayerPauseAction.profile:
+            PlayerPausePreviewDetailData.demonstrationProfile(),
+      },
+      onSelected: (_) {},
+    )));
+    await _tapPreviewControl(tester, 'pause.profile');
+    expect(find.text('Camille'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _tapPreviewControl(tester, 'runtime-pause-back-to-root');
+    expect(find.byKey(const ValueKey('player-pause-preview-detail-profile')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   test('layout classification uses available constraints only', () {
     expect(
       classifyRuntimePlayerLayout(
@@ -1053,6 +1175,13 @@ void main() {
     expect(backdrop.color?.a, closeTo(.82, .01));
     expect(tester.takeException(), isNull);
   });
+}
+
+Future<void> _tapPreviewControl(WidgetTester tester, String key) async {
+  final control = find.byKey(ValueKey(key));
+  await tester.ensureVisible(control);
+  await tester.tap(control);
+  await tester.pumpAndSettle();
 }
 
 Future<ui.Image> _waitForMenuImage(WidgetTester tester) async {

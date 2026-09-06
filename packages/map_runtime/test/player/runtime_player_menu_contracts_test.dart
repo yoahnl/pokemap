@@ -122,7 +122,8 @@ void main() {
     expect(profile.portraits.single.assetId, 'hero-face');
     expect(profile.pronounSet, PlayerPronounSet.masculine);
     expect(profile.badgeIds, ['forest']);
-    expect(profile.badgeTotal, 2);
+    expect(profile.badgeTotal, isNull);
+    expect(profile.badges.map((badge) => badge.id), ['forest']);
     expect(profile.pokedex?.seen, 2);
     expect(profile.pokedex?.caught, 1);
     expect(profile.pokedex?.total, 3);

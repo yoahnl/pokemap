@@ -43,10 +43,11 @@ final class RuntimePlayerPauseDataBuilder {
           projectRootDirectory: projectRootDirectory,
           pokemonConfig: pokemonConfig,
         );
-    final species = await _loadSpeciesCatalog(
+    final speciesCatalog = await _loadSpeciesCatalog(
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
     );
+    final species = speciesCatalog.entries;
     final speciesById = <String, _RuntimeSpeciesPresentation>{
       for (final entry in species) entry.id: entry,
     };
@@ -78,23 +79,30 @@ final class RuntimePlayerPauseDataBuilder {
       gameState,
       resolvedItemCatalog,
     );
+    final mediaResolver = RuntimePokemonSummaryMediaResolver(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    );
     final pokedex = pokemonConfig.enabled
-        ? _buildPokedex(
+        ? await _buildPokedex(
             gameState,
             species,
             locale: locale,
             isFrench: isFrench,
+            mediaResolver: mediaResolver,
+            catalogInvalid: speciesCatalog.invalid,
           )
         : null;
-    final profile = _buildProfile(
+    final profile = await _buildProfile(
       gameState,
+      projectRootDirectory: projectRootDirectory,
       isFrench: isFrench,
       playtimeSeconds: playtimeSeconds,
       projectMaps: projectMaps,
       projectBadges: projectBadges,
       projectCharacters: projectCharacters,
       portraitLookup: portraitLookup,
-      pokedex: species.isEmpty ? null : pokedex,
+      pokedex: speciesCatalog.invalid ? null : pokedex,
       currencyLabel: currencyLabel,
     );
 
@@ -106,10 +114,7 @@ final class RuntimePlayerPauseDataBuilder {
       itemCatalog: resolvedItemCatalog,
       heldItemOptions: heldItemOptions,
       moveCatalog: moveCatalog,
-      mediaResolver: RuntimePokemonSummaryMediaResolver(
-        projectRootDirectory: projectRootDirectory,
-        pokemonConfig: pokemonConfig,
-      ),
+      mediaResolver: mediaResolver,
     );
     final bagTargets =
         _buildBagTargets(party, isFrench: isFrench, moveMachines: moveMachines);
@@ -153,8 +158,9 @@ final class RuntimePlayerPauseDataBuilder {
     );
   }
 
-  RuntimePlayerPauseDetailSnapshot _buildProfile(
+  Future<RuntimePlayerPauseDetailSnapshot> _buildProfile(
     GameState gameState, {
+    required String projectRootDirectory,
     required bool isFrench,
     required int? playtimeSeconds,
     required List<ProjectMapEntry> projectMaps,
@@ -163,8 +169,22 @@ final class RuntimePlayerPauseDataBuilder {
     required DialoguePortraitLookup? portraitLookup,
     required RuntimePlayerPauseDetailSnapshot? pokedex,
     required String? currencyLabel,
-  }) {
+  }) async {
     final trainer = gameState.trainerProfile;
+    final badges = <RuntimePlayerProfileBadgeSnapshot>[];
+    for (final id in trainer.badgeIds) {
+      final definition =
+          projectBadges?.where((badge) => badge.id == id).firstOrNull;
+      badges.add(RuntimePlayerProfileBadgeSnapshot(
+        id: id,
+        label:
+            definition?.label ?? (isFrench ? 'Badge obtenu' : 'Earned badge'),
+        iconFilePath: await _profileBadgeIcon(
+          definition?.iconRelativePath,
+          projectRootDirectory,
+        ),
+      ));
+    }
     final currentMap = projectMaps
         .where((entry) => entry.id == gameState.currentMapId)
         .firstOrNull;
@@ -192,7 +212,7 @@ final class RuntimePlayerPauseDataBuilder {
                   portraitStateId: character.portraits.first.portraitStateId)
               ?.absoluteFilePath,
       badgeIds: trainer.badgeIds,
-      badgeTotal: projectBadges?.length,
+      badges: badges,
       pokedex: dexEntries == null
           ? null
           : RuntimePlayerPokedexProgressSnapshot(
@@ -260,6 +280,27 @@ final class RuntimePlayerPauseDataBuilder {
         ],
       ],
     );
+  }
+
+  Future<String?> _profileBadgeIcon(String? rawPath, String projectRoot) async {
+    final relative = rawPath?.trim().replaceAll('\\', '/');
+    if (relative == null ||
+        relative.isEmpty ||
+        p.posix.isAbsolute(relative) ||
+        p.windows.isAbsolute(relative) ||
+        p.posix.split(relative).contains('..') ||
+        Uri.tryParse(relative)?.hasScheme == true) {
+      return null;
+    }
+    try {
+      final root = await Directory(projectRoot).resolveSymbolicLinks();
+      final file = File(p.join(root, relative));
+      if (!await file.exists()) return null;
+      final resolved = await file.resolveSymbolicLinks();
+      return p.isWithin(root, resolved) ? resolved : null;
+    } on FileSystemException {
+      return null;
+    }
   }
 
   RuntimePlayerPauseDetailSnapshot _buildMap(
@@ -807,12 +848,23 @@ final class RuntimePlayerPauseDataBuilder {
     return reasons;
   }
 
-  RuntimePlayerPauseDetailSnapshot _buildPokedex(
+  Future<RuntimePlayerPauseDetailSnapshot> _buildPokedex(
     GameState gameState,
     List<_RuntimeSpeciesPresentation> species, {
     required String locale,
     required bool isFrench,
-  }) {
+    required RuntimePokemonSummaryMediaResolver mediaResolver,
+    required bool catalogInvalid,
+  }) async {
+    if (catalogInvalid) {
+      return RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.pokedex,
+        title: 'Pokédex',
+        emptyMessage: isFrench
+            ? 'Le catalogue du Pokédex ne peut pas être lu. Vérifiez la configuration du jeu.'
+            : 'The Pokédex catalog could not be read. Check the game configuration.',
+      );
+    }
     final caught = <String>{
       ...gameState.progression.caughtSpeciesIds,
       ...gameState.party.members.map((pokemon) => pokemon.speciesId),
@@ -823,10 +875,33 @@ final class RuntimePlayerPauseDataBuilder {
       ...gameState.progression.seenSpeciesIds,
       ...caught,
     };
+    RuntimePokemonMediaIdentity identityFor(
+            _RuntimeSpeciesPresentation entry) =>
+        RuntimePokemonMediaIdentity(
+          speciesId: entry.id,
+          formId: entry.defaultFormId,
+          defaultFormId: entry.defaultFormId,
+          mediaRef: entry.mediaRef,
+        );
+    final revealed = species
+        .where((entry) => entry.enabled && seen.contains(entry.id))
+        .toList(growable: false);
+    final mediaById = <String, RuntimePokemonSummaryMediaSnapshot>{};
+    for (var offset = 0; offset < revealed.length; offset += 16) {
+      mediaById.addEntries(await Future.wait(revealed.skip(offset).take(16).map(
+            (entry) async => MapEntry(
+              entry.id,
+              await mediaResolver.resolve(identityFor(entry)),
+            ),
+          )));
+    }
     final entries = <RuntimePlayerDetailEntrySnapshot>[];
     for (final entry in species.where((entry) => entry.enabled)) {
       final isCaught = caught.contains(entry.id);
       final isSeen = seen.contains(entry.id);
+      final identity = isSeen ? identityFor(entry) : null;
+      final media =
+          mediaById[entry.id] ?? const RuntimePokemonSummaryMediaSnapshot();
       final knowledge = isFrench
           ? (isCaught ? 'Capturé' : (isSeen ? 'Vu' : 'Inconnu'))
           : (isCaught ? 'Caught' : (isSeen ? 'Seen' : 'Unknown'));
@@ -851,14 +926,9 @@ final class RuntimePlayerPauseDataBuilder {
                     ? RuntimePlayerPokedexKnowledge.seen
                     : RuntimePlayerPokedexKnowledge.unknown,
             nationalDex: entry.nationalDex,
-            identity: isSeen
-                ? RuntimePokemonMediaIdentity(
-                    speciesId: entry.id,
-                    formId: entry.defaultFormId,
-                    defaultFormId: entry.defaultFormId,
-                    mediaRef: entry.mediaRef,
-                  )
-                : null,
+            identity: identity,
+            media: media,
+            description: isSeen ? entry.description : null,
             typeIds: isSeen ? entry.types : const [],
           ),
         ),
@@ -874,21 +944,21 @@ final class RuntimePlayerPauseDataBuilder {
     );
   }
 
-  Future<List<_RuntimeSpeciesPresentation>> _loadSpeciesCatalog({
+  Future<_RuntimeSpeciesCatalog> _loadSpeciesCatalog({
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
   }) async {
-    if (!pokemonConfig.enabled) return const <_RuntimeSpeciesPresentation>[];
+    if (!pokemonConfig.enabled) return const _RuntimeSpeciesCatalog();
     final speciesDirectory = _resolveProjectDirectory(
       projectRootDirectory,
       pokemonConfig.speciesDir,
     );
     if (speciesDirectory == null) {
-      return const <_RuntimeSpeciesPresentation>[];
+      return const _RuntimeSpeciesCatalog(invalid: true);
     }
     try {
       if (!await speciesDirectory.exists()) {
-        return const <_RuntimeSpeciesPresentation>[];
+        return const _RuntimeSpeciesCatalog(invalid: true);
       }
       final files = <File>[];
       await for (final entity in speciesDirectory.list(followLinks: false)) {
@@ -931,12 +1001,16 @@ final class RuntimePlayerPauseDataBuilder {
         final byDex = leftDex.compareTo(rightDex);
         return byDex != 0 ? byDex : left.id.compareTo(right.id);
       });
-      final catalog = List<_RuntimeSpeciesPresentation>.unmodifiable(result);
+      final catalog = _RuntimeSpeciesCatalog(
+        entries: List<_RuntimeSpeciesPresentation>.unmodifiable(result),
+        invalid: presentations.any((entry) => entry == null) ||
+            result.map((entry) => entry.id).toSet().length != result.length,
+      );
       _speciesCatalogByDirectory[speciesDirectory.path] =
           _CachedSpeciesCatalog(signature: signature, catalog: catalog);
       return catalog;
     } on FileSystemException {
-      return const <_RuntimeSpeciesPresentation>[];
+      return const _RuntimeSpeciesCatalog(invalid: true);
     }
   }
 
@@ -989,6 +1063,7 @@ final class RuntimePlayerPauseDataBuilder {
         learnsetRef: _readNestedString(json, 'refs', 'learnset'),
         mediaRef: _readNestedString(json, 'refs', 'media'),
         defaultFormId: _readNestedString(json, 'forms', 'formId'),
+        description: _readNestedString(json, 'dexContent', 'flavorText'),
       );
     } on FormatException {
       return null;
@@ -1010,7 +1085,14 @@ final class _CachedSpeciesCatalog {
   });
 
   final String signature;
-  final List<_RuntimeSpeciesPresentation> catalog;
+  final _RuntimeSpeciesCatalog catalog;
+}
+
+final class _RuntimeSpeciesCatalog {
+  const _RuntimeSpeciesCatalog({this.entries = const [], this.invalid = false});
+
+  final List<_RuntimeSpeciesPresentation> entries;
+  final bool invalid;
 }
 
 final class _RuntimeSpeciesPresentation {
@@ -1024,6 +1106,7 @@ final class _RuntimeSpeciesPresentation {
     required this.learnsetRef,
     required this.mediaRef,
     required this.defaultFormId,
+    required this.description,
   });
 
   final String id;
@@ -1035,6 +1118,7 @@ final class _RuntimeSpeciesPresentation {
   final String? learnsetRef;
   final String? mediaRef;
   final String? defaultFormId;
+  final String? description;
 
   String nameFor(String locale) {
     final normalized = locale.toLowerCase().split(RegExp('[-_]')).first;

@@ -7,6 +7,130 @@ import 'package:map_runtime/map_runtime.dart';
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  test(
+      'pause projection failure replaces loading and supports resume and retry',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseDetailsLoader =
+        () async => throw StateError('invalid catalog');
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openMenu,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.failed);
+    expect(
+        harness.coordinator.snapshot
+            .unavailableReasonFor(RuntimePlayerAction.openPokedex),
+        contains('Lecture impossible'));
+    expect(
+        harness.coordinator.snapshot
+            .isActionEnabled(RuntimePlayerAction.resume),
+        isTrue);
+    await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.resume,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    harness.adapter.pauseDetailsLoader = null;
+    await _openMenu(harness);
+    expect(
+        harness.coordinator.snapshot
+            .unavailableReasonFor(RuntimePlayerAction.openPokedex),
+        isNot(contains('Lecture impossible')));
+  });
+
+  test('pause projection failure preserves hidden options and map on retry',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    final pauseMenuState = const PlayerPauseMenuState.empty()
+        .setActionVisibility(ProjectPauseActionId.options, visible: false)
+        .setActionVisibility(ProjectPauseActionId.map, visible: false);
+    harness.adapter.pauseMenuState = pauseMenuState;
+
+    for (final fail in [true, false]) {
+      harness.adapter.pauseDetailsLoader =
+          fail ? () async => throw StateError('invalid catalog') : null;
+      final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.openMenu,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+      expect(
+          result.status,
+          fail
+              ? RuntimePlayerCommandStatus.failed
+              : RuntimePlayerCommandStatus.accepted);
+      expect(harness.coordinator.snapshot.pauseMenuState, same(pauseMenuState));
+      expect(
+          harness.coordinator.snapshot.actions.map((entry) => entry.action),
+          isNot(contains(anyOf(
+              RuntimePlayerAction.openOptions, RuntimePlayerAction.openMap))));
+      expect(
+          harness.coordinator.snapshot
+              .isActionEnabled(RuntimePlayerAction.resume),
+          isTrue);
+      final rejected = await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.openOptions,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+      expect(rejected.status, RuntimePlayerCommandStatus.unavailable);
+      await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.resume,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+    }
+  });
+
+  test('pending pause projections show loading before actual availability',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    final started = Completer<void>();
+    final pending = Completer<
+        Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>();
+    harness.adapter.pauseDetailsLoader = () {
+      started.complete();
+      return pending.future;
+    };
+    final command = harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openMenu,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    await started.future;
+    expect(
+        harness.coordinator.snapshot
+            .unavailableReasonFor(RuntimePlayerAction.openPokedex),
+        contains('Chargement'));
+    expect(
+        harness.coordinator.snapshot
+            .unavailableReasonFor(RuntimePlayerAction.openProfile),
+        contains('Chargement'));
+    pending.complete({
+      RuntimePlayerPauseSection.pokedex: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.pokedex,
+        title: 'Pokédex',
+      ),
+      RuntimePlayerPauseSection.profile: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.profile,
+        title: 'Profile',
+        profile: RuntimePlayerProfileSnapshot(
+            playerName: 'Current', currentMapId: 'route', money: 7),
+      ),
+    });
+    expect((await command).status, RuntimePlayerCommandStatus.accepted);
+    expect(
+        harness.coordinator.snapshot
+            .isActionEnabled(RuntimePlayerAction.openPokedex),
+        isTrue);
+    expect(
+        harness.coordinator.snapshot
+            .isActionEnabled(RuntimePlayerAction.openProfile),
+        isTrue);
+  });
+
   for (final section in [
     RuntimePlayerPauseSection.bag,
     RuntimePlayerPauseSection.party,
@@ -19,9 +143,8 @@ void main() {
       await _openMenu(harness);
       final isBag = section == RuntimePlayerPauseSection.bag;
       await harness.coordinator.dispatch(RuntimePlayerCommand(
-        action: isBag
-            ? RuntimePlayerAction.openBag
-            : RuntimePlayerAction.openParty,
+        action:
+            isBag ? RuntimePlayerAction.openBag : RuntimePlayerAction.openParty,
         snapshotRevision: harness.coordinator.snapshot.revision,
       ));
       final started = Completer<void>();
@@ -38,7 +161,8 @@ void main() {
         snapshotRevision: harness.coordinator.snapshot.revision,
         payload: isBag
             ? const RuntimePlayerPauseCommand.useBagItem(
-                itemTargetId: 'potion', partyTargetId: 'pokemon.current',
+                itemTargetId: 'potion',
+                partyTargetId: 'pokemon.current',
               )
             : const RuntimePlayerPauseCommand.setPartyLead(
                 partyTargetId: 'pokemon.current',
@@ -52,7 +176,9 @@ void main() {
           section: RuntimePlayerPauseSection.profile,
           title: 'Profile',
           profile: RuntimePlayerProfileSnapshot(
-            playerName: 'Expired', currentMapId: 'old-map', money: 9,
+            playerName: 'Expired',
+            currentMapId: 'old-map',
+            money: 9,
           ),
         ),
       });
@@ -87,7 +213,9 @@ void main() {
         section: RuntimePlayerPauseSection.profile,
         title: 'Profile',
         profile: RuntimePlayerProfileSnapshot(
-          playerName: 'Expired', currentMapId: 'old-map', money: 9,
+          playerName: 'Expired',
+          currentMapId: 'old-map',
+          money: 9,
         ),
       ),
     });
@@ -106,7 +234,9 @@ void main() {
         section: RuntimePlayerPauseSection.profile,
         title: 'Profile',
         profile: RuntimePlayerProfileSnapshot(
-          playerName: 'Previous', currentMapId: 'route', money: 9,
+          playerName: 'Previous',
+          currentMapId: 'route',
+          money: 9,
         ),
       ),
     };
