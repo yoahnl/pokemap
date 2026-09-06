@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -5,6 +7,120 @@ import 'package:map_runtime/map_runtime.dart';
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  for (final section in [
+    RuntimePlayerPauseSection.bag,
+    RuntimePlayerPauseSection.party,
+  ]) {
+    test('late ${section.name} refresh cannot replace a disposed snapshot',
+        () async {
+      final harness = RuntimePlayerTestHarness();
+      addTearDown(harness.dispose);
+      await launchHarnessToPlaying(harness);
+      await _openMenu(harness);
+      final isBag = section == RuntimePlayerPauseSection.bag;
+      await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: isBag
+            ? RuntimePlayerAction.openBag
+            : RuntimePlayerAction.openParty,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+      final started = Completer<void>();
+      final pending = Completer<
+          Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>();
+      harness.adapter.pauseDetailsLoader = () {
+        started.complete();
+        return pending.future;
+      };
+      final command = harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: isBag
+            ? RuntimePlayerAction.useBagItem
+            : RuntimePlayerAction.reorderParty,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: isBag
+            ? const RuntimePlayerPauseCommand.useBagItem(
+                itemTargetId: 'potion', partyTargetId: 'pokemon.current',
+              )
+            : const RuntimePlayerPauseCommand.setPartyLead(
+                partyTargetId: 'pokemon.current',
+              ),
+      ));
+      await started.future;
+      await harness.coordinator.dispose();
+      final disposedSnapshot = harness.coordinator.snapshot;
+      pending.complete({
+        RuntimePlayerPauseSection.profile: RuntimePlayerPauseDetailSnapshot(
+          section: RuntimePlayerPauseSection.profile,
+          title: 'Profile',
+          profile: RuntimePlayerProfileSnapshot(
+            playerName: 'Expired', currentMapId: 'old-map', money: 9,
+          ),
+        ),
+      });
+      final result = await command;
+      expect(result.status, RuntimePlayerCommandStatus.cancelled);
+      expect(harness.coordinator.snapshot, same(disposedSnapshot));
+      expect(harness.coordinator.snapshot.playerProfile, isNull);
+      expect(harness.adapter.pauseCommands, hasLength(1));
+    });
+  }
+
+  test('late pause data cannot replace a disposed player snapshot', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    final started = Completer<void>();
+    final pending = Completer<
+        Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>();
+    harness.adapter.pauseDetailsLoader = () {
+      started.complete();
+      return pending.future;
+    };
+    final command = harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openMenu,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    await started.future;
+    await harness.coordinator.dispose();
+    final disposedSnapshot = harness.coordinator.snapshot;
+    pending.complete({
+      RuntimePlayerPauseSection.profile: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.profile,
+        title: 'Profile',
+        profile: RuntimePlayerProfileSnapshot(
+          playerName: 'Expired', currentMapId: 'old-map', money: 9,
+        ),
+      ),
+    });
+    final result = await command;
+    expect(result.status, RuntimePlayerCommandStatus.cancelled);
+    expect(harness.coordinator.snapshot, same(disposedSnapshot));
+    expect(harness.coordinator.snapshot.playerProfile, isNull);
+  });
+
+  test('returning to title clears the previous session profile', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseDetails = {
+      RuntimePlayerPauseSection.profile: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.profile,
+        title: 'Profile',
+        profile: RuntimePlayerProfileSnapshot(
+          playerName: 'Previous', currentMapId: 'route', money: 9,
+        ),
+      ),
+    };
+    await _openMenu(harness);
+    expect(harness.coordinator.snapshot.playerProfile, isNotNull);
+    await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.returnToTitle,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+    expect(harness.coordinator.snapshot.playerProfile, isNull);
+    expect(harness.coordinator.snapshot.pauseDetails, isEmpty);
+  });
+
   test('openMenu pauses the session before publishing the pause root',
       () async {
     final harness = RuntimePlayerTestHarness();
@@ -54,7 +170,9 @@ void main() {
         RuntimePlayerAction.openBag,
         RuntimePlayerAction.useBagItem,
         RuntimePlayerAction.openPokedex,
+        RuntimePlayerAction.openQuests,
         RuntimePlayerAction.openMap,
+        RuntimePlayerAction.openProfile,
         RuntimePlayerAction.save,
         RuntimePlayerAction.openOptions,
         RuntimePlayerAction.updatePreferences,
@@ -98,6 +216,131 @@ void main() {
       harness.coordinator.snapshot.preferences?.touchControlsOpacity,
       0.45,
     );
+  });
+
+  test('profile navigation shares root data and preserves command guards',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    final profile = RuntimePlayerProfileSnapshot(
+      playerName: 'Live player',
+      currentMapId: 'route',
+      money: 45,
+      playtimeSeconds: 105,
+    );
+    harness.adapter.pauseDetails = {
+      RuntimePlayerPauseSection.profile: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.profile,
+        title: 'Profil',
+        profile: profile,
+      ),
+    };
+    await _openMenu(harness);
+    final rootRevision = harness.coordinator.snapshot.revision;
+    expect(harness.coordinator.snapshot.playerProfile, same(profile));
+    expect(
+        harness.coordinator.snapshot.isActionEnabled(
+          RuntimePlayerAction.openProfile,
+        ),
+        isTrue);
+    expect(
+        harness.coordinator.snapshot.isActionEnabled(
+          RuntimePlayerAction.openQuests,
+        ),
+        isFalse);
+    final rejected = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openQuests,
+      snapshotRevision: rootRevision,
+    ));
+    expect(rejected.status, RuntimePlayerCommandStatus.unavailable);
+    expect(rejected.safeMessage, isNotEmpty);
+    expect(harness.coordinator.snapshot.revision, rootRevision);
+
+    final opened = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openProfile,
+      snapshotRevision: rootRevision,
+    ));
+    expect(opened.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.coordinator.snapshot.pauseSection,
+        RuntimePlayerPauseSection.profile);
+    final stale = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openParty,
+      snapshotRevision: rootRevision,
+    ));
+    expect(stale.status, RuntimePlayerCommandStatus.stale);
+    await harness.coordinator.requestBack(
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    );
+    expect(harness.coordinator.snapshot.pauseSection,
+        RuntimePlayerPauseSection.root);
+    expect(harness.coordinator.snapshot.playerProfile, same(profile));
+    expect(harness.adapter.pauseCommands, isEmpty);
+    await harness.coordinator.requestBack(
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    );
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.playing);
+    expect(harness.coordinator.snapshot.playerProfile, isNull);
+  });
+
+  test('profile without a typed projection remains unavailable', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseDetails = {
+      RuntimePlayerPauseSection.profile: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.profile,
+        title: 'Profile',
+      ),
+    };
+    await _openMenu(harness);
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openProfile,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.unavailable);
+    expect(result.safeMessage, isNotEmpty);
+    expect(harness.coordinator.snapshot.pauseSection,
+        RuntimePlayerPauseSection.root);
+  });
+
+  test(
+      'narrative override hides profile while retaining root summary and resume',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    final profile = RuntimePlayerProfileSnapshot(
+      playerName: 'Current',
+      currentMapId: 'route',
+      money: 1,
+    );
+    harness.adapter.pauseDetails = {
+      RuntimePlayerPauseSection.profile: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.profile,
+        title: 'Profil',
+        profile: profile,
+      ),
+    };
+    harness.adapter.pauseMenuState = const PlayerPauseMenuState.empty()
+        .setActionVisibility(ProjectPauseActionId.profile, visible: false)
+        .setActionVisibility(ProjectPauseActionId.quests, visible: false);
+    await _openMenu(harness);
+    expect(harness.coordinator.snapshot.playerProfile, same(profile));
+    expect(
+        harness.coordinator.snapshot.actions.map((entry) => entry.action),
+        isNot(contains(anyOf(
+            RuntimePlayerAction.openProfile, RuntimePlayerAction.openQuests))));
+    expect(
+        harness.coordinator.snapshot
+            .isActionEnabled(RuntimePlayerAction.resume),
+        isTrue);
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openProfile,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.unavailable);
+    expect(harness.adapter.pauseCommands, isEmpty);
   });
 
   test('pause surfaces receive live data from the active runtime', () async {

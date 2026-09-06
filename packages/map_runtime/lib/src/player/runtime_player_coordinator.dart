@@ -129,7 +129,9 @@ final class RuntimePlayerCoordinator {
         case RuntimePlayerAction.useBagItem:
         case RuntimePlayerAction.reorderParty:
         case RuntimePlayerAction.openPokedex:
+        case RuntimePlayerAction.openQuests:
         case RuntimePlayerAction.openMap:
+        case RuntimePlayerAction.openProfile:
         case RuntimePlayerAction.openOptions:
         case RuntimePlayerAction.updatePreferences:
         case RuntimePlayerAction.returnToPauseRoot:
@@ -354,12 +356,28 @@ final class RuntimePlayerCoordinator {
             ? _launchNewGame(retry)
             : _launch(retry);
       case RuntimePlayerAction.openMenu:
+        final pauseSessionId = _sessions.snapshot.descriptor?.sessionId;
         await _sessions.pause();
+        if (!_canPublishPauseData(pauseSessionId)) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
+          );
+        }
         final pauseMenuState = await _sessions.loadPauseMenuState();
+        if (!_canPublishPauseData(pauseSessionId)) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
+          );
+        }
         final pauseDetails = Map<RuntimePlayerPauseSection,
             RuntimePlayerPauseDetailSnapshot>.from(
           await _sessions.loadPauseDetails(),
         );
+        if (!_canPublishPauseData(pauseSessionId)) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
+          );
+        }
         _publishPause(
           RuntimePlayerPauseSection.root,
           pauseMenuState: pauseMenuState,
@@ -406,13 +424,24 @@ final class RuntimePlayerCoordinator {
             safeMessage: 'Deux membres de l’équipe valides sont requis.',
           );
         }
+        final reorderSessionId = _sessions.snapshot.descriptor?.sessionId;
         final reorderResult =
             await _sessions.dispatchPauseCommand(reorderCommand);
+        if (!_canPublishPauseData(reorderSessionId)) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
+          );
+        }
         final reorderDetails = Map<RuntimePlayerPauseSection,
             RuntimePlayerPauseDetailSnapshot>.from(
           await _sessions.loadPauseDetails(),
         );
         final party = reorderDetails[RuntimePlayerPauseSection.party];
+        if (!_canPublishPauseData(reorderSessionId)) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
+          );
+        }
         if (party != null) {
           reorderDetails[RuntimePlayerPauseSection.party] =
               party.withMessage(reorderResult.safeMessage);
@@ -442,12 +471,23 @@ final class RuntimePlayerCoordinator {
             safeMessage: 'Un objet du sac et une cible valides sont requis.',
           );
         }
+        final bagSessionId = _sessions.snapshot.descriptor?.sessionId;
         final result = await _sessions.dispatchPauseCommand(pauseCommand);
+        if (!_canPublishPauseData(bagSessionId)) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
+          );
+        }
         final pauseDetails = Map<RuntimePlayerPauseSection,
             RuntimePlayerPauseDetailSnapshot>.from(
           await _sessions.loadPauseDetails(),
         );
         final bag = pauseDetails[RuntimePlayerPauseSection.bag];
+        if (!_canPublishPauseData(bagSessionId)) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
+          );
+        }
         if (bag != null) {
           pauseDetails[RuntimePlayerPauseSection.bag] =
               bag.withMessage(result.safeMessage);
@@ -483,6 +523,19 @@ final class RuntimePlayerCoordinator {
         );
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
+        );
+      case RuntimePlayerAction.openProfile:
+        _publishPause(
+          RuntimePlayerPauseSection.profile,
+          logicalSelectionId: 'pause.profile',
+        );
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
+      case RuntimePlayerAction.openQuests:
+        return RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.unavailable,
+          safeMessage: _questsUnavailableReason,
         );
       case RuntimePlayerAction.openOptions:
         if (_snapshot.phase == RuntimePlayerPhase.title) {
@@ -1389,6 +1442,7 @@ final class RuntimePlayerCoordinator {
         phase: RuntimePlayerPhase.title,
         clearPreSessionRequest: true,
         clearPauseSection: true,
+        clearPauseDetails: true,
         clearLoadingProgress: true,
         failure: failure,
         clearFailure: failure == null,
@@ -1625,6 +1679,23 @@ final class RuntimePlayerCoordinator {
             RuntimePlayerAction.openMap,
             reason: 'This game does not provide a player map.',
           ),
+      if (_isPauseActionVisible(ProjectPauseActionId.quests, pauseMenuState))
+        RuntimePlayerActionAvailability.disabled(
+          RuntimePlayerAction.openQuests,
+          reason: _questsUnavailableReason,
+        ),
+      if (_isPauseActionVisible(ProjectPauseActionId.profile, pauseMenuState))
+        if (pauseDetails[RuntimePlayerPauseSection.profile]?.profile != null)
+          const RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openProfile,
+          )
+        else
+          RuntimePlayerActionAvailability.disabled(
+            RuntimePlayerAction.openProfile,
+            reason: _isFrench
+                ? 'Le profil de cette partie n’est pas disponible.'
+                : 'The current player profile is unavailable.',
+          ),
       if (_isPauseActionVisible(ProjectPauseActionId.save, pauseMenuState))
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.save,
@@ -1667,6 +1738,20 @@ final class RuntimePlayerCoordinator {
             .contains(capability) ??
         false;
   }
+
+  bool _canPublishPauseData(String? sessionId) =>
+      !_disposed &&
+      _sessions.snapshot.state == GameSessionState.paused &&
+      _sessions.snapshot.descriptor?.sessionId == sessionId;
+
+  bool get _isFrench =>
+      (_preferences?.locale ?? _sessions.snapshot.descriptor?.locale ?? 'en')
+          .toLowerCase()
+          .startsWith('fr');
+
+  String get _questsUnavailableReason => _isFrench
+      ? 'Ce jeu ne propose pas encore de journal de quêtes.'
+      : 'This game does not provide a quest journal yet.';
 
   static const _cancelActions = <RuntimePlayerActionAvailability>[
     RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),

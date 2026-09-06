@@ -129,6 +129,16 @@ void main() {
               icon: ProjectPauseActionIcon.book,
             ),
             ProjectPauseActionProfile(
+              id: ProjectPauseActionId.quests,
+              label: 'Journal',
+              icon: ProjectPauseActionIcon.book,
+            ),
+            ProjectPauseActionProfile(
+              id: ProjectPauseActionId.profile,
+              label: 'Dresseur',
+              icon: ProjectPauseActionIcon.person,
+            ),
+            ProjectPauseActionProfile(
               id: ProjectPauseActionId.resume,
               icon: ProjectPauseActionIcon.play,
             ),
@@ -198,6 +208,12 @@ void main() {
       expect(first.manifest.branding?.icon, 'presentation/icon.png');
       expect(first.manifest.branding?.accentColor, '#126E78');
       expect(first.manifest.presentation?.pause?.title, 'Interlude');
+      expect(
+        first.manifest.presentation?.pause?.actions
+            ?.where((action) => action.id == 'quests' || action.id == 'profile')
+            .map((action) => action.label),
+        <String>['Journal', 'Dresseur'],
+      );
       expect(
         first.manifest.presentation?.pause?.actions?.first.label,
         'Carnet',

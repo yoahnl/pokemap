@@ -134,6 +134,8 @@ final class GamePackageMenuLabels {
     this.bag,
     this.pokedex,
     this.map,
+    this.quests,
+    this.profile,
     this.save,
     this.options,
     this.returnToTitle,
@@ -145,6 +147,8 @@ final class GamePackageMenuLabels {
   final String? bag;
   final String? pokedex;
   final String? map;
+  final String? quests;
+  final String? profile;
   final String? save;
   final String? options;
   final String? returnToTitle;
@@ -156,6 +160,8 @@ final class GamePackageMenuLabels {
         if (bag != null) 'bag': bag,
         if (pokedex != null) 'pokedex': pokedex,
         if (map != null) 'map': map,
+        if (quests != null) 'quests': quests,
+        if (profile != null) 'profile': profile,
         if (save != null) 'save': save,
         if (options != null) 'options': options,
         if (returnToTitle != null) 'returnToTitle': returnToTitle,

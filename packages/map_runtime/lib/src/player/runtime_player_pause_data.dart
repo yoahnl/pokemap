@@ -10,8 +10,98 @@ enum RuntimePlayerPauseSection {
   party,
   bag,
   pokedex,
+  quests,
   map,
+  profile,
   options,
+}
+
+final class RuntimePlayerPokedexProgressSnapshot {
+  const RuntimePlayerPokedexProgressSnapshot({
+    required this.seen,
+    required this.caught,
+    required this.total,
+  })  : assert(caught >= 0),
+        assert(seen >= caught),
+        assert(total >= seen);
+
+  final int seen;
+  final int caught;
+  final int total;
+}
+
+final class RuntimePlayerProfileSnapshot {
+  RuntimePlayerProfileSnapshot({
+    required this.playerName,
+    required this.currentMapId,
+    required this.money,
+    this.playtimeSeconds,
+    this.locationName,
+    this.avatarCharacterId,
+    this.pronounSet = PlayerPronounSet.neutral,
+    List<CharacterPortraitVariant> portraits = const [],
+    List<String> badgeIds = const [],
+    this.badgeTotal,
+    this.pokedex,
+    this.currencyLabel,
+  })  : portraits = List<CharacterPortraitVariant>.unmodifiable(portraits),
+        badgeIds = List<String>.unmodifiable(badgeIds),
+        assert(playerName != ''),
+        assert(money >= 0),
+        assert(playtimeSeconds == null || playtimeSeconds >= 0),
+        assert(badgeTotal == null || badgeTotal >= 0);
+
+  final String playerName;
+  final String currentMapId;
+  final int money;
+  final int? playtimeSeconds;
+  final String? locationName;
+  final String? avatarCharacterId;
+  final PlayerPronounSet pronounSet;
+  final List<CharacterPortraitVariant> portraits;
+  final List<String> badgeIds;
+  final int? badgeTotal;
+  final RuntimePlayerPokedexProgressSnapshot? pokedex;
+  final String? currencyLabel;
+}
+
+final class RuntimePlayerBagItemSnapshot {
+  const RuntimePlayerBagItemSnapshot({
+    required this.itemId,
+    required this.quantity,
+    required this.sortOrder,
+    this.pocketId,
+    this.description,
+  })  : assert(itemId != ''),
+        assert(quantity > 0),
+        assert(sortOrder >= 0);
+
+  final String itemId;
+  final int quantity;
+  final int sortOrder;
+  final String? pocketId;
+  final String? description;
+}
+
+enum RuntimePlayerPokedexKnowledge { unknown, seen, caught }
+
+final class RuntimePlayerPokedexEntrySnapshot {
+  RuntimePlayerPokedexEntrySnapshot({
+    required this.knowledge,
+    this.nationalDex,
+    this.identity,
+    List<String> typeIds = const [],
+  }) : typeIds = List<String>.unmodifiable(typeIds) {
+    if (knowledge == RuntimePlayerPokedexKnowledge.unknown &&
+        (identity != null || typeIds.isNotEmpty)) {
+      throw ArgumentError('Unknown species cannot expose identity or types.');
+    }
+  }
+
+  final RuntimePlayerPokedexKnowledge knowledge;
+  final int? nationalDex;
+  final RuntimePokemonMediaIdentity? identity;
+  final List<String> typeIds;
 }
 
 enum RuntimePlayerBagUseTargetKind {
@@ -128,6 +218,8 @@ final class RuntimePlayerDetailEntrySnapshot {
     this.bagAction,
     this.heldItemAction,
     this.pokemonSummary,
+    this.bagItem,
+    this.pokedexEntry,
   }) {
     if (id.trim().isEmpty || title.trim().isEmpty) {
       throw ArgumentError('Detail entry id and title must not be empty.');
@@ -148,6 +240,8 @@ final class RuntimePlayerDetailEntrySnapshot {
   final double? progress;
   final RuntimePlayerBagItemActionSnapshot? bagAction;
   final RuntimePlayerHeldItemActionSnapshot? heldItemAction;
+  final RuntimePlayerBagItemSnapshot? bagItem;
+  final RuntimePlayerPokedexEntrySnapshot? pokedexEntry;
 
   /// Présente uniquement sur une entrée d'équipe : la fiche canonique que le PC
   /// affiche pour le même individu.
@@ -163,6 +257,7 @@ final class RuntimePlayerPauseDetailSnapshot {
         const <RuntimePlayerDetailEntrySnapshot>[],
     this.emptyMessage,
     this.message,
+    this.profile,
     List<RuntimePlayerBagPartyTargetSnapshot> bagTargets =
         const <RuntimePlayerBagPartyTargetSnapshot>[],
   })  : entries = List<RuntimePlayerDetailEntrySnapshot>.unmodifiable(entries),
@@ -185,6 +280,7 @@ final class RuntimePlayerPauseDetailSnapshot {
   final List<RuntimePlayerDetailEntrySnapshot> entries;
   final String? emptyMessage;
   final String? message;
+  final RuntimePlayerProfileSnapshot? profile;
   final List<RuntimePlayerBagPartyTargetSnapshot> bagTargets;
 
   RuntimePlayerPauseDetailSnapshot withMessage(String? message) =>
@@ -194,6 +290,7 @@ final class RuntimePlayerPauseDetailSnapshot {
         entries: entries,
         emptyMessage: emptyMessage,
         message: message,
+        profile: profile,
         bagTargets: bagTargets,
       );
 }

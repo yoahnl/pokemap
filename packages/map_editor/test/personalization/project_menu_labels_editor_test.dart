@@ -5,6 +5,38 @@ import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 
 void main() {
+  testWidgets('edits quests and profile overrides independently', (
+    tester,
+  ) async {
+    ProjectMenuLabelsProfile? value;
+    await tester.pumpWidget(
+      _app(
+        ProjectMenuLabelsEditor(
+          profile: const ProjectMenuLabelsProfile(),
+          onChanged: (next) => value = next,
+        ),
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('menu-label-quests')),
+      'Journal',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('menu-label-profile')),
+      'Dresseur',
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(value?.quests, 'Journal');
+    expect(value?.profile, 'Dresseur');
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('menu-label-quests')),
+      '',
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(value?.quests, isNull);
+    expect(value?.profile, 'Dresseur');
+  });
+
   testWidgets('coalesces rapid label typing into one committed profile', (
     tester,
   ) async {

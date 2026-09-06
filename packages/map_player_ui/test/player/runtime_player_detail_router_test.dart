@@ -10,6 +10,8 @@ void main() {
     RuntimePlayerPauseSection.bag,
     RuntimePlayerPauseSection.pokedex,
     RuntimePlayerPauseSection.map,
+    RuntimePlayerPauseSection.quests,
+    RuntimePlayerPauseSection.profile,
   ]) {
     testWidgets('${section.name} renders runtime-provided detail data',
         (tester) async {
@@ -802,6 +804,8 @@ RuntimePlayerAction _actionFor(RuntimePlayerPauseSection section) =>
       RuntimePlayerPauseSection.bag => RuntimePlayerAction.openBag,
       RuntimePlayerPauseSection.pokedex => RuntimePlayerAction.openPokedex,
       RuntimePlayerPauseSection.map => RuntimePlayerAction.openMap,
+      RuntimePlayerPauseSection.quests => RuntimePlayerAction.openQuests,
+      RuntimePlayerPauseSection.profile => RuntimePlayerAction.openProfile,
       RuntimePlayerPauseSection.options => RuntimePlayerAction.openOptions,
       RuntimePlayerPauseSection.root => throw ArgumentError('root'),
     };

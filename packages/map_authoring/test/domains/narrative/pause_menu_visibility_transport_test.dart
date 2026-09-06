@@ -6,6 +6,27 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final action in <ProjectPauseActionId>[
+    ProjectPauseActionId.quests,
+    ProjectPauseActionId.profile,
+  ]) {
+    test('${action.name} visibility executes through direct API and JSONL',
+        () async {
+      final direct =
+          await _PauseMenuVisibilityHarness.create('direct-${action.name}');
+      final jsonl =
+          await _PauseMenuVisibilityHarness.create('jsonl-${action.name}');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      await direct.executeDirect(action: action);
+      await jsonl.executeJsonl(action: action);
+      final expected = SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: action, visible: false);
+      expect(await direct.consequence(), expected);
+      expect(await jsonl.consequence(), expected);
+    });
+  }
+
   test('pause menu visibility executes through direct API and JSONL', () async {
     final direct = await _PauseMenuVisibilityHarness.create('direct');
     final jsonl = await _PauseMenuVisibilityHarness.create('jsonl');
@@ -74,7 +95,8 @@ final class _PauseMenuVisibilityHarness {
     );
   }
 
-  Future<Map<String, Object?>> executeDirect() async {
+  Future<Map<String, Object?>> executeDirect(
+      {ProjectPauseActionId action = ProjectPauseActionId.pokedex}) async {
     final opened = await readApi.openProject(root.path);
     await mutations.attachProject(
       projectRootPath: root.path,
@@ -88,6 +110,7 @@ final class _PauseMenuVisibilityHarness {
         workspaceHandle: opened.workspaceHandle.value,
         revision: snapshot.revision,
         suffix: 'direct',
+        action: action,
       ),
     );
     final applied = await mutations.apply(
@@ -98,7 +121,8 @@ final class _PauseMenuVisibilityHarness {
     return Map<String, Object?>.from(applied['receipt']! as Map);
   }
 
-  Future<Map<String, Object?>> executeJsonl() async {
+  Future<Map<String, Object?>> executeJsonl(
+      {ProjectPauseActionId action = ProjectPauseActionId.pokedex}) async {
     final opened = await _jsonl('open', <String, Object?>{
       'projectRoot': root.path,
     });
@@ -111,6 +135,7 @@ final class _PauseMenuVisibilityHarness {
         workspaceHandle: workspaceHandle,
         revision: snapshot.revision,
         suffix: 'jsonl',
+        action: action,
       ).toJson(),
     });
     final applied = await _jsonl('apply', <String, Object?>{
@@ -125,16 +150,17 @@ final class _PauseMenuVisibilityHarness {
     required String workspaceHandle,
     required String revision,
     required String suffix,
+    required ProjectPauseActionId action,
   }) =>
       AuthoringRequest(
         requestId: 'pause-menu-visibility-$suffix',
         actionId: 'scene.pause_menu_visibility.set',
         actionVersion: 1,
         workspaceHandle: workspaceHandle,
-        parameters: const <String, Object?>{
+        parameters: <String, Object?>{
           'sceneId': 'intro_scene',
           'nodeId': 'action',
-          'actionId': 'pokedex',
+          'actionId': action.name,
           'visible': false,
         },
         expectedRevision: revision,

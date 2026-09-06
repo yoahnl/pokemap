@@ -15,7 +15,9 @@ enum PlayerPauseAction {
   party,
   bag,
   pokedex,
+  quests,
   map,
+  profile,
   save,
   options,
   returnToTitle,
@@ -29,6 +31,8 @@ final class PlayerPauseMenuLabels {
     this.bag,
     this.pokedex,
     this.map,
+    this.quests,
+    this.profile,
     this.save,
     this.options,
     this.returnToTitle,
@@ -40,6 +44,8 @@ final class PlayerPauseMenuLabels {
   final String? bag;
   final String? pokedex;
   final String? map;
+  final String? quests;
+  final String? profile;
   final String? save;
   final String? options;
   final String? returnToTitle;
@@ -56,6 +62,8 @@ final class PlayerPauseMenuLabels {
         PlayerPauseAction.bag => bag ?? l10n.bag,
         PlayerPauseAction.pokedex => pokedex ?? l10n.pokedex,
         PlayerPauseAction.map => map ?? l10n.map,
+        PlayerPauseAction.quests => quests ?? l10n.quests,
+        PlayerPauseAction.profile => profile ?? l10n.profile,
         PlayerPauseAction.save => save ?? l10n.save,
         PlayerPauseAction.options => options ?? l10n.options,
         PlayerPauseAction.returnToTitle => returnToTitle ?? l10n.returnToTitle,
@@ -111,6 +119,9 @@ final class PlayerPausePresentation {
           if (labels.pokedex case final value?)
             PlayerPauseAction.pokedex: value,
           if (labels.map case final value?) PlayerPauseAction.map: value,
+          if (labels.quests case final value?) PlayerPauseAction.quests: value,
+          if (labels.profile case final value?)
+            PlayerPauseAction.profile: value,
           if (labels.save case final value?) PlayerPauseAction.save: value,
           if (labels.options case final value?)
             PlayerPauseAction.options: value,
@@ -167,6 +178,7 @@ final class PlayerPausePresentation {
         ProjectPauseActionIcon.bag => Icons.backpack_rounded,
         ProjectPauseActionIcon.book => Icons.menu_book_rounded,
         ProjectPauseActionIcon.map => Icons.map_rounded,
+        ProjectPauseActionIcon.person => Icons.person_rounded,
         ProjectPauseActionIcon.save => Icons.save_rounded,
         ProjectPauseActionIcon.settings => Icons.tune_rounded,
         ProjectPauseActionIcon.exit => Icons.logout_rounded,
@@ -179,6 +191,8 @@ PlayerPauseAction _pauseAction(ProjectPauseActionId id) => switch (id) {
       ProjectPauseActionId.bag => PlayerPauseAction.bag,
       ProjectPauseActionId.pokedex => PlayerPauseAction.pokedex,
       ProjectPauseActionId.map => PlayerPauseAction.map,
+      ProjectPauseActionId.quests => PlayerPauseAction.quests,
+      ProjectPauseActionId.profile => PlayerPauseAction.profile,
       ProjectPauseActionId.save => PlayerPauseAction.save,
       ProjectPauseActionId.options => PlayerPauseAction.options,
       ProjectPauseActionId.returnToTitle => PlayerPauseAction.returnToTitle,
@@ -191,6 +205,8 @@ ProjectPauseActionId _projectPauseAction(PlayerPauseAction action) =>
       PlayerPauseAction.bag => ProjectPauseActionId.bag,
       PlayerPauseAction.pokedex => ProjectPauseActionId.pokedex,
       PlayerPauseAction.map => ProjectPauseActionId.map,
+      PlayerPauseAction.quests => ProjectPauseActionId.quests,
+      PlayerPauseAction.profile => ProjectPauseActionId.profile,
       PlayerPauseAction.save => ProjectPauseActionId.save,
       PlayerPauseAction.options => ProjectPauseActionId.options,
       PlayerPauseAction.returnToTitle => ProjectPauseActionId.returnToTitle,
@@ -203,6 +219,8 @@ ProjectPauseActionIcon _defaultPauseActionIcon(PlayerPauseAction action) =>
       PlayerPauseAction.bag => ProjectPauseActionIcon.bag,
       PlayerPauseAction.pokedex => ProjectPauseActionIcon.book,
       PlayerPauseAction.map => ProjectPauseActionIcon.map,
+      PlayerPauseAction.quests => ProjectPauseActionIcon.book,
+      PlayerPauseAction.profile => ProjectPauseActionIcon.person,
       PlayerPauseAction.save => ProjectPauseActionIcon.save,
       PlayerPauseAction.options => ProjectPauseActionIcon.settings,
       PlayerPauseAction.returnToTitle => ProjectPauseActionIcon.exit,

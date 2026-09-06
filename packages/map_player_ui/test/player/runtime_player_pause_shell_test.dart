@@ -5,6 +5,41 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('pause preview refuses unavailable quests', (tester) async {
+    await _setSurface(tester, const Size(390, 844));
+    PlayerPauseAction? selected;
+    const reason = 'Le journal de quêtes n’est pas encore disponible.';
+    await tester.pumpWidget(_app(PlayerPausePreviewShell(
+      gameTitle: 'Aube',
+      actions: <PlayerPauseAction, PlayerActionAvailability>{
+        ..._actions(),
+        PlayerPauseAction.quests:
+            const PlayerActionAvailability.disabled(reason),
+      },
+      presentation: const PlayerPausePresentation(),
+      details: const <PlayerPauseAction, PlayerPausePreviewDetailData>{
+        PlayerPauseAction.quests: PlayerPausePreviewDetailData(
+          action: PlayerPauseAction.quests,
+          title: 'Quêtes',
+          message: 'Aucun moteur disponible',
+        ),
+      },
+      onSelected: (action) => selected = action,
+    )));
+    final button = find.byKey(const ValueKey<String>('pause.quests'));
+    await tester.ensureVisible(button);
+    final control = tester.widget<PlayerActionButton>(button);
+    expect(control.onPressed, isNull);
+    expect(control.disabledReason, reason);
+    await tester.tap(button);
+    await tester.pump();
+    expect(selected, isNull);
+    expect(
+        find.byKey(
+            const ValueKey<String>('player-pause-preview-detail-quests')),
+        findsNothing);
+  });
+
   test('layout classification uses available constraints only', () {
     expect(
       classifyRuntimePlayerLayout(

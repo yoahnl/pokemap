@@ -40,7 +40,9 @@ enum RuntimePlayerAction {
   /// RuntimePlayerPauseCommand (reorderPartyMember ou setPartyLead) en payload.
   reorderParty,
   openPokedex,
+  openQuests,
   openMap,
+  openProfile,
   save,
   openOptions,
   updatePreferences,
@@ -286,6 +288,9 @@ final class RuntimePlayerSnapshot {
     RuntimePlayerPauseSection section,
   ) =>
       pauseDetails[section];
+
+  RuntimePlayerProfileSnapshot? get playerProfile =>
+      pauseDetails[RuntimePlayerPauseSection.profile]?.profile;
 
   RuntimePlayerSnapshot next({
     RuntimePlayerPhase? phase,

@@ -34,12 +34,35 @@ final class PlayerPausePreviewDetailData {
     required this.action,
     required this.title,
     required this.message,
+    this.profile,
     this.entries = const <PlayerPausePreviewEntryData>[],
   });
+
+  factory PlayerPausePreviewDetailData.demonstrationProfile() =>
+      PlayerPausePreviewDetailData(
+        action: PlayerPauseAction.profile,
+        title: 'Profil',
+        message: 'Profil de démonstration, aperçu uniquement.',
+        profile: RuntimePlayerProfileSnapshot(
+          playerName: 'Camille',
+          currentMapId: 'preview-village',
+          money: 3000,
+          playtimeSeconds: 1800,
+          locationName: 'Village de démonstration',
+        ),
+        entries: const <PlayerPausePreviewEntryData>[
+          PlayerPausePreviewEntryData(
+            id: 'profile.player',
+            title: 'Camille',
+            subtitle: 'Village de démonstration',
+          ),
+        ],
+      );
 
   final PlayerPauseAction action;
   final String title;
   final String message;
+  final RuntimePlayerProfileSnapshot? profile;
   final List<PlayerPausePreviewEntryData> entries;
 }
 
@@ -132,6 +155,10 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
   }
 
   void _openDetail(PlayerPauseAction action) {
+    if (widget.actions[action]?.isEnabled != true ||
+        !widget.details.containsKey(action)) {
+      return;
+    }
     widget.onSelected(action);
     setState(() {
       _selectedAction = action;
@@ -217,7 +244,13 @@ RuntimePlayerSnapshot _snapshot(
           )
         : null,
     actions: <RuntimePlayerActionAvailability>[
-      RuntimePlayerActionAvailability.enabled(_runtimeActionFor(section)),
+      if (section == RuntimePlayerPauseSection.quests)
+        RuntimePlayerActionAvailability.disabled(
+          RuntimePlayerAction.openQuests,
+          reason: 'Le journal de quêtes n’est pas encore disponible.',
+        )
+      else
+        RuntimePlayerActionAvailability.enabled(_runtimeActionFor(section)),
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.updatePreferences,
       ),
@@ -230,6 +263,7 @@ RuntimePlayerSnapshot _snapshot(
         section: RuntimePlayerPauseDetailSnapshot(
           section: section,
           title: data.title,
+          profile: data.profile,
           message:
               section == RuntimePlayerPauseSection.map ? data.message : null,
           entries: <RuntimePlayerDetailEntrySnapshot>[
@@ -252,6 +286,8 @@ bool _isRuntimeSection(PlayerPauseAction action) => switch (action) {
       PlayerPauseAction.bag ||
       PlayerPauseAction.pokedex ||
       PlayerPauseAction.map ||
+      PlayerPauseAction.quests ||
+      PlayerPauseAction.profile ||
       PlayerPauseAction.options =>
         true,
       PlayerPauseAction.resume ||
@@ -266,6 +302,8 @@ RuntimePlayerPauseSection _sectionFor(PlayerPauseAction action) =>
       PlayerPauseAction.bag => RuntimePlayerPauseSection.bag,
       PlayerPauseAction.pokedex => RuntimePlayerPauseSection.pokedex,
       PlayerPauseAction.map => RuntimePlayerPauseSection.map,
+      PlayerPauseAction.quests => RuntimePlayerPauseSection.quests,
+      PlayerPauseAction.profile => RuntimePlayerPauseSection.profile,
       PlayerPauseAction.options => RuntimePlayerPauseSection.options,
       PlayerPauseAction.resume ||
       PlayerPauseAction.save ||
@@ -279,6 +317,8 @@ RuntimePlayerAction _runtimeActionFor(RuntimePlayerPauseSection section) =>
       RuntimePlayerPauseSection.bag => RuntimePlayerAction.openBag,
       RuntimePlayerPauseSection.pokedex => RuntimePlayerAction.openPokedex,
       RuntimePlayerPauseSection.map => RuntimePlayerAction.openMap,
+      RuntimePlayerPauseSection.quests => RuntimePlayerAction.openQuests,
+      RuntimePlayerPauseSection.profile => RuntimePlayerAction.openProfile,
       RuntimePlayerPauseSection.options => RuntimePlayerAction.openOptions,
       RuntimePlayerPauseSection.root => throw StateError(
           'The root has no runtime detail action.',
@@ -291,6 +331,8 @@ ProjectPresentationSurfaceRole _surfaceRoleFor(PlayerPauseAction action) =>
       PlayerPauseAction.bag => ProjectPresentationSurfaceRole.bag,
       PlayerPauseAction.pokedex => ProjectPresentationSurfaceRole.pokedex,
       PlayerPauseAction.map => ProjectPresentationSurfaceRole.map,
+      PlayerPauseAction.quests => ProjectPresentationSurfaceRole.pauseMenu,
+      PlayerPauseAction.profile => ProjectPresentationSurfaceRole.pauseMenu,
       PlayerPauseAction.options => ProjectPresentationSurfaceRole.options,
       PlayerPauseAction.resume ||
       PlayerPauseAction.save ||

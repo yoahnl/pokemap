@@ -112,6 +112,8 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.bag => RuntimePlayerAction.openBag,
         RuntimePlayerPauseSection.pokedex => RuntimePlayerAction.openPokedex,
         RuntimePlayerPauseSection.map => RuntimePlayerAction.openMap,
+        RuntimePlayerPauseSection.quests => RuntimePlayerAction.openQuests,
+        RuntimePlayerPauseSection.profile => RuntimePlayerAction.openProfile,
         RuntimePlayerPauseSection.options => RuntimePlayerAction.openOptions,
         RuntimePlayerPauseSection.root => throw StateError(
             'The pause root has no detail action.',
@@ -129,6 +131,8 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       RuntimePlayerPauseSection.bag => l10n.bag,
       RuntimePlayerPauseSection.pokedex => l10n.pokedex,
       RuntimePlayerPauseSection.map => l10n.map,
+      RuntimePlayerPauseSection.quests => l10n.quests,
+      RuntimePlayerPauseSection.profile => l10n.profile,
       RuntimePlayerPauseSection.options => l10n.options,
     };
   }
@@ -139,6 +143,8 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.bag => Icons.backpack_rounded,
         RuntimePlayerPauseSection.pokedex => Icons.menu_book_rounded,
         RuntimePlayerPauseSection.map => Icons.map_rounded,
+        RuntimePlayerPauseSection.quests => Icons.menu_book_rounded,
+        RuntimePlayerPauseSection.profile => Icons.person_rounded,
         RuntimePlayerPauseSection.options => Icons.tune_rounded,
       };
 
@@ -151,6 +157,10 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.pokedex =>
           ProjectPresentationSurfaceRole.pokedex,
         RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
+        RuntimePlayerPauseSection.quests =>
+          ProjectPresentationSurfaceRole.pauseMenu,
+        RuntimePlayerPauseSection.profile =>
+          ProjectPresentationSurfaceRole.pauseMenu,
         RuntimePlayerPauseSection.options =>
           ProjectPresentationSurfaceRole.options,
         RuntimePlayerPauseSection.root =>

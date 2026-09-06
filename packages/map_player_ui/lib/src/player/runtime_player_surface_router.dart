@@ -373,6 +373,8 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
         PlayerPauseAction.bag => RuntimePlayerAction.openBag,
         PlayerPauseAction.pokedex => RuntimePlayerAction.openPokedex,
         PlayerPauseAction.map => RuntimePlayerAction.openMap,
+        PlayerPauseAction.quests => RuntimePlayerAction.openQuests,
+        PlayerPauseAction.profile => RuntimePlayerAction.openProfile,
         PlayerPauseAction.save => RuntimePlayerAction.save,
         PlayerPauseAction.options => RuntimePlayerAction.openOptions,
         PlayerPauseAction.returnToTitle => RuntimePlayerAction.returnToTitle,

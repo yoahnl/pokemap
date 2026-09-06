@@ -169,7 +169,7 @@ void main() {
     expect(find.byType(PlayerBattleSurface), findsOneWidget);
   });
 
-  testWidgets('opens every pause action in a preview-only runtime detail', (
+  testWidgets('opens supported pause actions and keeps quests unavailable', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -199,6 +199,23 @@ void main() {
       final actionButton = find.byKey(ValueKey<String>('pause.${action.name}'));
       await tester.ensureVisible(actionButton);
       await tester.pumpAndSettle();
+      if (action == PlayerPauseAction.quests) {
+        final unavailable = tester.widget<PlayerActionButton>(actionButton);
+        expect(unavailable.onPressed, isNull);
+        expect(
+          unavailable.disabledReason,
+          'Le journal de quêtes n’est pas encore disponible.',
+        );
+        await tester.tap(actionButton);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(
+            const ValueKey<String>('player-pause-preview-detail-quests'),
+          ),
+          findsNothing,
+        );
+        continue;
+      }
       await tester.tap(actionButton);
       await tester.pumpAndSettle();
 
@@ -211,6 +228,9 @@ void main() {
         reason: action.name,
       );
       expect(find.text('Aperçu uniquement'), findsOneWidget);
+      if (action == PlayerPauseAction.profile) {
+        expect(find.text('Camille'), findsOneWidget);
+      }
 
       await tester.tap(
         find.byKey(const ValueKey<String>('runtime-pause-back-to-root')),
@@ -233,7 +253,10 @@ void main() {
 
     expect(
       targetedActions,
-      PlayerPauseAction.values.map((action) => action.name).toList(),
+      PlayerPauseAction.values
+          .where((action) => action != PlayerPauseAction.quests)
+          .map((action) => action.name)
+          .toList(),
     );
   });
 

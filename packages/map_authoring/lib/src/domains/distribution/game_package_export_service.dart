@@ -306,6 +306,8 @@ final class CanonicalGamePackageExportService {
                   bag: projection.presentation.menuLabels!.bag,
                   pokedex: projection.presentation.menuLabels!.pokedex,
                   map: projection.presentation.menuLabels!.map,
+                  quests: projection.presentation.menuLabels!.quests,
+                  profile: projection.presentation.menuLabels!.profile,
                   save: projection.presentation.menuLabels!.save,
                   options: projection.presentation.menuLabels!.options,
                   returnToTitle:

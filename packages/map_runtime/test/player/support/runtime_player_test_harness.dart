@@ -364,6 +364,8 @@ final class FakeRuntimeSessionAdapter
       pauseDetails =
       const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{};
   PlayerPauseMenuState pauseMenuState = const PlayerPauseMenuState.empty();
+  Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
+      Function()? pauseDetailsLoader;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   final pauseCommands = <RuntimePlayerPauseCommand>[];
   RuntimePlayerPauseCommandResult pauseCommandResult =
@@ -393,6 +395,7 @@ final class FakeRuntimeSessionAdapter
   Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
       loadPauseDetails() async {
     calls.add('pause-details');
+    if (pauseDetailsLoader case final loader?) return loader();
     return pauseDetails;
   }
 

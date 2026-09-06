@@ -377,6 +377,8 @@ String _label(ProjectPauseActionId id) => switch (id) {
   ProjectPauseActionId.bag => 'Sac',
   ProjectPauseActionId.pokedex => 'Pokédex',
   ProjectPauseActionId.map => 'Carte',
+  ProjectPauseActionId.quests => 'Quêtes',
+  ProjectPauseActionId.profile => 'Profil',
   ProjectPauseActionId.save => 'Sauvegarder',
   ProjectPauseActionId.options => 'Options',
   ProjectPauseActionId.returnToTitle => 'Retour au titre',
@@ -390,6 +392,7 @@ const _iconItems = <PokeMapDropdownItem<ProjectPauseActionIcon>>[
   PokeMapDropdownItem(value: ProjectPauseActionIcon.party, label: 'Équipe'),
   PokeMapDropdownItem(value: ProjectPauseActionIcon.bag, label: 'Sac'),
   PokeMapDropdownItem(value: ProjectPauseActionIcon.book, label: 'Livre'),
+  PokeMapDropdownItem(value: ProjectPauseActionIcon.person, label: 'Profil'),
   PokeMapDropdownItem(value: ProjectPauseActionIcon.map, label: 'Carte'),
   PokeMapDropdownItem(value: ProjectPauseActionIcon.save, label: 'Sauvegarde'),
   PokeMapDropdownItem(

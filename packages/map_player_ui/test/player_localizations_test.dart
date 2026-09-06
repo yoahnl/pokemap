@@ -42,17 +42,18 @@ void main() {
             home: Builder(
               builder: (context) => Text(
                 '${context.playerL10n.continueGame}|'
-                '${context.playerL10n.returnToHub}',
+                '${context.playerL10n.returnToHub}|'
+                '${context.playerL10n.quests}|${context.playerL10n.profile}',
               ),
             ),
           ),
         );
 
     await pump(const Locale('fr'));
-    expect(find.text('Continuer|Retour au Hub'), findsOneWidget);
+    expect(find.text('Continuer|Retour au Hub|Quêtes|Profil'), findsOneWidget);
 
     await pump(const Locale('en'));
-    expect(find.text('Continue|Back to Hub'), findsOneWidget);
+    expect(find.text('Continue|Back to Hub|Quests|Profile'), findsOneWidget);
   });
 
   test('unsupported locales fall back to English', () {

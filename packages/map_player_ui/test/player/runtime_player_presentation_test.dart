@@ -8,6 +8,46 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('profile preview owns explicit demonstration data', () {
+    final preview = PlayerPausePreviewDetailData.demonstrationProfile();
+    expect(preview.action, PlayerPauseAction.profile);
+    expect(preview.profile?.playerName, 'Camille');
+    expect(preview.profile?.playtimeSeconds, 1800);
+    expect(preview.entries.single.title, preview.profile?.playerName);
+  });
+
+  test('projects quests and profile labels icons and visibility consistently',
+      () {
+    const labels =
+        ProjectMenuLabelsProfile(quests: 'Journal', profile: 'Dresseur');
+    final presentation = RuntimePlayerPresentation.fromProfile(
+      const ProjectPresentationProfile(menuLabels: labels),
+    );
+    final l10n = PokeMapPlayerLocalizations.lookup(const Locale('fr'));
+    expect(presentation.pauseMenuLabels.quests, 'Journal');
+    expect(presentation.pauseMenuLabels.profile, 'Dresseur');
+    expect(presentation.pausePresentation.label(PlayerPauseAction.quests, l10n),
+        'Journal');
+    expect(
+        presentation.pausePresentation.label(PlayerPauseAction.profile, l10n),
+        'Dresseur');
+    expect(presentation.pausePresentation.icon(PlayerPauseAction.profile),
+        Icons.person_rounded);
+    final hidden = PlayerPausePresentation.fromProfile(
+      const ProjectPausePresentationProfile(
+          actions: <ProjectPauseActionProfile>[
+            ProjectPauseActionProfile(id: ProjectPauseActionId.resume),
+            ProjectPauseActionProfile(
+                id: ProjectPauseActionId.quests, visible: false),
+            ProjectPauseActionProfile(id: ProjectPauseActionId.profile),
+          ]),
+    );
+    expect(hidden.visibleActions, <PlayerPauseAction>[
+      PlayerPauseAction.resume,
+      PlayerPauseAction.profile
+    ]);
+  });
+
   test('V10 acceptance profile has identical runtime view-data', () async {
     final project = ProjectManifest.fromJson(
       jsonDecode(

@@ -4489,7 +4489,7 @@ as String,
 /// @nodoc
 mixin _$ProjectMenuLabelsProfile {
 
-@JsonKey(includeIfNull: false) String? get pauseTitle;@JsonKey(includeIfNull: false) String? get resume;@JsonKey(includeIfNull: false) String? get party;@JsonKey(includeIfNull: false) String? get bag;@JsonKey(includeIfNull: false) String? get pokedex;@JsonKey(includeIfNull: false) String? get map;@JsonKey(includeIfNull: false) String? get save;@JsonKey(includeIfNull: false) String? get options;@JsonKey(includeIfNull: false) String? get returnToTitle;
+@JsonKey(includeIfNull: false) String? get pauseTitle;@JsonKey(includeIfNull: false) String? get resume;@JsonKey(includeIfNull: false) String? get party;@JsonKey(includeIfNull: false) String? get bag;@JsonKey(includeIfNull: false) String? get pokedex;@JsonKey(includeIfNull: false) String? get map;@JsonKey(includeIfNull: false) String? get quests;@JsonKey(includeIfNull: false) String? get profile;@JsonKey(includeIfNull: false) String? get save;@JsonKey(includeIfNull: false) String? get options;@JsonKey(includeIfNull: false) String? get returnToTitle;
 /// Create a copy of ProjectMenuLabelsProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -4502,16 +4502,16 @@ $ProjectMenuLabelsProfileCopyWith<ProjectMenuLabelsProfile> get copyWith => _$Pr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectMenuLabelsProfile&&(identical(other.pauseTitle, pauseTitle) || other.pauseTitle == pauseTitle)&&(identical(other.resume, resume) || other.resume == resume)&&(identical(other.party, party) || other.party == party)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.pokedex, pokedex) || other.pokedex == pokedex)&&(identical(other.map, map) || other.map == map)&&(identical(other.save, save) || other.save == save)&&(identical(other.options, options) || other.options == options)&&(identical(other.returnToTitle, returnToTitle) || other.returnToTitle == returnToTitle));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectMenuLabelsProfile&&(identical(other.pauseTitle, pauseTitle) || other.pauseTitle == pauseTitle)&&(identical(other.resume, resume) || other.resume == resume)&&(identical(other.party, party) || other.party == party)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.pokedex, pokedex) || other.pokedex == pokedex)&&(identical(other.map, map) || other.map == map)&&(identical(other.quests, quests) || other.quests == quests)&&(identical(other.profile, profile) || other.profile == profile)&&(identical(other.save, save) || other.save == save)&&(identical(other.options, options) || other.options == options)&&(identical(other.returnToTitle, returnToTitle) || other.returnToTitle == returnToTitle));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,pauseTitle,resume,party,bag,pokedex,map,save,options,returnToTitle);
+int get hashCode => Object.hash(runtimeType,pauseTitle,resume,party,bag,pokedex,map,quests,profile,save,options,returnToTitle);
 
 @override
 String toString() {
-  return 'ProjectMenuLabelsProfile(pauseTitle: $pauseTitle, resume: $resume, party: $party, bag: $bag, pokedex: $pokedex, map: $map, save: $save, options: $options, returnToTitle: $returnToTitle)';
+  return 'ProjectMenuLabelsProfile(pauseTitle: $pauseTitle, resume: $resume, party: $party, bag: $bag, pokedex: $pokedex, map: $map, quests: $quests, profile: $profile, save: $save, options: $options, returnToTitle: $returnToTitle)';
 }
 
 
@@ -4522,7 +4522,7 @@ abstract mixin class $ProjectMenuLabelsProfileCopyWith<$Res>  {
   factory $ProjectMenuLabelsProfileCopyWith(ProjectMenuLabelsProfile value, $Res Function(ProjectMenuLabelsProfile) _then) = _$ProjectMenuLabelsProfileCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? pauseTitle,@JsonKey(includeIfNull: false) String? resume,@JsonKey(includeIfNull: false) String? party,@JsonKey(includeIfNull: false) String? bag,@JsonKey(includeIfNull: false) String? pokedex,@JsonKey(includeIfNull: false) String? map,@JsonKey(includeIfNull: false) String? save,@JsonKey(includeIfNull: false) String? options,@JsonKey(includeIfNull: false) String? returnToTitle
+@JsonKey(includeIfNull: false) String? pauseTitle,@JsonKey(includeIfNull: false) String? resume,@JsonKey(includeIfNull: false) String? party,@JsonKey(includeIfNull: false) String? bag,@JsonKey(includeIfNull: false) String? pokedex,@JsonKey(includeIfNull: false) String? map,@JsonKey(includeIfNull: false) String? quests,@JsonKey(includeIfNull: false) String? profile,@JsonKey(includeIfNull: false) String? save,@JsonKey(includeIfNull: false) String? options,@JsonKey(includeIfNull: false) String? returnToTitle
 });
 
 
@@ -4539,7 +4539,7 @@ class _$ProjectMenuLabelsProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectMenuLabelsProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? pauseTitle = freezed,Object? resume = freezed,Object? party = freezed,Object? bag = freezed,Object? pokedex = freezed,Object? map = freezed,Object? save = freezed,Object? options = freezed,Object? returnToTitle = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? pauseTitle = freezed,Object? resume = freezed,Object? party = freezed,Object? bag = freezed,Object? pokedex = freezed,Object? map = freezed,Object? quests = freezed,Object? profile = freezed,Object? save = freezed,Object? options = freezed,Object? returnToTitle = freezed,}) {
   return _then(_self.copyWith(
 pauseTitle: freezed == pauseTitle ? _self.pauseTitle : pauseTitle // ignore: cast_nullable_to_non_nullable
 as String?,resume: freezed == resume ? _self.resume : resume // ignore: cast_nullable_to_non_nullable
@@ -4547,6 +4547,8 @@ as String?,party: freezed == party ? _self.party : party // ignore: cast_nullabl
 as String?,bag: freezed == bag ? _self.bag : bag // ignore: cast_nullable_to_non_nullable
 as String?,pokedex: freezed == pokedex ? _self.pokedex : pokedex // ignore: cast_nullable_to_non_nullable
 as String?,map: freezed == map ? _self.map : map // ignore: cast_nullable_to_non_nullable
+as String?,quests: freezed == quests ? _self.quests : quests // ignore: cast_nullable_to_non_nullable
+as String?,profile: freezed == profile ? _self.profile : profile // ignore: cast_nullable_to_non_nullable
 as String?,save: freezed == save ? _self.save : save // ignore: cast_nullable_to_non_nullable
 as String?,options: freezed == options ? _self.options : options // ignore: cast_nullable_to_non_nullable
 as String?,returnToTitle: freezed == returnToTitle ? _self.returnToTitle : returnToTitle // ignore: cast_nullable_to_non_nullable
@@ -4635,10 +4637,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? pauseTitle, @JsonKey(includeIfNull: false)  String? resume, @JsonKey(includeIfNull: false)  String? party, @JsonKey(includeIfNull: false)  String? bag, @JsonKey(includeIfNull: false)  String? pokedex, @JsonKey(includeIfNull: false)  String? map, @JsonKey(includeIfNull: false)  String? save, @JsonKey(includeIfNull: false)  String? options, @JsonKey(includeIfNull: false)  String? returnToTitle)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? pauseTitle, @JsonKey(includeIfNull: false)  String? resume, @JsonKey(includeIfNull: false)  String? party, @JsonKey(includeIfNull: false)  String? bag, @JsonKey(includeIfNull: false)  String? pokedex, @JsonKey(includeIfNull: false)  String? map, @JsonKey(includeIfNull: false)  String? quests, @JsonKey(includeIfNull: false)  String? profile, @JsonKey(includeIfNull: false)  String? save, @JsonKey(includeIfNull: false)  String? options, @JsonKey(includeIfNull: false)  String? returnToTitle)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectMenuLabelsProfile() when $default != null:
-return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokedex,_that.map,_that.save,_that.options,_that.returnToTitle);case _:
+return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokedex,_that.map,_that.quests,_that.profile,_that.save,_that.options,_that.returnToTitle);case _:
   return orElse();
 
 }
@@ -4656,10 +4658,10 @@ return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokede
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? pauseTitle, @JsonKey(includeIfNull: false)  String? resume, @JsonKey(includeIfNull: false)  String? party, @JsonKey(includeIfNull: false)  String? bag, @JsonKey(includeIfNull: false)  String? pokedex, @JsonKey(includeIfNull: false)  String? map, @JsonKey(includeIfNull: false)  String? save, @JsonKey(includeIfNull: false)  String? options, @JsonKey(includeIfNull: false)  String? returnToTitle)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? pauseTitle, @JsonKey(includeIfNull: false)  String? resume, @JsonKey(includeIfNull: false)  String? party, @JsonKey(includeIfNull: false)  String? bag, @JsonKey(includeIfNull: false)  String? pokedex, @JsonKey(includeIfNull: false)  String? map, @JsonKey(includeIfNull: false)  String? quests, @JsonKey(includeIfNull: false)  String? profile, @JsonKey(includeIfNull: false)  String? save, @JsonKey(includeIfNull: false)  String? options, @JsonKey(includeIfNull: false)  String? returnToTitle)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectMenuLabelsProfile():
-return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokedex,_that.map,_that.save,_that.options,_that.returnToTitle);case _:
+return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokedex,_that.map,_that.quests,_that.profile,_that.save,_that.options,_that.returnToTitle);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -4676,10 +4678,10 @@ return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokede
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? pauseTitle, @JsonKey(includeIfNull: false)  String? resume, @JsonKey(includeIfNull: false)  String? party, @JsonKey(includeIfNull: false)  String? bag, @JsonKey(includeIfNull: false)  String? pokedex, @JsonKey(includeIfNull: false)  String? map, @JsonKey(includeIfNull: false)  String? save, @JsonKey(includeIfNull: false)  String? options, @JsonKey(includeIfNull: false)  String? returnToTitle)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? pauseTitle, @JsonKey(includeIfNull: false)  String? resume, @JsonKey(includeIfNull: false)  String? party, @JsonKey(includeIfNull: false)  String? bag, @JsonKey(includeIfNull: false)  String? pokedex, @JsonKey(includeIfNull: false)  String? map, @JsonKey(includeIfNull: false)  String? quests, @JsonKey(includeIfNull: false)  String? profile, @JsonKey(includeIfNull: false)  String? save, @JsonKey(includeIfNull: false)  String? options, @JsonKey(includeIfNull: false)  String? returnToTitle)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectMenuLabelsProfile() when $default != null:
-return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokedex,_that.map,_that.save,_that.options,_that.returnToTitle);case _:
+return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokedex,_that.map,_that.quests,_that.profile,_that.save,_that.options,_that.returnToTitle);case _:
   return null;
 
 }
@@ -4691,7 +4693,7 @@ return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokede
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectMenuLabelsProfile implements ProjectMenuLabelsProfile {
-  const _ProjectMenuLabelsProfile({@JsonKey(includeIfNull: false) this.pauseTitle, @JsonKey(includeIfNull: false) this.resume, @JsonKey(includeIfNull: false) this.party, @JsonKey(includeIfNull: false) this.bag, @JsonKey(includeIfNull: false) this.pokedex, @JsonKey(includeIfNull: false) this.map, @JsonKey(includeIfNull: false) this.save, @JsonKey(includeIfNull: false) this.options, @JsonKey(includeIfNull: false) this.returnToTitle});
+  const _ProjectMenuLabelsProfile({@JsonKey(includeIfNull: false) this.pauseTitle, @JsonKey(includeIfNull: false) this.resume, @JsonKey(includeIfNull: false) this.party, @JsonKey(includeIfNull: false) this.bag, @JsonKey(includeIfNull: false) this.pokedex, @JsonKey(includeIfNull: false) this.map, @JsonKey(includeIfNull: false) this.quests, @JsonKey(includeIfNull: false) this.profile, @JsonKey(includeIfNull: false) this.save, @JsonKey(includeIfNull: false) this.options, @JsonKey(includeIfNull: false) this.returnToTitle});
   factory _ProjectMenuLabelsProfile.fromJson(Map<String, dynamic> json) => _$ProjectMenuLabelsProfileFromJson(json);
 
 @override@JsonKey(includeIfNull: false) final  String? pauseTitle;
@@ -4700,6 +4702,8 @@ class _ProjectMenuLabelsProfile implements ProjectMenuLabelsProfile {
 @override@JsonKey(includeIfNull: false) final  String? bag;
 @override@JsonKey(includeIfNull: false) final  String? pokedex;
 @override@JsonKey(includeIfNull: false) final  String? map;
+@override@JsonKey(includeIfNull: false) final  String? quests;
+@override@JsonKey(includeIfNull: false) final  String? profile;
 @override@JsonKey(includeIfNull: false) final  String? save;
 @override@JsonKey(includeIfNull: false) final  String? options;
 @override@JsonKey(includeIfNull: false) final  String? returnToTitle;
@@ -4717,16 +4721,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectMenuLabelsProfile&&(identical(other.pauseTitle, pauseTitle) || other.pauseTitle == pauseTitle)&&(identical(other.resume, resume) || other.resume == resume)&&(identical(other.party, party) || other.party == party)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.pokedex, pokedex) || other.pokedex == pokedex)&&(identical(other.map, map) || other.map == map)&&(identical(other.save, save) || other.save == save)&&(identical(other.options, options) || other.options == options)&&(identical(other.returnToTitle, returnToTitle) || other.returnToTitle == returnToTitle));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectMenuLabelsProfile&&(identical(other.pauseTitle, pauseTitle) || other.pauseTitle == pauseTitle)&&(identical(other.resume, resume) || other.resume == resume)&&(identical(other.party, party) || other.party == party)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.pokedex, pokedex) || other.pokedex == pokedex)&&(identical(other.map, map) || other.map == map)&&(identical(other.quests, quests) || other.quests == quests)&&(identical(other.profile, profile) || other.profile == profile)&&(identical(other.save, save) || other.save == save)&&(identical(other.options, options) || other.options == options)&&(identical(other.returnToTitle, returnToTitle) || other.returnToTitle == returnToTitle));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,pauseTitle,resume,party,bag,pokedex,map,save,options,returnToTitle);
+int get hashCode => Object.hash(runtimeType,pauseTitle,resume,party,bag,pokedex,map,quests,profile,save,options,returnToTitle);
 
 @override
 String toString() {
-  return 'ProjectMenuLabelsProfile(pauseTitle: $pauseTitle, resume: $resume, party: $party, bag: $bag, pokedex: $pokedex, map: $map, save: $save, options: $options, returnToTitle: $returnToTitle)';
+  return 'ProjectMenuLabelsProfile(pauseTitle: $pauseTitle, resume: $resume, party: $party, bag: $bag, pokedex: $pokedex, map: $map, quests: $quests, profile: $profile, save: $save, options: $options, returnToTitle: $returnToTitle)';
 }
 
 
@@ -4737,7 +4741,7 @@ abstract mixin class _$ProjectMenuLabelsProfileCopyWith<$Res> implements $Projec
   factory _$ProjectMenuLabelsProfileCopyWith(_ProjectMenuLabelsProfile value, $Res Function(_ProjectMenuLabelsProfile) _then) = __$ProjectMenuLabelsProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? pauseTitle,@JsonKey(includeIfNull: false) String? resume,@JsonKey(includeIfNull: false) String? party,@JsonKey(includeIfNull: false) String? bag,@JsonKey(includeIfNull: false) String? pokedex,@JsonKey(includeIfNull: false) String? map,@JsonKey(includeIfNull: false) String? save,@JsonKey(includeIfNull: false) String? options,@JsonKey(includeIfNull: false) String? returnToTitle
+@JsonKey(includeIfNull: false) String? pauseTitle,@JsonKey(includeIfNull: false) String? resume,@JsonKey(includeIfNull: false) String? party,@JsonKey(includeIfNull: false) String? bag,@JsonKey(includeIfNull: false) String? pokedex,@JsonKey(includeIfNull: false) String? map,@JsonKey(includeIfNull: false) String? quests,@JsonKey(includeIfNull: false) String? profile,@JsonKey(includeIfNull: false) String? save,@JsonKey(includeIfNull: false) String? options,@JsonKey(includeIfNull: false) String? returnToTitle
 });
 
 
@@ -4754,7 +4758,7 @@ class __$ProjectMenuLabelsProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectMenuLabelsProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? pauseTitle = freezed,Object? resume = freezed,Object? party = freezed,Object? bag = freezed,Object? pokedex = freezed,Object? map = freezed,Object? save = freezed,Object? options = freezed,Object? returnToTitle = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? pauseTitle = freezed,Object? resume = freezed,Object? party = freezed,Object? bag = freezed,Object? pokedex = freezed,Object? map = freezed,Object? quests = freezed,Object? profile = freezed,Object? save = freezed,Object? options = freezed,Object? returnToTitle = freezed,}) {
   return _then(_ProjectMenuLabelsProfile(
 pauseTitle: freezed == pauseTitle ? _self.pauseTitle : pauseTitle // ignore: cast_nullable_to_non_nullable
 as String?,resume: freezed == resume ? _self.resume : resume // ignore: cast_nullable_to_non_nullable
@@ -4762,6 +4766,8 @@ as String?,party: freezed == party ? _self.party : party // ignore: cast_nullabl
 as String?,bag: freezed == bag ? _self.bag : bag // ignore: cast_nullable_to_non_nullable
 as String?,pokedex: freezed == pokedex ? _self.pokedex : pokedex // ignore: cast_nullable_to_non_nullable
 as String?,map: freezed == map ? _self.map : map // ignore: cast_nullable_to_non_nullable
+as String?,quests: freezed == quests ? _self.quests : quests // ignore: cast_nullable_to_non_nullable
+as String?,profile: freezed == profile ? _self.profile : profile // ignore: cast_nullable_to_non_nullable
 as String?,save: freezed == save ? _self.save : save // ignore: cast_nullable_to_non_nullable
 as String?,options: freezed == options ? _self.options : options // ignore: cast_nullable_to_non_nullable
 as String?,returnToTitle: freezed == returnToTitle ? _self.returnToTitle : returnToTitle // ignore: cast_nullable_to_non_nullable

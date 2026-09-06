@@ -8,6 +8,31 @@ void main() {
   group('GamePackageManifestCodec', () {
     const codec = GamePackageManifestCodec();
 
+    test('round-trips quests and profile actions and labels', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 10,
+          'branding': <String, Object?>{'layoutVariant': 'standard'},
+          'menuLabels': <String, Object?>{
+            'quests': 'Journal',
+            'profile': 'Dresseur',
+          },
+          'pause': <String, Object?>{
+            'actions': <Object?>[
+              <String, Object?>{'id': 'resume'},
+              <String, Object?>{'id': 'quests', 'label': 'Journal'},
+              <String, Object?>{'id': 'profile', 'label': 'Dresseur'},
+            ],
+          },
+        };
+      final manifest = codec.decodeJson(json);
+      expect(manifest.presentation!.menuLabels!.toJson(), <String, Object?>{
+        'quests': 'Journal',
+        'profile': 'Dresseur',
+      });
+      expect(codec.decodeJson(manifest.toJson()).toJson(), manifest.toJson());
+    });
+
     test('round-trips a minimal manifest canonically', () {
       final manifest = codec.decodeJson(_minimalManifestJson());
 

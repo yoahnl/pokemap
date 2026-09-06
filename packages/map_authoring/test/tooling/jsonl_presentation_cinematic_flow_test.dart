@@ -7,6 +7,50 @@ import 'package:test/test.dart';
 
 void main() {
   test(
+      'quests and profile presentation updates survive JSONL plan apply and reload',
+      () async {
+    final harness = await _Harness.create('pause-actions');
+    addTearDown(harness.dispose);
+    final opened = await harness
+        ._jsonl('open', <String, Object?>{'projectRoot': harness.root.path});
+    final project = opened['projectHandle']! as String;
+    final snapshot = await harness.snapshots.load(ProjectHandle(project));
+    const profile = ProjectPresentationProfile(
+        pause: ProjectPausePresentationProfile(
+      actions: <ProjectPauseActionProfile>[
+        ProjectPauseActionProfile(id: ProjectPauseActionId.resume),
+        ProjectPauseActionProfile(
+            id: ProjectPauseActionId.quests, label: 'Journal', visible: false),
+        ProjectPauseActionProfile(
+            id: ProjectPauseActionId.profile,
+            label: 'Dresseur',
+            icon: ProjectPauseActionIcon.person),
+      ],
+    ));
+    final request = AuthoringRequest(
+      requestId: 'pause-presentation-jsonl',
+      actionId: 'presentation.update',
+      actionVersion: 1,
+      workspaceHandle: opened['workspaceHandle']! as String,
+      parameters: <String, Object?>{'profile': profile.toJson()},
+      expectedRevision: snapshot.revision,
+      idempotencyKey: 'pause-presentation-jsonl',
+      dryRun: false,
+    );
+    final plan = await harness._jsonl('plan', <String, Object?>{
+      'projectHandle': project,
+      'request': request.toJson(),
+    });
+    await harness._jsonl('apply', <String, Object?>{
+      'projectHandle': project,
+      'planId': plan['planId'],
+      'operationId': 'pause-presentation-jsonl',
+    });
+    final reloaded = await harness.snapshots.load(ProjectHandle(project));
+    expect(reloaded.manifest.presentation, profile);
+  });
+
+  test(
     'Presentation clip authoring keeps direct and JSONL transactions equivalent',
     () async {
       final direct = await _Harness.create('direct');

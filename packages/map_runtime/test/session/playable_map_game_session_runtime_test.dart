@@ -5,6 +5,8 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('localizes unavailable runtime services from the session locale',
       () async {
     Future<PlayableMapGameSessionRuntime> runtimeFor(String locale) async {
@@ -201,6 +203,11 @@ void main() {
       gameState: const GameState(
         saveId: '123e4567-e89b-42d3-a456-426614174000',
         currentMapId: 'p3_test_map',
+        trainerProfile: TrainerProfile(
+          name: 'Session trainer',
+          money: 1234,
+          playtimeSeconds: 7,
+        ),
         party: PlayerParty(
           members: <PlayerPokemon>[
             PlayerPokemon(
@@ -250,6 +257,15 @@ void main() {
     expect(progress.last.stage, 'ready');
     await runtime.pause();
     final pauseDetails = await runtime.loadPauseDetails();
+    final profile = pauseDetails[RuntimePlayerPauseSection.profile]!.profile!;
+    expect(profile.playerName, mounted!.gameStateSnapshot.trainerProfile.name);
+    expect(profile.money, 1234);
+    expect(profile.currentMapId, mounted!.gameStateSnapshot.currentMapId);
+    expect(profile.locationName, 'P3 Test Map');
+    expect(profile.playtimeSeconds, greaterThanOrEqualTo(90));
+    final pausedCheckpoint = await runtime.captureCheckpoint();
+    expect(profile.playtimeSeconds, pausedCheckpoint!.playTimeSeconds);
+    expect(mounted!.gameStateSnapshot.trainerProfile.playtimeSeconds, 7);
     expect(
       pauseDetails[RuntimePlayerPauseSection.party]!.entries.single.title,
       'Sparkitten',

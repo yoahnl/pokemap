@@ -1,6 +1,24 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+final class RuntimePokemonMediaIdentity {
+  const RuntimePokemonMediaIdentity({
+    required this.speciesId,
+    this.formId,
+    this.defaultFormId,
+    this.gender,
+    this.isShiny = false,
+    this.mediaRef,
+  }) : assert(speciesId != '');
+
+  final String speciesId;
+  final String? formId;
+  final String? defaultFormId;
+  final String? gender;
+  final bool isShiny;
+  final String? mediaRef;
+}
+
 /// Fiche Pokémon canonique partagée par l'Équipe et le PC.
 ///
 /// Les deux surfaces construisaient leur propre projection : l'Équipe
@@ -30,7 +48,13 @@ final class RuntimePokemonSummarySnapshot {
     List<RuntimePokemonMoveSummarySnapshot> moves =
         const <RuntimePokemonMoveSummarySnapshot>[],
     this.provenance,
-  })  : moves = List<RuntimePokemonMoveSummarySnapshot>.unmodifiable(moves),
+    this.identity,
+    List<String> typeIds = const [],
+    this.abilityId,
+    this.heldItemId,
+    this.statusId,
+  })  : typeIds = List<String>.unmodifiable(typeIds),
+        moves = List<RuntimePokemonMoveSummarySnapshot>.unmodifiable(moves),
         assert(targetId != ''),
         assert(speciesLabel != ''),
         assert(level > 0),
@@ -64,6 +88,11 @@ final class RuntimePokemonSummarySnapshot {
   final int friendship;
   final List<RuntimePokemonMoveSummarySnapshot> moves;
   final RuntimePokemonProvenanceSummarySnapshot? provenance;
+  final RuntimePokemonMediaIdentity? identity;
+  final List<String> typeIds;
+  final String? abilityId;
+  final String? heldItemId;
+  final String? statusId;
 
   String get displayLabel => nickname.isEmpty ? speciesLabel : nickname;
 
@@ -98,6 +127,7 @@ final class RuntimePokemonMoveSummarySnapshot {
     required this.moveId,
     required this.label,
     this.typeLabel,
+    this.typeId,
     this.currentPp,
     this.maxPp,
   });
@@ -105,6 +135,7 @@ final class RuntimePokemonMoveSummarySnapshot {
   final String moveId;
   final String label;
   final String? typeLabel;
+  final String? typeId;
 
   /// `null` quand la sauvegarde précède le suivi des PP : afficher « — »
   /// plutôt que zéro, qui se lirait comme une capacité épuisée.
@@ -141,6 +172,8 @@ final class RuntimePokemonSummaryResolvers {
     this.calculatedStatsFor,
     this.itemLabelFor,
     this.moveFor,
+    this.mediaIdentityFor,
+    this.typeIdsFor,
   });
 
   final String Function(String speciesId) speciesLabelFor;
@@ -148,6 +181,9 @@ final class RuntimePokemonSummaryResolvers {
       calculatedStatsFor;
   final String? Function(String itemId)? itemLabelFor;
   final PokemonMove? Function(String moveId)? moveFor;
+  final RuntimePokemonMediaIdentity Function(PlayerPokemon pokemon)?
+      mediaIdentityFor;
+  final List<String> Function(PlayerPokemon pokemon)? typeIdsFor;
 }
 
 final class RuntimePokemonSummaryBuilder {
@@ -181,6 +217,17 @@ final class RuntimePokemonSummaryBuilder {
     return RuntimePokemonSummarySnapshot(
       targetId: targetId,
       individualId: pokemon.individualId.trim(),
+      identity: resolvers.mediaIdentityFor?.call(pokemon) ??
+          RuntimePokemonMediaIdentity(
+            speciesId: pokemon.speciesId,
+            formId: formId.isEmpty ? null : formId,
+            gender: pokemon.gender,
+            isShiny: pokemon.isShiny,
+          ),
+      typeIds: resolvers.typeIdsFor?.call(pokemon) ?? const [],
+      abilityId: pokemon.abilityId.trim().isEmpty ? null : pokemon.abilityId,
+      heldItemId: heldItemId.isEmpty ? null : heldItemId,
+      statusId: statusId.isEmpty ? null : statusId,
       speciesLabel: resolvers.speciesLabelFor(pokemon.speciesId),
       nickname: pokemon.nickname.trim(),
       formLabel: formId.isEmpty ? null : runtimePokemonHumanizeId(formId),
@@ -223,11 +270,11 @@ final class RuntimePokemonSummaryBuilder {
           final currentPp = currentPpByMoveId?[moveId];
           return RuntimePokemonMoveSummarySnapshot(
             moveId: moveId,
-            label: move?.displayName(locale) ??
-                runtimePokemonHumanizeId(moveId),
-            typeLabel: move == null
-                ? null
-                : runtimePokemonHumanizeId(move.type),
+            label:
+                move?.displayName(locale) ?? runtimePokemonHumanizeId(moveId),
+            typeLabel:
+                move == null ? null : runtimePokemonHumanizeId(move.type),
+            typeId: move?.type,
             currentPp: maxPp == null || currentPp == null
                 ? null
                 : currentPp.clamp(0, maxPp),
@@ -285,6 +332,8 @@ RuntimePokemonSummaryBuilder runtimePokemonSummaryBuilderFor({
   PokemonCalculatedStats? Function(PlayerPokemon pokemon)? calculatedStatsFor,
   String? Function(String itemId)? itemLabelFor,
   PokemonMove? Function(String moveId)? moveFor,
+  RuntimePokemonMediaIdentity Function(PlayerPokemon pokemon)? mediaIdentityFor,
+  List<String> Function(PlayerPokemon pokemon)? typeIdsFor,
 }) =>
     RuntimePokemonSummaryBuilder(
       locale: locale,
@@ -293,6 +342,8 @@ RuntimePokemonSummaryBuilder runtimePokemonSummaryBuilderFor({
         calculatedStatsFor: calculatedStatsFor,
         itemLabelFor: itemLabelFor,
         moveFor: moveFor,
+        mediaIdentityFor: mediaIdentityFor,
+        typeIdsFor: typeIdsFor,
       ),
     );
 

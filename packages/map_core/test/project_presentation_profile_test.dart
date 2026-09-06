@@ -6,6 +6,88 @@ import 'package:test/test.dart';
 
 void main() {
   group('ProjectPresentationProfile', () {
+    test('default pause action order follows the menu contract', () {
+      expect(
+        defaultProjectPauseActions.map((action) => action.id),
+        <ProjectPauseActionId>[
+          ProjectPauseActionId.resume,
+          ProjectPauseActionId.party,
+          ProjectPauseActionId.bag,
+          ProjectPauseActionId.pokedex,
+          ProjectPauseActionId.quests,
+          ProjectPauseActionId.map,
+          ProjectPauseActionId.profile,
+          ProjectPauseActionId.save,
+          ProjectPauseActionId.options,
+          ProjectPauseActionId.returnToTitle,
+        ],
+      );
+    });
+
+    test('round-trips quests and profile pause actions with menu labels', () {
+      final source = <String, dynamic>{
+        'schemaVersion': ProjectPresentationProfile.supportedSchemaVersion,
+        'pause': <String, dynamic>{
+          'actions': <Map<String, dynamic>>[
+            <String, dynamic>{'id': 'resume'},
+            <String, dynamic>{'id': 'quests', 'label': 'Journal'},
+            <String, dynamic>{'id': 'profile', 'label': 'Dresseur'},
+          ],
+        },
+        'menuLabels': <String, dynamic>{
+          'quests': 'Journal',
+          'profile': 'Dresseur',
+        },
+      };
+      final profile = ProjectPresentationProfile.fromJson(source);
+      expect(validateProjectPresentationProfile(profile), isEmpty);
+      final labels = ProjectMenuLabelsProfile.fromJson(
+        source['menuLabels']! as Map<String, dynamic>,
+      );
+      expect(labels.toJson(), source['menuLabels']);
+      expect(profile.menuLabels, isNull);
+      expect(
+        profile.effectivePause!.effectiveActions.map(
+          (action) => action.id.name,
+        ),
+        <String>['resume', 'quests', 'profile'],
+      );
+      expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile);
+    });
+
+    test(
+      'validates quests and profile labels without allowing hidden resume',
+      () {
+        const profile = ProjectPresentationProfile(
+          menuLabels: ProjectMenuLabelsProfile(quests: '', profile: '\n'),
+          pause: ProjectPausePresentationProfile(
+            actions: <ProjectPauseActionProfile>[
+              ProjectPauseActionProfile(
+                id: ProjectPauseActionId.resume,
+                visible: false,
+              ),
+              ProjectPauseActionProfile(id: ProjectPauseActionId.quests),
+              ProjectPauseActionProfile(id: ProjectPauseActionId.profile),
+            ],
+          ),
+        );
+        final diagnostics = validateProjectPresentationProfile(profile);
+        expect(
+          diagnostics.map((diagnostic) => diagnostic.path),
+          containsAll(<String>[
+            r'$.presentation.menuLabels.quests',
+            r'$.presentation.menuLabels.profile',
+          ]),
+        );
+        expect(
+          diagnostics.any(
+            (diagnostic) => diagnostic.code == 'pauseResumeRequired',
+          ),
+          isTrue,
+        );
+      },
+    );
+
     test('round-trips combat typography and falls back to body', () {
       const body = ProjectTypographyRoleProfile(family: 'Body Family');
       const combat = ProjectTypographyRoleProfile(family: 'Combat Family');
@@ -232,6 +314,8 @@ void main() {
           bag: 'Inventaire',
           pokedex: 'Carnet de voyage',
           map: 'Région',
+          quests: 'Journal',
+          profile: 'Dresseur',
           save: 'Mémoriser',
           options: 'Réglages',
           returnToTitle: 'Quitter la partie',
@@ -253,6 +337,8 @@ void main() {
           ProjectPauseActionId.bag: 'Inventaire',
           ProjectPauseActionId.pokedex: 'Carnet de voyage',
           ProjectPauseActionId.map: 'Région',
+          ProjectPauseActionId.quests: 'Journal',
+          ProjectPauseActionId.profile: 'Dresseur',
           ProjectPauseActionId.save: 'Mémoriser',
           ProjectPauseActionId.options: 'Réglages',
           ProjectPauseActionId.returnToTitle: 'Quitter la partie',

@@ -57,11 +57,12 @@ final class PokeMapPlayerLocalizations {
   String get party => _fr ? 'Équipe' : 'Party';
   String get bag => _fr ? 'Sac' : 'Bag';
   String get pokedex => 'Pokédex';
-  String get searchPokedex =>
-      _fr ? 'Rechercher une espèce' : 'Search species';
+  String get searchPokedex => _fr ? 'Rechercher une espèce' : 'Search species';
   String get noPokedexMatch =>
       _fr ? 'Aucune espèce ne correspond' : 'No matching species';
   String get map => _fr ? 'Carte' : 'Map';
+  String get quests => _fr ? 'Quêtes' : 'Quests';
+  String get profile => _fr ? 'Profil' : 'Profile';
   String get save => _fr ? 'Sauvegarder' : 'Save';
   String get returnToTitle => _fr ? 'Retour au titre' : 'Back to title';
   String get play => _fr ? 'Jouer' : 'Play';

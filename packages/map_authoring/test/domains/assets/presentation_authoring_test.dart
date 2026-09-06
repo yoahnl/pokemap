@@ -128,6 +128,16 @@ void main() {
               icon: ProjectPauseActionIcon.book,
             ),
             ProjectPauseActionProfile(
+              id: ProjectPauseActionId.quests,
+              label: 'Journal',
+              icon: ProjectPauseActionIcon.book,
+            ),
+            ProjectPauseActionProfile(
+              id: ProjectPauseActionId.profile,
+              label: 'Dresseur',
+              icon: ProjectPauseActionIcon.person,
+            ),
+            ProjectPauseActionProfile(
               id: ProjectPauseActionId.resume,
               icon: ProjectPauseActionIcon.play,
             ),
@@ -168,7 +178,11 @@ void main() {
           'pause',
           containsPair(
             'actions',
-            contains(containsPair('label', 'Carnet')),
+            containsAll(<Object?>[
+              containsPair('label', 'Carnet'),
+              containsPair('label', 'Journal'),
+              containsPair('label', 'Dresseur'),
+            ]),
           ),
         ),
       );

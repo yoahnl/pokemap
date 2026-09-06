@@ -29,6 +29,9 @@ final class RuntimePlayerPauseDataBuilder {
     bool mapEnabled = false,
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
     ItemCatalogSnapshot? itemCatalog,
+    int? playtimeSeconds,
+    List<BadgeDefinition>? projectBadges,
+    List<ProjectCharacterEntry> projectCharacters = const [],
   }) async {
     final resolvedItemCatalog = itemCatalog ??
         await const RuntimeItemCatalogLoader().loadSnapshot(
@@ -76,9 +79,27 @@ final class RuntimePlayerPauseDataBuilder {
       gameState,
       resolvedItemCatalog,
     );
+    final pokedex = pokemonConfig.enabled
+        ? _buildPokedex(
+            gameState,
+            species,
+            locale: locale,
+            isFrench: isFrench,
+          )
+        : null;
+    final profile = _buildProfile(
+      gameState,
+      isFrench: isFrench,
+      playtimeSeconds: playtimeSeconds,
+      projectMaps: projectMaps,
+      projectBadges: projectBadges,
+      projectCharacters: projectCharacters,
+      pokedex: species.isEmpty ? null : pokedex,
+    );
 
     return immutableRuntimePlayerPauseDetails(
       <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
+        RuntimePlayerPauseSection.profile: profile,
         RuntimePlayerPauseSection.party: _buildParty(
           gameState,
           speciesById,
@@ -96,13 +117,7 @@ final class RuntimePlayerPauseDataBuilder {
           moveMachines: moveMachines,
           itemCatalog: resolvedItemCatalog,
         ),
-        if (pokemonConfig.enabled)
-          RuntimePlayerPauseSection.pokedex: _buildPokedex(
-            gameState,
-            species,
-            locale: locale,
-            isFrench: isFrench,
-          ),
+        if (pokedex != null) RuntimePlayerPauseSection.pokedex: pokedex,
         if (mapEnabled)
           RuntimePlayerPauseSection.map: _buildMap(
             gameState,
@@ -110,6 +125,105 @@ final class RuntimePlayerPauseDataBuilder {
             isFrench: isFrench,
           ),
       },
+    );
+  }
+
+  RuntimePlayerPauseDetailSnapshot _buildProfile(
+    GameState gameState, {
+    required bool isFrench,
+    required int? playtimeSeconds,
+    required List<ProjectMapEntry> projectMaps,
+    required List<BadgeDefinition>? projectBadges,
+    required List<ProjectCharacterEntry> projectCharacters,
+    required RuntimePlayerPauseDetailSnapshot? pokedex,
+  }) {
+    final trainer = gameState.trainerProfile;
+    final currentMap = projectMaps
+        .where((entry) => entry.id == gameState.currentMapId)
+        .firstOrNull;
+    final character = projectCharacters
+        .where((entry) => entry.id == trainer.avatarCharacterId)
+        .firstOrNull;
+    final locationName = currentMap?.name.trim();
+    final dexEntries = pokedex?.entries;
+    final profile = RuntimePlayerProfileSnapshot(
+      playerName: trainer.name,
+      currentMapId: gameState.currentMapId,
+      locationName:
+          locationName == null || locationName.isEmpty ? null : locationName,
+      money: trainer.money,
+      playtimeSeconds: playtimeSeconds,
+      avatarCharacterId: trainer.avatarCharacterId,
+      pronounSet: trainer.pronounSet,
+      portraits: character?.portraits ?? const [],
+      badgeIds: trainer.badgeIds,
+      badgeTotal: projectBadges?.length,
+      pokedex: dexEntries == null
+          ? null
+          : RuntimePlayerPokedexProgressSnapshot(
+              seen: dexEntries
+                  .where((entry) =>
+                      entry.pokedexEntry!.knowledge !=
+                      RuntimePlayerPokedexKnowledge.unknown)
+                  .length,
+              caught: dexEntries
+                  .where((entry) =>
+                      entry.pokedexEntry!.knowledge ==
+                      RuntimePlayerPokedexKnowledge.caught)
+                  .length,
+              total: dexEntries.length,
+            ),
+    );
+    final seconds = profile.playtimeSeconds;
+    final minutes = seconds == null ? null : seconds ~/ 60;
+    return RuntimePlayerPauseDetailSnapshot(
+      section: RuntimePlayerPauseSection.profile,
+      title: isFrench ? 'Profil' : 'Profile',
+      profile: profile,
+      entries: [
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'profile.name',
+          title: isFrench ? 'Dresseur' : 'Trainer',
+          subtitle: profile.playerName,
+        ),
+        if (profile.locationName case final location?)
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'profile.location',
+            title: isFrench ? 'Lieu' : 'Location',
+            subtitle: location,
+          ),
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'profile.playtime',
+          title: isFrench ? 'Temps de jeu' : 'Play time',
+          subtitle: minutes == null
+              ? '—'
+              : '${minutes ~/ 60}:${(minutes % 60).toString().padLeft(2, '0')}',
+        ),
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'profile.money',
+          title: isFrench ? 'Argent' : 'Money',
+          subtitle: '${profile.money}',
+        ),
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'profile.badges',
+          title: 'Badges',
+          subtitle: profile.badgeTotal == null
+              ? '${profile.badgeIds.length}'
+              : '${profile.badgeIds.length} / ${profile.badgeTotal}',
+        ),
+        if (profile.pokedex case final progress?) ...[
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'profile.pokedex.seen',
+            title: isFrench ? 'Pokémon vus' : 'Pokémon seen',
+            subtitle: '${progress.seen} / ${progress.total}',
+          ),
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'profile.pokedex.caught',
+            title: isFrench ? 'Pokémon capturés' : 'Pokémon caught',
+            subtitle: '${progress.caught} / ${progress.total}',
+          ),
+        ],
+      ],
     );
   }
 
@@ -182,6 +296,16 @@ final class RuntimePlayerPauseDataBuilder {
           speciesById[pokemon.speciesId]?.calculatedStatsFor(pokemon),
       itemLabelFor: (itemId) => itemCatalog.definitionFor(itemId)?.displayName,
       moveFor: moveCatalog?.lookup,
+      mediaIdentityFor: (pokemon) => RuntimePokemonMediaIdentity(
+        speciesId: pokemon.speciesId,
+        formId: pokemon.formId.trim().isEmpty ? null : pokemon.formId,
+        defaultFormId: speciesById[pokemon.speciesId]?.defaultFormId,
+        gender: pokemon.gender,
+        isShiny: pokemon.isShiny,
+        mediaRef: speciesById[pokemon.speciesId]?.mediaRef,
+      ),
+      typeIdsFor: (pokemon) =>
+          speciesById[pokemon.speciesId]?.types ?? const [],
     );
     final entries = <RuntimePlayerDetailEntrySnapshot>[];
     for (var index = 0; index < gameState.party.members.length; index++) {
@@ -298,8 +422,13 @@ final class RuntimePlayerPauseDataBuilder {
     required ItemCatalogSnapshot itemCatalog,
   }) {
     final resolver = ItemCapabilityResolver(itemCatalog);
-    final entries =
-        gameState.bag.entries.where((entry) => entry.quantity > 0).map((entry) {
+    final entries = gameState.bag.entries
+        .where((entry) => entry.quantity > 0)
+        .toList(growable: false)
+        .asMap()
+        .entries
+        .map((indexedEntry) {
+      final entry = indexedEntry.value;
       final definition = resolver.definitionFor(entry.itemId);
       final capability = resolver.resolveUse(
         itemId: entry.itemId,
@@ -348,6 +477,13 @@ final class RuntimePlayerPauseDataBuilder {
             ? (isFrench ? 'Définition invalide' : 'Invalid definition')
             : _humanize(definition.pocketId),
         trailingLabel: '×${entry.quantity}',
+        bagItem: RuntimePlayerBagItemSnapshot(
+          itemId: entry.itemId,
+          quantity: entry.quantity,
+          sortOrder: indexedEntry.key,
+          pocketId: definition?.pocketId,
+          description: definition?.description,
+        ),
         bagAction: RuntimePlayerBagItemActionSnapshot(
           itemTargetId: entry.itemId,
           targetKind: targetKind,
@@ -569,6 +705,23 @@ final class RuntimePlayerPauseDataBuilder {
               entry.types.map(_humanize).join(' / '),
           ].join(' · '),
           trailingLabel: isCaught ? '●' : (isSeen ? '○' : null),
+          pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+            knowledge: isCaught
+                ? RuntimePlayerPokedexKnowledge.caught
+                : isSeen
+                    ? RuntimePlayerPokedexKnowledge.seen
+                    : RuntimePlayerPokedexKnowledge.unknown,
+            nationalDex: entry.nationalDex,
+            identity: isSeen
+                ? RuntimePokemonMediaIdentity(
+                    speciesId: entry.id,
+                    formId: entry.defaultFormId,
+                    defaultFormId: entry.defaultFormId,
+                    mediaRef: entry.mediaRef,
+                  )
+                : null,
+            typeIds: isSeen ? entry.types : const [],
+          ),
         ),
       );
     }
@@ -695,6 +848,8 @@ final class RuntimePlayerPauseDataBuilder {
         enabled: enabled,
         baseStats: baseStats,
         learnsetRef: _readNestedString(json, 'refs', 'learnset'),
+        mediaRef: _readNestedString(json, 'refs', 'media'),
+        defaultFormId: _readNestedString(json, 'forms', 'formId'),
       );
     } on FormatException {
       return null;
@@ -728,6 +883,8 @@ final class _RuntimeSpeciesPresentation {
     required this.enabled,
     required this.baseStats,
     required this.learnsetRef,
+    required this.mediaRef,
+    required this.defaultFormId,
   });
 
   final String id;
@@ -737,6 +894,8 @@ final class _RuntimeSpeciesPresentation {
   final bool enabled;
   final Map<String, dynamic>? baseStats;
   final String? learnsetRef;
+  final String? mediaRef;
+  final String? defaultFormId;
 
   String nameFor(String locale) {
     final normalized = locale.toLowerCase().split(RegExp('[-_]')).first;

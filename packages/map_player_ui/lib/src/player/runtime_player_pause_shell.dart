@@ -629,6 +629,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         _presentation.label(PlayerPauseAction.pokedex, l10n),
       RuntimePlayerPauseSection.map =>
         _presentation.label(PlayerPauseAction.map, l10n),
+      RuntimePlayerPauseSection.quests =>
+        _presentation.label(PlayerPauseAction.quests, l10n),
+      RuntimePlayerPauseSection.profile =>
+        _presentation.label(PlayerPauseAction.profile, l10n),
       RuntimePlayerPauseSection.options =>
         _presentation.label(PlayerPauseAction.options, l10n),
     };
@@ -648,6 +652,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         RuntimePlayerPauseSection.pokedex =>
           ProjectPresentationSurfaceRole.pokedex,
         RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
+        RuntimePlayerPauseSection.quests =>
+          ProjectPresentationSurfaceRole.pauseMenu,
+        RuntimePlayerPauseSection.profile =>
+          ProjectPresentationSurfaceRole.pauseMenu,
         RuntimePlayerPauseSection.options =>
           ProjectPresentationSurfaceRole.options,
       };

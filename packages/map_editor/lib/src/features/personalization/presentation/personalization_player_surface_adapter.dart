@@ -497,18 +497,24 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   static Map<PlayerPauseAction, PlayerActionAvailability> get _pauseActions =>
       <PlayerPauseAction, PlayerActionAvailability>{
         for (final action in PlayerPauseAction.values)
-          action: PlayerActionAvailability.enabled,
+          action: action == PlayerPauseAction.quests
+              ? const PlayerActionAvailability.disabled(
+                  'Le journal de quêtes n’est pas encore disponible.',
+                )
+              : PlayerActionAvailability.enabled,
       };
 
   static Map<PlayerPauseAction, PlayerPausePreviewDetailData>
   get _pauseDetails => <PlayerPauseAction, PlayerPausePreviewDetailData>{
     for (final action in PlayerPauseAction.values)
-      action: PlayerPausePreviewDetailData(
-        action: action,
-        title: _pauseActionTitle(action),
-        message:
-            'Le contenu de cette section dépend de la sauvegarde en cours.',
-      ),
+      action: action == PlayerPauseAction.profile
+          ? PlayerPausePreviewDetailData.demonstrationProfile()
+          : PlayerPausePreviewDetailData(
+              action: action,
+              title: _pauseActionTitle(action),
+              message:
+                  'Le contenu de cette section dépend de la sauvegarde en cours.',
+            ),
   };
 
   static String _pauseActionTitle(PlayerPauseAction action) => switch (action) {
@@ -517,6 +523,8 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     PlayerPauseAction.bag => 'Sac',
     PlayerPauseAction.pokedex => 'Pokédex',
     PlayerPauseAction.map => 'Carte',
+    PlayerPauseAction.quests => 'Quêtes',
+    PlayerPauseAction.profile => 'Profil',
     PlayerPauseAction.save => 'Sauvegarder',
     PlayerPauseAction.options => 'Options',
     PlayerPauseAction.returnToTitle => 'Retour au titre',

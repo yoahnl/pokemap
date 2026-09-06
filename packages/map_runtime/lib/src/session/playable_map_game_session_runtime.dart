@@ -88,6 +88,8 @@ final class PlayableMapGameSessionRuntime
   String? _projectRootDirectory;
   ProjectPokemonConfig? _pokemonConfig;
   List<ProjectMapEntry> _projectMaps = const <ProjectMapEntry>[];
+  List<BadgeDefinition> _projectBadges = const [];
+  List<ProjectCharacterEntry> _projectCharacters = const [];
   DateTime? _createdAt;
   String? _saveId;
   int _basePlayTimeSeconds = 0;
@@ -220,6 +222,9 @@ final class PlayableMapGameSessionRuntime
     _projectRootDirectory = bundle.projectRootDirectory;
     _pokemonConfig = bundle.manifest.pokemon;
     _projectMaps = List<ProjectMapEntry>.unmodifiable(bundle.manifest.maps);
+    _projectBadges = List<BadgeDefinition>.unmodifiable(bundle.manifest.badges);
+    _projectCharacters =
+        List<ProjectCharacterEntry>.unmodifiable(bundle.manifest.characters);
     final memorySaves = _SessionMemoryGameSaveRepository(initialState);
     final initialTilesetImageCache =
         preloadedInitialMap?.takeTilesetImageCache();
@@ -326,6 +331,9 @@ final class PlayableMapGameSessionRuntime
       locale: descriptor.locale,
       mapEnabled: descriptor.grantedCapabilities.contains('map.v1'),
       projectMaps: _projectMaps,
+      projectBadges: _projectBadges,
+      projectCharacters: _projectCharacters,
+      playtimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,
     );
   }
 
