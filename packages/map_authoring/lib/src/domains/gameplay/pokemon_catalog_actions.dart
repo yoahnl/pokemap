@@ -232,6 +232,8 @@ final class PokemonCatalogActions {
   const PokemonCatalogActions();
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
+    _descriptor('pokemon.documents.write', delete: false),
+    _descriptor('pokemon.catalog.entries.add', delete: false),
     for (final entry in const [
       ('pokemon.catalog.write', PokemonDocumentKind.catalog, false),
       ('pokemon.species.write', PokemonDocumentKind.species, false),
@@ -248,9 +250,102 @@ final class PokemonCatalogActions {
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final actionId = context.request.actionId;
+    if (actionId == 'pokemon.documents.write') return _buildBatch(context);
+    if (actionId == 'pokemon.catalog.entries.add') {
+      return _buildCatalogAddition(context);
+    }
+    return _buildDocument(context, actionId, context.request.parameters);
+  }
+
+  AuthoringMutationDraft _buildCatalogAddition(
+      AuthoringPlanningContext context) {
+    final parameters = context.request.parameters;
+    if (parameters.length != 2 ||
+        parameters['entries'] is! List ||
+        (parameters['entries'] as List).isEmpty ||
+        (parameters['entries'] as List).length > 200) {
+      throw const FormatException(
+          'Expected a catalog relativePath and 1 to 200 new entries.');
+    }
+    final relativePath = _string(parameters, 'relativePath');
+    _validateStoragePath(context.snapshot.manifest.pokemon,
+        PokemonDocumentKind.catalog, relativePath);
+    final identities = context.snapshot.resourceStorageKeys.entries
+        .where((entry) => entry.value == relativePath)
+        .map((entry) => entry.key)
+        .toList();
+    if (identities.length != 1) {
+      throw const FormatException(
+          'Catalog additions require one existing catalog in the enabled Pokemon inventory.');
+    }
+    final identity = identities.single;
+    final before = context.snapshot.resourceBytes(identity);
+    final document = _jsonCatalogBytes(before);
+    final entries = _validatedCatalogEntries(document['entries']);
+    final ids = entries.map((entry) => _entryId(entry)).toSet();
+    for (final entry in _validatedCatalogEntries(parameters['entries'])) {
+      if (!ids.add(_entryId(entry))) {
+        throw const FormatException(
+            'Catalog additions cannot replace an existing entry.');
+      }
+      entries.add(entry);
+    }
+    return _buildDocument(context, 'pokemon.catalog.write', {
+      'relativePath': relativePath,
+      'beforeBytesBase64': base64Encode(before),
+      'document': {...document, 'entries': entries},
+    });
+  }
+
+  AuthoringMutationDraft _buildBatch(AuthoringPlanningContext context) {
+    final parameters = context.request.parameters;
+    final raw = parameters['documents'];
+    if (parameters.length != 1 ||
+        raw is! List ||
+        raw.isEmpty ||
+        raw.length > 200) {
+      throw const FormatException(
+          'Expected a batch of 1 to 200 typed Pokemon document writes.');
+    }
+    final drafts = <AuthoringMutationDraft>[];
+    const allowedActions = {
+      'pokemon.species.write',
+      'pokemon.learnset.write',
+      'pokemon.evolution.write',
+      'pokemon.media.write',
+    };
+    for (final entry in raw) {
+      if (entry is! Map ||
+          entry.length != 2 ||
+          !allowedActions.contains(entry['actionId']) ||
+          entry['parameters'] is! Map) {
+        throw const FormatException(
+            'Batch members require a supported document write actionId and parameters.');
+      }
+      drafts.add(_buildDocument(context, entry['actionId'] as String,
+          Map<String, Object?>.from(entry['parameters'] as Map)));
+    }
+    return AuthoringMutationDraft(
+      changeSet: AuthoringChangeSet(
+        changes: drafts.expand((draft) => draft.changeSet.changes),
+        diff: AuthoringDiff(
+            drafts.expand((draft) => draft.changeSet.diff.entries)),
+      ),
+      preview: {
+        'operation': 'pokemon.documents.write',
+        'documentCount': drafts.length,
+        'documents': [for (final draft in drafts) draft.preview]
+      },
+      referenceImpact: {
+        'documents': [for (final draft in drafts) draft.referenceImpact]
+      },
+    );
+  }
+
+  AuthoringMutationDraft _buildDocument(AuthoringPlanningContext context,
+      String actionId, Map<String, Object?> parameters) {
     final kind = _kindForAction(actionId);
     final deleting = actionId.endsWith('.delete');
-    final parameters = context.request.parameters;
     final allowed = deleting
         ? const {'relativePath', 'resourceId', 'beforeBytesBase64'}
         : const {'relativePath', 'document', 'beforeBytesBase64'};
@@ -271,9 +366,11 @@ final class PokemonCatalogActions {
           );
     final resourceId =
         deleting ? _string(parameters, 'resourceId') : document!.identity;
-    if (!deleting && kind == PokemonDocumentKind.catalog &&
+    if (!deleting &&
+        kind == PokemonDocumentKind.catalog &&
         ((resourceId == 'items') != isItemCatalog)) {
-      throw const FormatException('An item catalog must use its configured canonical path.');
+      throw const FormatException(
+          'An item catalog must use its configured canonical path.');
     }
     if (deleting && beforeBytes == null) {
       throw ArgumentError('Delete requires exact beforeBytesBase64.');
@@ -344,7 +441,13 @@ AuthoringActionDescriptor _descriptor(String id, {required bool delete}) =>
       version: 1,
       summary: delete
           ? 'Delete one exact Pokemon data document'
-          : 'Create or replace one validated Pokemon data document',
+          : id == 'pokemon.documents.write'
+              ? 'Atomically write 1 to 200 typed species, learnset, evolution or media documents with exact preimages'
+              : id == 'pokemon.catalog.entries.add'
+                  ? 'Add 1 to 200 new entries to a canonical catalog while preserving every existing definition'
+                  : id == 'pokemon.evolution.write'
+                      ? 'Write evolution rules; conditional and catalog-only methods preserve source conditions and do not execute in gameplay'
+                      : 'Create or replace one validated Pokemon data document',
       inputSchemaId: 'pokemap.authoring/$id.input.v1',
       outputSchemaId: 'pokemap.authoring/$id.output.v1',
       riskLevel: delete ? AuthoringRiskLevel.high : AuthoringRiskLevel.medium,
@@ -423,6 +526,9 @@ List<int>? _optionalBytes(Object? value) {
 List<int> _encode(Map<String, Object?> json) =>
     utf8.encode('${const JsonEncoder.withIndent('  ').convert(json)}\n');
 
+Map<String, dynamic> _jsonCatalogBytes(List<int> bytes) =>
+    Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map);
+
 List<Map<String, Object?>> _validatedCatalogEntries(Object? raw) {
   if (raw is! List) {
     throw const FormatException('Catalog entries must be a list.');
@@ -454,9 +560,10 @@ Map<String, Object?> _canonicalSharedPokemonDocument(
   Map<String, dynamic> json,
 ) =>
     switch (kind) {
-      PokemonDocumentKind.catalog => !json.containsKey('catalog') || json['catalog'] == 'items'
-          ? encodeProjectItemCatalog(decodeProjectItemCatalog(json))
-          : PokemonCatalogFile.fromJson(json).toJson(),
+      PokemonDocumentKind.catalog =>
+        !json.containsKey('catalog') || json['catalog'] == 'items'
+            ? encodeProjectItemCatalog(decodeProjectItemCatalog(json))
+            : PokemonCatalogFile.fromJson(json).toJson(),
       PokemonDocumentKind.species => PokemonSpeciesFile.fromJson(json).toJson(),
       PokemonDocumentKind.learnset =>
         PokemonLearnsetFile.fromJson(json).toJson(),

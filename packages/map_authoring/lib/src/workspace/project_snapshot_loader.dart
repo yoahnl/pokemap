@@ -429,6 +429,23 @@ final class ProjectSnapshotLoader {
     var pokemonInventoryComplete = false;
     final pokemonDirectoryInventory = <String, List<String>>{};
     if (manifest.pokemon.enabled) {
+      for (final entry in manifest.pokemon.catalogFiles.entries) {
+        if (entry.key == 'items') continue;
+        final path = validateProjectRelativePath(entry.value).join('/');
+        if (!occupiedPaths.add(path)) {
+          throw const ProjectSnapshotException(
+            'project.resource_path_conflict',
+            'Two project resources resolve to the same storage path.',
+          );
+        }
+        final bytes = await _readOptional(access, path);
+        if (bytes == null) continue;
+        resources.add(_LoadedProjectResource(
+          relativePath: path,
+          identity: 'pokemonCatalog:${entry.key}',
+          bytes: bytes,
+        ));
+      }
       for (final directory in <String>[
         manifest.pokemon.speciesDir,
         manifest.pokemon.mediaDir,

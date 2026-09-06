@@ -264,6 +264,7 @@ final class ProjectReferenceIndex {
       buildNarrativeDependencyIndex(
         project: snapshot.manifest,
         maps: snapshot.maps,
+        itemCatalog: snapshot.itemCatalog,
       ),
     );
     final presentation = PresentationReferenceGraph.build(

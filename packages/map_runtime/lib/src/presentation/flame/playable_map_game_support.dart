@@ -665,6 +665,8 @@ final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 
   GameState gameState;
+  bool defersMapActivation = false;
+  MapActivation? deferredMapActivation;
   final List<Future<void> Function()> _compensations =
       <Future<void> Function()>[];
 

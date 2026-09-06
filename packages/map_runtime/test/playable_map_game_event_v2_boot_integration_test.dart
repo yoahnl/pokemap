@@ -23,6 +23,71 @@ const _retryOutcomeId = 'boot.retry';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('world Presentation awaits playback before committing its Event', () async {
+    final player = _WorldPresentationPlayer();
+    final original = _bundle();
+    final scene = _scene();
+    final graph = scene.graph;
+    final presentationScene = SceneAsset(id: scene.id, name: scene.name, graph: SceneGraph(
+      startNodeId: graph.startNodeId,
+      nodes: [
+        ...graph.nodes,
+        SceneNode(
+          id: 'presentation',
+          kind: SceneNodeKind.presentationCinematic,
+          payload: ScenePresentationCinematicPayload(
+            presentationCinematicId: 'train_departure',
+          ),
+        ),
+      ],
+      edges: [
+        for (final edge in graph.edges)
+          if (edge.fromNodeId == 'start')
+            SceneEdge(id: edge.id, fromNodeId: edge.fromNodeId, fromPortId: edge.fromPortId, toNodeId: 'presentation', kind: edge.kind)
+          else
+            edge,
+        SceneEdge(
+          id: 'presentation_to_fact',
+          fromNodeId: 'presentation',
+          fromPortId: 'completed',
+          toNodeId: 'set_fact',
+          kind: SceneEdgeKind.presentationCompleted,
+        ),
+      ],
+    ));
+    final bundle = original.copyWith(manifest: original.manifest.copyWith(
+      scenes: [presentationScene],
+      presentationCinematics: [PresentationCinematicAsset(
+        id: 'train_departure', title: 'Train departure', durationUs: 1000000,
+      )],
+    ));
+    final game = PlayableMapGame(
+      bundle: bundle,
+      projectFilePath: '/tmp/event_v2_presentation/project.json',
+      presentationCinematicPlayer: player,
+    );
+    game.onGameResize(Vector2(320, 240));
+    await game.onLoad();
+    await _waitUntil(game, () => player.request != null);
+
+    expect(player.request!.presentationCinematicId, 'train_departure');
+    expect(game.debugIsMapActivationDispatchInFlight, isTrue);
+    expect(game.debugIsGameplayInputLocked, isTrue);
+    expect(game.gameStateSnapshot.narrativeFactRuntimeState.overridesByFactId,
+        isNot(contains(_factId)));
+
+    player.terminal.complete(const RuntimePresentationExecutionTerminal(
+      runToken: RuntimePresentationRunToken(1),
+      result: RuntimePresentationExecutionResult.completed,
+    ));
+    await _waitForActivationDispatch(game);
+
+    expect(game.gameStateSnapshot.narrativeFactRuntimeState.overridesByFactId[_factId], isTrue);
+    expect(game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        contains(_eventId));
+    game.onRemove();
+  });
+
   test('v2Only mapEnter executes the real Scene and suppresses legacy',
       () async {
     final bundle = _bundle();
@@ -440,6 +505,19 @@ Future<void> _waitForActivationDispatch(PlayableMapGame game) {
     game,
     () => !game.debugIsMapActivationDispatchInFlight,
   );
+}
+
+final class _WorldPresentationPlayer implements ScenePresentationCinematicRuntimePlayer {
+  ScenePresentationCinematicRuntimeRequest? request;
+  final terminal = Completer<RuntimePresentationExecutionTerminal>();
+
+  @override
+  Future<RuntimePresentationExecutionTerminal> playPresentationCinematic(
+    ScenePresentationCinematicRuntimeRequest value,
+  ) {
+    request = value;
+    return terminal.future;
+  }
 }
 
 Future<void> _waitUntil(

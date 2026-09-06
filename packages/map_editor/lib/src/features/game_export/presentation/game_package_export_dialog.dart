@@ -112,7 +112,9 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          'Publier dans PokeMap Hub',
+                          _quickMode
+                              ? 'Tester dans PokeMap Hub'
+                              : 'Publier dans PokeMap Hub',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 color: colors.textPrimary,
@@ -121,8 +123,9 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Crée une projection joueur certifiée, sans secrets '
-                          'ni fichiers de travail.',
+                          _quickMode
+                              ? 'Crée une version jouable pour essayer ton projet en cours.'
+                              : 'Crée une projection joueur certifiée, sans secrets ni fichiers de travail.',
                           style: TextStyle(color: colors.textMuted),
                         ),
                       ],
@@ -177,7 +180,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                     if (_quickMode) ...[
                       const PokeMapDiagnosticCallout(
                         severity: PokeMapDiagnosticSeverity.info,
-                        title: 'Prêt pour un test local',
+                        title: 'Tester un projet en cours',
                         message:
                             'Aucune métadonnée de publication ni aucun visuel '
                             'n’est requis. PokeMap crée une identité locale '
@@ -434,7 +437,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                               title: 'Diagnostics de jouabilité',
                               description:
                                   '${report.errorCount} erreur(s) bloquent la '
-                                  'certification du jeu.',
+                                  '${_quickMode ? 'création du test.' : 'certification du jeu.'}',
                             ),
                             const SizedBox(height: 10),
                             for (final diagnostic in report.diagnostics.where(
@@ -517,8 +520,12 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                       const SizedBox(height: 14),
                       PokeMapDiagnosticCallout(
                         severity: PokeMapDiagnosticSeverity.info,
-                        title: 'Package certifié',
-                        message: snapshot.installRequest == null
+                        title: snapshot.artifact!.certification.isCertified
+                            ? 'Package certifié'
+                            : 'Version de test prête',
+                        message: !snapshot.artifact!.certification.isCertified
+                            ? 'Le fichier a été vérifié et peut être testé dans le Hub. La fin du scénario reste à valider.'
+                            : snapshot.installRequest == null
                             ? 'Le package a été rouvert, contrôlé et certifié.'
                             : 'Le package certifié sera installé par PokeMap '
                                   'Hub à sa prochaine consommation de l’inbox.',
@@ -550,7 +557,12 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                             isBusy ||
                             !widget.controller.canInstallInHub
                         ? null
-                        : () => widget.controller.installInHub(profile),
+                        : () => widget.controller.installInHub(
+                            profile,
+                            mode: _quickMode
+                                ? GamePackageExportMode.localTest
+                                : GamePackageExportMode.publication,
+                          ),
                     variant: PokeMapButtonVariant.secondary,
                     isLoading:
                         snapshot.status == GamePackageExportStatus.installing,
@@ -586,7 +598,13 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
         '${_slug(profile.title)}-${profile.gameVersion}.avelunegame';
     final file = await widget.chooseOutputFile(suggested);
     if (file == null || !mounted) return;
-    await widget.controller.export(profile: profile, outputFile: file);
+    await widget.controller.export(
+      profile: profile,
+      outputFile: file,
+      mode: _quickMode
+          ? GamePackageExportMode.localTest
+          : GamePackageExportMode.publication,
+    );
   }
 
   Future<void> _copyDiagnostic() async {

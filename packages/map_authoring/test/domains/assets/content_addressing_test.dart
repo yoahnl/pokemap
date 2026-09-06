@@ -7,6 +7,81 @@ import 'package:test/test.dart';
 
 void main() {
   group('content-addressed artifact store', () {
+    test('batch import commits all logical paths with one shared blob',
+        () async {
+      final directory =
+          await Directory.systemTemp.createTemp('pokemap_asset_batch_');
+      addTearDown(() => directory.delete(recursive: true));
+      await File('${directory.path}/project.json').writeAsString(jsonEncode(
+        ProjectManifest(
+            name: 'Batch fixture', maps: const [], tilesets: const []).toJson(),
+      ));
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [directory.path], fileReader: reader);
+      final handles = WorkspaceHandleStore();
+      final opened = await ProjectOpenService(
+              policy: policy, fileReader: reader, handles: handles)
+          .openProject(directory.path);
+      final snapshots = ProjectSnapshotLoader(handles: handles);
+      final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
+      final artifact = await store.put(utf8.encode('one shared image'),
+          declaredMediaType: 'text/plain');
+      final api = LocalMapAuthoringMutationApi(
+          policy: policy, snapshotLoader: snapshots, artifactStore: store);
+      await api.attachProject(
+          projectRootPath: directory.path,
+          workspaceHandle: opened.workspaceHandle,
+          projectHandle: opened.projectHandle);
+      final entries = [
+        for (final id in ['first', 'second'])
+          {
+            'assetId': id,
+            'logicalPath': 'assets/$id.txt',
+            'artifactHandle': artifact.reference.handle,
+          }
+      ];
+      final request = AuthoringRequest(
+          requestId: 'batch',
+          actionId: 'asset.import_batch',
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: {'entries': entries},
+          expectedRevision:
+              (await snapshots.load(opened.projectHandle)).revision,
+          idempotencyKey: 'batch');
+      final plan = await api.plan(opened.projectHandle, request);
+      expect(
+          await File('${directory.path}/assets/first.txt').exists(), isFalse);
+      await api.apply(opened.projectHandle,
+          planId: plan['planId'] as String, operationId: 'batch');
+      for (final id in ['first', 'second']) {
+        expect(await File('${directory.path}/assets/$id.txt').readAsString(),
+            'one shared image');
+      }
+      final catalog = AssetCatalog.fromJson(jsonDecode(
+          await File('${directory.path}/$assetCatalogStorageKey')
+              .readAsString()) as Map<String, dynamic>);
+      expect(catalog.records, hasLength(2));
+      expect(
+          catalog.records.map((r) => r.artifact.digest).toSet(), hasLength(1));
+      final bad = AuthoringRequest(
+          requestId: 'duplicate',
+          actionId: 'asset.import_batch',
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: {
+            'entries': [entries.first, entries.first]
+          },
+          expectedRevision:
+              (await snapshots.load(opened.projectHandle)).revision,
+          idempotencyKey: 'duplicate');
+      await expectLater(api.plan(opened.projectHandle, bad),
+          throwsA(isA<AssetActionException>()));
+      expect(await File('${directory.path}/assets/first.txt').readAsString(),
+          'one shared image');
+    });
+
     test('deduplicates identical bytes and round-trips the public reference',
         () async {
       final store = MemoryArtifactStore(maximumArtifactBytes: 1024);

@@ -132,11 +132,16 @@ final class RuntimePokemonEvolutionLoader {
         throw _invalidRule(sourceId, file.path, index);
       }
 
-      final target = await speciesLoader.loadById(
-        projectRootDirectory: projectRootDirectory,
-        pokemonConfig: pokemonConfig,
-        speciesId: targetId,
-      );
+      final RuntimePokemonSpecies target;
+      try {
+        target = await speciesLoader.loadById(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemonConfig,
+          speciesId: targetId,
+        );
+      } on RuntimePokemonSpeciesDisabledException {
+        continue;
+      }
       try {
         candidates.add(
           PokemonEvolutionCandidate(

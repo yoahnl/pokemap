@@ -3,6 +3,51 @@ import 'package:test/test.dart';
 
 void main() {
   group('NarrativeDependencyIndex contract', () {
+    test('resolves inventory conditions against the project item catalog', () {
+      final scene = SceneAsset(
+        id: 'scene.inventory',
+        name: 'Inventory',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            for (final itemId in ['potion', 'missing_item'])
+              SceneNode(
+                id: itemId,
+                kind: SceneNodeKind.condition,
+                payload: SceneConditionPayload(
+                  conditionSource: SceneConditionSource(
+                    sourceKind: SceneConditionSourceKind.inventoryItem,
+                    sourceId: itemId,
+                    operator: SceneConditionOperator.isTrue,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+      final index = buildNarrativeDependencyIndex(
+        project: _project(scenes: [scene]),
+        itemCatalog: const ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: [
+            ProjectItemDefinition(
+              id: 'potion',
+              displayName: 'Potion',
+              pocketId: 'medicine',
+            ),
+          ],
+        ),
+      );
+      final present = index.usages.singleWhere((u) => u.target.id == 'potion');
+      final missing = index.usages.singleWhere((u) => u.target.id == 'missing_item');
+
+      expect(present.target.kind, NarrativeDependencyTargetKind.item);
+      expect(present.resolution, NarrativeDependencyResolution.resolved);
+      expect(missing.resolution, NarrativeDependencyResolution.missing);
+      expect(index.definitionsFor(present.target), hasLength(1));
+    });
+
     test('indexes typed progression condition references at exact paths', () {
       final condition = ScriptConditionFactory.allOf(<ScriptCondition>[
         ScriptConditionFactory.factEquals(

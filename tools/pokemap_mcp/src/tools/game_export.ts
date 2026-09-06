@@ -19,10 +19,11 @@ export function registerGameExportTool(
     {
       title: "Export an Avelune game package",
       description:
-        "Builds, certifies, and writes one .avelunegame file for an opened project into a configured export root.",
+        "Builds and writes one .avelunegame file into a configured export root. Publication requires a certified complete story; localTest retains story warnings and validates runtime data.",
       inputSchema: z
         .object({
           projectHandle: z.string().min(1),
+          mode: z.enum(["publication", "localTest"]).optional(),
           outputPath: z
             .string()
             .min(1)
@@ -37,7 +38,7 @@ export function registerGameExportTool(
         openWorldHint: false,
       },
     },
-    async ({ projectHandle, outputPath }) =>
+    async ({ projectHandle, outputPath, mode }) =>
       authoringResult(async () => {
         if (!projectRoots) {
           throw new Error("Project-root resolution is unavailable.");
@@ -45,6 +46,7 @@ export function registerGameExportTool(
         return authoring.request("game_export", {
           projectRoot: projectRoots.resolveProjectRoot(projectHandle),
           outputPath,
+          ...(mode === undefined ? {} : { mode }),
         });
       }),
   );

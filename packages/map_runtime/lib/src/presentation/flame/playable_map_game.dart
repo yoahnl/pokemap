@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -76,6 +77,7 @@ import '../../application/scene_runtime/scene_battle_runtime_outcome_adapter.dar
 import '../../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
 import '../../application/scene_runtime/cinematic_runtime_playback_controller.dart';
 import '../../application/scene_runtime/scene_cinematic_runtime_awaitable_adapter.dart';
+import '../../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_consequence_runtime_writer.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
@@ -270,6 +272,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     this.enableActorContactShadows = true,
     this.enableStaticPlacedElementShadows = true,
     RuntimeAudioMixer? audioMixer,
+    this.presentationCinematicPlayer,
     @visibleForTesting RuntimeMusicService? musicService,
     @visibleForTesting double Function()? devicePixelRatioProvider,
   })  : _bundle = bundle,
@@ -634,6 +637,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late final _PlayableMapCinematicRuntimeHost _cinematicRuntimeHost;
   late final FlameCinematicRuntimePlaybackSink _cinematicRuntimeSink;
   late final CinematicRuntimePlaybackController _cinematicRuntimeController;
+  final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
   final BattleVisualAssetCache _battleVisualAssetCache =
       BattleVisualAssetCache();
 
@@ -1079,6 +1083,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final snapshot = await _narrativeRuntimeSnapshotFor(_bundle.manifest);
     final session = _NarrativeSceneWorkingSession(request.gameState);
+    final defersMapActivation = _narrativeStateTransactions.deferAfterCurrentCommit(
+      (committedGameState) {
+        final activation = session.deferredMapActivation;
+        if (activation == null) return;
+        _applyNarrativeGameState(committedGameState);
+        _installMapActivation(activation);
+        _resetTriggerEnterOccupancy();
+        unawaited(_dispatchCompletedMapActivation(activation));
+      },
+    );
+    session.defersMapActivation = defersMapActivation;
     final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
     final consequenceWriter = await _buildSceneConsequenceRuntimeWriter(
       project: snapshot.project,
@@ -10270,6 +10285,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           return scenePortId;
         });
       },
+      playPresentationCinematic: (intent) async {
+        final player = presentationCinematicPlayer;
+        if (player == null) {
+          throw StateError('The host has no Presentation cinematic player.');
+        }
+        final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
+          runtimeSourceId: runtimeExecutionSourceId,
+          projectRevision: computeNarrativeProjectFingerprint([
+            NarrativeProjectFingerprintEntry(
+              relativePath: 'project.json',
+              bytes: utf8.encode(jsonEncode(_bundle.manifest.toJson())),
+            ),
+          ]),
+          assets: _bundle.manifest.presentationCinematics,
+          player: player,
+        );
+        final result = await adapter.playPresentationCinematic(intent);
+        if (!result.success || result.scenePortId == null) {
+          throw StateError(result.message ?? 'Presentation playback failed.');
+        }
+        return result.scenePortId!;
+      },
       executeInteractiveCommand: SceneInteractiveCommandRuntimeExecutor(
         warp: (command) => _executeSceneWarpCommand(
           command,
@@ -12945,9 +12982,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
       }
       if (swapCompleted) {
-        _installMapActivation(activation);
-        _resetTriggerEnterOccupancy();
-        await _dispatchCompletedMapActivation(activation);
+        final session = _activeNarrativeSceneWorkingSession;
+        if (session != null && session.defersMapActivation) {
+          session.deferredMapActivation = activation;
+        } else {
+          _installMapActivation(activation);
+          _resetTriggerEnterOccupancy();
+          await _dispatchCompletedMapActivation(activation);
+        }
       }
       if (_activeMapId == sourceMapId &&
           _world.player.pos.x == sourcePos.x &&

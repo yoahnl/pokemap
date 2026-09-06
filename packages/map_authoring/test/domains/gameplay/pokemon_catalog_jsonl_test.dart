@@ -7,6 +7,90 @@ import 'package:test/test.dart';
 
 void main() {
   group('Pokemon document transport parity', () {
+    test(
+        'adds catalog entries without resending or modifying existing definitions',
+        () async {
+      final harness = await _PokemonTransportHarness.create('catalog-add');
+      addTearDown(harness.dispose);
+      final manifestFile = File('${harness.root.path}/project.json');
+      final manifest =
+          jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>;
+      (manifest['pokemon'] as Map)['enabled'] = true;
+      await manifestFile.writeAsString(jsonEncode(manifest));
+      final file =
+          File('${harness.root.path}/data/pokemon/catalogs/moves.json');
+      await file.parent.create(recursive: true);
+      final original = {'id': 'tackle', 'power': 40};
+      await file.writeAsString(jsonEncode(PokemonCatalogFile.fromJson({
+        'schemaVersion': 1,
+        'catalog': 'moves',
+        'entries': [original]
+      }).toJson()));
+      final receipt = await harness.writeDirect({
+        'addCatalogEntries': {
+          'relativePath': 'data/pokemon/catalogs/moves.json',
+          'entries': [
+            {'id': 'ember', 'power': 40}
+          ],
+        }
+      });
+      expect(receipt['actionId'], 'pokemon.catalog.entries.add');
+      final entries =
+          (jsonDecode(await file.readAsString()) as Map)['entries'] as List;
+      expect(entries, [
+        original,
+        {'id': 'ember', 'power': 40}
+      ]);
+    });
+
+    test(
+        'writes a typed document batch identically through direct API and JSONL',
+        () async {
+      final direct = await _PokemonTransportHarness.create('batch-direct');
+      final jsonl = await _PokemonTransportHarness.create('batch-jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      final batch = _documentBatch();
+      final receipt = await direct.writeDirect(batch);
+      final wire = await jsonl.writeJsonl(batch);
+      expect(receipt['actionId'], 'pokemon.documents.write');
+      expect(wire['status'], 'applied');
+      expect(await direct.speciesJson(), await jsonl.speciesJson());
+      final directEvolution = await File(
+              '${direct.root.path}/data/pokemon/evolutions/sproutle.json')
+          .readAsString();
+      final wireEvolution =
+          await File('${jsonl.root.path}/data/pokemon/evolutions/sproutle.json')
+              .readAsString();
+      expect(directEvolution, wireEvolution);
+      expect(((receipt['diff'] as Map)['entries'] as List), hasLength(2));
+    });
+
+    test('invalid or duplicate members reject the whole batch before any write',
+        () async {
+      for (final duplicate in [false, true]) {
+        final harness =
+            await _PokemonTransportHarness.create('batch-rejected-$duplicate');
+        addTearDown(harness.dispose);
+        final batch = _documentBatch();
+        final members = batch['documents'] as List;
+        if (duplicate) {
+          members.add(members.first);
+        } else {
+          (members.last['parameters']['document'] as Map)['schemaVersion'] =
+              currentPokemonDataSchemaVersion + 1;
+        }
+        final result = await harness.writeJsonlResult(batch);
+        expect(result.status, AuthoringResultStatus.failure);
+        expect(await harness.speciesExists(), isFalse);
+        expect(
+            await File(
+                    '${harness.root.path}/data/pokemon/evolutions/sproutle.json')
+                .exists(),
+            isFalse);
+      }
+    });
+
     test('writes the shared species schema through direct API and JSONL',
         () async {
       final direct = await _PokemonTransportHarness.create('direct');
@@ -108,6 +192,29 @@ Map<String, dynamic> _speciesDocument() => <String, dynamic>{
       },
       'refs': <String, Object?>{'learnset': 'sproutle'},
       'vendorExtension': true,
+    };
+
+Map<String, dynamic> _documentBatch() => {
+      'documents': [
+        {
+          'actionId': 'pokemon.species.write',
+          'parameters': {
+            'relativePath': 'data/pokemon/species/sproutle.json',
+            'document': _speciesDocument(),
+          }
+        },
+        {
+          'actionId': 'pokemon.evolution.write',
+          'parameters': {
+            'relativePath': 'data/pokemon/evolutions/sproutle.json',
+            'document': {
+              'schemaVersion': 1,
+              'speciesId': 'sproutle',
+              'evolutions': []
+            },
+          }
+        },
+      ],
     };
 
 final class _PokemonTransportHarness {
@@ -245,13 +352,21 @@ final class _PokemonTransportHarness {
   }) =>
       AuthoringRequest(
         requestId: 'pokemon-species-$suffix',
-        actionId: 'pokemon.species.write',
+        actionId: document.containsKey('addCatalogEntries')
+            ? 'pokemon.catalog.entries.add'
+            : document.containsKey('documents')
+                ? 'pokemon.documents.write'
+                : 'pokemon.species.write',
         actionVersion: 1,
         workspaceHandle: workspaceHandle,
-        parameters: <String, Object?>{
-          'relativePath': 'data/pokemon/species/sproutle.json',
-          'document': document,
-        },
+        parameters: document.containsKey('addCatalogEntries')
+            ? Map<String, Object?>.from(document['addCatalogEntries'] as Map)
+            : document.containsKey('documents')
+                ? document
+                : <String, Object?>{
+                    'relativePath': 'data/pokemon/species/sproutle.json',
+                    'document': document,
+                  },
         expectedRevision: revision,
         idempotencyKey: 'pokemon-species-$suffix',
         dryRun: false,

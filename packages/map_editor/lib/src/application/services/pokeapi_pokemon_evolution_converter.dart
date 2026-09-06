@@ -78,6 +78,9 @@ class PokeApiPokemonEvolutionConverter {
       }
 
       if (rawDetails.isEmpty) {
+        if (normalizedSpeciesId == 'phione' && targetSpeciesId == 'manaphy') {
+          continue;
+        }
         evolutions.add(
           PokemonEvolutionEntry(
             targetSpeciesId: targetSpeciesId,
@@ -90,9 +93,11 @@ class PokeApiPokemonEvolutionConverter {
         continue;
       }
 
-      for (var detailIndex = 0;
-          detailIndex < rawDetails.length;
-          detailIndex++) {
+      for (
+        var detailIndex = 0;
+        detailIndex < rawDetails.length;
+        detailIndex++
+      ) {
         final rawDetail = rawDetails[detailIndex];
         if (rawDetail is! Map) {
           throw EditorPersistenceException(
@@ -108,7 +113,7 @@ class PokeApiPokemonEvolutionConverter {
             method: _readMethod(detail),
             minLevel: (detail['min_level'] as num?)?.toInt(),
             minFriendship: (detail['min_happiness'] as num?)?.toInt(),
-            itemId: _readOptionalNamedResourceId(detail['item']),
+            itemId: _readOptionalMoveId(detail['item']),
             // Le modèle supporte déjà `requiredMoveId`, donc on n'abandonne pas
             // cette information dans `conditionText`.
             requiredMoveId: _readOptionalMoveId(detail['known_move']),
@@ -120,7 +125,8 @@ class PokeApiPokemonEvolutionConverter {
 
     final file = PokemonEvolutionFile(
       speciesId: normalizedSpeciesId,
-      preEvolution: located.parentSpeciesId,
+      preEvolution: normalizedSpeciesId == 'manaphy' && located.parentSpeciesId == 'phione'
+          ? null : located.parentSpeciesId,
       evolutions: _sortEvolutions(evolutions),
     );
     return file;
@@ -132,17 +138,11 @@ class PokeApiPokemonEvolutionConverter {
     required String? parentSpeciesId,
   }) {
     final currentSpeciesId = _normalizeSpeciesId(
-      _readNamedResourceId(
-        node['species'],
-        field: 'chain.species',
-      ),
+      _readNamedResourceId(node['species'], field: 'chain.species'),
     );
 
     if (currentSpeciesId == targetSpeciesId) {
-      return _LocatedChainNode(
-        node: node,
-        parentSpeciesId: parentSpeciesId,
-      );
+      return _LocatedChainNode(node: node, parentSpeciesId: parentSpeciesId);
     }
 
     final rawChildren = node['evolves_to'];
@@ -178,15 +178,48 @@ class PokeApiPokemonEvolutionConverter {
       return 'unknown';
     }
 
+    final additional = detail.entries.where(
+      (entry) =>
+          !const {
+            'trigger',
+            'min_level',
+            'min_happiness',
+            'item',
+            'known_move',
+          }.contains(entry.key) &&
+          _hasConditionValue(entry.value),
+    );
+    if (additional.isNotEmpty ||
+        (trigger == 'use-item' &&
+            (detail['min_happiness'] != null ||
+                detail['known_move'] != null))) {
+      return 'conditional';
+    }
     return switch (trigger) {
+      'level-up'
+          when detail['min_happiness'] != null &&
+              detail['known_move'] != null =>
+        'conditional',
+      'level-up' when detail['min_happiness'] != null => 'friendship',
+      'level-up' when detail['known_move'] != null => 'known_move',
       'level-up' => 'level_up',
       'use-item' => 'use_item',
       _ => trigger.replaceAll('-', '_'),
     };
   }
 
+  bool _hasConditionValue(Object? value) =>
+      value != null &&
+      value != false &&
+      value != '' &&
+      (value is! List || value.isNotEmpty) &&
+      (value is! Map || value.isNotEmpty);
+
   Map<String, String> _buildConditionText(Map<String, dynamic> detail) {
     final parts = <String>[];
+    if (_readMethod(detail) == 'conditional') {
+      parts.add('Trigger: ${_readOptionalNamedResourceId(detail['trigger'])}');
+    }
 
     final minHappiness = (detail['min_happiness'] as num?)?.toInt();
     if (minHappiness != null) {
@@ -218,14 +251,16 @@ class PokeApiPokemonEvolutionConverter {
       parts.add('Hold item: $heldItemId');
     }
 
-    final tradeSpeciesId =
-        _readOptionalNamedResourceId(detail['trade_species']);
+    final tradeSpeciesId = _readOptionalNamedResourceId(
+      detail['trade_species'],
+    );
     if (tradeSpeciesId != null && tradeSpeciesId.isNotEmpty) {
       parts.add('Trade species: $tradeSpeciesId');
     }
 
-    final partySpeciesId =
-        _readOptionalNamedResourceId(detail['party_species']);
+    final partySpeciesId = _readOptionalNamedResourceId(
+      detail['party_species'],
+    );
     if (partySpeciesId != null && partySpeciesId.isNotEmpty) {
       parts.add('Party species: $partySpeciesId');
     }
@@ -235,34 +270,31 @@ class PokeApiPokemonEvolutionConverter {
       parts.add('Party type: $partyTypeId');
     }
 
-    final knownMoveTypeId =
-        _readOptionalNamedResourceId(detail['known_move_type']);
+    final knownMoveTypeId = _readOptionalNamedResourceId(
+      detail['known_move_type'],
+    );
     if (knownMoveTypeId != null && knownMoveTypeId.isNotEmpty) {
       parts.add('Known move type: $knownMoveTypeId');
     }
 
     final gender = (detail['gender'] as num?)?.toInt();
     if (gender != null) {
-      parts.add(
-        switch (gender) {
-          1 => 'Gender: female',
-          2 => 'Gender: male',
-          _ => 'Gender: $gender',
-        },
-      );
+      parts.add(switch (gender) {
+        1 => 'Gender: female',
+        2 => 'Gender: male',
+        _ => 'Gender: $gender',
+      });
     }
 
-    final relativePhysicalStats =
-        (detail['relative_physical_stats'] as num?)?.toInt();
+    final relativePhysicalStats = (detail['relative_physical_stats'] as num?)
+        ?.toInt();
     if (relativePhysicalStats != null) {
-      parts.add(
-        switch (relativePhysicalStats) {
-          1 => 'Attack greater than Defense',
-          0 => 'Attack equal to Defense',
-          -1 => 'Attack lower than Defense',
-          _ => 'Relative physical stats: $relativePhysicalStats',
-        },
-      );
+      parts.add(switch (relativePhysicalStats) {
+        1 => 'Attack greater than Defense',
+        0 => 'Attack equal to Defense',
+        -1 => 'Attack lower than Defense',
+        _ => 'Relative physical stats: $relativePhysicalStats',
+      });
     }
 
     if (detail['needs_overworld_rain'] == true) {
@@ -271,6 +303,33 @@ class PokeApiPokemonEvolutionConverter {
 
     if (detail['turn_upside_down'] == true) {
       parts.add('Turn system upside down');
+    }
+
+    const describedFields = {
+      'trigger',
+      'min_level',
+      'min_happiness',
+      'item',
+      'known_move',
+      'min_affection',
+      'min_beauty',
+      'time_of_day',
+      'location',
+      'held_item',
+      'trade_species',
+      'party_species',
+      'party_type',
+      'known_move_type',
+      'gender',
+      'relative_physical_stats',
+      'needs_overworld_rain',
+      'turn_upside_down',
+    };
+    for (final entry in detail.entries) {
+      if (!describedFields.contains(entry.key) &&
+          _hasConditionValue(entry.value)) {
+        parts.add('${entry.key}: ${entry.value}');
+      }
     }
 
     if (parts.isEmpty) {
@@ -285,22 +344,25 @@ class PokeApiPokemonEvolutionConverter {
   ) {
     final sorted = List<PokemonEvolutionEntry>.from(entries);
     sorted.sort((left, right) {
-      final targetCompare =
-          left.targetSpeciesId.compareTo(right.targetSpeciesId);
+      final targetCompare = left.targetSpeciesId.compareTo(
+        right.targetSpeciesId,
+      );
       if (targetCompare != 0) return targetCompare;
 
       final methodCompare = left.method.compareTo(right.method);
       if (methodCompare != 0) return methodCompare;
 
-      final levelCompare =
-          (left.minLevel ?? -1).compareTo(right.minLevel ?? -1);
+      final levelCompare = (left.minLevel ?? -1).compareTo(
+        right.minLevel ?? -1,
+      );
       if (levelCompare != 0) return levelCompare;
 
       final itemCompare = (left.itemId ?? '').compareTo(right.itemId ?? '');
       if (itemCompare != 0) return itemCompare;
 
-      final moveCompare =
-          (left.requiredMoveId ?? '').compareTo(right.requiredMoveId ?? '');
+      final moveCompare = (left.requiredMoveId ?? '').compareTo(
+        right.requiredMoveId ?? '',
+      );
       if (moveCompare != 0) return moveCompare;
 
       return (left.conditionText['en'] ?? '').compareTo(
@@ -310,10 +372,7 @@ class PokeApiPokemonEvolutionConverter {
     return sorted;
   }
 
-  String _readNamedResourceId(
-    Object? raw, {
-    required String field,
-  }) {
+  String _readNamedResourceId(Object? raw, {required String field}) {
     if (raw is! Map) {
       throw EditorPersistenceException(
         'PokeAPI field "$field" must be a named resource object',
@@ -330,10 +389,7 @@ class PokeApiPokemonEvolutionConverter {
   }
 
   String _normalizeSpeciesId(String raw) {
-    return raw
-        .trim()
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '');
+    return raw.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
   }
 
   String? _readOptionalNamedResourceId(Object? raw) {
@@ -359,10 +415,7 @@ class PokeApiPokemonEvolutionConverter {
 }
 
 class _LocatedChainNode {
-  const _LocatedChainNode({
-    required this.node,
-    required this.parentSpeciesId,
-  });
+  const _LocatedChainNode({required this.node, required this.parentSpeciesId});
 
   final Map<String, dynamic> node;
   final String? parentSpeciesId;

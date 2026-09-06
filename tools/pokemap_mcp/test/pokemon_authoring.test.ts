@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -56,11 +56,16 @@ test("MCP writes canonical Pokemon species and rejects invalid schemas", async (
       version: "v6",
       maps: [],
       tilesets: [],
-      pokemon: canonicalPokemonConfig(),
+      pokemon: { ...canonicalPokemonConfig(), enabled: true },
     }),
   );
+  await mkdir(join(root, "data/pokemon/catalogs"), { recursive: true });
+  await writeFile(join(root, "data/pokemon/catalogs/moves.json"), JSON.stringify({
+    schemaVersion: 1, catalog: "moves", entries: [{ id: "tackle", power: 40 }],
+  }));
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root],
+    artifactRoots: [root],
     authoringPackageRoot,
     requestTimeoutMs: 60_000,
     workerTimeoutMs: 30_000,
@@ -80,6 +85,7 @@ test("MCP writes canonical Pokemon species and rejects invalid schemas", async (
       (descriptor) => String(descriptor.id),
     );
     assert.ok(actionIds.includes("pokemon.species.write"));
+    assert.ok(actionIds.includes("pokemon.catalog.entries.add"));
     assert.ok(actionIds.includes("pokemon.ruleset.set"));
 
     const opened = await toolData(client, "pokemap_workspace", {
@@ -173,6 +179,66 @@ test("MCP writes canonical Pokemon species and rejects invalid schemas", async (
     assert.equal(statTotal.severity, "error");
     assert.equal(typeof statTotal.path, "string");
     assert.equal(typeof statTotal.recommendedAction, "string");
+
+    const evolution = {
+      schemaVersion: 1,
+      speciesId: "sproutle",
+      evolutions: [{
+        targetSpeciesId: "sproutle",
+        method: "conditional",
+        minLevel: 30,
+        conditionText: { en: "Trigger: level-up. Needs overworld rain" },
+      }],
+    };
+    const evolutionPlan = await toolData(client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "conditional-evolution",
+        idempotencyKey: "conditional-evolution",
+        actionId: "pokemon.documents.write",
+        actionVersion: 1,
+        workspaceHandle,
+        expectedRevision: String(gated.snapshotRevision),
+        parameters: { documents: [{ actionId: "pokemon.evolution.write", parameters: {
+          relativePath: "data/pokemon/evolutions/sproutle.json", document: evolution,
+        } }] },
+      },
+    });
+    await toolData(client, "pokemap_apply", {
+      operation: "apply", projectHandle,
+      planId: String(evolutionPlan.planId), operationId: "conditional-evolution",
+    });
+    const afterEvolution = await toolData(client, "pokemap_validate", { projectHandle });
+    const afterDiagnostics = record(afterEvolution.pokemonCatalog).diagnostics as JsonRecord[];
+    assert.equal(afterDiagnostics.find(d => d.code === "evolution.method_catalog_only")?.severity, "warning");
+    assert.equal(afterDiagnostics.find(d => d.code === "evolution.self_target")?.severity, "error");
+    const storedEvolution = JSON.parse(await readFile(join(root, "data/pokemon/evolutions/sproutle.json"), "utf8")) as JsonRecord;
+    const storedEntry = (storedEvolution.evolutions as JsonRecord[])[0];
+    assert.ok(storedEntry);
+    assert.equal(record(storedEntry.conditionText).en, "Trigger: level-up. Needs overworld rain");
+    const sourcePath = join(root, "incoming.txt");
+    await writeFile(sourcePath, "same staged sprite bytes");
+    const staged = await toolData(client, "pokemap_artifact_stage", { sourcePath, declaredMediaType: "text/plain" });
+    const batchPlan = await toolData(client, "pokemap_plan", { projectHandle, request: {
+      requestId: "asset-batch", idempotencyKey: "asset-batch", actionId: "asset.import_batch",
+      actionVersion: 1, workspaceHandle, expectedRevision: String(afterEvolution.snapshotRevision),
+      parameters: { entries: ["first", "second"].map(id => ({
+        assetId: id, logicalPath: `assets/${id}.txt`, artifactHandle: staged.artifactHandle,
+      })) },
+    } });
+    await toolData(client, "pokemap_apply", { operation: "apply", projectHandle,
+      planId: String(batchPlan.planId), operationId: "asset-batch" });
+    for (const id of ["first", "second"]) assert.equal(await readFile(join(root, `assets/${id}.txt`), "utf8"), "same staged sprite bytes");
+    const beforeCatalog = await toolData(client, "pokemap_validate", { projectHandle });
+    const catalogPlan = await toolData(client, "pokemap_plan", { projectHandle, request: {
+      requestId: "catalog-add", idempotencyKey: "catalog-add", actionId: "pokemon.catalog.entries.add",
+      actionVersion: 1, workspaceHandle, expectedRevision: String(beforeCatalog.snapshotRevision),
+      parameters: { relativePath: "data/pokemon/catalogs/moves.json", entries: [{ id: "ember", power: 40 }] },
+    } });
+    await toolData(client, "pokemap_apply", { operation: "apply", projectHandle,
+      planId: String(catalogPlan.planId), operationId: "catalog-add" });
+    const catalog = JSON.parse(await readFile(join(root, "data/pokemon/catalogs/moves.json"), "utf8")) as JsonRecord;
+    assert.deepEqual(catalog.entries, [{ id: "tackle", power: 40 }, { id: "ember", power: 40 }]);
   } finally {
     await client.close();
     await server.close();

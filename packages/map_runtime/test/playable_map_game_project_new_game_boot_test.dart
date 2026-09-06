@@ -32,6 +32,28 @@ void main() {
     expect(game.gameStateSnapshot.playerFacing, EntityFacing.north);
   });
 
+  test('prepared new game identity and position survive map mounting', () async {
+    const prepared = GameState(
+      saveId: 'prepared_new_game',
+      currentMapId: 'new_game_map',
+      playerPosition: GridPos(x: 4, y: 4),
+      playerFacing: EntityFacing.east,
+      trainerProfile: TrainerProfile(name: 'Yoahn', money: 3000),
+    );
+    final game = PlayableMapGame(
+      bundle: _bundle(),
+      projectFilePath: '/tmp/project_new_game/project.json',
+      initialGameState: prepared,
+    );
+    game.onGameResize(Vector2(320, 240));
+    await game.onLoad();
+
+    expect(game.gameStateSnapshot.playerPosition, prepared.playerPosition);
+    expect(game.gameStateSnapshot.playerFacing, EntityFacing.east);
+    expect(game.gameStateSnapshot.trainerProfile.name, 'Yoahn');
+    expect(game.gameStateSnapshot.trainerProfile.money, 3000);
+  });
+
   test('an explicit save remains authoritative over newGame config', () {
     const saved = GameState(
       saveId: 'existing_save',

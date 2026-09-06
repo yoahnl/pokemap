@@ -53,7 +53,7 @@ final class NarrativeEventRuntimeSnapshot {
         legacyClaimIndex: structuralClaimIndex,
       );
     }
-    final projectFingerprint = canonicalizeNarrativeEventJson(project.toJson());
+    final projectFingerprint = _runtimeProjectFingerprint(project);
     final mapsById = <String, MapData>{};
 
     for (final mapEntry in project.maps) {
@@ -64,8 +64,7 @@ final class NarrativeEventRuntimeSnapshot {
         );
       }
       final loaded = await loadMap(mapEntry.id);
-      if (canonicalizeNarrativeEventJson(loaded.project.toJson()) !=
-          projectFingerprint) {
+      if (_runtimeProjectFingerprint(loaded.project) != projectFingerprint) {
         throw StateError(
           'Event V2 runtime snapshot changed while loading map '
           '"${mapEntry.id}".',
@@ -149,4 +148,19 @@ final class NarrativeEventRuntimeSnapshot {
       ),
     );
   }
+}
+
+String _runtimeProjectFingerprint(ProjectManifest project) {
+  final ordered = project.copyWith(
+    elements: project.elements.map((element) {
+      final profile = element.collisionProfile;
+      if (profile == null) return element;
+      final cells = [...profile.cells]..sort((a, b) {
+          final row = a.y.compareTo(b.y);
+          return row == 0 ? a.x.compareTo(b.x) : row;
+        });
+      return element.copyWith(collisionProfile: profile.copyWith(cells: cells));
+    }).toList(growable: false),
+  );
+  return canonicalizeNarrativeEventJson(ordered.toJson());
 }

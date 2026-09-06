@@ -298,6 +298,7 @@ final class GamePackageExportController extends ChangeNotifier {
   Future<void> export({
     required GamePackageExportProfile profile,
     required File outputFile,
+    GamePackageExportMode mode = GamePackageExportMode.publication,
   }) async {
     _publish(
       _snapshot.copyWith(
@@ -314,6 +315,7 @@ final class GamePackageExportController extends ChangeNotifier {
         projectRoot: projectRoot,
         profile: profile,
         outputFile: outputFile,
+        mode: mode,
       );
       _publish(
         _snapshot.copyWith(
@@ -339,7 +341,10 @@ final class GamePackageExportController extends ChangeNotifier {
     }
   }
 
-  Future<void> installInHub(GamePackageExportProfile profile) async {
+  Future<void> installInHub(
+    GamePackageExportProfile profile, {
+    GamePackageExportMode mode = GamePackageExportMode.publication,
+  }) async {
     final publisher = installRequestPublisher;
     if (publisher == null) {
       await _publishUnexpectedError(
@@ -364,6 +369,7 @@ final class GamePackageExportController extends ChangeNotifier {
       final artifact = await exportService.build(
         projectRoot: projectRoot,
         profile: profile,
+        mode: mode,
       );
       final request = await publisher.publish(artifact.packageBytes);
       _publish(

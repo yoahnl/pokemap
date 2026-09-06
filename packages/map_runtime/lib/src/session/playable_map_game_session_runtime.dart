@@ -7,6 +7,7 @@ import '../application/load_runtime_map_bundle.dart';
 import '../application/dialogue_portrait_resolver.dart';
 import '../application/map_activation.dart';
 import '../application/runtime_map_bundle.dart';
+import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_move_catalog_loader.dart';
 import '../application/runtime_pokemon_species_loader.dart';
@@ -63,6 +64,7 @@ final class PlayableMapGameSessionRuntime
     required PlayableMapGameUnmount unmountGame,
     SessionPreloadedInitialMapLoader? preloadedInitialMap,
     this.audioMixer,
+    this.presentationCinematicPlayer,
     DateTime Function()? now,
   })  : _projectFilePath = projectFilePath,
         _initialSave = initialSave,
@@ -78,6 +80,7 @@ final class PlayableMapGameSessionRuntime
   final PlayableMapGameUnmount _unmountGame;
   final SessionPreloadedInitialMapLoader? _preloadedInitialMap;
   final RuntimeAudioMixer? audioMixer;
+  final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
   final DateTime Function() _now;
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
   final _worldServiceSnapshots =
@@ -264,6 +267,7 @@ final class PlayableMapGameSessionRuntime
         enableActorContactShadows: false,
         enableStaticPlacedElementShadows: false,
         audioMixer: audioMixer,
+        presentationCinematicPlayer: presentationCinematicPlayer,
       );
     } catch (_) {
       initialTilesetImageCache?.dispose();

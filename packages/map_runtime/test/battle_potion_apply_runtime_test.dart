@@ -126,6 +126,7 @@ RuntimeActiveBattleContext _context({
 RuntimePsdkBattleSessionAdapter _psdkSession({
   int currentHp = 30,
   int maxHp = 100,
+  int opponentMovePower = 0,
   List<PsdkBattleCombatantSetup> playerReserves =
       const <PsdkBattleCombatantSetup>[],
 }) {
@@ -143,7 +144,9 @@ RuntimePsdkBattleSessionAdapter _psdkSession({
         speciesId: 'sparkitten',
         currentHp: 80,
         maxHp: 80,
-        moves: <PsdkBattleMoveData>[_psdkMove(id: 'wait', power: 0)],
+        moves: <PsdkBattleMoveData>[
+          _psdkMove(id: 'tackle', power: opponentMovePower),
+        ],
       ),
       rngSeeds: const PsdkBattleRngSeeds(
         moveDamage: 17,
@@ -909,6 +912,51 @@ void main() {
       expect(faintedSession.state.player.currentHp, equals(0));
       expect(faintedState.party.members.first.currentHp, equals(0));
       expect(faintedState.bag.entries.single.quantity, equals(1));
+    });
+
+    test('PSDK potion uses battle HP when the overworld party is still healthy',
+        () {
+      final psdkSession = _psdkSession(
+        currentHp: 100,
+        maxHp: 100,
+        opponentMovePower: 40,
+      );
+      psdkSession.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      final injuredHp =
+          psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).currentHp;
+      expect(injuredHp, lessThan(100));
+      final result = tryApplyRuntimePsdkBattleItemUse(
+        psdkSession: psdkSession,
+        displaySession: psdkSession.createLegacyDisplaySession(
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+        ),
+        gameState: _gameState(
+          bag: Bag(entries: const [BagEntry(itemId: 'potion', quantity: 3)]),
+          partyMembers: [_partyMember(speciesId: 'sproutle', currentHp: 100)],
+        ),
+        context: _context(playerPartyIndex: 0, lineupPartyIndices: const [0]),
+        itemId: 'potion',
+        targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+
+      expect(result, isNotNull);
+      expect(
+        buildBattleTurnLinesForOverlay(
+            result!.updatedDisplaySession.state.currentTurn!),
+        contains('sproutle récupère ${100 - injuredHp} PV'),
+      );
+      expect(
+        psdkSession.state.psdkState
+            .partyForBank(psdkPlayerSlot.bank)
+            .first
+            .currentHp,
+        psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).currentHp,
+      );
+      expect(result.updatedGameState.bag.entries.single.quantity, 2);
     });
 
     test('PSDK HP medicines update battle state and runtime bag', () {

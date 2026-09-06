@@ -9,6 +9,63 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
+  test('local test exports an unfinished story while publication rejects it',
+      () async {
+    final projectRoot = await _createPlayableProject();
+    final exportRoot =
+        await Directory.systemTemp.createTemp('local_test_export_');
+    addTearDown(() => projectRoot.delete(recursive: true));
+    addTearDown(() => exportRoot.delete(recursive: true));
+    final projectFile = File(p.join(projectRoot.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    final graph = project['scenes'][0]['graph'] as Map<String, dynamic>;
+    final finish =
+        (graph['nodes'] as List).singleWhere((node) => node['id'] == 'finish');
+    finish['payload'] =
+        SceneActionPayload.consequence(SceneConsequence.healParty()).toJson();
+    await projectFile.writeAsString(jsonEncode(project));
+    await GamePackageExportProfileStore(projectRoot: projectRoot)
+        .save(_profile());
+    final api = await LocalGamePackageExportApi.create(
+      allowedProjectRoots: [projectRoot.path],
+      allowedExportRoots: [exportRoot.path],
+      exportService: CanonicalGamePackageExportService(
+          pokemonValidator: _acceptPokemonProjection),
+    );
+    final output = File(p.join(exportRoot.path, 'test.avelunegame'));
+    final receipt = await api.export(
+        projectRoot: projectRoot.path,
+        outputPath: output.path,
+        mode: GamePackageExportMode.localTest);
+    expect(receipt.mode, GamePackageExportMode.localTest);
+    expect(
+        const GamePackageInspector()
+            .inspect(await output.readAsBytes())
+            .manifest
+            .gameId,
+        _profile().gameId);
+    await expectLater(
+        api.export(
+            projectRoot: projectRoot.path,
+            outputPath: p.join(exportRoot.path, 'publication.avelunegame')),
+        throwsA(isA<GamePackageExportException>().having(
+            (error) => error.gameplayReadinessReport
+                ?.byCode('exportStoryEndUnreachable'),
+            'story end diagnostics',
+            isNotEmpty)));
+
+    project['newGame']['startSpawnId'] = 'missing-spawn';
+    await projectFile.writeAsString(jsonEncode(project));
+    await expectLater(
+        api.export(
+            projectRoot: projectRoot.path,
+            outputPath: p.join(exportRoot.path, 'invalid-test.avelunegame'),
+            mode: GamePackageExportMode.localTest),
+        throwsA(isA<GamePackageExportException>()
+            .having((error) => error.code, 'code', 'gameplayReadinessFailed')));
+  });
+
   test('canonical export includes and remaps the authored menu background',
       () async {
     final projectRoot = await _createPlayableProject(illustrated: true);
@@ -38,11 +95,13 @@ void main() {
             .keys,
         contains('presentation/menu-background.png'));
     await File(p.join(projectRoot.path, 'assets/menu/background.png'))
-      .writeAsBytes([0x89, 0x50, 0x4e, 0x47]);
-    await expectLater(api.export(projectRoot: projectRoot.path,
-      outputPath: p.join(exportRoot.path, 'invalid.avelunegame')),
-      throwsA(isA<GamePackageExportException>().having((error) => error.code, 'code', 'invalidMenuBackground')));
-
+        .writeAsBytes([0x89, 0x50, 0x4e, 0x47]);
+    await expectLater(
+        api.export(
+            projectRoot: projectRoot.path,
+            outputPath: p.join(exportRoot.path, 'invalid.avelunegame')),
+        throwsA(isA<GamePackageExportException>()
+            .having((error) => error.code, 'code', 'invalidMenuBackground')));
   });
 
   test('exports a certified package inside the configured output root',

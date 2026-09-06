@@ -105,6 +105,92 @@ void main() {
     },
   );
 
+  test(
+    'disabled species can retain incomplete artwork with a visible warning',
+    () {
+      final disabled = PokemonSpeciesFile.fromJson({
+        ..._species().toJson(),
+        'classification': {'isEnabledInProject': false},
+      });
+      final report = const PokemonCatalogCoherenceValidator().validate(
+        _validSnapshot(
+          species: [_document('species/bulbasaur.json', disabled)],
+          media: [
+            _document(
+              'media/bulbasaur.json',
+              _media(variant: const PokemonMediaVariant()),
+            ),
+          ],
+        ),
+      );
+      expect(report.errorCount, 0);
+      expect(
+        report.diagnostics.map((entry) => entry.code),
+        contains('species.disabled_in_project'),
+      );
+    },
+  );
+
+  test(
+    'preserves documented catalog-only evolutions without allowing execution',
+    () {
+      final report = const PokemonCatalogCoherenceValidator().validate(
+        _validSnapshot(
+          evolutions: [
+            _document(
+              'evolutions/bulbasaur.json',
+              _evolution(
+                entries: const [
+                  PokemonEvolutionEntry(
+                    targetSpeciesId: 'bulbasaur',
+                    method: 'conditional',
+                    minLevel: 30,
+                    conditionText: {'en': 'Level up while it is raining.'},
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+      final codes = report.diagnostics.map((entry) => entry.code);
+      expect(codes, contains('evolution.method_catalog_only'));
+      expect(codes, contains('evolution.self_target'));
+      expect(codes, isNot(contains('evolution.method_unsupported')));
+    },
+  );
+
+  test('catalog-only rules still reject missing references and conditions', () {
+    final report = const PokemonCatalogCoherenceValidator().validate(
+      _validSnapshot(
+        evolutions: [
+          _document(
+            'evolutions/bulbasaur.json',
+            _evolution(
+              entries: const [
+                PokemonEvolutionEntry(
+                  targetSpeciesId: 'missing',
+                  method: 'conditional',
+                  itemId: 'missing_item',
+                  requiredMoveId: 'missing_move',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    expect(
+      report.diagnostics.map((entry) => entry.code),
+      containsAll([
+        'evolution.target_species_missing',
+        'evolution.condition_text_missing',
+        'evolution.item_missing',
+        'evolution.required_move_missing',
+      ]),
+    );
+  });
+
   test('reports unsupported evolutions, unknown targets and cycles', () {
     final bulbasaurEvolution = _evolution(
       speciesId: 'bulbasaur',

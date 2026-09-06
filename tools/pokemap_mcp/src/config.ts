@@ -12,6 +12,7 @@ export interface PokeMapMcpConfig {
   runtimeHostRoot: string;
   dartExecutable: string;
   flutterExecutable: string;
+  authoringTimeoutMs?: number;
 }
 
 export class PokeMapMcpConfigError extends Error {
@@ -31,6 +32,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   let runtimeHostRoot: string | undefined;
   let dartExecutable = "dart";
   let flutterExecutable = "flutter";
+  let authoringTimeoutMs: number | undefined;
   for (let index = 0; index < args.length; index += 1) {
     const option = args[index];
     const value = args[index + 1];
@@ -56,6 +58,12 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
         break;
       case "--flutter":
         flutterExecutable = value;
+        break;
+      case "--authoring-timeout-ms":
+        authoringTimeoutMs = Number(value);
+        if (!Number.isInteger(authoringTimeoutMs) || authoringTimeoutMs < 1 || authoringTimeoutMs > 120_000) {
+          throw new PokeMapMcpConfigError("Authoring timeout must be an integer between 1 and 120000 milliseconds.");
+        }
         break;
       case "--repository-root":
         repositoryRoot = resolve(value);
@@ -98,6 +106,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
     runtimeHostRoot: runtimeHost,
     dartExecutable,
     flutterExecutable,
+    ...(authoringTimeoutMs === undefined ? {} : {authoringTimeoutMs}),
   };
 }
 

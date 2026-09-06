@@ -27,3 +27,11 @@ test("parses artifact roots separately from project roots", () => {
   assert.deepEqual(config.allowedRoots, [projectRoot]);
   assert.deepEqual(config.artifactRoots, [artifactRoot]);
 });
+
+test("accepts a bounded authoring deadline for large project mutations", () => {
+  const roots = ["--root", resolve(process.cwd(), "../..")];
+  assert.equal(parseConfig([...roots, "--authoring-timeout-ms", "60000"]).authoringTimeoutMs, 60000);
+  for (const value of ["0", "-1", "1.5", "NaN", "120001"]) {
+    assert.throws(() => parseConfig([...roots, "--authoring-timeout-ms", value]));
+  }
+});

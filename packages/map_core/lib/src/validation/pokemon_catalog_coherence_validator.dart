@@ -128,6 +128,19 @@ final class PokemonCatalogCoherenceValidator {
     'use_item',
   };
 
+  static const Set<String> catalogOnlyEvolutionMethods = <String>{
+    'conditional',
+    'trade',
+    'use_move',
+    'three_defeated_bisharp',
+    'three_critical_hits',
+    'agile_style_move',
+    'strong_style_move',
+    'take_damage',
+    'recoil_damage',
+    'shed',
+  };
+
   PokemonCatalogCoherenceReport validate(
     PokemonCatalogCoherenceSnapshot snapshot,
   ) {
@@ -189,9 +202,17 @@ final class PokemonCatalogCoherenceValidator {
       );
     }
     _validateEvolutionCycles(snapshot.evolutions, collector);
+    final disabledSpeciesIds = {
+      for (final document in snapshot.species)
+        if (!document.value.classification.isEnabledInProject)
+          document.value.id,
+    };
     for (final document in snapshot.media) {
       _validateMedia(
         document,
+        enabledInProject: !disabledSpeciesIds.contains(
+          document.value.speciesId,
+        ),
         speciesIds: speciesIds,
         formIds: formIdsBySpecies[document.value.speciesId],
         assetProbeStatuses: snapshot.assetProbeStatuses,
@@ -723,6 +744,59 @@ final class PokemonCatalogCoherenceValidator {
         );
       }
       final method = entry.method.trim();
+      if (catalogOnlyEvolutionMethods.contains(method)) {
+        collector.warning(
+          code: 'evolution.method_catalog_only',
+          path: '$entryPath.method',
+          message:
+              'Evolution "$speciesId" is preserved in the catalog but cannot execute in the runtime: "$method".',
+          action:
+              'Implement the complete condition before enabling this evolution in gameplay.',
+        );
+        if (method == 'conditional' &&
+            !entry.conditionText.values.any(
+              (value) => value.trim().isNotEmpty,
+            )) {
+          collector.error(
+            code: 'evolution.condition_text_missing',
+            path: '$entryPath.conditionText',
+            message:
+                'Conditional evolution "$speciesId" requires its complete source conditions.',
+            action:
+                'Describe the original trigger and every additional condition.',
+          );
+        }
+        if (entry.minLevel != null &&
+            (entry.minLevel! < 1 || entry.minLevel! > maxLevel)) {
+          collector.error(
+            code: 'evolution.min_level_invalid',
+            path: '$entryPath.minLevel',
+            message: 'Evolution "$speciesId" has an invalid minimum level.',
+            action: 'Set minLevel within the active ruleset range.',
+          );
+        }
+        for (final reference in [
+          (entry.itemId, itemIds, 'item_missing', 'itemId', 'item'),
+          (
+            entry.requiredMoveId,
+            moveIds,
+            'required_move_missing',
+            'requiredMoveId',
+            'move',
+          ),
+        ]) {
+          if (reference.$1 == null) continue;
+          _validateOptionalConditionReference(
+            value: reference.$1,
+            knownIds: reference.$2,
+            code: 'evolution.${reference.$3}',
+            path: '$entryPath.${reference.$4}',
+            label: reference.$5,
+            collector: collector,
+          );
+        }
+        continue;
+      }
       if (!supportedEvolutionMethods.contains(method)) {
         collector.error(
           code: 'evolution.method_unsupported',
@@ -822,6 +896,7 @@ final class PokemonCatalogCoherenceValidator {
 
   void _validateMedia(
     PokemonCatalogDocument<PokemonMediaFile> document, {
+    required bool enabledInProject,
     required Set<String> speciesIds,
     required Set<String>? formIds,
     required Map<String, PokemonAssetProbeStatus> assetProbeStatuses,
@@ -872,6 +947,16 @@ final class PokemonCatalogCoherenceValidator {
       }
     }
     final defaultFormId = media.defaultFormId.trim();
+    if (!enabledInProject) {
+      collector.warning(
+        code: 'species.disabled_in_project',
+        path: '$path.speciesId',
+        message:
+            'Species "$speciesId" is retained in the catalog but disabled in gameplay.',
+        action:
+            'Complete its battle media and validate it before enabling the species.',
+      );
+    }
     final variant = media.variants[defaultFormId];
     if (defaultFormId.isEmpty || variant == null) {
       collector.error(
@@ -890,7 +975,7 @@ final class PokemonCatalogCoherenceValidator {
       final basePath = '$path.variants.$formId';
       _validateMediaPath(
         value: value.frontStatic,
-        requiredCode: formId == defaultFormId
+        requiredCode: enabledInProject && formId == defaultFormId
             ? 'media.front_static_missing'
             : null,
         path: '$basePath.frontStatic',
@@ -900,7 +985,7 @@ final class PokemonCatalogCoherenceValidator {
       );
       _validateMediaPath(
         value: value.backStatic,
-        requiredCode: formId == defaultFormId
+        requiredCode: enabledInProject && formId == defaultFormId
             ? 'media.back_static_missing'
             : null,
         path: '$basePath.backStatic',

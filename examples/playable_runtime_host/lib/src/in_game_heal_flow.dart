@@ -37,8 +37,9 @@ class _InGameHealFlowState extends State<InGameHealFlow> {
   bool _busy = false;
   String? _feedback;
   bool _feedbackIsError = false;
-  late final _HealAutomationSession _automationSession =
-      _HealAutomationSession(this);
+  late final _HealAutomationSession _automationSession = _HealAutomationSession(
+    this,
+  );
 
   @override
   void initState() {
@@ -84,9 +85,11 @@ class _InGameHealFlowState extends State<InGameHealFlow> {
                 if (_gameState.party.members.isEmpty)
                   const ListTile(title: Text('Aucun Pokémon dans l’équipe.'))
                 else
-                  for (var index = 0;
-                      index < _gameState.party.members.length;
-                      index++)
+                  for (
+                    var index = 0;
+                    index < _gameState.party.members.length;
+                    index++
+                  )
                     ListTile(
                       key: Key('heal-party-member-$index'),
                       title: Text(_gameState.party.members[index].speciesId),
@@ -94,7 +97,8 @@ class _InGameHealFlowState extends State<InGameHealFlow> {
                         spacing: 8,
                         children: [
                           Text(
-                              'PV ${_gameState.party.members[index].currentHp}'),
+                            'PV ${_gameState.party.members[index].currentHp}',
+                          ),
                           Text(
                             'Statut ${_gameState.party.members[index].statusId.isEmpty ? 'aucun' : _gameState.party.members[index].statusId}',
                           ),
@@ -141,12 +145,15 @@ class _InGameHealFlowState extends State<InGameHealFlow> {
         message: 'The party is empty.',
       );
     }
-    final nextState = _mutations.recoverParty(
+    final recovered = _mutations.recoverParty(
       _gameState,
       maxHpByPartyIndex: widget.recoveryCaps.maxHpByPartyIndex,
       maxPpByPartyIndex: widget.recoveryCaps.maxPpByPartyIndex,
     );
-    if (identical(nextState, _gameState)) {
+    final nextState = recovered.currentMapId.trim().isEmpty
+        ? recovered
+        : recordPlayerRecoveryPoint(recovered);
+    if (nextState == _gameState) {
       setState(() {
         _feedbackIsError = false;
         _feedback = 'Votre équipe est déjà entièrement soignée.';
@@ -214,15 +221,14 @@ final class _HealAutomationSession implements PlayerServiceAutomationSession {
   @override
   Future<PlayerServiceAutomationResult> invoke(
     PlayerServiceAutomationCommand command,
-  ) =>
-      switch (command) {
-        ConfirmHealAutomationCommand() => owner._heal(),
-        CloseHealAutomationCommand() => owner._closeFromAutomation(),
-        _ => Future<PlayerServiceAutomationResult>.value(
-            const PlayerServiceAutomationResult.failed(
-              failure: PlayerServiceAutomationFailure.wrongService,
-              message: 'The command does not belong to the Heal service.',
-            ),
-          ),
-      };
+  ) => switch (command) {
+    ConfirmHealAutomationCommand() => owner._heal(),
+    CloseHealAutomationCommand() => owner._closeFromAutomation(),
+    _ => Future<PlayerServiceAutomationResult>.value(
+      const PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.wrongService,
+        message: 'The command does not belong to the Heal service.',
+      ),
+    ),
+  };
 }

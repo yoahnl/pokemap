@@ -43,12 +43,12 @@ enum SceneExecutionCapabilityIssueCode {
 @immutable
 final class SceneExecutionCapabilityDecision {
   const SceneExecutionCapabilityDecision.allowed()
-      : isAllowed = true,
-        issueCode = null;
+    : isAllowed = true,
+      issueCode = null;
 
   const SceneExecutionCapabilityDecision.rejected(this.issueCode)
-      : assert(issueCode != null),
-        isAllowed = false;
+    : assert(issueCode != null),
+      isAllowed = false;
 
   final bool isAllowed;
   final SceneExecutionCapabilityIssueCode? issueCode;
@@ -99,14 +99,14 @@ String sceneExecutionCapabilityForNode(
     SceneNodeKind.presentationCinematic =>
       SceneExecutionCapabilityIds.presentationCinematic,
     SceneNodeKind.branchByOutcome => switch (profile) {
-        SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldBranch,
-        SceneExecutionProfile.preSession =>
-          SceneExecutionCapabilityIds.flowBranch,
-      },
+      SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldBranch,
+      SceneExecutionProfile.preSession =>
+        SceneExecutionCapabilityIds.flowBranch,
+    },
     SceneNodeKind.merge => switch (profile) {
-        SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldMerge,
+      SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldMerge,
       SceneExecutionProfile.preSession => SceneExecutionCapabilityIds.flowMerge,
-      },
+    },
   };
 }
 
@@ -122,8 +122,9 @@ String _conditionCapability(SceneNode node) {
 
 String _actionCapability(SceneNode node) {
   final payload = node.payload;
-  final interaction =
-      payload is SceneActionPayload ? payload.preSessionInteraction : null;
+  final interaction = payload is SceneActionPayload
+      ? payload.preSessionInteraction
+      : null;
   if (interaction == null) return SceneExecutionCapabilityIds.worldAction;
   return switch (interaction.kind) {
     SceneInteractionRequestKind.message =>
@@ -156,6 +157,7 @@ const _preSessionCapabilities = <String>{
 const _worldCapabilities = <String>{
   SceneExecutionCapabilityIds.flowStart,
   SceneExecutionCapabilityIds.flowEnd,
+  SceneExecutionCapabilityIds.presentationCinematic,
   SceneExecutionCapabilityIds.worldDialogue,
   SceneExecutionCapabilityIds.worldCondition,
   SceneExecutionCapabilityIds.worldAction,

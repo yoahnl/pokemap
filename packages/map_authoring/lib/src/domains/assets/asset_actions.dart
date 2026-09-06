@@ -233,6 +233,10 @@ final class AssetActions {
     _descriptor('asset.import', 'Import one inspected artifact',
         AuthoringRiskLevel.low),
     _descriptor(
+        'asset.import_batch',
+        'Atomically import 1 to 200 inspected artifacts with unique asset ids and logical paths',
+        AuthoringRiskLevel.low),
+    _descriptor(
         'asset.replace', 'Replace one asset blob', AuthoringRiskLevel.medium),
     _descriptor(
       'asset.raw.replace',
@@ -261,8 +265,12 @@ final class AssetActions {
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
     final store = artifactStore;
     if (store == null &&
-        const {'asset.import', 'asset.replace', 'asset.raw.replace'}
-            .contains(context.request.actionId)) {
+        const {
+          'asset.import',
+          'asset.import_batch',
+          'asset.replace',
+          'asset.raw.replace'
+        }.contains(context.request.actionId)) {
       throw AssetActionException(
         'artifact.store_required',
         'Import and replace require an injected artifact store.',
@@ -270,6 +278,68 @@ final class AssetActions {
     }
     final state = _catalogState(context.snapshot);
     final parameters = _AssetParameters(context.request.parameters);
+    if (context.request.actionId == 'asset.import_batch') {
+      parameters.allow(const {'entries'});
+      final entries = context.request.parameters['entries'];
+      if (entries is! List || entries.isEmpty || entries.length > 200) {
+        throw const FormatException(
+            'Expected 1 to 200 inspected asset imports.');
+      }
+      var catalog = state.catalog;
+      final changes = <String, AuthoringResourceChange>{};
+      final diffs = <String, AuthoringDiffEntry>{};
+      final artifacts = <String, AuthoringArtifactRef>{};
+      for (final raw in entries) {
+        if (raw is! Map) {
+          throw const FormatException('Expected asset import parameters.');
+        }
+        final entry = _AssetParameters(Map<String, Object?>.from(raw));
+        entry.allow(const {
+          'artifactHandle',
+          'assetId',
+          'logicalPath',
+          'tags',
+          'usages'
+        });
+        final artifact =
+            _requireArtifact(store!, entry.string('artifactHandle'));
+        final result = import(catalog,
+            record: AssetRecord(
+              id: entry.string('assetId'),
+              logicalPath: entry.string('logicalPath'),
+              artifact: artifact,
+              tags: entry.strings('tags'),
+              usages: entry.strings('usages'),
+            ));
+        catalog = result.catalog;
+        final draft = _draft(context.snapshot, state, result,
+            addedArtifact: artifact,
+            addedBytes: await store.read(artifact.handle));
+        for (final change in draft.changeSet.changes) {
+          changes[change.storageKey] = change;
+        }
+        for (final diff in draft.changeSet.diff.entries) {
+          diffs['${diff.resource.kind}:${diff.resource.id}:${diff.path}'] =
+              diff;
+        }
+        for (final reference in draft.artifacts) {
+          artifacts[reference.id] = reference;
+        }
+      }
+      return AuthoringMutationDraft(
+        changeSet: AuthoringChangeSet(
+            changes: changes.values, diff: AuthoringDiff(diffs.values)),
+        preview: {
+          'operation': 'asset.import_batch',
+          'importedCount': entries.length
+        },
+        referenceImpact: {
+          'blobDeleted': false,
+          'importedCount': entries.length
+        },
+        artifacts: artifacts.values,
+      );
+    }
     if (context.request.actionId == 'asset.map_graphics.reset') {
       parameters.allow(const {});
       final projection = const MapGraphicsResetProjector().project(

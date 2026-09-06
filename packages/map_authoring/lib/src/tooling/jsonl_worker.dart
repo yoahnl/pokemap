@@ -484,9 +484,10 @@ final class JsonlWorker {
       case 'game_export':
         rejectUnknownContractKeys(
           args,
-          const {'projectRoot', 'outputPath'},
+          const {'projectRoot', 'outputPath', 'mode'},
         );
         return (await _gameExportApi().export(
+          mode: GamePackageExportMode.fromJson(args['mode']),
           projectRoot: requireContractString(
             args['projectRoot'],
             'args.projectRoot',
@@ -639,7 +640,10 @@ final class JsonlWorker {
       if (gameExport != null)
         const {
           'id': 'game_export',
-          'summary': 'Build and write a certified .avelunegame package.',
+          'summary':
+              'Build and write an .avelunegame package for local testing or certified publication.',
+          'modes': ['publication', 'localTest'],
+          'defaultMode': 'publication',
         },
     ]..sort(
         (left, right) =>

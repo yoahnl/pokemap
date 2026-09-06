@@ -38,6 +38,61 @@ const _physicalWarpRetryOutcomeId = 'physical_warp.retry';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('Scene warp commits its parent before dispatching destination mapEnter',
+      () async {
+    final root =
+        await Directory.systemTemp.createTemp('scene_warp_activation_');
+    addTearDown(() => root.delete(recursive: true));
+    final projectFilePath = await _writeProject(root, sceneWarp: true);
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: projectFilePath,
+      mapId: _sourceMapId,
+    );
+    late final PlayableMapGame game;
+    bool? parentCommittedAtDestination;
+    game = _TestPlayableMapGame(
+      bundle: bundle,
+      projectFilePath: projectFilePath,
+      saveData: const SaveData(
+        saveId: 'scene-warp',
+        currentMapId: _sourceMapId,
+        playerPosition: GridPos(x: 1, y: 0),
+        playerFacing: EntityFacing.south,
+      ),
+      beforeNarrativeAuthorityPreparation: (occurrence) async {
+        if (occurrence.source ==
+            NarrativeEventSourceRef.mapEnter(_targetMapId)) {
+          parentCommittedAtDestination = game.gameStateSnapshot
+              .narrativeFactRuntimeState.overridesByFactId['fact.warp.parent'];
+        }
+      },
+    );
+    game.onGameResize(Vector2(640, 480));
+    await game.onLoad();
+    await _pumpUntil(game, () => !game.debugIsMapActivationDispatchInFlight);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 0));
+    expect(
+        game.debugMapEntityPosition('warp-guide'), const GridPos(x: 1, y: 1));
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.press(RuntimeInputControl.primary),
+    );
+    await _pumpUntil(
+      game,
+      () =>
+          game.gameStateSnapshot.narrativeFactRuntimeState
+                  .overridesByFactId[_factId] ==
+              true &&
+          !game.debugIsGameplayInputLocked,
+      maxTicks: 4000,
+    );
+    expect(parentCommittedAtDestination, isTrue);
+    expect(game.gameStateSnapshot.currentMapId, _targetMapId);
+    expect(game.debugCompletedMapActivationDispatchCount, 2);
+    expect(
+        game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        containsAll([_eventId, 'evt_019abcde-2000-7000-8000-000000000002']));
+  });
+
   test(
     'connection mapEnter dispatch interlocks movement, transitions and checkpoints',
     () async {
@@ -1046,8 +1101,25 @@ Future<void> _pumpUntil(
   fail('Timed out waiting for the runtime game to settle.');
 }
 
-Future<String> _writeProject(Directory root) async {
-  final maps = <MapData>[_sourceMap(), _targetMap()];
+Future<String> _writeProject(Directory root, {bool sceneWarp = false}) async {
+  final source = _sourceMap();
+  final maps = <MapData>[
+    if (sceneWarp)
+      source.copyWith(entities: [
+        ...source.entities.map((entity) => entity.copyWith(
+              spawn: entity.spawn?.copyWith(facing: EntityFacing.south),
+            )),
+        const MapEntity(
+            id: 'warp-guide',
+            name: 'Guide',
+            kind: MapEntityKind.custom,
+            pos: GridPos(x: 1, y: 1),
+            blocksMovement: true),
+      ])
+    else
+      source,
+    _targetMap(),
+  ];
   final manifest = ProjectManifest(
     name: 'Map activation interlock integration',
     settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
@@ -1062,6 +1134,9 @@ Future<String> _writeProject(Directory root) async {
         .toList(growable: false),
     tilesets: const <ProjectTilesetEntry>[],
     facts: <NarrativeFactDefinition>[
+      if (sceneWarp)
+        NarrativeFactDefinition(
+            id: 'fact.warp.parent', label: 'Parent committed'),
       NarrativeFactDefinition(
         id: _factId,
         label: 'Target map enter completed',
@@ -1072,6 +1147,21 @@ Future<String> _writeProject(Directory root) async {
       schemaVersion: 1,
       mode: EventSystemMode.v2Only,
       records: <NarrativeEventRecord>[
+        if (sceneWarp)
+          NarrativeEventRecord.configuredStructurallyUnchecked(
+            NarrativeEventDefinition(
+              id: 'evt_019abcde-2000-7000-8000-000000000002',
+              name: 'Guide warp',
+              source: NarrativeEventSourceRef.entityInteract(
+                  _sourceMapId, 'warp-guide'),
+              conditions: const [],
+              sceneId: 'scene.guide.warp',
+              reusePolicy: NarrativeEventReusePolicy.oneShot,
+              priority: 0,
+              order: 0,
+            ),
+            enabled: true,
+          ),
         NarrativeEventRecord.configuredStructurallyUnchecked(
           NarrativeEventDefinition(
             id: _eventId,
@@ -1088,7 +1178,53 @@ Future<String> _writeProject(Directory root) async {
       ],
       legacyClaims: const <LegacySourceClaim>[],
     ),
-    scenes: <SceneAsset>[_scene()],
+    scenes: <SceneAsset>[
+      _scene(),
+      if (sceneWarp)
+        SceneAsset(
+            id: 'scene.guide.warp',
+            name: 'Guide warp',
+            graph: SceneGraph(
+              startNodeId: 'start',
+              nodes: [
+                SceneNode(id: 'start', kind: SceneNodeKind.start),
+                SceneNode(
+                    id: 'warp',
+                    kind: SceneNodeKind.action,
+                    payload: SceneActionPayload.interactive(
+                        SceneInteractiveCommand.warp(
+                            destinationMapId: _targetMapId,
+                            warpId: 'warp_back_to_source'))),
+                SceneNode(
+                    id: 'fact',
+                    kind: SceneNodeKind.action,
+                    payload: SceneActionPayload.consequence(
+                        SceneConsequence.setFact(
+                            factId: 'fact.warp.parent', value: true))),
+                SceneNode(id: 'end', kind: SceneNodeKind.end),
+              ],
+              edges: [
+                SceneEdge(
+                    id: 'start-warp',
+                    fromNodeId: 'start',
+                    fromPortId: 'completed',
+                    toNodeId: 'warp',
+                    kind: SceneEdgeKind.defaultFlow),
+                SceneEdge(
+                    id: 'warp-fact',
+                    fromNodeId: 'warp',
+                    fromPortId: 'completed',
+                    toNodeId: 'fact',
+                    kind: SceneEdgeKind.actionCompleted),
+                SceneEdge(
+                    id: 'fact-end',
+                    fromNodeId: 'fact',
+                    fromPortId: 'completed',
+                    toNodeId: 'end',
+                    kind: SceneEdgeKind.actionCompleted),
+              ],
+            )),
+    ],
   );
   final mapsDirectory = Directory(p.join(root.path, 'maps'));
   await mapsDirectory.create(recursive: true);

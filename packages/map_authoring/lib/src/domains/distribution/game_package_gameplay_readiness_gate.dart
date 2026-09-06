@@ -5,6 +5,7 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_project_projection_builder.dart';
+import 'game_package_export_profile.dart';
 
 /// Evaluates the exact runtime projection that will be handed to the package
 /// builder. It only orchestrates canonical map_core validators and adds the
@@ -14,6 +15,7 @@ final class GamePackageGameplayReadinessGate {
 
   NarrativeProjectValidationReport evaluate(
     RuntimeProjectProjection projection, {
+    GamePackageExportMode mode = GamePackageExportMode.publication,
     PokemonCatalogCoherenceReport? pokemonValidationReport,
     Object? pokemonValidationFailure,
   }) {
@@ -168,7 +170,32 @@ final class GamePackageGameplayReadinessGate {
 
     final unique = <String, NarrativeProjectDiagnostic>{};
     for (final diagnostic in diagnostics) {
-      unique.putIfAbsent(diagnostic.stableKey, () => diagnostic);
+      final effective = mode == GamePackageExportMode.localTest &&
+              const {
+                'exportStoryEndUnreachable',
+                'narrativeSolvabilityIndeterminate'
+              }.contains(diagnostic.code)
+          ? NarrativeProjectDiagnostic(
+              code: diagnostic.code,
+              severity: NarrativeProjectDiagnosticSeverity.warning,
+              domain: diagnostic.domain,
+              message: diagnostic.message,
+              path: diagnostic.path,
+              destination: diagnostic.destination,
+              suggestedFixLabel: diagnostic.suggestedFixLabel,
+              mapId: diagnostic.mapId,
+              eventId: diagnostic.eventId,
+              sceneId: diagnostic.sceneId,
+              dialogueId: diagnostic.dialogueId,
+              cinematicId: diagnostic.cinematicId,
+              storylineId: diagnostic.storylineId,
+              chapterId: diagnostic.chapterId,
+              stepId: diagnostic.stepId,
+              factId: diagnostic.factId,
+              worldRuleId: diagnostic.worldRuleId,
+            )
+          : diagnostic;
+      unique.putIfAbsent(effective.stableKey, () => effective);
     }
     final sorted = unique.values.toList(growable: false)
       ..sort((left, right) => left.stableKey.compareTo(right.stableKey));
@@ -362,11 +389,11 @@ bool _hasReachableConfiguredStarterGrant(
     for (final scene in project.scenes)
       for (final node in scene.graph.nodes)
         if (node.payload
-                case SceneActionPayload(
-                  consequence: SceneGiveConfiguredStarterConsequence(
-                    :final starterOptionId,
-                  ),
-                ) when starterOptionIds.contains(starterOptionId))
+            case SceneActionPayload(
+              consequence: SceneGiveConfiguredStarterConsequence(
+                :final starterOptionId,
+              ),
+            ) when starterOptionIds.contains(starterOptionId))
           '${scene.id}\u001f${node.id}',
   };
   if (grantNodes.isEmpty) return false;

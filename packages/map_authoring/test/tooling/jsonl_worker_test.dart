@@ -28,7 +28,34 @@ void main() {
       expect(result.status, AuthoringResultStatus.success);
       expect(exportApi.projectRoot, '/allowed/project');
       expect(exportApi.outputPath, '/allowed/output/game.avelunegame');
+      expect(exportApi.mode, GamePackageExportMode.publication);
       expect(result.data['sha256'], 'a' * 64);
+    });
+
+    test('routes local test mode and rejects unknown export modes', () async {
+      final exportApi = _RecordingGamePackageExportApi();
+      final worker =
+          JsonlWorker(api: const _DelayedReadApi(), gameExport: exportApi);
+      final result = await _request(worker,
+          id: 'export-test',
+          command: 'game_export',
+          args: const {
+            'projectRoot': '/allowed/project',
+            'outputPath': '/allowed/output/test.avelunegame',
+            'mode': 'localTest',
+          });
+      expect(result.status, AuthoringResultStatus.success);
+      expect(exportApi.mode, GamePackageExportMode.localTest);
+      expect(result.data['mode'], 'localTest');
+      final invalid = await _request(worker,
+          id: 'export-invalid',
+          command: 'game_export',
+          args: const {
+            'projectRoot': '/allowed/project',
+            'outputPath': '/allowed/output/test.avelunegame',
+            'mode': 'skipChecks',
+          });
+      expect(invalid.status, isNot(AuthoringResultStatus.success));
     });
 
     test('uses the dedicated bounded timeout for game_export', () async {
@@ -1036,16 +1063,20 @@ final class _RecordingGamePackageExportApi implements GamePackageExportApiPort {
   final Duration delay;
   String? projectRoot;
   String? outputPath;
+  GamePackageExportMode? mode;
 
   @override
   Future<GamePackageExportReceipt> export({
     required String projectRoot,
     required String outputPath,
+    GamePackageExportMode mode = GamePackageExportMode.publication,
   }) async {
     await Future<void>.delayed(delay);
     this.projectRoot = projectRoot;
     this.outputPath = outputPath;
+    this.mode = mode;
     return GamePackageExportReceipt(
+      mode: mode,
       outputPath: outputPath,
       sizeBytes: 42,
       sha256: 'a' * 64,

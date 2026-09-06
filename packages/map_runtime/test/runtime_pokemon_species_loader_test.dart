@@ -25,6 +25,39 @@ void main() {
       }
     });
 
+    test('rejects a disabled species without blocking enabled neighbors',
+        () async {
+      final file =
+          File(p.join(tempRoot.path, 'data/pokemon/species/disabled.json'));
+      await _writeValidSpeciesFile(file, declaredId: 'disabled');
+      final data =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      data['classification'] = {'isEnabledInProject': false};
+      await file.writeAsString(jsonEncode(data));
+      await _writeValidSpeciesFile(
+          File(p.join(file.parent.path, 'enabled.json')),
+          declaredId: 'enabled');
+      final loader = RuntimePokemonSpeciesLoader();
+      const config =
+          ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1);
+      await expectLater(
+          loader.loadById(
+            projectRootDirectory: tempRoot.path,
+            pokemonConfig: config,
+            speciesId: 'disabled',
+          ),
+          throwsA(isA<RuntimeBattleSetupException>()
+              .having((e) => e.message, 'message', contains('désactivée'))));
+      expect(
+          (await loader.loadById(
+            projectRootDirectory: tempRoot.path,
+            pokemonConfig: config,
+            speciesId: 'enabled',
+          ))
+              .id,
+          'enabled');
+    });
+
     test('reuses one catalog snapshot across species ids', () async {
       final speciesDir = Directory(
         p.join(tempRoot.path, 'data', 'pokemon', 'species'),

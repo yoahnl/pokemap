@@ -230,6 +230,63 @@ void main() {
       );
     });
 
+    test('skips disabled evolution targets without breaking level progression',
+        () async {
+      await _writeEvolution(tempRoot, {
+        'speciesId': 'sproutle',
+        'evolutions': [
+          {'targetSpeciesId': 'disabled', 'method': 'level_up', 'minLevel': 16},
+        ],
+      });
+      await _writeSpecies(tempRoot,
+          id: 'disabled', primaryAbilityId: 'overgrow');
+      final file = File(p.join(tempRoot.path, 'custom/species/disabled.json'));
+      final data =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      data['classification'] = {'isEnabledInProject': false};
+      await file.writeAsString(jsonEncode(data));
+      final candidates =
+          await RuntimePokemonEvolutionLoader().loadLevelUpCandidates(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: _config(),
+        sourceSpeciesId: 'sproutle',
+      );
+      expect(candidates, isEmpty);
+    });
+
+    test('does not execute documented conditional evolution as a level rule',
+        () async {
+      await _writeEvolution(tempRoot, <String, dynamic>{
+        'speciesId': 'sproutle',
+        'evolutions': <Object?>[
+          <String, Object?>{
+            'targetSpeciesId': 'night_form',
+            'method': 'conditional',
+            'minLevel': 2,
+            'minFriendship': 160,
+            'conditionText': <String, String>{
+              'en': 'Trigger: level-up. Time: night'
+            },
+          },
+        ],
+      });
+      final loader = RuntimePokemonEvolutionLoader();
+      expect(
+          await loader.loadLevelUpCandidates(
+            projectRootDirectory: tempRoot.path,
+            pokemonConfig: _config(),
+            sourceSpeciesId: 'sproutle',
+          ),
+          isEmpty);
+      expect(
+          await loader.loadItemUseCandidates(
+            projectRootDirectory: tempRoot.path,
+            pokemonConfig: _config(),
+            sourceSpeciesId: 'sproutle',
+          ),
+          isEmpty);
+    });
+
     test('ignores a catalog containing only valid non-level methods', () async {
       await _writeEvolution(tempRoot, <String, dynamic>{
         'speciesId': 'sproutle',

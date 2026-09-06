@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/game_export.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
@@ -57,7 +58,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Publier dans PokeMap Hub'), findsOneWidget);
+    expect(find.text('Tester dans PokeMap Hub'), findsOneWidget);
     expect(find.text('Export rapide'), findsOneWidget);
     expect(find.text('Publication complète'), findsOneWidget);
     expect(find.text('Game ID stable'), findsNothing);
@@ -174,63 +175,84 @@ void main() {
     expect(find.text('Package certifié'), findsOneWidget);
   });
 
-  testWidgets('exports a local test package without publication metadata', (
-    tester,
-  ) async {
-    late final Directory root;
-    await tester.runAsync(() async {
-      root = await createAuthorProject(withDialogue: false);
-    });
-    addTearDown(() => root.delete(recursive: true));
-    final output = File(p.join(root.parent.path, 'quick-dialog.avelunegame'));
-    addTearDown(() async {
-      if (await output.exists()) await output.delete();
-    });
-    final controller = GamePackageExportController(
-      projectRoot: root,
-      projectName: 'Neutral Adventure',
-      profileStore: GamePackageExportProfileStore(projectRoot: root),
-      localGameIdGenerator: () => 'games.local.quickdialog',
-    );
-    addTearDown(controller.dispose);
-    await tester.runAsync(controller.initialize);
-    await tester.binding.setSurfaceSize(const Size(1200, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets(
+    'exports a local test package without metadata or a story ending',
+    (tester) async {
+      late final Directory root;
+      await tester.runAsync(() async {
+        root = await createAuthorProject(withDialogue: false);
+        final projectFile = File(p.join(root.path, 'project.json'));
+        final project =
+            jsonDecode(await projectFile.readAsString())
+                as Map<String, dynamic>;
+        final scene =
+            (project['scenes'] as List).single as Map<String, dynamic>;
+        final graph = scene['graph'] as Map<String, dynamic>;
+        final finish = (graph['nodes'] as List).singleWhere(
+          (node) => node['id'] == 'finish',
+        );
+        finish['payload'] = SceneActionPayload.consequence(
+          SceneConsequence.healParty(),
+        ).toJson();
+        await projectFile.writeAsString(jsonEncode(project));
+      });
+      addTearDown(() => root.delete(recursive: true));
+      final output = File(p.join(root.parent.path, 'quick-dialog.avelunegame'));
+      addTearDown(() async {
+        if (await output.exists()) await output.delete();
+      });
+      final controller = GamePackageExportController(
+        projectRoot: root,
+        projectName: 'Neutral Adventure',
+        profileStore: GamePackageExportProfileStore(projectRoot: root),
+        localGameIdGenerator: () => 'games.local.quickdialog',
+      );
+      addTearDown(controller.dispose);
+      await tester.runAsync(controller.initialize);
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: PokeMapTheme.light(),
-        home: Scaffold(
-          body: GamePackageExportDialog(
-            controller: controller,
-            chooseOutputFile: (_) async => output,
-            chooseProjectFile: (_) async => null,
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: Scaffold(
+            body: GamePackageExportDialog(
+              controller: controller,
+              chooseOutputFile: (_) async => output,
+              chooseProjectFile: (_) async => null,
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pump();
+      );
+      await tester.pump();
 
-    final exportButton = tester.widget<PokeMapButton>(
-      find.widgetWithText(PokeMapButton, 'Exporter pour tester'),
-    );
-    await tester.runAsync(() async {
-      exportButton.onPressed!.call();
-      for (
-        var attempt = 0;
-        attempt < 200 &&
-            controller.snapshot.status != GamePackageExportStatus.succeeded &&
-            controller.snapshot.status != GamePackageExportStatus.error;
-        attempt++
-      ) {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
-    });
-    await tester.pump();
+      final exportButton = tester.widget<PokeMapButton>(
+        find.widgetWithText(PokeMapButton, 'Exporter pour tester'),
+      );
+      await tester.runAsync(() async {
+        exportButton.onPressed!.call();
+        for (
+          var attempt = 0;
+          attempt < 200 &&
+              controller.snapshot.status != GamePackageExportStatus.succeeded &&
+              controller.snapshot.status != GamePackageExportStatus.error;
+          attempt++
+        ) {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+        }
+      });
+      await tester.pump();
 
-    expect(controller.snapshot.status, GamePackageExportStatus.succeeded);
-    expect(output.existsSync(), isTrue);
-  });
+      expect(
+        controller.snapshot.status,
+        GamePackageExportStatus.succeeded,
+        reason: controller.snapshot.technicalErrorDetails,
+      );
+      expect(output.existsSync(), isTrue);
+      expect(controller.snapshot.artifact!.certification.isCertified, isFalse);
+      expect(find.text('Version de test prête'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'shows creator diagnostics instead of certification when blocked',

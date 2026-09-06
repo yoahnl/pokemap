@@ -5,6 +5,17 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
 
+enum GamePackageExportMode {
+  publication,
+  localTest;
+
+  static GamePackageExportMode fromJson(Object? value) => switch (value) {
+        null || 'publication' => publication,
+        'localTest' => localTest,
+        _ => throw const FormatException('Unknown game export mode.'),
+      };
+}
+
 final class GamePackageExportException implements Exception {
   const GamePackageExportException({
     required this.code,

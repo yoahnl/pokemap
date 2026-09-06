@@ -198,8 +198,9 @@ List<PokemonEvolutionEntry> _parseEvolutionEntries(String raw) {
       );
     }
     final rawFriendship = parts[3].trim();
-    final minFriendship =
-        rawFriendship.isEmpty ? null : int.tryParse(rawFriendship);
+    final minFriendship = rawFriendship.isEmpty
+        ? null
+        : int.tryParse(rawFriendship);
     if (rawFriendship.isNotEmpty && minFriendship == null) {
       throw EditorValidationException(
         'Pokemon evolution line ${index + 1} minFriendship must be an integer',
@@ -364,13 +365,21 @@ String? _trimmedOrNull(String? value) {
 }
 
 String _describeEvolution(PokemonEvolutionEntry entry) {
+  if (PokemonCatalogCoherenceValidator.catalogOnlyEvolutionMethods.contains(
+    entry.method,
+  )) {
+    final condition = _localizedValue(entry.conditionText);
+    return 'Conservée au Pokédex — non exécutable en jeu. '
+        '${condition == 'Aucune valeur locale' ? entry.method : condition}';
+  }
   final explicit = _localizedValue(entry.conditionText);
   if (explicit != 'Aucune valeur locale') {
     return explicit;
   }
   if (entry.minFriendship != null) {
-    final level =
-        entry.minLevel == null ? '' : ' dès le niveau ${entry.minLevel}';
+    final level = entry.minLevel == null
+        ? ''
+        : ' dès le niveau ${entry.minLevel}';
     return 'Évolue avec ${entry.minFriendship} points d’amitié$level';
   }
   if (entry.minLevel != null) {

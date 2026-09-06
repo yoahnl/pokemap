@@ -12,11 +12,13 @@ abstract interface class GamePackageExportApiPort {
   Future<GamePackageExportReceipt> export({
     required String projectRoot,
     required String outputPath,
+    GamePackageExportMode mode = GamePackageExportMode.publication,
   });
 }
 
 final class GamePackageExportReceipt {
   const GamePackageExportReceipt({
+    this.mode = GamePackageExportMode.publication,
     required this.outputPath,
     required this.sizeBytes,
     required this.sha256,
@@ -28,6 +30,7 @@ final class GamePackageExportReceipt {
   });
 
   final String outputPath;
+  final GamePackageExportMode mode;
   final int sizeBytes;
   final String sha256;
   final String gameId;
@@ -37,6 +40,7 @@ final class GamePackageExportReceipt {
   final String treeSha256;
 
   Map<String, Object?> toJson() => <String, Object?>{
+        'mode': mode.name,
         'outputPath': outputPath,
         'sizeBytes': sizeBytes,
         'sha256': sha256,
@@ -100,6 +104,7 @@ final class LocalGamePackageExportApi implements GamePackageExportApiPort {
   Future<GamePackageExportReceipt> export({
     required String projectRoot,
     required String outputPath,
+    GamePackageExportMode mode = GamePackageExportMode.publication,
   }) async {
     final canonicalProjectRoot =
         await _projectPolicy.authorizeProjectRoot(projectRoot);
@@ -118,9 +123,11 @@ final class LocalGamePackageExportApi implements GamePackageExportApiPort {
       projectRoot: Directory(canonicalProjectRoot),
       profile: profile,
       outputFile: outputFile,
+      mode: mode,
     );
     final canonicalOutput = await outputFile.resolveSymbolicLinks();
     return GamePackageExportReceipt(
+      mode: mode,
       outputPath: canonicalOutput,
       sizeBytes: await outputFile.length(),
       sha256: artifact.packageSha256,

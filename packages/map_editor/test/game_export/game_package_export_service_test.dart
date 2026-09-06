@@ -13,6 +13,47 @@ import 'package:path/path.dart' as p;
 import 'game_export_test_fixture.dart';
 
 void main() {
+  test('exports catalog provenance without author machine paths', () async {
+    final root = await createAuthorProject(withDialogue: false);
+    addTearDown(() => root.delete(recursive: true));
+    final catalogFile = File(
+      p.join(root.path, 'data', 'pokemon', 'catalogs', 'abilities.json'),
+    );
+    final catalog =
+        jsonDecode(await catalogFile.readAsString()) as Map<String, dynamic>;
+    final ability = (catalog['entries'] as List).first as Map<String, dynamic>;
+    ability['sourceRefs'] = <String, Object?>{
+      'path': '/Users/author/import/ability.json',
+      'id': 'original-ability',
+    };
+    final source = jsonEncode(catalog);
+    await catalogFile.writeAsString(source);
+
+    final artifact = await const GamePackageExportService().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+    final projection = await const RuntimeProjectProjectionBuilder().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+    final exportedCatalog =
+        jsonDecode(
+              utf8.decode(
+                projection
+                    .payloadFiles['project/data/pokemon/catalogs/abilities.json']!,
+              ),
+            )
+            as Map<String, dynamic>;
+
+    expect(artifact.certification.isCertified, isTrue);
+    expect(
+      (exportedCatalog['entries'] as List).first['sourceRefs'],
+      <String, Object?>{'id': 'original-ability'},
+    );
+    expect(await catalogFile.readAsString(), source);
+  });
+
   test(
     'persists stable metadata and rejects deriving identity implicitly',
     () async {
@@ -332,24 +373,27 @@ void main() {
   });
 
   group('gameplay publication readiness gate', () {
-    test('rejects a preSession entrypoint that references a world Scene',
-        () async {
-      final root = await createAuthorProject(withDialogue: false);
-      addTearDown(() => root.delete(recursive: true));
-      final projectFile = File(p.join(root.path, 'project.json'));
-      final project =
-          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
-      project.remove('eventRegistry');
-      project['version'] = 'v7';
-      (project['newGame'] as Map<String, dynamic>)['preSessionSceneId'] =
-          'scene.main';
-      await projectFile.writeAsString(jsonEncode(project), flush: true);
+    test(
+      'rejects a preSession entrypoint that references a world Scene',
+      () async {
+        final root = await createAuthorProject(withDialogue: false);
+        addTearDown(() => root.delete(recursive: true));
+        final projectFile = File(p.join(root.path, 'project.json'));
+        final project =
+            jsonDecode(await projectFile.readAsString())
+                as Map<String, dynamic>;
+        project.remove('eventRegistry');
+        project['version'] = 'v7';
+        (project['newGame'] as Map<String, dynamic>)['preSessionSceneId'] =
+            'scene.main';
+        await projectFile.writeAsString(jsonEncode(project), flush: true);
 
-      await _expectReadinessFailure(
-        root,
-        diagnosticCode: 'exportPreSessionSceneUnavailable',
-      );
-    });
+        await _expectReadinessFailure(
+          root,
+          diagnosticCode: 'exportPreSessionSceneUnavailable',
+        );
+      },
+    );
 
     test(
       'exports a new game without an initial party or starter path',

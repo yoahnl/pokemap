@@ -29,6 +29,10 @@ function start(config: PokeMapMcpConfig): void {
     exportRoots: config.exportRoots,
     authoringPackageRoot: config.authoringPackageRoot,
     dartExecutable: config.dartExecutable,
+    ...(config.authoringTimeoutMs === undefined ? {} : {
+      workerTimeoutMs: config.authoringTimeoutMs,
+      requestTimeoutMs: config.authoringTimeoutMs + 5_000,
+    }),
   });
   const artifacts = new MemoryArtifactReader();
   const runtime = new LocalRuntimeGateway({

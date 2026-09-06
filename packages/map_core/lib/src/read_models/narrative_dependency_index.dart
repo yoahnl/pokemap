@@ -4,6 +4,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../authoring/storyline_legacy_import_preview.dart';
 import '../models/map_data.dart';
+import '../models/items/project_item_catalog.dart';
 import '../models/enums.dart';
 import '../models/cinematic_asset.dart';
 import '../models/map_entity_payloads.dart';
@@ -473,15 +474,21 @@ NarrativeDependencyInspectionReadModel inspectNarrativeDependency(
 NarrativeDependencyIndex buildNarrativeDependencyIndex({
   required ProjectManifest project,
   List<MapData> maps = const <MapData>[],
+  ProjectItemCatalog? itemCatalog,
 }) {
-  return _NarrativeDependencyIndexBuilder(project, maps).build();
+  return _NarrativeDependencyIndexBuilder(project, maps, itemCatalog).build();
 }
 
 final class _NarrativeDependencyIndexBuilder {
-  _NarrativeDependencyIndexBuilder(this.project, List<MapData> maps)
+  _NarrativeDependencyIndexBuilder(
+    this.project,
+    List<MapData> maps,
+    this.itemCatalog,
+  )
       : maps = List<MapData>.unmodifiable(maps);
 
   final ProjectManifest project;
+  final ProjectItemCatalog? itemCatalog;
   final List<MapData> maps;
   final List<NarrativeDependencyDefinition> _definitions = [];
   final List<NarrativeDependencyUsage> _usages = [];
@@ -504,6 +511,14 @@ final class _NarrativeDependencyIndexBuilder {
   }
 
   void _collectProjectDefinitions() {
+    for (final item in itemCatalog?.entries ?? const []) {
+      _definition(
+        NarrativeDependencyTargetKind.item,
+        item.id,
+        item.displayName,
+        path: 'items[${item.id}]',
+      );
+    }
     for (final map in project.maps) {
       _definition(
         NarrativeDependencyTargetKind.sourceMap,
@@ -2210,6 +2225,10 @@ final class _NarrativeDependencyIndexBuilder {
       return;
     }
     final target = switch (source.sourceKind) {
+      SceneConditionSourceKind.inventoryItem => NarrativeDependencyKey(
+          NarrativeDependencyTargetKind.item,
+          source.sourceId,
+        ),
       SceneConditionSourceKind.fact => NarrativeDependencyKey(
           NarrativeDependencyTargetKind.fact,
           source.sourceId,
@@ -2239,7 +2258,8 @@ final class _NarrativeDependencyIndexBuilder {
         ),
     };
     final usesCanonicalResolution =
-        source.sourceKind == SceneConditionSourceKind.fact ||
+        source.sourceKind == SceneConditionSourceKind.inventoryItem ||
+            source.sourceKind == SceneConditionSourceKind.fact ||
             source.sourceKind == SceneConditionSourceKind.storyStepCompletion ||
             source.sourceKind == SceneConditionSourceKind.storyStepActive ||
             source.sourceKind == SceneConditionSourceKind.consumedEvent ||

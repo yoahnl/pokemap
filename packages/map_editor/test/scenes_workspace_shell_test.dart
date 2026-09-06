@@ -354,6 +354,16 @@ void main() {
         );
         expect(find.text('Selbrume Demo'), findsNothing);
         expect(find.text('Annonce au port'), findsNothing);
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(
+                  const ValueKey('scenes-add-node-presentation-cinematic'),
+                ),
+              )
+              .onPressed,
+          isNotNull,
+        );
       },
     );
 

@@ -49,10 +49,20 @@ void _runtimeHostLog(String message) {
 // On garde un MaterialApp très simple, puis toute la navigation se fait
 // depuis la page de chargement et le menu in-game.
 void main() {
+  runRuntimeHost();
+}
+
+void runRuntimeHost({
+  String? initialProjectFilePath,
+  ValueChanged<PlayableMapGame?>? onGameChanged,
+}) {
   runApp(
-    const MaterialApp(
+    MaterialApp(
       title: 'Playable Runtime Host',
-      home: _ProjectLoaderPage(),
+      home: _ProjectLoaderPage(
+        initialProjectFilePath: initialProjectFilePath,
+        onGameChanged: onGameChanged,
+      ),
     ),
   );
 }
@@ -61,7 +71,10 @@ void main() {
 // 1. charger un projet et une map runtime ;
 // 2. exposer les surfaces minimales de debug/save/menu utiles aux phases 9-10.
 class _ProjectLoaderPage extends StatefulWidget {
-  const _ProjectLoaderPage();
+  const _ProjectLoaderPage({this.initialProjectFilePath, this.onGameChanged});
+
+  final String? initialProjectFilePath;
+  final ValueChanged<PlayableMapGame?>? onGameChanged;
 
   @override
   State<_ProjectLoaderPage> createState() => _ProjectLoaderPageState();
@@ -151,6 +164,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     final game = _game;
     _game = null;
     _playerServices = null;
+    widget.onGameChanged?.call(null);
     game?.dispose();
     _sessionPlayWatch?.stop();
     _sessionPlayWatch = null;
@@ -256,6 +270,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   // on veut retrouver vite le dernier projet, sans jamais bloquer le chargement
   // si le fichier local est absent ou invalide.
   Future<void> _restoreLastSession() async {
+    final initialProjectFilePath = widget.initialProjectFilePath;
+    if (initialProjectFilePath != null) {
+      _projectFilePath = initialProjectFilePath;
+      await _loadProjectMapsFromManifest(initialProjectFilePath);
+      await _loadPartyBuilderOptions(initialProjectFilePath);
+      if (mounted) await _launchSelectedProject();
+      return;
+    }
     if (interactiveEvaluationConfig.enabled) {
       await _restoreInteractiveEvaluationProject();
       return;
@@ -362,7 +384,10 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   // Host session and presentation options remain local preferences, never
   // gameplay state. The versioned gameplay save stays in its own pipeline.
   Future<void> _persistLastSession() async {
-    if (interactiveEvaluationConfig.enabled) return;
+    if (interactiveEvaluationConfig.enabled ||
+        widget.initialProjectFilePath != null) {
+      return;
+    }
     try {
       final file = File(_prefsFilePath());
       final payload = <String, dynamic>{
@@ -596,11 +621,13 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   // Il ne modifie pas la structure métier des saves.
   Future<PlayableMapGame> _load({
     GameSessionLaunchMode launchMode = GameSessionLaunchMode.continueGame,
+    GameState? initialGameState,
     GameSessionProgressReporter? reportProgress,
     RuntimeInitialMapPreloadResult? preloadedInitialMap,
   }) async {
     final projectFilePath = _projectFilePath;
-    final selectedMapId = (_selectedMapId ?? '').trim();
+    final selectedMapId =
+        (initialGameState?.currentMapId ?? _selectedMapId ?? '').trim();
     var mapId = selectedMapId;
 
     if (projectFilePath.isEmpty) {
@@ -723,11 +750,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
           bundle: bundle,
           projectFilePath: projectFilePath,
           saveData: launchPlan.saveData,
+          initialGameState: initialGameState,
           initialMapActivationReason: launchPlan.initialMapActivationReason,
           initialTilesetImageCache: initialTilesetImageCache,
           enableActorContactShadows: false,
           enableStaticPlacedElementShadows: false,
           audioMixer: _startupHost?.audioMixer,
+          presentationCinematicPlayer:
+              _startupHost?.presentationSession?.controller,
           reducedMotion: accessibility?.reducedMotion ?? false,
           textScale: accessibility?.textScale ?? 1.0,
         );
@@ -768,6 +798,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         _saveLoadStatus = null;
         _saveLoadError = null;
       });
+      widget.onGameChanged?.call(nextGame);
       _sessionCreatedAt = DateTime.now().toUtc();
       _sessionPlayWatch = Stopwatch()..start();
       // Interactive evaluation never enables the expensive collision layers.
@@ -885,6 +916,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         onLaunch: (descriptor, reportProgress, preloadedInitialMap) async {
           await _load(
             launchMode: descriptor.launchMode,
+            initialGameState: descriptor.initialGameState,
             reportProgress: reportProgress,
             preloadedInitialMap: preloadedInitialMap,
           );
@@ -1421,55 +1453,58 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         isBattleActive: game.isBattleUiActive,
       );
       activeGameSurface = Scaffold(
-        appBar: AppBar(
-          title: Text((_selectedMapId ?? '').trim()),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: _reset,
-          ),
-          actions: [
-            if (touchControlsVisibility.showToggleButton)
-              IconButton(
-                key: const Key('runtime-touch-controls-toggle-button'),
-                tooltip: touchControlsVisibility.toggleTooltip,
-                icon: Icon(
-                  touchControlsVisibility.userHidden
-                      ? Icons.touch_app_outlined
-                      : Icons.touch_app,
+        appBar: _startupViewController == null
+            ? AppBar(
+                title: Text((_selectedMapId ?? '').trim()),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: _reset,
                 ),
-                onPressed: () {
-                  setState(() {
-                    _touchControlsHiddenByUser = !_touchControlsHiddenByUser;
-                    _playerOptions = _playerOptions.copyWith(
-                      showTouchControls: !_touchControlsHiddenByUser,
-                    );
-                  });
-                  unawaited(_persistLastSession());
-                },
-              ),
-            IconButton(
-              key: const Key('runtime-debug-panel-toggle-button'),
-              tooltip: _showRuntimeDebugPanel
-                  ? 'Masquer le panneau debug'
-                  : 'Afficher le panneau debug',
-              icon: Icon(
-                _showRuntimeDebugPanel
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-              ),
-              onPressed: () {
-                setState(
-                  () => _showRuntimeDebugPanel = !_showRuntimeDebugPanel,
-                );
-              },
-            ),
-            IconButton(
-              key: const Key('runtime-menu-button'),
-              icon: const Icon(Icons.menu),
-              onPressed: _openPlayerMenu,
-            ),
-          ],
-        ),
+                actions: [
+                  if (touchControlsVisibility.showToggleButton)
+                    IconButton(
+                      key: const Key('runtime-touch-controls-toggle-button'),
+                      tooltip: touchControlsVisibility.toggleTooltip,
+                      icon: Icon(
+                        touchControlsVisibility.userHidden
+                            ? Icons.touch_app_outlined
+                            : Icons.touch_app,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _touchControlsHiddenByUser =
+                              !_touchControlsHiddenByUser;
+                          _playerOptions = _playerOptions.copyWith(
+                            showTouchControls: !_touchControlsHiddenByUser,
+                          );
+                        });
+                        unawaited(_persistLastSession());
+                      },
+                    ),
+                  IconButton(
+                    key: const Key('runtime-debug-panel-toggle-button'),
+                    tooltip: _showRuntimeDebugPanel
+                        ? 'Masquer le panneau debug'
+                        : 'Afficher le panneau debug',
+                    icon: Icon(
+                      _showRuntimeDebugPanel
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    onPressed: () {
+                      setState(
+                        () => _showRuntimeDebugPanel = !_showRuntimeDebugPanel,
+                      );
+                    },
+                  ),
+                  IconButton(
+                    key: const Key('runtime-menu-button'),
+                    icon: const Icon(Icons.menu),
+                    onPressed: _openPlayerMenu,
+                  ),
+                ],
+              )
+            : null,
         body: Stack(
           children: [
             RepaintBoundary(

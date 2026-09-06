@@ -327,7 +327,10 @@ final class RuntimeProjectProjectionBuilder {
       final packagePath = _normalizePackagePath('project/$relative');
       if (extension == '.json') {
         final decoded = _decodeJson(bytes, relative);
-        final scrubbed = _scrubJson(decoded);
+        final runtimeData = relative.startsWith('data/pokemon/catalogs/')
+            ? _projectPokemonCatalog(decoded)
+            : decoded;
+        final scrubbed = _scrubJson(runtimeData);
         scrubbedSecretFieldCount += scrubbed.removedSecretFields;
         final rewritten = _rewriteLegacyDialogueReferences(scrubbed.value);
         budget.addPayload(
@@ -888,6 +891,26 @@ final class RuntimeProjectProjectionBuilder {
       };
     }
     return value;
+  }
+
+  Object? _projectPokemonCatalog(Object? value) {
+    if (value is! Map || value['entries'] is! List) return value;
+    return <String, Object?>{
+      ...value.cast<String, Object?>(),
+      'entries': <Object?>[
+        for (final entry in value['entries'] as List)
+          if (entry is Map && entry['sourceRefs'] is Map)
+            <String, Object?>{
+              ...entry.cast<String, Object?>(),
+              'sourceRefs': <String, Object?>{
+                for (final source in (entry['sourceRefs'] as Map).entries)
+                  if (source.key != 'path') source.key as String: source.value,
+              },
+            }
+          else
+            entry,
+      ],
+    };
   }
 
   _JsonScrubResult _scrubJson(Object? value) {

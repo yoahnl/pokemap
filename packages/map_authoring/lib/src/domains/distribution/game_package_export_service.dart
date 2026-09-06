@@ -13,23 +13,21 @@ import 'game_package_export_profile.dart';
 import 'runtime_project_projection_builder.dart';
 import 'runtime_project_projection_file_reader.dart';
 
-typedef GamePackagePokemonValidator =
-    Future<PokemonCatalogCoherenceReport> Function({
-      required ProjectFileReader reader,
-      required String projectRoot,
-      required ProjectManifest manifest,
-    });
-typedef GamePackageAtomicFileWriter =
-    Future<void> Function({
-      required File outputFile,
-      required List<int> packageBytes,
-      required String packageSha256,
-    });
-typedef GamePackageArchiveBuilder =
-    GamePackageBuildResult Function({
-      required GamePackageManifest manifest,
-      required Map<String, List<int>> payloadFiles,
-    });
+typedef GamePackagePokemonValidator = Future<PokemonCatalogCoherenceReport>
+    Function({
+  required ProjectFileReader reader,
+  required String projectRoot,
+  required ProjectManifest manifest,
+});
+typedef GamePackageAtomicFileWriter = Future<void> Function({
+  required File outputFile,
+  required List<int> packageBytes,
+  required String packageSha256,
+});
+typedef GamePackageArchiveBuilder = GamePackageBuildResult Function({
+  required GamePackageManifest manifest,
+  required Map<String, List<int>> payloadFiles,
+});
 
 final class GamePackageExportWriteFailure implements Exception {
   const GamePackageExportWriteFailure({
@@ -41,24 +39,28 @@ final class GamePackageExportWriteFailure implements Exception {
   final Object directError;
 
   @override
-  String toString() =>
-      'Atomic sibling write failed: $atomicError '
+  String toString() => 'Atomic sibling write failed: $atomicError '
       'Direct selected-file write failed: $directError';
 }
 
 final class GamePackageExportCertification {
   GamePackageExportCertification({
+    this.mode = GamePackageExportMode.publication,
     required List<String> diagnostics,
     required this.gameplayReadinessReport,
     required this.pokemonValidationSha256,
   }) : diagnostics = List.unmodifiable(diagnostics);
 
   final List<String> diagnostics;
+  final GamePackageExportMode mode;
   final NarrativeProjectValidationReport gameplayReadinessReport;
   final String? pokemonValidationSha256;
 
-  bool get isCertified =>
+  bool get isExportable =>
       gameplayReadinessReport.isPlayable && diagnostics.isEmpty;
+
+  bool get isCertified =>
+      mode == GamePackageExportMode.publication && isExportable;
 }
 
 final class GamePackageExportArtifact {
@@ -105,6 +107,7 @@ final class CanonicalGamePackageExportService {
   Future<GamePackageExportArtifact> build({
     required Directory projectRoot,
     required GamePackageExportProfile profile,
+    GamePackageExportMode mode = GamePackageExportMode.publication,
   }) async {
     try {
       final projection = await projectionBuilder.build(
@@ -118,8 +121,7 @@ final class CanonicalGamePackageExportService {
           final projectionReader = RuntimeProjectProjectionFileReader(
             projection,
           );
-          final validate =
-              pokemonValidator ??
+          final validate = pokemonValidator ??
               const PokemonCatalogCoherenceLoader().validateProjectFiles;
           pokemonValidationReport = await validate(
             reader: projectionReader,
@@ -134,6 +136,7 @@ final class CanonicalGamePackageExportService {
       }
       final gameplayReadinessReport = gameplayReadinessGate.evaluate(
         projection,
+        mode: mode,
         pokemonValidationReport: pokemonValidationReport,
         pokemonValidationFailure: pokemonValidationFailure,
       );
@@ -148,14 +151,15 @@ final class CanonicalGamePackageExportService {
         throw GamePackageExportException(
           code: 'gameplayReadinessFailed',
           path: errors.firstOrNull?.path,
-          message: _gameplayReadinessCreatorMessage(errors),
+          message: _gameplayReadinessCreatorMessage(errors, mode: mode),
           gameplayReadinessReport: gameplayReadinessReport,
         );
       }
       final requiredCapabilities = <String>{
         ...profile.requiredCapabilities,
         if (projection.project.maps.isNotEmpty) 'map@1',
-      }.toList(growable: false)..sort();
+      }.toList(growable: false)
+        ..sort();
       final emptyContent = GamePackageContent(
         fileCount: 0,
         totalBytes: 0,
@@ -280,7 +284,8 @@ final class CanonicalGamePackageExportService {
               : GamePackagePausePresentation(
                   style: projection.presentation.pause!.style,
                   background: projection.presentation.pause!.background
-                      ?.copyWith(imagePath: projection.menuBackgroundPackagePath!),
+                      ?.copyWith(
+                          imagePath: projection.menuBackgroundPackagePath!),
                   title: projection.presentation.pause!.title,
                   hint: projection.presentation.pause!.hint,
                   actions: projection.presentation.pause!.actions
@@ -295,10 +300,10 @@ final class CanonicalGamePackageExportService {
                       .toList(growable: false),
                   composition:
                       projection.presentation.pause!.composition == null
-                      ? null
-                      : _packagePauseComposition(
-                          projection.presentation.pause!.composition!,
-                        ),
+                          ? null
+                          : _packagePauseComposition(
+                              projection.presentation.pause!.composition!,
+                            ),
                 ),
           menuLabels: projection.presentation.menuLabels == null
               ? null
@@ -325,12 +330,11 @@ final class CanonicalGamePackageExportService {
         ),
         content: emptyContent,
       );
-      final built =
-          (packageArchiveBuilder ??
+      final built = (packageArchiveBuilder ??
           ({required manifest, required payloadFiles}) => packageBuilder.build(
-            manifest: manifest,
-            payloadFiles: payloadFiles,
-          ))(manifest: manifest, payloadFiles: projection.payloadFiles);
+                manifest: manifest,
+                payloadFiles: payloadFiles,
+              ))(manifest: manifest, payloadFiles: projection.payloadFiles);
       final inspector = GamePackageInspector(
         hostCompatibility: GamePackageHostCompatibility(
           hubVersion: Version.parse('1.2.0'),
@@ -362,17 +366,18 @@ final class CanonicalGamePackageExportService {
           'Exported package is not compatible with the generic Hub contract.',
       ];
       final certification = GamePackageExportCertification(
+        mode: mode,
         diagnostics: diagnostics,
         gameplayReadinessReport: gameplayReadinessReport,
         pokemonValidationSha256: pokemonValidationReport == null
             ? null
             : sha256
-                  .convert(
-                    utf8.encode(jsonEncode(pokemonValidationReport.toJson())),
-                  )
-                  .toString(),
+                .convert(
+                  utf8.encode(jsonEncode(pokemonValidationReport.toJson())),
+                )
+                .toString(),
       );
-      if (!certification.isCertified) {
+      if (!certification.isExportable) {
         throw GamePackageExportException(
           code: 'exportCertificationFailed',
           message: diagnostics.join(' '),
@@ -413,6 +418,7 @@ final class CanonicalGamePackageExportService {
     required Directory projectRoot,
     required GamePackageExportProfile profile,
     required File outputFile,
+    GamePackageExportMode mode = GamePackageExportMode.publication,
   }) async {
     final outputName = outputFile.uri.pathSegments.last.toLowerCase();
     if (!outputName.endsWith('.avelunegame') ||
@@ -423,7 +429,8 @@ final class CanonicalGamePackageExportService {
         message: 'Export destination must use a single .avelunegame extension.',
       );
     }
-    final artifact = await build(projectRoot: projectRoot, profile: profile);
+    final artifact =
+        await build(projectRoot: projectRoot, profile: profile, mode: mode);
     try {
       await outputFile.parent.create(recursive: true);
     } on Object catch (error) {
@@ -581,12 +588,13 @@ final class CanonicalGamePackageExportService {
 
   static GamePackageResponsiveVideo _packageResponsiveVideo(
     RuntimeProjectedResponsiveVideo media,
-  ) => GamePackageResponsiveVideo(
-    landscape: _packageVideoVariant(media.landscape),
-    portrait: media.portrait == null
-        ? null
-        : _packageVideoVariant(media.portrait!),
-  );
+  ) =>
+      GamePackageResponsiveVideo(
+        landscape: _packageVideoVariant(media.landscape),
+        portrait: media.portrait == null
+            ? null
+            : _packageVideoVariant(media.portrait!),
+      );
 
   static GamePackageVideoVariant _packageVideoVariant(
     RuntimeProjectedVideoVariant variant,
@@ -610,214 +618,229 @@ final class CanonicalGamePackageExportService {
 
   static GamePackageSemanticTheme _packageSemanticTheme(
     ProjectSemanticThemeProfile theme,
-  ) => GamePackageSemanticTheme(
-    primary: theme.primary,
-    onPrimary: theme.onPrimary,
-    background: theme.background,
-    surface: theme.surface,
-    surfaceElevated: theme.surfaceElevated,
-    textPrimary: theme.textPrimary,
-    textSecondary: theme.textSecondary,
-    outline: theme.outline,
-    success: theme.success,
-    warning: theme.warning,
-    danger: theme.danger,
-    titleSurface: theme.titleSurface,
-    dialogueSurface: theme.dialogueSurface,
-    menuSurface: theme.menuSurface,
-    overworldHudSurface: theme.overworldHudSurface,
-    battleHudSurface: theme.battleHudSurface,
-  );
+  ) =>
+      GamePackageSemanticTheme(
+        primary: theme.primary,
+        onPrimary: theme.onPrimary,
+        background: theme.background,
+        surface: theme.surface,
+        surfaceElevated: theme.surfaceElevated,
+        textPrimary: theme.textPrimary,
+        textSecondary: theme.textSecondary,
+        outline: theme.outline,
+        success: theme.success,
+        warning: theme.warning,
+        danger: theme.danger,
+        titleSurface: theme.titleSurface,
+        dialogueSurface: theme.dialogueSurface,
+        menuSurface: theme.menuSurface,
+        overworldHudSurface: theme.overworldHudSurface,
+        battleHudSurface: theme.battleHudSurface,
+      );
 
   static GamePackageBattlePresentation _packageBattle(
     ProjectBattlePresentationProfile profile,
-  ) => GamePackageBattlePresentation(
-    commandLayout: profile.commandLayout.name,
-    commandColumns: profile.commandColumns,
-    showCommandIcons: profile.showCommandIcons,
-    commandShape: profile.commandShape.name,
-    commandPadding: profile.commandPadding.round(),
-    commandSurfaceColor: profile.commandSurfaceColor,
-    commandBorderColor: profile.commandBorderColor,
-    commandTextColor: profile.commandTextColor,
-    commandSelectionColor: profile.commandSelectionColor,
-    commands: profile.commands
-        ?.map(
-          (command) => GamePackageBattleCommand(
-            id: command.id.name,
-            label: command.label,
-            icon: command.icon?.name,
-          ),
-        )
-        .toList(growable: false),
-    hudShape: profile.hudShape.name,
-    enemyHudPosition: profile.enemyHudPosition.name,
-    playerHudPosition: profile.playerHudPosition.name,
-    showOwnerLabel: profile.showOwnerLabel,
-    showLevel: profile.showLevel,
-    showExactHp: profile.showExactHp,
-    hpBarShape: profile.hpBarShape.name,
-    hpHealthyColor: profile.hpHealthyColor,
-    hpWarningColor: profile.hpWarningColor,
-    hpDangerColor: profile.hpDangerColor,
-    statusColor: profile.statusColor,
-    moves: _packageBattlePanel(profile.moves),
-    target: _packageBattlePanel(profile.target),
-    message: _packageBattlePanel(profile.message),
-  );
+  ) =>
+      GamePackageBattlePresentation(
+        commandLayout: profile.commandLayout.name,
+        commandColumns: profile.commandColumns,
+        showCommandIcons: profile.showCommandIcons,
+        commandShape: profile.commandShape.name,
+        commandPadding: profile.commandPadding.round(),
+        commandSurfaceColor: profile.commandSurfaceColor,
+        commandBorderColor: profile.commandBorderColor,
+        commandTextColor: profile.commandTextColor,
+        commandSelectionColor: profile.commandSelectionColor,
+        commands: profile.commands
+            ?.map(
+              (command) => GamePackageBattleCommand(
+                id: command.id.name,
+                label: command.label,
+                icon: command.icon?.name,
+              ),
+            )
+            .toList(growable: false),
+        hudShape: profile.hudShape.name,
+        enemyHudPosition: profile.enemyHudPosition.name,
+        playerHudPosition: profile.playerHudPosition.name,
+        showOwnerLabel: profile.showOwnerLabel,
+        showLevel: profile.showLevel,
+        showExactHp: profile.showExactHp,
+        hpBarShape: profile.hpBarShape.name,
+        hpHealthyColor: profile.hpHealthyColor,
+        hpWarningColor: profile.hpWarningColor,
+        hpDangerColor: profile.hpDangerColor,
+        statusColor: profile.statusColor,
+        moves: _packageBattlePanel(profile.moves),
+        target: _packageBattlePanel(profile.target),
+        message: _packageBattlePanel(profile.message),
+      );
 
   static GamePackageDialoguePresentation _packageDialogue(
     ProjectDialoguePresentationProfile profile,
-  ) => GamePackageDialoguePresentation(
-    placement: profile.placement.name,
-    maxWidthFactor: profile.maxWidthFactor,
-    margin: profile.margin,
-    contentPadding: profile.contentPadding,
-    shape: profile.shape.name,
-    cornerRadius: profile.cornerRadius,
-    borderWidth: profile.borderWidth,
-    fillOpacity: profile.fillOpacity,
-    surfaceColor: profile.surfaceColor,
-    borderColor: profile.borderColor,
-    textColor: profile.textColor,
-    portraitSide: profile.portraitSide.name,
-    portraitSize: profile.portraitSize,
-    portraitShape: profile.portraitShape.name,
-    portraitFrameWidth: profile.portraitFrameWidth,
-    portraitFrameColor: profile.portraitFrameColor,
-    nameplateStyle: profile.nameplateStyle.name,
-    nameplateBorderWidth: profile.nameplateBorderWidth,
-    nameplateSurfaceColor: profile.nameplateSurfaceColor,
-    nameplateBorderColor: profile.nameplateBorderColor,
-    nameplateTextColor: profile.nameplateTextColor,
-    choiceSpacing: profile.choiceSpacing,
-    choiceShape: profile.choiceShape.name,
-    choiceDisabledOpacity: profile.choiceDisabledOpacity,
-    choiceSelectedColor: profile.choiceSelectedColor,
-    progressIndicator: profile.progressIndicator.name,
-    progressIndicatorColor: profile.progressIndicatorColor,
-    portraitTransition: profile.portraitTransition.name,
-    portraitTransitionMilliseconds: profile.portraitTransitionMilliseconds,
-  );
+  ) =>
+      GamePackageDialoguePresentation(
+        placement: profile.placement.name,
+        maxWidthFactor: profile.maxWidthFactor,
+        margin: profile.margin,
+        contentPadding: profile.contentPadding,
+        shape: profile.shape.name,
+        cornerRadius: profile.cornerRadius,
+        borderWidth: profile.borderWidth,
+        fillOpacity: profile.fillOpacity,
+        surfaceColor: profile.surfaceColor,
+        borderColor: profile.borderColor,
+        textColor: profile.textColor,
+        portraitSide: profile.portraitSide.name,
+        portraitSize: profile.portraitSize,
+        portraitShape: profile.portraitShape.name,
+        portraitFrameWidth: profile.portraitFrameWidth,
+        portraitFrameColor: profile.portraitFrameColor,
+        nameplateStyle: profile.nameplateStyle.name,
+        nameplateBorderWidth: profile.nameplateBorderWidth,
+        nameplateSurfaceColor: profile.nameplateSurfaceColor,
+        nameplateBorderColor: profile.nameplateBorderColor,
+        nameplateTextColor: profile.nameplateTextColor,
+        choiceSpacing: profile.choiceSpacing,
+        choiceShape: profile.choiceShape.name,
+        choiceDisabledOpacity: profile.choiceDisabledOpacity,
+        choiceSelectedColor: profile.choiceSelectedColor,
+        progressIndicator: profile.progressIndicator.name,
+        progressIndicatorColor: profile.progressIndicatorColor,
+        portraitTransition: profile.portraitTransition.name,
+        portraitTransitionMilliseconds: profile.portraitTransitionMilliseconds,
+      );
 
   static GamePackageBattlePanelPresentation _packageBattlePanel(
     ProjectBattlePanelPresentationProfile profile,
-  ) => GamePackageBattlePanelPresentation(
-    layout: profile.layout.name,
-    columns: profile.columns,
-    shape: profile.shape.name,
-    padding: profile.padding.round(),
-    surfaceColor: profile.surfaceColor,
-    borderColor: profile.borderColor,
-    textColor: profile.textColor,
-    selectionColor: profile.selectionColor,
-  );
+  ) =>
+      GamePackageBattlePanelPresentation(
+        layout: profile.layout.name,
+        columns: profile.columns,
+        shape: profile.shape.name,
+        padding: profile.padding.round(),
+        surfaceColor: profile.surfaceColor,
+        borderColor: profile.borderColor,
+        textColor: profile.textColor,
+        selectionColor: profile.selectionColor,
+      );
 
   static GamePackagePresentationWindows _packageWindows(
     ProjectPresentationWindowsProfile windows,
-  ) => GamePackagePresentationWindows(
-    styles: <GamePackageWindowStyle>[
-      for (final style in windows.styles)
-        GamePackageWindowStyle(
-          id: style.id,
-          fillToken: style.fillToken,
-          borderToken: style.borderToken,
-          borderWidth: style.borderWidth,
-          cornerRadius: style.cornerRadius,
-          contentPadding: style.contentPadding,
-          shadowElevation: style.shadowElevation,
-          shape: style.shape.name,
-          fillOpacity: style.fillOpacity,
-        ),
-    ],
-    defaultStyleId: windows.defaultStyleId,
-    pauseMenuStyleId: windows.pauseMenuStyleId,
-    dialogueStyleId: windows.dialogueStyleId,
-    battleStyleId: windows.battleStyleId,
-    pauseBackdropOpacity: windows.pauseBackdropOpacity,
-  );
+  ) =>
+      GamePackagePresentationWindows(
+        styles: <GamePackageWindowStyle>[
+          for (final style in windows.styles)
+            GamePackageWindowStyle(
+              id: style.id,
+              fillToken: style.fillToken,
+              borderToken: style.borderToken,
+              borderWidth: style.borderWidth,
+              cornerRadius: style.cornerRadius,
+              contentPadding: style.contentPadding,
+              shadowElevation: style.shadowElevation,
+              shape: style.shape.name,
+              fillOpacity: style.fillOpacity,
+            ),
+        ],
+        defaultStyleId: windows.defaultStyleId,
+        pauseMenuStyleId: windows.pauseMenuStyleId,
+        dialogueStyleId: windows.dialogueStyleId,
+        battleStyleId: windows.battleStyleId,
+        pauseBackdropOpacity: windows.pauseBackdropOpacity,
+      );
 
   static GamePackagePresentationSurfacePalettes _packageSurfacePalettes(
     ProjectPresentationSurfacePalettesProfile palettes,
-  ) => GamePackagePresentationSurfacePalettes(
-    title: _packageSurfacePalette(palettes.title),
-    pauseMenu: _packageSurfacePalette(palettes.pauseMenu),
-    dialogue: _packageSurfacePalette(palettes.dialogue),
-    battle: _packageSurfacePalette(palettes.battle),
-  );
+  ) =>
+      GamePackagePresentationSurfacePalettes(
+        title: _packageSurfacePalette(palettes.title),
+        pauseMenu: _packageSurfacePalette(palettes.pauseMenu),
+        dialogue: _packageSurfacePalette(palettes.dialogue),
+        battle: _packageSurfacePalette(palettes.battle),
+      );
 
   static GamePackageSurfacePalette? _packageSurfacePalette(
     ProjectSurfacePaletteProfile? palette,
-  ) => palette == null
-      ? null
-      : GamePackageSurfacePalette(
-          background: palette.background,
-          surface: palette.surface,
-          border: palette.border,
-          text: palette.text,
-          accent: palette.accent,
-          selection: palette.selection,
-        );
+  ) =>
+      palette == null
+          ? null
+          : GamePackageSurfacePalette(
+              background: palette.background,
+              surface: palette.surface,
+              border: palette.border,
+              text: palette.text,
+              accent: palette.accent,
+              selection: palette.selection,
+            );
 
   static GamePackageResponsivePauseComposition _packagePauseComposition(
     ProjectResponsivePauseCompositionProfile composition,
-  ) => GamePackageResponsivePauseComposition(
-    compactPortrait: _packagePauseCompositionVariant(
-      composition.compactPortrait,
-    ),
-    compactLandscape: _packagePauseCompositionVariant(
-      composition.compactLandscape,
-    ),
-    expanded: _packagePauseCompositionVariant(composition.expanded),
-  );
+  ) =>
+      GamePackageResponsivePauseComposition(
+        compactPortrait: _packagePauseCompositionVariant(
+          composition.compactPortrait,
+        ),
+        compactLandscape: _packagePauseCompositionVariant(
+          composition.compactLandscape,
+        ),
+        expanded: _packagePauseCompositionVariant(composition.expanded),
+      );
 
   static GamePackagePauseCompositionVariant _packagePauseCompositionVariant(
     ProjectPauseCompositionVariantProfile variant,
-  ) => GamePackagePauseCompositionVariant(
-    entrySize: variant.entrySize.name,
-    entrySpacing: variant.entrySpacing.name,
-    showTitle: variant.showTitle,
-    showHint: variant.showHint,
-    showRootDetailPanel: variant.showRootDetailPanel,
-  );
+  ) =>
+      GamePackagePauseCompositionVariant(
+        entrySize: variant.entrySize.name,
+        entrySpacing: variant.entrySpacing.name,
+        showTitle: variant.showTitle,
+        showHint: variant.showHint,
+        showRootDetailPanel: variant.showRootDetailPanel,
+      );
 
   static GamePackagePresentationLayouts _packageLayouts(
     ProjectPresentationLayoutsProfile layouts,
-  ) => GamePackagePresentationLayouts(
-    title: _packageResponsiveLayout(layouts.title),
-    pauseMenu: _packageResponsiveLayout(layouts.pauseMenu),
-    dialogue: _packageResponsiveLayout(layouts.dialogue),
-    battle: layouts.battle == null
-        ? null
-        : _packageResponsiveLayout(layouts.battle!),
-  );
+  ) =>
+      GamePackagePresentationLayouts(
+        title: _packageResponsiveLayout(layouts.title),
+        pauseMenu: _packageResponsiveLayout(layouts.pauseMenu),
+        dialogue: _packageResponsiveLayout(layouts.dialogue),
+        battle: layouts.battle == null
+            ? null
+            : _packageResponsiveLayout(layouts.battle!),
+      );
 
   static GamePackageResponsiveSurfaceLayout _packageResponsiveLayout(
     ProjectResponsiveSurfaceLayoutProfile layout,
-  ) => GamePackageResponsiveSurfaceLayout(
-    compact: _packageLayoutVariant(layout.compact),
-    regular: _packageLayoutVariant(layout.regular),
-    expanded: _packageLayoutVariant(layout.expanded),
-  );
+  ) =>
+      GamePackageResponsiveSurfaceLayout(
+        compact: _packageLayoutVariant(layout.compact),
+        regular: _packageLayoutVariant(layout.regular),
+        expanded: _packageLayoutVariant(layout.expanded),
+      );
 
   static GamePackageSurfaceLayoutVariant _packageLayoutVariant(
     ProjectSurfaceLayoutVariant variant,
-  ) => GamePackageSurfaceLayoutVariant(
-    breakpoint: variant.breakpoint.name,
-    slot: variant.slot.name,
-    width: variant.width.name,
-    spacing: variant.spacing.name,
-    screenMargin: variant.screenMargin.name,
-    visibleSecondaryElements: variant.visibleSecondaryElements.map(
-      (element) => element.name,
-    ),
-  );
+  ) =>
+      GamePackageSurfaceLayoutVariant(
+        breakpoint: variant.breakpoint.name,
+        slot: variant.slot.name,
+        width: variant.width.name,
+        spacing: variant.spacing.name,
+        screenMargin: variant.screenMargin.name,
+        visibleSecondaryElements: variant.visibleSecondaryElements.map(
+          (element) => element.name,
+        ),
+      );
 
   static String _gameplayReadinessCreatorMessage(
-    List<NarrativeProjectDiagnostic> errors,
-  ) {
+    List<NarrativeProjectDiagnostic> errors, {
+    required GamePackageExportMode mode,
+  }) {
     final buffer = StringBuffer(
-      'Le projet n’est pas encore jouable et ne peut pas être certifié.',
+      mode == GamePackageExportMode.localTest
+          ? 'Le projet comporte des erreurs qui empêchent son export pour test.'
+          : 'Le projet n’est pas encore jouable et ne peut pas être certifié.',
     );
     for (final diagnostic in errors.take(8)) {
       buffer

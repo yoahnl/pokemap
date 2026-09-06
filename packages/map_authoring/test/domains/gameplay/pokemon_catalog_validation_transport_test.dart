@@ -68,6 +68,11 @@ void main() {
       (diagnostic) => diagnostic['code'] == 'evolution.item_missing',
     );
     expect(missingItem['path'], contains('custom/evolutions'));
+    final catalogOnly = diagnostics.singleWhere(
+      (diagnostic) => diagnostic['code'] == 'evolution.method_catalog_only',
+    );
+    expect(catalogOnly['severity'], 'warning');
+    expect(catalogOnly['message'], contains('cannot execute'));
     final invalidLevel = diagnostics.singleWhere(
       (diagnostic) => diagnostic['code'] == 'learnset.level_up_level_invalid',
     );
@@ -238,6 +243,12 @@ Future<void> _writeFixture(Directory root) async {
     'schemaVersion': 1,
     'speciesId': 'sproutle',
     'evolutions': <Object?>[
+      {
+        'targetSpeciesId': 'sproutle',
+        'method': 'conditional',
+        'minLevel': 30,
+        'conditionText': {'en': 'Trigger: level-up. Needs overworld rain'},
+      },
       <String, Object?>{
         'targetSpeciesId': 'sproutle-evolved',
         'method': 'use_item',

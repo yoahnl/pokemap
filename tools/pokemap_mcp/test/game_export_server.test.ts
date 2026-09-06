@@ -72,6 +72,21 @@ test("pokemap_game_export routes an opaque project handle to game_export", async
         },
       },
     ]);
+
+    const localTest = await client.callTool({
+      name: "pokemap_game_export",
+      arguments: {
+        projectHandle: "prj_fixture",
+        outputPath: "/allowed/output/test.avelunegame",
+        mode: "localTest",
+      },
+    });
+    assert.equal(localTest.isError, undefined);
+    assert.deepEqual(calls.at(-1)?.args, {
+      projectRoot: "/allowed/project",
+      outputPath: "/allowed/output/test.avelunegame",
+      mode: "localTest",
+    });
   } finally {
     await client.close();
     await server.close();

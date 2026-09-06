@@ -33,19 +33,21 @@ final class GamePackageExportService {
   Future<GamePackageExportArtifact> build({
     required Directory projectRoot,
     required GamePackageExportProfile profile,
+    GamePackageExportMode mode = GamePackageExportMode.publication,
   }) =>
-      _delegate().build(projectRoot: projectRoot, profile: profile);
+      _delegate().build(projectRoot: projectRoot, profile: profile, mode: mode);
 
   Future<GamePackageExportArtifact> exportToFile({
     required Directory projectRoot,
     required GamePackageExportProfile profile,
     required File outputFile,
-  }) =>
-      _delegate().exportToFile(
-        projectRoot: projectRoot,
-        profile: profile,
-        outputFile: outputFile,
-      );
+    GamePackageExportMode mode = GamePackageExportMode.publication,
+  }) => _delegate().exportToFile(
+    projectRoot: projectRoot,
+    profile: profile,
+    outputFile: outputFile,
+    mode: mode,
+  );
 
   CanonicalGamePackageExportService _delegate() =>
       CanonicalGamePackageExportService(

@@ -2425,8 +2425,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                         ? () => _pickCinematicAndAddNode(context, library!)
                         : null,
                   ),
-                  if (isPreSession)
-                    _NodeDraftButton(
+                  _NodeDraftButton(
                       buttonKey: const ValueKey(
                         'scenes-add-node-presentation-cinematic',
                       ),

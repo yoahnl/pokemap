@@ -19,6 +19,15 @@ final class RuntimePokemonSpeciesNotFoundException
   final String speciesId;
 }
 
+final class RuntimePokemonSpeciesDisabledException
+    extends RuntimeBattleSetupException {
+  const RuntimePokemonSpeciesDisabledException(String speciesId)
+      : super(
+          'Cette espèce Pokémon est désactivée dans le projet.',
+          debugDetails: 'speciesId=$speciesId',
+        );
+}
+
 /// Projection progression validée d'une fiche espèce projet.
 final class RuntimePokemonSpeciesProgression {
   const RuntimePokemonSpeciesProgression({
@@ -158,6 +167,9 @@ class RuntimePokemonSpeciesLoader {
     if (indexed == null) {
       throw RuntimePokemonSpeciesNotFoundException(speciesId);
     }
+    if (snapshot.disabledSpeciesIds.contains(speciesId)) {
+      throw RuntimePokemonSpeciesDisabledException(speciesId);
+    }
     final species = snapshot.speciesById[indexed.id];
     final relativePath = snapshot.relativePathById[indexed.id];
     if (species == null || relativePath != indexed.relativePath) {
@@ -215,6 +227,7 @@ class RuntimePokemonSpeciesLoader {
     final entries = <PokemonSpeciesIndexEntry>[];
     final speciesById = <String, RuntimePokemonSpecies>{};
     final relativePathById = <String, String>{};
+    final disabledSpeciesIds = <String>{};
     for (final file in files) {
       snapshotMetrics.onSpeciesJsonRead(projectRoot, file.path);
       _actualReadCount += 1;
@@ -253,6 +266,9 @@ class RuntimePokemonSpeciesLoader {
         ),
       );
       speciesById[speciesId] = parsed.runtimeSpecies;
+      if (!parsed.speciesFile.classification.isEnabledInProject) {
+        disabledSpeciesIds.add(speciesId);
+      }
       relativePathById[speciesId] = relativePath;
     }
 
@@ -261,6 +277,7 @@ class RuntimePokemonSpeciesLoader {
         index: PokemonSpeciesIndex(entries),
         speciesById: speciesById,
         relativePathById: relativePathById,
+        disabledSpeciesIds: disabledSpeciesIds,
       );
     } on StateError catch (error) {
       throw RuntimeBattleSetupException(
@@ -612,14 +629,17 @@ final class _RuntimePokemonSpeciesSnapshot {
     required this.index,
     required Map<String, RuntimePokemonSpecies> speciesById,
     required Map<String, String> relativePathById,
+    required Set<String> disabledSpeciesIds,
   })  : speciesById = Map<String, RuntimePokemonSpecies>.unmodifiable(
           speciesById,
         ),
-        relativePathById = Map<String, String>.unmodifiable(relativePathById);
+        relativePathById = Map<String, String>.unmodifiable(relativePathById),
+        disabledSpeciesIds = Set.unmodifiable(disabledSpeciesIds);
 
   final PokemonSpeciesIndex index;
   final Map<String, RuntimePokemonSpecies> speciesById;
   final Map<String, String> relativePathById;
+  final Set<String> disabledSpeciesIds;
 }
 
 /// Vue runtime minimale d'une espèce réellement consommée par le mapper.

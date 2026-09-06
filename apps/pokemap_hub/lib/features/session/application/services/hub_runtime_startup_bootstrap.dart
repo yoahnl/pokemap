@@ -179,6 +179,7 @@ final class HubRuntimeStartupBootstrap
         unmountGame: unmountGame,
         preloadedInitialMap: initialMapPreloader.resolveForSession,
         audioMixer: audioMixer,
+        presentationCinematicPlayer: presentationRuntime?.controller,
       );
       final sessions = GameSessionController(
         adapterFactory: sessionFactory.call,

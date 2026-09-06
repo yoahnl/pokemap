@@ -279,7 +279,14 @@ Map<int, List<PsdkBattleCombatant>> _hydrateParties({
       (bank, party) => MapEntry(
         bank,
         List<PsdkBattleCombatant>.unmodifiable(
-          party.map((battler) => battler.withItemEffect(_ownerFor(bank))),
+          party.map((battler) {
+            final active = combatants.entries
+                .where((entry) =>
+                    entry.key.bank == bank && entry.value.id == battler.id)
+                .firstOrNull
+                ?.value;
+            return (active ?? battler).withItemEffect(_ownerFor(bank));
+          }),
         ),
       ),
     ),

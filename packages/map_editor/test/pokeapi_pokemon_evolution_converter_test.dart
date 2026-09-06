@@ -8,6 +8,15 @@ void main() {
   const converter = PokeApiPokemonEvolutionConverter();
 
   group('PokeApiPokemonEvolutionConverter', () {
+    test('does not interpret the Phione breeding relation as an evolution', () {
+      final payload = <String, dynamic>{'chain': {
+        'species': {'name': 'phione'},
+        'evolves_to': [{'species': {'name': 'manaphy'}, 'evolution_details': [], 'evolves_to': []}],
+      }};
+      expect(converter.convert(speciesId: 'phione', payload: payload).evolutions, isEmpty);
+      expect(converter.convert(speciesId: 'manaphy', payload: payload).preEvolution, isNull);
+    });
+
     test('converts a direct evolution chain slice for a species', () {
       final payload =
           jsonDecode(_bulbasaurEvolutionChainPayload) as Map<String, dynamic>;
@@ -36,8 +45,8 @@ void main() {
 
       expect(evolution.preEvolution, 'bulbasaur');
       expect(evolution.evolutions.single.targetSpeciesId, 'venusaur');
-      expect(evolution.evolutions.single.method, 'use_item');
-      expect(evolution.evolutions.single.itemId, 'leaf-stone');
+      expect(evolution.evolutions.single.method, 'conditional');
+      expect(evolution.evolutions.single.itemId, 'leaf_stone');
       expect(evolution.evolutions.single.requiredMoveId, 'solar_beam');
       expect(
         evolution.evolutions.single.conditionText['en'],
@@ -49,10 +58,7 @@ void main() {
       final payload =
           jsonDecode(_branchingEvolutionChainPayload) as Map<String, dynamic>;
 
-      final evolution = converter.convert(
-        speciesId: 'eevee',
-        payload: payload,
-      );
+      final evolution = converter.convert(speciesId: 'eevee', payload: payload);
 
       expect(
         evolution.evolutions.map((entry) => entry.targetSpeciesId).toList(),
@@ -125,10 +131,7 @@ void main() {
           jsonDecode(_bulbasaurEvolutionChainPayload) as Map<String, dynamic>;
 
       expect(
-        () => converter.convert(
-          speciesId: 'charmander',
-          payload: payload,
-        ),
+        () => converter.convert(speciesId: 'charmander', payload: payload),
         throwsA(
           isA<EditorValidationException>().having(
             (error) => error.message,

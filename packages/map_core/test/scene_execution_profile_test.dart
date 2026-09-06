@@ -137,17 +137,17 @@ void main() {
       final build = buildSceneRuntimePlan(scene);
       final runtime = await SceneRuntimeExecutor(callbacks: _callbacks())
           .execute(
-        _runtimePlan(
-          profile: SceneExecutionProfile.preSession,
-          middleIntent: SceneRuntimePlanIntent.startBattle(
-            battleKind: 'trainer',
-            trainerId: 'trainer_rival',
-          ),
-          middleKind: SceneNodeKind.battle,
-          middlePort: 'victory',
-          middleEdgeKind: SceneEdgeKind.battleVictory,
-        ),
-      );
+            _runtimePlan(
+              profile: SceneExecutionProfile.preSession,
+              middleIntent: SceneRuntimePlanIntent.startBattle(
+                battleKind: 'trainer',
+                trainerId: 'trainer_rival',
+              ),
+              middleKind: SceneNodeKind.battle,
+              middlePort: 'victory',
+              middleEdgeKind: SceneEdgeKind.battleVictory,
+            ),
+          );
 
       expect(
         diagnostic.capabilityIssueCode,
@@ -165,42 +165,50 @@ void main() {
       expect(runtime.capabilityIssueCode, diagnostic.capabilityIssueCode);
     });
 
-    test('builds and executes a dedicated Presentation intent', () async {
-      final scene = _scene(
-        profile: SceneExecutionProfile.preSession,
-        middle: SceneNode(
-          id: 'node_presentation',
-          kind: SceneNodeKind.presentationCinematic,
-          payload: ScenePresentationCinematicPayload(
-            presentationCinematicId: 'presentation_intro',
-          ),
-        ),
-        middlePort: 'completed',
-        middleEdgeKind: SceneEdgeKind.presentationCompleted,
-      );
-      final presentationNode = scene.graph.nodes[1];
-      expect(SceneNode.fromJson(presentationNode.toJson()), presentationNode);
-      final build = buildSceneRuntimePlan(scene);
-      var presentationCalls = 0;
+    for (final profile in SceneExecutionProfile.values) {
+      test(
+        'builds and executes a Presentation intent in ${profile.name}',
+        () async {
+          final scene = _scene(
+            profile: profile,
+            middle: SceneNode(
+              id: 'node_presentation',
+              kind: SceneNodeKind.presentationCinematic,
+              payload: ScenePresentationCinematicPayload(
+                presentationCinematicId: 'presentation_intro',
+              ),
+            ),
+            middlePort: 'completed',
+            middleEdgeKind: SceneEdgeKind.presentationCompleted,
+          );
+          final presentationNode = scene.graph.nodes[1];
+          expect(
+            SceneNode.fromJson(presentationNode.toJson()),
+            presentationNode,
+          );
+          final build = buildSceneRuntimePlan(scene);
+          var presentationCalls = 0;
 
-      final result = await SceneRuntimeExecutor(
-        callbacks: _callbacks(
-          playPresentationCinematic: (intent) {
-            presentationCalls++;
-            expect(intent.presentationCinematicId, 'presentation_intro');
-            return 'completed';
-          },
-        ),
-      ).execute(build.plan!);
+          final result = await SceneRuntimeExecutor(
+            callbacks: _callbacks(
+              playPresentationCinematic: (intent) {
+                presentationCalls++;
+                expect(intent.presentationCinematicId, 'presentation_intro');
+                return 'completed';
+              },
+            ),
+          ).execute(build.plan!);
 
-      expect(build.diagnostics, isEmpty);
-      expect(
-        build.plan!.nodes[1].intent.kind,
-        SceneRuntimePlanIntentKind.playPresentationCinematic,
+          expect(build.diagnostics, isEmpty);
+          expect(
+            build.plan!.nodes[1].intent.kind,
+            SceneRuntimePlanIntentKind.playPresentationCinematic,
+          );
+          expect(result.status, SceneRuntimeExecutionStatus.completed);
+          expect(presentationCalls, 1);
+        },
       );
-      expect(result.status, SceneRuntimeExecutionStatus.completed);
-      expect(presentationCalls, 1);
-    });
+    }
 
     test('preserves the world Cinematic intent and callback', () async {
       final scene = _scene(
@@ -255,13 +263,13 @@ void main() {
         'graph': _graphJson(),
       });
       expect(
-        () => addSceneLinkedAssetNodeDraft(
+        addSceneLinkedAssetNodeDraft(
           world,
           payload: ScenePresentationCinematicPayload(
             presentationCinematicId: 'presentation_intro',
           ),
-        ),
-        throwsArgumentError,
+        ).updatedScene.executionProfile,
+        SceneExecutionProfile.world,
       );
       expect(
         () => addSceneLinkedAssetNodeDraft(
@@ -407,18 +415,18 @@ SceneRuntimeExecutionCallbacks _callbacks({
 }
 
 Map<String, dynamic> _graphJson() => {
-      'startNodeId': 'node_start',
-      'nodes': [
-        {'id': 'node_start', 'kind': 'start'},
-        {'id': 'node_end', 'kind': 'end'},
-      ],
-      'edges': [
-        {
-          'id': 'edge_start_end',
-          'fromNodeId': 'node_start',
-          'fromPortId': 'completed',
-          'toNodeId': 'node_end',
-          'kind': 'default',
-        },
-      ],
-    };
+  'startNodeId': 'node_start',
+  'nodes': [
+    {'id': 'node_start', 'kind': 'start'},
+    {'id': 'node_end', 'kind': 'end'},
+  ],
+  'edges': [
+    {
+      'id': 'edge_start_end',
+      'fromNodeId': 'node_start',
+      'fromPortId': 'completed',
+      'toNodeId': 'node_end',
+      'kind': 'default',
+    },
+  ],
+};
