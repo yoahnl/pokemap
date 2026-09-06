@@ -38,6 +38,7 @@ final class RuntimePlayerProfileSnapshot {
     this.playtimeSeconds,
     this.locationName,
     this.avatarCharacterId,
+    this.portraitFilePath,
     this.pronounSet = PlayerPronounSet.neutral,
     List<CharacterPortraitVariant> portraits = const [],
     List<String> badgeIds = const [],
@@ -57,6 +58,7 @@ final class RuntimePlayerProfileSnapshot {
   final int? playtimeSeconds;
   final String? locationName;
   final String? avatarCharacterId;
+  final String? portraitFilePath;
   final PlayerPronounSet pronounSet;
   final List<CharacterPortraitVariant> portraits;
   final List<String> badgeIds;

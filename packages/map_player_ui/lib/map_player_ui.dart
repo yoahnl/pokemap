@@ -33,6 +33,7 @@ export 'src/player/player_startup_strings.dart';
 export 'src/player/player_title_prompt_surface.dart';
 export 'src/player/player_notification_overlay.dart';
 export 'src/player/player_pause_menu.dart';
+export 'src/player/player_pause_summary_card.dart';
 export 'src/player/player_pause_preview_shell.dart';
 export 'src/player/player_pc_overlay.dart';
 export 'src/player/player_post_battle_overlay.dart';

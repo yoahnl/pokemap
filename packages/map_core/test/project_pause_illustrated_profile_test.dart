@@ -53,7 +53,7 @@ void main() {
     for (final breakpoint in ProjectPresentationBreakpoint.values) {
       expect(
         result.pause!.composition!.resolve(breakpoint).showRootDetailPanel,
-        isFalse,
+        isTrue,
       );
     }
     expect(validateProjectPresentationProfile(result), isEmpty);

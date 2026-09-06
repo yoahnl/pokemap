@@ -180,6 +180,176 @@ void main() {
     },
   );
 
+  test(
+    'standalone pause projects the live checkpoint and visibility overrides',
+    () async {
+      final source = File(_goldenProjectPath()).parent;
+      final root = await Directory.systemTemp.createTemp('menu-d-playtime-');
+      addTearDown(() => root.delete(recursive: true));
+      await for (final entry in source.list(recursive: true)) {
+        if (entry is! File) continue;
+        final target = File(
+          '${root.path}/${entry.path.substring(source.path.length + 1)}',
+        );
+        await target.parent.create(recursive: true);
+        await entry.copy(target.path);
+      }
+      final projectFilePath = '${root.path}/project.json';
+      final manifest = await _loadManifest(projectFilePath);
+      final saved = (await loadRuntimeHostLaunchSaveData(
+        projectFilePath: projectFilePath,
+      ))!;
+      var state = gameStateFromSaveData(saved).copyWith(
+        trainerProfile: saved.trainerProfile.copyWith(
+          name: 'Camille en session',
+          money: 420,
+          playtimeSeconds: 0,
+        ),
+        pauseMenuState: PlayerPauseMenuState(
+          visibilityOverrides: {
+            ProjectPauseActionId.bag: false,
+            ProjectPauseActionId.profile: true,
+          },
+        ),
+      );
+      final capturedAt = DateTime.utc(2026, 9, 6, 12);
+      final identity = buildStandaloneRuntimeGameIdentity(
+        projectFilePath: projectFilePath,
+        projectFormat: manifest.version.name,
+      );
+      final gateway = StandalonePlayerSaveGateway(
+        projectFilePath: projectFilePath,
+        identity: identity,
+      );
+      final descriptor = GameSessionDescriptor(
+        sessionId: 'menu-d-playtime',
+        sessionToken: 'menu-d-playtime-token',
+        identity: identity,
+        profileId: standaloneRuntimeProfileId,
+        slotId: standaloneRuntimeSlotId,
+        launchMode: GameSessionLaunchMode.newGame,
+        installedVersionHandle: 'menu-d-playtime-fixture',
+        runtimeApiVersion: '1.0.0',
+        grantedCapabilities: const <String>{},
+        locale: 'fr',
+        accessibility: const GameSessionAccessibilityOptions(),
+        initialGameState: state,
+      );
+      await gateway.commit(GameSessionCheckpointCommit(
+        descriptor: descriptor.publicContext,
+        checkpoint: GameSessionCheckpoint(
+          saveId: state.saveId,
+          createdAt: capturedAt,
+          updatedAt: capturedAt,
+          playTimeSeconds: 7200,
+          state: strictGameStateSaveJson(state),
+        ),
+        status: SaveStatus.active,
+      ));
+      state = gameStateFromSaveData((await loadRuntimeHostLaunchSaveData(
+        projectFilePath: projectFilePath,
+      ))!);
+      expect(state.trainerProfile.playtimeSeconds, 7200);
+      expect((await gateway.readLatestSummary())!.playTimeSeconds, 7200);
+      final checkpoint = GameSessionCheckpoint(
+        saveId: state.saveId,
+        createdAt: capturedAt,
+        updatedAt: capturedAt,
+        playTimeSeconds: 61,
+        state: strictGameStateSaveJson(state),
+      );
+      var captures = 0;
+      var pauses = 0;
+      final launches = <GameSessionLaunchMode>[];
+      final host = StandaloneRuntimeStartupHost(
+        projectFilePath: projectFilePath,
+        manifest: manifest,
+        clock: const _ImmediateClock(),
+        minimumSplashDuration: Duration.zero,
+        sessionPort: CallbackStandaloneRuntimeSessionPort(
+          onLaunch: (descriptor, _, preloadedInitialMap) async {
+            launches.add(descriptor.launchMode);
+            preloadedInitialMap?.dispose();
+          },
+          onPause: () async => pauses++,
+          onCaptureCheckpoint: () async {
+            captures++;
+            return checkpoint;
+          },
+        ),
+      );
+      addTearDown(host.dispose);
+
+      host.start();
+      await _waitForPhase(host, RuntimeStartupPhase.titlePrompt);
+      await host.coordinator.dispatch(
+        RuntimeStartupCommand(
+          action: RuntimeStartupAction.pressStart,
+          snapshotRevision: host.snapshot.revision,
+        ),
+      );
+      final continued = await host.coordinator.dispatchPlayerCommand(
+        startupSnapshotRevision: host.snapshot.revision,
+        command: RuntimePlayerCommand(
+          action: RuntimePlayerAction.continueGame,
+          snapshotRevision: host.snapshot.playerSnapshot!.revision,
+        ),
+      );
+      expect(continued.status, RuntimePlayerCommandStatus.accepted);
+      expect(launches, [GameSessionLaunchMode.continueGame]);
+      await _waitForPhase(host, RuntimeStartupPhase.completed);
+
+      final opened = await host.playerCoordinator.dispatch(
+        RuntimePlayerCommand(
+          action: RuntimePlayerAction.openMenu,
+          snapshotRevision: host.playerCoordinator.snapshot.revision,
+        ),
+      );
+      expect(opened.status, RuntimePlayerCommandStatus.accepted);
+      expect(pauses, 1);
+      expect(captures, greaterThanOrEqualTo(1));
+      final player = host.playerCoordinator.snapshot;
+      expect(player.phase, RuntimePlayerPhase.paused);
+      expect(player.pauseSection, RuntimePlayerPauseSection.root);
+      expect(player.playerProfile, isNotNull);
+      expect(player.playerProfile!.playerName, 'Camille en session');
+      expect(player.playerProfile!.locationName, 'Golden Field');
+      expect(player.playerProfile!.currentMapId, 'golden_field');
+      expect(player.playerProfile!.money, 420);
+      expect(player.playerProfile!.playtimeSeconds, 7261);
+      expect(player.pauseMenuState, state.pauseMenuState);
+      expect(player.isActionEnabled(RuntimePlayerAction.openBag), isFalse);
+      expect(player.isActionEnabled(RuntimePlayerAction.openProfile), isTrue);
+      expect(player.isActionEnabled(RuntimePlayerAction.resume), isTrue);
+
+      final hiddenBag = await host.playerCoordinator.dispatch(
+        RuntimePlayerCommand(
+          action: RuntimePlayerAction.openBag,
+          snapshotRevision: player.revision,
+        ),
+      );
+      expect(hiddenBag.status, RuntimePlayerCommandStatus.unavailable);
+      expect(
+        host.playerCoordinator.snapshot.pauseSection,
+        RuntimePlayerPauseSection.root,
+      );
+      for (var save = 0; save < 2; save++) {
+        final result = await host.playerCoordinator.dispatch(
+          RuntimePlayerCommand(
+            action: RuntimePlayerAction.save,
+            snapshotRevision: host.playerCoordinator.snapshot.revision,
+          ),
+        );
+        expect(result.status, RuntimePlayerCommandStatus.accepted);
+        final persisted = await loadRuntimeHostLaunchSaveData(
+          projectFilePath: projectFilePath,
+        );
+        expect(persisted!.trainerProfile.playtimeSeconds, 7261);
+        expect((await gateway.readLatestSummary())!.playTimeSeconds, 7261);
+      }
+    },
+  );
+
   test('standalone forwards the complete V10 presentation', () async {
     final acceptanceProject =
         jsonDecode(
@@ -453,7 +623,9 @@ void main() {
       );
       expect(committed?.saveId, saveId);
       expect(committed?.currentMapId, 'golden_field');
+      expect(committed?.trainerProfile.playtimeSeconds, 180);
       expect(await gateway.readLatestSummary(), isNotNull);
+      expect((await gateway.readLatestSummary())!.playTimeSeconds, 180);
     },
   );
 

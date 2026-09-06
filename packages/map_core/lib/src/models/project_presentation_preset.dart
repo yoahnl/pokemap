@@ -546,7 +546,7 @@ ProjectPresentationProfile applyNightIllustratedPresentationPreset(
   final pause =
       current.effectivePause ?? const ProjectPausePresentationProfile();
   const composition = ProjectPauseCompositionVariantProfile(
-    showRootDetailPanel: false,
+    showRootDetailPanel: true,
   );
   return current.copyWith(
     pause: pause.copyWith(

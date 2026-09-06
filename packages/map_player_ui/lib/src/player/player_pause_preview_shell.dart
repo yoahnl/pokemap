@@ -128,6 +128,7 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
       pauseSection:
           detailOpen ? _sectionFor(selected) : RuntimePlayerPauseSection.root,
       actions: widget.actions,
+      playerProfile: widget.details[PlayerPauseAction.profile]?.profile,
       presentation: widget.presentation,
       focusController: _focusController,
       logicalSelectionId: selected == null ? null : 'pause.${selected.name}',

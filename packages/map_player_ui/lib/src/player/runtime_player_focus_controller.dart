@@ -11,6 +11,7 @@ final class RuntimePlayerFocusController extends ChangeNotifier {
 
   final _nodes = <String, FocusNode>{};
   final _nodeListeners = <String, VoidCallback>{};
+  final navigationScrollOffsets = <String, double>{};
   String? _logicalSelectionId;
   PlayerInputSource _activeInputSource;
   int _focusRequestGeneration = 0;
@@ -68,7 +69,7 @@ final class RuntimePlayerFocusController extends ChangeNotifier {
   void restoreSelection(String? logicalId) {
     if (_disposed || logicalId == null) return;
     _logicalSelectionId = logicalId;
-    _requestFocusAfterLayout(logicalId);
+    if (showFocusHighlight) _requestFocusAfterLayout(logicalId);
   }
 
   void _requestFocusAfterLayout(String logicalId) {

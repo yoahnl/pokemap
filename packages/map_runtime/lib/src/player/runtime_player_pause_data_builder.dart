@@ -6,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import '../application/runtime_pokemon_evolution_loader.dart';
+import '../application/dialogue_portrait_resolver.dart';
 import '../application/runtime_item_catalog_loader.dart';
 import '../application/runtime_battle_combatant_seed_builder.dart';
 import '../application/runtime_move_catalog_loader.dart';
@@ -32,6 +33,7 @@ final class RuntimePlayerPauseDataBuilder {
     int? playtimeSeconds,
     List<BadgeDefinition>? projectBadges,
     List<ProjectCharacterEntry> projectCharacters = const [],
+    DialoguePortraitLookup? portraitLookup,
   }) async {
     final resolvedItemCatalog = itemCatalog ??
         await const RuntimeItemCatalogLoader().loadSnapshot(
@@ -94,6 +96,7 @@ final class RuntimePlayerPauseDataBuilder {
       projectMaps: projectMaps,
       projectBadges: projectBadges,
       projectCharacters: projectCharacters,
+      portraitLookup: portraitLookup,
       pokedex: species.isEmpty ? null : pokedex,
     );
 
@@ -135,6 +138,7 @@ final class RuntimePlayerPauseDataBuilder {
     required List<ProjectMapEntry> projectMaps,
     required List<BadgeDefinition>? projectBadges,
     required List<ProjectCharacterEntry> projectCharacters,
+    required DialoguePortraitLookup? portraitLookup,
     required RuntimePlayerPauseDetailSnapshot? pokedex,
   }) {
     final trainer = gameState.trainerProfile;
@@ -156,6 +160,13 @@ final class RuntimePlayerPauseDataBuilder {
       avatarCharacterId: trainer.avatarCharacterId,
       pronounSet: trainer.pronounSet,
       portraits: character?.portraits ?? const [],
+      portraitFilePath: character == null || character.portraits.isEmpty
+          ? null
+          : portraitLookup
+              ?.call(
+                  characterId: character.id,
+                  portraitStateId: character.portraits.first.portraitStateId)
+              ?.absoluteFilePath,
       badgeIds: trainer.badgeIds,
       badgeTotal: projectBadges?.length,
       pokedex: dexEntries == null

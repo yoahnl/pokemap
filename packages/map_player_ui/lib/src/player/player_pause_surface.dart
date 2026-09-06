@@ -3,6 +3,8 @@ import 'package:map_core/map_core.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_menu_components.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
@@ -97,9 +99,11 @@ final class PlayerPausePresentation {
       backgroundImage: backgroundImage,
       title: profile.title,
       hint: profile.hint,
-      actionOrder: <PlayerPauseAction>[
-        for (final action in actions) _pauseAction(action.id),
-      ],
+      actionOrder: profile.actions == null
+          ? null
+          : <PlayerPauseAction>[
+              for (final action in actions) _pauseAction(action.id),
+            ],
       actionLabels: <PlayerPauseAction, String>{
         for (final action in actions)
           if (action.label case final label?) _pauseAction(action.id): label,
@@ -441,6 +445,7 @@ class PlayerPauseNavigation extends StatelessWidget {
     this.showGameTitle = true,
     this.composition,
     this.compositionLayoutName,
+    this.illustrated = false,
   });
 
   final String gameTitle;
@@ -455,6 +460,7 @@ class PlayerPauseNavigation extends StatelessWidget {
   final bool showGameTitle;
   final ProjectPauseCompositionVariantProfile? composition;
   final String? compositionLayoutName;
+  final bool illustrated;
 
   @override
   Widget build(BuildContext context) {
@@ -498,9 +504,11 @@ class PlayerPauseNavigation extends StatelessWidget {
               Text(hint, style: Theme.of(context).textTheme.bodySmall),
             ],
           SizedBox(
-            height: composition == null
-                ? PlayerSpacing.lg
-                : _entrySpacing(composition!),
+            height: illustrated
+                ? 0
+                : composition == null
+                    ? PlayerSpacing.lg
+                    : _entrySpacing(composition!),
           ),
           if (useGrid)
             GridView.builder(
@@ -532,9 +540,16 @@ class PlayerPauseNavigation extends StatelessWidget {
               ),
               if (index != visibleActions.length - 1)
                 SizedBox(
-                  height: composition == null
-                      ? PlayerSpacing.xs
-                      : _entrySpacing(composition!),
+                  height: illustrated &&
+                          (composition == null ||
+                              composition!.entrySpacing ==
+                                  ProjectPauseEntrySpacing.regular)
+                      ? 8
+                      : composition == null
+                          ? illustrated
+                              ? 8
+                              : PlayerSpacing.xs
+                          : _entrySpacing(composition!),
                 ),
             ],
         ],
@@ -551,6 +566,48 @@ class PlayerPauseNavigation extends StatelessWidget {
     final availability = _availability(context, action);
     final logicalId = _logicalId(action);
     final controller = focusController;
+    if (illustrated) {
+      final theme = context.playerMenuTheme;
+      final selected = controller?.logicalSelectionId == logicalId;
+      final color = selected
+          ? theme.selectionText
+          : switch (action) {
+              PlayerPauseAction.party => theme.danger,
+              PlayerPauseAction.bag => theme.warning,
+              PlayerPauseAction.quests => theme.health,
+              PlayerPauseAction.map ||
+              PlayerPauseAction.pokedex ||
+              PlayerPauseAction.save =>
+                theme.accent,
+              _ => theme.secondary,
+            };
+      return PlayerMenuSelectableRow(
+        key: ValueKey(logicalId),
+        id: logicalId,
+        label: presentation.label(action, context.playerL10n),
+        leading: SizedBox(
+            width: 48,
+            child: Icon(presentation.icon(action), size: 32, color: color)),
+        integrated: true,
+        minimumHeight: composition == null ||
+                composition!.entrySize == ProjectPauseEntrySize.regular
+            ? 64
+            : _entryHeight(composition!.entrySize),
+        selected: selected,
+        showFocusHighlight: controller?.showFocusHighlight ?? false,
+        focusNode: controller?.nodeFor(logicalId,
+            debugLabel:
+                'Player action: ${presentation.label(action, context.playerL10n)}'),
+        disabledReason: availability.disabledReason,
+        onPressed: availability.isEnabled
+            ? () {
+                controller?.select(logicalId,
+                    source: controller.activeInputSource);
+                onSelected(action);
+              }
+            : null,
+      );
+    }
     return PlayerActionButton(
       key: ValueKey<String>(logicalId),
       label: presentation.label(action, context.playerL10n),

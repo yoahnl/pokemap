@@ -312,6 +312,38 @@ void main() {
     expect(tester.getSemantics(hints).label, contains('Entrée'));
   });
 
+  testWidgets('pause footer replaces world input hints', (tester) async {
+    const preferences = PlayerPreferencesSnapshot(
+      locale: 'fr',
+      accessibility: GameSessionAccessibilityOptions(),
+      showInputHints: true,
+    );
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 1,
+        phase: RuntimePlayerPhase.playing,
+        preferences: preferences,
+      ),
+    );
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(controller)));
+    await tester.pumpAndSettle();
+    final hints = find.byKey(
+      const ValueKey<String>('runtime-player-input-hints'),
+    );
+    expect(hints, findsOneWidget);
+
+    controller.publish(
+      _snapshot(
+        revision: 2,
+        phase: RuntimePlayerPhase.paused,
+        preferences: preferences,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(hints, findsNothing);
+  });
+
   testWidgets('runtime haptics follow the projected preference',
       (tester) async {
     var hapticCalls = 0;
@@ -1218,6 +1250,17 @@ void main() {
         8,
       ),
     );
+    final preservedDialogue = dialogue.value;
+    controller
+        .publish(_snapshot(revision: 27, phase: RuntimePlayerPhase.paused));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsNothing);
+    expect(dialogue.value, same(preservedDialogue));
+    controller
+        .publish(_snapshot(revision: 28, phase: RuntimePlayerPhase.playing));
+    await tester.pumpAndSettle();
+    expect(find.text('Appuie ici pour continuer.'), findsOneWidget);
+    expect(commands, hasLength(1));
   });
 
   testWidgets('renders the canonical battle overlay and routes its command',

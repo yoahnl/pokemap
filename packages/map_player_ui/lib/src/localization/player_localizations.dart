@@ -112,6 +112,9 @@ final class PokeMapPlayerLocalizations {
   String get menuBackgroundUnavailable =>
       _fr ? 'Fond du menu indisponible.' : 'Menu background unavailable.';
   String get confirmShortcut => _fr ? 'Entrée / bouton A' : 'Enter / A button';
+  String get badges => 'Badges';
+  String get menu => 'Menu';
+  String get pokemon => 'Pokémon';
   String get choose => _fr ? 'Choisir' : 'Choose';
   String get validate => _fr ? 'Valider' : 'Confirm';
   String get noSaveAvailable =>

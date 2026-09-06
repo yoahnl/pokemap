@@ -27,22 +27,21 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
   Widget build(BuildContext context) {
     final section = snapshot.pauseSection ?? RuntimePlayerPauseSection.root;
     if (section == RuntimePlayerPauseSection.root) {
-      return PlayerEmptyState(
-        key: const ValueKey<String>('runtime-player-detail-root'),
-        icon: Icons.gamepad_rounded,
-        title: context.playerL10n.pause,
-        message: context.playerL10n.actionUnavailable,
+      return const SizedBox.shrink(
+        key: ValueKey<String>('runtime-player-detail-root'),
       );
     }
 
     final unavailableReason =
         snapshot.unavailableReasonFor(_actionFor(section));
-    if (unavailableReason != null) {
+    if (unavailableReason != null ||
+        snapshot.phase == RuntimePlayerPhase.paused &&
+            !snapshot.isActionEnabled(_actionFor(section))) {
       return PlayerEmptyState(
         key: const ValueKey<String>('runtime-player-detail-unavailable'),
         icon: Icons.lock_outline_rounded,
         title: _label(context, section),
-        message: unavailableReason,
+        message: unavailableReason ?? context.playerL10n.actionUnavailable,
       );
     }
 

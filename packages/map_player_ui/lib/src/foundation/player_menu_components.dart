@@ -47,6 +47,7 @@ class PlayerMenuFrame extends StatelessWidget {
     this.scrollable = true,
     this.visible = true,
     this.role = ProjectPresentationSurfaceRole.pauseMenu,
+    this.contentPadding,
   });
 
   final Widget header;
@@ -56,6 +57,7 @@ class PlayerMenuFrame extends StatelessWidget {
   final bool scrollable;
   final bool visible;
   final ProjectPresentationSurfaceRole role;
+  final EdgeInsetsGeometry? contentPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +88,7 @@ class PlayerMenuFrame extends StatelessWidget {
               ? availableWidth
               : availableWidth * authored.maxWidthFactor);
       final frame = PlayerMenuPanel(
+        key: const ValueKey('player-menu-frame-panel'),
         primary: true,
         padding: EdgeInsets.zero,
         child: ClipRRect(
@@ -99,13 +102,15 @@ class PlayerMenuFrame extends StatelessWidget {
             Expanded(
               child: scrollable
                   ? SingleChildScrollView(
-                      padding: EdgeInsets.all(
-                          compact ? PlayerSpacing.sm : PlayerSpacing.lg),
+                      padding: contentPadding ??
+                          EdgeInsets.all(
+                              compact ? PlayerSpacing.sm : PlayerSpacing.lg),
                       child: child,
                     )
                   : Padding(
-                      padding: EdgeInsets.all(
-                          compact ? PlayerSpacing.sm : PlayerSpacing.lg),
+                      padding: contentPadding ??
+                          EdgeInsets.all(
+                              compact ? PlayerSpacing.sm : PlayerSpacing.lg),
                       child: child,
                     ),
             ),
@@ -206,9 +211,14 @@ class PlayerMenuHeader extends StatelessWidget {
 }
 
 class PlayerMenuFooter extends StatelessWidget {
-  const PlayerMenuFooter({super.key, required this.hints, this.returnAction});
+  const PlayerMenuFooter(
+      {super.key,
+      required this.hints,
+      this.returnAction,
+      this.alignReturnEnd = false});
   final List<Widget> hints;
   final Widget? returnAction;
+  final bool alignReturnEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +228,7 @@ class PlayerMenuFooter extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 48),
       padding: EdgeInsets.symmetric(
           horizontal: 24, vertical: returnAction == null ? 8 : 0),
-      decoration: BoxDecoration(
+      foregroundDecoration: BoxDecoration(
           border: Border(
               top: BorderSide(color: theme.border.withValues(alpha: .22)))),
       child: returnAction == null
@@ -227,20 +237,29 @@ class PlayerMenuFooter extends StatelessWidget {
               runSpacing: PlayerSpacing.xs,
               children: hints,
             )
-          : Row(children: [
-              Expanded(
-                  child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(children: [
-                  for (var index = 0; index < hints.length; index++) ...[
-                    if (index > 0) const SizedBox(width: PlayerSpacing.lg),
-                    hints[index],
-                  ]
+          : Row(
+              mainAxisAlignment: alignReturnEnd
+                  ? MainAxisAlignment.spaceBetween
+                  : MainAxisAlignment.start,
+              children: [
+                  Expanded(
+                      child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: [
+                      for (var index = 0; index < hints.length; index++) ...[
+                        if (index > 0) const SizedBox(width: PlayerSpacing.lg),
+                        hints[index],
+                      ]
+                    ]),
+                  )),
+                  const SizedBox(width: PlayerSpacing.lg),
+                  Flexible(
+                      flex: 3,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 280),
+                        child: returnAction!,
+                      )),
                 ]),
-              )),
-              const SizedBox(width: PlayerSpacing.lg),
-              Flexible(flex: 3, child: returnAction!),
-            ]),
     );
   }
 }
@@ -293,6 +312,9 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.busy = false,
     this.disabledReason,
     this.focusNode,
+    this.integrated = false,
+    this.minimumHeight = 48,
+    this.showFocusHighlight = true,
   });
 
   final String id;
@@ -308,6 +330,9 @@ class PlayerMenuSelectableRow extends StatefulWidget {
   final bool busy;
   final String? disabledReason;
   final FocusNode? focusNode;
+  final bool integrated;
+  final double minimumHeight;
+  final bool showFocusHighlight;
 
   @override
   State<PlayerMenuSelectableRow> createState() =>
@@ -329,14 +354,16 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
   @override
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
-    final focused = widget.focused || _focused;
+    final focused = widget.showFocusHighlight && (widget.focused || _focused);
     final hovered = widget.hovered || _hovered;
     final pressed = widget.pressed || _pressed;
     final unselected = pressed && _enabled
         ? Color.alphaBlend(theme.shadow.withValues(alpha: .24), theme.recessed)
         : hovered && _enabled
             ? theme.accent.withValues(alpha: .09)
-            : theme.recessed.withValues(alpha: .4);
+            : widget.integrated
+                ? theme.base.withValues(alpha: 0)
+                : theme.recessed.withValues(alpha: .4);
     final decoration = BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topCenter,
@@ -351,14 +378,22 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
             : List.filled(
                 2,
                 Color.alphaBlend(
-                    unselected, theme.opaque ? theme.base : theme.panel)),
+                    unselected,
+                    widget.integrated || theme.opaque
+                        ? theme.base
+                        : theme.panel)),
       ),
       borderRadius: BorderRadius.circular(PokeMapPlayerMenuTheme.rowRadius),
       border: Border.all(
         width: 1.5,
         color: focused || widget.selected
             ? theme.focus
-            : theme.border.withValues(alpha: hovered ? .7 : .22),
+            : theme.border.withValues(
+                alpha: hovered
+                    ? .7
+                    : widget.integrated
+                        ? 0
+                        : .22),
       ),
       boxShadow: widget.selected && !theme.opaque
           ? [
@@ -397,7 +432,7 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
             .foreground;
         return Container(
           key: ValueKey('${widget.id}-surface'),
-          constraints: const BoxConstraints(minHeight: 48),
+          constraints: BoxConstraints(minHeight: widget.minimumHeight),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: painted.copyWith(
               gradient: LinearGradient(
@@ -468,6 +503,7 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
       onTap: _enabled ? _activate : null,
       excludeSemantics: true,
       child: FocusableActionDetector(
+        enabled: _enabled,
         focusNode: widget.focusNode,
         onFocusChange: (value) => setState(() => _focused = value),
         onShowHoverHighlight: (value) => setState(() => _hovered = value),

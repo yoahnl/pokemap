@@ -154,7 +154,9 @@ final class StandaloneRuntimeStartupHost {
       defaultVisiblePauseActions: <ProjectPauseActionId>{
         ProjectPauseActionId.resume,
         for (final action
-            in manifest.effectivePresentation.effectivePause
+            in manifest
+                    .effectivePresentation
+                    .effectivePause
                     ?.effectiveActions ??
                 defaultProjectPauseActions)
           if (action.visible) action.id,
@@ -164,6 +166,7 @@ final class StandaloneRuntimeStartupHost {
       adapterFactory: (_) => InProcessGameSessionAdapter(
         runtimeFactory: (descriptor) => _StandaloneInProcessSessionRuntime(
           descriptor: descriptor,
+          manifest: manifest,
           sessionPort: sessionPort,
           projectFilePath: projectFilePath,
           initialSave: saves.readEnvelope,
@@ -390,7 +393,7 @@ final class StandalonePlayerSaveGateway implements PlayerSaveGateway {
       createdAt: timestamp,
       updatedAt: timestamp,
       status: SaveStatus.active,
-      playTimeSeconds: 0,
+      playTimeSeconds: saveData.trainerProfile.playtimeSeconds,
       gameState: gameStateFromSaveData(saveData).copyWith(saveId: saveId),
     );
   }
@@ -405,7 +408,13 @@ final class StandalonePlayerSaveGateway implements PlayerSaveGateway {
     final state = gameStateFromStrictSaveJson(
       Map<String, dynamic>.from(request.checkpoint.state),
     ).copyWith(saveId: request.checkpoint.saveId);
-    final saveData = saveDataFromGameState(state);
+    final saveData = saveDataFromGameState(
+      state.copyWith(
+        trainerProfile: state.trainerProfile.copyWith(
+          playtimeSeconds: request.checkpoint.playTimeSeconds,
+        ),
+      ),
+    );
     await _saveFile.writeAsString(
       const JsonEncoder.withIndent('  ').convert(saveData.toJson()),
       flush: true,
@@ -464,8 +473,9 @@ final class _StandaloneRuntimeGameSource implements RuntimeGameSource {
   }) : _projectDigest = sha256
            .convert(utf8.encode(p.normalize(p.absolute(projectFilePath))))
            .toString(),
-       defaultVisiblePauseActions =
-           Set<ProjectPauseActionId>.unmodifiable(defaultVisiblePauseActions);
+       defaultVisiblePauseActions = Set<ProjectPauseActionId>.unmodifiable(
+         defaultVisiblePauseActions,
+       );
 
   @override
   final GameIdentity identity;
@@ -516,9 +526,10 @@ final class _StandaloneRuntimeGameSource implements RuntimeGameSource {
 }
 
 final class _StandaloneInProcessSessionRuntime
-    implements InProcessGameSessionRuntime {
+    implements InProcessGameSessionRuntime, RuntimePlayerPauseDataPort {
   _StandaloneInProcessSessionRuntime({
     required this.descriptor,
+    required this.manifest,
     required this.sessionPort,
     required this.projectFilePath,
     required this.initialSave,
@@ -526,6 +537,11 @@ final class _StandaloneInProcessSessionRuntime
   });
 
   final GameSessionDescriptor descriptor;
+  final ProjectManifest manifest;
+  late final _portraitResolver = DialoguePortraitResolver(
+    manifest: manifest,
+    projectRootDirectory: File(projectFilePath).parent.path,
+  );
   final StandaloneRuntimeSessionPort sessionPort;
   final String projectFilePath;
   final Future<SaveEnvelope?> Function() initialSave;
@@ -557,8 +573,55 @@ final class _StandaloneInProcessSessionRuntime
   Future<void> resume() => sessionPort.resume();
 
   @override
-  Future<GameSessionCheckpoint?> captureCheckpoint() =>
-      sessionPort.captureCheckpoint();
+  Future<PlayerPauseMenuState> loadPauseMenuState() async {
+    final checkpoint = await sessionPort.captureCheckpoint();
+    if (_disposed || checkpoint == null) {
+      return const PlayerPauseMenuState.empty();
+    }
+    return gameStateFromStrictSaveJson(
+      Map<String, dynamic>.from(checkpoint.state),
+    ).pauseMenuState;
+  }
+
+  @override
+  Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
+  loadPauseDetails() async {
+    final checkpoint = await captureCheckpoint();
+    if (_disposed || checkpoint == null) return const {};
+    await _portraitResolver.ensureCatalogLoaded();
+    final state = gameStateFromStrictSaveJson(
+      Map<String, dynamic>.from(checkpoint.state),
+    );
+    return const RuntimePlayerPauseDataBuilder().build(
+      gameState: state,
+      projectRootDirectory: File(projectFilePath).parent.path,
+      pokemonConfig: manifest.pokemon,
+      locale: descriptor.locale,
+      mapEnabled: true,
+      projectMaps: manifest.maps,
+      projectBadges: manifest.badges,
+      projectCharacters: manifest.characters,
+      portraitLookup: _portraitResolver.resolve,
+      playtimeSeconds: checkpoint.playTimeSeconds,
+    );
+  }
+
+  @override
+  Future<GameSessionCheckpoint?> captureCheckpoint() async {
+    final checkpoint = await sessionPort.captureCheckpoint();
+    if (checkpoint == null || _disposed) return null;
+    final state = gameStateFromStrictSaveJson(
+      Map<String, dynamic>.from(checkpoint.state),
+    );
+    return GameSessionCheckpoint(
+      saveId: checkpoint.saveId,
+      createdAt: checkpoint.createdAt,
+      updatedAt: checkpoint.updatedAt,
+      playTimeSeconds:
+          state.trainerProfile.playtimeSeconds + checkpoint.playTimeSeconds,
+      state: checkpoint.state,
+    );
+  }
 
   @override
   Future<void> lockGameplayForCompletion() => sessionPort.pause();

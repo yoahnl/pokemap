@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -18,6 +19,7 @@ import 'player_title_screen.dart';
 import 'runtime_player_actions.dart';
 import 'runtime_player_detail_router.dart';
 import 'runtime_player_pause_shell.dart';
+import 'runtime_player_focus_controller.dart';
 
 typedef RuntimePlayerActionCallback = Future<RuntimePlayerCommandResult>
     Function(RuntimePlayerAction action);
@@ -39,6 +41,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     this.onControlProfileChanged,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
     this.pausePresentation,
+    this.pauseFocusController,
     this.onPreSessionResult,
     this.showPreSessionInteraction = true,
   });
@@ -56,6 +59,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
   final PlayerPauseMenuLabels pauseMenuLabels;
   final PlayerPausePresentation? pausePresentation;
+  final RuntimePlayerFocusController? pauseFocusController;
   final ValueChanged<SceneInteractionResult>? onPreSessionResult;
   final bool showPreSessionInteraction;
 
@@ -176,6 +180,11 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           opacity: touchControlsOpacity,
         ),
       RuntimePlayerPhase.paused => RuntimePlayerPauseShell(
+          focusController: pauseFocusController,
+          playerProfile: snapshot.playerProfile,
+          portraitImage: snapshot.playerProfile?.portraitFilePath == null
+              ? null
+              : FileImage(File(snapshot.playerProfile!.portraitFilePath!)),
           gameTitle: snapshot.gameTitle,
           pauseSection: snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
           actions: <PlayerPauseAction, PlayerActionAvailability>{
@@ -189,7 +198,10 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
                 ? RuntimePlayerAction.resume
                 : RuntimePlayerAction.returnToPauseRoot,
           ),
-          onTouchMenu: _callbackFor(RuntimePlayerAction.resume),
+          onTouchMenu: snapshot.pauseSection == null ||
+                  snapshot.pauseSection == RuntimePlayerPauseSection.root
+              ? _callbackFor(RuntimePlayerAction.resume)
+              : _callbackFor(RuntimePlayerAction.returnToPauseRoot),
           activeInputSource: snapshot.activeInputSource,
           logicalSelectionId: snapshot.logicalSelectionId,
           labels: pauseMenuLabels,

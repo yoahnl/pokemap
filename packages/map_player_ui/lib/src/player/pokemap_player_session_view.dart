@@ -23,6 +23,7 @@ import 'player_shop_overlay.dart';
 import 'presentation_frame_renderer.dart';
 import 'runtime_presentation_frame_surface.dart';
 import 'runtime_player_actions.dart';
+import 'runtime_player_focus_controller.dart';
 import 'runtime_player_gamepad_bridge.dart';
 import 'runtime_player_surface_router.dart';
 import 'runtime_player_touch_controls.dart';
@@ -162,6 +163,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
 }
 
 class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
+  var _pauseFocusController = RuntimePlayerFocusController();
   StreamSubscription<RuntimeInputEvent>? _controllerSubscription;
   late RuntimePlayerSnapshot _latestSnapshot;
   bool _menuTransitionPending = false;
@@ -187,6 +189,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   void didUpdateWidget(covariant PokeMapPlayerSessionView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
+      _pauseFocusController.dispose();
+      _pauseFocusController = RuntimePlayerFocusController();
       _latestSnapshot = widget.controller.snapshot;
     }
     if (oldWidget.presentationFrame != widget.presentationFrame) {
@@ -346,10 +350,14 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   }
 
   Future<void> _toggleMenu() async {
+    if (ModalRoute.of(context)?.isCurrent == false) return;
     final snapshot = _latestSnapshot;
     final action = switch (snapshot.phase) {
       RuntimePlayerPhase.playing => RuntimePlayerAction.openMenu,
-      RuntimePlayerPhase.paused => RuntimePlayerAction.resume,
+      RuntimePlayerPhase.paused => snapshot.pauseSection == null ||
+              snapshot.pauseSection == RuntimePlayerPauseSection.root
+          ? RuntimePlayerAction.resume
+          : RuntimePlayerAction.returnToPauseRoot,
       _ => null,
     };
     if (action == null) return;
@@ -361,7 +369,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     final snapshot = _latestSnapshot;
     if (snapshot.phase == RuntimePlayerPhase.paused) {
       final focusContext = FocusManager.instance.primaryFocus?.context;
-      if (focusContext != null) {
+      if (focusContext != null &&
+          Actions.maybeFind<RuntimePlayerLogicalIntent>(focusContext) != null) {
         Actions.invoke(
           focusContext,
           RuntimePlayerLogicalIntent(
@@ -391,7 +400,11 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           Actions.invoke(focusContext, const ActivateIntent());
         }
       case PlayerInputAction.back:
-        await _dispatchBack();
+        if (ModalRoute.of(context)?.isCurrent == false) {
+          await Navigator.of(context).maybePop();
+        } else {
+          await _dispatchBack();
+        }
       case PlayerInputAction.sprint:
       case PlayerInputAction.menu:
         // Menu/Start is intercepted by PlayerInputRouter.
@@ -496,6 +509,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     final touchControlsOpacity =
         snapshot.preferences?.touchControlsOpacity ?? 0.82;
     final showInputHints = !showTouchControls &&
+        snapshot.phase != RuntimePlayerPhase.paused &&
         snapshot.phase != RuntimePlayerPhase.preSession &&
         widget.presentationFrame?.value == null &&
         (snapshot.preferences?.showInputHints ?? false) &&
@@ -510,6 +524,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       fit: StackFit.expand,
       children: <Widget>[
         RuntimePlayerSurfaceRouter(
+          pauseFocusController: _pauseFocusController,
           snapshot: snapshot,
           titlePresentation: widget.titlePresentation,
           pauseMenuLabels: widget.pauseMenuLabels,
@@ -591,7 +606,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
               ),
             ),
           ),
-        if (widget.dialoguePresentation case final dialogue?)
+        if (widget.dialoguePresentation case final dialogue?
+            when snapshot.phase == RuntimePlayerPhase.playing)
           ValueListenableBuilder<DialoguePresentationSnapshot?>(
             valueListenable: dialogue,
             builder: (context, presentation, _) {
@@ -672,6 +688,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
 
   @override
   void dispose() {
+    _pauseFocusController.dispose();
     unawaited(_controllerSubscription?.cancel());
     widget.presentationFrame?.removeListener(_handlePresentationFrameChanged);
     _releaseGameplayDirections();

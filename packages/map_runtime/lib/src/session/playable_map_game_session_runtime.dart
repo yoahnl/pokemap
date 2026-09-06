@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../application/load_runtime_map_bundle.dart';
+import '../application/dialogue_portrait_resolver.dart';
 import '../application/map_activation.dart';
 import '../application/runtime_map_bundle.dart';
 import '../application/player_service_runtime_controller.dart';
@@ -86,6 +87,7 @@ final class PlayableMapGameSessionRuntime
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _playerServiceSnapshots;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   String? _projectRootDirectory;
+  DialoguePortraitResolver? _pausePortraitResolver;
   ProjectPokemonConfig? _pokemonConfig;
   List<ProjectMapEntry> _projectMaps = const <ProjectMapEntry>[];
   List<BadgeDefinition> _projectBadges = const [];
@@ -220,6 +222,10 @@ final class PlayableMapGameSessionRuntime
       bundle = preloadedBundle;
     }
     _projectRootDirectory = bundle.projectRootDirectory;
+    _pausePortraitResolver = DialoguePortraitResolver(
+      manifest: bundle.manifest,
+      projectRootDirectory: bundle.projectRootDirectory,
+    );
     _pokemonConfig = bundle.manifest.pokemon;
     _projectMaps = List<ProjectMapEntry>.unmodifiable(bundle.manifest.maps);
     _projectBadges = List<BadgeDefinition>.unmodifiable(bundle.manifest.badges);
@@ -315,7 +321,7 @@ final class PlayableMapGameSessionRuntime
 
   @override
   Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
-      loadPauseDetails() {
+      loadPauseDetails() async {
     final game = _requireGame();
     final projectRootDirectory = _projectRootDirectory;
     final pokemonConfig = _pokemonConfig;
@@ -324,6 +330,7 @@ final class PlayableMapGameSessionRuntime
         const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
       );
     }
+    await _pausePortraitResolver?.ensureCatalogLoaded();
     return const RuntimePlayerPauseDataBuilder().build(
       gameState: game.gameStateSnapshot,
       projectRootDirectory: projectRootDirectory,
@@ -333,6 +340,7 @@ final class PlayableMapGameSessionRuntime
       projectMaps: _projectMaps,
       projectBadges: _projectBadges,
       projectCharacters: _projectCharacters,
+      portraitLookup: _pausePortraitResolver?.resolve,
       playtimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,
     );
   }
@@ -481,6 +489,7 @@ final class PlayableMapGameSessionRuntime
     final game = _game;
     _game = null;
     _projectRootDirectory = null;
+    _pausePortraitResolver = null;
     _pokemonConfig = null;
     if (game != null && _mounted) {
       await _unmountGame(game);
