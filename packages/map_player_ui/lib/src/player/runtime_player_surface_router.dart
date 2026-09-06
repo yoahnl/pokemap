@@ -20,6 +20,7 @@ import 'runtime_player_actions.dart';
 import 'runtime_player_detail_router.dart';
 import 'runtime_player_pause_shell.dart';
 import 'runtime_player_focus_controller.dart';
+import 'runtime_player_party.dart';
 
 typedef RuntimePlayerActionCallback = Future<RuntimePlayerCommandResult>
     Function(RuntimePlayerAction action);
@@ -37,6 +38,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     this.touchControlsOpacity = 0.82,
     this.onPreferencesChanged,
     this.onPauseCommand,
+    this.partyNavigation,
     this.controlProfile,
     this.onControlProfileChanged,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
@@ -54,7 +56,8 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final bool gameplayTouchMenuEnabled;
   final double touchControlsOpacity;
   final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
-  final ValueChanged<RuntimePlayerPauseCommand>? onPauseCommand;
+  final FutureOr<void> Function(RuntimePlayerPauseCommand)? onPauseCommand;
+  final RuntimePlayerPartyNavigation? partyNavigation;
   final PlayerControlProfile? controlProfile;
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
   final PlayerPauseMenuLabels pauseMenuLabels;
@@ -192,12 +195,18 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
               action: _pauseAvailability(context, action),
           },
           onSelected: (action) => _dispatchPauseAction(context, action),
-          onBackToRoot: () => _dispatch(
-            snapshot.pauseSection == null ||
-                    snapshot.pauseSection == RuntimePlayerPauseSection.root
-                ? RuntimePlayerAction.resume
-                : RuntimePlayerAction.returnToPauseRoot,
-          ),
+          onBackToRoot: () {
+            if (snapshot.pauseSection == RuntimePlayerPauseSection.party &&
+                (partyNavigation?.back() ?? false)) {
+              return;
+            }
+            _dispatch(
+              snapshot.pauseSection == null ||
+                      snapshot.pauseSection == RuntimePlayerPauseSection.root
+                  ? RuntimePlayerAction.resume
+                  : RuntimePlayerAction.returnToPauseRoot,
+            );
+          },
           onTouchMenu: snapshot.pauseSection == null ||
                   snapshot.pauseSection == RuntimePlayerPauseSection.root
               ? _callbackFor(RuntimePlayerAction.resume)
@@ -211,10 +220,24 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
               ? null
               : PlayerSaveStrings.of(context).saved(snapshot.saveReceipt!),
           detail: RuntimePlayerDetailRouter(
+            partyNavigation: partyNavigation,
             snapshot: snapshot,
             onPreferencesChanged: onPreferencesChanged,
             onPauseCommand: onPauseCommand,
           ),
+          detailOwnsScroll:
+              snapshot.pauseSection == RuntimePlayerPauseSection.party,
+          detailActions: snapshot.pauseSection ==
+                      RuntimePlayerPauseSection.party &&
+                  snapshot.isActionEnabled(RuntimePlayerAction.openParty) &&
+                  snapshot.pauseDetailFor(RuntimePlayerPauseSection.party) !=
+                      null &&
+                  partyNavigation != null
+              ? ListenableBuilder(
+                  listenable: partyNavigation!,
+                  builder: (context, _) =>
+                      partyNavigation!.buildActions(context))
+              : null,
         ),
       RuntimePlayerPhase.saving => PlayerLoadingSurface(
           stage: l10n.save,

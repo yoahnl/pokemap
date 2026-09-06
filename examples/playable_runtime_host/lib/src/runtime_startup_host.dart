@@ -24,7 +24,8 @@ const standaloneRuntimeSplashBranding = RuntimeHostSplashBranding(
 /// Narrow host boundary around the developer runtime already embedded by the
 /// standalone example. The startup stack owns when a session starts; this port
 /// keeps the host's debug overlays and project picker outside `map_runtime`.
-abstract interface class StandaloneRuntimeSessionPort {
+abstract interface class StandaloneRuntimeSessionPort
+    implements RuntimePlayerPauseCommandPort {
   Future<void> launch(
     GameSessionDescriptor descriptor,
     GameSessionProgressReporter reportProgress,
@@ -48,12 +49,17 @@ final class CallbackStandaloneRuntimeSessionPort
     Future<void> Function()? onPause,
     Future<void> Function()? onResume,
     Future<GameSessionCheckpoint?> Function()? onCaptureCheckpoint,
+    Future<RuntimePlayerPauseCommandResult> Function(
+      RuntimePlayerPauseCommand command,
+    )?
+    onPauseCommand,
     Future<void> Function(GameSessionExitReason reason)? onStop,
     Future<void> Function()? onDispose,
     bool Function(RuntimeInputEvent event)? onInput,
   }) : _onPause = onPause ?? _noOp,
        _onResume = onResume ?? _noOp,
        _onCaptureCheckpoint = onCaptureCheckpoint ?? _noCheckpoint,
+       _onPauseCommand = onPauseCommand,
        _onStop = onStop ?? _noOpStop,
        _onDispose = onDispose ?? _noOp,
        _onInput = onInput ?? _ignoreInput;
@@ -67,6 +73,10 @@ final class CallbackStandaloneRuntimeSessionPort
   final Future<void> Function() _onPause;
   final Future<void> Function() _onResume;
   final Future<GameSessionCheckpoint?> Function() _onCaptureCheckpoint;
+  final Future<RuntimePlayerPauseCommandResult> Function(
+    RuntimePlayerPauseCommand command,
+  )?
+  _onPauseCommand;
   final Future<void> Function(GameSessionExitReason reason) _onStop;
   final Future<void> Function() _onDispose;
   final bool Function(RuntimeInputEvent event) _onInput;
@@ -86,6 +96,16 @@ final class CallbackStandaloneRuntimeSessionPort
 
   @override
   Future<GameSessionCheckpoint?> captureCheckpoint() => _onCaptureCheckpoint();
+
+  @override
+  Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
+    RuntimePlayerPauseCommand command,
+  ) async =>
+      await _onPauseCommand?.call(command) ??
+      const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Les actions de l’équipe sont indisponibles.',
+      );
 
   @override
   Future<void> stop(GameSessionExitReason reason) => _onStop(reason);
@@ -163,6 +183,7 @@ final class StandaloneRuntimeStartupHost {
       },
     );
     final sessions = GameSessionController(
+      startTimeout: const Duration(minutes: 5),
       adapterFactory: (_) => InProcessGameSessionAdapter(
         runtimeFactory: (descriptor) => _StandaloneInProcessSessionRuntime(
           descriptor: descriptor,
@@ -526,7 +547,10 @@ final class _StandaloneRuntimeGameSource implements RuntimeGameSource {
 }
 
 final class _StandaloneInProcessSessionRuntime
-    implements InProcessGameSessionRuntime, RuntimePlayerPauseDataPort {
+    implements
+        InProcessGameSessionRuntime,
+        RuntimePlayerPauseDataPort,
+        RuntimePlayerPauseCommandPort {
   _StandaloneInProcessSessionRuntime({
     required this.descriptor,
     required this.manifest,
@@ -571,6 +595,19 @@ final class _StandaloneInProcessSessionRuntime
 
   @override
   Future<void> resume() => sessionPort.resume();
+
+  @override
+  Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
+    RuntimePlayerPauseCommand command,
+  ) async {
+    if (_disposed) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'La session de jeu est terminée.',
+      );
+    }
+    return sessionPort.dispatchPauseCommand(command);
+  }
 
   @override
   Future<PlayerPauseMenuState> loadPauseMenuState() async {

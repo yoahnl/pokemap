@@ -464,11 +464,21 @@ final class RuntimePlayerCoordinator {
         );
       case RuntimePlayerAction.useBagItem:
         final pauseCommand = command.payload;
+        final commandSection = _snapshot.pauseSection;
         if (pauseCommand is! RuntimePlayerPauseCommand ||
-            _snapshot.pauseSection != RuntimePlayerPauseSection.bag) {
+            !switch (pauseCommand.kind) {
+              RuntimePlayerPauseCommandKind.useBagItem =>
+                commandSection == RuntimePlayerPauseSection.bag,
+              RuntimePlayerPauseCommandKind.equipHeldItem ||
+              RuntimePlayerPauseCommandKind.unequipHeldItem =>
+                commandSection == RuntimePlayerPauseSection.bag ||
+                    commandSection == RuntimePlayerPauseSection.party,
+              RuntimePlayerPauseCommandKind.reorderPartyMember ||
+              RuntimePlayerPauseCommandKind.setPartyLead => false,
+            }) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'Un objet du sac et une cible valides sont requis.',
+            safeMessage: 'Cette commande n’est pas disponible sur cet écran.',
           );
         }
         final bagSessionId = _sessions.snapshot.descriptor?.sessionId;
@@ -482,18 +492,18 @@ final class RuntimePlayerCoordinator {
             RuntimePlayerPauseDetailSnapshot>.from(
           await _sessions.loadPauseDetails(),
         );
-        final bag = pauseDetails[RuntimePlayerPauseSection.bag];
+        final currentDetail = pauseDetails[commandSection];
         if (!_canPublishPauseData(bagSessionId)) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.cancelled,
           );
         }
-        if (bag != null) {
-          pauseDetails[RuntimePlayerPauseSection.bag] =
-              bag.withMessage(result.safeMessage);
+        if (currentDetail != null) {
+          pauseDetails[commandSection!] =
+              currentDetail.withMessage(result.safeMessage);
         }
         _publishPause(
-          RuntimePlayerPauseSection.bag,
+          commandSection!,
           logicalSelectionId: _snapshot.logicalSelectionId,
           pauseDetails: pauseDetails,
         );
@@ -1508,6 +1518,7 @@ final class RuntimePlayerCoordinator {
         pauseMenuState: effectivePauseMenuState,
         saveReceipt: saveReceipt,
         actions: _pauseActions(
+          section: section,
           includeReturnToRoot: section != RuntimePlayerPauseSection.root,
           pauseDetails: effectivePauseDetails,
           pauseMenuState: effectivePauseMenuState,
@@ -1634,6 +1645,7 @@ final class RuntimePlayerCoordinator {
   ];
 
   List<RuntimePlayerActionAvailability> _pauseActions({
+    required RuntimePlayerPauseSection section,
     required bool includeReturnToRoot,
     required Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
         pauseDetails,
@@ -1651,14 +1663,16 @@ final class RuntimePlayerCoordinator {
           RuntimePlayerAction.reorderParty,
         ),
       ],
-      if (_isPauseActionVisible(ProjectPauseActionId.bag, pauseMenuState)) ...[
+      if (_isPauseActionVisible(ProjectPauseActionId.bag, pauseMenuState))
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.openBag,
         ),
+      if (_isPauseActionVisible(ProjectPauseActionId.bag, pauseMenuState) ||
+          section == RuntimePlayerPauseSection.party &&
+              _isPauseActionVisible(ProjectPauseActionId.party, pauseMenuState))
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.useBagItem,
         ),
-      ],
       if (_isPauseActionVisible(ProjectPauseActionId.pokedex, pauseMenuState))
         if (pauseDetails.containsKey(RuntimePlayerPauseSection.pokedex))
           const RuntimePlayerActionAvailability.enabled(

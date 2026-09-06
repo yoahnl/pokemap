@@ -26,6 +26,7 @@ import 'runtime_player_actions.dart';
 import 'runtime_player_focus_controller.dart';
 import 'runtime_player_gamepad_bridge.dart';
 import 'runtime_player_surface_router.dart';
+import 'runtime_player_party.dart';
 import 'runtime_player_touch_controls.dart';
 
 /// Small presentation-facing subset of the runtime player coordinator.
@@ -164,6 +165,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
 
 class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   var _pauseFocusController = RuntimePlayerFocusController();
+  final _partyNavigation = RuntimePlayerPartyNavigation();
   StreamSubscription<RuntimeInputEvent>? _controllerSubscription;
   late RuntimePlayerSnapshot _latestSnapshot;
   bool _menuTransitionPending = false;
@@ -540,13 +542,26 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
               payload: preferences,
             ),
           ),
-          onPauseCommand: (command) => unawaited(
-            _dispatchCommand(
-              RuntimePlayerAction.useBagItem,
+          onPauseCommand: (command) async {
+            final unavailableMessage = context.playerL10n.actionUnavailable;
+            final result = await _dispatchCommand(
+              command.kind ==
+                          RuntimePlayerPauseCommandKind.reorderPartyMember ||
+                      command.kind == RuntimePlayerPauseCommandKind.setPartyLead
+                  ? RuntimePlayerAction.reorderParty
+                  : RuntimePlayerAction.useBagItem,
               snapshot,
               payload: command,
-            ),
-          ),
+            );
+            if (snapshot.pauseSection == RuntimePlayerPauseSection.party &&
+                (result.status == RuntimePlayerCommandStatus.unavailable ||
+                    result.status == RuntimePlayerCommandStatus.stale ||
+                    result.status == RuntimePlayerCommandStatus.failed)) {
+              throw RuntimePlayerPartyCommandFailure(
+                  result.safeMessage ?? unavailableMessage);
+            }
+          },
+          partyNavigation: _partyNavigation,
           controlProfile:
               widget.onControlProfileChanged == null ? null : _controlProfile,
           onControlProfileChanged: widget.onControlProfileChanged,
@@ -690,6 +705,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   void dispose() {
     _pauseFocusController.dispose();
     unawaited(_controllerSubscription?.cancel());
+    _partyNavigation.dispose();
     widget.presentationFrame?.removeListener(_handlePresentationFrameChanged);
     _releaseGameplayDirections();
     super.dispose();

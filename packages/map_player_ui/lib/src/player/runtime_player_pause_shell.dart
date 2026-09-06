@@ -38,6 +38,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.presentation,
     this.playerProfile,
     this.portraitImage,
+    this.detailOwnsScroll = false,
+    this.detailActions,
   });
 
   const RuntimePlayerPauseShell.root({
@@ -57,6 +59,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.presentation,
     this.playerProfile,
     this.portraitImage,
+    this.detailOwnsScroll = false,
+    this.detailActions,
   })  : pauseSection = RuntimePlayerPauseSection.root,
         onBackToRoot = _noop;
 
@@ -77,6 +81,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final PlayerPausePresentation? presentation;
   final RuntimePlayerProfileSnapshot? playerProfile;
   final ImageProvider? portraitImage;
+  final bool detailOwnsScroll;
+  final Widget? detailActions;
 
   static void _noop() {}
 
@@ -338,7 +344,14 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                     ),
                   PlayerMenuFooter(
                     alignReturnEnd: true,
+                    hintsFlex: !isRoot && widget.detailActions != null
+                        ? (layout == RuntimePlayerLayoutClass.compactPortrait
+                            ? 3
+                            : 4)
+                        : 1,
                     hints: [
+                      if (!isRoot && widget.detailActions != null)
+                        widget.detailActions!,
                       if (_focusController.showFocusHighlight && isRoot)
                         PlayerMenuKeyHint(
                             glyph: _focusController.activeInputSource ==
@@ -777,8 +790,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                 hiddenActions: {
                   ..._presentation.hiddenActions,
                   PlayerPauseAction.resume,
-                  if (_returnToTitleInOptions)
-                    PlayerPauseAction.returnToTitle
+                  if (_returnToTitleInOptions) PlayerPauseAction.returnToTitle
                 },
               )
             : widget.presentation,
@@ -817,6 +829,35 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     RuntimePlayerLayoutClass layout,
   ) {
     final hasDetail = widget.pauseSection != RuntimePlayerPauseSection.root;
+    if (widget.detailOwnsScroll) {
+      if (!_isIllustrated && widget.detailActions != null) {
+        return LayoutBuilder(builder: (context, constraints) {
+          final actions = Padding(
+            padding: const EdgeInsets.only(top: PlayerSpacing.xs),
+            child: widget.detailActions!,
+          );
+          if (!constraints.hasBoundedHeight) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [widget.detail, actions],
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: widget.detail),
+              ConstrainedBox(
+                constraints:
+                    BoxConstraints(maxHeight: constraints.maxHeight * .3),
+                child: SingleChildScrollView(child: actions),
+              ),
+            ],
+          );
+        });
+      }
+      return widget.detail;
+    }
     final controller = _detailScrollControllers.putIfAbsent(
       layout,
       () => ScrollController(

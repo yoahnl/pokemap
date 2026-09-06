@@ -13,6 +13,7 @@ import '../application/runtime_move_catalog_loader.dart';
 import '../application/runtime_move_machine_loader.dart';
 import 'runtime_player_pause_data.dart';
 import 'runtime_pokemon_summary.dart';
+import 'runtime_pokemon_summary_media_resolver.dart';
 
 /// Builds player-facing pause data from the runtime's live state.
 ///
@@ -103,7 +104,7 @@ final class RuntimePlayerPauseDataBuilder {
     return immutableRuntimePlayerPauseDetails(
       <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
         RuntimePlayerPauseSection.profile: profile,
-        RuntimePlayerPauseSection.party: _buildParty(
+        RuntimePlayerPauseSection.party: await _buildParty(
           gameState,
           speciesById,
           locale: locale,
@@ -111,6 +112,10 @@ final class RuntimePlayerPauseDataBuilder {
           itemCatalog: resolvedItemCatalog,
           heldItemOptions: heldItemOptions,
           moveCatalog: moveCatalog,
+          mediaResolver: RuntimePokemonSummaryMediaResolver(
+            projectRootDirectory: projectRootDirectory,
+            pokemonConfig: pokemonConfig,
+          ),
         ),
         RuntimePlayerPauseSection.bag: _buildBag(
           gameState,
@@ -290,15 +295,34 @@ final class RuntimePlayerPauseDataBuilder {
     );
   }
 
-  RuntimePlayerPauseDetailSnapshot _buildParty(
+  Future<RuntimePlayerPauseDetailSnapshot> _buildParty(
     GameState gameState,
     Map<String, _RuntimeSpeciesPresentation> speciesById, {
     required String locale,
     required bool isFrench,
     required ItemCatalogSnapshot itemCatalog,
     required List<RuntimePlayerHeldItemOptionSnapshot> heldItemOptions,
+    required RuntimePokemonSummaryMediaResolver mediaResolver,
     RuntimeMoveCatalog? moveCatalog,
-  }) {
+  }) async {
+    final mediaIdentities = {
+      for (final pokemon in gameState.party.members)
+        pokemon: RuntimePokemonMediaIdentity(
+          speciesId: pokemon.speciesId,
+          formId: pokemon.formId.trim().isEmpty ? null : pokemon.formId,
+          defaultFormId: speciesById[pokemon.speciesId]?.defaultFormId,
+          gender: pokemon.gender,
+          isShiny: pokemon.isShiny,
+          mediaRef: speciesById[pokemon.speciesId]?.mediaRef,
+        ),
+    };
+    final mediaEntries = await Future.wait(
+      mediaIdentities.entries.map((entry) async => MapEntry(
+            entry.key,
+            await mediaResolver.resolve(entry.value),
+          )),
+    );
+    final media = Map.fromEntries(mediaEntries);
     final summaryBuilder = runtimePokemonSummaryBuilderFor(
       locale: locale,
       speciesLabelFor: (speciesId) =>
@@ -307,14 +331,8 @@ final class RuntimePlayerPauseDataBuilder {
           speciesById[pokemon.speciesId]?.calculatedStatsFor(pokemon),
       itemLabelFor: (itemId) => itemCatalog.definitionFor(itemId)?.displayName,
       moveFor: moveCatalog?.lookup,
-      mediaIdentityFor: (pokemon) => RuntimePokemonMediaIdentity(
-        speciesId: pokemon.speciesId,
-        formId: pokemon.formId.trim().isEmpty ? null : pokemon.formId,
-        defaultFormId: speciesById[pokemon.speciesId]?.defaultFormId,
-        gender: pokemon.gender,
-        isShiny: pokemon.isShiny,
-        mediaRef: speciesById[pokemon.speciesId]?.mediaRef,
-      ),
+      mediaIdentityFor: (pokemon) => mediaIdentities[pokemon]!,
+      mediaFor: (pokemon) => media[pokemon]!,
       typeIdsFor: (pokemon) =>
           speciesById[pokemon.speciesId]?.types ?? const [],
     );

@@ -179,7 +179,7 @@ class PlayerMenuHeader extends StatelessWidget {
       return Container(
         constraints: BoxConstraints(minHeight: compact ? 44 : 64),
         padding: EdgeInsets.symmetric(
-            horizontal: compact ? 12 : 24, vertical: compact ? 4 : 16),
+            horizontal: compact ? 12 : 24, vertical: compact ? 4 : 15.5),
         decoration: BoxDecoration(
           color: theme.header.withValues(alpha: theme.panelOpacity),
           border: Border(
@@ -215,9 +215,11 @@ class PlayerMenuFooter extends StatelessWidget {
       {super.key,
       required this.hints,
       this.returnAction,
+      this.hintsFlex = 1,
       this.alignReturnEnd = false});
   final List<Widget> hints;
   final Widget? returnAction;
+  final int hintsFlex;
   final bool alignReturnEnd;
 
   @override
@@ -243,15 +245,19 @@ class PlayerMenuFooter extends StatelessWidget {
                   : MainAxisAlignment.start,
               children: [
                   Expanded(
+                      flex: hintsFlex,
                       child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(children: [
-                      for (var index = 0; index < hints.length; index++) ...[
-                        if (index > 0) const SizedBox(width: PlayerSpacing.lg),
-                        hints[index],
-                      ]
-                    ]),
-                  )),
+                        scrollDirection: Axis.horizontal,
+                        child: Row(children: [
+                          for (var index = 0;
+                              index < hints.length;
+                              index++) ...[
+                            if (index > 0)
+                              const SizedBox(width: PlayerSpacing.lg),
+                            hints[index],
+                          ]
+                        ]),
+                      )),
                   const SizedBox(width: PlayerSpacing.lg),
                   Flexible(
                       flex: 3,
@@ -305,6 +311,9 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.leading,
     this.trailing,
     this.subtitle,
+    this.supportingContent,
+    this.semanticValue,
+    this.onFocusChanged,
     this.selected = false,
     this.focused = false,
     this.hovered = false,
@@ -323,6 +332,9 @@ class PlayerMenuSelectableRow extends StatefulWidget {
   final Widget? leading;
   final Widget? trailing;
   final String? subtitle;
+  final Widget? supportingContent;
+  final String? semanticValue;
+  final ValueChanged<bool>? onFocusChanged;
   final bool selected;
   final bool focused;
   final bool hovered;
@@ -470,6 +482,8 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                       if (widget.subtitle != null)
                         Text(widget.subtitle!,
                             style: theme.meta.copyWith(color: secondary)),
+                      if (widget.supportingContent != null)
+                        widget.supportingContent!,
                       if (widget.disabledReason != null)
                         Text(widget.disabledReason!,
                             style: theme.meta.copyWith(color: foreground)),
@@ -491,6 +505,7 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
       identifier: widget.id,
       label: widget.label,
       value: [
+        if (widget.semanticValue != null) widget.semanticValue!,
         if (widget.subtitle != null) widget.subtitle!,
         if (widget.busy) 'Chargement'
       ].join(', '),
@@ -505,7 +520,10 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
       child: FocusableActionDetector(
         enabled: _enabled,
         focusNode: widget.focusNode,
-        onFocusChange: (value) => setState(() => _focused = value),
+        onFocusChange: (value) {
+          setState(() => _focused = value);
+          widget.onFocusChanged?.call(value);
+        },
         onShowHoverHighlight: (value) => setState(() => _hovered = value),
         mouseCursor:
             _enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
@@ -577,12 +595,14 @@ class PlayerMenuGauge extends StatelessWidget {
       required this.maximum,
       required this.label,
       this.status,
+      this.showLabel = true,
       this.kind = PlayerMenuGaugeKind.health,
       this.tone = PlayerMenuGaugeTone.normal});
   final double value;
   final double maximum;
   final String label;
   final String? status;
+  final bool showLabel;
   final PlayerMenuGaugeKind kind;
   final PlayerMenuGaugeTone tone;
 
@@ -609,15 +629,16 @@ class PlayerMenuGauge extends StatelessWidget {
       value: [amount, if (status != null) status!].join(', '),
       excludeSemantics: true,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            spacing: 12,
-            runSpacing: 4,
-            children: [
-              Text(label, style: theme.meta.copyWith(color: theme.secondary)),
-              Text(amount, style: theme.numbers, textAlign: TextAlign.right),
-            ]),
-        const SizedBox(height: 4),
+        if (showLabel)
+          Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                Text(label, style: theme.meta.copyWith(color: theme.secondary)),
+                Text(amount, style: theme.numbers, textAlign: TextAlign.right),
+              ]),
+        if (showLabel) const SizedBox(height: 4),
         Container(
           height: kind == PlayerMenuGaugeKind.health ? 10 : 8,
           clipBehavior: Clip.antiAlias,

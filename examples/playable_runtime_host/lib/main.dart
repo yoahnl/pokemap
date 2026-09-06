@@ -74,6 +74,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   ProjectManifest? _projectManifest;
   String? _selectedMapId;
   PlayableMapGame? _game;
+  PlayerServiceRuntimeController? _playerServices;
   String? _error;
   bool _loading = false;
   bool _showCollisionOverlay = false;
@@ -149,6 +150,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   void _disposeCurrentGame() {
     final game = _game;
     _game = null;
+    _playerServices = null;
     game?.dispose();
     _sessionPlayWatch?.stop();
     _sessionPlayWatch = null;
@@ -733,34 +735,36 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         initialTilesetImageCache?.dispose();
         rethrow;
       }
-      nextGame.setPlayerServiceRuntimeController(
-        PlayerServiceRuntimeController(
-          currentGameState: () => nextGame.playerServiceGameStateSnapshot,
-          host: _RuntimePlayerServiceOverlayHost(
-            contextBuilder: () => context,
-            isMounted: () => mounted,
-            automationPort: _playerServiceAutomationPort,
-          ),
-          commitAndSave: nextGame.commitAndSavePlayerServiceState,
-          setInputLocked: (locked) => nextGame.setExternalInputLock(
-            RuntimeExternalInputLock.playerService,
-            locked: locked,
-          ),
-          loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
-            gameState: state,
-            projectRootDirectory: bundle.projectRootDirectory,
-            pokemonConfig: bundle.manifest.pokemon,
-          ),
-          conditionContext: ScriptEvaluationContext(
-            narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
-              bundle.manifest.facts,
-            ),
+      final playerServices = PlayerServiceRuntimeController(
+        currentGameState: () => nextGame.playerServiceGameStateSnapshot,
+        host: _RuntimePlayerServiceOverlayHost(
+          contextBuilder: () => context,
+          isMounted: () => mounted,
+          automationPort: _playerServiceAutomationPort,
+        ),
+        commitAndSave: nextGame.commitAndSavePlayerServiceState,
+        setInputLocked: (locked) => nextGame.setExternalInputLock(
+          RuntimeExternalInputLock.playerService,
+          locked: locked,
+        ),
+        loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
+          gameState: state,
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
+        ),
+        projectRootDirectory: bundle.projectRootDirectory,
+        pokemonConfig: bundle.manifest.pokemon,
+        conditionContext: ScriptEvaluationContext(
+          narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+            bundle.manifest.facts,
           ),
         ),
       );
+      nextGame.setPlayerServiceRuntimeController(playerServices);
       _runtimeHostLog('game instance created mapId=$mapId');
       setState(() {
         _game = nextGame;
+        _playerServices = playerServices;
         _saveLoadStatus = null;
         _saveLoadError = null;
       });
@@ -782,12 +786,12 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       );
       nextGame.setDialogueFlutterOverlayPreferred(true);
       nextGame.setDialogueTextSpeed(_playerOptions.dialogueTextSpeed);
+      await WidgetsBinding.instance.endOfFrame;
+      await nextGame.loaded;
+      if (!mounted || !identical(_game, nextGame)) {
+        throw StateError('The runtime session changed before readiness.');
+      }
       if (interactiveEvaluationConfig.enabled) {
-        await WidgetsBinding.instance.endOfFrame;
-        await nextGame.loaded.timeout(const Duration(seconds: 60));
-        if (!mounted || !identical(_game, nextGame)) {
-          throw StateError('The runtime session changed before evaluation.');
-        }
         _interactiveBridge = await InteractiveEvaluationBridge.attach(
           config: interactiveEvaluationConfig,
           game: nextGame,
@@ -876,6 +880,21 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         onPause: _pauseStandaloneSession,
         onResume: _resumeStandaloneSession,
         onCaptureCheckpoint: _captureStandaloneCheckpoint,
+        onPauseCommand: (command) async {
+          final services = _playerServices;
+          if (services == null) {
+            return const RuntimePlayerPauseCommandResult(
+              status: RuntimePlayerPauseCommandStatus.unavailable,
+              safeMessage: 'Les actions de l’équipe sont indisponibles.',
+            );
+          }
+          return switch (command.kind) {
+            RuntimePlayerPauseCommandKind.reorderPartyMember ||
+            RuntimePlayerPauseCommandKind.setPartyLead =>
+              services.reorderPartyOutsideBattle(command),
+            _ => services.useBagItemOutsideBattle(command),
+          };
+        },
         onStop: (_) => _pauseStandaloneSession(),
         onDispose: _disposeStandaloneSession,
         onInput: (event) => _game?.handleRuntimeInputEvent(event) ?? false,

@@ -406,6 +406,14 @@ final class _UnusedVideoDriver
 
 final class _InertSessionPort implements StandaloneRuntimeSessionPort {
   @override
+  Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
+    RuntimePlayerPauseCommand command,
+  ) async => const RuntimePlayerPauseCommandResult(
+    status: RuntimePlayerPauseCommandStatus.unavailable,
+    safeMessage: 'No active game.',
+  );
+
+  @override
   Future<GameSessionCheckpoint?> captureCheckpoint() async => null;
 
   @override

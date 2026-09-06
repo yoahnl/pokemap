@@ -19,6 +19,26 @@ final class RuntimePokemonMediaIdentity {
   final String? mediaRef;
 }
 
+final class RuntimePokemonLocalImageSnapshot {
+  const RuntimePokemonLocalImageSnapshot({
+    required this.absoluteFilePath,
+    required this.sampling,
+  });
+
+  final String absoluteFilePath;
+  final ProjectMenuImageSampling sampling;
+}
+
+final class RuntimePokemonSummaryMediaSnapshot {
+  const RuntimePokemonSummaryMediaSnapshot({
+    this.thumbnail,
+    this.illustration,
+  });
+
+  final RuntimePokemonLocalImageSnapshot? thumbnail;
+  final RuntimePokemonLocalImageSnapshot? illustration;
+}
+
 /// Fiche Pokémon canonique partagée par l'Équipe et le PC.
 ///
 /// Les deux surfaces construisaient leur propre projection : l'Équipe
@@ -49,6 +69,7 @@ final class RuntimePokemonSummarySnapshot {
         const <RuntimePokemonMoveSummarySnapshot>[],
     this.provenance,
     this.identity,
+    this.media = const RuntimePokemonSummaryMediaSnapshot(),
     List<String> typeIds = const [],
     this.abilityId,
     this.heldItemId,
@@ -89,6 +110,7 @@ final class RuntimePokemonSummarySnapshot {
   final List<RuntimePokemonMoveSummarySnapshot> moves;
   final RuntimePokemonProvenanceSummarySnapshot? provenance;
   final RuntimePokemonMediaIdentity? identity;
+  final RuntimePokemonSummaryMediaSnapshot media;
   final List<String> typeIds;
   final String? abilityId;
   final String? heldItemId;
@@ -173,6 +195,7 @@ final class RuntimePokemonSummaryResolvers {
     this.itemLabelFor,
     this.moveFor,
     this.mediaIdentityFor,
+    this.mediaFor,
     this.typeIdsFor,
   });
 
@@ -183,6 +206,8 @@ final class RuntimePokemonSummaryResolvers {
   final PokemonMove? Function(String moveId)? moveFor;
   final RuntimePokemonMediaIdentity Function(PlayerPokemon pokemon)?
       mediaIdentityFor;
+  final RuntimePokemonSummaryMediaSnapshot Function(PlayerPokemon pokemon)?
+      mediaFor;
   final List<String> Function(PlayerPokemon pokemon)? typeIdsFor;
 }
 
@@ -217,6 +242,8 @@ final class RuntimePokemonSummaryBuilder {
     return RuntimePokemonSummarySnapshot(
       targetId: targetId,
       individualId: pokemon.individualId.trim(),
+      media: resolvers.mediaFor?.call(pokemon) ??
+          const RuntimePokemonSummaryMediaSnapshot(),
       identity: resolvers.mediaIdentityFor?.call(pokemon) ??
           RuntimePokemonMediaIdentity(
             speciesId: pokemon.speciesId,
@@ -333,6 +360,7 @@ RuntimePokemonSummaryBuilder runtimePokemonSummaryBuilderFor({
   String? Function(String itemId)? itemLabelFor,
   PokemonMove? Function(String moveId)? moveFor,
   RuntimePokemonMediaIdentity Function(PlayerPokemon pokemon)? mediaIdentityFor,
+  RuntimePokemonSummaryMediaSnapshot Function(PlayerPokemon pokemon)? mediaFor,
   List<String> Function(PlayerPokemon pokemon)? typeIdsFor,
 }) =>
     RuntimePokemonSummaryBuilder(
@@ -343,6 +371,7 @@ RuntimePokemonSummaryBuilder runtimePokemonSummaryBuilderFor({
         itemLabelFor: itemLabelFor,
         moveFor: moveFor,
         mediaIdentityFor: mediaIdentityFor,
+        mediaFor: mediaFor,
         typeIdsFor: typeIdsFor,
       ),
     );

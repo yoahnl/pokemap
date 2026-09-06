@@ -364,6 +364,7 @@ class PlayerActionButton extends StatefulWidget {
     this.secondary = false,
     this.quiet = false,
     this.expandContent = false,
+    this.expandWidth = true,
     this.trailing,
     this.focusNode,
     this.showFocusHighlight = true,
@@ -386,6 +387,7 @@ class PlayerActionButton extends StatefulWidget {
   final bool secondary;
   final bool quiet;
   final bool expandContent;
+  final bool expandWidth;
   final Widget? trailing;
   final FocusNode? focusNode;
   final bool showFocusHighlight;
@@ -545,9 +547,13 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
           child: !enabled && widget.disabledOpacity < 1
               ? Opacity(
                   opacity: widget.disabledOpacity,
-                  child: SizedBox(width: double.infinity, child: button),
+                  child: SizedBox(
+                      width: widget.expandWidth ? double.infinity : null,
+                      child: button),
                 )
-              : SizedBox(width: double.infinity, child: button),
+              : SizedBox(
+                  width: widget.expandWidth ? double.infinity : null,
+                  child: button),
         ),
       ),
     );
