@@ -819,6 +819,16 @@ class MapLayersComponent extends PositionComponent {
     return frames[resolution.frameIndex];
   }
 
+  TilesetVisualFrame? displayedPlacedElementFrame(MapPlacedElement instance) {
+    final element = _elementById[instance.elementId.trim()];
+    if (element == null || element.frames.isEmpty) return null;
+    return _pickPlacedElementFrame(
+      instance: instance,
+      frames: element.frames,
+      elapsedMs: (_animElapsed * 1000).toInt(),
+    );
+  }
+
   void _paintTileLayer(Canvas canvas, TileLayer layer) {
     final layerId = layer.id;
     final layerName = layer.name;
@@ -1131,7 +1141,8 @@ class MapLayersComponent extends PositionComponent {
       if (entry == null || entry.frames.isEmpty) {
         continue;
       }
-      final isPlayingOneShot =
+      final hasOcclusionMask = entry.collisionProfile?.occlusionMask != null;
+      final isPlayingOneShot = !hasOcclusionMask &&
           _activeOneShotByInstanceId.containsKey(instance.id);
       if (isPlayingOneShot && renderPass == MapLayerRenderPass.background) {
         continue;
@@ -1152,6 +1163,7 @@ class MapLayersComponent extends PositionComponent {
       final collisionCells =
           instance.applyCollision ? entry.collisionProfile?.cells : null;
       final hasForegroundSplit = !explicitForeground &&
+          !hasOcclusionMask &&
           (source.width > 1 || source.height > 1) &&
           collisionCells != null &&
           collisionCells.isNotEmpty;
@@ -1343,7 +1355,9 @@ class MapLayersComponent extends PositionComponent {
         quarterTurns: instance.quarterTurns,
       );
       final collisionCells = entry.collisionProfile?.cells;
-      if (collisionCells == null || collisionCells.isEmpty) {
+      if (entry.collisionProfile?.occlusionMask != null ||
+          collisionCells == null ||
+          collisionCells.isEmpty) {
         continue;
       }
       final collisionSet = <int>{

@@ -200,7 +200,7 @@ void main() {
       expect(instructions, isEmpty);
     });
 
-    test('skips animated placed elements in V0', () {
+    test('resolves animated placed elements with an occlusion mask', () {
       final bundle = _bundle(
         placedElements: [
           _placedElement(
@@ -221,10 +221,10 @@ void main() {
         originCellY: 0,
       );
 
-      expect(instructions, isEmpty);
+      expect(instructions, hasLength(1));
     });
 
-    test('skips multi-frame elements in V0', () {
+    test('resolves multi-frame elements with an occlusion mask', () {
       final bundle = _bundle(
         placedElements: [_placedElement()],
         elements: [
@@ -244,7 +244,7 @@ void main() {
         originCellY: 0,
       );
 
-      expect(instructions, isEmpty);
+      expect(instructions, hasLength(1));
     });
 
     test('resolves occlusion even when applyCollision is false', () {

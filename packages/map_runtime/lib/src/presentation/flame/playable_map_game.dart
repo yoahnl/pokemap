@@ -13649,6 +13649,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     final occlusionPatches = <PlacedElementOcclusionPatchComponent>[];
+    final placedElementById = {
+      for (final instance in preparedBundle.map.placedElements)
+        instance.id: instance,
+    };
+    final elementTilesetIdById = {
+      for (final element in preparedBundle.manifest.elements)
+        element.id: element.tilesetId,
+    };
     final occlusionInstructions =
         resolveStaticPlacedElementOcclusionPatchInstructions(
       bundle: preparedBundle,
@@ -13664,6 +13672,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         instruction: instruction,
         tilesetImage: tilesetImage,
         visibleWorldRectProvider: () => camera.visibleWorldRect,
+        frameProvider: () {
+          final instance = placedElementById[instruction.placedElementId];
+          if (instance == null) return null;
+          final frame = backgroundLayers.displayedPlacedElementFrame(instance);
+          if (frame == null) return null;
+          final tilesetId = frame.tilesetId.trim().isEmpty
+              ? elementTilesetIdById[instruction.elementId]?.trim()
+              : frame.tilesetId.trim();
+          final image = tileImagesById[tilesetId];
+          if (image == null) return null;
+          final source = frame.source;
+          final settings = preparedBundle.manifest.settings;
+          return (
+            image: image,
+            sourceRect: Rect.fromLTWH(
+              (source.x * settings.tileWidth).toDouble(),
+              (source.y * settings.tileHeight).toDouble(),
+              (source.width * settings.tileWidth).toDouble(),
+              (source.height * settings.tileHeight).toDouble(),
+            ),
+          );
+        },
       );
       occlusionPatches.add(patch);
       await world.add(patch);

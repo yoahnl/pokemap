@@ -24,25 +24,44 @@ class PixelMovementResolverV1 {
           spriteHeightPx: spriteHeightPx,
         );
 
+    bool pathIsClear(PixelPosition target) {
+      final dx = target.leftPx - spriteTopLeftPx.leftPx;
+      final dy = target.topPx - spriteTopLeftPx.topPx;
+      final steps = dx.abs() > dy.abs() ? dx.abs() : dy.abs();
+      if (steps == 0) {
+        return !worldStaticObstaclesCollidePixelRect(hitboxAt(target));
+      }
+      for (var step = 1; step <= steps; step++) {
+        final position = PixelPosition(
+          leftPx: spriteTopLeftPx.leftPx + (dx * step / steps).round(),
+          topPx: spriteTopLeftPx.topPx + (dy * step / steps).round(),
+        );
+        if (worldStaticObstaclesCollidePixelRect(hitboxAt(position))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     final tryFull = PixelPosition(
       leftPx: spriteTopLeftPx.leftPx + deltaXPx,
       topPx: spriteTopLeftPx.topPx + deltaYPx,
     );
-    if (!worldStaticObstaclesCollidePixelRect(hitboxAt(tryFull))) {
+    if (pathIsClear(tryFull)) {
       return tryFull;
     }
     final tryX = PixelPosition(
       leftPx: spriteTopLeftPx.leftPx + deltaXPx,
       topPx: spriteTopLeftPx.topPx,
     );
-    if (!worldStaticObstaclesCollidePixelRect(hitboxAt(tryX))) {
+    if (pathIsClear(tryX)) {
       return tryX;
     }
     final tryY = PixelPosition(
       leftPx: spriteTopLeftPx.leftPx,
       topPx: spriteTopLeftPx.topPx + deltaYPx,
     );
-    if (!worldStaticObstaclesCollidePixelRect(hitboxAt(tryY))) {
+    if (pathIsClear(tryY)) {
       return tryY;
     }
     return spriteTopLeftPx;

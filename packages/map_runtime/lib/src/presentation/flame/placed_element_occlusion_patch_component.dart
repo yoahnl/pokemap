@@ -12,19 +12,39 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
     required this.instruction,
     required this.tilesetImage,
     this.visibleWorldRectProvider,
+    this.frameProvider,
   })  : _currentDepthSortY = instruction.depthSortY,
         super(
           anchor: Anchor.topLeft,
           position: Vector2(instruction.worldLeft, instruction.worldTop),
           size: Vector2(instruction.visualWidth, instruction.visualHeight),
         ) {
-    final maskPixels = _decodeMask(instruction.occlusionMask);
+    _maskPixels = _decodeMask(instruction.occlusionMask);
+    _prepareRenderPlan(
+      tilesetImage,
+      Rect.fromLTWH(
+        instruction.sourceLeftPx.toDouble(),
+        instruction.sourceTopPx.toDouble(),
+        instruction.sourceWidthPx.toDouble(),
+        instruction.sourceHeightPx.toDouble(),
+      ),
+    );
+    priority = instruction.flamePriority;
+  }
+
+  void _prepareRenderPlan(RuntimeTilesetImage image, Rect sourceRect) {
+    _renderPlan?.dispose();
+    _renderPlan = null;
+    _frameImage = image;
+    _frameSourceRect = sourceRect;
     final mask = instruction.occlusionMask;
     final canPrepare = instruction.opacity > 0 &&
         instruction.visualWidth > 0 &&
         instruction.visualHeight > 0 &&
         mask.widthPx == instruction.sourceWidthPx &&
-        mask.heightPx == instruction.sourceHeightPx;
+        mask.heightPx == instruction.sourceHeightPx &&
+        sourceRect.width == mask.widthPx &&
+        sourceRect.height == mask.heightPx;
     try {
       if (!canPrepare) {
         throw ArgumentError('Occlusion patch cannot produce a render plan.');
@@ -45,13 +65,8 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
       );
       final sourceWidth = sourceSize.width;
       _renderPlan = QuarterTurnPixelDrawPlan.record(
-        image: tilesetImage,
-        sourceRect: Rect.fromLTWH(
-          instruction.sourceLeftPx.toDouble(),
-          instruction.sourceTopPx.toDouble(),
-          sourceSize.width.toDouble(),
-          sourceSize.height.toDouble(),
-        ),
+        image: image,
+        sourceRect: sourceRect,
         destinationRect: Rect.fromLTWH(
           0,
           0,
@@ -64,22 +79,26 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
         paint: paint,
         includeSourcePixel: (source) {
           final index = source.y * sourceWidth + source.x;
-          return index >= 0 && index < maskPixels.length && maskPixels[index];
+          return index >= 0 && index < _maskPixels.length && _maskPixels[index];
         },
       );
-      _renderPlanPreparationCount = 1;
+      _renderPlanPreparationCount += 1;
     } on ArgumentError {
       _renderPlan = null;
     }
     _drawRunCount = _renderPlan?.result.includedDestinationRunCount ?? 0;
-    priority = instruction.flamePriority;
   }
 
   final StaticPlacedElementOcclusionPatchInstruction instruction;
   final RuntimeTilesetImage tilesetImage;
   final Rect Function()? visibleWorldRectProvider;
+  final ({RuntimeTilesetImage image, Rect sourceRect})? Function()?
+      frameProvider;
+  late final List<bool> _maskPixels;
+  RuntimeTilesetImage? _frameImage;
+  Rect? _frameSourceRect;
   QuarterTurnPixelDrawPlan? _renderPlan;
-  late final int _drawRunCount;
+  int _drawRunCount = 0;
   double _currentDepthSortY;
   int _lastQuarterTurnDrawRunCount = 0;
   int _lastIncludedDestinationPixelCount = 0;
@@ -128,11 +147,7 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   void render(Canvas canvas) {
     _lastQuarterTurnDrawRunCount = 0;
     _lastIncludedDestinationPixelCount = 0;
-    final plan = _renderPlan;
-    if (instruction.opacity <= 0 ||
-        _drawRunCount == 0 ||
-        plan == null ||
-        plan.isDisposed) {
+    if (instruction.opacity <= 0 || _didRemove) {
       return;
     }
     final visibleWorldRect = visibleWorldRectProvider?.call();
@@ -141,6 +156,18 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
       _culledRenderCount += 1;
       return;
     }
+
+    final provider = frameProvider;
+    if (provider != null) {
+      final frame = provider();
+      if (frame == null) return;
+      if (!identical(frame.image, _frameImage) ||
+          frame.sourceRect != _frameSourceRect) {
+        _prepareRenderPlan(frame.image, frame.sourceRect);
+      }
+    }
+    final plan = _renderPlan;
+    if (plan == null || plan.isDisposed || _drawRunCount == 0) return;
 
     plan.draw(canvas);
     _renderPlanDrawCount += 1;

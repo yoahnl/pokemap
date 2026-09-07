@@ -102,10 +102,6 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
   required int tileWidth,
   required int tileHeight,
 }) {
-  if (_isAnimatedInV0(instance, element)) {
-    return null;
-  }
-
   final mask = element.collisionProfile?.occlusionMask;
   if (mask == null) {
     return null;
@@ -166,20 +162,6 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
     opacity: instance.opacity.clamp(0.0, 1.0).toDouble(),
     occlusionMask: mask,
   );
-}
-
-bool _isAnimatedInV0(
-  MapPlacedElement instance,
-  ProjectElementEntry element,
-) {
-  if (element.frames.length != 1) {
-    return true;
-  }
-  final animation = instance.animation;
-  if (animation == null || !animation.enabled) {
-    return false;
-  }
-  return animation.mode != MapPlacedElementAnimationMode.none;
 }
 
 String _resolveTilesetId(

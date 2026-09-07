@@ -11,10 +11,103 @@ import 'package:map_runtime/src/presentation/flame/placed_element_occlusion_patc
 import 'package:map_runtime/src/presentation/flame/playable_map_game.dart';
 import 'package:map_runtime/src/presentation/flame/player_component.dart';
 
+import 'surface/surface_runtime_test_support.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame placed element occlusion patches', () {
+    test(
+        'animated occlusion follows the displayed frame and animation controls',
+        () async {
+      final source = _bundle();
+      final element = source.manifest.elements.single.copyWith(
+        frames: const [
+          TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0), durationMs: 100),
+          TilesetVisualFrame(
+              source: TilesetSourceRect(x: 1, y: 0), durationMs: 100),
+        ],
+      );
+      final instance = source.map.placedElements.single.copyWith(
+        animation: const MapPlacedElementAnimation(
+          mode: MapPlacedElementAnimationMode.loop,
+          enabled: true,
+          autoplay: true,
+        ),
+      );
+      final game = _game(
+        bundle: source.copyWith(
+          manifest: source.manifest.copyWith(elements: [element]),
+          map: source.map.copyWith(placedElements: [instance]),
+        ),
+        twoFrameAsset: true,
+      );
+      await _load(game);
+      expect(_occlusionPatches(game), hasLength(1));
+      final patch = _occlusionPatches(game).single;
+      Future<List<int>> firstPixel() async {
+        final recorder = ui.PictureRecorder();
+        patch.render(Canvas(recorder));
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(32, 32);
+        final pixel = await pixelAt(image, 0, 0);
+        image.dispose();
+        picture.dispose();
+        return pixel;
+      }
+
+      expect(await firstPixel(), rgba(255, 0, 0, 255));
+      game.update(.11);
+      expect(await firstPixel(), rgba(0, 255, 0, 255));
+      game.update(.1);
+      expect(await firstPixel(), rgba(255, 0, 0, 255));
+      final background = _layers(game, MapLayerRenderPass.background);
+      background.setPlacedElementAnimationEnabledOverride(
+          instanceId: 'house-1', enabled: false);
+      game.update(.11);
+      expect(await firstPixel(), rgba(255, 0, 0, 255));
+      expect(background.playPlacedElementAnimationOnce(instanceId: 'house-1'),
+          isTrue);
+      game.update(.11);
+      expect(await firstPixel(), rgba(0, 255, 0, 255));
+      game.update(.11);
+      expect(await firstPixel(), rgba(255, 0, 0, 255));
+    });
+
+    test('fine occlusion masks do not also create a coarse foreground split',
+        () async {
+      final source = _bundle(sourceWidth: 2);
+      final element = source.manifest.elements.single;
+      final game = _game(
+          bundle: source.copyWith(
+        map: source.map.copyWith(
+          layers: [
+            MapLayer.tile(
+                id: 'objects', name: 'Objects', cells: List.filled(16, 0))
+          ],
+          placedElements: [
+            source.map.placedElements.single.copyWith(
+                properties: const {'pokemapPlacementOrigin': 'authored'})
+          ],
+        ),
+        manifest: source.manifest.copyWith(elements: [
+          element.copyWith(
+            collisionProfile: element.collisionProfile!
+                .copyWith(cells: const [GridPos(x: 0, y: 0)]),
+          )
+        ]),
+      ));
+      await _load(game);
+      final recorder = ui.PictureRecorder();
+      _layers(game, MapLayerRenderPass.foreground).render(Canvas(recorder));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(128, 128);
+      expect(await pixelAt(image, 70, 40), rgba(0, 0, 0, 0));
+      image.dispose();
+      picture.dispose();
+    });
+
     test(
         'mounts static occlusion patches for placed elements with occlusionMask',
         () async {
@@ -155,6 +248,7 @@ void main() {
 PlayableMapGame _game({
   required RuntimeMapBundle bundle,
   bool includeElementTilesetImage = true,
+  bool twoFrameAsset = false,
 }) {
   return PlayableMapGame(
     bundle: bundle,
@@ -177,6 +271,7 @@ PlayableMapGame _game({
           width: 32,
           height: 16,
           color: const Color(0xFFFF0000),
+          secondFrameColor: twoFrameAsset ? const Color(0xFF00FF00) : null,
         );
       }
       return out;
@@ -339,6 +434,7 @@ Future<RuntimeTilesetImage> _runtimeTilesetImage({
   required int width,
   required int height,
   required Color color,
+  Color? secondFrameColor,
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -346,6 +442,12 @@ Future<RuntimeTilesetImage> _runtimeTilesetImage({
     Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
     Paint()..color = color,
   );
+  if (secondFrameColor != null) {
+    canvas.drawRect(
+      Rect.fromLTWH(width / 2, 0, width / 2, height.toDouble()),
+      Paint()..color = secondFrameColor,
+    );
+  }
   final image = await recorder.endRecording().toImage(width, height);
   return RuntimeTilesetImage(
     images: [image],

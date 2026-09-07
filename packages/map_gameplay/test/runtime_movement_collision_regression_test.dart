@@ -4,6 +4,68 @@ import 'package:test/test.dart';
 
 void main() {
   group('runtime movement collision regression', () {
+    for (final (direction, spawn, vertical) in const [
+      (Direction.east, GridPos(x: 1, y: 2), true),
+      (Direction.west, GridPos(x: 2, y: 2), true),
+      (Direction.north, GridPos(x: 2, y: 2), false),
+      (Direction.south, GridPos(x: 2, y: 1), false),
+    ]) {
+      test('a 32px step cannot skip a fine asset mask going $direction', () {
+        final world = _worldWithThinAsset(spawn: spawn, vertical: vertical);
+
+        final result = stepGameplayWorld(
+          world,
+          MoveIntent(direction, pixelsPerStep: 32),
+        );
+
+        expect(result, isA<Blocked>());
+        expect(result.world.player.playerPositionPx,
+            world.player.playerPositionPx);
+      });
+    }
+
+    test('contact with a fine door threshold triggers its bump behavior', () {
+      final world = _worldWithThinAsset(
+        spawn: const GridPos(x: 1, y: 2),
+        vertical: true,
+        behavior: const MapPlacedElementBehavior(
+          enabled: true,
+          trigger: MapPlacedElementTriggerType.onBump,
+          effect: MapPlacedElementEffect(
+            type: MapPlacedElementEffectType.traverseWarp,
+            targetMapId: 'inside',
+            targetPos: GridPos(x: 1, y: 1),
+          ),
+        ),
+      );
+
+      final result = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east, pixelsPerStep: 32),
+      );
+
+      expect(result, isA<PlacedElementInteracted>());
+      final interacted = result as PlacedElementInteracted;
+      expect(interacted.trigger, MapPlacedElementTriggerType.onBump);
+      expect(interacted.element.id, 'thin_asset');
+      expect(interacted.world.player.pos, world.player.pos);
+    });
+
+    test('a 32px step beside the fine asset remains free', () {
+      final world = _worldWithThinAsset(
+        spawn: const GridPos(x: 1, y: 1),
+        vertical: true,
+      );
+
+      final result = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east, pixelsPerStep: 32),
+      );
+
+      expect(result, isA<Moved>());
+      expect(result.world.player.pos, const GridPos(x: 2, y: 1));
+    });
+
     test('collision cell blocks the player', () {
       final world = GameplayWorldState.initial(
         map: const MapData(
@@ -181,4 +243,69 @@ void main() {
       expect(stopwatch.elapsedMilliseconds, lessThan(1200));
     });
   });
+}
+
+GameplayWorldState _worldWithThinAsset({
+  required GridPos spawn,
+  required bool vertical,
+  MapPlacedElementBehavior? behavior,
+}) {
+  final mask = ElementCollisionPixelMask(
+    widthPx: 32,
+    heightPx: 32,
+    dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+      widthPx: 32,
+      heightPx: 32,
+      solidPixels: List<bool>.generate(
+        32 * 32,
+        (index) => vertical ? index % 32 == 0 : index ~/ 32 == 16,
+      ),
+    ),
+  );
+  return GameplayWorldState.initial(
+    map: MapData(
+      id: 'fine_collision',
+      name: 'Fine Collision',
+      size: const GridSize(width: 5, height: 5),
+      placedElements: [
+        MapPlacedElement(
+          id: 'thin_asset',
+          layerId: 'objects',
+          elementId: 'threshold',
+          pos: const GridPos(x: 2, y: 2),
+          applyCollision: true,
+          behaviors: [if (behavior != null) behavior],
+        ),
+      ],
+    ),
+    playerPos: spawn,
+    tileWidth: 32,
+    tileHeight: 32,
+    project: ProjectManifest(
+      name: 'Fine Collision Project',
+      maps: const [],
+      settings: const ProjectSettings(tileWidth: 32, tileHeight: 32),
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'terrain',
+          name: 'Terrain',
+          relativePath: 'tilesets/terrain.png',
+        ),
+      ],
+      elements: [
+        ProjectElementEntry(
+          id: 'threshold',
+          name: 'Threshold',
+          tilesetId: 'terrain',
+          categoryId: 'obstacles',
+          frames: const [
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+            ),
+          ],
+          collisionProfile: ElementCollisionProfile(collisionMask: mask),
+        ),
+      ],
+    ),
+  );
 }
