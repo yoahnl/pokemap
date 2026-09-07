@@ -5501,6 +5501,58 @@ const tiledMapTmx = `
 </map>
 `;
 
+test("MCP reorganizes an element atlas and preserves its frames after reopen", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const projectPath = join(fixture.root, "project.json");
+    const project = record(JSON.parse(await readFile(projectPath, "utf8")));
+    project.maps = [];
+    project.tilesets = ["house", "atlas"].map((id) => ({
+      id, name: id, relativePath: `assets/${id}.png`,
+      source: { kind: "regular_atlas", assetId: id, pixelWidth: id === "house" ? 64 : 128,
+        pixelHeight: 128, tileWidth: 32, tileHeight: 32, tileProperties: [] },
+    }));
+    project.elementCategories = [{ id: "props", name: "Props" }];
+    project.elements = [{ id: "house", name: "House", tilesetId: "house", categoryId: "props",
+      frames: [{ source: { x: 0, y: 1, width: 2, height: 2 }, durationMs: 120 }] }];
+    await writeFile(projectPath, JSON.stringify(project));
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    assert.ok((described.mutationActions as JsonRecord[]).some((a) => a.id === "tileset.library.reorganize"));
+    const opened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+    const initial = await toolData(fixture.client, "pokemap_validate", { projectHandle: opened.projectHandle });
+    await applyMutation(fixture.client, {
+      projectHandle: String(opened.projectHandle), workspaceHandle: String(opened.workspaceHandle),
+      expectedRevision: String(initial.snapshotRevision), actionId: "tileset.library.reorganize",
+      parameters: {
+        placements: [{ tilesetId: "house", targetTilesetId: "atlas", x: 2, y: 0 }],
+        folders: [{ id: "buildings", name: "Buildings" }],
+        assignments: [{ tilesetId: "atlas", folderId: "buildings" }],
+      }, sequence: "library-reorganization",
+    });
+    const saved = JSON.parse(await readFile(projectPath, "utf8")) as JsonRecord;
+    assert.equal((saved.tilesets as unknown[]).length, 1);
+    const element = record((saved.elements as unknown[])[0]);
+    assert.equal(element.id, "house");
+    assert.equal(element.tilesetId, "atlas");
+    assert.deepEqual(record((element.frames as unknown[])[0]).source, { x: 2, y: 1, width: 2, height: 2 });
+    assert.equal(record((element.frames as unknown[])[0]).durationMs, 120);
+    const reopened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+    const reloaded = await toolData(fixture.client, "pokemap_validate", { projectHandle: reopened.projectHandle });
+    await applyMutation(fixture.client, {
+      projectHandle: String(reopened.projectHandle), workspaceHandle: String(reopened.workspaceHandle),
+      expectedRevision: String(reloaded.snapshotRevision), actionId: "tileset.library.reorganize",
+      parameters: { placements: [], folders: [{ id: "buildings", name: "Architecture" }],
+        assignments: [{ tilesetId: "atlas", folderId: "buildings" }] }, sequence: "library-reopened",
+    });
+    const finalProject = JSON.parse(await readFile(projectPath, "utf8")) as JsonRecord;
+    assert.deepEqual(finalProject.elements, saved.elements);
+  } finally {
+    await Promise.all([fixture.client.close(), fixture.server.close()]);
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP completes a cold-start 34-element visual batch import", async () => {
   const fixture = await mutationFixture({ withLegacyAtlasGap: true });
   try {

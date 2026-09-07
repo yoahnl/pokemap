@@ -1201,6 +1201,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/assets/asset_security_test.dart',
   ),
   _ContractEvidenceRule(
+    ['tileset.library.'],
+    'test/domains/assets/tileset_library_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     [
       'tileset.',
       'tileset_folder.',
