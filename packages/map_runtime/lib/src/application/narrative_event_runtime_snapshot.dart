@@ -6,14 +6,15 @@ import 'package:map_core/map_core.dart';
 /// manifest revision. That keeps the registry, catalog and legacy-claim
 /// evidence on the same authority snapshot.
 final class NarrativeEventRuntimeSnapshot {
-  const NarrativeEventRuntimeSnapshot._({
+  NarrativeEventRuntimeSnapshot._({
     required this.project,
     required this.mapsById,
     required this.registryResult,
     required this.factResolver,
     required this.projectCatalog,
     required this.legacyClaimIndex,
-  });
+    required Set<ProjectManifest> validatedProjects,
+  }) : _validatedProjects = validatedProjects;
 
   final ProjectManifest project;
   final Map<String, MapData> mapsById;
@@ -21,6 +22,10 @@ final class NarrativeEventRuntimeSnapshot {
   final NarrativeFactRuntimeResolver factResolver;
   final NarrativeEventProjectCatalog projectCatalog;
   final ValidatedLegacyClaimIndex legacyClaimIndex;
+  final Set<ProjectManifest> _validatedProjects;
+
+  bool matchesProject(ProjectManifest candidate) =>
+      _validatedProjects.contains(candidate) || project == candidate;
 
   static Future<NarrativeEventRuntimeSnapshot> build({
     required ProjectManifest project,
@@ -40,6 +45,7 @@ final class NarrativeEventRuntimeSnapshot {
         ? EventRegistryDecodeResult.absent()
         : EventRegistryDecodeResult.decoded(registry);
     final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
+    final validatedProjects = Set<ProjectManifest>.identity()..add(project);
     if (registry.mode == EventSystemMode.legacyOnly) {
       return NarrativeEventRuntimeSnapshot._(
         project: project,
@@ -51,6 +57,7 @@ final class NarrativeEventRuntimeSnapshot {
           maps: const <MapData>[],
         ),
         legacyClaimIndex: structuralClaimIndex,
+        validatedProjects: validatedProjects,
       );
     }
     final projectFingerprint = _runtimeProjectFingerprint(project);
@@ -77,6 +84,7 @@ final class NarrativeEventRuntimeSnapshot {
         );
       }
       mapsById[mapEntry.id] = loaded.map;
+      validatedProjects.add(loaded.project);
     }
 
     final legacyMapProjections = <LegacyMapEventProjection>[
@@ -146,6 +154,7 @@ final class NarrativeEventRuntimeSnapshot {
         registry,
         runtimeEvidence: runtimeEvidence,
       ),
+      validatedProjects: validatedProjects,
     );
   }
 }

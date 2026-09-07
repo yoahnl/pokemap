@@ -1022,7 +1022,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     ProjectManifest project,
   ) async {
     final cached = _cachedNarrativeRuntimeSnapshot;
-    if (cached != null && _cachedNarrativeRuntimeSnapshotProject == project) {
+    if (cached != null && cached.matchesProject(project)) {
       return cached;
     }
     final snapshot = await NarrativeEventRuntimeSnapshot.build(
@@ -1032,7 +1032,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return (project: bundle.manifest, map: bundle.map);
       },
     );
-    _cachedNarrativeRuntimeSnapshotProject = project;
     _cachedNarrativeRuntimeSnapshot = snapshot;
     return snapshot;
   }
@@ -1808,7 +1807,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Set<String> _deferredNarrativeContinuationCancelSourceIds = <String>{};
   String? _restoredOutcomeContinuationActivationId;
   NarrativeEventRuntimeSnapshot? _cachedNarrativeRuntimeSnapshot;
-  ProjectManifest? _cachedNarrativeRuntimeSnapshotProject;
   int _nextMapActivationSerial = 0;
   int _nextNarrativeRuntimeIdSerial = 0;
   String? _currentMapActivationId;

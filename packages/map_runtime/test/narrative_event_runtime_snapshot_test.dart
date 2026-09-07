@@ -44,6 +44,15 @@ void main() {
       loadMap: (_) async => (project: loaded, map: map),
     );
     expect(snapshot.mapsById.keys, ['field']);
+    expect(snapshot.matchesProject(project), isTrue);
+    expect(snapshot.matchesProject(loaded), isTrue);
+    expect(snapshot.matchesProject(project.copyWith(name: 'Changed')), isFalse);
+    expect(
+      snapshot.matchesProject(
+        projectWithCells(const [GridPos(x: 2, y: 0)]),
+      ),
+      isFalse,
+    );
     expect(project.elements.single.collisionProfile!.cells.first.x, 1);
   });
 
