@@ -180,7 +180,7 @@ class PlayerDialogueSurface extends StatelessWidget {
                   child: AnimatedSwitcher(
                     duration: context.playerMotion.fast,
                     child: Semantics(
-                      key: ValueKey<int>(data.revision),
+                      key: ValueKey<PlayerDialogueMode>(data.mode),
                       container: true,
                       liveRegion: true,
                       label: _semanticLabel(data, showSpeakerName),

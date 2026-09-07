@@ -5,6 +5,39 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets(
+      'revealing letters keeps the dialogue opaque and commands current',
+      (tester) async {
+    DialoguePresentationCommand? command;
+    for (var revision = 1; revision <= 8; revision++) {
+      final text = 'Bonjour !'.substring(0, revision);
+      await _pump(tester,
+          snapshot: DialoguePresentationSnapshot(
+            revision: revision,
+            mode: DialoguePresentationMode.line,
+            nodeTitle: 'intro',
+            speaker: 'Lysa',
+            text: text,
+            fullText: 'Bonjour !',
+            isCurrentLineFullyRevealed: false,
+            isLastContent: false,
+            choices: const [],
+          ),
+          onCommand: (value) => command = value);
+      await tester.pump(const Duration(milliseconds: 30));
+      expect(find.text('Lysa'), findsOneWidget);
+      for (final fade in tester.widgetList<FadeTransition>(find.ancestor(
+          of: find.text(text), matching: find.byType(FadeTransition)))) {
+        expect(fade.opacity.value, 1.0);
+      }
+    }
+    await tester.tap(find.byKey(const ValueKey<String>('dialogue-tap-zone')));
+    expect(
+        command,
+        isA<DialogueAdvanceCommand>()
+            .having((value) => value.snapshotRevision, 'revision', 8));
+  });
+
   testWidgets('renders speaker and advances the current revision',
       (tester) async {
     DialoguePresentationCommand? command;
