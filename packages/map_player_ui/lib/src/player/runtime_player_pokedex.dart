@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_menu_components.dart';
+import '../foundation/player_pokemon_type_badge.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'runtime_player_actions.dart';
@@ -504,9 +505,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
               const SizedBox(height: 16),
               Wrap(spacing: 8, runSpacing: 8, children: [
                 for (final type in entry.pokedexEntry!.typeIds)
-                  PlayerMenuBadge(
-                      label: context.playerL10n.battleMoveType(type),
-                      kind: PlayerMenuBadgeKind.type),
+                  PlayerPokemonTypeBadge(type: type),
               ]),
             ],
             const SizedBox(height: 24),

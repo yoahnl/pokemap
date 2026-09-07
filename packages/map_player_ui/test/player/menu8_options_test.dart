@@ -3,12 +3,179 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gamepads/gamepads.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    testWidgets('options footer keeps two aligned touch buttons at $size',
+        (tester) async {
+      await _pumpSurface(tester, size: size, scale: 1, onChanged: (_) {});
+      final defaults = find.byKey(const ValueKey('options-defaults-surface'));
+      final back = find.byKey(const ValueKey('pause-frame-return-surface'));
+      expect(defaults.hitTestable(), findsOneWidget);
+      expect(back.hitTestable(), findsOneWidget);
+      final first = tester.getRect(defaults);
+      final second = tester.getRect(back);
+      expect(first.height, greaterThanOrEqualTo(48));
+      expect(second.height, first.height);
+      expect(second.width, closeTo(first.width, .1));
+      expect(second.top, closeTo(first.top, .1));
+      expect(second.left - first.right, closeTo(8, .1));
+      expect(second.right, lessThanOrEqualTo(size.width));
+      expect(second.bottom, lessThanOrEqualTo(size.height));
+      await tester.tap(defaults);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('options-reset-cancel')).hitTestable(),
+          findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final (size, scale) in [
+    (const Size(1440, 900), 1.0),
+    (const Size(844, 390), 2.0),
+    (const Size(390, 844), 2.0),
+  ]) {
+    testWidgets(
+        'routed options footer resets its category at $size text $scale',
+        (tester) async {
+      final changes = <PlayerPreferencesSnapshot>[];
+      await _pumpSurface(tester,
+          size: size, scale: scale, onChanged: changes.add);
+      await _category(tester, 'audio');
+      final defaults = find.byKey(const ValueKey('options-defaults'));
+      final footer = find.byType(PlayerMenuFooter);
+      expect(find.descendant(of: footer, matching: defaults), findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('runtime-player-options')),
+              matching: defaults),
+          findsNothing);
+      expect(defaults.hitTestable(), findsOneWidget);
+      expect(tester.getSize(defaults).height, greaterThanOrEqualTo(48));
+      expect(
+          find
+              .byKey(const ValueKey('pause-frame-return-surface'))
+              .hitTestable(),
+          findsOneWidget);
+      await _tap(tester, 'options-defaults');
+      await _tap(tester, 'options-reset-cancel');
+      expect(changes, isEmpty);
+      await _tap(tester, 'options-defaults');
+      await _tap(tester, 'options-reset-confirm');
+      expect(changes.single.audioMix, const RuntimeAudioMix());
+      expect(changes.single.highContrast, isTrue);
+      expect(
+          find.byKey(const ValueKey('options-master-slider')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets(
+      'standalone defaults is compact and choice keeps a trailing arrow',
+      (tester) async {
+    await _pump(tester);
+    expect(find.text('Choisissez la vitesse d’affichage des dialogues.'),
+        findsOneWidget);
+    final defaults = find.byKey(const ValueKey('options-defaults'));
+    final body = find.byKey(const ValueKey('runtime-player-options'));
+    expect(tester.getSize(defaults).width,
+        lessThan(tester.getSize(body).width / 2));
+    expect(tester.getRect(defaults).right,
+        closeTo(tester.getRect(body).right, .01));
+    final choice = find.byKey(const ValueKey('options-text-speed-choice'));
+    final arrow = find.descendant(
+        of: choice, matching: find.byIcon(Icons.expand_more_rounded));
+    expect(arrow, findsOneWidget);
+    expect(
+        tester.getCenter(arrow).dx, greaterThan(tester.getCenter(choice).dx));
+    expect(tester.getRect(choice).right - tester.getRect(arrow).right,
+        closeTo(13.5, .01));
+    expect(tester.getSize(choice).height, greaterThanOrEqualTo(48));
+    await _tap(tester, 'options-text-speed-choice');
+    expect(find.byKey(const ValueKey('options-choice-back')), findsOneWidget);
+  });
+
+  testWidgets('footer reset follows remapped input and blocks pending writes',
+      (tester) async {
+    final completion = Completer<void>();
+    var writes = 0;
+    final profile = PlayerControlProfile.standard
+        .rebind(
+            device: PlayerControlDevice.keyboard,
+            control: RuntimeInputControl.primary,
+            inputId: 'keyQ')
+        .profile;
+    await _pumpSurface(tester,
+        size: const Size(1440, 900),
+        scale: 1,
+        profile: profile, onChanged: (_) {
+      writes++;
+      return completion.future;
+    });
+    Focus.of(tester
+            .element(find.byKey(const ValueKey('options-defaults-surface'))))
+        .requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-reset-confirm')), findsOneWidget);
+    await _tap(tester, 'options-reset-confirm');
+    expect(writes, 1);
+    final defaults = tester.widget<PlayerMenuSelectableRow>(
+        find.byKey(const ValueKey('options-defaults')));
+    expect(defaults.onPressed, isNull);
+    expect(defaults.busy, isTrue);
+    completion.completeError(
+        const RuntimePlayerOptionsFailure('Le stockage est indisponible.'));
+    await tester.pumpAndSettle();
+    expect(find.text('Le stockage est indisponible.'), findsOneWidget);
+    expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+                find.byKey(const ValueKey('options-defaults')))
+            .onPressed,
+        isNotNull);
+    expect(writes, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('gamepad Y keeps its binding and A opens the focused reset',
+      (tester) async {
+    final changes = <PlayerPreferencesSnapshot>[];
+    final bridge = RuntimePlayerGamepadBridge();
+    await _pumpSurface(tester,
+        size: const Size(1440, 900), scale: 1, onChanged: changes.add);
+    Focus.of(tester
+            .element(find.byKey(const ValueKey('options-defaults-surface'))))
+        .requestFocus();
+    await tester.pump();
+    Future<void> press(GamepadButton button) async {
+      final event = bridge
+          .handleButton(gamepadId: 'options-test', button: button, value: 1)
+          .single;
+      final command = playerInputCommandFromRuntimeEvent(event,
+          source: PlayerInputSource.controller);
+      Actions.invoke(FocusManager.instance.primaryFocus!.context!,
+          RuntimePlayerLogicalIntent(command.action, source: command.source));
+      await tester.pumpAndSettle();
+    }
+
+    await press(GamepadButton.y);
+    expect(find.byType(Dialog), findsNothing);
+    expect(changes, isEmpty);
+    await press(GamepadButton.a);
+    expect(find.byKey(const ValueKey('options-reset-confirm')), findsOneWidget);
+    await press(GamepadButton.b);
+    expect(find.byType(Dialog), findsNothing);
+    expect(changes, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final dialog in ['choice', 'reset']) {
     testWidgets('removing Options dismisses its $dialog dialog',
         (tester) async {
@@ -64,7 +231,7 @@ void main() {
     expect(changes.single.gamepad, PlayerControlProfile.standard.gamepad);
     expect(
         tester
-            .widget<PlayerActionButton>(
+            .widget<PlayerMenuSelectableRow>(
                 find.byKey(const ValueKey('options-binding-up-choice')))
             .onPressed,
         isNull);
@@ -132,7 +299,7 @@ void main() {
     expect(slider.onChanged, isNull);
     expect(
         tester
-            .widget<PlayerActionButton>(
+            .widget<PlayerMenuSelectableRow>(
                 find.byKey(const ValueKey('options-defaults')))
             .onPressed,
         isNull);
@@ -289,7 +456,7 @@ void main() {
     await _tap(tester, 'options-choice-space');
     expect(
         tester
-            .widget<PlayerActionButton>(
+            .widget<PlayerMenuSelectableRow>(
                 find.byKey(const ValueKey('options-binding-primary-choice')))
             .label,
         'E');
@@ -299,7 +466,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
         tester
-            .widget<PlayerActionButton>(
+            .widget<PlayerMenuSelectableRow>(
                 find.byKey(const ValueKey('options-binding-primary-choice')))
             .label,
         'E');
@@ -448,9 +615,57 @@ const _categories = [
 const _preferences = PlayerPreferencesSnapshot(
     locale: 'fr', accessibility: GameSessionAccessibilityOptions());
 
+Future<void> _pumpSurface(WidgetTester tester,
+    {required Size size,
+    required double scale,
+    PlayerControlProfile? profile,
+    required FutureOr<void> Function(PlayerPreferencesSnapshot)
+        onChanged}) async {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = size;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(MaterialApp(
+    locale: const Locale('fr'),
+    localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+    supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+    theme: PokeMapPlayerTheme.dark().copyWith(platform: TargetPlatform.macOS),
+    builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(scale)),
+        child: child!),
+    home: RuntimePlayerSurfaceRouter(
+      snapshot: RuntimePlayerSnapshot(
+          revision: 1,
+          phase: RuntimePlayerPhase.paused,
+          gameTitle: 'Voyage',
+          pauseSection: RuntimePlayerPauseSection.options,
+          preferences: _preferences.copyWith(
+              highContrast: true,
+              audioMix: const RuntimeAudioMix(masterVolume: .2)),
+          actions: const [
+            RuntimePlayerActionAvailability.enabled(
+                RuntimePlayerAction.openOptions),
+            RuntimePlayerActionAvailability.enabled(
+                RuntimePlayerAction.updatePreferences),
+          ]),
+      titlePresentation: const RuntimePlayerTitlePresentation(author: 'Train'),
+      pausePresentation: const PlayerPausePresentation(
+          style: ProjectPauseMenuStyle.nightIllustrated),
+      hardwareGamepadEnabled: false,
+      controlProfile: profile,
+      gameSceneBuilder: (_) => const SizedBox.expand(),
+      onPreferencesChanged: onChanged,
+      onAction: (_) async => const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted),
+    ),
+  ));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _tap(WidgetTester tester, String key) async {
   final finder = find.byKey(ValueKey(key));
   await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();
 }

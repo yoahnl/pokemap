@@ -25,13 +25,19 @@ final class PresentationMediaAliasStore {
   final Directory root;
 
   final Map<String, Uri> _aliases = <String, Uri>{};
+  final Map<String, Future<Uri>> _pending = <String, Future<Uri>>{};
   final Set<String> _refused = <String>{};
 
   /// The path [media] should be played from, aliasing [blob] when it helps.
-  Future<Uri> resolve(ProjectMediaAsset media, Uri blob) async {
+  Future<Uri> resolve(ProjectMediaAsset media, Uri blob) =>
+      resolveContainer(_extensionFor(media), blob);
+
+  Future<Uri> resolveContainer(String? container, Uri blob) async {
     if (blob.scheme != 'file') return blob;
-    final extension = _extensionFor(media);
-    if (extension == null) return blob;
+    final extension = container?.toLowerCase();
+    if (extension == null || !RegExp(r'^[a-z0-9]+$').hasMatch(extension)) {
+      return blob;
+    }
     final path = blob.toFilePath();
     if (p.extension(path).toLowerCase() == '.$extension') return blob;
 
@@ -40,6 +46,10 @@ final class PresentationMediaAliasStore {
     if (cached != null) return cached;
     if (_refused.contains(key)) return blob;
 
+    return _pending.putIfAbsent(key, () => _createAlias(key, path, blob));
+  }
+
+  Future<Uri> _createAlias(String key, String path, Uri blob) async {
     try {
       final alias = File(p.join(root.path, key));
       if (!await alias.exists()) {

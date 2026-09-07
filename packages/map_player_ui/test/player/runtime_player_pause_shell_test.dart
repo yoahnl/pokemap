@@ -87,8 +87,7 @@ void main() {
     )));
     await tester.pumpAndSettle();
     expect(find.text('Titre auteur'), findsNothing);
-    expect(find.byKey(const ValueKey('runtime-pause-layout-compactLandscape')),
-        findsOneWidget);
+    expect(find.text('Résumé du voyage'), findsNothing);
     expect(find.byKey(const ValueKey('runtime-menu-background-unavailable')),
         findsNothing);
     expect(tester.takeException(), isNull);

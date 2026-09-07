@@ -17,11 +17,13 @@ import 'runtime_player_actions.dart';
 
 final class RuntimePlayerBagNavigation extends ChangeNotifier {
   bool Function()? _back;
-  WidgetBuilder? _actions;
+  Widget Function(BuildContext, Widget?)? _actions;
 
   bool back() => _back?.call() ?? false;
-  Widget buildActions(BuildContext context) =>
-      _actions?.call(context) ?? const SizedBox.shrink();
+  Widget buildActions(BuildContext context, {Widget? returnAction}) =>
+      _actions?.call(context, returnAction) ??
+      returnAction ??
+      const SizedBox.shrink();
   void refresh() => notifyListeners();
 }
 
@@ -100,7 +102,23 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
   @override
   void initState() {
     super.initState();
+    _pocketsScroll.addListener(_restorePocketArrowFocus);
     _bind();
+  }
+
+  void _restorePocketArrowFocus() {
+    if (!_pocketsScroll.hasClients) return;
+    final pockets = _pockets;
+    if (pockets.isEmpty) return;
+    final position = _pocketsScroll.position;
+    final pocket =
+        position.pixels <= .5 && _nodes['pockets-previous']?.hasFocus == true
+            ? pockets.first
+            : position.pixels >= position.maxScrollExtent - .5 &&
+                    _nodes['pockets-next']?.hasFocus == true
+                ? pockets.last
+                : null;
+    if (pocket != null) _node('pocket-${pocket.id}').requestFocus();
   }
 
   void _bind() {
@@ -254,7 +272,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
 
   Widget _pocketBar(List<RuntimePlayerBagPocketSnapshot> pockets,
       {required bool short}) {
-    final width = short ? 96.0 : 170.0;
+    const width = 72.0;
     void focusPocket(int index) {
       final pocket = pockets[index.clamp(0, pockets.length - 1)];
       _changePocket(pocket.id);
@@ -275,6 +293,9 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
             id: forward ? 'bag-pockets-next' : 'bag-pockets-previous',
             label: '',
             semanticValue: label,
+            focusNode: _node(forward ? 'pockets-next' : 'pockets-previous'),
+            iconOnly: true,
+            integrated: true,
             contentPadding: EdgeInsets.zero,
             leading: Icon(forward ? Icons.chevron_right : Icons.chevron_left,
                 size: 20),
@@ -305,8 +326,10 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
         animation: _pocketsScroll,
         builder: (_, __) => Row(children: [
           if (overflows) ...[
-            arrow(
-                false, _pocketsScroll.hasClients && _pocketsScroll.offset > .5),
+            if (_pocketsScroll.hasClients && _pocketsScroll.offset > .5)
+              arrow(false, true)
+            else
+              const SizedBox(width: 56),
             const SizedBox(width: 4),
           ],
           Expanded(
@@ -360,18 +383,16 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                                 id: 'bag-pocket-${pockets[index].id}',
                                 key:
                                     ValueKey('bag-pocket-${pockets[index].id}'),
-                                label: short ? '' : pockets[index].label,
-                                semanticValue: pockets[index].label,
+                                label: pockets[index].label,
+                                iconOnly: true,
+                                integrated: true,
                                 labelMaxLines: 1,
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 4),
                                 selected: pockets[index].id == _pocket,
                                 focusNode: _node('pocket-${pockets[index].id}'),
-                                leading: Icon(
-                                    pockets[index].id == _favorites
-                                        ? Icons.star
-                                        : Icons.inventory_2_outlined,
-                                    size: 32),
+                                leading: Icon(_pocketIcon(pockets[index].id),
+                                    size: 28),
                                 onPressed: () =>
                                     _changePocket(pockets[index].id),
                                 onFocusChanged: (focused) {
@@ -398,16 +419,30 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
           ),
           if (overflows) ...[
             const SizedBox(width: 4),
-            arrow(
-                true,
-                !_pocketsScroll.hasClients ||
-                    _pocketsScroll.offset <
-                        _pocketsScroll.position.maxScrollExtent - .5),
+            if (!_pocketsScroll.hasClients ||
+                _pocketsScroll.offset <
+                    _pocketsScroll.position.maxScrollExtent - .5)
+              arrow(true, true)
+            else
+              const SizedBox(width: 56),
           ],
         ]),
       );
     });
   }
+
+  IconData _pocketIcon(String id) => switch (id.replaceAll('_', '-')) {
+        '@favorites' => Icons.star_rounded,
+        'medicine' => Icons.medication_rounded,
+        'balls' => Icons.catching_pokemon,
+        'berries' => Icons.spa_rounded,
+        'machines' => Icons.album_rounded,
+        'battle-items' => Icons.shield_rounded,
+        'key-items' => Icons.vpn_key_rounded,
+        'held-items' => Icons.diamond_outlined,
+        'evolution-items' => Icons.auto_awesome_rounded,
+        _ => Icons.inventory_2_rounded,
+      };
 
   Widget _list(bool compact, {bool showTitle = true}) {
     if (_visible.isEmpty) {
@@ -520,78 +555,111 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
             },
             child: Semantics(
                 label: entry.title,
-                child: SingleChildScrollView(
-                  key: ValueKey('bag-detail-${_id(entry)}'),
-                  controller: controller,
-                  child: PlayerMenuPanel(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            SizedBox(
-                                height: 240,
-                                child: PlayerBagItemImage(
-                                    entry: entry, size: 240)),
-                            const SizedBox(height: 16),
-                            Text(entry.title,
-                                style: context.playerMenuTheme.subtitle),
-                            const Divider(),
-                            Text(
-                                entry.bagItem?.description ??
-                                    entry.subtitle ??
-                                    _text('Aucune description disponible.',
-                                        'No description available.'),
-                                style: context.playerMenuTheme.body),
-                            if (entry.bagAction?.unavailableReason
-                                case final reason?) ...[
-                              const SizedBox(height: 16),
-                              Text(reason, style: context.playerMenuTheme.meta),
-                            ],
-                          ])),
-                ))));
+                child: LayoutBuilder(builder: (context, constraints) {
+                  final short = constraints.hasBoundedHeight &&
+                      constraints.maxHeight < 320 &&
+                      constraints.maxWidth >= 400;
+                  final padding = short ? 16.0 : 24.0;
+                  final imageSize = short
+                      ? (constraints.maxHeight - padding * 2).clamp(64.0, 160.0)
+                      : 240.0;
+                  final image = SizedBox(
+                      height: imageSize,
+                      child: PlayerBagItemImage(entry: entry, size: imageSize));
+                  final description = Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(entry.title,
+                            style: context.playerMenuTheme.subtitle),
+                        const Divider(),
+                        Text(
+                            entry.bagItem?.description ??
+                                entry.subtitle ??
+                                _text('Aucune description disponible.',
+                                    'No description available.'),
+                            style: context.playerMenuTheme.body),
+                        if (entry.bagAction?.unavailableReason
+                            case final reason?) ...[
+                          const SizedBox(height: 16),
+                          Text(reason, style: context.playerMenuTheme.meta),
+                        ],
+                      ]);
+                  return SingleChildScrollView(
+                    key: ValueKey('bag-detail-${_id(entry)}'),
+                    controller: controller,
+                    child: PlayerMenuPanel(
+                        padding: EdgeInsets.all(padding),
+                        child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                                minHeight: constraints.hasBoundedHeight
+                                    ? (constraints.maxHeight - padding * 2)
+                                        .clamp(0, double.infinity)
+                                    : 0),
+                            child: short
+                                ? Row(children: [
+                                    SizedBox(width: imageSize, child: image),
+                                    const SizedBox(width: 24),
+                                    Expanded(child: description),
+                                  ])
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                        image,
+                                        const SizedBox(height: 16),
+                                        description,
+                                      ]))),
+                  );
+                }))));
   }
 
-  Widget _actions(BuildContext context) {
+  Widget _actions(BuildContext context, [Widget? returnAction]) {
     final entry = _selected;
-    if (entry == null) return const SizedBox.shrink();
+    if (entry == null) return returnAction ?? const SizedBox.shrink();
     final action = entry.bagAction;
+    final children = <Widget>[
+      if (action?.isEnabled == true && widget.onCommand != null)
+        PlayerMenuSelectableRow(
+            key: ValueKey('runtime-player-bag-use-${action!.itemTargetId}'),
+            id: 'runtime-player-bag-use-${action.itemTargetId}',
+            integrated: returnAction == null,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            label: PlayerBagStrings.of(context).use,
+            focusNode: _detailFocus,
+            leading: const Icon(Icons.healing),
+            busy: _busy,
+            onPressed: _busy ? null : () => _use(entry, action)),
+      if (widget.onFavoriteChanged != null)
+        PlayerMenuSelectableRow(
+            key: ValueKey('bag-favorite-${_id(entry)}'),
+            focusNode: action?.isEnabled == true && widget.onCommand != null
+                ? null
+                : _detailFocus,
+            id: 'bag-favorite-${_id(entry)}',
+            integrated: returnAction == null,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            label: widget.favoriteItemIds.contains(_id(entry))
+                ? _text('Retirer des favoris', 'Unfavorite')
+                : _text('Favori', 'Favorite'),
+            leading: Icon(widget.favoriteItemIds.contains(_id(entry))
+                ? Icons.star
+                : Icons.star_border),
+            busy: _busy,
+            onPressed: _busy
+                ? null
+                : () => _run(() => widget.onFavoriteChanged!(
+                    _id(entry), !widget.favoriteItemIds.contains(_id(entry))))),
+    ];
     return PlayerMenuThemeScope(
         role: ProjectPresentationSurfaceRole.bag,
-        child: Wrap(spacing: 8, runSpacing: 8, children: [
-          if (action?.isEnabled == true && widget.onCommand != null)
-            IntrinsicWidth(
-                child: PlayerMenuSelectableRow(
-                    key: ValueKey(
-                        'runtime-player-bag-use-${action!.itemTargetId}'),
-                    id: 'runtime-player-bag-use-${action.itemTargetId}',
-                    integrated: true,
-                    label: PlayerBagStrings.of(context).use,
-                    focusNode: _detailFocus,
-                    leading: const Icon(Icons.healing),
-                    busy: _busy,
-                    onPressed: _busy ? null : () => _use(entry, action))),
-          if (widget.onFavoriteChanged != null)
-            IntrinsicWidth(
-                child: PlayerMenuSelectableRow(
-                    key: ValueKey('bag-favorite-${_id(entry)}'),
-                    focusNode:
-                        action?.isEnabled == true && widget.onCommand != null
-                            ? null
-                            : _detailFocus,
-                    id: 'bag-favorite-${_id(entry)}',
-                    integrated: true,
-                    label: widget.favoriteItemIds.contains(_id(entry))
-                        ? _text('Retirer des favoris', 'Unfavorite')
-                        : _text('Favori', 'Favorite'),
-                    leading: Icon(widget.favoriteItemIds.contains(_id(entry))
-                        ? Icons.star
-                        : Icons.star_border),
-                    busy: _busy,
-                    onPressed: _busy
-                        ? null
-                        : () => _run(() => widget.onFavoriteChanged!(_id(entry),
-                            !widget.favoriteItemIds.contains(_id(entry)))))),
-        ]));
+        child: returnAction == null
+            ? Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final child in children) IntrinsicWidth(child: child),
+              ])
+            : PlayerMenuActionGroup(children: [...children, returnAction]));
   }
 
   Future<void> _use(RuntimePlayerDetailEntrySnapshot entry,
@@ -670,7 +738,15 @@ class PlayerBagItemImage extends StatelessWidget {
             height: size,
             child: path == null
                 ? placeholder
-                : Image.file(File(path),
+                : Image(
+                    image: ResizeImage(
+                      FileImage(File(path)),
+                      width: (size * MediaQuery.devicePixelRatioOf(context))
+                          .ceil(),
+                      height: (size * MediaQuery.devicePixelRatioOf(context))
+                          .ceil(),
+                      policy: ResizeImagePolicy.fit,
+                    ),
                     key: ValueKey('${entry.id}-$path-$size'),
                     fit: BoxFit.contain,
                     gaplessPlayback: false,

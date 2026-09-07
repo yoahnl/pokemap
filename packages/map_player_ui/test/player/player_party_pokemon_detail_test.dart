@@ -27,6 +27,12 @@ void main() {
     expect(find.text('Mâle'), findsOneWidget);
     expect(find.text('PLANTE'), findsOneWidget);
     expect(find.text('POISON'), findsOneWidget);
+    final types = tester.widgetList<PlayerPokemonTypeBadge>(
+        find.byType(PlayerPokemonTypeBadge));
+    expect(types.where((badge) => !badge.compact).map((badge) => badge.type),
+        ['grass', 'poison']);
+    expect(types.where((badge) => badge.compact).map((badge) => badge.type),
+        ['normal', 'normal']);
     expect(find.text('20/48'), findsOneWidget);
     for (final value in ['49', '50', '65', '66', '45']) {
       expect(find.text(value), findsOneWidget);
@@ -97,6 +103,21 @@ void main() {
     expect(find.byKey(const ValueKey('pokemon-image-missing-party.one')),
         findsOneWidget);
   });
+
+  for (final form in [
+    ('base', 'Base', false),
+    ('alola', 'Forme d’Alola', true),
+    (null, 'Base', true),
+  ]) {
+    testWidgets('form label visibility follows the exact form ID ${form.$1}',
+        (tester) async {
+      await tester.pumpWidget(
+          _host(_summary(formId: form.$1, formLabel: form.$2), width: 840));
+      await tester.pump();
+      expect(find.text(form.$2), form.$3 ? findsOneWidget : findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
 
 Widget _host(RuntimePokemonSummarySnapshot summary,
@@ -127,6 +148,8 @@ Widget _host(RuntimePokemonSummarySnapshot summary,
 RuntimePokemonSummarySnapshot _summary({
   String nickname = 'Pistache',
   String ability = 'Engrais',
+  String? formId,
+  String? formLabel,
   int hp = 20,
   RuntimePokemonStatsSummarySnapshot? stats =
       const RuntimePokemonStatsSummarySnapshot(
@@ -158,6 +181,9 @@ RuntimePokemonSummarySnapshot _summary({
       individualId: 'one',
       speciesLabel: 'Bulbizarre',
       nickname: nickname,
+      identity:
+          RuntimePokemonMediaIdentity(speciesId: 'bulbasaur', formId: formId),
+      formLabel: formLabel,
       level: 12,
       currentHp: hp,
       maxHp: 48,

@@ -19,6 +19,59 @@ void main() {
         .load();
   });
 
+  for (final size in [
+    const Size(390, 844),
+    const Size(844, 390),
+    const Size(1440, 900),
+  ]) {
+    testWidgets('party footer exposes one aligned action group at $size',
+        (tester) async {
+      final navigation = RuntimePlayerPartyNavigation();
+      addTearDown(navigation.dispose);
+      await _pump(tester, [_member('first', held: true), _member('second')],
+          navigation: navigation,
+          onCommand: (_) {},
+          canReorder: true,
+          size: size);
+      final bounds = <Rect>[];
+      for (final id in [
+        'runtime-player-party-summary-pokemon.first',
+        'runtime-player-held-manage-pokemon.first',
+        'party-swap',
+        'pause-frame-return',
+      ]) {
+        final button = find.byKey(ValueKey('$id-surface'));
+        expect(button.hitTestable(), findsOneWidget, reason: id);
+        final rect = tester.getRect(button);
+        expect(rect.left, greaterThanOrEqualTo(0), reason: id);
+        expect(rect.right, lessThanOrEqualTo(size.width), reason: id);
+        expect(rect.bottom, lessThanOrEqualTo(size.height), reason: id);
+        expect(rect.height, greaterThanOrEqualTo(48), reason: id);
+        bounds.add(rect);
+      }
+      for (final rect in bounds.skip(1)) {
+        expect(rect.width, closeTo(bounds.first.width, .1));
+      }
+      for (var i = 1; i < bounds.length; i++) {
+        expect(bounds[i].top, closeTo(bounds.first.top, .1));
+        expect(bounds[i].left - bounds[i - 1].right, closeTo(8, .1));
+      }
+      expect((bounds.first.left + bounds.last.right) / 2,
+          closeTo(size.width / 2, .1));
+      if (size.width < 600) {
+        expect(bounds.first.height, lessThanOrEqualTo(72));
+        final summary = find.byKey(
+            const ValueKey('runtime-player-party-summary-pokemon.first'));
+        final icon = find.descendant(of: summary, matching: find.byType(Icon));
+        final label =
+            find.descendant(of: summary, matching: find.text('Résumé'));
+        expect(
+            tester.getRect(icon).bottom, lessThan(tester.getRect(label).top));
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   for (final summary in [true, false]) {
     testWidgets(
         'desktop actions hands keyboard focus to ${summary ? 'summary' : 'held item'} modal',
@@ -106,6 +159,108 @@ void main() {
     }
     expect(previous!.bottom, closeTo(644, .01));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('moving at 1440x900 keeps the sixth destination visible',
+      (tester) async {
+    final navigation = RuntimePlayerPartyNavigation();
+    addTearDown(navigation.dispose);
+    final commands = <RuntimePlayerPauseCommand>[];
+    await _pump(tester,
+        List.generate(6, (i) => _member('member$i', nickname: 'Pokémon $i')),
+        size: const Size(1440, 900),
+        navigation: navigation,
+        onCommand: commands.add,
+        canReorder: true);
+    final sixth = find.byKey(const ValueKey('party-member-member5'));
+    final before = tester.getRect(sixth);
+    await _tap(tester, 'party-swap');
+    expect(tester.getRect(sixth), before);
+    expect(sixth.hitTestable(), findsOneWidget);
+    final viewport =
+        tester.getRect(find.byKey(const ValueKey('party-list-scroll')));
+    expect(tester.getRect(sixth).bottom, lessThanOrEqualTo(viewport.bottom));
+    final hint = find.text('Choisissez la nouvelle position');
+    expect(tester.getTopLeft(hint).dx, greaterThan(viewport.right));
+    final cancel = find.byKey(const ValueKey('party-swap-cancel'));
+    expect(cancel.hitTestable(), findsOneWidget);
+    expect(tester.getSize(cancel).width, lessThan(240));
+    await tester.tap(sixth);
+    await tester.pumpAndSettle();
+    expect(commands.single.partyTargetId, 'pokemon.member0');
+    expect(commands.single.secondPartyTargetId, 'pokemon.member5');
+    expect(_row(tester, 'member0').focusNode!.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('party health gauges keep equal widths with or without gender',
+      (tester) async {
+    final navigation = RuntimePlayerPartyNavigation();
+    addTearDown(navigation.dispose);
+    await _pump(
+        tester,
+        [
+          _member('female', nickname: 'Carapuce', gender: 'Femelle', hp: 0),
+          _member('male', nickname: 'Salamèche', gender: 'Mâle'),
+          _member('unknown', nickname: 'Germignon', gender: null),
+          _member('status',
+              nickname: 'Pikachu', gender: null, status: 'Brûlure'),
+        ],
+        size: const Size(1440, 900),
+        navigation: navigation);
+    double? expectedWidth;
+    for (final id in ['female', 'male', 'unknown', 'status']) {
+      final row = find.byKey(ValueKey('party-member-$id'));
+      final gauge =
+          find.descendant(of: row, matching: find.byType(PlayerMenuGauge));
+      final width = tester.getSize(gauge).width;
+      expectedWidth ??= width;
+      expect(width, closeTo(expectedWidth, .01));
+      expect(tester.getSize(row).height, 94);
+    }
+    for (final gender in [('female', Icons.female), ('male', Icons.male)]) {
+      final row = find.byKey(ValueKey('party-member-${gender.$1}'));
+      final symbol = find.descendant(of: row, matching: find.byIcon(gender.$2));
+      expect(tester.getRect(row).right - tester.getRect(symbol).right,
+          lessThanOrEqualTo(16));
+    }
+    final fainted = find.byKey(const ValueKey('party-member-female'));
+    final status = find.byKey(const ValueKey('party-member-status'));
+    expect(find.descendant(of: fainted, matching: find.text('KO')),
+        findsOneWidget);
+    expect(find.descendant(of: status, matching: find.text('Brûlure')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final gender in [('Femelle', Icons.female), ('Mâle', Icons.male)]) {
+    testWidgets('selected ${gender.$1} symbol keeps its label and row contrast',
+        (tester) async {
+      await _pump(tester, [_member('first', gender: gender.$1)]);
+      final row = find.byKey(const ValueKey('party-member-first'));
+      final symbol = find.descendant(of: row, matching: find.byIcon(gender.$2));
+      final icon = tester.widget<Icon>(symbol);
+      final element = tester.element(symbol);
+      expect(icon.size, 20);
+      expect(icon.semanticLabel, gender.$1);
+      expect(icon.color ?? IconTheme.of(element).color,
+          DefaultTextStyle.of(element).style.color);
+      expect(tester.getSemantics(row).getSemanticsData().value,
+          contains(gender.$1));
+      expect(find.descendant(of: row, matching: find.text(gender.$1)),
+          findsNothing);
+    });
+  }
+
+  testWidgets('genderless label remains explicit', (tester) async {
+    await _pump(tester, [_member('first', gender: 'Asexué')]);
+    final row = find.byKey(const ValueKey('party-member-first'));
+    expect(find.descendant(of: row, matching: find.text('Asexué')),
+        findsOneWidget);
+    expect(find.descendant(of: row, matching: find.byIcon(Icons.male)),
+        findsNothing);
+    expect(find.descendant(of: row, matching: find.byIcon(Icons.female)),
+        findsNothing);
   });
 
   testWidgets(
@@ -304,7 +459,11 @@ void main() {
     final entries = [_member('first'), _member('second'), _member('third')];
     await _pump(tester, entries, onCommand: commands.add, canReorder: true);
     await _focus(tester, 'second');
+    expect(find.text('Déplacer'), findsOneWidget);
     await _tap(tester, 'party-swap');
+    expect(find.text('Choisissez la nouvelle position'), findsOneWidget);
+    expect(
+        find.text('Les deux Pokémon échangeront leur place.'), findsOneWidget);
     expect(find.byKey(const ValueKey('party-swap-source')), findsOneWidget);
     await _focus(tester, 'third');
     expect(_row(tester, 'third').selected, isTrue);
@@ -316,6 +475,7 @@ void main() {
     await _tap(tester, 'party-swap-cancel');
     expect(commands, isEmpty);
     expect(find.byKey(const ValueKey('party-swap-source')), findsNothing);
+    expect(_row(tester, 'second').focusNode!.hasFocus, isTrue);
 
     await _focus(tester, 'second');
     await _tap(tester, 'party-swap');
@@ -331,11 +491,161 @@ void main() {
     expect(_row(tester, 'second').focusNode!.hasFocus, isTrue);
   });
 
+  testWidgets(
+      'controller selects the destination and cancels back to its source',
+      (tester) async {
+    final commands = <RuntimePlayerPauseCommand>[];
+    await _pump(tester, [_member('first'), _member('second'), _member('third')],
+        onCommand: commands.add, canReorder: true);
+    await _focus(tester, 'second');
+    await _tap(tester, 'party-swap');
+    Actions.invoke(
+        FocusManager.instance.primaryFocus!.context!,
+        const RuntimePlayerLogicalIntent(PlayerInputAction.down,
+            source: PlayerInputSource.controller));
+    await tester.pumpAndSettle();
+    expect(_row(tester, 'third').focusNode!.hasFocus, isTrue);
+    Actions.invoke(
+        FocusManager.instance.primaryFocus!.context!,
+        const RuntimePlayerLogicalIntent(PlayerInputAction.back,
+            source: PlayerInputSource.controller));
+    await tester.pumpAndSettle();
+    expect(_row(tester, 'second').focusNode!.hasFocus, isTrue);
+    expect(commands, isEmpty);
+
+    await _tap(tester, 'party-swap');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(commands.single.partyTargetId, 'pokemon.second');
+    expect(commands.single.secondPartyTargetId, 'pokemon.first');
+    expect(_row(tester, 'second').focusNode!.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('rejected move keeps its source and accepts a later retry',
+      (tester) async {
+    const reason = 'Cette destination n’est plus disponible.';
+    final commands = <RuntimePlayerPauseCommand>[];
+    final pending = Completer<void>();
+    await _pump(tester, [_member('first'), _member('second'), _member('third')],
+        canReorder: true, onCommand: (command) {
+      commands.add(command);
+      return pending.future;
+    });
+    await _tap(tester, 'party-swap');
+    await _tap(tester, 'party-member-third');
+    await _tap(tester, 'party-member-second');
+    expect(commands, hasLength(1));
+    expect(_row(tester, 'first').busy, isTrue);
+    expect(find.byKey(const ValueKey('party-swap-source')), findsNothing);
+    pending.completeError(const RuntimePlayerPartyCommandFailure(reason));
+    await tester.pumpAndSettle();
+    expect(find.text(reason), findsOneWidget);
+    expect(find.byKey(const ValueKey('party-swap-source')), findsOneWidget);
+    expect(_row(tester, 'first').focusNode!.hasFocus, isTrue);
+
+    await _pump(tester, [_member('first'), _member('second'), _member('third')],
+        canReorder: true, onCommand: commands.add);
+    await _tap(tester, 'party-member-second');
+    expect(commands, hasLength(2));
+    expect(commands.last.partyTargetId, 'pokemon.first');
+    expect(commands.last.secondPartyTargetId, 'pokemon.second');
+    expect(find.byKey(const ValueKey('party-swap-source')), findsNothing);
+    expect(find.text(reason), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'controller confirms cancel without moving to the selected target',
+      (tester) async {
+    final commands = <RuntimePlayerPauseCommand>[];
+    await _pump(tester, [_member('first'), _member('second')],
+        canReorder: true, onCommand: commands.add);
+    await _tap(tester, 'party-swap');
+    await _focus(tester, 'second');
+    final cancel = find.byKey(const ValueKey('party-swap-cancel'));
+    final icon =
+        find.descendant(of: cancel, matching: find.byIcon(Icons.close));
+    Focus.of(tester.element(icon)).requestFocus();
+    await tester.pumpAndSettle();
+    Actions.invoke(
+        FocusManager.instance.primaryFocus!.context!,
+        const RuntimePlayerLogicalIntent(PlayerInputAction.confirm,
+            source: PlayerInputSource.controller));
+    await tester.pumpAndSettle();
+    expect(commands, isEmpty);
+    expect(find.byKey(const ValueKey('party-swap-source')), findsNothing);
+    expect(_row(tester, 'first').focusNode!.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'dragging a party member dispatches the canonical reorder command',
+      (tester) async {
+    final commands = <RuntimePlayerPauseCommand>[];
+    await _pump(tester, [_member('first'), _member('second'), _member('third')],
+        canReorder: true, onCommand: commands.add);
+    final source = find.byKey(const ValueKey('party-member-first'));
+    final destination = find.byKey(const ValueKey('party-member-third'));
+    final gesture = await tester.startGesture(tester.getCenter(source));
+    await tester.pump(const Duration(milliseconds: 600));
+    await gesture.moveTo(tester.getCenter(destination));
+    await tester.pumpAndSettle();
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(commands, hasLength(1));
+    expect(
+        commands.single.kind, RuntimePlayerPauseCommandKind.reorderPartyMember);
+    expect(commands.single.partyTargetId, 'pokemon.first');
+    expect(commands.single.secondPartyTargetId, 'pokemon.third');
+    expect(_row(tester, 'first').focusNode!.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('swap is absent when the runtime does not authorize it',
       (tester) async {
     await _pump(tester, [_member('first'), _member('second')],
         onCommand: (_) {});
     expect(find.byKey(const ValueKey('party-swap')), findsNothing);
+    expect(find.byType(LongPressDraggable<String>), findsNothing);
+  });
+
+  testWidgets('compact large text keeps placement instructions scrollable',
+      (tester) async {
+    final navigation = RuntimePlayerPartyNavigation();
+    addTearDown(navigation.dispose);
+    final commands = <RuntimePlayerPauseCommand>[];
+    await _pump(tester, [_member('first'), _member('second')],
+        size: const Size(844, 390),
+        scale: 2,
+        navigation: navigation,
+        canReorder: true,
+        onCommand: commands.add);
+    await _tap(tester, 'party-swap');
+    expect(tester.takeException(), isNull);
+    final instruction = find.text('Choisissez la nouvelle position');
+    expect(find.ancestor(of: instruction, matching: find.byType(Scrollable)),
+        findsOneWidget);
+    expect(_row(tester, 'first').focusNode!.hasFocus, isTrue,
+        reason: FocusManager.instance.primaryFocus.toString());
+    Actions.invoke(
+        FocusManager.instance.primaryFocus!.context!,
+        const RuntimePlayerLogicalIntent(PlayerInputAction.down,
+            source: PlayerInputSource.controller));
+    await tester.pumpAndSettle();
+    expect(_row(tester, 'second').focusNode!.hasFocus, isTrue,
+        reason: FocusManager.instance.primaryFocus.toString());
+    expect(find.byKey(const ValueKey('party-member-second')).hitTestable(),
+        findsOneWidget,
+        reason:
+            '${tester.getRect(find.byKey(const ValueKey('party-member-second')))} / ${tester.getRect(find.byKey(const ValueKey('party-compact-scroll')))}');
+    expect(navigation.back(), isTrue);
+    await tester.pumpAndSettle();
+    expect(commands, isEmpty);
+    expect(_row(tester, 'first').focusNode!.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -659,6 +969,11 @@ Future<void> _pump(
             listenable: navigation,
             builder: (context, _) => navigation.buildActions(context),
           ),
+          detailFooterBuilder: (context, returnAction) => ListenableBuilder(
+            listenable: navigation,
+            builder: (context, _) =>
+                navigation.buildActions(context, returnAction: returnAction),
+          ),
           presentation: PlayerPausePresentation(style: style),
         );
   await tester.pumpWidget(MaterialApp(
@@ -709,6 +1024,7 @@ Future<void> _tap(WidgetTester tester, String key) async {
 
 RuntimePlayerDetailEntrySnapshot _member(String id,
     {int hp = 30,
+    String? gender = 'Femelle',
     String? status,
     bool held = false,
     bool longName = false,
@@ -730,7 +1046,7 @@ RuntimePlayerDetailEntrySnapshot _member(String id,
     abilityLabel: 'Engrais',
     friendship: 80,
     experience: 2468,
-    genderLabel: 'Femelle',
+    genderLabel: gender,
     statusLabel: status,
     media: media,
     heldItemLabel: held ? 'Baie Oran' : null,

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/src/player/player_party_pokemon_detail.dart';
 import 'package:map_player_ui/src/player/runtime_player_bag.dart';
 import 'package:map_player_ui/src/player/runtime_player_party.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -55,6 +56,146 @@ void main() {
     picture.dispose();
   });
   tearDownAll(() => _media.delete(recursive: true));
+
+  for (final source in [PlayerInputSource.touch, PlayerInputSource.keyboard]) {
+    testWidgets(
+        'MENU mobile touch scroll keeps Options after ${source.name} rebuild',
+        (tester) async {
+      final harness = _Harness(RuntimePlayerPauseSection.root);
+      RuntimePlayerSnapshot snapshot(int revision, PlayerInputSource input) =>
+          RuntimePlayerSnapshot(
+            revision: revision,
+            phase: harness.snapshot.phase,
+            gameTitle: harness.snapshot.gameTitle,
+            pauseSection: RuntimePlayerPauseSection.root,
+            actions: harness.snapshot.actions,
+            preferences: harness.snapshot.preferences,
+            pauseDetails: harness.snapshot.pauseDetails,
+            logicalSelectionId: 'pause.party',
+            activeInputSource: input,
+          );
+      final snapshots = ValueNotifier(snapshot(1, source));
+      addTearDown(snapshots.dispose);
+      await _pump(tester, harness,
+          size: const Size(390, 844), phoneInsets: true, snapshots: snapshots);
+      final navigation =
+          find.byKey(const ValueKey('runtime-pause-navigation-scroll'));
+      final scroll =
+          tester.widget<SingleChildScrollView>(navigation).controller!;
+      expect(scroll.position.maxScrollExtent, greaterThan(0));
+      final options = find.byKey(const ValueKey('pause.options'));
+      expect(tester.getRect(options).bottom,
+          greaterThan(tester.getRect(navigation).bottom));
+      await tester.timedDrag(
+          navigation, const Offset(0, -300), const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      final afterDrag = scroll.offset;
+      expect(afterDrag, greaterThan(0));
+      snapshots.value = snapshot(2, PlayerInputSource.touch);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+      _expectReachable(tester, options, const Size(390, 844),
+          const EdgeInsets.only(top: 59, bottom: 34));
+      expect(tester.getRect(options).bottom,
+          lessThanOrEqualTo(tester.getRect(navigation).bottom));
+      expect(scroll.offset, closeTo(afterDrag, .1));
+      await tester.tap(options);
+      await tester.pumpAndSettle();
+      expect(harness.actions, [RuntimePlayerAction.openOptions]);
+      _expectNoErrors(tester);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+  }
+
+  for (final source in [PlayerInputSource.touch, PlayerInputSource.keyboard]) {
+    testWidgets('MENU mobile root respects the current ${source.name} input',
+        (tester) async {
+      await _pump(tester, _Harness(RuntimePlayerPauseSection.root),
+          size: const Size(390, 844),
+          phoneInsets: true,
+          activeInputSource: source);
+      expect(find.byType(PlayerMenuKeyHint),
+          source == PlayerInputSource.touch ? findsNothing : findsOneWidget);
+      _expectNoErrors(tester);
+    });
+  }
+
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    final insets = size.width < size.height
+        ? const EdgeInsets.only(top: 59, bottom: 34)
+        : const EdgeInsets.fromLTRB(59, 0, 59, 21);
+    for (final section in _sections) {
+      testWidgets(
+          'MENU mobile ${section.name} ${size.width.toInt()}x${size.height.toInt()} keeps footer actions visible',
+          (tester) async {
+        await _pump(tester, _Harness(section), size: size, insets: insets);
+        _expectNoErrors(tester);
+        _expectControlTargets(tester);
+        final footer = find.byType(PlayerMenuFooter);
+        final actions = find.descendant(
+            of: footer,
+            matching: find.byWidgetPredicate((widget) =>
+                widget is PlayerMenuSelectableRow && widget.onPressed != null));
+        expect(actions, findsWidgets);
+        for (final element in actions.evaluate()) {
+          _expectReachable(
+              tester,
+              find.byElementPredicate((candidate) => candidate == element),
+              size,
+              insets);
+        }
+        final content =
+            find.byKey(ValueKey('runtime-player-detail-${section.name}'));
+        if (content.evaluate().isNotEmpty) {
+          expect(tester.getSize(content).height, greaterThan(96));
+        }
+      },
+          variant: const TargetPlatformVariant(
+              {TargetPlatform.iOS, TargetPlatform.android}));
+    }
+  }
+
+  for (final section in [
+    RuntimePlayerPauseSection.party,
+    RuntimePlayerPauseSection.bag,
+    RuntimePlayerPauseSection.pokedex,
+  ]) {
+    testWidgets('MENU mobile ${section.name} detail survives both rotations',
+        (tester) async {
+      final harness = _Harness(section);
+      await _pump(tester, harness,
+          size: const Size(390, 844), phoneInsets: true);
+      final entry = switch (section) {
+        RuntimePlayerPauseSection.party => 'party-member-member0',
+        RuntimePlayerPauseSection.bag => 'bag-item-item0',
+        RuntimePlayerPauseSection.pokedex => 'pokedex-entry-species.1',
+        _ => throw StateError('Unsupported rotation fixture'),
+      };
+      await _tap(tester, entry);
+      final detail = switch (section) {
+        RuntimePlayerPauseSection.party =>
+          find.byType(PlayerPartyPokemonDetail),
+        RuntimePlayerPauseSection.bag =>
+          find.byKey(const ValueKey('bag-detail-item0')),
+        RuntimePlayerPauseSection.pokedex =>
+          find.byKey(const ValueKey('pokedex-detail-species.1')),
+        _ => throw StateError('Unsupported rotation fixture'),
+      };
+      for (final size in [const Size(844, 390), const Size(390, 844)]) {
+        tester.view.physicalSize = size;
+        await tester.pumpAndSettle();
+        expect(detail, findsOneWidget);
+        _expectNoErrors(tester);
+        final back = find.byKey(const ValueKey('pause-frame-return-surface'));
+        _expectReachable(tester, back, size, _phoneInsets(size));
+      }
+      await _tap(tester, 'pause-frame-return-surface');
+      expect(harness.actions, isEmpty);
+      expect(find.byKey(ValueKey(entry)), findsOneWidget);
+      _expectNoErrors(tester);
+    },
+        variant: const TargetPlatformVariant(
+            {TargetPlatform.iOS, TargetPlatform.android}));
+  }
 
   for (final size in _sizes) {
     for (final scale in [1.0, 1.5, 2.0]) {
@@ -366,10 +507,18 @@ Future<void> _tap(WidgetTester tester, String key) async {
   await tester.pumpAndSettle();
 }
 
+EdgeInsets _phoneInsets(Size size) => size.width < size.height
+    ? const EdgeInsets.only(top: 59, bottom: 34)
+    : const EdgeInsets.fromLTRB(59, 0, 59, 21);
+
 Future<void> _pump(WidgetTester tester, _Harness harness,
     {Size size = const Size(1440, 900),
     double scale = 1,
     bool accessible = false,
+    EdgeInsets? insets,
+    bool phoneInsets = false,
+    PlayerInputSource? activeInputSource,
+    ValueNotifier<RuntimePlayerSnapshot>? snapshots,
     double keyboardInset = 0}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -388,8 +537,12 @@ Future<void> _pump(WidgetTester tester, _Harness harness,
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(context).copyWith(
         textScaler: TextScaler.linear(scale),
-        padding: accessible ? _safeInsets : EdgeInsets.zero,
-        viewPadding: accessible ? _safeInsets : EdgeInsets.zero,
+        padding: phoneInsets
+            ? _phoneInsets(MediaQuery.sizeOf(context))
+            : insets ?? (accessible ? _safeInsets : EdgeInsets.zero),
+        viewPadding: phoneInsets
+            ? _phoneInsets(MediaQuery.sizeOf(context))
+            : insets ?? (accessible ? _safeInsets : EdgeInsets.zero),
         viewInsets: EdgeInsets.only(bottom: keyboardInset),
         disableAnimations: accessible,
       ),
@@ -400,24 +553,33 @@ Future<void> _pump(WidgetTester tester, _Harness harness,
         child: child!,
       ),
     ),
-    home: Scaffold(
-        body: RuntimePlayerSurfaceRouter(
-      snapshot: harness.snapshot,
-      titlePresentation: const RuntimePlayerTitlePresentation(author: 'MENU11'),
-      pausePresentation: const PlayerPausePresentation(
-          style: ProjectPauseMenuStyle.nightIllustrated),
-      partyNavigation: harness.party,
-      bagNavigation: harness.bag,
-      hardwareGamepadEnabled: false,
-      gameSceneBuilder: (_) => const SizedBox.expand(),
-      onAction: (action) async {
-        harness.actions.add(action);
-        return _accepted;
-      },
-      onPauseCommand: (_) {},
-      onPreferencesChanged: harness.preferenceChanges.add,
-      onReturnToTitle: (_) async => _accepted,
-    )),
+    home: Scaffold(body: Builder(builder: (context) {
+      Widget router(RuntimePlayerSnapshot snapshot) =>
+          RuntimePlayerSurfaceRouter(
+            snapshot: snapshot,
+            titlePresentation:
+                const RuntimePlayerTitlePresentation(author: 'MENU11'),
+            pausePresentation: const PlayerPausePresentation(
+                style: ProjectPauseMenuStyle.nightIllustrated),
+            partyNavigation: harness.party,
+            bagNavigation: harness.bag,
+            hardwareGamepadEnabled: false,
+            activeInputSource: activeInputSource,
+            gameSceneBuilder: (_) => const SizedBox.expand(),
+            onAction: (action) async {
+              harness.actions.add(action);
+              return _accepted;
+            },
+            onPauseCommand: (_) {},
+            onPreferencesChanged: harness.preferenceChanges.add,
+            onReturnToTitle: (_) async => _accepted,
+          );
+      return snapshots == null
+          ? router(harness.snapshot)
+          : ValueListenableBuilder<RuntimePlayerSnapshot>(
+              valueListenable: snapshots,
+              builder: (context, snapshot, _) => router(snapshot));
+    })),
   ));
   await tester.pumpAndSettle();
   addTearDown(() async {

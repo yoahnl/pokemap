@@ -26,6 +26,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
     this.onPauseCommand,
     this.partyNavigation,
     this.bagNavigation,
+    this.optionsNavigation,
     this.pokedexNavigation,
     this.regionMapNavigation,
     this.onFavoriteChanged,
@@ -42,6 +43,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
   final FutureOr<void> Function(RuntimePlayerPauseCommand)? onPauseCommand;
   final RuntimePlayerPartyNavigation? partyNavigation;
   final RuntimePlayerBagNavigation? bagNavigation;
+  final RuntimePlayerOptionsNavigation? optionsNavigation;
   final RuntimePlayerPokedexNavigation? pokedexNavigation;
   final RuntimePlayerRegionMapNavigation? regionMapNavigation;
   final Future<void> Function(String, bool)? onFavoriteChanged;
@@ -78,6 +80,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       return PlayerMenuThemeScope(
           role: ProjectPresentationSurfaceRole.options,
           child: RuntimePlayerOptions(
+            navigation: optionsNavigation,
             preferences: preferences,
             defaultPreferences: snapshot.defaultPreferences,
             onReturnToTitle: onReturnToTitle,

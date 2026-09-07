@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_menu_components.dart';
-import '../localization/player_localizations.dart';
+import '../foundation/player_pokemon_type_badge.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_pokemon_image.dart';
 import 'player_pokemon_summary_strings.dart';
@@ -88,7 +88,14 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(summary.displayLabel, style: theme.title),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text(summary.displayLabel, style: theme.title)),
+          const SizedBox(width: 12),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(strings.levelValue(summary.level), style: theme.meta),
+          ),
+        ]),
         Wrap(
           spacing: 12,
           runSpacing: 4,
@@ -96,9 +103,9 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
             if (summary.nickname.isNotEmpty)
               Text(summary.speciesLabel,
                   style: theme.meta.copyWith(color: theme.secondary)),
-            if (summary.formLabel case final form?)
+            if (summary.formLabel case final form?
+                when summary.identity?.formId != 'base')
               Text(form, style: theme.meta.copyWith(color: theme.secondary)),
-            Text(strings.levelValue(summary.level), style: theme.meta),
             if (summary.genderLabel case final gender?)
               Text(gender, style: theme.meta),
           ],
@@ -113,10 +120,7 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
             runSpacing: 4,
             children: [
               for (final type in summary.typeIds)
-                PlayerMenuBadge(
-                  label: context.playerL10n.battleMoveType(type),
-                  kind: PlayerMenuBadgeKind.type,
-                ),
+                PlayerPokemonTypeBadge(type: type),
               if (summary.isShiny) PlayerMenuBadge(label: strings.shiny),
               if (summary.isFainted)
                 const PlayerMenuBadge(
@@ -128,15 +132,20 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
-        _stat(context, strings.hp,
-            strings.hpValue(summary.currentHp, summary.maxHp)),
-        _stat(context, strings.attack, stats?.attack.toString() ?? '—'),
-        _stat(context, strings.defense, stats?.defense.toString() ?? '—'),
-        _stat(context, strings.specialAttack,
-            stats?.specialAttack.toString() ?? '—'),
-        _stat(context, strings.specialDefense,
-            stats?.specialDefense.toString() ?? '—'),
-        _stat(context, strings.speed, stats?.speed.toString() ?? '—'),
+        PlayerMenuPanel(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Column(children: [
+            _stat(context, strings.hp,
+                strings.hpValue(summary.currentHp, summary.maxHp)),
+            _stat(context, strings.attack, stats?.attack.toString() ?? '—'),
+            _stat(context, strings.defense, stats?.defense.toString() ?? '—'),
+            _stat(context, strings.specialAttack,
+                stats?.specialAttack.toString() ?? '—'),
+            _stat(context, strings.specialDefense,
+                stats?.specialDefense.toString() ?? '—'),
+            _stat(context, strings.speed, stats?.speed.toString() ?? '—'),
+          ]),
+        ),
       ],
     );
   }
@@ -209,9 +218,6 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
                 ),
               )
             : LayoutBuilder(builder: (context, constraints) {
-                final typeLabel = move.typeId == null
-                    ? move.typeLabel
-                    : context.playerL10n.battleMoveType(move.typeId!);
                 final name = Text(move.label, style: theme.label);
                 final pp = ConstrainedBox(
                   constraints: const BoxConstraints(minWidth: 80),
@@ -221,10 +227,13 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
                         : strings.ppUnavailable,
                   ),
                 );
-                final type = typeLabel == null || typeLabel.trim().isEmpty
-                    ? null
-                    : PlayerMenuBadge(
-                        label: typeLabel, kind: PlayerMenuBadgeKind.type);
+                final type = move.typeId != null
+                    ? PlayerPokemonTypeBadge(type: move.typeId!, compact: true)
+                    : move.typeLabel == null || move.typeLabel!.trim().isEmpty
+                        ? null
+                        : PlayerMenuBadge(
+                            label: move.typeLabel!,
+                            kind: PlayerMenuBadgeKind.type);
                 if (constraints.maxWidth < 560 ||
                     MediaQuery.textScalerOf(context).scale(18) > 25.2) {
                   return Column(

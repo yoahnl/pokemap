@@ -4,7 +4,7 @@ import UIKit
 import UniformTypeIdentifiers
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, UIDocumentPickerDelegate, FlutterStreamHandler {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, UIDocumentPickerDelegate, FlutterStreamHandler {
   private var pendingProjectPickerResult: FlutterResult?
   private var controllerEventSink: FlutterEventSink?
 
@@ -12,29 +12,30 @@ import UniformTypeIdentifiers
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GeneratedPluginRegistrant.register(with: self)
-    if let controller = window?.rootViewController as? FlutterViewController {
-      let projectPickerChannel = FlutterMethodChannel(
-        name: "playable_runtime_host/project_picker",
-        binaryMessenger: controller.binaryMessenger
-      )
-      projectPickerChannel.setMethodCallHandler { [weak self] call, result in
-        guard let self else { return }
-        guard call.method == "pickProjectDirectory" else {
-          result(FlutterMethodNotImplemented)
-          return
-        }
-        self.presentProjectDirectoryPicker(result: result)
-      }
-
-      let controllerInputChannel = FlutterEventChannel(
-        name: "playable_runtime_host/game_controller",
-        binaryMessenger: controller.binaryMessenger
-      )
-      controllerInputChannel.setStreamHandler(self)
-    }
     configureGameControllerMonitoring()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let projectPickerChannel = FlutterMethodChannel(
+      name: "playable_runtime_host/project_picker",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    projectPickerChannel.setMethodCallHandler { [weak self] call, result in
+      guard let self else { return }
+      guard call.method == "pickProjectDirectory" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      self.presentProjectDirectoryPicker(result: result)
+    }
+
+    let controllerInputChannel = FlutterEventChannel(
+      name: "playable_runtime_host/game_controller",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    controllerInputChannel.setStreamHandler(self)
   }
 
   private func configureGameControllerMonitoring() {
@@ -149,7 +150,11 @@ import UniformTypeIdentifiers
   }
 
   private func topViewController() -> UIViewController? {
-    var topController = window?.rootViewController
+    var topController = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .flatMap { $0.windows }
+      .first { $0.isKeyWindow }?
+      .rootViewController
     while let presented = topController?.presentedViewController {
       topController = presented
     }

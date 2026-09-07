@@ -45,8 +45,8 @@ final class PlayerOptionsStrings {
 
   String help(PlayerOptionsCategory value) => switch (value) {
         PlayerOptionsCategory.general => text(
-            'Règle l’apparition des lettres dans les dialogues : 45, 30 ou 15 ms par lettre, ou texte instantané. Le rythme des scènes reste inchangé.',
-            'Sets dialogue letters to appear every 45, 30 or 15 ms, or instantly. Scene timing stays unchanged.'),
+            'Choisissez la vitesse d’affichage des dialogues.',
+            'Choose how quickly dialogue text appears.'),
         PlayerOptionsCategory.display => text(
             'Les effets concernent les menus. Le mode Réduit limite leurs animations ; Sans transparence utilise des panneaux opaques.',
             'These effects apply to menus. Reduced limits their animations; Opaque uses solid panels.'),

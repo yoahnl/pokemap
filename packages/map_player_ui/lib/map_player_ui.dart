@@ -9,6 +9,7 @@ export 'src/foundation/player_action_availability.dart';
 export 'src/foundation/player_asset_preloader.dart';
 export 'src/foundation/player_components.dart';
 export 'src/foundation/player_menu_components.dart';
+export 'src/foundation/player_pokemon_type_badge.dart';
 export 'src/foundation/player_feedback.dart';
 export 'src/foundation/player_text_scaler.dart';
 export 'src/localization/player_localizations.dart';

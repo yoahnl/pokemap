@@ -349,7 +349,7 @@ final class VideoPlayerIntroPlaybackDriver
     _snapshots.value = PlayerIntroPlaybackSnapshot(
       isInitialized: value.isInitialized,
       isBuffering: value.isBuffering,
-      isCompleted: value.isCompleted,
+      isCompleted: value.isCompleted && value.position >= value.duration,
       caption: value.caption.text,
       errorDescription: value.errorDescription,
     );

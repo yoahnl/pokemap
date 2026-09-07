@@ -4,14 +4,18 @@ import 'dart:io';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'runtime_bundled_item_icons.dart';
+
 final class RuntimeBagItemIconResolver {
   RuntimeBagItemIconResolver({
     required this.projectRootDirectory,
     required this.pokemonConfig,
-  });
+    RuntimeBundledItemIcons? bundledIcons,
+  }) : _bundledIcons = bundledIcons ?? RuntimeBundledItemIcons.shared;
 
   final String projectRootDirectory;
   final ProjectPokemonConfig pokemonConfig;
+  final RuntimeBundledItemIcons _bundledIcons;
   Future<Map<String, String>>? _paths;
 
   Future<String?> resolve(String itemId) async {
@@ -20,8 +24,11 @@ final class RuntimeBagItemIconResolver {
     }
     final paths = await (_paths ??= _loadPaths());
     final explicitPath = paths[itemId];
-    if (explicitPath != null) return _existingLocalPath(explicitPath);
-    return _existingLocalPath('data/pokemon/assets/items/$itemId.png');
+    final authored = await _existingLocalPath(explicitPath);
+    if (authored != null) return authored;
+    final canonical =
+        await _existingLocalPath('data/pokemon/assets/items/$itemId.png');
+    return canonical ?? await _bundledIcons.resolve(itemId);
   }
 
   Future<Map<String, String>> _loadPaths() async {

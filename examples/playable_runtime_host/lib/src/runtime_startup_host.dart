@@ -7,7 +7,10 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_player_ui/map_player_ui.dart' show PlayerPreferences;
 import 'package:map_player_ui/presentation_renderer.dart'
-    show RuntimePresentationSessionRuntime, resolveProjectDirectoryAssetFile;
+    show
+        PresentationMediaAliasStore,
+        RuntimePresentationSessionRuntime,
+        resolveProjectDirectoryAssetFile;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -297,6 +300,14 @@ final class StandaloneRuntimeStartupAdapter
   final String _projectRoot;
   final Map<String, RuntimeResolvedAsset> _resolved =
       <String, RuntimeResolvedAsset>{};
+  late final PresentationMediaAliasStore _mediaAliases =
+      PresentationMediaAliasStore(
+        root: Directory(p.join(
+          Directory.systemTemp.path,
+          'pokemap-startup-media',
+          sha256.convert(utf8.encode(_projectRoot)).toString(),
+        )),
+      );
 
   @override
   Future<void> prepareManifestAndIdentity() async {
@@ -359,10 +370,18 @@ final class StandaloneRuntimeStartupAdapter
       );
       final realFile = p.normalize(await file.resolveSymbolicLinks());
       if (!p.isWithin(realRoot, realFile)) return null;
+      final mediaType = _mediaTypeFor(assetId) ?? fallbackMediaType;
+      final source = File(realFile).uri;
       final resolved = RuntimeResolvedAsset(
         assetId: assetId,
-        resolvedUri: File(realFile).uri,
-        mediaType: _mediaTypeFor(assetId) ?? fallbackMediaType,
+        resolvedUri: mediaType.startsWith('video/') ||
+                mediaType.startsWith('audio/')
+            ? await _mediaAliases.resolveContainer(
+                p.extension(assetId).substring(1),
+                source,
+              )
+            : source,
+        mediaType: mediaType,
       );
       _resolved[assetId] = resolved;
       return resolved;

@@ -17,6 +17,18 @@ final class RuntimePlayerOptionsFailure implements Exception {
   final String safeMessage;
 }
 
+final class RuntimePlayerOptionsNavigation extends ChangeNotifier {
+  bool Function()? _back;
+  Widget Function(BuildContext, Widget?)? _actions;
+
+  bool back() => _back?.call() ?? false;
+  Widget buildActions(BuildContext context, {Widget? returnAction}) =>
+      _actions?.call(context, returnAction) ??
+      returnAction ??
+      const SizedBox.shrink();
+  void refresh() => notifyListeners();
+}
+
 class RuntimePlayerOptions extends StatefulWidget {
   const RuntimePlayerOptions({
     super.key,
@@ -24,6 +36,7 @@ class RuntimePlayerOptions extends StatefulWidget {
     this.defaultPreferences = const PlayerPreferencesSnapshot(
         locale: 'fr', accessibility: GameSessionAccessibilityOptions()),
     this.onChanged,
+    this.navigation,
     this.onReturnToTitle,
     this.controlProfile,
     this.hardwareGamepadEnabled = true,
@@ -34,6 +47,7 @@ class RuntimePlayerOptions extends StatefulWidget {
   final PlayerPreferencesSnapshot preferences;
   final PlayerPreferencesSnapshot defaultPreferences;
   final FutureOr<void> Function(PlayerPreferencesSnapshot)? onChanged;
+  final RuntimePlayerOptionsNavigation? navigation;
   final VoidCallback? onReturnToTitle;
   final PlayerControlProfile? controlProfile;
   final bool hardwareGamepadEnabled;
@@ -71,8 +85,24 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       };
 
   @override
+  void initState() {
+    super.initState();
+    _bind();
+  }
+
+  void _bind() {
+    widget.navigation?._back = _back;
+    widget.navigation?._actions = _actions;
+  }
+
+  @override
   void didUpdateWidget(RuntimePlayerOptions oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.navigation != widget.navigation) {
+      oldWidget.navigation?._back = null;
+      oldWidget.navigation?._actions = null;
+      _bind();
+    }
     if (!_pending && !identical(oldWidget.preferences, widget.preferences)) {
       _confirmed = widget.preferences;
       _drafts.clear();
@@ -84,6 +114,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
   @override
   void dispose() {
+    widget.navigation?._back = null;
+    widget.navigation?._actions = null;
     final route = _dialogRoute;
     if (route != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -185,19 +217,27 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       _settingsFocus.requestFocus();
       return null;
     }
-    if (intent.action == PlayerInputAction.back && _showCategories) {
-      setState(() => _showCategories = false);
-      return null;
-    }
+    if (intent.action == PlayerInputAction.back && _back()) return null;
     return Actions.maybeInvoke(context, intent);
   }
 
+  bool _back() {
+    if (!_showCategories) return false;
+    setState(() => _showCategories = false);
+    return true;
+  }
+
   @override
-  Widget build(BuildContext context) => RuntimePlayerInputBindings(
-        controlProfile: _profile,
-        hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
-        child: _buildOptions(context),
-      );
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.navigation?.refresh();
+    });
+    return RuntimePlayerInputBindings(
+      controlProfile: _profile,
+      hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
+      child: _buildOptions(context),
+    );
+  }
 
   Widget _buildOptions(BuildContext context) => Actions(
         actions: {
@@ -214,9 +254,11 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             children: [
               if (short) ...[
                 Row(children: [
-                  Expanded(child: _categoryPicker()),
-                  const SizedBox(width: 12),
-                  Expanded(child: _defaults()),
+                  Expanded(flex: 2, child: _categoryPicker()),
+                  if (widget.navigation == null) ...[
+                    const SizedBox(width: 12),
+                    Flexible(flex: 3, child: _standaloneDefaults()),
+                  ],
                 ]),
                 const SizedBox(height: 12),
               ] else if (compact && !_showCategories) ...[
@@ -233,9 +275,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                               const SizedBox(width: 24),
                               Expanded(child: _settings(compact)),
                             ])),
-              if (!short) ...[
+              if (!short && widget.navigation == null) ...[
                 const SizedBox(height: 12),
-                _defaults(),
+                _standaloneDefaults(),
               ],
             ],
           );
@@ -254,12 +296,33 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             : () => setState(() => _showCategories = !_showCategories),
       );
 
-  Widget _defaults() => PlayerActionButton(
+  Widget _standaloneDefaults() => Align(
+        alignment: Alignment.centerRight,
+        child: IntrinsicWidth(child: _defaults()),
+      );
+
+  Widget _actions(BuildContext context, [Widget? returnAction]) =>
+      PlayerMenuThemeScope(
+        role: ProjectPresentationSurfaceRole.options,
+        child: RuntimePlayerInputBindings(
+          controlProfile: _profile,
+          hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
+          child: returnAction == null
+              ? _standaloneDefaults()
+              : PlayerMenuActionGroup(
+                  children: [_defaults(integrated: false), returnAction]),
+        ),
+      );
+
+  Widget _defaults({bool integrated = true}) => PlayerMenuSelectableRow(
         key: const ValueKey('options-defaults'),
+        id: 'options-defaults',
         label: _strings.defaults,
-        icon: Icons.restart_alt_rounded,
+        leading: const Icon(Icons.restart_alt_rounded),
         labelMaxLines: 2,
-        secondary: true,
+        integrated: integrated,
+        busy: _pending,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
         onPressed: _enabled ? _reset : null,
       );
 
@@ -277,6 +340,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                 key: ValueKey('options-category-${category.name}'),
                 id: 'options-category-${category.name}',
                 label: _strings.category(category),
+                integrated: true,
                 minimumHeight: 64,
                 leading: Icon(_icon(category), size: 32),
                 selected: _category == category,
@@ -289,6 +353,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                 key: const ValueKey('options-return-title'),
                 id: 'options-return-title',
                 label: _strings.returnToTitle,
+                integrated: true,
                 leading: const Icon(Icons.exit_to_app_rounded, size: 32),
                 minimumHeight: 64,
                 onPressed: _pending ? null : widget.onReturnToTitle,
@@ -300,7 +365,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
   Widget _settings(bool compact) => PlayerMenuPanel(
         key: const ValueKey('options-settings'),
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(compact ? 12 : 24),
         child: FocusScope(
           node: _settingsFocus,
           child: LayoutBuilder(
@@ -543,13 +608,15 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           {bool? enabled}) =>
       _row(
           label,
-          PlayerActionButton(
+          PlayerMenuSelectableRow(
             key: ValueKey('options-$id-choice'),
+            id: 'options-$id-choice',
             label: value,
-            icon: Icons.unfold_more_rounded,
-            secondary: true,
+            semanticValue: label,
+            trailing: const Icon(Icons.expand_more_rounded),
+            trailingWidth: 24,
             labelMaxLines: 3,
-            expandContent: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             onPressed: (enabled ?? _enabled) ? onPressed : null,
           ),
           compact);

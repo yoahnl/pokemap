@@ -22,6 +22,36 @@ void main() {
         .load();
   });
 
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    testWidgets('bag footer exposes every action without scrolling at $size',
+        (tester) async {
+      final favorites = <String>[];
+      await _pump(tester, _detail([_item('potion')]),
+          size: size, onFavorite: (id, _) async => favorites.add(id));
+      final bounds = <Rect>[];
+      for (final id in [
+        'runtime-player-bag-use-potion',
+        'bag-favorite-potion',
+        'pause-frame-return',
+      ]) {
+        final button = find.byKey(ValueKey('$id-surface'));
+        expect(button.hitTestable(), findsOneWidget, reason: id);
+        final rect = tester.getRect(button);
+        expect(rect.left, greaterThanOrEqualTo(0));
+        expect(rect.right, lessThanOrEqualTo(size.width));
+        expect(rect.bottom, lessThanOrEqualTo(size.height));
+        expect(rect.height, greaterThanOrEqualTo(48));
+        bounds.add(rect);
+      }
+      expect(bounds[0].width, closeTo(bounds[1].width, .1));
+      expect(bounds[0].width, closeTo(bounds[2].width, .1));
+      await tester.tap(find.byKey(const ValueKey('bag-favorite-potion')));
+      await tester.pumpAndSettle();
+      expect(favorites, ['potion']);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('nine rows fit reference list with fixed pockets and footer',
       (tester) async {
     await _pump(tester, _detail(List.generate(14, (i) => _item('item$i'))));
@@ -40,6 +70,28 @@ void main() {
         find.byKey(const ValueKey('bag-list-medicine')), const Offset(0, -400));
     await tester.pumpAndSettle();
     expect(tester.getRect(find.byKey(const ValueKey('bag-pockets'))), pockets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('landscape bag detail keeps its title and description visible',
+      (tester) async {
+    const description = 'Restaure 20 PV à un Pokémon.';
+    await _pump(tester,
+        _detail([_item('potion', name: 'Potion', description: description)]),
+        size: const Size(844, 390),
+        safeInsets: const EdgeInsets.fromLTRB(59, 0, 59, 21));
+    await tester.tap(find.byKey(const ValueKey('bag-item-potion')));
+    await tester.pumpAndSettle();
+    final detail = find.byKey(const ValueKey('bag-detail-potion'));
+    final viewport = tester.getRect(detail);
+    for (final value in ['Potion', description]) {
+      final text = find.descendant(of: detail, matching: find.text(value));
+      expect(text.hitTestable(), findsOneWidget, reason: value);
+      final bounds = tester.getRect(text);
+      expect(bounds.top, greaterThanOrEqualTo(viewport.top));
+      expect(bounds.bottom, lessThanOrEqualTo(viewport.bottom));
+    }
+    expect(tester.widget<SingleChildScrollView>(detail).controller!.offset, 0);
     expect(tester.takeException(), isNull);
   });
 
@@ -352,14 +404,20 @@ void main() {
   testWidgets(
       'logical controller reaches offscreen pockets and restores selection',
       (tester) async {
-    await _pump(tester, _detail([_item('a'), _item('b', pocket: 'key')]),
+    await _pump(
+        tester,
+        _detail([
+          _item('a'),
+          for (var i = 0; i < 5; i++) _item('extra$i', pocket: 'extra$i'),
+          _item('b', pocket: 'destination'),
+        ]),
         size: const Size(390, 844));
     expect(find.byKey(const ValueKey('bag-pockets-next')), findsOneWidget);
     final first = tester.widget<PlayerMenuSelectableRow>(
         find.byKey(const ValueKey('bag-pocket-medicine')));
     first.focusNode!.requestFocus();
     await tester.pumpAndSettle();
-    for (var i = 0; i < 2; i++) {
+    for (var i = 0; i < 8; i++) {
       Actions.invoke(
           FocusManager.instance.primaryFocus!.context!,
           const RuntimePlayerLogicalIntent(PlayerInputAction.right,
@@ -367,13 +425,146 @@ void main() {
       await tester.pumpAndSettle();
     }
     final last = tester.widget<PlayerMenuSelectableRow>(
-        find.byKey(const ValueKey('bag-pocket-key')));
+        find.byKey(const ValueKey('bag-pocket-destination')));
     expect(last.focusNode!.hasFocus, isTrue);
     expect(last.selected, isTrue);
-    expect(find.byKey(const ValueKey('bag-pocket-key')).hitTestable(),
+    expect(find.byKey(const ValueKey('bag-pocket-destination')).hitTestable(),
         findsOneWidget);
     expect(find.byKey(const ValueKey('bag-item-b')), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('focused pocket arrows hand focus to the visible edge pocket',
+      (tester) async {
+    await _pump(
+        tester,
+        _detail([
+          _item('a'),
+          for (var i = 0; i < 5; i++) _item('extra$i', pocket: 'extra$i'),
+          _item('b', pocket: 'destination'),
+        ]),
+        size: const Size(390, 844));
+    for (final forward in [true, false]) {
+      final arrow = find.byKey(
+          ValueKey(forward ? 'bag-pockets-next' : 'bag-pockets-previous'));
+      final icon = find.descendant(of: arrow, matching: find.byType(Icon));
+      Focus.of(tester.element(icon)).requestFocus();
+      await tester.pumpAndSettle();
+      for (var step = 0; step < 12 && arrow.evaluate().isNotEmpty; step++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pumpAndSettle();
+      }
+      expect(arrow, findsNothing);
+      final edge = find.byKey(
+          ValueKey('bag-pocket-${forward ? 'destination' : 'medicine'}'));
+      expect(tester.widget<PlayerMenuSelectableRow>(edge).focusNode!.hasFocus,
+          isTrue);
+      expect(edge.hitTestable(), findsOneWidget);
+      await tester.sendKeyEvent(forward
+          ? LogicalKeyboardKey.arrowLeft
+          : LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      final adjacent =
+          find.byKey(ValueKey('bag-pocket-${forward ? 'extra4' : 'balls'}'));
+      expect(
+          tester.widget<PlayerMenuSelectableRow>(adjacent).focusNode!.hasFocus,
+          isTrue);
+      expect(adjacent.hitTestable(), findsOneWidget);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pointer pocket scrolling preserves the current item focus',
+      (tester) async {
+    await _pump(
+        tester,
+        _detail([
+          _item('a'),
+          for (var i = 0; i < 7; i++) _item('extra$i', pocket: 'extra$i'),
+        ]),
+        size: const Size(390, 844));
+    final item = tester.widget<PlayerMenuSelectableRow>(
+        find.byKey(const ValueKey('bag-item-a')));
+    expect(item.focusNode!.hasFocus, isTrue);
+    final arrow = find.byKey(const ValueKey('bag-pockets-next'));
+    for (var step = 0; step < 12 && arrow.evaluate().isNotEmpty; step++) {
+      await tester.tap(arrow);
+      await tester.pumpAndSettle();
+    }
+    expect(arrow, findsNothing);
+    expect(item.focusNode!.hasFocus, isTrue);
+    expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+                find.byKey(const ValueKey('bag-pocket-medicine')))
+            .selected,
+        isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('eight canonical pocket icons are centered and keep their labels',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    const pockets = [
+      RuntimePlayerBagPocketSnapshot(id: 'medicine', label: 'Soins'),
+      RuntimePlayerBagPocketSnapshot(id: 'items', label: 'Objets'),
+      RuntimePlayerBagPocketSnapshot(id: 'balls', label: 'Balls'),
+      RuntimePlayerBagPocketSnapshot(id: 'held-items', label: 'Objets tenus'),
+      RuntimePlayerBagPocketSnapshot(id: 'evolution-items', label: 'Évolution'),
+      RuntimePlayerBagPocketSnapshot(id: 'machines', label: 'CT/CS'),
+      RuntimePlayerBagPocketSnapshot(id: 'key-items', label: 'Objets clés'),
+      RuntimePlayerBagPocketSnapshot(id: 'battle-items', label: 'Combat'),
+    ];
+    const icons = [
+      Icons.medication_rounded,
+      Icons.inventory_2_rounded,
+      Icons.catching_pokemon,
+      Icons.diamond_outlined,
+      Icons.auto_awesome_rounded,
+      Icons.album_rounded,
+      Icons.vpn_key_rounded,
+      Icons.shield_rounded,
+    ];
+    await _pump(tester, _detail([_item('a')], pockets: pockets),
+        size: const Size(844, 390));
+    expect(find.byKey(const ValueKey('bag-pockets-next')), findsNothing);
+    expect(find.byKey(const ValueKey('bag-pockets-previous')), findsNothing);
+    for (var index = 0; index < pockets.length; index++) {
+      final row = find.byKey(ValueKey('bag-pocket-${pockets[index].id}'));
+      final icon =
+          find.descendant(of: row, matching: find.byIcon(icons[index]));
+      final rowBounds = tester.getRect(row);
+      expect(rowBounds.width, 72);
+      expect(rowBounds.height, greaterThanOrEqualTo(48));
+      expect(
+          (tester.getCenter(icon) - rowBounds.center).distance, lessThan(.01));
+      expect(row.hitTestable(), findsOneWidget);
+      expect(tester.getSemantics(row).getSemanticsData().label,
+          contains(pockets[index].label));
+      expect(
+          tester
+              .widget<Tooltip>(
+                  find.ancestor(of: row, matching: find.byType(Tooltip)).first)
+              .message,
+          pockets[index].label);
+    }
+    final first = tester.widget<PlayerMenuSelectableRow>(
+        find.byKey(const ValueKey('bag-pocket-medicine')));
+    final marker =
+        find.byKey(const ValueKey('bag-pocket-medicine-focus-marker'));
+    expect(first.selected, isTrue);
+    expect(marker, findsNothing);
+    first.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
+    expect(marker, findsOneWidget);
+    final item = tester.widget<PlayerMenuSelectableRow>(
+        find.byKey(const ValueKey('bag-item-a')));
+    item.focusNode!.requestFocus();
+    await tester.pumpAndSettle();
+    expect(first.selected, isTrue);
+    expect(marker, findsNothing);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
   });
 
   testWidgets(
@@ -503,17 +694,18 @@ RuntimePlayerDetailEntrySnapshot _item(String id,
 
 RuntimePlayerPauseDetailSnapshot _detail(
         List<RuntimePlayerDetailEntrySnapshot> entries,
-        {int moves = 4}) =>
+        {int moves = 4,
+        List<RuntimePlayerBagPocketSnapshot> pockets = const [
+          RuntimePlayerBagPocketSnapshot(id: 'medicine', label: 'Soins'),
+          RuntimePlayerBagPocketSnapshot(id: 'balls', label: 'Balls'),
+          RuntimePlayerBagPocketSnapshot(id: 'key', label: 'Objets clés')
+        ]}) =>
     RuntimePlayerPauseDetailSnapshot(
         section: RuntimePlayerPauseSection.bag,
         title: 'Sac',
         entries: entries,
         bagMoney: 3200,
-        bagPockets: const [
-          RuntimePlayerBagPocketSnapshot(id: 'medicine', label: 'Soins'),
-          RuntimePlayerBagPocketSnapshot(id: 'balls', label: 'Balls'),
-          RuntimePlayerBagPocketSnapshot(id: 'key', label: 'Objets clés')
-        ],
+        bagPockets: pockets,
         bagTargets: [
           RuntimePlayerBagPartyTargetSnapshot(
               targetId: 'pokemon.a',
@@ -541,6 +733,7 @@ Future<void> _pump(
   RuntimePlayerPauseDetailSnapshot detail, {
   Size size = const Size(1440, 900),
   double scale = 1,
+  EdgeInsets safeInsets = EdgeInsets.zero,
   RuntimePlayerBagNavigation? navigation,
   FutureOr<void> Function(RuntimePlayerPauseCommand)? onCommand,
   Set<String> favorites = const {},
@@ -557,8 +750,10 @@ Future<void> _pump(
     localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
     theme: PokeMapPlayerTheme.dark(),
     builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(scale)),
+        data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(scale),
+            padding: safeInsets,
+            viewPadding: safeInsets),
         child: child!),
     home: PlayerMenuThemeScope(
         role: ProjectPresentationSurfaceRole.bag,
@@ -581,6 +776,11 @@ Future<void> _pump(
                 detailActions: ListenableBuilder(
                     listenable: nav,
                     builder: (context, _) => nav.buildActions(context)),
+                detailFooterBuilder: (context, returnAction) =>
+                    ListenableBuilder(
+                        listenable: nav,
+                        builder: (context, _) => nav.buildActions(context,
+                            returnAction: returnAction)),
                 detail: RuntimePlayerBag(
                     detail: detail,
                     navigation: nav,

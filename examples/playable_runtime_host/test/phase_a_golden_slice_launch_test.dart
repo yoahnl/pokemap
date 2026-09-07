@@ -512,6 +512,45 @@ void main() {
     },
   );
 
+  test('standalone opens imported intro and title videos with their container', () async {
+    final root = await Directory.systemTemp.createTemp('pokemap-startup-video-');
+    addTearDown(() => root.delete(recursive: true));
+    final project = File('${root.path}/project.json')..writeAsStringSync('{}');
+    final store = Directory('${root.path}/assets/.pokemap-store')..createSync(recursive: true);
+    final digest = 'c' * 64;
+    final blob = File('${store.path}/$digest.blob')..writeAsBytesSync([1, 2, 3, 4]);
+    File('${root.path}/assets/.pokemap-assets.json').writeAsStringSync(jsonEncode({
+      'schemaVersion': 1,
+      'records': [
+        for (final name in ['intro.mp4', 'title.mp4', 'music.ogg'])
+          {'logicalPath': 'assets/$name', 'artifact': {'digest': 'sha256:$digest'}},
+      ],
+    }));
+    final adapter = StandaloneRuntimeStartupAdapter(
+      projectFilePath: project.path,
+      manifest: await _loadManifest(_goldenProjectPath()),
+    );
+    final intro = await adapter.resolveMedia('assets/intro.mp4');
+    final title = await adapter.resolveMedia('assets/title.mp4');
+    expect(intro, isNotNull);
+    final playback = File.fromUri(intro!.resolvedUri);
+    if (FileSystemEntity.isLinkSync(playback.path)) {
+      addTearDown(() => Link(playback.path).delete());
+    }
+    expect(playback.path, endsWith('.mp4'));
+    expect(playback.readAsBytesSync(), blob.readAsBytesSync());
+    expect(title!.resolvedUri, intro.resolvedUri);
+    expect(await adapter.resolveMedia('assets/intro.mp4'), same(intro));
+    expect(blob.existsSync(), isTrue);
+    final music = await adapter.resolveMedia('assets/music.ogg');
+    final musicFile = File.fromUri(music!.resolvedUri);
+    if (FileSystemEntity.isLinkSync(musicFile.path)) {
+      addTearDown(() => Link(musicFile.path).delete());
+    }
+    expect(musicFile.path, endsWith('.ogg'));
+    expect(musicFile.readAsBytesSync(), blob.readAsBytesSync());
+  });
+
   test('missing standalone presentation media stays non-blocking', () async {
     final projectFile = File(_goldenProjectPath());
     final fixture = await _loadManifest(_goldenProjectPath());

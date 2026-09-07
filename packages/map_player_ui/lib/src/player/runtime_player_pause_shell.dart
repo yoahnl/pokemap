@@ -40,6 +40,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.portraitImage,
     this.detailOwnsScroll = false,
     this.detailActions,
+    this.detailFooterBuilder,
     this.detailHeaderSecondary,
   });
 
@@ -62,6 +63,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.portraitImage,
     this.detailOwnsScroll = false,
     this.detailActions,
+    this.detailFooterBuilder,
     this.detailHeaderSecondary,
   })  : pauseSection = RuntimePlayerPauseSection.root,
         onBackToRoot = _noop;
@@ -85,6 +87,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final ImageProvider? portraitImage;
   final bool detailOwnsScroll;
   final Widget? detailActions;
+  final Widget Function(BuildContext context, Widget returnAction)?
+      detailFooterBuilder;
   final Widget? detailHeaderSecondary;
 
   static void _noop() {}
@@ -334,13 +338,29 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                           widget.pauseSection ==
                               RuntimePlayerPauseSection.pokedex,
                       icon: switch (widget.pauseSection) {
+                        RuntimePlayerPauseSection.party =>
+                          Icons.catching_pokemon,
                         RuntimePlayerPauseSection.bag =>
                           Icons.backpack_outlined,
                         RuntimePlayerPauseSection.pokedex =>
                           Icons.menu_book_outlined,
                         RuntimePlayerPauseSection.profile =>
                           Icons.person_outline,
+                        RuntimePlayerPauseSection.map => Icons.map_rounded,
+                        RuntimePlayerPauseSection.options =>
+                          Icons.settings_rounded,
+                        RuntimePlayerPauseSection.quests =>
+                          Icons.auto_stories_rounded,
                         _ => Icons.menu,
+                      },
+                      iconColor: switch (widget.pauseSection) {
+                        RuntimePlayerPauseSection.party => tokens.danger,
+                        RuntimePlayerPauseSection.bag => tokens.warning,
+                        RuntimePlayerPauseSection.quests => tokens.health,
+                        RuntimePlayerPauseSection.options ||
+                        RuntimePlayerPauseSection.profile =>
+                          tokens.secondary,
+                        _ => tokens.accent,
                       },
                       secondary: widget.detailHeaderSecondary,
                       title: isRoot
@@ -359,9 +379,12 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                           style: tokens.meta),
                     ),
                   PlayerMenuFooter(
+                    actionsBuilder: isRoot ? null : widget.detailFooterBuilder,
                     alignReturnEnd: true,
                     stackActions:
-                        widget.pauseSection == RuntimePlayerPauseSection.bag &&
+                        (widget.pauseSection == RuntimePlayerPauseSection.bag ||
+                                widget.pauseSection ==
+                                    RuntimePlayerPauseSection.options) &&
                             MediaQuery.sizeOf(context).width < 760 &&
                             MediaQuery.textScalerOf(context).scale(1) >= 1.8,
                     hintsFlex: !isRoot && widget.detailActions != null
@@ -370,7 +393,9 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                             : 4)
                         : 1,
                     hints: [
-                      if (!isRoot && widget.detailActions != null)
+                      if (!isRoot &&
+                          widget.detailActions != null &&
+                          widget.detailFooterBuilder == null)
                         widget.detailActions!,
                       if (_focusController.showFocusHighlight && isRoot)
                         PlayerMenuKeyHint(
@@ -384,7 +409,9 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                       id: 'pause-frame-return',
                       label: returnLabel,
                       leading: const Icon(Icons.arrow_back),
-                      integrated: true,
+                      integrated: isRoot || widget.detailFooterBuilder == null,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 10),
                       showFocusHighlight: _focusController.showFocusHighlight,
                       focusNode: isRoot
                           ? _focusController.nodeFor('pause.resume',
@@ -471,10 +498,12 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                   }
                   final composition = _composition(layout);
                   return Stack(
-                    key: ValueKey<String>(resolved == null
-                        ? 'runtime-pause-layout-${layout.name}'
-                        : 'runtime-pause-responsive-'
-                            '${resolved.breakpoint.name}'),
+                    key: ValueKey<String>(_isIllustrated
+                        ? 'runtime-pause-illustrated-layout'
+                        : resolved == null
+                            ? 'runtime-pause-layout-${layout.name}'
+                            : 'runtime-pause-responsive-'
+                                '${resolved.breakpoint.name}'),
                     fit: StackFit.expand,
                     children: <Widget>[
                       if (_isIllustrated)

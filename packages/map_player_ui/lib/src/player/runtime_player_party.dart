@@ -18,11 +18,13 @@ import 'runtime_player_actions.dart';
 
 final class RuntimePlayerPartyNavigation extends ChangeNotifier {
   bool Function()? _handleBack;
-  WidgetBuilder? _actionsBuilder;
+  Widget Function(BuildContext, Widget?)? _actionsBuilder;
 
   bool back() => _handleBack?.call() ?? false;
-  Widget buildActions(BuildContext context) =>
-      _actionsBuilder?.call(context) ?? const SizedBox.shrink();
+  Widget buildActions(BuildContext context, {Widget? returnAction}) =>
+      _actionsBuilder?.call(context, returnAction) ??
+      returnAction ??
+      const SizedBox.shrink();
 
   void refreshActions() => notifyListeners();
 }
@@ -54,7 +56,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
   final _nodes = <String, FocusNode>{};
   final _detailFocus = FocusNode(debugLabel: 'Party detail');
   String? _selectedId;
-  String? _swapSourceId;
+  String? _moveSourceId;
   bool _busy = false;
   bool _showDetail = false;
   String? _failure;
@@ -99,8 +101,9 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
           .detail.entries[previous.clamp(0, widget.detail.entries.length - 1)]);
       _returnToMember();
     }
-    if (!widget.detail.entries.any((e) => _id(e) == _swapSourceId)) {
-      _swapSourceId = null;
+    if (!widget.canReorder ||
+        !widget.detail.entries.any((e) => _id(e) == _moveSourceId)) {
+      _moveSourceId = null;
     }
   }
 
@@ -127,19 +130,24 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
           ModalRoute.of(context)?.isCurrent != false &&
           selectedId != null &&
           widget.detail.entries.any((entry) => _id(entry) == selectedId)) {
-        _node(selectedId).requestFocus();
+        final node = _node(selectedId);
+        node.requestFocus();
+        if (node.context case final memberContext? when !_showDetail) {
+          unawaited(Scrollable.ensureVisible(memberContext, alignment: .5));
+        }
       }
     });
   }
 
-  Future<void> _emit(RuntimePlayerPauseCommand command) async {
-    if (_busy || widget.onCommand == null) return;
+  Future<bool> _emit(RuntimePlayerPauseCommand command) async {
+    if (_busy || widget.onCommand == null) return false;
     setState(() {
       _busy = true;
       _failure = null;
     });
     try {
       await widget.onCommand!(command);
+      return true;
     } on RuntimePlayerPartyCommandFailure catch (failure) {
       if (mounted) _failure = failure.safeMessage;
     } catch (_) {
@@ -150,23 +158,46 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+    return false;
+  }
+
+  void _beginMove(RuntimePlayerDetailEntrySnapshot entry) {
+    if (_busy || !widget.canReorder || widget.onCommand == null) return;
+    setState(() {
+      _selectedId = _id(entry);
+      _moveSourceId = _id(entry);
+      _showDetail = false;
+      _failure = null;
+    });
+    _returnToMember();
+  }
+
+  void _cancelMove() {
+    if (_busy) return;
+    setState(() {
+      if (_moveSourceId != null) _selectedId = _moveSourceId;
+      _moveSourceId = null;
+      _failure = null;
+    });
+    _returnToMember();
   }
 
   void _activate(RuntimePlayerDetailEntrySnapshot entry, bool compact) {
     if (_busy) return;
-    final sourceId = _swapSourceId;
+    final sourceId = _moveSourceId;
     if (sourceId != null) {
       final source =
           widget.detail.entries.where((e) => _id(e) == sourceId).firstOrNull;
       if (source == null || sourceId == _id(entry)) return;
-      setState(() {
-        _selectedId = sourceId;
-        _swapSourceId = null;
-      });
+      setState(() => _selectedId = sourceId);
       unawaited(_emit(RuntimePlayerPauseCommand.reorderPartyMember(
         partyTargetId: source.pokemonSummary?.targetId ?? source.id,
         secondPartyTargetId: entry.pokemonSummary?.targetId ?? entry.id,
-      )).then((_) => _returnToMember()));
+      )).then((accepted) {
+        if (!mounted) return;
+        if (accepted) setState(() => _moveSourceId = null);
+        _returnToMember();
+      }));
     } else {
       _select(entry);
       if (compact) {
@@ -181,9 +212,13 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
   }
 
   bool _back() {
-    if (_swapSourceId == null && !_showDetail) return false;
+    if (_moveSourceId != null) {
+      if (_busy) return true;
+      _cancelMove();
+      return true;
+    }
+    if (!_showDetail) return false;
     setState(() {
-      _swapSourceId = null;
       _showDetail = false;
     });
     _returnToMember();
@@ -193,6 +228,18 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
   Object? _input(RuntimePlayerLogicalIntent intent) {
     if (intent.action == PlayerInputAction.back && _back()) {
       return null;
+    }
+    if (_moveSourceId != null) {
+      if (_busy) return null;
+      if (intent.action == PlayerInputAction.up ||
+          intent.action == PlayerInputAction.down) {
+        final step = intent.action == PlayerInputAction.up ? -1 : 1;
+        final next =
+            (_selectedIndex + step).clamp(0, widget.detail.entries.length - 1);
+        _select(widget.detail.entries[next]);
+        _returnToMember();
+        return null;
+      }
     }
     return Actions.maybeInvoke(context, intent);
   }
@@ -235,8 +282,32 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
           final bounded = constraints.hasBoundedHeight;
           Widget scroll(Widget child, String id) =>
               SingleChildScrollView(key: ValueKey(id), child: child);
+          final notices = <Widget>[
+            if (_moveSourceId != null) ...[
+              _moveInstruction(compact: compact),
+              const SizedBox(height: 8),
+            ],
+            if (_failure ?? widget.detail.message case final message?
+                when message.isNotEmpty) ...[
+              Semantics(
+                  liveRegion: true,
+                  child: Text(message,
+                      key: const ValueKey('party-command-message'),
+                      style: context.playerMenuTheme.meta)),
+              const SizedBox(height: 8),
+            ],
+          ];
+          final detailWithNotices = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [...notices, detail]);
           final body = compact
-              ? scroll(_showDetail && _swapSourceId == null ? detail : list,
+              ? scroll(
+                  Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ...notices,
+                        _showDetail && _moveSourceId == null ? detail : list,
+                      ]),
                   'party-compact-scroll')
               : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Expanded(
@@ -247,43 +318,62 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                   Expanded(
                       flex: 35,
                       child: bounded
-                          ? scroll(detail, 'party-detail-scroll')
-                          : detail),
+                          ? scroll(detailWithNotices, 'party-detail-scroll')
+                          : detailWithNotices),
                 ]);
           return Column(
               key: const ValueKey('runtime-player-detail-party'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
               children: [
-                if (_swapSourceId != null) ...[
-                  PlayerMenuFeedback(
-                      id: 'party-swap-instruction',
-                      title: _text(
-                          'Choisissez le Pokémon avec lequel échanger la place',
-                          'Choose the Pokémon to swap places with'),
-                      action: PlayerActionButton(
-                          key: const ValueKey('party-swap-cancel'),
-                          icon: Icons.arrow_back,
-                          label: context.playerL10n.back,
-                          onPressed: () {
-                            setState(() => _swapSourceId = null);
-                            _returnToMember();
-                          })),
-                  const SizedBox(height: 8),
-                ],
-                if (_failure ?? widget.detail.message case final message?
-                    when message.isNotEmpty) ...[
-                  Semantics(
-                      liveRegion: true,
-                      child: Text(message,
-                          key: const ValueKey('party-command-message'),
-                          style: context.playerMenuTheme.meta)),
-                  const SizedBox(height: 8),
-                ],
                 if (bounded) Expanded(child: body) else body,
               ]);
         }),
       ),
+    );
+  }
+
+  Widget _moveInstruction({required bool compact}) {
+    final theme = context.playerMenuTheme;
+    final title =
+        _text('Choisissez la nouvelle position', 'Choose the new position');
+    final message = _text('Les deux Pokémon échangeront leur place.',
+        'The two Pokémon will swap places.');
+    final instruction = Semantics(
+      identifier: 'party-swap-instruction',
+      liveRegion: true,
+      label: '$title. $message',
+      excludeSemantics: true,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: theme.label),
+        const SizedBox(height: 4),
+        Text(message, style: theme.meta.copyWith(color: theme.secondary)),
+      ]),
+    );
+    final cancel = IntrinsicWidth(
+      child: PlayerMenuSelectableRow(
+        key: const ValueKey('party-swap-cancel'),
+        id: 'party-swap-cancel',
+        label: _text('Annuler', 'Cancel'),
+        leading: const Icon(Icons.close),
+        integrated: true,
+        busy: _busy,
+        onPressed: _busy ? null : _cancelMove,
+      ),
+    );
+    return PlayerMenuPanel(
+      padding: const EdgeInsets.all(12),
+      child: compact
+          ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              instruction,
+              const SizedBox(height: 8),
+              Align(alignment: Alignment.centerRight, child: cancel),
+            ])
+          : Row(children: [
+              Expanded(child: instruction),
+              const SizedBox(width: 12),
+              cancel,
+            ]),
     );
   }
 
@@ -296,7 +386,15 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
           final status = summary?.isFainted == true
               ? _text('KO', 'Fainted')
               : summary?.statusLabel;
-          return PlayerMenuSelectableRow(
+          final genderIcon = switch (
+              (summary?.identity?.gender ?? summary?.genderLabel)
+                  ?.trim()
+                  .toLowerCase()) {
+            'male' || 'm' || 'mâle' => Icons.male,
+            'female' || 'f' || 'femelle' => Icons.female,
+            _ => null,
+          };
+          final row = PlayerMenuSelectableRow(
             key: ValueKey('party-member-${_id(entry)}'),
             id: 'party-member-${_id(entry)}',
             label: summary?.displayLabel ?? entry.title,
@@ -305,7 +403,11 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                 : '${strings.levelValue(summary.level)} · ${strings.hp} ${strings.hpValue(summary.currentHp, summary.maxHp)}',
             semanticValue: summary == null
                 ? null
-                : '${strings.hpValue(summary.currentHp, summary.maxHp)}${status == null ? '' : ' · $status'}',
+                : [
+                    strings.hpValue(summary.currentHp, summary.maxHp),
+                    if (summary.genderLabel case final gender?) gender,
+                    if (status != null) status,
+                  ].join(' · '),
             selected: _selectedId == _id(entry),
             focusNode: _node(_id(entry)),
             onFocusChanged: (focused) {
@@ -321,14 +423,27 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                         thumbnail: true,
                         width: 56,
                         height: 56)),
-            trailing: _swapSourceId == _id(entry)
-                ? Icon(Icons.swap_vert,
-                    key: const ValueKey('party-swap-source'))
-                : summary?.genderLabel == null && status == null
-                    ? null
-                    : Column(mainAxisSize: MainAxisSize.min, children: [
+            trailingWidth: 64,
+            trailing: _moveSourceId == _id(entry)
+                ? const Align(
+                    alignment: Alignment.centerRight,
+                    child: Icon(Icons.swap_vert,
+                        key: ValueKey('party-swap-source')))
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
                         if (summary?.genderLabel case final gender?)
-                          Text(gender, style: context.playerMenuTheme.meta),
+                          if (genderIcon != null)
+                            Icon(genderIcon, size: 20, semanticLabel: gender)
+                          else
+                            Builder(
+                              builder: (context) => Text(gender,
+                                  style: context.playerMenuTheme.meta.copyWith(
+                                      color: DefaultTextStyle.of(context)
+                                          .style
+                                          .color)),
+                            ),
                         if (status != null)
                           PlayerMenuBadge(
                               label: status, kind: PlayerMenuBadgeKind.status),
@@ -347,6 +462,45 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                             : PlayerMenuGaugeTone.normal),
             busy: _busy,
             onPressed: () => _activate(entry, compact),
+          );
+          if (!widget.canReorder ||
+              widget.onCommand == null ||
+              widget.detail.entries.length < 2) {
+            return row;
+          }
+          return DragTarget<String>(
+            onWillAcceptWithDetails: (details) =>
+                !_busy &&
+                details.data == _moveSourceId &&
+                details.data != _id(entry),
+            onMove: (_) => _select(entry),
+            onAcceptWithDetails: (_) => _activate(entry, compact),
+            builder: (context, candidates, rejected) =>
+                LongPressDraggable<String>(
+              data: _id(entry),
+              maxSimultaneousDrags: _busy ? 0 : 1,
+              onDragStarted: () => _beginMove(entry),
+              onDragEnd: (details) {
+                if (!details.wasAccepted) _cancelMove();
+              },
+              feedback: PlayerMenuThemeScope(
+                role: ProjectPresentationSurfaceRole.party,
+                opaque: context.playerMenuTheme.opaque,
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: PlayerMenuPanel(
+                    primary: true,
+                    padding: const EdgeInsets.all(12),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.swap_vert),
+                      const SizedBox(width: 8),
+                      Text(summary?.displayLabel ?? entry.title),
+                    ]),
+                  ),
+                ),
+              ),
+              child: row,
+            ),
           );
         }),
         if (entry != widget.detail.entries.last ||
@@ -390,15 +544,17 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
     ]);
   }
 
-  Widget _footerActions(BuildContext context) => widget.detail.entries.isEmpty
-      ? const SizedBox.shrink()
-      : PlayerMenuThemeScope(
-          role: ProjectPresentationSurfaceRole.party,
-          child: _actions(_selected, integrated: true),
-        );
+  Widget _footerActions(BuildContext context, [Widget? returnAction]) =>
+      widget.detail.entries.isEmpty
+          ? returnAction ?? const SizedBox.shrink()
+          : PlayerMenuThemeScope(
+              role: ProjectPresentationSurfaceRole.party,
+              child: _actions(_selected,
+                  integrated: true, returnAction: returnAction),
+            );
 
   Widget _actions(RuntimePlayerDetailEntrySnapshot entry,
-      {bool modal = false, bool integrated = false}) {
+      {bool modal = false, bool integrated = false, Widget? returnAction}) {
     void close() {
       if (modal) Navigator.of(context).pop();
     }
@@ -439,39 +595,42 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
         PlayerActionButton(
             key: const ValueKey('party-swap'),
             expandWidth: false,
-            label: _text('Échanger', 'Swap places'),
+            label: _text('Déplacer', 'Move'),
             icon: Icons.swap_vert,
             secondary: true,
             onPressed: _busy || widget.onCommand == null
                 ? null
                 : () {
                     close();
-                    setState(() {
-                      _swapSourceId = _id(entry);
-                      _showDetail = false;
-                    });
-                    _returnToMember();
+                    _beginMove(entry);
                   }),
     ];
-    return Wrap(spacing: 8, runSpacing: 8, children: [
+    final children = <Widget>[
       for (final action in actions)
         if (integrated)
-          IntrinsicWidth(
-            child: PlayerMenuSelectableRow(
-              key: action.key,
-              id: (action.key! as ValueKey<String>).value,
-              label: action.label,
-              leading: Icon(action.icon),
-              focusNode: action.focusNode,
-              integrated: true,
-              disabledReason: action.onPressed == null
-                  ? context.playerL10n.actionUnavailable
-                  : null,
-              onPressed: action.onPressed,
-            ),
+          PlayerMenuSelectableRow(
+            key: action.key,
+            id: (action.key! as ValueKey<String>).value,
+            label: action.label,
+            leading: Icon(action.icon),
+            focusNode: action.focusNode,
+            integrated: returnAction == null,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            disabledReason: action.onPressed == null
+                ? context.playerL10n.actionUnavailable
+                : null,
+            onPressed: action.onPressed,
           )
         else
           action,
+    ];
+    if (returnAction != null) {
+      return PlayerMenuActionGroup(children: [...children, returnAction]);
+    }
+    return Wrap(spacing: 8, runSpacing: 8, children: [
+      for (final child in children)
+        if (integrated) IntrinsicWidth(child: child) else child,
     ]);
   }
 

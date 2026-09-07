@@ -230,6 +230,7 @@ final class PokeMapPlayerMenuTheme {
 
   TextStyle get body => _bodyStyle(_style(18, 26, FontWeight.w400));
   TextStyle get label => _bodyStyle(_style(18, 24, FontWeight.w500));
+  TextStyle get actionLabel => _bodyStyle(_style(14, 20, FontWeight.w500));
   TextStyle get title => _displayStyle(_style(26, 32, FontWeight.w600));
   TextStyle get subtitle => _displayStyle(_style(22, 28, FontWeight.w500));
   TextStyle get meta => _bodyStyle(_style(15, 20, FontWeight.w400));
@@ -291,8 +292,10 @@ class PlayerMenuEffectsScope extends InheritedTheme {
 
   final RuntimePlayerMenuEffects effects;
 
-  static RuntimePlayerMenuEffects of(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<PlayerMenuEffectsScope>()?.effects ??
+  static RuntimePlayerMenuEffects of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<PlayerMenuEffectsScope>()
+          ?.effects ??
       RuntimePlayerMenuEffects.full;
 
   @override

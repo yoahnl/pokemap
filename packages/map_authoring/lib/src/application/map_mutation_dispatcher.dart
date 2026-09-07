@@ -5,6 +5,7 @@ import 'package:map_distribution/map_distribution.dart';
 import '../contracts/action_descriptor.dart';
 import '../domains/project/regional_map_actions.dart';
 import '../domains/project/battle_transition_default_actions.dart';
+import '../domains/project/runtime_audio_actions.dart';
 import '../domains/assets/asset_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/element_actions.dart';
@@ -136,6 +137,7 @@ final class MapMutationDispatcher {
     const tilesets = TilesetActions();
     const visualOrganization = VisualOrganizationActions();
     const battleTransitionDefaults = BattleTransitionDefaultActions();
+    const runtimeAudio = RuntimeAudioActions();
     const palettes = PaletteActions();
     const elements = ElementActions();
     const presentation = PresentationActions();
@@ -297,6 +299,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: elements.build,
+        ),
+      for (final descriptor in RuntimeAudioActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: runtimeAudio.build,
         ),
       for (final descriptor in PresentationActions.descriptors)
         MapMutationActionRegistration(

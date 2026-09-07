@@ -191,13 +191,13 @@ final class PlayerPausePresentation {
   IconData icon(PlayerPauseAction action) =>
       switch (actionIcons[action] ?? _defaultPauseActionIcon(action)) {
         ProjectPauseActionIcon.play => Icons.play_arrow_rounded,
-        ProjectPauseActionIcon.party => Icons.groups_rounded,
+        ProjectPauseActionIcon.party => Icons.catching_pokemon,
         ProjectPauseActionIcon.bag => Icons.backpack_rounded,
         ProjectPauseActionIcon.book => Icons.menu_book_rounded,
         ProjectPauseActionIcon.map => Icons.map_rounded,
         ProjectPauseActionIcon.person => Icons.person_rounded,
         ProjectPauseActionIcon.save => Icons.save_rounded,
-        ProjectPauseActionIcon.settings => Icons.tune_rounded,
+        ProjectPauseActionIcon.settings => Icons.settings_rounded,
         ProjectPauseActionIcon.exit => Icons.logout_rounded,
       };
 }
