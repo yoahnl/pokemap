@@ -484,6 +484,17 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     RuntimePlayerSnapshot snapshot, {
     Object? payload,
   }) async {
+    if (action == RuntimePlayerAction.openMenu &&
+        (widget.gameplayInputAuthority?.value.context ==
+                RuntimeInputContext.battle ||
+            widget.gameplayInputAuthority?.value.context ==
+                RuntimeInputContext.transition ||
+            widget.battlePresentation?.value != null)) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.unavailable,
+        safeMessage: 'Le menu est temporairement indisponible.',
+      );
+    }
     final isMenuTransition = action == RuntimePlayerAction.openMenu ||
         action == RuntimePlayerAction.resume;
     if (isMenuTransition && _menuTransitionPending) {

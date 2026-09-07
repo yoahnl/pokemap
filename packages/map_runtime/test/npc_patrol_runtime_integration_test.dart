@@ -9,6 +9,33 @@ const _npcId = 'patrolling_npc';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('NPC debug collision uses gameplay feet and display scale', () async {
+    final bundle = _bundle(
+      _npc(mode: MapEntityNpcMovementMode.idle, waypoints: const []).copyWith(
+        size: const GridSize(width: 2, height: 2),
+      ),
+    );
+    final game = _PatrolGame(
+      bundle: bundle,
+      projectFilePath: '/tmp/npc_debug/project.json',
+    );
+    await _load(game);
+    game.setNpcCollisionDebugOverlayVisible(true);
+    await _pump(game, ticks: 2);
+    final rect = game.world.children
+        .whereType<RectangleComponent>()
+        .singleWhere((component) => component.priority == 200001);
+    final settings = bundle.manifest.settings;
+    final scale = settings.displayScale;
+    expect(rect.size, Vector2(12 * scale, 8 * scale));
+    expect(
+        rect.position,
+        Vector2(
+          (2 * settings.tileWidth - 6) * scale,
+          (2 * settings.tileHeight - 8) * scale,
+        ));
+  });
+
   test('a patrol authored on the map actually walks the npc in game', () async {
     final game = _PatrolGame(
       bundle: _bundle(

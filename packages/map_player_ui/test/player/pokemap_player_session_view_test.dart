@@ -1519,6 +1519,9 @@ void main() {
       _snapshot(
         revision: 27,
         phase: RuntimePlayerPhase.playing,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
+        ],
         preferences: const PlayerPreferencesSnapshot(
           locale: 'fr',
           accessibility: GameSessionAccessibilityOptions(),
@@ -1544,6 +1547,9 @@ void main() {
       findsNothing,
     );
     expect(find.text('Roucool'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.pump();
+    expect(controller.commands, isEmpty);
     await tester.tap(
       find.byKey(const ValueKey<String>('battle-entry-0')),
     );
@@ -1556,6 +1562,9 @@ void main() {
 
     battle.value = null;
     await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.pump();
+    expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
     expect(
       find.byKey(const ValueKey<String>('runtime-player-input-hints')),
       findsOneWidget,
@@ -1615,6 +1624,100 @@ void main() {
           .opacity,
       .45,
     );
+  });
+
+  testWidgets('rejects exploration menu input while battle owns input',
+      (tester) async {
+    final authority = ValueNotifier<RuntimeInputAuthoritySnapshot>(
+      const RuntimeInputAuthoritySnapshot(
+          context: RuntimeInputContext.overworld),
+    );
+    final controllerEvents = StreamController<RuntimeInputEvent>.broadcast();
+    final gameplayEvents = <RuntimeInputEvent>[];
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 24,
+        phase: RuntimePlayerPhase.playing,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
+        ],
+      ),
+    );
+    addTearDown(authority.dispose);
+    addTearDown(controllerEvents.close);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(
+      controller,
+      touchControlsAvailable: true,
+      gameplayInputAuthority: authority,
+      controllerInputEvents: controllerEvents.stream,
+      gameplayInputRoute: (event) {
+        gameplayEvents.add(event);
+        return true;
+      },
+    )));
+
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.battle,
+    );
+    await tester.tap(find.byKey(
+      const ValueKey<String>('runtime-player-touch-menu-open'),
+    ));
+    await tester.pump();
+    expect(controller.commands, isEmpty);
+
+    for (final context in [
+      RuntimeInputContext.battle,
+      RuntimeInputContext.transition,
+    ]) {
+      authority.value = RuntimeInputAuthoritySnapshot(context: context);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+      controllerEvents.add(
+        const RuntimeInputEvent.press(RuntimeInputControl.menu),
+      );
+      await tester.pump();
+      expect(controller.commands, isEmpty, reason: context.name);
+    }
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.battle,
+    );
+    controllerEvents.add(
+      const RuntimeInputEvent.press(RuntimeInputControl.primary),
+    );
+    await tester.pump();
+    expect(gameplayEvents.last.control, RuntimeInputControl.primary);
+
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.overworld,
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.pump();
+    expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
+  });
+
+  testWidgets('preserves exploration pause during dialogue', (tester) async {
+    final authority = ValueNotifier<RuntimeInputAuthoritySnapshot>(
+      const RuntimeInputAuthoritySnapshot(
+          context: RuntimeInputContext.dialogue),
+    );
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 24,
+        phase: RuntimePlayerPhase.playing,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
+        ],
+      ),
+    );
+    addTearDown(authority.dispose);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(
+      controller,
+      gameplayInputAuthority: authority,
+    )));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.pump();
+    expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
   });
 
   testWidgets('routes controller gameplay and reserves Start for pause',

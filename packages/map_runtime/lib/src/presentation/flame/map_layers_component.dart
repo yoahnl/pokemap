@@ -150,6 +150,10 @@ class MapLayersComponent extends PositionComponent {
   }
 
   final RuntimeMapBundle bundle;
+  late final Map<String, int> _placedElementOrderById = {
+    for (var i = 0; i < bundle.map.placedElements.length; i++)
+      bundle.map.placedElements[i].id: i,
+  };
   final Map<String, RuntimeTilesetImage> tileImagesByTilesetId;
   final MapLayerRenderPass renderPass;
   bool showCollisionOverlay;
@@ -1095,11 +1099,55 @@ class MapLayersComponent extends PositionComponent {
     }
   }
 
+  void Function(Canvas)? placedElementOcclusionOverlayPainter(String ownerId) {
+    final index = _placedElementOrderById[ownerId];
+    if (index == null) return null;
+    final owner = bundle.map.placedElements[index];
+    final element = _elementById[owner.elementId];
+    if (element == null || owner.opacity != 1) return null;
+    final layer =
+        bundle.map.layers.where((l) => l.id == owner.layerId).firstOrNull;
+    if (layer == null || !layer.isVisible || layer.opacity != 1) return null;
+    final footprint =
+        resolveMapPlacedElementFootprint(instance: owner, element: element);
+    final left = owner.pos.x * bundle.cellWidth;
+    final top = owner.pos.y * bundle.cellHeight;
+    final bounds = Rect.fromLTWH(
+        left,
+        top,
+        footprint.destinationSize.width * bundle.cellWidth,
+        footprint.destinationSize.height * bundle.cellHeight);
+    final overlays = _placedElementSpatialIndex
+        .query(bounds)
+        .where((candidate) =>
+            candidate.layerId == owner.layerId &&
+            (_placedElementOrderById[candidate.id] ?? -1) > index &&
+            candidate.opacity > 0)
+        .toList(growable: false);
+    if (overlays.isEmpty) return null;
+    return (canvas) {
+      canvas.save();
+      try {
+        canvas.translate(-left, -top);
+        _paintPlacedElementsForLayer(canvas,
+            layerId: layer.id,
+            layerName: layer.name,
+            opacity: layer.opacity,
+            candidates: overlays,
+            compositeOverlay: true);
+      } finally {
+        canvas.restore();
+      }
+    };
+  }
+
   void _paintPlacedElementsForLayer(
     Canvas canvas, {
     required String layerId,
     required String layerName,
     required double opacity,
+    List<MapPlacedElement>? candidates,
+    bool compositeOverlay = false,
   }) {
     if (bundle.map.placedElements.isEmpty || opacity <= 0) {
       return;
@@ -1124,7 +1172,8 @@ class MapLayersComponent extends PositionComponent {
       ..filterQuality = FilterQuality.none;
     final visibleRect = _visibleLocalRect;
 
-    final placedCandidates = _placedElementSpatialIndex.query(visibleRect);
+    final placedCandidates =
+        candidates ?? _placedElementSpatialIndex.query(visibleRect);
     _activeRenderCounter?.placedElementCandidateVisits +=
         placedCandidates.length;
     for (final instance in placedCandidates) {
@@ -1144,7 +1193,9 @@ class MapLayersComponent extends PositionComponent {
       final hasOcclusionMask = entry.collisionProfile?.occlusionMask != null;
       final isPlayingOneShot = !hasOcclusionMask &&
           _activeOneShotByInstanceId.containsKey(instance.id);
-      if (isPlayingOneShot && renderPass == MapLayerRenderPass.background) {
+      if (isPlayingOneShot &&
+          renderPass == MapLayerRenderPass.background &&
+          !compositeOverlay) {
         continue;
       }
       final frame = _pickPlacedElementFrame(
@@ -1162,7 +1213,8 @@ class MapLayersComponent extends PositionComponent {
       );
       final collisionCells =
           instance.applyCollision ? entry.collisionProfile?.cells : null;
-      final hasForegroundSplit = !explicitForeground &&
+      final hasForegroundSplit = !compositeOverlay &&
+          !explicitForeground &&
           !hasOcclusionMask &&
           (source.width > 1 || source.height > 1) &&
           collisionCells != null &&

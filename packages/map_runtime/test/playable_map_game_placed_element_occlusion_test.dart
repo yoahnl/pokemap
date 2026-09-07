@@ -17,6 +17,100 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame placed element occlusion patches', () {
+    for (final overlayAfter in [false, true]) {
+      for (var quarterTurns = 0; quarterTurns < 4; quarterTurns++) {
+        test(
+            'occlusion preserves prop order at q$quarterTurns: overlayAfter=$overlayAfter',
+            () async {
+          final source = _bundle();
+          final prop = source.manifest.elements.single.copyWith(
+            id: 'prop',
+            frames: const [
+              TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0)),
+            ],
+            collisionProfile: null,
+          );
+          final owner = source.map.placedElements.single
+              .copyWith(quarterTurns: quarterTurns);
+          final overlay = owner.copyWith(
+            id: 'prop-1',
+            elementId: 'prop',
+            applyCollision: false,
+            quarterTurns: 0,
+          );
+          final game = _game(
+            bundle: source.copyWith(
+              manifest: source.manifest.copyWith(
+                elements: [...source.manifest.elements, prop],
+              ),
+              map: source.map.copyWith(
+                placedElements:
+                    overlayAfter ? [owner, overlay] : [overlay, owner],
+              ),
+            ),
+            twoFrameAsset: true,
+          );
+          await _load(game);
+          final recorder = ui.PictureRecorder();
+          final canvas = Canvas(recorder);
+          _layers(game, MapLayerRenderPass.background).render(canvas);
+          _occlusionPatches(game).single.renderTree(canvas);
+          final picture = recorder.endRecording();
+          final image = await picture.toImage(128, 128);
+          final point = [(32, 32), (63, 32), (63, 63), (32, 63)][quarterTurns];
+          expect(await pixelAt(image, point.$1, point.$2),
+              overlayAfter ? rgba(0, 255, 0, 255) : rgba(255, 0, 0, 255));
+          image.dispose();
+          picture.dispose();
+        });
+      }
+    }
+
+    test('decoration replay follows its current animated frame', () async {
+      final source = _bundle();
+      final prop = source.manifest.elements.single.copyWith(
+        id: 'prop',
+        collisionProfile: null,
+        frames: const [
+          TilesetVisualFrame(
+              source: TilesetSourceRect(x: 1, y: 0), durationMs: 100),
+          TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0), durationMs: 100),
+        ],
+      );
+      final game = _game(
+          bundle: source.copyWith(
+            manifest: source.manifest
+                .copyWith(elements: [...source.manifest.elements, prop]),
+            map: source.map.copyWith(placedElements: [
+              ...source.map.placedElements,
+              source.map.placedElements.single.copyWith(
+                  id: 'prop-1',
+                  elementId: 'prop',
+                  animation: const MapPlacedElementAnimation(
+                      mode: MapPlacedElementAnimationMode.loop,
+                      enabled: true,
+                      autoplay: true)),
+            ]),
+          ),
+          twoFrameAsset: true);
+      await _load(game);
+      Future<List<int>> sample() async {
+        final recorder = ui.PictureRecorder();
+        _occlusionPatches(game).single.renderTree(Canvas(recorder));
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(128, 128);
+        final pixel = await pixelAt(image, 32, 32);
+        image.dispose();
+        picture.dispose();
+        return pixel;
+      }
+
+      expect(await sample(), rgba(0, 255, 0, 255));
+      game.update(.11);
+      expect(await sample(), rgba(255, 0, 0, 255));
+    });
+
     test(
         'animated occlusion follows the displayed frame and animation controls',
         () async {

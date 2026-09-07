@@ -287,10 +287,37 @@ class GameplayWorldState {
 
   /// Test pixel-level contre l’union des obstacles statiques (bitmap monde).
   bool worldStaticObstaclesCollidePixelRect(PixelRect rect) {
-    return _staticCollisionStorage.collidesPixelRect(
+    if (rect.widthPx <= 0 || rect.heightPx <= 0) return false;
+    if (_staticCollisionStorage.collidesPixelRect(
       rect,
-      isDynamicCellBlocked: _blockingEntityByPos.containsKey,
-    );
+      isDynamicCellBlocked: (_) => false,
+    )) {
+      return true;
+    }
+    final right = rect.leftPx + rect.widthPx;
+    final bottom = rect.topPx + rect.heightPx;
+    for (var y = rect.topPx ~/ _tileHeight;
+        y <= (bottom - 1) ~/ _tileHeight;
+        y++) {
+      for (var x = rect.leftPx ~/ _tileWidth;
+          x <= (right - 1) ~/ _tileWidth;
+          x++) {
+        final entity = _blockingEntityByPos[y * map.size.width + x];
+        if (entity == null) continue;
+        final obstacle = resolveEntityCollisionRectPx(
+          entity,
+          tileWidthPx: _tileWidth,
+          tileHeightPx: _tileHeight,
+        );
+        if (rect.leftPx < obstacle.leftPx + obstacle.widthPx &&
+            right > obstacle.leftPx &&
+            rect.topPx < obstacle.topPx + obstacle.heightPx &&
+            bottom > obstacle.topPx) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /// PNJ scripté / pathfinding : centre de case → bitmap (pas une primitive joueur).

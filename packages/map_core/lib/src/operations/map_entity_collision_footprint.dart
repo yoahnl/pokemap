@@ -1,6 +1,8 @@
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../collision/pixel_rect.dart';
+import '../collision/player_collision_conventions_v1.dart';
 
 const String mapEntityCollisionWidthProperty = 'collision.width';
 const String mapEntityCollisionHeightProperty = 'collision.height';
@@ -16,7 +18,8 @@ MapRect resolveEntityCollisionFootprint(MapEntity entity) {
   final width = _clampInt(
     (_readPositiveInt(entity.properties[mapEntityCollisionWidthProperty]) ??
             _readPositiveInt(
-                entity.properties[_legacyCollisionWidthProperty])) ??
+              entity.properties[_legacyCollisionWidthProperty],
+            )) ??
         defaultSize.width,
     min: 1,
     max: entity.size.width,
@@ -24,7 +27,8 @@ MapRect resolveEntityCollisionFootprint(MapEntity entity) {
   final height = _clampInt(
     (_readPositiveInt(entity.properties[mapEntityCollisionHeightProperty]) ??
             _readPositiveInt(
-                entity.properties[_legacyCollisionHeightProperty])) ??
+              entity.properties[_legacyCollisionHeightProperty],
+            )) ??
         defaultSize.height,
     min: 1,
     max: entity.size.height,
@@ -51,10 +55,7 @@ MapRect resolveEntityCollisionFootprint(MapEntity entity) {
   );
 
   return MapRect(
-    pos: GridPos(
-      x: entity.pos.x + offsetX,
-      y: entity.pos.y + offsetY,
-    ),
+    pos: GridPos(x: entity.pos.x + offsetX, y: entity.pos.y + offsetY),
     size: GridSize(width: width, height: height),
   );
 }
@@ -63,28 +64,48 @@ Iterable<GridPos> resolveEntityCollisionCells(MapEntity entity) sync* {
   final footprint = resolveEntityCollisionFootprint(entity);
   for (var dy = 0; dy < footprint.size.height; dy++) {
     for (var dx = 0; dx < footprint.size.width; dx++) {
-      yield GridPos(
-        x: footprint.pos.x + dx,
-        y: footprint.pos.y + dy,
-      );
+      yield GridPos(x: footprint.pos.x + dx, y: footprint.pos.y + dy);
     }
   }
 }
 
+PixelRect resolveEntityCollisionRectPx(
+  MapEntity entity, {
+  required int tileWidthPx,
+  required int tileHeightPx,
+}) {
+  final hasExplicitCollision = <String>[
+    mapEntityCollisionWidthProperty,
+    mapEntityCollisionHeightProperty,
+    mapEntityCollisionOffsetXProperty,
+    mapEntityCollisionOffsetYProperty,
+    _legacyCollisionWidthProperty,
+    _legacyCollisionHeightProperty,
+    _legacyCollisionOffsetXProperty,
+    _legacyCollisionOffsetYProperty,
+  ].any((key) => entity.properties.containsKey(key));
+  if (entity.kind == MapEntityKind.npc && !hasExplicitCollision) {
+    return PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+      spriteTopLeftPx: PixelPosition(
+        leftPx: entity.pos.x * tileWidthPx,
+        topPx: entity.pos.y * tileHeightPx,
+      ),
+      spriteWidthPx: entity.size.width * tileWidthPx,
+      spriteHeightPx: entity.size.height * tileHeightPx,
+    );
+  }
+  final footprint = resolveEntityCollisionFootprint(entity);
+  return PixelRect(
+    leftPx: footprint.pos.x * tileWidthPx,
+    topPx: footprint.pos.y * tileHeightPx,
+    widthPx: footprint.size.width * tileWidthPx,
+    heightPx: footprint.size.height * tileHeightPx,
+  );
+}
+
 GridSize _defaultCollisionSize(MapEntity entity) {
   if (entity.kind == MapEntityKind.npc) {
-    // NPC default collision:
-    // - on aligne désormais la hitbox sur toute la taille logique du sprite.
-    //
-    // Pourquoi:
-    // - une collision "feet only" pour les NPC 2x2 laissait des zones
-    //   traversables sur le haut du sprite (perçu comme traversée).
-    // - en pratique produit, la règle la plus sûre et lisible est:
-    //   hitbox par défaut = volume complet de l'entité.
-    //
-    // Les maps qui veulent un footprint plus fin peuvent toujours fournir des
-    // propriétés explicites `collision.width/height/offset`.
-    return entity.size;
+    return GridSize(width: entity.size.width, height: 1);
   }
   return entity.size;
 }
@@ -97,11 +118,7 @@ int _defaultCollisionOffsetY(MapEntity entity, int collisionHeight) {
   return entity.size.height - collisionHeight;
 }
 
-int _clampInt(
-  int value, {
-  required int min,
-  required int max,
-}) {
+int _clampInt(int value, {required int min, required int max}) {
   if (value < min) return min;
   if (value > max) return max;
   return value;

@@ -13,6 +13,7 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
     required this.tilesetImage,
     this.visibleWorldRectProvider,
     this.frameProvider,
+    this.overlayPainter,
   })  : _currentDepthSortY = instruction.depthSortY,
         super(
           anchor: Anchor.topLeft,
@@ -20,6 +21,7 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
           size: Vector2(instruction.visualWidth, instruction.visualHeight),
         ) {
     _maskPixels = _decodeMask(instruction.occlusionMask);
+    _overlayClip = overlayPainter == null ? null : _buildOverlayClip();
     _prepareRenderPlan(
       tilesetImage,
       Rect.fromLTWH(
@@ -91,6 +93,8 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
 
   final StaticPlacedElementOcclusionPatchInstruction instruction;
   final RuntimeTilesetImage tilesetImage;
+  final void Function(Canvas)? overlayPainter;
+  late final Path? _overlayClip;
   final Rect Function()? visibleWorldRectProvider;
   final ({RuntimeTilesetImage image, Rect sourceRect})? Function()?
       frameProvider;
@@ -106,6 +110,41 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   int _renderPlanDrawCount = 0;
   int _culledRenderCount = 0;
   bool _didRemove = false;
+
+  Path _buildOverlayClip() {
+    final sourceSize = GridSize(
+        width: instruction.sourceWidthPx, height: instruction.sourceHeightPx);
+    final destinationSize = GridSize(
+        width: instruction.destinationWidthPx,
+        height: instruction.destinationHeightPx);
+    final transform = QuarterTurnPixelTransform(
+        sourcePixelSize: sourceSize,
+        destinationPixelSize: destinationSize,
+        quarterTurns: instruction.quarterTurns);
+    final dx = instruction.visualWidth / destinationSize.width;
+    final dy = instruction.visualHeight / destinationSize.height;
+    final path = Path();
+    for (var y = 0; y < destinationSize.height; y++) {
+      int? start;
+      for (var x = 0; x <= destinationSize.width; x++) {
+        var included = false;
+        if (x < destinationSize.width) {
+          final source =
+              transform.destinationPixelToSourcePixel(GridPos(x: x, y: y));
+          final index = source.y * sourceSize.width + source.x;
+          included =
+              index >= 0 && index < _maskPixels.length && _maskPixels[index];
+        }
+        if (included) {
+          start ??= x;
+        } else if (start != null) {
+          path.addRect(Rect.fromLTWH(start * dx, y * dy, (x - start) * dx, dy));
+          start = null;
+        }
+      }
+    }
+    return path;
+  }
 
   @visibleForTesting
   int get debugDrawRunCount => _drawRunCount;
@@ -170,6 +209,16 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
     if (plan == null || plan.isDisposed || _drawRunCount == 0) return;
 
     plan.draw(canvas);
+    final clip = _overlayClip;
+    if (clip != null) {
+      canvas.save();
+      try {
+        canvas.clipPath(clip, doAntiAlias: false);
+        overlayPainter!(canvas);
+      } finally {
+        canvas.restore();
+      }
+    }
     _renderPlanDrawCount += 1;
     final result = plan.result;
     _lastQuarterTurnDrawRunCount = result.drawRunCount;

@@ -21,7 +21,7 @@ void main() {
       );
     });
 
-    test('npc 2x2 defaults to full-size collision (2x2)', () {
+    test('npc 2x2 indexes only the bottom row for grid systems', () {
       const entity = MapEntity(
         id: 'npc_big',
         kind: MapEntityKind.npc,
@@ -31,19 +31,56 @@ void main() {
       );
 
       final footprint = resolveEntityCollisionFootprint(entity);
-      // Anchor is top-left of the entity; default collision now covers the
-      // entire logical NPC size to avoid visual pass-through.
-      expect(footprint.pos, const GridPos(x: 26, y: 12));
-      expect(footprint.size, const GridSize(width: 2, height: 2));
+      expect(footprint.pos, const GridPos(x: 26, y: 13));
+      expect(footprint.size, const GridSize(width: 2, height: 1));
       expect(
         resolveEntityCollisionCells(entity).toList(growable: false),
-        const <GridPos>[
-          GridPos(x: 26, y: 12),
-          GridPos(x: 27, y: 12),
-          GridPos(x: 26, y: 13),
-          GridPos(x: 27, y: 13),
-        ],
+        const <GridPos>[GridPos(x: 26, y: 13), GridPos(x: 27, y: 13)],
       );
+    });
+    for (final tileSize in [16, 32]) {
+      test('npc feet match player hitbox on $tileSize px tiles', () {
+        const entity = MapEntity(
+          id: 'npc',
+          kind: MapEntityKind.npc,
+          pos: GridPos(x: 5, y: 5),
+          size: GridSize(width: 2, height: 2),
+          npc: MapEntityNpcData(),
+        );
+        final rect = resolveEntityCollisionRectPx(
+          entity,
+          tileWidthPx: tileSize,
+          tileHeightPx: tileSize,
+        );
+        expect(rect.leftPx, 6 * tileSize - 6);
+        expect(rect.topPx, 7 * tileSize - 8);
+        expect(rect.widthPx, 12);
+        expect(rect.heightPx, 8);
+        expect(entity.size, const GridSize(width: 2, height: 2));
+      });
+    }
+    test('explicit collision retains authored dimensions and offset', () {
+      const entity = MapEntity(
+        id: 'npc',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 5, y: 5),
+        size: GridSize(width: 2, height: 2),
+        properties: {
+          'collision.width': '1',
+          'collision.height': '2',
+          'collision.offsetX': '1',
+          'collision.offsetY': '0',
+        },
+      );
+      final rect = resolveEntityCollisionRectPx(
+        entity,
+        tileWidthPx: 16,
+        tileHeightPx: 16,
+      );
+      expect(rect.leftPx, 96);
+      expect(rect.topPx, 80);
+      expect(rect.widthPx, 16);
+      expect(rect.heightPx, 32);
     });
   });
 }

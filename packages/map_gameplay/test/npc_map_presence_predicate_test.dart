@@ -86,8 +86,18 @@ void main() {
 
     final visible = hidden.withNpcMapPresencePredicate((_, __) => true);
     expect(
-        visible.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isTrue);
-    expect(visible.entityAt(5, 5)?.id, 'emma');
+        visible.isCellCenterBlockedLegacyForGridIndexedSystems(5, 6), isTrue);
+    expect(visible.entityAt(5, 6)?.id, 'emma');
+    expect(
+        visible.worldStaticObstaclesCollidePixelRect(
+          const PixelRect(leftPx: 90, topPx: 104, widthPx: 12, heightPx: 8),
+        ),
+        isTrue);
+    expect(
+        hidden.worldStaticObstaclesCollidePixelRect(
+          const PixelRect(leftPx: 90, topPx: 104, widthPx: 12, heightPx: 8),
+        ),
+        isFalse);
   });
 
   test('MoveIntent : case PNJ franchissable si prédicat retire le PNJ', () {

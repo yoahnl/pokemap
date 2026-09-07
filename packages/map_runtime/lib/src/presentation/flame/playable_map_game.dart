@@ -13528,16 +13528,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ..position = actor.position.clone()
         ..size = actor.size.clone();
 
-      // 2) Footprint collision gameplay (grille -> pixels).
-      final footprint = resolveEntityCollisionFootprint(entity);
+      final footprint = resolveEntityCollisionRectPx(
+        entity,
+        tileWidthPx: _world.tileWidthPx,
+        tileHeightPx: _world.tileHeightPx,
+      );
+      final scaleX = _cellWidth / _world.tileWidthPx;
+      final scaleY = _cellHeight / _world.tileHeightPx;
       visual.collisionRect
         ..position = Vector2(
-          origin.x + footprint.pos.x * _cellWidth,
-          origin.y + footprint.pos.y * _cellHeight,
+          origin.x + footprint.leftPx * scaleX,
+          origin.y + footprint.topPx * scaleY,
         )
         ..size = Vector2(
-          footprint.size.width * _cellWidth,
-          footprint.size.height * _cellHeight,
+          footprint.widthPx * scaleX,
+          footprint.heightPx * scaleY,
         );
 
       // 3) Point d'ancrage logique MapEntity.pos (top-left cellule logique).
@@ -13669,6 +13674,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final patch = PlacedElementOcclusionPatchComponent(
         instruction: instruction,
         tilesetImage: tilesetImage,
+        overlayPainter: backgroundLayers
+            .placedElementOcclusionOverlayPainter(instruction.placedElementId),
         visibleWorldRectProvider: () => camera.visibleWorldRect,
         frameProvider: () {
           final instance = placedElementById[instruction.placedElementId];
