@@ -3,6 +3,46 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('32 px characters stop at body contact but can pass behind the head',
+      () {
+    final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 12, height: 12),
+        layers: const [],
+        entities: const [
+          MapEntity(
+              id: 'npc',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 5, y: 5),
+              size: GridSize(width: 2, height: 2),
+              npc: MapEntityNpcData())
+        ]);
+    final world = GameplayWorldState.initial(
+        map: map,
+        playerPos: const GridPos(x: 0, y: 0),
+        tileWidth: 32,
+        tileHeight: 32);
+    expect(
+        world.worldStaticObstaclesCollidePixelRect(
+            const PixelRect(leftPx: 163, topPx: 216, widthPx: 12, heightPx: 8),
+            playerContact: true),
+        isTrue,
+        reason: 'feet centers 23 px apart must not overlap their bodies');
+    expect(
+        world.worldStaticObstaclesCollidePixelRect(
+            const PixelRect(leftPx: 162, topPx: 216, widthPx: 12, heightPx: 8),
+            playerContact: true),
+        isFalse,
+        reason: 'feet centers 24 px apart just touch');
+    expect(
+        world.worldStaticObstaclesCollidePixelRect(
+            const PixelRect(leftPx: 186, topPx: 196, widthPx: 12, heightPx: 8),
+            playerContact: true),
+        isFalse,
+        reason: 'the head is an occluder, not an obstacle');
+  });
+
   test('default 2x2 NPC blocks feet while head and side margins stay free', () {
     final map = MapData(
       id: 'map',

@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 const _mapId = 'npc_patrol_map';
@@ -8,6 +9,26 @@ const _npcId = 'patrolling_npc';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('walking behind a moving 2x2 NPC does not hit its reserved head cells', () async {
+    final bundle = _bundle(_npc(
+      mode: MapEntityNpcMovementMode.patrol,
+      waypoints: const [GridPos(x: 1, y: 0), GridPos(x: 3, y: 0)],
+    ).copyWith(size: const GridSize(width: 2, height: 2), npc: MapEntityNpcData(
+      characterId: 'patrol_character',
+      movement: const MapEntityNpcMovementConfig(mode: MapEntityNpcMovementMode.patrol,
+        waypoints: [GridPos(x: 1, y: 0), GridPos(x: 3, y: 0)],
+        stepDurationMs: 1000, pauseDurationMs: 0))));
+    final game = _PatrolGame(bundle: bundle, projectFilePath: '/tmp/npc_head/project.json');
+    await _load(game);
+    game.debugSetPlayerStateForTest(position: const GridPos(x: 0, y: 0), facing: Direction.east);
+    await _pump(game, ticks: 4);
+    final before = game.debugPlayerWorldTopLeft.x;
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right));
+    await _pump(game, ticks: 12);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+    expect(game.debugPlayerWorldTopLeft.x, greaterThan(before));
+  });
 
   test('NPC debug collision uses gameplay feet and display scale', () async {
     final bundle = _bundle(
@@ -27,12 +48,13 @@ void main() {
         .singleWhere((component) => component.priority == 200001);
     final settings = bundle.manifest.settings;
     final scale = settings.displayScale;
-    expect(rect.size, Vector2(12 * scale, 8 * scale));
+    final tileScale = settings.tileWidth / 16;
+    expect(rect.size, Vector2(12 * scale * tileScale, 8 * scale * tileScale));
     expect(
         rect.position,
         Vector2(
-          (2 * settings.tileWidth - 6) * scale,
-          (2 * settings.tileHeight - 8) * scale,
+          (2 * settings.tileWidth - 6 * tileScale) * scale,
+          (2 * settings.tileHeight - 8 * tileScale) * scale,
         ));
   });
 

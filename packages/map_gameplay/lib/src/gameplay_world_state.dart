@@ -282,11 +282,13 @@ class GameplayWorldState {
 
   /// Collision **déplacement** : hitbox joueur vs bitmap statique monde.
   bool worldStaticObstaclesCollidePlayerCollisionRect() {
-    return worldStaticObstaclesCollidePixelRect(player.playerCollisionRectPx);
+    return worldStaticObstaclesCollidePixelRect(player.playerCollisionRectPx,
+        playerContact: true);
   }
 
   /// Test pixel-level contre l’union des obstacles statiques (bitmap monde).
-  bool worldStaticObstaclesCollidePixelRect(PixelRect rect) {
+  bool worldStaticObstaclesCollidePixelRect(PixelRect rect,
+      {bool playerContact = false}) {
     if (rect.widthPx <= 0 || rect.heightPx <= 0) return false;
     if (_staticCollisionStorage.collidesPixelRect(
       rect,
@@ -294,14 +296,17 @@ class GameplayWorldState {
     )) {
       return true;
     }
-    final right = rect.leftPx + rect.widthPx;
-    final bottom = rect.topPx + rect.heightPx;
-    for (var y = rect.topPx ~/ _tileHeight;
-        y <= (bottom - 1) ~/ _tileHeight;
-        y++) {
-      for (var x = rect.leftPx ~/ _tileWidth;
-          x <= (right - 1) ~/ _tileWidth;
-          x++) {
+    final contact = playerContact ? playerCharacterContactRect(rect) : rect;
+    final left = contact.leftPx < rect.leftPx ? contact.leftPx : rect.leftPx;
+    final top = contact.topPx < rect.topPx ? contact.topPx : rect.topPx;
+    final right = contact.leftPx + contact.widthPx > rect.leftPx + rect.widthPx
+        ? contact.leftPx + contact.widthPx
+        : rect.leftPx + rect.widthPx;
+    final bottom = contact.topPx + contact.heightPx > rect.topPx + rect.heightPx
+        ? contact.topPx + contact.heightPx
+        : rect.topPx + rect.heightPx;
+    for (var y = top ~/ _tileHeight; y <= (bottom - 1) ~/ _tileHeight; y++) {
+      for (var x = left ~/ _tileWidth; x <= (right - 1) ~/ _tileWidth; x++) {
         final entity = _blockingEntityByPos[y * map.size.width + x];
         if (entity == null) continue;
         final obstacle = resolveEntityCollisionRectPx(
@@ -309,16 +314,24 @@ class GameplayWorldState {
           tileWidthPx: _tileWidth,
           tileHeightPx: _tileHeight,
         );
-        if (rect.leftPx < obstacle.leftPx + obstacle.widthPx &&
-            right > obstacle.leftPx &&
-            rect.topPx < obstacle.topPx + obstacle.heightPx &&
-            bottom > obstacle.topPx) {
+        final moving = entity.kind == MapEntityKind.npc ? contact : rect;
+        if (moving.leftPx < obstacle.leftPx + obstacle.widthPx &&
+            moving.leftPx + moving.widthPx > obstacle.leftPx &&
+            moving.topPx < obstacle.topPx + obstacle.heightPx &&
+            moving.topPx + moving.heightPx > obstacle.topPx) {
           return true;
         }
       }
     }
     return false;
   }
+
+  PixelRect playerCharacterContactRect(PixelRect movementRect) =>
+      PlayerCollisionConventionsV1.characterContactRectFromMovementRect(
+        movementRect: movementRect,
+        tileWidthPx: _tileWidth,
+        tileHeightPx: _tileHeight,
+      );
 
   /// PNJ scripté / pathfinding : centre de case → bitmap (pas une primitive joueur).
   bool isCellCenterBlockedLegacyForGridIndexedSystems(int cellX, int cellY) {

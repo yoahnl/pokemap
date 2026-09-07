@@ -15,6 +15,27 @@ import 'pixel_rect.dart';
 class PlayerCollisionConventionsV1 {
   PlayerCollisionConventionsV1._();
 
+  static PixelRect characterContactRectFromMovementRect({
+    required PixelRect movementRect,
+    required int tileWidthPx,
+    required int tileHeightPx,
+  }) {
+    final width = (playerHitboxWidthPx * tileWidthPx / 16).round().clamp(
+      1,
+      tileWidthPx,
+    );
+    final height = (playerHitboxHeightPx * tileHeightPx / 16).round().clamp(
+      1,
+      tileHeightPx,
+    );
+    return PixelRect(
+      leftPx: movementRect.leftPx + movementRect.widthPx ~/ 2 - width ~/ 2,
+      topPx: movementRect.topPx + movementRect.heightPx - height,
+      widthPx: width,
+      heightPx: height,
+    );
+  }
+
   /// Taille d’affichage par défaut du sprite joueur (V1).
   /// Peut être remplacée par des métadonnées projet plus tard ; tant que ce
   /// n’est pas le cas, gameplay et runtime utilisent ces constantes.
@@ -39,12 +60,7 @@ class PlayerCollisionConventionsV1 {
     final h = playerHitboxHeightPx;
     final left = spriteTopLeftPx.leftPx + (spriteWidthPx - w) ~/ 2;
     final top = spriteTopLeftPx.topPx + spriteHeightPx - h;
-    return PixelRect(
-      leftPx: left,
-      topPx: top,
-      widthPx: w,
-      heightPx: h,
-    );
+    return PixelRect(leftPx: left, topPx: top, widthPx: w, heightPx: h);
   }
 
   /// Place le sprite pour que le personnage « tienne » dans la cellule de grille
@@ -82,9 +98,6 @@ class PlayerCollisionConventionsV1 {
     final maxY = mapHeightCells * tileHeightPx - 1;
     final x = bc.xPx.clamp(0, maxX);
     final y = bc.yPx.clamp(0, maxY);
-    return GridPos(
-      x: x ~/ tileWidthPx,
-      y: y ~/ tileHeightPx,
-    );
+    return GridPos(x: x ~/ tileWidthPx, y: y ~/ tileHeightPx);
   }
 }

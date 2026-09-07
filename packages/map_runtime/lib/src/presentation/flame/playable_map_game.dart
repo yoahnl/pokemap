@@ -1701,8 +1701,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   // - `GameplayWorldState` reste la source canonique des positions *commitées*.
   // - pendant une interpolation visuelle d'un pas PNJ, on réserve aussi les
   //   cellules de destination pour éviter les traversées joueur<->PNJ / PNJ<->PNJ.
-  final Map<String, Set<GridPos>> _scriptedNpcReservedOccupiedCellsByEntity =
-      <String, Set<GridPos>>{};
+  final Map<String, ({Set<GridPos> cells, PixelRect? contactRect})> _scriptedNpcReservedOccupiedCellsByEntity =
+      {};
   double _runtimeClockMs = 0;
   int _debugEncounterCheckCount = 0;
   _EncounterCheckMarker? _lastEncounterCheckMarker;
@@ -4712,24 +4712,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             attemptedX >= _world.map.size.width ||
             attemptedY >= _world.map.size.height);
 
-    // Collision runtime stricte contre les destinations PNJ réservées.
-    //
-    // Sans ce garde-fou, un joueur peut entrer dans la case cible d'un PNJ en
-    // interpolation (avant commit canonique), créant un effet de traversée.
-    if (attemptedDirection != null &&
-        attemptedX != null &&
-        attemptedY != null &&
-        _isCellReservedByScriptedNpc(
-          GridPos(x: attemptedX, y: attemptedY),
-        )) {
-      _world =
-          _world.withPlayer(_world.player.copyWith(facing: attemptedDirection));
-      _player.syncState(_world.player);
-      return;
-    }
-
     final previousPlayerPos = _world.player.pos;
-    final result = stepGameplayWorld(_world, intent);
+    final result = stepGameplayWorld(_world, intent,
+      characterReservations: _scriptedNpcReservedOccupiedCellsByEntity.values
+        .map((reservation) => reservation.contactRect).whereType<PixelRect>(),
+    );
     _world = result.world;
     _syncGameStateFromWorld();
 
@@ -14544,7 +14531,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (ignoreEntityId != null && entry.key == ignoreEntityId) {
         continue;
       }
-      yield* entry.value;
+      yield* entry.value.cells;
     }
   }
 
@@ -14650,7 +14637,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (ignoreEntityId != null && entry.key == ignoreEntityId) {
         continue;
       }
-      final cells = entry.value;
+      final cells = entry.value.cells;
       if (cells.contains(cell)) {
         return true;
       }
@@ -14683,10 +14670,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required GridPos toAnchorPos,
   }) {
     if (entityId.trim() == 'player') {
-      _scriptedNpcReservedOccupiedCellsByEntity[entityId] = <GridPos>{
+      _scriptedNpcReservedOccupiedCellsByEntity[entityId] = (cells: <GridPos>{
         GridPos(x: fromAnchorPos.x, y: fromAnchorPos.y),
         GridPos(x: toAnchorPos.x, y: toAnchorPos.y),
-      };
+      }, contactRect: null);
       return;
     }
     final entity = _world.map.entities
@@ -14698,19 +14685,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    // Réservation "anti-traversée visuelle":
-    // - footprint collision de la destination (cohérence gameplay stricte),
-    // - footprint visuel grille du NPC sur source + destination (cohérence
-    //   perceptuelle pendant l'interpolation visuelle du sprite).
     final reserved = <GridPos>{}
       ..addAll(_resolveEntityCollisionCellsAtAnchor(entity, toAnchorPos))
-      ..addAll(_resolveEntityVisualCellsAtAnchor(entity, fromAnchorPos))
-      ..addAll(_resolveEntityVisualCellsAtAnchor(entity, toAnchorPos));
+      ..addAll(_resolveEntityCollisionCellsAtAnchor(entity, fromAnchorPos));
     if (reserved.isEmpty) {
       _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
       return;
     }
-    _scriptedNpcReservedOccupiedCellsByEntity[entityId] = reserved;
+    final fromRect = resolveEntityCollisionRectPx(entity.copyWith(pos: fromAnchorPos),
+      tileWidthPx: _world.tileWidthPx, tileHeightPx: _world.tileHeightPx);
+    final toRect = resolveEntityCollisionRectPx(entity.copyWith(pos: toAnchorPos),
+      tileWidthPx: _world.tileWidthPx, tileHeightPx: _world.tileHeightPx);
+    final left = math.min(fromRect.leftPx, toRect.leftPx);
+    final top = math.min(fromRect.topPx, toRect.topPx);
+    _scriptedNpcReservedOccupiedCellsByEntity[entityId] = (
+      cells: reserved,
+      contactRect: PixelRect(leftPx: left, topPx: top,
+        widthPx: math.max(fromRect.leftPx + fromRect.widthPx, toRect.leftPx + toRect.widthPx) - left,
+        heightPx: math.max(fromRect.topPx + fromRect.heightPx, toRect.topPx + toRect.heightPx) - top),
+    );
   }
 
   Set<GridPos> _resolveEntityCollisionCellsAtAnchor(
@@ -14719,25 +14712,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ) {
     final moved = entity.copyWith(pos: anchorPos);
     return resolveEntityCollisionCells(moved).where(_isInMapBounds).toSet();
-  }
-
-  Set<GridPos> _resolveEntityVisualCellsAtAnchor(
-    MapEntity entity,
-    GridPos anchorPos,
-  ) {
-    final cells = <GridPos>{};
-    for (var dy = 0; dy < entity.size.height; dy++) {
-      for (var dx = 0; dx < entity.size.width; dx++) {
-        final cell = GridPos(
-          x: anchorPos.x + dx,
-          y: anchorPos.y + dy,
-        );
-        if (_isInMapBounds(cell)) {
-          cells.add(cell);
-        }
-      }
-    }
-    return cells;
   }
 
   bool _isInMapBounds(GridPos cell) {

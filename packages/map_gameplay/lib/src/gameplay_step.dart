@@ -9,17 +9,17 @@ import 'gameplay_step_result.dart';
 import 'gameplay_world_state.dart';
 
 GameplayStepResult stepGameplayWorld(
-  GameplayWorldState world,
-  GameplayIntent intent,
-) {
+    GameplayWorldState world, GameplayIntent intent,
+    {Iterable<PixelRect> characterReservations = const []}) {
   return switch (intent) {
-    MoveIntent move => _resolveMove(world, move),
+    MoveIntent move => _resolveMove(world, move, characterReservations),
     InteractIntent() => _resolveInteract(world),
   };
 }
 
 /// Déplacement **réellement pixel-level** : [playerPositionPx] + résolveur séparé H/V.
-GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent) {
+GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent,
+    Iterable<PixelRect> characterReservations) {
   final direction = intent.direction;
   final step = intent.pixelsPerStep;
   final facingWorld = world.withPlayer(
@@ -71,8 +71,18 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent) {
     deltaYPx: dy,
     spriteWidthPx: facingWorld.player.playerSpriteWidthPx,
     spriteHeightPx: facingWorld.player.playerSpriteHeightPx,
-    worldStaticObstaclesCollidePixelRect:
-        facingWorld.worldStaticObstaclesCollidePixelRect,
+    worldStaticObstaclesCollidePixelRect: (rect) {
+      if (facingWorld.worldStaticObstaclesCollidePixelRect(rect,
+          playerContact: true)) {
+        return true;
+      }
+      final contact = facingWorld.playerCharacterContactRect(rect);
+      return characterReservations.any((obstacle) =>
+          contact.leftPx < obstacle.leftPx + obstacle.widthPx &&
+          contact.leftPx + contact.widthPx > obstacle.leftPx &&
+          contact.topPx < obstacle.topPx + obstacle.heightPx &&
+          contact.topPx + contact.heightPx > obstacle.topPx);
+    },
   );
 
   final unchanged =

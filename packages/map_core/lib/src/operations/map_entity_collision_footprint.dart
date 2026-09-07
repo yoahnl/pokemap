@@ -85,13 +85,19 @@ PixelRect resolveEntityCollisionRectPx(
     _legacyCollisionOffsetYProperty,
   ].any((key) => entity.properties.containsKey(key));
   if (entity.kind == MapEntityKind.npc && !hasExplicitCollision) {
-    return PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
-      spriteTopLeftPx: PixelPosition(
-        leftPx: entity.pos.x * tileWidthPx,
-        topPx: entity.pos.y * tileHeightPx,
-      ),
-      spriteWidthPx: entity.size.width * tileWidthPx,
-      spriteHeightPx: entity.size.height * tileHeightPx,
+    final movementRect =
+        PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+          spriteTopLeftPx: PixelPosition(
+            leftPx: entity.pos.x * tileWidthPx,
+            topPx: entity.pos.y * tileHeightPx,
+          ),
+          spriteWidthPx: entity.size.width * tileWidthPx,
+          spriteHeightPx: entity.size.height * tileHeightPx,
+        );
+    return PlayerCollisionConventionsV1.characterContactRectFromMovementRect(
+      movementRect: movementRect,
+      tileWidthPx: tileWidthPx,
+      tileHeightPx: tileHeightPx,
     );
   }
   final footprint = resolveEntityCollisionFootprint(entity);

@@ -39,7 +39,7 @@ void main() {
       );
     });
     for (final tileSize in [16, 32]) {
-      test('npc feet match player hitbox on $tileSize px tiles', () {
+      test('npc contact scales with $tileSize px tiles', () {
         const entity = MapEntity(
           id: 'npc',
           kind: MapEntityKind.npc,
@@ -52,10 +52,11 @@ void main() {
           tileWidthPx: tileSize,
           tileHeightPx: tileSize,
         );
-        expect(rect.leftPx, 6 * tileSize - 6);
-        expect(rect.topPx, 7 * tileSize - 8);
-        expect(rect.widthPx, 12);
-        expect(rect.heightPx, 8);
+        final scale = tileSize ~/ 16;
+        expect(rect.leftPx, 6 * tileSize - 6 * scale);
+        expect(rect.topPx, 7 * tileSize - 8 * scale);
+        expect(rect.widthPx, 12 * scale);
+        expect(rect.heightPx, 8 * scale);
         expect(entity.size, const GridSize(width: 2, height: 2));
       });
     }
