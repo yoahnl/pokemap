@@ -5501,6 +5501,58 @@ const tiledMapTmx = `
 </map>
 `;
 
+test("MCP organizes nested map folders without rewriting maps", async () => {
+  const fixture = await mutationFixture({ withNativeSmartTileV5: true });
+  try {
+    const projectPath = join(fixture.root, "project.json");
+    let before = record(JSON.parse(await readFile(projectPath, "utf8")));
+    const maps = before.maps as JsonRecord[];
+    assert.ok(maps.length > 0);
+    const bytes = await Promise.all(maps.map((m) => readFile(join(fixture.root, String(m.relativePath)))));
+    const catalog = await toolData(fixture.client, "pokemap_describe", {});
+    assert.ok((catalog.mutationActions as JsonRecord[]).some((a) => a.id === "map.library.reorganize"));
+    const opened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+    const initial = await toolData(fixture.client, "pokemap_validate", { projectHandle: opened.projectHandle });
+    const baselineRevision = await applyMutation(fixture.client, {
+      projectHandle: String(opened.projectHandle), workspaceHandle: String(opened.workspaceHandle),
+      expectedRevision: String(initial.snapshotRevision), actionId: "map.library.reorganize",
+      parameters: { assignments: [] }, sequence: "map-library-normalized-fixture",
+    });
+    before = record(JSON.parse(await readFile(projectPath, "utf8")));
+    await applyMutation(fixture.client, {
+      projectHandle: String(opened.projectHandle), workspaceHandle: String(opened.workspaceHandle),
+      expectedRevision: baselineRevision, actionId: "map.library.reorganize",
+      parameters: {
+        groups: [{ id: "region", name: "Region", type: "village" },
+          { id: "interiors", name: "Interiors", type: "facility", parentGroupId: "region" }],
+        assignments: maps.map((m, i) => ({ mapId: m.id, groupId: "interiors", sortOrder: i })),
+      }, sequence: "map-library",
+    });
+    const reopened = await toolData(fixture.client, "pokemap_workspace", { operation: "open", projectRoot: fixture.root });
+    const validation = await toolData(fixture.client, "pokemap_validate", { projectHandle: reopened.projectHandle });
+    assert.equal(record(validation.structure).valid, true);
+    const after = record(JSON.parse(await readFile(projectPath, "utf8")));
+    assert.equal((after.groups as JsonRecord[])[1]!.parentGroupId, "region");
+    assert.ok((after.maps as JsonRecord[]).every((m) => m.groupId === "interiors"));
+    assert.deepEqual(after.tilesets, before.tilesets);
+    assert.deepEqual(after.encounterTables, before.encounterTables);
+    assert.deepEqual({ ...after, maps: before.maps, groups: before.groups }, before);
+    for (let i = 0; i < maps.length; i++) {
+      const entry = (after.maps as JsonRecord[])[i]!;
+      assert.equal(entry.id, maps[i]!.id);
+      assert.equal(entry.name, maps[i]!.name);
+      assert.equal(entry.relativePath, maps[i]!.relativePath);
+    }
+    for (let i = 0; i < maps.length; i++) {
+      assert.deepEqual(await readFile(join(fixture.root, String(maps[i]!.relativePath))), bytes[i]);
+    }
+  } finally {
+    await Promise.all([fixture.client.close(), fixture.server.close()]);
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP reorganizes an element atlas and preserves its frames after reopen", async () => {
   const fixture = await mutationFixture();
   try {

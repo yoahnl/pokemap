@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring.dart';
 
 import '../../domain/repositories/repositories.dart';
 import '../ports/project_workspace.dart';
@@ -24,8 +25,10 @@ class CreateGroupUseCase {
       sortOrder: project.groups.length,
     );
 
-    final updatedProject = project.copyWith(
+    final updatedProject = const MapLibraryActions().reorganize(
+      project,
       groups: [...project.groups, newGroup],
+      assignments: const [],
     );
 
     await _repo.saveProject(updatedProject, workspace.projectManifestPath);
@@ -43,8 +46,9 @@ class DeleteGroupUseCase {
     ProjectManifest project,
     String groupId,
   ) async {
-    final updatedGroups =
-        project.groups.where((group) => group.id != groupId).toList();
+    final updatedGroups = project.groups
+        .where((group) => group.id != groupId)
+        .toList();
 
     final updatedMaps = project.maps.map((mapEntry) {
       if (mapEntry.groupId == groupId) return mapEntry.copyWith(groupId: null);
@@ -53,8 +57,8 @@ class DeleteGroupUseCase {
 
     final parentId = project.groups.any((group) => group.id == groupId)
         ? project.groups
-            .firstWhere((group) => group.id == groupId)
-            .parentGroupId
+              .firstWhere((group) => group.id == groupId)
+              .parentGroupId
         : null;
 
     final finalGroups = updatedGroups.map((group) {
@@ -64,8 +68,14 @@ class DeleteGroupUseCase {
       return group;
     }).toList();
 
-    final updatedProject =
-        project.copyWith(groups: finalGroups, maps: updatedMaps);
+    final updatedProject = const MapLibraryActions().reorganize(
+      project,
+      groups: finalGroups,
+      assignments: [
+        for (final entry in updatedMaps)
+          {'mapId': entry.id, 'groupId': entry.groupId},
+      ],
+    );
     await _repo.saveProject(updatedProject, workspace.projectManifestPath);
     return updatedProject;
   }
@@ -82,12 +92,12 @@ class MoveMapToGroupUseCase {
     String mapId,
     String? groupId,
   ) async {
-    final updatedMaps = project.maps.map((mapEntry) {
-      if (mapEntry.id == mapId) return mapEntry.copyWith(groupId: groupId);
-      return mapEntry;
-    }).toList();
-
-    final updatedProject = project.copyWith(maps: updatedMaps);
+    final updatedProject = const MapLibraryActions().reorganize(
+      project,
+      assignments: [
+        {'mapId': mapId, 'groupId': groupId},
+      ],
+    );
     await _repo.saveProject(updatedProject, workspace.projectManifestPath);
     return updatedProject;
   }
@@ -109,7 +119,11 @@ class RenameGroupUseCase {
       return group;
     }).toList();
 
-    final updatedProject = project.copyWith(groups: updatedGroups);
+    final updatedProject = const MapLibraryActions().reorganize(
+      project,
+      groups: updatedGroups,
+      assignments: const [],
+    );
     await _repo.saveProject(updatedProject, workspace.projectManifestPath);
     return updatedProject;
   }

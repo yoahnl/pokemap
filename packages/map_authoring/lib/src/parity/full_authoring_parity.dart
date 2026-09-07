@@ -1121,6 +1121,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/tiled_map_import_transaction_test.dart',
   ),
   _ContractEvidenceRule(
+    ['map.library.'],
+    'test/domains/maps/map_library_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['map.'],
     'test/domains/maps/map_lifecycle_contract_test.dart',
   ),

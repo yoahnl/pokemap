@@ -81,6 +81,7 @@ export 'src/domains/assets/project_media_store.dart';
 export 'src/domains/assets/tiled_image_collection_packer.dart';
 export 'src/domains/assets/tileset_actions.dart';
 export 'src/domains/assets/tileset_library_actions.dart';
+export 'src/domains/maps/map_library_actions.dart';
 export 'src/domains/assets/visual_organization_actions.dart';
 export 'src/domains/narrative/dialogue_actions.dart';
 export 'src/domains/narrative/dialogue_authoring_service.dart';
