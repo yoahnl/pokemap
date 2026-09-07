@@ -1174,6 +1174,37 @@ void main() {
     expect(controller.worldServiceCommands.single.snapshotRevision, 14);
   });
 
+  testWidgets('keeps an actionable new game error readable on a phone',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+      revision: 19,
+      phase: RuntimePlayerPhase.error,
+      failure: const GameSessionFailure(
+        code: GameSessionFailureCode.runtime,
+        diagnosticCode: 'new_game.seed_commit_stale_project',
+        recoverability: GameSessionFailureRecoverability.retry,
+        safeMessage: 'Le contenu du jeu a changé pendant la préparation. '
+            'Relancez la création de la partie.',
+      ),
+      actions: const [
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.retry),
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),
+      ],
+    ));
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(controller)));
+    await tester.pump(const Duration(seconds: 30));
+    expect(find.textContaining('changé'), findsOneWidget);
+    expect(find.text('new_game.seed_commit_stale_project'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.text('Fermer'));
+    await tester.tap(find.text('Fermer'));
+    expect(controller.commands.single.action, RuntimePlayerAction.cancel);
+  });
+
   testWidgets('shows safe error context and optional diagnostics',
       (tester) async {
     var diagnosticCalls = 0;

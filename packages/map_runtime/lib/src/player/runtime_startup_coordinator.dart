@@ -327,6 +327,11 @@ final class RuntimeStartupCoordinator {
             : RuntimeStartupPhase.launchingSession,
         isTransitioning: false,
       );
+    } else if (_player.snapshot.phase == RuntimePlayerPhase.error) {
+      _publishDesiredPhase(
+        RuntimeStartupPhase.launchingSession,
+        isTransitioning: false,
+      );
     } else {
       await _titleMusic.update(
         path: _titleMusicAsset?.playbackLocation,

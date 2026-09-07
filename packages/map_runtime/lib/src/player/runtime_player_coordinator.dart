@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -1049,6 +1050,7 @@ final class RuntimePlayerCoordinator {
       );
     });
     var keepPreload = false;
+    var preparationStage = 'save_lookup';
     try {
       final existing = await _saveGateway.readSummary(
         SaveSlotAddress(
@@ -1083,6 +1085,7 @@ final class RuntimePlayerCoordinator {
           ),
         );
       }
+      preparationStage = 'project_preload';
       final preparation = await _newGameFlow.prepare();
       if (generation != _launchGeneration) return _finishCancelledLaunch();
       var draft = NewGameDraft.start(
@@ -1095,6 +1098,7 @@ final class RuntimePlayerCoordinator {
       draft = _applyUnambiguousFallbacks(draft);
       final runner = preparation.preSessionRunner;
       if (runner != null) {
+        preparationStage = 'pre_session';
         draft = await runner.run(
           runId: runId,
           draft: draft,
@@ -1102,6 +1106,7 @@ final class RuntimePlayerCoordinator {
         );
       }
       if (generation != _launchGeneration) return _finishCancelledLaunch();
+      preparationStage = 'draft_commit';
       final currentProjectRevision =
           await _newGameFlow.readCurrentProjectRevision();
       if (generation != _launchGeneration) return _finishCancelledLaunch();
@@ -1114,9 +1119,19 @@ final class RuntimePlayerCoordinator {
       );
       if (commit.status != NewGameSeedCommitStatus.committed &&
           commit.status != NewGameSeedCommitStatus.replayed) {
-        throw StateError('The New Game draft could not be committed.');
+        final issue = commit.issues.firstOrNull;
+        throw RuntimeNewGameException(
+          code: issue?.diagnosticCode ?? 'new_game.seed_commit_failed',
+          safeMessage:
+              issue?.code == NewGameSeedCommitIssueCode.staleProjectRevision
+                  ? 'Le contenu du jeu a changé pendant la préparation. '
+                      'Relancez la création de la partie.'
+                  : 'La configuration de départ est incomplète ou incohérente. '
+                      'La partie n’a pas été créée.',
+        );
       }
       _newGameCommitJournal = commit.journal;
+      preparationStage = 'initial_state';
       final initialGameState = createNewGameStateFromSeed(
         project: preparation.project,
         startMap: preparation.startMap,
@@ -1133,21 +1148,47 @@ final class RuntimePlayerCoordinator {
       );
       keepPreload = launch.status == RuntimePlayerCommandStatus.accepted;
       return launch;
-    } catch (_) {
+    } catch (error, stackTrace) {
       if (generation != _launchGeneration) {
         return _finishCancelledLaunch();
       }
+      final diagnosticCode = error is RuntimeNewGameException
+          ? error.code
+          : 'new_game.$preparationStage.${error.runtimeType}';
+      final message = error is RuntimeNewGameException
+          ? error.safeMessage
+          : switch (preparationStage) {
+              'save_lookup' => 'Impossible de lire les sauvegardes. '
+                  'Vérifiez l’accès au stockage de l’application.',
+              'project_preload' => 'Impossible de charger les données ou les '
+                  'ressources de la carte de départ. '
+                  'Réinstallez le jeu si le problème persiste.',
+              'pre_session' =>
+                'La scène de début du jeu n’a pas pu être exécutée. '
+                    'Signalez le code ci-dessous au créateur du jeu.',
+              _ =>
+                'La configuration de départ du jeu n’a pas pu être appliquée. '
+                    'Signalez le code ci-dessous au créateur du jeu.',
+            };
+      developer.log(
+        diagnosticCode,
+        name: 'map_runtime.new_game',
+        error: error,
+        stackTrace: stackTrace,
+        level: 1000,
+      );
       _publishFailure(
-        const GameSessionFailure(
+        GameSessionFailure(
           code: GameSessionFailureCode.runtime,
           recoverability: GameSessionFailureRecoverability.retry,
-          safeMessage: 'La nouvelle partie n’a pas pu être préparée.',
+          safeMessage: message,
+          diagnosticCode: diagnosticCode,
         ),
         allowRetry: true,
       );
-      return const RuntimePlayerCommandResult(
+      return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
-        safeMessage: 'La nouvelle partie n’a pas pu être préparée.',
+        safeMessage: message,
       );
     } finally {
       await _closePreSessionInteractions(interactions);

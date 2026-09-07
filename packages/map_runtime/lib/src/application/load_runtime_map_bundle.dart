@@ -160,19 +160,19 @@ Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
 /// Portée top-level volontaire : un closure créé dans la fonction appelante
 /// pourrait capturer des objets non envoyables de son scope.
 Future<ProjectManifest> _decodeProjectManifestOffThread(String text) {
-  return Isolate.run(() => _decodeAndValidateProjectManifest(text));
+  return Isolate.run(() => decodeRuntimeProjectManifest(text));
 }
 
-ProjectManifest _decodeAndValidateProjectManifest(String text) {
+ProjectManifest decodeRuntimeProjectManifest(String text) {
   final raw = jsonDecode(text) as Map<String, dynamic>;
-  final manifest = _normalizeProjectElementCollisionProfiles(
+  final manifest = normalizeRuntimeProjectManifest(
     ProjectManifest.fromJson(raw),
   );
   ProjectValidator.validate(manifest);
   return manifest;
 }
 
-ProjectManifest _normalizeProjectElementCollisionProfiles(
+ProjectManifest normalizeRuntimeProjectManifest(
   ProjectManifest manifest,
 ) {
   final tileSize = manifest.settings.tileWidth;

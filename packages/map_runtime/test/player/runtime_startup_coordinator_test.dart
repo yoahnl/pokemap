@@ -1239,6 +1239,62 @@ void main() {
     },
   );
 
+  for (final retry in [false, true]) {
+    test('launch failure stays visible until explicit action, retry=$retry',
+        () async {
+      final harness = _RuntimeStartupTestHarness(
+        profile: _presentationWithIntroAndMusic(includeIntro: false),
+      );
+      addTearDown(harness.dispose);
+      harness.startup.start();
+      harness.clock.elapseMinimum();
+      await _flushEvents();
+      await harness.startup.dispatch(RuntimeStartupCommand(
+        action: RuntimeStartupAction.pressStart,
+        snapshotRevision: harness.startup.snapshot.revision,
+      ));
+      harness.player.newGameFlow.currentProjectRevision = 'sha256:changed';
+      final failed = await harness.startup.dispatchPlayerCommand(
+        startupSnapshotRevision: harness.startup.snapshot.revision,
+        command: RuntimePlayerCommand(
+          action: RuntimePlayerAction.newGame,
+          snapshotRevision: harness.player.coordinator.snapshot.revision,
+          payload: const RuntimePlayerLoadSlot(
+              profileId: 'player', slotId: 'slot_1'),
+        ),
+      );
+      await _flushEvents();
+      expect(failed.status, RuntimePlayerCommandStatus.failed);
+      expect(
+          harness.startup.snapshot.phase, RuntimeStartupPhase.launchingSession);
+      final failure = harness.startup.snapshot.playerSnapshot!.failure!;
+      expect(harness.startup.snapshot.playerSnapshot!.phase,
+          RuntimePlayerPhase.error);
+      expect(failure.safeMessage, contains('changé'));
+      expect(failure.diagnosticCode, 'new_game.seed_commit_stale_project');
+      expect(harness.audio.played, hasLength(1));
+      expect(harness.player.saves.commits, isEmpty);
+      harness.player.newGameFlow.currentProjectRevision =
+          harness.player.newGameFlow.preparation.projectRevision;
+      final action = await harness.startup.dispatchPlayerCommand(
+        startupSnapshotRevision: harness.startup.snapshot.revision,
+        command: RuntimePlayerCommand(
+          action:
+              retry ? RuntimePlayerAction.retry : RuntimePlayerAction.cancel,
+          snapshotRevision: harness.player.coordinator.snapshot.revision,
+        ),
+      );
+      expect(action.status, RuntimePlayerCommandStatus.accepted);
+      if (retry) harness.player.adapter.emitRunning();
+      await _flushEvents();
+      expect(
+          harness.startup.snapshot.phase,
+          retry
+              ? RuntimeStartupPhase.completed
+              : RuntimeStartupPhase.titleMenu);
+    });
+  }
+
   test('returning from a session re-enters the runtime title menu', () async {
     final harness = _RuntimeStartupTestHarness(
       profile: _presentationWithIntroAndMusic(includeIntro: false),

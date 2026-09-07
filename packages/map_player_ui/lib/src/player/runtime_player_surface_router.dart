@@ -543,7 +543,7 @@ class _RuntimePlayerSurfaceRouterState
       title: l10n.sessionErrorTitle,
       message: failure?.safeMessage ?? l10n.sessionCannotContinue,
       recommendation: _recommendation(context, failure),
-      code: failure?.code.name,
+      code: failure?.diagnosticCode ?? failure?.code.name,
       stage: widget.snapshot.loadingProgress?.stage,
       onRetry: _callbackFor(RuntimePlayerAction.retry),
       onCancel: _callbackFor(RuntimePlayerAction.cancel),

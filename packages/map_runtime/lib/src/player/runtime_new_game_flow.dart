@@ -6,10 +6,24 @@ import 'package:path/path.dart' as p;
 
 import '../application/dialogue_runtime_models.dart';
 import '../application/load_dialogue_content.dart';
+import '../application/load_runtime_map_bundle.dart';
 import '../application/resolve_dialogue.dart';
 import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import 'runtime_initial_map_preloader.dart';
+
+final class RuntimeNewGameException implements Exception {
+  const RuntimeNewGameException({
+    required this.code,
+    required this.safeMessage,
+  });
+
+  final String code;
+  final String safeMessage;
+
+  @override
+  String toString() => '$code: $safeMessage';
+}
 
 abstract interface class RuntimeNewGamePreSessionRunner {
   Future<NewGameDraft> run({
@@ -76,9 +90,15 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
       throw StateError('The new game preload did not produce a usable map.');
     }
     final snapshot = await _readProjectSnapshot(projectFilePath);
-    if (snapshot.project != bundle.manifest || snapshot.map != bundle.map) {
+    if (_snapshotContent(snapshot.project) !=
+            _snapshotContent(normalizeRuntimeProjectManifest(bundle.manifest)) ||
+        _snapshotContent(snapshot.map) != _snapshotContent(bundle.map)) {
       clear();
-      throw StateError('The project changed while New Game was preloading.');
+      throw const RuntimeNewGameException(
+        code: 'new_game.project_changed',
+        safeMessage: 'Le contenu du jeu a changé pendant le chargement. '
+            'Relancez la préparation de la partie.',
+      );
     }
     final sceneId = bundle.manifest.newGame.preSessionSceneId?.trim();
     return RuntimeNewGamePreparation(
@@ -488,6 +508,9 @@ void _rejectCancellation(SceneInteractionResult result) {
   }
 }
 
+String _snapshotContent(Object value) =>
+    canonicalizeNarrativeEventJson(jsonDecode(jsonEncode(value)));
+
 final class _RuntimeNewGameProjectSnapshot {
   const _RuntimeNewGameProjectSnapshot({
     required this.project,
@@ -505,11 +528,7 @@ Future<_RuntimeNewGameProjectSnapshot> _readProjectSnapshot(
 ) async {
   final projectFile = File(projectFilePath);
   final projectBytes = await projectFile.readAsBytes();
-  final projectJson = jsonDecode(utf8.decode(projectBytes));
-  if (projectJson is! Map<String, dynamic>) {
-    throw const FormatException('The project manifest must be an object.');
-  }
-  final project = ProjectManifest.fromJson(projectJson);
+  final project = decodeRuntimeProjectManifest(utf8.decode(projectBytes));
   final startMapId = project.newGame.startMapId.trim();
   final mapEntries = project.maps.where((entry) => entry.id == startMapId);
   if (!project.newGame.enabled ||

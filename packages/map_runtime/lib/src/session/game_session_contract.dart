@@ -463,11 +463,13 @@ final class GameSessionFailure {
     required this.code,
     required this.recoverability,
     this.safeMessage,
+    this.diagnosticCode,
   });
 
   final GameSessionFailureCode code;
   final GameSessionFailureRecoverability recoverability;
   final String? safeMessage;
+  final String? diagnosticCode;
 }
 
 final class GameSessionDiagnosticData {

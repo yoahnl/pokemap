@@ -448,6 +448,27 @@ void main() {
     expect(harness.saves.commits, isEmpty);
   });
 
+  test('preload failures explain the stage without exposing internal data', () async {
+    final gate = Completer<void>();
+    final harness = RuntimePlayerTestHarness(newGamePreparationGate: gate.future);
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+    final launch = harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.newGame,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: const RuntimePlayerLoadSlot(profileId: 'player', slotId: 'slot_1'),
+    ));
+    await _waitForPhase(harness.coordinator, RuntimePlayerPhase.preSession);
+    gate.completeError(StateError('/private/player-data must not be displayed'));
+    expect((await launch).status, RuntimePlayerCommandStatus.failed);
+    final failure = harness.coordinator.snapshot.failure!;
+    expect(failure.diagnosticCode, 'new_game.project_preload.StateError');
+    expect(failure.safeMessage, contains('carte de départ'));
+    expect(failure.safeMessage, isNot(contains('/private')));
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.error);
+    expect(harness.saves.commits, isEmpty);
+  });
+
   test('project drift fails closed and retry uses a fresh preparation',
       () async {
     final harness = RuntimePlayerTestHarness();
