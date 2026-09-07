@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "generator": "OpenAI image generation",
+    "generatedOn": "2026-09-07",
+    "processing": "Original PNG bytes; no crop or resampling."
+  },
+  "items": {
+    "potion": {
+      "file": "potion.png",
+      "sha256": "acd9d534539f619156a2c9aeec3096384744d3858923d2938c4c4c14ccb22a18",
+      "bytes": 784768,
+      "width": 1254,
+      "height": 1254,
+      "sampling": "smooth",
+      "provenance": {
+        "description": "Original purple healing potion illustration generated for the PokeMap player bag, guided by the approved menu reference.",
+        "sourceArtifact": "exec-73eac9ab-07d8-4a70-aa3f-9711c91e4934.png"
+      }
+    },
+    "antidote": {
+      "file": "antidote.png",
+      "sha256": "f5450fc2a8fbfd59b1dc9d74f117fece66f37825c8554606c70d417e0b5a1359",
+      "bytes": 731774,
+      "width": 1254,
+      "height": 1254,
+      "sampling": "smooth",
+      "provenance": {
+        "description": "Original JRPG antidote item illustration on a transparent background for the PokeMap player bag.",
+        "sourceArtifact": "exec-8c4338e3-9357-43f3-86d9-753a2e5525b6.png"
+      }
+    },
+    "super-potion": {
+      "file": "super-potion.png",
+      "sha256": "d13bbaf23869c920717b9a9ce126f4969f7c94fa36424f81f186b25a39df22f8",
+      "bytes": 931191,
+      "width": 1254,
+      "height": 1254,
+      "sampling": "smooth",
+      "provenance": {
+        "description": "Original JRPG super-potion item illustration on a transparent background for the PokeMap player bag.",
+        "sourceArtifact": "exec-11095faf-5ac7-486b-ae3d-cb936adb8ab8.png"
+      }
+    },
+    "revive": {
+      "file": "revive.png",
+      "sha256": "f62c16f08c3fbd2e213e6e8a894bc7e97b5876e574d88bb1411013f53a3eaf42",
+      "bytes": 959136,
+      "width": 1254,
+      "height": 1254,
+      "sampling": "smooth",
+      "provenance": {
+        "description": "Original JRPG revive item illustration on a transparent background for the PokeMap player bag.",
+        "sourceArtifact": "exec-40a96a5a-adc6-41e4-b3c9-1f105e17d3f7.png"
+      }
+    },
+    "paralyze-heal": {
+      "file": "paralyze-heal.png",
+      "sha256": "eca1a748199c0541afec3f509af4b5dd53b54b87cb39207b272aca4ff8f5f074",
+      "bytes": 751390,
+      "width": 1254,
+      "height": 1254,
+      "sampling": "smooth",
+      "provenance": {
+        "description": "Original JRPG paralyze-heal item illustration on a transparent background for the PokeMap player bag.",
+        "sourceArtifact": "exec-2cd53c2a-344c-48a2-820d-7d738ebd238e.png"
+      }
+    },
+    "awakening": {
+      "file": "awakening.png",
+      "sha256": "2404e53f171c3d50b92e8a3a91f81bad0a505970bf8ccd4c097c4f22f63c4f5e",
+      "bytes": 702685,
+      "width": 1254,
+      "height": 1254,
+      "sampling": "smooth",
+      "provenance": {
+        "description": "Original JRPG awakening item illustration on a transparent background for the PokeMap player bag.",
+        "sourceArtifact": "exec-88720531-e498-4def-a334-148eef90cb0a.png"
+      }
+    },
+    "ether": {
+      "file": "ether.png",
+      "sha256": "e3a0af6edbc1bef4e11ff688040db06e7fa4160ed5eb1992da689e1c84ff8149",
+      "bytes": 921156,
+      "width": 1254,
+      "height": 1254,
+      "sampling": "smooth",
+      "provenance": {
+        "description": "Original JRPG ether item illustration on a transparent background for the PokeMap player bag.",
+        "sourceArtifact": "exec-cd4ab570-a0a4-46b8-a2ab-653ef07046e4.png"
+      }
+    }
+  }
+}
