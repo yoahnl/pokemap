@@ -346,7 +346,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(scroller.controller!.offset, greaterThan(0));
         expect(tester.takeException(), isNull);
-        final compact = size.width < 1000 || scale == 2;
+        final compact = size.width < 600 || scale == 2;
         expect(nav.back(), compact);
         await tester.pumpAndSettle();
         expect(nav.back(), isFalse);

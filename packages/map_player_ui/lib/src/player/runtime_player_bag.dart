@@ -221,7 +221,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
       }
     });
     return LayoutBuilder(builder: (context, constraints) {
-      final compact = constraints.maxWidth < 760 ||
+      final compact = constraints.maxWidth < 600 ||
           constraints.maxWidth < 1024 &&
               constraints.maxHeight > constraints.maxWidth ||
           MediaQuery.textScalerOf(context).scale(1) >= 1.8;
@@ -247,8 +247,10 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                     : Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                            Expanded(flex: 30, child: _list(false)),
-                            const SizedBox(width: 24),
+                            Expanded(
+                                flex: 30,
+                                child: _list(false, showTitle: !short)),
+                            SizedBox(width: short ? 12 : 24),
                             Expanded(
                                 flex: 23,
                                 child: _selected == null
@@ -557,11 +559,11 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                 label: entry.title,
                 child: LayoutBuilder(builder: (context, constraints) {
                   final short = constraints.hasBoundedHeight &&
-                      constraints.maxHeight < 320 &&
-                      constraints.maxWidth >= 400;
+                      constraints.maxHeight < 320;
                   final padding = short ? 16.0 : 24.0;
                   final imageSize = short
-                      ? (constraints.maxHeight - padding * 2).clamp(64.0, 160.0)
+                      ? (constraints.maxHeight - padding * 2).clamp(
+                          64.0, constraints.maxWidth < 400 ? 80.0 : 160.0)
                       : 240.0;
                   final image = SizedBox(
                       height: imageSize,

@@ -273,11 +273,12 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                   source: PlayerInputSource.keyboard)
         },
         child: LayoutBuilder(builder: (context, constraints) {
-          final compact = constraints.maxWidth < 760 ||
+          final compact = constraints.maxWidth < 600 ||
               constraints.maxWidth < 1024 &&
                   constraints.maxHeight > constraints.maxWidth ||
               MediaQuery.textScalerOf(context).scale(1) >= 1.8;
-          final list = _list(compact);
+          final mobile = MediaQuery.sizeOf(context).shortestSide < 600;
+          final list = _list(compact, dense: mobile);
           final detail = _detail();
           final bounded = constraints.hasBoundedHeight;
           Widget scroll(Widget child, String id) =>
@@ -311,10 +312,10 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                   'party-compact-scroll')
               : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Expanded(
-                      flex: 18,
+                      flex: mobile ? 27 : 18,
                       child:
                           bounded ? scroll(list, 'party-list-scroll') : list),
-                  const SizedBox(width: 24),
+                  SizedBox(width: mobile ? 12 : 24),
                   Expanded(
                       flex: 35,
                       child: bounded
@@ -377,7 +378,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
     );
   }
 
-  Widget _list(bool compact) {
+  Widget _list(bool compact, {required bool dense}) {
     final strings = PlayerPokemonSummaryStrings.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       for (final entry in widget.detail.entries) ...[
@@ -413,17 +414,20 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
             onFocusChanged: (focused) {
               if (focused) _select(entry);
             },
-            minimumHeight: 94,
+            minimumHeight: dense ? 76 : 94,
+            contentPadding: EdgeInsets.symmetric(
+                horizontal: dense ? 6 : 12, vertical: dense ? 6 : 10),
             leading: summary == null
                 ? const Icon(Icons.catching_pokemon)
                 : PlayerMenuPortrait(
                     circular: true,
+                    size: dense ? 48 : 64,
                     child: PlayerPokemonImage(
                         summary: summary,
                         thumbnail: true,
-                        width: 56,
-                        height: 56)),
-            trailingWidth: 64,
+                        width: dense ? 40 : 56,
+                        height: dense ? 40 : 56)),
+            trailingWidth: dense ? 48 : 64,
             trailing: _moveSourceId == _id(entry)
                 ? const Align(
                     alignment: Alignment.centerRight,
@@ -505,16 +509,17 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
         }),
         if (entry != widget.detail.entries.last ||
             widget.detail.entries.length < 6)
-          const SizedBox(height: 16),
+          SizedBox(height: dense ? 8 : 16),
       ],
       for (var index = widget.detail.entries.length; index < 6; index++) ...[
         ExcludeSemantics(
             child: PlayerMenuPanel(
                 key: ValueKey('party-empty-slot-$index'),
                 padding: const EdgeInsets.all(12),
-                child: const SizedBox(
-                    height: 70, child: Center(child: Text('—'))))),
-        if (index < 5) const SizedBox(height: 16),
+                child: SizedBox(
+                    height: dense ? 52 : 70,
+                    child: const Center(child: Text('—'))))),
+        if (index < 5) SizedBox(height: dense ? 8 : 16),
       ],
     ]);
   }

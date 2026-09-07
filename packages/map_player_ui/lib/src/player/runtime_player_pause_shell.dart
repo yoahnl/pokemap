@@ -819,6 +819,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       thumbVisibility: true,
       child: PlayerPauseNavigation(
         illustrated: _isIllustrated,
+        mobileGrid:
+            _isIllustrated && MediaQuery.sizeOf(context).shortestSide < 600,
         gameTitle: widget.gameTitle,
         actions: widget.actions,
         onSelected: widget.onSelected,

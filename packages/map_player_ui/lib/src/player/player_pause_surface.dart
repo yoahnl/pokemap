@@ -446,6 +446,7 @@ class PlayerPauseNavigation extends StatelessWidget {
     this.composition,
     this.compositionLayoutName,
     this.illustrated = false,
+    this.mobileGrid = false,
   });
 
   final String gameTitle;
@@ -461,6 +462,7 @@ class PlayerPauseNavigation extends StatelessWidget {
   final ProjectPauseCompositionVariantProfile? composition;
   final String? compositionLayoutName;
   final bool illustrated;
+  final bool mobileGrid;
 
   @override
   Widget build(BuildContext context) {
@@ -510,7 +512,43 @@ class PlayerPauseNavigation extends StatelessWidget {
                     ? PlayerSpacing.lg
                     : _entrySpacing(composition!),
           ),
-          if (useGrid)
+          if (mobileGrid)
+            LayoutBuilder(builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 300 &&
+                      MediaQuery.textScalerOf(context).scale(1) < 1.5
+                  ? constraints.maxWidth >= 420
+                      ? 3
+                      : 2
+                  : 1;
+              return Column(children: [
+                for (var index = 0;
+                    index < visibleActions.length;
+                    index += columns)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (var column = 0; column < columns; column++) ...[
+                            if (column > 0) const SizedBox(width: 8),
+                            Expanded(
+                              child: index + column < visibleActions.length
+                                  ? _action(
+                                      context,
+                                      visibleActions[index + column],
+                                      firstEnabledAction,
+                                      pausePresentation)
+                                  : const SizedBox.shrink(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+              ]);
+            })
+          else if (useGrid)
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -586,13 +624,19 @@ class PlayerPauseNavigation extends StatelessWidget {
         id: logicalId,
         label: presentation.label(action, context.playerL10n),
         leading: SizedBox(
-            width: 48,
-            child: Icon(presentation.icon(action), size: 32, color: color)),
-        integrated: true,
-        minimumHeight: composition == null ||
-                composition!.entrySize == ProjectPauseEntrySize.regular
-            ? 64
-            : _entryHeight(composition!.entrySize),
+            width: mobileGrid ? 24 : 48,
+            child: Icon(presentation.icon(action),
+                size: mobileGrid ? 24 : 32, color: color)),
+        integrated: !mobileGrid,
+        tile: mobileGrid,
+        contentPadding: EdgeInsets.symmetric(
+            horizontal: mobileGrid ? 4 : 12, vertical: mobileGrid ? 6 : 10),
+        minimumHeight: mobileGrid
+            ? 72
+            : composition == null ||
+                    composition!.entrySize == ProjectPauseEntrySize.regular
+                ? 64
+                : _entryHeight(composition!.entrySize),
         selected: selected,
         showFocusHighlight: controller?.showFocusHighlight ?? false,
         focusNode: controller?.nodeFor(logicalId,

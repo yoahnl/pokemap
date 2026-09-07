@@ -38,6 +38,7 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, size) {
         final theme = context.playerMenuTheme;
+        final mobile = MediaQuery.sizeOf(context).shortestSide < 600;
         final portrait = size.maxWidth < 650;
         final expanded = size.maxWidth >= 1100 && size.maxHeight >= 620;
         final railWidth = expanded ? 408.0 : 280.0;
@@ -71,7 +72,37 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
           profile: profile,
           portraitImage: portraitImage,
           compact: !expanded,
+          mobile: mobile,
         );
+        if (mobile && !portrait) {
+          return Stack(fit: StackFit.expand, children: [
+            background,
+            ColoredBox(color: theme.base.withValues(alpha: .84)),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(
+                  width: 216,
+                  child: SingleChildScrollView(
+                    key: const ValueKey('pause-root-summary-scroll'),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          title,
+                          const SizedBox(height: 8),
+                          if (showSummary) summary,
+                          if (hasHint) Text(hint!, style: theme.meta),
+                          if (showSummary && extraDetail != null) extraDetail!,
+                        ]),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(child: navigation),
+              ]),
+            ),
+          ]);
+        }
         if (portrait) {
           return Stack(fit: StackFit.expand, children: [
             background,

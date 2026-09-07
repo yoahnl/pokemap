@@ -370,8 +370,8 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
                       ]))),
                     ]));
               }
-              final compact = constraints.maxWidth < 840 ||
-                  constraints.maxHeight < 430 ||
+              final short = constraints.maxHeight < 430;
+              final compact = constraints.maxWidth < 600 ||
                   MediaQuery.textScalerOf(context).scale(1) >= 1.5;
               final map = _RegionImage(
                 key: ValueKey('region-image-${region.id}'),
@@ -427,13 +427,13 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
                             icon: Icons.close,
                             onPressed: _back),
                       ],
-                      if (compact)
+                      if (compact || short)
                         _listing(region, compact: true)
                       else
                         Expanded(
                             flex: 5, child: _listing(region, compact: false)),
                       const SizedBox(height: 12),
-                      if (compact)
+                      if (compact || short)
                         _detail()
                       else
                         Expanded(
@@ -460,7 +460,12 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
                               SizedBox(
                                   width:
                                       math.min(384, constraints.maxWidth * .36),
-                                  child: side)
+                                  child: short
+                                      ? SingleChildScrollView(
+                                          key: const ValueKey(
+                                              'region-map-sidebar-scroll'),
+                                          child: side)
+                                      : side)
                             ]));
             }),
           ),
@@ -813,11 +818,10 @@ class _RegionImageState extends State<_RegionImage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    PlayerActionButton(
+                    _control(
                         key: const ValueKey('region-map-zoom-out'),
                         label: widget.text('Réduire', 'Zoom out'),
                         icon: Icons.remove,
-                        expandWidth: false,
                         onPressed: _imageSize == null ||
                                 _failed ||
                                 widget.navigation.scale <= 1
@@ -834,11 +838,10 @@ class _RegionImageState extends State<_RegionImage> {
                             child: Text(
                                 '${(widget.navigation.scale * 100).round()} %',
                                 style: theme.numbers))),
-                    PlayerActionButton(
+                    _control(
                         key: const ValueKey('region-map-zoom-in'),
                         label: widget.text('Agrandir', 'Zoom in'),
                         icon: Icons.add,
-                        expandWidth: false,
                         onPressed: _imageSize == null ||
                                 _failed ||
                                 widget.navigation.scale >= 3
@@ -848,11 +851,10 @@ class _RegionImageState extends State<_RegionImage> {
                                     (widget.navigation.scale + .25).clamp(1, 3);
                                 widget.onChanged();
                               }),
-                    PlayerActionButton(
+                    _control(
                         key: const ValueKey('region-map-recenter'),
                         label: widget.text('Recentrer', 'Recenter'),
                         icon: Icons.center_focus_strong,
-                        expandWidth: false,
                         onPressed: _imageSize == null || _failed
                             ? null
                             : () {
@@ -862,5 +864,36 @@ class _RegionImageState extends State<_RegionImage> {
                               }),
                   ])),
         ]));
+  }
+
+  Widget _control({
+    required ValueKey<String> key,
+    required String label,
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    if (MediaQuery.sizeOf(context).shortestSide >= 600) {
+      return PlayerActionButton(
+          key: key,
+          label: label,
+          icon: icon,
+          expandWidth: false,
+          onPressed: onPressed);
+    }
+    return Tooltip(
+      message: label,
+      child: SizedBox(
+        width: 48,
+        child: PlayerMenuSelectableRow(
+          key: key,
+          id: key.value,
+          label: label,
+          leading: Icon(icon),
+          iconOnly: true,
+          contentPadding: EdgeInsets.zero,
+          onPressed: onPressed,
+        ),
+      ),
+    );
   }
 }

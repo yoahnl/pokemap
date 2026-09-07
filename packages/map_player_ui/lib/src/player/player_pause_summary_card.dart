@@ -13,12 +13,14 @@ class PlayerPauseSummaryCard extends StatelessWidget {
     this.profile,
     this.portraitImage,
     this.compact = false,
+    this.mobile = false,
   });
 
   final String gameTitle;
   final RuntimePlayerProfileSnapshot? profile;
   final ImageProvider? portraitImage;
   final bool compact;
+  final bool mobile;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +50,16 @@ class PlayerPauseSummaryCard extends StatelessWidget {
       if (pokedex != null)
         (label: l10n.pokedex, value: '${pokedex.caught} / ${pokedex.total}'),
     ];
+    final statisticLabels = [
+      for (final statistic in statistics)
+        Text.rich(
+          TextSpan(children: [
+            TextSpan(text: '${statistic.label} : '),
+            TextSpan(text: statistic.value, style: theme.numbers),
+          ]),
+          style: mobile ? theme.meta : theme.body,
+        ),
+    ];
     final details = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,21 +76,27 @@ class PlayerPauseSummaryCard extends StatelessWidget {
         ],
         if (statistics.isNotEmpty) ...[
           const SizedBox(height: PlayerSpacing.sm),
-          for (final statistic in statistics)
-            Text.rich(
-              TextSpan(children: [
-                TextSpan(text: '${statistic.label} : '),
-                TextSpan(text: statistic.value, style: theme.numbers),
-              ]),
-              style: theme.body,
-            ),
+          if (mobile)
+            Wrap(spacing: 12, runSpacing: 4, children: statisticLabels)
+          else
+            Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: statisticLabels),
         ],
       ],
     );
     final portrait = ExcludeSemantics(
       child: SizedBox(
-        width: compact ? 72 : 160,
-        height: compact ? 84 : 184,
+        width: mobile
+            ? 48
+            : compact
+                ? 72
+                : 160,
+        height: mobile
+            ? 56
+            : compact
+                ? 84
+                : 184,
         child: Align(
           alignment: Alignment.bottomRight,
           child: _portrait(context),
@@ -91,7 +109,12 @@ class PlayerPauseSummaryCard extends StatelessWidget {
         key: const ValueKey('player-pause-summary-panel'),
         padding: const EdgeInsets.all(12),
         child: LayoutBuilder(builder: (context, constraints) {
-          final stacked = constraints.maxWidth < (compact ? 280 : 480) ||
+          final stacked = constraints.maxWidth <
+                  (mobile
+                      ? 180
+                      : compact
+                          ? 280
+                          : 480) ||
               MediaQuery.textScalerOf(context).scale(18) > 27;
           if (stacked) {
             return Column(
@@ -121,7 +144,11 @@ class PlayerPauseSummaryCard extends StatelessWidget {
     final fallback = Icon(
       Icons.person_rounded,
       key: const ValueKey('player-pause-summary-silhouette'),
-      size: compact ? 72 : 144,
+      size: mobile
+          ? 40
+          : compact
+              ? 72
+              : 144,
       color: context.playerMenuTheme.secondary,
     );
     final image = portraitImage;

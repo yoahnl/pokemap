@@ -245,7 +245,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
               CallbackAction<RuntimePlayerLogicalIntent>(onInvoke: _input)
         },
         child: LayoutBuilder(builder: (context, constraints) {
-          final compact = constraints.maxWidth < 900 ||
+          final compact = constraints.maxWidth < 600 ||
               MediaQuery.textScalerOf(context).scale(1) >= 1.8;
           final short = compact && constraints.maxHeight < 280;
           return Column(
@@ -271,9 +271,13 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                       : Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                              SizedBox(width: 320, child: _categories()),
-                              const SizedBox(width: 24),
-                              Expanded(child: _settings(compact)),
+                              SizedBox(
+                                  width: constraints.maxWidth < 900 ? 200 : 320,
+                                  child: _categories()),
+                              SizedBox(
+                                  width: constraints.maxWidth < 900 ? 12 : 24),
+                              Expanded(
+                                  child: _settings(constraints.maxWidth < 900)),
                             ])),
               if (!short && widget.navigation == null) ...[
                 const SizedBox(height: 12),

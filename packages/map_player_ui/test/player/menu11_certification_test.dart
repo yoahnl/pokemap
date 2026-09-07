@@ -57,6 +57,58 @@ void main() {
   });
   tearDownAll(() => _media.delete(recursive: true));
 
+  testWidgets('MENU mobile root exposes Options without scrolling',
+      (tester) async {
+    final harness = _Harness(RuntimePlayerPauseSection.root);
+    await _pump(tester, harness, size: const Size(390, 844), phoneInsets: true);
+    final navigation =
+        find.byKey(const ValueKey('runtime-pause-navigation-scroll'));
+    final options = find.byKey(const ValueKey('pause.options'));
+    expect(tester.getRect(options).bottom,
+        lessThanOrEqualTo(tester.getRect(navigation).bottom));
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    expect(harness.actions, [RuntimePlayerAction.openOptions]);
+    _expectNoErrors(tester);
+  });
+
+  testWidgets('MENU mobile portrait shows all six party members',
+      (tester) async {
+    await _pump(tester, _Harness(RuntimePlayerPauseSection.party),
+        size: const Size(390, 844), phoneInsets: true);
+    final viewport =
+        tester.getRect(find.byKey(const ValueKey('party-compact-scroll')));
+    for (var i = 0; i < 6; i++) {
+      final member = find.byKey(ValueKey('party-member-member$i'));
+      expect(tester.getRect(member).bottom, lessThanOrEqualTo(viewport.bottom));
+      expect(member.hitTestable(), findsOneWidget);
+    }
+    _expectNoErrors(tester);
+  });
+
+  for (final section in [
+    RuntimePlayerPauseSection.party,
+    RuntimePlayerPauseSection.bag
+  ]) {
+    testWidgets(
+        'MENU mobile landscape ${section.name} shows list beside detail',
+        (tester) async {
+      await _pump(tester, _Harness(section),
+          size: const Size(844, 390), phoneInsets: true);
+      final list = find.byKey(ValueKey(
+          section == RuntimePlayerPauseSection.party
+              ? 'party-member-member0'
+              : 'bag-item-item0'));
+      final detail = section == RuntimePlayerPauseSection.party
+          ? find.byType(PlayerPartyPokemonDetail)
+          : find.byKey(const ValueKey('bag-detail-item0'));
+      expect(list.hitTestable(), findsOneWidget);
+      expect(detail, findsOneWidget);
+      expect(tester.getRect(list).right, lessThan(tester.getRect(detail).left));
+      _expectNoErrors(tester);
+    });
+  }
+
   for (final source in [PlayerInputSource.touch, PlayerInputSource.keyboard]) {
     testWidgets(
         'MENU mobile touch scroll keeps Options after ${source.name} rebuild',
@@ -77,7 +129,10 @@ void main() {
       final snapshots = ValueNotifier(snapshot(1, source));
       addTearDown(snapshots.dispose);
       await _pump(tester, harness,
-          size: const Size(390, 844), phoneInsets: true, snapshots: snapshots);
+          size: const Size(390, 844),
+          scale: 1.5,
+          phoneInsets: true,
+          snapshots: snapshots);
       final navigation =
           find.byKey(const ValueKey('runtime-pause-navigation-scroll'));
       final scroll =

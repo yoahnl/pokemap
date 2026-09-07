@@ -276,7 +276,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      _compact = constraints.maxWidth < 900 ||
+      _compact = constraints.maxWidth < 600 ||
           MediaQuery.textScalerOf(context).scale(1) >= 1.8;
       final selected = _selected;
       final listing = _listing(
@@ -441,7 +441,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
         leading: Row(mainAxisSize: MainAxisSize.min, children: [
           SizedBox(
               key: ValueKey('pokedex-number-${entry.id}'),
-              width: 56,
+              width: MediaQuery.sizeOf(context).shortestSide < 600 ? 40 : 56,
               child: Text(_number(entry))),
           const SizedBox(width: 8),
           _image(entry, thumbnail: true),
@@ -486,7 +486,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
 
     return LayoutBuilder(builder: (context, constraints) {
       final landscape =
-          constraints.maxWidth > 500 && constraints.maxHeight < 320;
+          constraints.maxWidth > 280 && constraints.maxHeight < 320;
       final information = SingleChildScrollView(
           key: ValueKey('pokedex-description-${entry.id}'),
           controller: _detailScroll,

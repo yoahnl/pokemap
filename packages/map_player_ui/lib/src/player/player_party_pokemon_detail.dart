@@ -16,13 +16,15 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = PlayerPokemonSummaryStrings.of(context);
     return LayoutBuilder(builder: (context, constraints) {
+      final shortestSide = MediaQuery.sizeOf(context).shortestSide;
+      final mobile = shortestSide > 0 && shortestSide < 600;
       final stacked = constraints.maxWidth < 700 ||
           MediaQuery.textScalerOf(context).scale(18) > 25.2;
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _overview(context, strings, stacked: stacked),
+          _overview(context, strings, stacked: stacked, mobile: mobile),
           const SizedBox(height: 16),
           _informationBand(
               context,
@@ -44,7 +46,35 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
   }
 
   Widget _overview(BuildContext context, PlayerPokemonSummaryStrings strings,
-      {required bool stacked}) {
+      {required bool stacked, required bool mobile}) {
+    if (mobile) {
+      final illustration = PlayerPokemonImage(
+          key: ValueKey('party-detail-image-${summary.targetId}'),
+          summary: summary,
+          thumbnail: false,
+          width: 80,
+          height: 80);
+      final identity = _identityAndStats(context, strings, showStats: false);
+      return PlayerMenuPanel(
+        primary: true,
+        padding: const EdgeInsets.all(10),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (MediaQuery.textScalerOf(context).scale(1) > 1.4) ...[
+            Align(alignment: Alignment.centerLeft, child: illustration),
+            const SizedBox(height: 8),
+            identity,
+          ] else
+            Row(children: [
+              illustration,
+              const SizedBox(width: 12),
+              Expanded(child: identity),
+            ]),
+          const SizedBox(height: 8),
+          _statistics(context, strings),
+        ]),
+      );
+    }
     final illustration = PlayerPokemonImage(
       key: ValueKey('party-detail-image-${summary.targetId}'),
       summary: summary,
@@ -81,9 +111,9 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
   }
 
   Widget _identityAndStats(
-      BuildContext context, PlayerPokemonSummaryStrings strings) {
+      BuildContext context, PlayerPokemonSummaryStrings strings,
+      {bool showStats = true}) {
     final theme = context.playerMenuTheme;
-    final stats = summary.stats;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -131,22 +161,30 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
             ],
           ),
         ],
-        const SizedBox(height: 8),
-        PlayerMenuPanel(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Column(children: [
-            _stat(context, strings.hp,
-                strings.hpValue(summary.currentHp, summary.maxHp)),
-            _stat(context, strings.attack, stats?.attack.toString() ?? '—'),
-            _stat(context, strings.defense, stats?.defense.toString() ?? '—'),
-            _stat(context, strings.specialAttack,
-                stats?.specialAttack.toString() ?? '—'),
-            _stat(context, strings.specialDefense,
-                stats?.specialDefense.toString() ?? '—'),
-            _stat(context, strings.speed, stats?.speed.toString() ?? '—'),
-          ]),
-        ),
+        if (showStats) ...[
+          const SizedBox(height: 8),
+          _statistics(context, strings),
+        ],
       ],
+    );
+  }
+
+  Widget _statistics(
+      BuildContext context, PlayerPokemonSummaryStrings strings) {
+    final stats = summary.stats;
+    return PlayerMenuPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Column(children: [
+        _stat(context, strings.hp,
+            strings.hpValue(summary.currentHp, summary.maxHp)),
+        _stat(context, strings.attack, stats?.attack.toString() ?? '—'),
+        _stat(context, strings.defense, stats?.defense.toString() ?? '—'),
+        _stat(context, strings.specialAttack,
+            stats?.specialAttack.toString() ?? '—'),
+        _stat(context, strings.specialDefense,
+            stats?.specialDefense.toString() ?? '—'),
+        _stat(context, strings.speed, stats?.speed.toString() ?? '—'),
+      ]),
     );
   }
 

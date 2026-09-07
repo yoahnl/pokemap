@@ -142,7 +142,12 @@ void main() {
               tester.getRect(find.byKey(const ValueKey('profile-identity')));
           final progression =
               tester.getRect(find.byKey(const ValueKey('profile-progression')));
-          expect(progression.top - identity.bottom, 24);
+          if (size.width >= 600 && scale == 1) {
+            expect(progression.left - identity.right, 24);
+            expect(progression.top, identity.top);
+          } else {
+            expect(progression.top - identity.bottom, 24);
+          }
         }
       });
     }

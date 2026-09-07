@@ -88,7 +88,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
           onKeyEvent: _key,
           onFocusChange: (_) => setState(() {}),
           child: LayoutBuilder(builder: (context, constraints) {
-            final compact = constraints.maxWidth < 1024 ||
+            final compact = constraints.maxWidth < 600 ||
                 MediaQuery.textScalerOf(context).scale(1) >= 1.8;
             final minimumHeight = !compact && constraints.hasBoundedHeight
                 ? constraints.maxHeight
@@ -112,7 +112,8 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
                         children: [
                           Expanded(
                               flex: 416,
-                              child: _identity(compact, minimumHeight)),
+                              child: _identity(
+                                  constraints.maxWidth < 1024, minimumHeight)),
                           const SizedBox(width: 24),
                           Expanded(
                               flex: 856, child: _progression(minimumHeight)),
