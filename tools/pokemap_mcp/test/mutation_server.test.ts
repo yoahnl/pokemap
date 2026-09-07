@@ -5512,7 +5512,7 @@ test("MCP reorganizes an element atlas and preserves its frames after reopen", a
       source: { kind: "regular_atlas", assetId: id, pixelWidth: id === "house" ? 64 : 128,
         pixelHeight: 128, tileWidth: 32, tileHeight: 32, tileProperties: [] },
     }));
-    project.elementCategories = [{ id: "props", name: "Props" }];
+    project.elementCategories = [{ id: "props", name: "Props" }, { id: "house", name: "Houses" }];
     project.elements = [{ id: "house", name: "House", tilesetId: "house", categoryId: "props",
       frames: [{ source: { x: 0, y: 1, width: 2, height: 2 }, durationMs: 120 }] }];
     await writeFile(projectPath, JSON.stringify(project));

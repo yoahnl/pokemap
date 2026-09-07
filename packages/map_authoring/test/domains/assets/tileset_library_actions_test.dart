@@ -64,6 +64,16 @@ ProjectManifest migrate(
     );
 
 void main() {
+  test('category identities do not block consolidation of a same-named tileset',
+      () {
+    final original = fixture();
+    final next = migrate(original.copyWith(elementCategories: [
+      ...original.elementCategories,
+      const ProjectElementCategory(id: 'house', name: 'Houses'),
+    ]));
+    expect(next.tilesets.single.id, 'atlas');
+    expect(next.elementCategories.last.id, 'house');
+  });
   test('remaps implicit and explicit frames without changing element metadata',
       () {
     final original = fixture();

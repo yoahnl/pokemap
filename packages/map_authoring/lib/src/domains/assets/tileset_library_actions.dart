@@ -53,6 +53,7 @@ final class TilesetLibraryActions {
     final occupied = <String, List<TilesetSourceRect>>{};
     final outside = manifest.toJson()
       ..remove('tilesets')
+      ..remove('elementCategories')
       ..remove('elements');
     final mapDocuments = [for (final map in maps) map.toJson()];
     for (final placement in placements) {
