@@ -2399,6 +2399,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
     _inputAuthorityPostFrameFlushScheduled = true;
+    if (phase == SchedulerPhase.persistentCallbacks) {
+      binding.scheduleFrame();
+    }
     binding.addPostFrameCallback((_) {
       _inputAuthorityPostFrameFlushScheduled = false;
       final pending = _pendingInputAuthoritySnapshot;

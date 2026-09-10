@@ -104,6 +104,36 @@ void main() {
       expect(find.text('blocked'), findsOneWidget);
     });
 
+    testWidgets('deferred input authority publication schedules its repaint',
+        (tester) async {
+      final game = PlayableMapGame(
+        bundle: _baseBundle(),
+        projectFilePath: '/tmp/project.json',
+      );
+      var lockDuringBuild = false;
+
+      Widget host() => Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (_) {
+                if (lockDuringBuild) {
+                  game.setExternalInputLock(
+                    RuntimeExternalInputLock.pauseMenu,
+                    locked: true,
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          );
+
+      await tester.pumpWidget(host());
+      lockDuringBuild = true;
+      await tester.pumpWidget(host());
+
+      expect(tester.binding.hasScheduledFrame, isTrue);
+    });
+
     test('external pause lock consumes movement until its owner releases it',
         () async {
       final game = PlayableMapGame(

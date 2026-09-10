@@ -1397,6 +1397,21 @@ void main() {
       find.byKey(const ValueKey<String>('runtime-player-touch-menu-open')),
       findsNothing,
     );
+
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.overworld,
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-player-touch-primary-button'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('renders the runtime dialogue overlay and routes a panel tap',
