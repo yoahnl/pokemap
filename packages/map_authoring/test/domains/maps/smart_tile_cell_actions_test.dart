@@ -9,9 +9,15 @@ void main() {
     test('registers atomic paint and erase contracts', () {
       expect(
         SmartTileCellActions.descriptors.map((descriptor) => descriptor.id),
-        <String>['smart_tile.cell.paint', 'smart_tile.cell.erase'],
+        <String>[
+          'smart_tile.cell.paint',
+          'smart_tile.cell.erase',
+          'smart_tile.corner.paint',
+          'smart_tile.corner.erase',
+        ],
       );
-      for (final descriptor in SmartTileCellActions.descriptors) {
+      for (final descriptor in SmartTileCellActions.descriptors.where(
+          (descriptor) => descriptor.id.startsWith('smart_tile.cell.'))) {
         expect(descriptor.guarantees, contains(AuthoringGuarantee.atomic));
         expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
         expect(descriptor.extensions['gestureAtomic'], isTrue);
@@ -26,6 +32,144 @@ void main() {
         );
         expect(descriptor.extensions['maximumExplicitCellCount'], 4096);
         expect(descriptor.extensions['geometricSelectionLimit'], 'mapExtent');
+      }
+    });
+
+    test('paints one precise corner without widening its footprint', () {
+      final fixture = _fixture(
+        field: const SmartTileField.corner(
+          semanticCells: <int>[1, 0, 0, 0],
+          corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+      );
+      final draft = _build(
+        fixture.snapshot,
+        actionId: 'smart_tile.corner.paint',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'materialId': 'grass',
+          'corners': <Map<String, int>>[
+            {'x': 1, 'y': 1}
+          ],
+        },
+      );
+      final layer = _map(draft).layers.single as SmartTileLayer;
+      expect(smartTileCorners(layer), <int>[0, 0, 0, 0, 1, 0, 0, 0, 0]);
+      expect(smartTileSemanticCells(layer), <int>[1, 0, 0, 0]);
+      expect(draft.preview['changedCornerCount'], 1);
+      expect(draft.preview['undoBoundary'], 'gesture');
+    });
+
+    test('accepts a corner on the outer map boundary', () {
+      final fixture = _fixture(
+        field: const SmartTileField.corner(
+          semanticCells: <int>[0, 0, 0, 0],
+          corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+      );
+      final draft = _build(
+        fixture.snapshot,
+        actionId: 'smart_tile.corner.paint',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'materialId': 'grass',
+          'corners': <Map<String, int>>[
+            {'x': 2, 'y': 2}
+          ],
+        },
+      );
+      final layer = _map(draft).layers.single as SmartTileLayer;
+      expect(smartTileCorners(layer), <int>[0, 0, 0, 0, 0, 0, 0, 0, 1]);
+    });
+
+    test('erases a precise corner while preserving mixed field edges', () {
+      final fixture = _fixture(
+        field: const SmartTileField.mixed(
+          semanticCells: <int>[1, 1, 1, 1],
+          horizontalEdges: <int>[1, 1, 1, 1, 1, 1],
+          verticalEdges: <int>[1, 1, 1, 1, 1, 1],
+          corners: <int>[1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ),
+      );
+      final draft = _build(
+        fixture.snapshot,
+        actionId: 'smart_tile.corner.erase',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'corners': <Map<String, int>>[
+            {'x': 1, 'y': 1}
+          ],
+        },
+      );
+      final layer = _map(draft).layers.single as SmartTileLayer;
+      expect(smartTileCorners(layer), <int>[1, 1, 1, 1, 0, 1, 1, 1, 1]);
+      expect(smartTileHorizontalEdges(layer), <int>[1, 1, 1, 1, 1, 1]);
+      expect(smartTileVerticalEdges(layer), <int>[1, 1, 1, 1, 1, 1]);
+      expect(smartTileSemanticCells(layer), <int>[1, 1, 1, 1]);
+    });
+
+    test('rejects precise corners on a cell-only field', () {
+      expect(
+        () => _build(
+          _fixture().snapshot,
+          actionId: 'smart_tile.corner.erase',
+          parameters: const <String, Object?>{
+            'mapId': 'map',
+            'layerId': 'ground',
+            'corners': <Map<String, int>>[
+              {'x': 0, 'y': 0}
+            ],
+          },
+        ),
+        _failure('smart_tile.corner.field_invalid'),
+      );
+    });
+
+    test('rejects invalid corner gestures before changing the map', () {
+      final snapshot = _fixture(
+        field: const SmartTileField.corner(
+          semanticCells: <int>[0, 0, 0, 0],
+          corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+      ).snapshot;
+      for (final invalid in <({List<Map<String, int>> corners, String code})>[
+        (
+          corners: <Map<String, int>>[
+            {'x': -1, 'y': 0}
+          ],
+          code: 'smart_tile.corner.out_of_bounds'
+        ),
+        (
+          corners: <Map<String, int>>[
+            {'x': 3, 'y': 2}
+          ],
+          code: 'smart_tile.corner.out_of_bounds'
+        ),
+        (
+          corners: <Map<String, int>>[
+            {'x': 1, 'y': 1},
+            {'x': 1, 'y': 1}
+          ],
+          code: 'smart_tile.corner.duplicate'
+        ),
+        (
+          corners: List.filled(4097, <String, int>{'x': 0, 'y': 0}),
+          code: 'smart_tile.corner.gesture_too_large'
+        ),
+      ]) {
+        expect(
+          () => _build(snapshot,
+              actionId: 'smart_tile.corner.erase',
+              parameters: <String, Object?>{
+                'mapId': 'map',
+                'layerId': 'ground',
+                'corners': invalid.corners,
+              }),
+          _failure(invalid.code),
+        );
       }
     });
 

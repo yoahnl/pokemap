@@ -50,3 +50,4 @@ packages/map_editor/test/**/failures/
 
 # Golden comparison artifacts produced by failing runs (any package/app)
 **/test/**/failures/
+/output/

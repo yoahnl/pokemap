@@ -26,12 +26,18 @@ final class SmartTileCellActions {
       'smart_tile.cell.erase',
       'Erase one atomic Smart Tile material gesture',
     ),
+    _cornerDescriptor(
+        'smart_tile.corner.paint', 'Paint precise Smart Tile corners'),
+    _cornerDescriptor(
+        'smart_tile.corner.erase', 'Erase precise Smart Tile corners'),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     return switch (planning.request.actionId) {
       'smart_tile.cell.paint' => _mutate(planning, erase: false),
       'smart_tile.cell.erase' => _mutate(planning, erase: true),
+      'smart_tile.corner.paint' => _mutateCorners(planning, erase: false),
+      'smart_tile.corner.erase' => _mutateCorners(planning, erase: true),
       _ => throw semanticFailure(
           'map.action_unsupported',
           'The requested Smart Tile cell action is unsupported.',
@@ -40,6 +46,99 @@ final class SmartTileCellActions {
           },
         ),
     };
+  }
+
+  AuthoringMutationDraft _mutateCorners(
+    AuthoringPlanningContext planning, {
+    required bool erase,
+  }) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: erase
+          ? const <String>{'layerId', 'corners'}
+          : const <String>{'layerId', 'materialId', 'corners'},
+    );
+    final operation = planning.request.actionId;
+    final layerId = context.parameters.string('layerId');
+    requireExistingNativeSmartTileProject(
+      planning.snapshot,
+      operation: operation,
+      layerId: layerId,
+    );
+    final layer = _layer(context.map, layerId);
+    if (layer.field is! SmartTileCornerField &&
+        layer.field is! SmartTileMixedField) {
+      throw semanticFailure(
+        'smart_tile.corner.field_invalid',
+        'The Smart Tile layer has no corner lattice.',
+        details: <String, Object?>{'layerId': layerId},
+      );
+    }
+    final size = context.map.size;
+    final corners = _corners(context.parameters.list('corners'), mapSize: size);
+    final materialId = erase ? null : context.parameters.string('materialId');
+    final preset = _preset(context.manifest, layer.presetId);
+    if (materialId != null) {
+      _requireAllowedMaterial(
+        context: context,
+        layer: layer,
+        preset: preset,
+        materialId: materialId,
+      );
+    }
+    var projectedLayer = layer;
+    var changedCornerCount = 0;
+    final affectedCells = <int>{};
+    final changedCells = <int>{};
+    for (final corner in corners) {
+      final adjacentCells = <int>{
+        for (var y = corner.y - 1; y <= corner.y; y++)
+          for (var x = corner.x - 1; x <= corner.x; x++)
+            if (x >= 0 && y >= 0 && x < size.width && y < size.height)
+              y * size.width + x,
+      };
+      affectedCells.addAll(adjacentCells);
+      if (smartTileCornerMaterialIdAt(
+            layer,
+            mapSize: size,
+            x: corner.x,
+            y: corner.y,
+          ) ==
+          materialId) {
+        continue;
+      }
+      projectedLayer = setSmartTileCornerMaterial(
+        projectedLayer,
+        mapSize: size,
+        x: corner.x,
+        y: corner.y,
+        materialId: materialId,
+      );
+      changedCornerCount++;
+      changedCells.addAll(adjacentCells);
+    }
+    return context.draft(
+      SemanticMapEdit(
+        map: replaceSmartTileLayer(context.map, layer: projectedLayer),
+        layerId: layerId,
+        operation: operation,
+        changedCells: changedCells.length,
+        preview: <String, Object?>{
+          'presetId': preset.id,
+          'fieldKind': _fieldKind(layer.field),
+          'materialId': materialId,
+          'gestureCornerCount': corners.length,
+          'changedCornerCount': changedCornerCount,
+          'semanticCellsPreserved': true,
+          'batchAtomicity': 'all_or_nothing',
+          'undoBoundary': 'gesture',
+        },
+      ),
+      delta: MapMutationDelta.smartTileCells(
+        layerId: layerId,
+        cellIndices: affectedCells,
+      ),
+    );
   }
 
   AuthoringMutationDraft _mutate(
@@ -128,6 +227,88 @@ final class SmartTileCellActions {
       ),
     );
   }
+}
+
+AuthoringActionDescriptor _cornerDescriptor(String id, String summary) =>
+    AuthoringActionDescriptor(
+      id: id,
+      version: 1,
+      summary: summary,
+      inputSchemaId: 'pokemap.authoring.$id.input.v1',
+      outputSchemaId: 'pokemap.authoring.smart_tile.corner.mutation.v1',
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const <String>[
+        'map',
+        'smartTileLayer',
+        'smartTilePreset',
+        'smartTileMaterial',
+      ],
+      capabilityIds: const <String>['authoring.smart_tiles'],
+      requiredPermissions: const <AuthoringPermission>[
+        AuthoringPermission.projectWrite,
+      ],
+      guarantees: const <AuthoringGuarantee>[
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.atomic,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable,
+      ],
+      extensions: const <String, Object?>{
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'gestureAtomic': true,
+        'semanticCellsPreserved': true,
+        'supportedSelections': <String>['corners'],
+        'supportedFieldKinds': <String>['corner', 'mixed'],
+        'maximumExplicitCornerCount': 4096,
+        'coordinateExtent': 'mapCornerLatticeInclusive',
+      },
+    );
+
+List<GridPos> _corners(List<Object?> raw, {required GridSize mapSize}) {
+  if (raw.isEmpty) {
+    throw invalidSemanticField('corners', 'a non-empty list of coordinates');
+  }
+  if (raw.length > SmartTileCellActions.maximumExplicitCellsPerGesture) {
+    throw semanticFailure(
+      'smart_tile.corner.gesture_too_large',
+      'The Smart Tile gesture exceeds the bounded corner limit.',
+    );
+  }
+  final corners = <GridPos>[];
+  final seen = <(int, int)>{};
+  for (var index = 0; index < raw.length; index++) {
+    final value = raw[index];
+    if (value is! Map ||
+        value.length != 2 ||
+        value['x'] is! int ||
+        value['y'] is! int) {
+      throw invalidSemanticField('corners[$index]', 'exactly integer {x, y}');
+    }
+    final x = value['x'] as int;
+    final y = value['y'] as int;
+    if (x < 0 || y < 0 || x > mapSize.width || y > mapSize.height) {
+      throw semanticFailure(
+        'smart_tile.corner.out_of_bounds',
+        'A Smart Tile corner is outside the map corner lattice.',
+        details: <String, Object?>{'index': index, 'x': x, 'y': y},
+      );
+    }
+    if (!seen.add((x, y))) {
+      throw semanticFailure(
+        'smart_tile.corner.duplicate',
+        'A Smart Tile gesture repeats a corner coordinate.',
+        details: <String, Object?>{'x': x, 'y': y},
+      );
+    }
+    corners.add(GridPos(x: x, y: y));
+  }
+  corners.sort((left, right) {
+    final byY = left.y.compareTo(right.y);
+    return byY != 0 ? byY : left.x.compareTo(right.x);
+  });
+  return corners;
 }
 
 AuthoringActionDescriptor _descriptor(String id, String summary) =>

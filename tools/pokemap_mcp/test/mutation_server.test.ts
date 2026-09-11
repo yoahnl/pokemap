@@ -3728,7 +3728,10 @@ test("MCP rejects generic operations for Smart Tile layer creation", async () =>
   }
 });
 
-test("MCP paints every lattice from a geometric Wang selection", async () => {
+for (const preciseCorners of [false, true]) {
+test(preciseCorners
+  ? "MCP paints precise corners without changing other Wang lattices"
+  : "MCP paints every lattice from a geometric Wang selection", async () => {
   const fixture = await mutationFixture({ withNativeSmartTileV5: "mixed" });
   try {
     const opened = await toolData(fixture.client, "pokemap_workspace", {
@@ -3743,18 +3746,18 @@ test("MCP paints every lattice from a geometric Wang selection", async () => {
       projectHandle,
       request: {
         requestId: "native-v5-mixed-paint",
-        actionId: "smart_tile.cell.paint",
+        actionId: preciseCorners ? "smart_tile.corner.paint" : "smart_tile.cell.paint",
         actionVersion: 1,
         workspaceHandle: opened.workspaceHandle,
         parameters: {
           mapId: "native_v5",
           layerId: "smart",
           materialId: "road",
-          selection: {
+          ...(preciseCorners ? { corners: [{ x: 2, y: 2 }] } : { selection: {
             kind: "line",
             start: { x: 0, y: 0 },
             end: { x: 0, y: 0 },
-          },
+          } }),
         },
         expectedRevision: before.snapshotRevision,
         idempotencyKey: "idem-native-v5-mixed-paint",
@@ -3767,7 +3770,8 @@ test("MCP paints every lattice from a geometric Wang selection", async () => {
       planId: planned.planId,
       operationId: "operation-native-v5-mixed-paint",
     });
-    assert.equal(record(applied.receipt).actionId, "smart_tile.cell.paint");
+    assert.equal(record(applied.receipt).actionId,
+      preciseCorners ? "smart_tile.corner.paint" : "smart_tile.cell.paint");
     const after = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
@@ -3782,10 +3786,31 @@ test("MCP paints every lattice from a geometric Wang selection", async () => {
     );
     assert.ok(smartLayerValue);
     const field = record(record(smartLayerValue).field);
-    assert.deepEqual(field.semanticCells, [1, 0, 0, 0]);
-    assert.deepEqual(field.horizontalEdges, [1, 0, 1, 0, 0, 0]);
-    assert.deepEqual(field.verticalEdges, [1, 1, 0, 0, 0, 0]);
-    assert.deepEqual(field.corners, [1, 1, 0, 1, 1, 0, 0, 0, 0]);
+    assert.deepEqual(field.semanticCells, preciseCorners ? [0, 0, 0, 0] : [1, 0, 0, 0]);
+    assert.deepEqual(field.horizontalEdges, preciseCorners ? [0, 0, 0, 0, 0, 0] : [1, 0, 1, 0, 0, 0]);
+    assert.deepEqual(field.verticalEdges, preciseCorners ? [0, 0, 0, 0, 0, 0] : [1, 1, 0, 0, 0, 0]);
+    assert.deepEqual(field.corners, preciseCorners ? [0, 0, 0, 0, 0, 0, 0, 0, 1] : [1, 1, 0, 1, 1, 0, 0, 0, 0]);
+    if (preciseCorners) {
+      const erasePlan = await toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: "precise-corner-erase",
+          actionId: "smart_tile.corner.erase",
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle,
+          parameters: { mapId: "native_v5", layerId: "smart", corners: [{ x: 2, y: 2 }] },
+          expectedRevision: after.snapshotRevision,
+          idempotencyKey: "precise-corner-erase",
+        },
+      });
+      await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply", projectHandle, planId: erasePlan.planId,
+        operationId: "precise-corner-erase",
+      });
+      const erasedMap = JSON.parse(await readFile(join(fixture.root, "maps/native_v5.json"), "utf8"));
+      const erasedField = record(record(erasedMap.layers.find((layer: JsonRecord) => layer.id === "smart")).field);
+      assert.deepEqual(erasedField, { ...field, corners: Array(9).fill(0) });
+    }
   } finally {
     await fixture.client.close();
     await fixture.server.close();
@@ -3793,6 +3818,7 @@ test("MCP paints every lattice from a geometric Wang selection", async () => {
     await rm(fixture.root, { recursive: true, force: true });
   }
 });
+}
 
 test("MCP applies Smart Tile cell edits through the canonical transport", async () => {
   const fixture = await mutationFixture({ withNativeSmartTileV5: true });

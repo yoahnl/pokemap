@@ -68,6 +68,33 @@ Do not translate a missing action into direct JSON edits. Report the MCP parity 
 
 Inspect the reference visually and create a semantic blueprint before any PokeMap mutation. Read [the layer model](references/exterior-layer-model.md). Use the assisted V2 pipeline when the reference and candidate render align to an integer cell grid. Fall back to `scripts/blueprint_tool.py init` only when they do not.
 
+### Register the image and measure visible landmarks
+
+For an illustrated reference without an exact cell grid, measure major building silhouettes, their ground lines, rail/quay levels, path widths and the largest empty spaces in reference pixels before rounding to cells. Use one uniform reference-to-map scale and an explicit crop. Never stretch axes independently to hide a mismatched composition. Record user-requested departures, such as a removed bridge, as named exceptions; do not restore them just to improve similarity.
+
+An illustrated map is not an absolute scale specification. When the user supplies an asset charter, native PSDK patron or character size guide, use those to decide door, building and prop proportions; use the reference for composition and atmosphere. Do not enlarge art merely to fill transparent margins or force every measured size ratio to 1. Record deliberate scale departures and the authority behind them. Native-size doors, benches and the actual visible character are more useful than the character's transparent frame.
+
+Record both the asset canvas and opaque artwork bounds. Transparent padding and translucent shadows do not define building scale. Place from a reviewed ground-contact anchor, then check the roof bounds; a footprint match can still hide a building that is 30 percent too short. Compare a baseline and candidate with `scripts/landmark_registration.py`:
+
+```bash
+python3 scripts/landmark_registration.py \
+  --profile <reviewed-landmarks.json> --project-root <absolute-project> \
+  --map <map.json> --render <native-render.png> \
+  --output <registration.json> --html <registration.html>
+```
+
+The profile declares `referenceImage`, `cellSizePx`, `landmarks` with `id`, `instanceId`, `referenceBoundsPx` (left, top, right, bottom), and intentional `exceptions`. The tool measures alpha-255 frame bounds from actual atlas pixels, rejects incompatible crop aspects, and produces an opacity-slider overlay plus placement/scale differences. The silhouette bottom is not a measured ground-contact anchor, and an opaque baked shadow cannot be separated automatically. Use `--asset-overrides` with an element-ID-to-PNG JSON mapping when the baseline needs preserved old artwork. It does not produce an artistic score or certify collision, roof shape, palette or shadow correctness.
+
+Inspect the overlay before detail work. Resolve large mass, ground-line and empty-space discrepancies first. Reuse the same measured profile through iterations instead of moving the target to fit the latest render.
+
+For player-scale comparisons, resolve the actual character and animation source from the project, then verify the runtime destination size and grid anchor. A 32 px source frame may render into a 64 px destination; neither dimension is the visible silhouette. Show representative entrances, paths and props with that unchanged sprite. When comparing PSDK overviews, verify image dimensions against TMX width/height and tile size, then use a shared pixel zoom rather than fitting each map independently. Label the charter target separately when the current player differs. Optional local study widgets can be retained through the profile's `reviewExtension` list of existing CSS/JS filenames; keep image sources and scale provenance beside the study.
+
+For forest masks, check whether the live generator treats active cells as placement origins or full canopy coverage. At high density, scan-order spacing can produce rows even with a large variation setting: probability variation is not position jitter. Test a small native-scale patch against the reference, including overlapping canopies and understory. Use the existing Environment contract with bounds-safe, obstacle-aware masks; do not replace it with a flattened forest bitmap. Dense canopy and clean gameplay clearance need separate checks.
+
+For relief, record which plateau each bank belongs to, the visible cliff faces, water level and waterfall contact. A shoreline alone does not reproduce an elevated river bank. Keep these families editable and inspect representative bank/terrain junctions before populating the whole map.
+
+When improving this workflow after user feedback, persist the reproducible measurement or check that would have caught the actual error. Validate it on the rejected baseline and the new candidate. Do not invent a speed gain or treat fresh structural tests as artistic acceptance.
+
 ### Assisted V2 pipeline
 
 Create a small analysis profile from reviewed seed cells. Keep `cellSizePx` at 32 and set `sourceCellSizePx` to the capture scale, such as 16 for a half-size render. Each semantic class may declare a family, confidence threshold, minimum connected-component size, constraints, and unresolved asset requirements.

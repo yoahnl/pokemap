@@ -7,6 +7,48 @@ import 'package:test/test.dart';
 
 void main() {
   group('native Smart Tile direct/JSONL parity', () {
+    test(
+        'edits precise corners byte-identically without changing other lattices',
+        () async {
+      final direct = await _Harness.create('corners_direct');
+      final jsonl = await _Harness.create('corners_jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      await direct.applyDirectFlow();
+      await jsonl.applyJsonlFlow();
+      for (final erase in <bool>[false, true]) {
+        final action = 'smart_tile.corner.${erase ? 'erase' : 'paint'}';
+        final parameters = <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'terrain',
+          if (!erase) 'materialId': 'grass',
+          'corners': <Map<String, int>>[
+            {'x': 1, 'y': 1}
+          ],
+        };
+        await direct.applyDirectAction(
+          actionId: action,
+          parameters: parameters,
+          sequence: action,
+        );
+        await jsonl.applyJsonlAction(
+          actionId: action,
+          parameters: parameters,
+          sequence: action,
+        );
+        expect(await direct.mapBytes(), await jsonl.mapBytes());
+        final map = MapData.fromJson(
+          jsonDecode(utf8.decode(await direct.mapBytes()))
+              as Map<String, dynamic>,
+        );
+        final layer = map.layers.single as SmartTileLayer;
+        expect(smartTileCorners(layer), <int>[0, 0, 0, erase ? 0 : 1]);
+        expect(smartTileSemanticCells(layer), <int>[1]);
+        expect(smartTileHorizontalEdges(layer), <int>[0, 0]);
+        expect(smartTileVerticalEdges(layer), <int>[0, 0]);
+      }
+    });
+
     test('rejects decoded out-of-image atlas geometry through both transports',
         () async {
       final direct = await _Harness.create('out_of_image_direct');
