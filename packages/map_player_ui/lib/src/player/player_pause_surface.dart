@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
@@ -11,6 +12,7 @@ import '../theme/pokemap_player_layout_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_window_theme.dart';
 import 'runtime_player_focus_controller.dart';
+import 'player_control_profile.dart';
 
 enum PlayerPauseAction {
   resume,
@@ -440,6 +442,8 @@ class PlayerPauseNavigation extends StatelessWidget {
     this.scrollKey,
     this.scrollController,
     this.focusController,
+    this.controlProfile,
+    this.controllerFamily = PlayerControllerFamily.unknown,
     this.labels = const PlayerPauseMenuLabels(),
     this.presentation,
     this.showGameTitle = true,
@@ -456,6 +460,8 @@ class PlayerPauseNavigation extends StatelessWidget {
   final Key? scrollKey;
   final ScrollController? scrollController;
   final RuntimePlayerFocusController? focusController;
+  final PlayerControlProfile? controlProfile;
+  final PlayerControllerFamily controllerFamily;
   final PlayerPauseMenuLabels labels;
   final PlayerPausePresentation? presentation;
   final bool showGameTitle;
@@ -663,7 +669,15 @@ class PlayerPauseNavigation extends StatelessWidget {
       ),
       showFocusHighlight: controller?.showFocusHighlight ?? true,
       selected: controller?.logicalSelectionId == logicalId,
-      shortcutLabel: context.playerL10n.confirmShortcut,
+      shortcutLabel: (controlProfile ?? PlayerControlProfile.standard).promptFor(
+        switch (controller?.activeInputSource) {
+          PlayerInputSource.controller => PlayerControlDevice.gamepad,
+          PlayerInputSource.touch => PlayerControlDevice.touch,
+          _ => PlayerControlDevice.keyboard,
+        },
+        RuntimeInputControl.primary,
+        family: controllerFamily,
+      ),
       minimumHeight:
           composition == null ? 48 : _entryHeight(composition!.entrySize),
       autofocus: controller?.logicalSelectionId == null &&

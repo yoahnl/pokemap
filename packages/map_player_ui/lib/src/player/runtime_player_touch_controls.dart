@@ -1,10 +1,12 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../theme/pokemap_player_theme.dart';
+import '../localization/player_localizations.dart';
 import 'player_control_profile.dart';
 
 const double kRuntimePlayerTouchDeadZone = 0.35;
@@ -56,11 +58,15 @@ class RuntimePlayerTouchControls extends StatefulWidget {
     required this.dispatch,
     this.opacity = 0.82,
     this.controlProfile,
+    this.showControls = true,
+    this.onMovementGesture,
   }) : assert(opacity >= 0.3 && opacity <= 1);
 
   final ValueChanged<RuntimeInputEvent> dispatch;
   final double opacity;
   final PlayerControlProfile? controlProfile;
+  final bool showControls;
+  final VoidCallback? onMovementGesture;
 
   @override
   State<RuntimePlayerTouchControls> createState() =>
@@ -70,6 +76,28 @@ class RuntimePlayerTouchControls extends StatefulWidget {
 class _RuntimePlayerTouchControlsState
     extends State<RuntimePlayerTouchControls> {
   final RuntimePlayerTouchInputDriver _driver = RuntimePlayerTouchInputDriver();
+  bool _movementInputAccepted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _movementInputAccepted = widget.showControls;
+  }
+
+  void _recognizeMovementPointer(ui.PointerDeviceKind kind) {
+    if (kind != ui.PointerDeviceKind.touch) return;
+    _movementInputAccepted = true;
+    widget.onMovementGesture?.call();
+  }
+
+  @override
+  void didUpdateWidget(covariant RuntimePlayerTouchControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.showControls && !widget.showControls) {
+      _movementInputAccepted = false;
+      _dispatchAll(_driver.release());
+    }
+  }
 
   void _dispatchAll(Iterable<RuntimeInputEvent> events) {
     for (final event in events) {
@@ -117,17 +145,26 @@ class _RuntimePlayerTouchControlsState
                 key: const ValueKey<String>(
                   'runtime-player-touch-controls-opacity',
                 ),
-                opacity: widget.opacity,
-                child: SizedBox.square(
+                opacity: widget.showControls ? widget.opacity : 0,
+                child: ExcludeSemantics(
+                  excluding: !widget.showControls,
+                  child: Listener(
+                    key: const ValueKey<String>('runtime-player-touch-movement-zone'),
+                    onPointerDown: (event) {
+                      _recognizeMovementPointer(event.kind);
+                    },
+                    child: SizedBox.square(
                   key: const ValueKey<String>(
                     'runtime-player-touch-joystick',
                   ),
                   dimension: joystickSize,
                   child: _joystick(context, joystickSize),
+                    ),
+                  ),
                 ),
               ),
             ),
-            Positioned(
+            if (widget.showControls) Positioned(
               right: horizontal + safePadding.right,
               bottom: bottom,
               child: Opacity(
@@ -136,6 +173,7 @@ class _RuntimePlayerTouchControlsState
                 ),
                 opacity: widget.opacity,
                 child: _RuntimePlayerTouchActionCluster(
+                  profile: widget.controlProfile ?? PlayerControlProfile.standard,
                   portrait: portrait,
                   buttonSize: actionSize,
                   onPrimaryChanged: (pressed) => _dispatchButton(
@@ -188,9 +226,11 @@ class _RuntimePlayerTouchControlsState
             ),
           ),
           stick: const _RuntimePlayerJoystickStick(),
-          listener: (details) => _dispatchAll(
-            _driver.updateVector(Offset(details.x, details.y)),
-          ),
+          listener: (details) {
+            if (_movementInputAccepted) {
+              _dispatchAll(_driver.updateVector(Offset(details.x, details.y)));
+            }
+          },
           onStickDragEnd: () => _dispatchAll(_driver.release()),
         ),
       ),
@@ -211,6 +251,7 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
     required this.onPrimaryChanged,
     required this.onSecondaryChanged,
     required this.onSprintChanged,
+    required this.profile,
   });
 
   final bool portrait;
@@ -218,6 +259,7 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
   final ValueChanged<bool> onPrimaryChanged;
   final ValueChanged<bool> onSecondaryChanged;
   final ValueChanged<bool> onSprintChanged;
+  final PlayerControlProfile profile;
 
   @override
   Widget build(BuildContext context) {
@@ -225,8 +267,9 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
       key: const ValueKey<String>(
         'runtime-player-touch-secondary-button',
       ),
-      label: 'B',
-      semanticLabel: 'Action secondaire',
+      label: _label(context, 'secondaryButton'),
+      icon: _icon('secondaryButton'),
+      semanticLabel: _label(context, 'secondaryButton'),
       size: buttonSize,
       primary: false,
       onChanged: onSecondaryChanged,
@@ -235,16 +278,18 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
       key: const ValueKey<String>(
         'runtime-player-touch-primary-button',
       ),
-      label: 'A',
-      semanticLabel: 'Action principale',
+      label: _label(context, 'primaryButton'),
+      icon: _icon('primaryButton'),
+      semanticLabel: _label(context, 'primaryButton'),
       size: buttonSize,
       primary: true,
       onChanged: onPrimaryChanged,
     );
     final sprint = _RuntimePlayerTouchButton(
       key: const ValueKey<String>('runtime-player-touch-sprint-button'),
-      label: 'R',
-      semanticLabel: 'Course',
+      label: _label(context, 'sprintButton'),
+      icon: _icon('sprintButton'),
+      semanticLabel: _label(context, 'sprintButton'),
       size: buttonSize * .78,
       primary: false,
       onChanged: onSprintChanged,
@@ -261,12 +306,29 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
             children: <Widget>[sprint, gap, secondary, gap, primary],
           );
   }
+
+  String _label(BuildContext context, String inputId) => switch (profile.controlForTouchInput(inputId)) {
+    RuntimeInputControl.primary => context.playerL10n.interact,
+    RuntimeInputControl.secondary => context.playerL10n.back,
+    RuntimeInputControl.sprint => context.playerL10n.run,
+    RuntimeInputControl.menu => context.playerL10n.pause,
+    _ => profile.controlForTouchInput(inputId)?.name ?? '',
+  };
+
+  IconData _icon(String inputId) => switch (profile.controlForTouchInput(inputId)) {
+    RuntimeInputControl.primary => Icons.touch_app_rounded,
+    RuntimeInputControl.secondary => Icons.arrow_back_rounded,
+    RuntimeInputControl.sprint => Icons.directions_run_rounded,
+    RuntimeInputControl.menu => Icons.menu_rounded,
+    _ => Icons.navigation_rounded,
+  };
 }
 
 class _RuntimePlayerTouchButton extends StatefulWidget {
   const _RuntimePlayerTouchButton({
     super.key,
     required this.label,
+    required this.icon,
     required this.semanticLabel,
     required this.size,
     required this.primary,
@@ -274,6 +336,7 @@ class _RuntimePlayerTouchButton extends StatefulWidget {
   });
 
   final String label;
+  final IconData icon;
   final String semanticLabel;
   final double size;
   final bool primary;
@@ -327,13 +390,13 @@ class _RuntimePlayerTouchButtonState extends State<_RuntimePlayerTouchButton> {
               ),
             ],
           ),
-          child: Text(
-            widget.label,
-            style: TextStyle(
-              color: foreground,
-              fontWeight: FontWeight.w800,
-              fontSize: math.max(22, widget.size * .34),
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, color: foreground, size: math.max(18, widget.size * .3)),
+              Text(widget.label, style: TextStyle(color: foreground,
+                fontWeight: FontWeight.w700, fontSize: 11)),
+            ],
           ),
         ),
       ),

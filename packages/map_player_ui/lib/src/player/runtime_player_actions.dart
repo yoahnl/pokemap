@@ -9,6 +9,8 @@ import '../theme/pokemap_player_theme.dart';
 import 'runtime_player_layout.dart';
 import 'player_control_profile.dart';
 
+final class RuntimePlayerLocalActionNotification extends Notification {}
+
 class RuntimePlayerInputBindings extends StatefulWidget {
   const RuntimePlayerInputBindings(
       {super.key,

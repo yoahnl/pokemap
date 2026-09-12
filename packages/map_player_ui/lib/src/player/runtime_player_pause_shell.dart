@@ -13,6 +13,7 @@ import '../theme/pokemap_player_layout_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_window_theme.dart';
 import 'player_pause_menu.dart';
+import 'player_control_profile.dart';
 import 'player_pause_illustrated_root.dart';
 import 'runtime_player_actions.dart';
 import 'runtime_player_focus_controller.dart';
@@ -29,6 +30,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     required this.detail,
     this.onTouchMenu,
     this.activeInputSource,
+    this.controlProfile,
+    this.controllerFamily = PlayerControllerFamily.unknown,
     this.logicalSelectionId,
     this.focusController,
     this.saveMessage,
@@ -52,6 +55,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     required this.detail,
     this.onTouchMenu,
     this.activeInputSource,
+    this.controlProfile,
+    this.controllerFamily = PlayerControllerFamily.unknown,
     this.logicalSelectionId,
     this.focusController,
     this.saveMessage,
@@ -76,6 +81,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final Widget detail;
   final VoidCallback? onTouchMenu;
   final PlayerInputSource? activeInputSource;
+  final PlayerControlProfile? controlProfile;
+  final PlayerControllerFamily controllerFamily;
   final String? logicalSelectionId;
   final RuntimePlayerFocusController? focusController;
   final String? saveMessage;
@@ -399,10 +406,14 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                         widget.detailActions!,
                       if (_focusController.showFocusHighlight && isRoot)
                         PlayerMenuKeyHint(
-                            glyph: _focusController.activeInputSource ==
-                                    PlayerInputSource.controller
-                                ? 'A'
-                                : context.playerL10n.confirmShortcut,
+                            glyph: (widget.controlProfile ?? PlayerControlProfile.standard)
+                                .promptFor(
+                                  _focusController.activeInputSource == PlayerInputSource.controller
+                                      ? PlayerControlDevice.gamepad
+                                      : PlayerControlDevice.keyboard,
+                                  RuntimeInputControl.primary,
+                                  family: widget.controllerFamily,
+                                ),
                             label: context.playerL10n.validate),
                     ],
                     returnAction: PlayerMenuSelectableRow(
@@ -827,6 +838,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         scrollKey: scrollKey,
         scrollController: controller,
         focusController: _focusController,
+        controlProfile: widget.controlProfile,
+        controllerFamily: widget.controllerFamily,
         labels: widget.labels,
         presentation: _isIllustrated
             ? PlayerPausePresentation(

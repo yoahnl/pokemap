@@ -8,6 +8,31 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final source in [PlayerInputSource.keyboard, PlayerInputSource.controller]) {
+    testWidgets('pause confirmation prompt follows remapped $source binding', (tester) async {
+      await _setSurface(tester, const Size(844, 390));
+      final profile = PlayerControlProfile.standard.rebind(
+        device: source == PlayerInputSource.controller
+            ? PlayerControlDevice.gamepad : PlayerControlDevice.keyboard,
+        control: RuntimeInputControl.primary,
+        inputId: source == PlayerInputSource.controller ? 'x' : 'keyZ',
+      ).profile;
+      await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+        gameTitle: 'Voyage',
+        actions: _actions(),
+        onSelected: (_) {},
+        detail: const SizedBox(),
+        activeInputSource: source,
+        controlProfile: profile,
+        presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.nightIllustrated),
+      )));
+      await tester.pumpAndSettle();
+      final hint = tester.widget<PlayerMenuKeyHint>(find.byType(PlayerMenuKeyHint).first);
+      expect(hint.glyph, source == PlayerInputSource.controller ? 'Bouton ouest' : 'Z');
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   for (final size in [
     const Size(1440, 900),
     const Size(390, 844),

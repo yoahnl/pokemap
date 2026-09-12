@@ -51,6 +51,7 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
     this.pokedexNavigation,
     this.onFavoriteChanged,
     this.controlProfile,
+    this.controllerFamily = PlayerControllerFamily.unknown,
     this.hardwareGamepadEnabled = true,
     this.activeInputSource,
     this.onControlProfileChanged,
@@ -78,6 +79,7 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
   final RuntimePlayerPokedexNavigation? pokedexNavigation;
   final Future<void> Function(String, bool)? onFavoriteChanged;
   final PlayerControlProfile? controlProfile;
+  final PlayerControllerFamily controllerFamily;
   final bool hardwareGamepadEnabled;
   final PlayerInputSource? activeInputSource;
   final FutureOr<void> Function(PlayerControlProfile)? onControlProfileChanged;
@@ -348,6 +350,8 @@ class _RuntimePlayerSurfaceRouterState
           opacity: widget.touchControlsOpacity,
         ),
       RuntimePlayerPhase.paused => RuntimePlayerPauseShell(
+          controlProfile: widget.controlProfile,
+          controllerFamily: widget.controllerFamily,
           focusController: widget.pauseFocusController,
           playerProfile: widget.snapshot.playerProfile,
           portraitImage: widget.snapshot.playerProfile?.portraitFilePath == null

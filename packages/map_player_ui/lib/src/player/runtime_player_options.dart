@@ -135,6 +135,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
   Future<void> _save(PlayerPreferencesSnapshot next) async {
     if (!mounted || !_enabled) return;
+    RuntimePlayerLocalActionNotification().dispatch(context);
     final previousWidget = widget.preferences;
     final previousFocus = FocusManager.instance.primaryFocus;
     setState(() {
@@ -176,6 +177,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
   Future<void> _saveProfile(PlayerControlProfile next) async {
     if (!mounted || _pending || widget.onControlProfileChanged == null) return;
+    RuntimePlayerLocalActionNotification().dispatch(context);
     setState(() {
       _pending = true;
       _failed = false;
@@ -199,6 +201,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
   void _select(PlayerOptionsCategory category) {
     if (_pending) return;
+    RuntimePlayerLocalActionNotification().dispatch(context);
     setState(() {
       _category = category;
       _showCategories = false;
@@ -223,6 +226,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
   bool _back() {
     if (!_showCategories) return false;
+    RuntimePlayerLocalActionNotification().dispatch(context);
     setState(() => _showCategories = false);
     return true;
   }
@@ -297,7 +301,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         secondary: true,
         onPressed: _pending
             ? null
-            : () => setState(() => _showCategories = !_showCategories),
+            : () {
+                RuntimePlayerLocalActionNotification().dispatch(context);
+                setState(() => _showCategories = !_showCategories);
+              },
       );
 
   Widget _standaloneDefaults() => Align(
@@ -687,7 +694,11 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                           focusNode: _sliderFocus.putIfAbsent(
                               key, () => FocusNode(debugLabel: label)),
                           onChangeStart: _enabled
-                              ? (_) => _sliderFocus[key]!.requestFocus()
+                              ? (_) {
+                                  RuntimePlayerLocalActionNotification()
+                                      .dispatch(context);
+                                  _sliderFocus[key]!.requestFocus();
+                                }
                               : null,
                           value: draft.clamp(min, max),
                           min: min,
@@ -781,6 +792,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
   Future<T?> _choose<T>(String title, T current, Map<T, String> values,
       String Function(T) id) async {
+    RuntimePlayerLocalActionNotification().dispatch(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _choiceFocus.context != null) _choiceFocus.requestFocus();
     });
@@ -796,7 +808,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                     label: entry.value,
                     selected: current == entry.key,
                     minimumHeight: 64,
-                    onPressed: () => Navigator.of(dialogContext).pop(entry.key),
+                    onPressed: () {
+                      RuntimePlayerLocalActionNotification().dispatch(context);
+                      Navigator.of(dialogContext).pop(entry.key);
+                    },
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -807,7 +822,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                   label: _strings.back,
                   icon: Icons.arrow_back_rounded,
                   secondary: true,
-                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  onPressed: () {
+                    RuntimePlayerLocalActionNotification().dispatch(context);
+                    Navigator.of(dialogContext).pop();
+                  },
                 )
               ],
             ));
@@ -877,28 +895,38 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                             ),
                           ))))));
 
-  Future<bool> _confirm(String title, String message) async =>
-      await _showDialog<bool>(
-          builder: (dialogContext) => _dialog(
-                title: title,
-                children: [Text(message)],
-                actions: [
-                  PlayerActionButton(
-                      key: const ValueKey('options-reset-cancel'),
-                      label: _strings.cancel,
-                      icon: Icons.close_rounded,
-                      autofocus: true,
-                      secondary: true,
-                      onPressed: () => Navigator.of(dialogContext).pop(false)),
-                  const SizedBox(height: 12),
-                  PlayerActionButton(
-                      key: const ValueKey('options-reset-confirm'),
-                      label: _strings.restore,
-                      icon: Icons.restart_alt_rounded,
-                      onPressed: () => Navigator.of(dialogContext).pop(true)),
-                ],
-              )) ??
-      false;
+  Future<bool> _confirm(String title, String message) async {
+    RuntimePlayerLocalActionNotification().dispatch(context);
+    return await _showDialog<bool>(
+            builder: (dialogContext) => _dialog(
+                  title: title,
+                  children: [Text(message)],
+                  actions: [
+                    PlayerActionButton(
+                        key: const ValueKey('options-reset-cancel'),
+                        label: _strings.cancel,
+                        icon: Icons.close_rounded,
+                        autofocus: true,
+                        secondary: true,
+                        onPressed: () {
+                          RuntimePlayerLocalActionNotification()
+                              .dispatch(context);
+                          Navigator.of(dialogContext).pop(false);
+                        }),
+                    const SizedBox(height: 12),
+                    PlayerActionButton(
+                        key: const ValueKey('options-reset-confirm'),
+                        label: _strings.restore,
+                        icon: Icons.restart_alt_rounded,
+                        onPressed: () {
+                          RuntimePlayerLocalActionNotification()
+                              .dispatch(context);
+                          Navigator.of(dialogContext).pop(true);
+                        }),
+                  ],
+                )) ??
+        false;
+  }
 
   Future<void> _reset() async {
     final category = _category;

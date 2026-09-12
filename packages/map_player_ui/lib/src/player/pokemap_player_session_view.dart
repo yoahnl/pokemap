@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' as ui show KeyEventDeviceType, PointerDeviceKind;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gamepads/gamepads.dart';
@@ -124,6 +125,8 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.touchControlsAvailable,
     this.controllerInputEnabled = true,
     this.controllerInputEvents,
+    this.normalizedControllerInputEvents,
+    this.connectedControllerIds,
     this.gameplayInputAuthority,
     this.dialoguePresentation,
     this.onDialogueCommand,
@@ -163,6 +166,8 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   /// embedders while remaining enabled in the official player by default.
   final bool controllerInputEnabled;
   final Stream<RuntimeInputEvent>? controllerInputEvents;
+  final Stream<NormalizedGamepadEvent>? normalizedControllerInputEvents;
+  final ValueListenable<Set<String>>? connectedControllerIds;
 
   /// Runtime-owned authority deciding whether overworld touch chrome is legal.
   final ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority;
@@ -191,9 +196,18 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   final _partyNavigation = RuntimePlayerPartyNavigation();
   final _bagNavigation = RuntimePlayerBagNavigation();
   final _pokedexNavigation = RuntimePlayerPokedexNavigation();
-  StreamSubscription<RuntimeInputEvent>? _controllerSubscription;
+  StreamSubscription<dynamic>? _controllerSubscription;
+  Timer? _controllerInventoryTimer;
+  RuntimePlayerGamepadBridge? _gamepadBridge;
+  final Map<String, PlayerControllerFamily> _controllerFamilies = {};
+  int _controllerBindingGeneration = 0;
+  bool _readingControllerInventory = false;
+  late PlayerInputSourcePolicy _inputPolicy;
+  ui.PointerDeviceKind? _pendingPointerKind;
   late RuntimePlayerSnapshot _latestSnapshot;
-  PlayerInputSource _activeInputSource = PlayerInputSource.keyboard;
+  PlayerInputSource get _activeInputSource => _inputPolicy.activeSource;
+  PlayerControllerFamily get _controllerFamily =>
+      _controllerFamilies[_inputPolicy.activeControllerId] ?? PlayerControllerFamily.unknown;
   bool _menuTransitionPending = false;
 
   bool get _touchControlsAvailable =>
@@ -209,7 +223,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   void initState() {
     super.initState();
     _latestSnapshot = widget.controller.snapshot;
+    _inputPolicy = PlayerInputSourcePolicy(touchAvailable: _touchControlsAvailable);
     HardwareKeyboard.instance.addHandler(_observeHardwareInput);
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_observePointerInput);
     widget.presentationFrame?.addListener(_handlePresentationFrameChanged);
     _bindControllerInputs();
   }
@@ -231,7 +247,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     }
     if (oldWidget.controllerInputEnabled != widget.controllerInputEnabled ||
         oldWidget.controllerInputEvents != widget.controllerInputEvents ||
+        oldWidget.normalizedControllerInputEvents != widget.normalizedControllerInputEvents ||
+        oldWidget.connectedControllerIds != widget.connectedControllerIds ||
         oldWidget.controlProfile != widget.controlProfile) {
+      oldWidget.connectedControllerIds?.removeListener(_handleControllerInventoryChanged);
+      for (final event in _inputPolicy.releaseAll()) {
+        widget.gameplayInputRoute?.call(event);
+      }
       _bindControllerInputs();
     }
   }
@@ -241,13 +263,18 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   }
 
   void _setActiveInputSource(PlayerInputSource source) {
-    if (mounted && _activeInputSource != source) {
-      setState(() => _activeInputSource = source);
+    final previous = _activeInputSource;
+    _inputPolicy.recognizeSource(PlayerInputOwner(source));
+    if (mounted && previous != _activeInputSource) {
+      setState(() {});
     }
   }
 
   bool _observeHardwareInput(KeyEvent event) {
-    if (event is KeyDownEvent) {
+    if (event is KeyDownEvent && !_editableTextHasFocus() &&
+        _controlProfile.runtimeEventFromKeyEvent(event) != null &&
+        !(event.deviceType == ui.KeyEventDeviceType.gamepad && widget.controllerInputEnabled)) {
+      _pendingPointerKind = null;
       _setActiveInputSource(event.deviceType == ui.KeyEventDeviceType.gamepad
           ? PlayerInputSource.controller
           : PlayerInputSource.keyboard);
@@ -255,32 +282,93 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     return false;
   }
 
-  void _bindControllerInputs() {
-    unawaited(_controllerSubscription?.cancel());
-    _controllerSubscription = null;
-    if (!widget.controllerInputEnabled) return;
-    final events =
-        widget.controllerInputEvents ?? _normalizedControllerInputEvents();
-    _controllerSubscription = events.listen(
-      (event) => unawaited(
-        _routeRuntimeInput(event, source: PlayerInputSource.controller),
-      ),
-      onError: (_, __) {
-        // A missing or disconnected platform controller must never block
-        // keyboard, pointer, or touch play.
-      },
-    );
+  void _observePointerInput(PointerEvent event) {
+    if (event is PointerDownEvent) _pendingPointerKind = event.kind;
   }
 
-  Stream<RuntimeInputEvent> _normalizedControllerInputEvents() async* {
-    final bridge = RuntimePlayerGamepadBridge(
-      controlProfile: _controlProfile,
-    );
-    await for (final event in Gamepads.normalizedEvents) {
-      for (final runtimeEvent in bridge.handle(event)) {
-        yield runtimeEvent;
-      }
+  void _bindControllerInputs() {
+    final generation = ++_controllerBindingGeneration;
+    unawaited(_controllerSubscription?.cancel());
+    _controllerSubscription = null;
+    _controllerInventoryTimer?.cancel();
+    _controllerInventoryTimer = null;
+    widget.connectedControllerIds?.addListener(_handleControllerInventoryChanged);
+    if (!widget.controllerInputEnabled) {
+      _applyControllerInventory({});
+      return;
     }
+    final bridge = RuntimePlayerGamepadBridge(controlProfile: _controlProfile);
+    _gamepadBridge = bridge;
+    if (widget.connectedControllerIds != null) {
+      _handleControllerInventoryChanged();
+    } else if (widget.controllerInputEvents == null && widget.normalizedControllerInputEvents == null) {
+      unawaited(_refreshControllerInventory(generation));
+      _controllerInventoryTimer = Timer.periodic(const Duration(seconds: 2),
+        (_) => unawaited(_refreshControllerInventory(generation)));
+    }
+    final injected = widget.controllerInputEvents;
+    if (injected != null) {
+      _controllerSubscription = injected.listen((event) {
+        if (generation != _controllerBindingGeneration) return;
+        final id = widget.connectedControllerIds?.value.firstOrNull ?? 'injected';
+        unawaited(_routeRuntimeInput(event, source: PlayerInputSource.controller, deviceId: id));
+      }, onError: (_, __) {
+        if (mounted && generation == _controllerBindingGeneration) {
+          _applyControllerInventory({});
+        }
+      });
+      return;
+    }
+    _controllerSubscription = (widget.normalizedControllerInputEvents ?? Gamepads.normalizedEvents).listen((event) {
+      if (generation != _controllerBindingGeneration) return;
+      final previousFamily = _controllerFamily;
+      final family = RuntimePlayerGamepadBridge.familyFor(event);
+      if (family != PlayerControllerFamily.unknown) {
+        _controllerFamilies[event.gamepadId] = family;
+      }
+      if (mounted && previousFamily != _controllerFamily) setState(() {});
+      for (final input in bridge.handle(event)) {
+        unawaited(_routeRuntimeInput(input, source: PlayerInputSource.controller,
+          deviceId: event.gamepadId));
+      }
+    }, onError: (_, __) {
+      if (mounted && generation == _controllerBindingGeneration) {
+        _applyControllerInventory({});
+      }
+    });
+  }
+
+  Future<void> _refreshControllerInventory(int generation) async {
+    if (_readingControllerInventory) return;
+    _readingControllerInventory = true;
+    try {
+      final devices = await Gamepads.list();
+      final ids = devices.map((device) => device.id).toSet();
+      await Future.wait(devices.map((device) => device.dispose()));
+      if (mounted && generation == _controllerBindingGeneration) {
+        _applyControllerInventory(ids);
+      }
+    } catch (_) {
+      return;
+    } finally {
+      _readingControllerInventory = false;
+    }
+  }
+
+  void _handleControllerInventoryChanged() =>
+      _applyControllerInventory(widget.connectedControllerIds?.value ?? {});
+
+  void _applyControllerInventory(Set<String> ids) {
+    final previous = _activeInputSource;
+    for (final id in _inputPolicy.connectedControllers.difference(ids)) {
+      _gamepadBridge?.disconnect(id);
+      _controllerFamilies.remove(id);
+      Gamepads.normalizer?.removeDevice(id);
+    }
+    for (final event in _inputPolicy.updateControllers(ids)) {
+      widget.gameplayInputRoute?.call(event);
+    }
+    if (mounted && previous != _activeInputSource) setState(() {});
   }
 
   PlayerInputSurface _inputSurface() {
@@ -316,9 +404,27 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   Future<void> _routeRuntimeInput(
     RuntimeInputEvent event, {
     required PlayerInputSource source,
+    String deviceId = '',
+    String inputId = '',
+  }) async {
+    if (source != PlayerInputSource.touch) _pendingPointerKind = null;
+    final previous = _activeInputSource;
+    final previousControllerId = _inputPolicy.activeControllerId;
+    final events = _inputPolicy.route(event,
+      owner: PlayerInputOwner(source, deviceId: deviceId), inputId: inputId);
+    if (mounted && (previous != _activeInputSource ||
+        previousControllerId != _inputPolicy.activeControllerId)) {
+      setState(() {});
+    }
+    await Future.wait(events.map((input) =>
+      _routeAcceptedRuntimeInput(input, source: source)));
+  }
+
+  Future<void> _routeAcceptedRuntimeInput(
+    RuntimeInputEvent event, {
+    required PlayerInputSource source,
   }) async {
     final command = playerInputCommandFromRuntimeEvent(event, source: source);
-    if (command.isPress) _setActiveInputSource(source);
     if (widget.presentationFrame?.value != null && command.isPress) {
       if (command.action == PlayerInputAction.confirm &&
           _latestSnapshot.phase != RuntimePlayerPhase.preSession) {
@@ -355,7 +461,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     final runtimeEvent = _controlProfile.runtimeEventFromKeyEvent(event);
     if (runtimeEvent == null) return KeyEventResult.ignored;
     final isHardwareGamepad = event.deviceType == ui.KeyEventDeviceType.gamepad;
-    if (!isHardwareGamepad && _editableTextHasFocus()) {
+    if (!isHardwareGamepad && runtimeEvent.isPress && _editableTextHasFocus()) {
       return KeyEventResult.ignored;
     }
     if (isHardwareGamepad && widget.controllerInputEnabled) {
@@ -367,6 +473,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     unawaited(
       _routeRuntimeInput(
         runtimeEvent,
+        inputId: event.physicalKey.usbHidUsage.toString(),
         source: isHardwareGamepad
             ? PlayerInputSource.controller
             : PlayerInputSource.keyboard,
@@ -384,14 +491,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
 
   void _releaseGameplayDirections() {
     final route = widget.gameplayInputRoute;
-    if (route == null) return;
-    for (final control in const <RuntimeInputControl>[
-      RuntimeInputControl.up,
-      RuntimeInputControl.down,
-      RuntimeInputControl.left,
-      RuntimeInputControl.right,
-    ]) {
-      route(RuntimeInputEvent.release(control));
+    for (final event in _inputPolicy.releaseMovement()) {
+      route?.call(event);
     }
   }
 
@@ -484,6 +585,10 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     RuntimePlayerSnapshot snapshot, {
     Object? payload,
   }) async {
+    if (_pendingPointerKind == ui.PointerDeviceKind.touch) {
+      _pendingPointerKind = null;
+      _setActiveInputSource(PlayerInputSource.touch);
+    }
     if (action == RuntimePlayerAction.openMenu &&
         (widget.gameplayInputAuthority?.value.context ==
                 RuntimeInputContext.battle ||
@@ -504,6 +609,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       );
     }
     if (isMenuTransition) _menuTransitionPending = true;
+    if (action == RuntimePlayerAction.openMenu) _releaseGameplayDirections();
     try {
       final result = await widget.controller.dispatch(
         RuntimePlayerCommand(
@@ -523,12 +629,14 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (event) => _setActiveInputSource(
-        event.kind == ui.PointerDeviceKind.touch
-            ? PlayerInputSource.touch
-            : PlayerInputSource.keyboard,
-      ),
+    return NotificationListener<RuntimePlayerLocalActionNotification>(
+      onNotification: (_) {
+        if (_pendingPointerKind == ui.PointerDeviceKind.touch) {
+          _pendingPointerKind = null;
+          _setActiveInputSource(PlayerInputSource.touch);
+        }
+        return true;
+      },
       child: Focus(
         key: const ValueKey<String>('runtime-player-keyboard-input-authority'),
         autofocus: true,
@@ -571,12 +679,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     RuntimeInputAuthoritySnapshot inputAuthority,
   ) {
     final acceptsOverworldTouch = inputAuthority.acceptsOverworldInput;
-    final showTouchControls = _touchControlsAvailable &&
+    final acceptsTouchControls = _touchControlsAvailable &&
         widget.gameplayInputRoute != null &&
         snapshot.phase == RuntimePlayerPhase.playing &&
         snapshot.worldService == null &&
         widget.presentationFrame?.value == null &&
         acceptsOverworldTouch;
+    final showTouchControls = acceptsTouchControls && _activeInputSource == PlayerInputSource.touch;
     final touchControlsOpacity =
         snapshot.preferences?.touchControlsOpacity ?? 0.82;
     final showInputHints = !showTouchControls &&
@@ -584,12 +693,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         snapshot.phase != RuntimePlayerPhase.preSession &&
         widget.presentationFrame?.value == null &&
         (snapshot.preferences?.showInputHints ?? false) &&
-        snapshot.activeInputSource != PlayerInputSource.touch;
-    Widget inputHints() => const Positioned(
+        _activeInputSource != PlayerInputSource.touch;
+    Widget inputHints() => Positioned(
           left: PlayerSpacing.sm,
           right: PlayerSpacing.sm,
           bottom: PlayerSpacing.sm,
-          child: _RuntimePlayerInputHints(),
+          child: _RuntimePlayerInputHints(profile: _controlProfile, source: _activeInputSource,
+            controllerFamily: _controllerFamily),
         );
     final stack = Stack(
       fit: StackFit.expand,
@@ -661,6 +771,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
                 },
           controlProfile: _controlProfile,
           onControlProfileChanged: widget.onControlProfileChanged,
+          controllerFamily: _controllerFamily,
           onPreSessionResult: (result) => unawaited(
             _dispatchCommand(
               RuntimePlayerAction.resolvePreSessionInteraction,
@@ -709,9 +820,11 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
               );
             },
           ),
-        if (showTouchControls)
+        if (acceptsTouchControls)
           Positioned.fill(
             child: RuntimePlayerTouchControls(
+              showControls: showTouchControls,
+              onMovementGesture: () => _setActiveInputSource(PlayerInputSource.touch),
               opacity: touchControlsOpacity,
               controlProfile: _controlProfile,
               dispatch: (event) => unawaited(
@@ -786,7 +899,11 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
 
   @override
   void dispose() {
+    ++_controllerBindingGeneration;
+    _controllerInventoryTimer?.cancel();
+    widget.connectedControllerIds?.removeListener(_handleControllerInventoryChanged);
     HardwareKeyboard.instance.removeHandler(_observeHardwareInput);
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_observePointerInput);
     _pauseFocusController.dispose();
     unawaited(_controllerSubscription?.cancel());
     _partyNavigation.dispose();
@@ -844,12 +961,19 @@ class RuntimePlayerPreferencesScope extends StatelessWidget {
 }
 
 class _RuntimePlayerInputHints extends StatelessWidget {
-  const _RuntimePlayerInputHints();
+  const _RuntimePlayerInputHints({required this.profile, required this.source,
+    required this.controllerFamily});
+
+  final PlayerControlProfile profile;
+  final PlayerInputSource source;
+  final PlayerControllerFamily controllerFamily;
 
   @override
   Widget build(BuildContext context) {
-    final label =
-        '${context.playerL10n.confirmShortcut}. ${context.playerL10n.pause}';
+    final device = source == PlayerInputSource.controller
+        ? PlayerControlDevice.gamepad : PlayerControlDevice.keyboard;
+    final label = '${profile.promptFor(device, RuntimeInputControl.primary, family: controllerFamily)} · '
+        '${profile.promptFor(device, RuntimeInputControl.menu, family: controllerFamily)} ${context.playerL10n.pause}';
     return Semantics(
       key: const ValueKey<String>('runtime-player-input-hints'),
       container: true,

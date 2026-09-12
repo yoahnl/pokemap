@@ -158,7 +158,7 @@ void main() {
       ),
     );
     expect(semantics.flagsCollection.isSelected, Tristate.isTrue);
-    expect(semantics.hint, contains('Entrée'));
+    expect(semantics.hint, contains('E'));
   });
 
   testWidgets('rapid restore requests focus only the latest logical item',

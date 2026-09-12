@@ -1,10 +1,13 @@
 import 'dart:collection';
+import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 enum PlayerControlDevice { keyboard, gamepad, touch }
+
+enum PlayerControllerFamily { unknown, xbox, playStation, nintendo }
 
 final class PlayerControlConflict {
   const PlayerControlConflict({
@@ -159,12 +162,21 @@ final class PlayerControlProfile {
       _controlForInput(PlayerControlDevice.touch, inputId);
 
   RuntimeInputEvent? runtimeEventFromKeyEvent(KeyEvent event) {
-    final inputId = _keyboardInputId(event.logicalKey);
+    if (event.synthesized && event is! KeyUpEvent) return null;
+    final isGamepad = event.deviceType == ui.KeyEventDeviceType.gamepad;
+    final inputId = isGamepad
+        ? _gamepadInputId(event.logicalKey)
+        : _keyboardInputId(event.logicalKey);
     final control = inputId == null
         ? null
-        : _controlForInput(PlayerControlDevice.keyboard, inputId);
+        : _controlForInput(
+            isGamepad
+                ? PlayerControlDevice.gamepad
+                : PlayerControlDevice.keyboard,
+            inputId,
+          );
     final resolved = control ??
-        (this == standard
+        (!isGamepad && _mapsEqual(keyboard, standard.keyboard)
             ? runtimeInputControlFromLogicalKey(event.logicalKey)
             : null);
     if (resolved == null) return null;
@@ -183,6 +195,39 @@ final class PlayerControlProfile {
       glyphForInput(bindingFor(device, control));
 
   static String glyphForInput(String inputId) => _glyphs[inputId] ?? inputId;
+
+  String promptFor(
+    PlayerControlDevice device,
+    RuntimeInputControl control, {
+    PlayerControllerFamily family = PlayerControllerFamily.unknown,
+  }) {
+    if (device == PlayerControlDevice.touch) return '';
+    final input = bindingFor(device, control);
+    if (device == PlayerControlDevice.keyboard) return glyphForInput(input);
+    return switch ((family, input)) {
+      (PlayerControllerFamily.xbox, 'a') => 'A',
+      (PlayerControllerFamily.xbox, 'b') => 'B',
+      (PlayerControllerFamily.xbox, 'x') => 'X',
+      (PlayerControllerFamily.xbox, 'y') => 'Y',
+      (PlayerControllerFamily.playStation, 'a') => '×',
+      (PlayerControllerFamily.playStation, 'b') => '○',
+      (PlayerControllerFamily.playStation, 'x') => '□',
+      (PlayerControllerFamily.playStation, 'y') => '△',
+      (PlayerControllerFamily.nintendo, 'a') => 'B',
+      (PlayerControllerFamily.nintendo, 'b') => 'A',
+      (PlayerControllerFamily.nintendo, 'x') => 'Y',
+      (PlayerControllerFamily.nintendo, 'y') => 'X',
+      (PlayerControllerFamily.nintendo, 'back') => '−',
+      (PlayerControllerFamily.nintendo, 'start') => '+',
+      (_, 'a') => 'Bouton sud',
+      (_, 'b') => 'Bouton est',
+      (_, 'x') => 'Bouton ouest',
+      (_, 'y') => 'Bouton nord',
+      (_, 'back') => 'Sélection',
+      (_, 'start') => 'Menu',
+      _ => glyphForInput(input),
+    };
+  }
 
   Map<RuntimeInputControl, String> _bindings(PlayerControlDevice device) =>
       switch (device) {
@@ -323,6 +368,27 @@ String? _keyboardInputId(LogicalKeyboardKey key) {
   }
   return null;
 }
+
+String? _gamepadInputId(LogicalKeyboardKey key) => switch (key) {
+      LogicalKeyboardKey.gameButtonA || LogicalKeyboardKey.gameButton1 => 'a',
+      LogicalKeyboardKey.gameButtonB || LogicalKeyboardKey.gameButton2 => 'b',
+      LogicalKeyboardKey.gameButtonX || LogicalKeyboardKey.gameButton3 => 'x',
+      LogicalKeyboardKey.gameButtonY || LogicalKeyboardKey.gameButton4 => 'y',
+      LogicalKeyboardKey.gameButtonSelect => 'back',
+      LogicalKeyboardKey.gameButtonStart => 'start',
+      LogicalKeyboardKey.gameButtonLeft1 => 'leftBumper',
+      LogicalKeyboardKey.gameButtonRight1 => 'rightBumper',
+      LogicalKeyboardKey.gameButtonLeft2 => 'leftTrigger',
+      LogicalKeyboardKey.gameButtonRight2 => 'rightTrigger',
+      LogicalKeyboardKey.gameButtonThumbLeft => 'leftStick',
+      LogicalKeyboardKey.gameButtonThumbRight => 'rightStick',
+      LogicalKeyboardKey.gameButtonMode => 'home',
+      LogicalKeyboardKey.arrowUp => 'dpadUp',
+      LogicalKeyboardKey.arrowDown => 'dpadDown',
+      LogicalKeyboardKey.arrowLeft => 'dpadLeft',
+      LogicalKeyboardKey.arrowRight => 'dpadRight',
+      _ => null,
+    };
 
 Map<RuntimeInputControl, String> _decodeBindings(Object? source) {
   if (source is! Map<String, dynamic>) {

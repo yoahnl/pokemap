@@ -5,12 +5,567 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gamepads/gamepads.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  group('OW002 adaptive input', () {
+    for (final initiallyConnected in [false, true]) {
+      testWidgets(
+          'starts mobile with controller availability $initiallyConnected',
+          (tester) async {
+        final controller = _FakeRuntimePlayerCoordinator(
+            _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+        final connected =
+            ValueNotifier<Set<String>>(initiallyConnected ? {'pad'} : {});
+        final events = StreamController<NormalizedGamepadEvent>.broadcast();
+        addTearDown(controller.dispose);
+        addTearDown(connected.dispose);
+        addTearDown(events.close);
+        await tester.pumpWidget(_app(_view(controller,
+            touchControlsAvailable: true,
+            connectedControllerIds: connected,
+            normalizedControllerInputEvents: events.stream,
+            gameplayInputRoute: (_) => true)));
+        _expectTouchControls(tester, !initiallyConnected);
+        expect(find.byKey(const ValueKey('runtime-player-touch-movement-zone')),
+            findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets(
+        'executes first controller and touch gestures once while connected',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+      final connected = ValueNotifier<Set<String>>({'pad'});
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      addTearDown(connected.dispose);
+      addTearDown(events.close);
+      await tester.pumpWidget(_app(_view(controller,
+          touchControlsAvailable: true,
+          connectedControllerIds: connected,
+          normalizedControllerInputEvents: events.stream,
+          gameplayInputRoute: (event) {
+        routed.add(event);
+        return true;
+      })));
+      events.add(_padInput(button: GamepadButton.a));
+      events.add(_padInput(button: GamepadButton.a));
+      await tester.pump();
+      expect(
+          routed, const [RuntimeInputEvent.press(RuntimeInputControl.primary)]);
+      events.add(_padInput(button: GamepadButton.a, value: 0));
+      await tester.pump();
+      final zone =
+          find.byKey(const ValueKey('runtime-player-touch-movement-zone'));
+      final gesture = await tester.startGesture(tester.getCenter(zone),
+          kind: ui.PointerDeviceKind.touch);
+      await tester.pump();
+      await gesture.moveBy(const Offset(55, 0));
+      await tester.pump(const Duration(milliseconds: 80));
+      _expectTouchControls(tester, true);
+      expect(
+          routed.where((event) =>
+              event ==
+              const RuntimeInputEvent.press(RuntimeInputControl.right)),
+          hasLength(1));
+      await gesture.up();
+      await tester.pump();
+      events.add(_padInput(button: GamepadButton.a));
+      await tester.pump();
+      await tester.pump();
+      _expectTouchControls(tester, false);
+      expect(
+          routed.where((event) =>
+              event ==
+              const RuntimeInputEvent.press(RuntimeInputControl.primary)),
+          hasLength(2));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('ignores drift releases unmapped keys and pointer hover',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+      final connected = ValueNotifier<Set<String>>({});
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      addTearDown(connected.dispose);
+      addTearDown(events.close);
+      await tester.pumpWidget(_app(_view(controller,
+          touchControlsAvailable: true,
+          connectedControllerIds: connected,
+          normalizedControllerInputEvents: events.stream,
+          gameplayInputRoute: (event) {
+        routed.add(event);
+        return true;
+      })));
+      await tester.tap(
+          find.byKey(const ValueKey('runtime-player-touch-primary-button')));
+      await tester.pump();
+      routed.clear();
+      connected.value = {'pad'};
+      events.add(_padInput(axis: GamepadAxis.leftStickX, value: .12));
+      events.add(_padInput(axis: GamepadAxis.leftStickX, value: 0));
+      events.add(_padInput(button: GamepadButton.a, value: 0));
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+      final mouse =
+          await tester.createGesture(kind: ui.PointerDeviceKind.mouse);
+      await mouse.addPointer(location: const Offset(300, 200));
+      await mouse.moveTo(const Offset(330, 200));
+      await tester.pump();
+      _expectTouchControls(tester, true);
+      expect(routed, isEmpty);
+      await mouse.removePointer();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'disconnect neutralizes owned direction and sprint without replay',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+      final connected = ValueNotifier<Set<String>>({'pad'});
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      addTearDown(connected.dispose);
+      addTearDown(events.close);
+      await tester.pumpWidget(_app(_view(controller,
+          touchControlsAvailable: true,
+          connectedControllerIds: connected,
+          normalizedControllerInputEvents: events.stream,
+          gameplayInputRoute: (event) {
+        routed.add(event);
+        return true;
+      })));
+      events.add(_padInput(axis: GamepadAxis.leftStickX, value: .8));
+      events.add(_padInput(button: GamepadButton.y));
+      await tester.pump();
+      routed.clear();
+      connected.value = {};
+      await tester.pump();
+      expect(
+          routed,
+          unorderedEquals(const [
+            RuntimeInputEvent.release(RuntimeInputControl.right),
+            RuntimeInputEvent.release(RuntimeInputControl.sprint)
+          ]));
+      _expectTouchControls(tester, true);
+      routed.clear();
+      connected.value = {'pad'};
+      events.add(_padInput(axis: GamepadAxis.leftStickX, value: .8));
+      events.add(_padInput(button: GamepadButton.y));
+      await tester.pump();
+      expect(routed, isEmpty);
+      _expectTouchControls(tester, true);
+    });
+
+    testWidgets('late controller release leaves new touch movement owned',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+      final connected = ValueNotifier<Set<String>>({'pad'});
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      addTearDown(connected.dispose);
+      addTearDown(events.close);
+      await tester.pumpWidget(_app(_view(controller,
+          touchControlsAvailable: true,
+          connectedControllerIds: connected,
+          normalizedControllerInputEvents: events.stream,
+          gameplayInputRoute: (event) {
+        routed.add(event);
+        return true;
+      })));
+      events.add(_padInput(axis: GamepadAxis.leftStickX, value: .8));
+      await tester.pump();
+      final gesture = await tester.startGesture(
+          tester.getCenter(
+              find.byKey(const ValueKey('runtime-player-touch-movement-zone'))),
+          kind: ui.PointerDeviceKind.touch);
+      await tester.pump();
+      await gesture.moveBy(const Offset(55, 0));
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(routed, const [
+        RuntimeInputEvent.press(RuntimeInputControl.right),
+        RuntimeInputEvent.release(RuntimeInputControl.right),
+        RuntimeInputEvent.press(RuntimeInputControl.right)
+      ]);
+      routed.clear();
+      events.add(_padInput(axis: GamepadAxis.leftStickX, value: 0));
+      await tester.pump();
+      expect(routed, isEmpty);
+      _expectTouchControls(tester, true);
+      await gesture.up();
+      await tester.pump();
+      expect(
+          routed, const [RuntimeInputEvent.release(RuntimeInputControl.right)]);
+    });
+
+    testWidgets(
+        'prompts follow remapping and normalized controller input owns duplicates',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+          revision: 1,
+          phase: RuntimePlayerPhase.playing,
+          preferences: const PlayerPreferencesSnapshot(
+              locale: 'fr',
+              accessibility: GameSessionAccessibilityOptions(),
+              showInputHints: true)));
+      final connected = ValueNotifier<Set<String>>({});
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final routed = <RuntimeInputEvent>[];
+      final profile = PlayerControlProfile.standard
+          .rebind(
+              device: PlayerControlDevice.keyboard,
+              control: RuntimeInputControl.primary,
+              inputId: 'keyZ')
+          .profile
+          .rebind(
+              device: PlayerControlDevice.gamepad,
+              control: RuntimeInputControl.primary,
+              inputId: 'x')
+          .profile;
+      addTearDown(controller.dispose);
+      addTearDown(connected.dispose);
+      addTearDown(events.close);
+      await tester.pumpWidget(_app(_view(controller,
+          connectedControllerIds: connected,
+          normalizedControllerInputEvents: events.stream,
+          controlProfile: profile, gameplayInputRoute: (event) {
+        routed.add(event);
+        return true;
+      })));
+      expect(find.text('Z · M Pause'), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      expect(routed, const [
+        RuntimeInputEvent.press(RuntimeInputControl.primary),
+        RuntimeInputEvent.release(RuntimeInputControl.primary)
+      ]);
+      routed.clear();
+      connected.value = {'pad'};
+      final authority = tester.widget<Focus>(find
+          .byKey(const ValueKey('runtime-player-keyboard-input-authority')));
+      final node = FocusNode();
+      addTearDown(node.dispose);
+      expect(
+          authority.onKeyEvent!(
+              node,
+              const KeyDownEvent(
+                  physicalKey: PhysicalKeyboardKey.gameButtonX,
+                  logicalKey: LogicalKeyboardKey.gameButtonX,
+                  timeStamp: Duration.zero,
+                  deviceType: ui.KeyEventDeviceType.gamepad)),
+          KeyEventResult.handled);
+      expect(
+          authority.onKeyEvent!(
+              node,
+              const KeyUpEvent(
+                  physicalKey: PhysicalKeyboardKey.gameButtonX,
+                  logicalKey: LogicalKeyboardKey.gameButtonX,
+                  timeStamp: Duration.zero,
+                  deviceType: ui.KeyEventDeviceType.gamepad)),
+          KeyEventResult.handled);
+      events.add(_padInput(button: GamepadButton.x));
+      await tester.pump();
+      await tester.pump();
+      expect(
+          routed, const [RuntimeInputEvent.press(RuntimeInputControl.primary)]);
+      expect(find.text('Bouton ouest · Menu Pause'), findsOneWidget);
+      events.add(_padInput(button: GamepadButton.x, value: 0));
+      await tester.pump();
+      expect(routed, const [
+        RuntimeInputEvent.press(RuntimeInputControl.primary),
+        RuntimeInputEvent.release(RuntimeInputControl.primary)
+      ]);
+    });
+    testWidgets(
+        'keyboard repeat and release do not retake an active touch gesture',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_app(_view(controller,
+          touchControlsAvailable: true, gameplayInputRoute: (event) {
+        routed.add(event);
+        return true;
+      })));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyE);
+      await tester.pump();
+      _expectTouchControls(tester, false);
+      final gesture = await tester.startGesture(
+          tester.getCenter(
+              find.byKey(const ValueKey('runtime-player-touch-movement-zone'))),
+          kind: ui.PointerDeviceKind.touch);
+      await tester.pump();
+      await gesture.moveBy(const Offset(55, 0));
+      await tester.pump(const Duration(milliseconds: 80));
+      _expectTouchControls(tester, true);
+      routed.clear();
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.keyE);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyE);
+      await tester.pump();
+      _expectTouchControls(tester, true);
+      expect(routed.where((event) => event.isPress), isEmpty);
+      await gesture.up();
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'focused text and composing IME keep gameplay and presentation idle',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+      final focus = FocusNode();
+      final text = TextEditingController();
+      final connected = ValueNotifier<Set<String>>({'pad'});
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      addTearDown(focus.dispose);
+      addTearDown(text.dispose);
+      addTearDown(connected.dispose);
+      addTearDown(events.close);
+      await tester.pumpWidget(_app(PokeMapPlayerSessionView(
+          controller: controller,
+          titlePresentation: const RuntimePlayerTitlePresentation(
+              author: 'Studio Test', description: 'Une aventure de test.'),
+          gameSceneBuilder: (_) => Align(
+              alignment: Alignment.topCenter,
+              child: Material(
+                  child: TextField(focusNode: focus, controller: text))),
+          touchControlsAvailable: true,
+          controllerInputEnabled: true,
+          connectedControllerIds: connected,
+          normalizedControllerInputEvents: events.stream,
+          gameplayInputRoute: (event) {
+            routed.add(event);
+            return true;
+          })));
+      focus.requestFocus();
+      await tester.pump();
+      tester.testTextInput.updateEditingValue(const TextEditingValue(
+          text: 'é', composing: TextRange(start: 0, end: 1)));
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyE);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+      expect(text.text, 'é');
+      expect(routed, isEmpty);
+      _expectTouchControls(tester, false);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('held touch timer cannot reclaim input after hardware resumes',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+      final connected = ValueNotifier<Set<String>>({});
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      addTearDown(connected.dispose);
+      addTearDown(events.close);
+      await tester.pumpWidget(_app(_view(controller,
+          touchControlsAvailable: true,
+          connectedControllerIds: connected,
+          normalizedControllerInputEvents: events.stream,
+          gameplayInputRoute: (event) {
+        routed.add(event);
+        return true;
+      })));
+      final gesture = await tester.startGesture(
+          tester.getCenter(
+              find.byKey(const ValueKey('runtime-player-touch-movement-zone'))),
+          kind: ui.PointerDeviceKind.touch);
+      await gesture.moveBy(const Offset(55, 0));
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(
+          routed, const [RuntimeInputEvent.press(RuntimeInputControl.right)]);
+      connected.value = {'pad'};
+      events.add(_padInput(axis: GamepadAxis.leftStickX, value: .8));
+      await tester.pump();
+      await tester.pump();
+      _expectTouchControls(tester, false);
+      expect(routed, const [
+        RuntimeInputEvent.press(RuntimeInputControl.right),
+        RuntimeInputEvent.release(RuntimeInputControl.right),
+        RuntimeInputEvent.press(RuntimeInputControl.right),
+      ]);
+      routed.clear();
+      await tester.pump(const Duration(milliseconds: 180));
+      await gesture.moveBy(const Offset(-90, 0));
+      await tester.pump(const Duration(milliseconds: 80));
+      _expectTouchControls(tester, false);
+      expect(routed, isEmpty);
+      await gesture.up();
+      await tester.pump();
+      expect(routed, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('synthesized mapped key down neither selects keyboard nor acts',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_app(_view(controller,
+          touchControlsAvailable: true, gameplayInputRoute: (event) {
+        routed.add(event);
+        return true;
+      })));
+      HardwareKeyboard.instance.handleKeyEvent(const KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.keyE,
+        logicalKey: LogicalKeyboardKey.keyE,
+        timeStamp: Duration.zero,
+        synthesized: true,
+      ));
+      await tester.pump();
+      _expectTouchControls(tester, true);
+      expect(routed, isEmpty);
+      HardwareKeyboard.instance.handleKeyEvent(const KeyUpEvent(
+        physicalKey: PhysicalKeyboardKey.keyE,
+        logicalKey: LogicalKeyboardKey.keyE,
+        timeStamp: Duration.zero,
+        synthesized: true,
+      ));
+      await tester.pump();
+      _expectTouchControls(tester, true);
+      expect(routed, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'controller identity refreshes reliable family prompts between pads',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+        revision: 1,
+        phase: RuntimePlayerPhase.playing,
+        preferences: const PlayerPreferencesSnapshot(
+            locale: 'fr',
+            accessibility: GameSessionAccessibilityOptions(),
+            showInputHints: true),
+      ));
+      final connected = ValueNotifier<Set<String>>({'xbox', 'sony'});
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      addTearDown(connected.dispose);
+      addTearDown(events.close);
+      await tester.pumpWidget(_app(_view(
+        controller,
+        touchControlsAvailable: true,
+        connectedControllerIds: connected,
+        normalizedControllerInputEvents: events.stream,
+        gameplayInputRoute: (event) {
+          routed.add(event);
+          return true;
+        },
+      )));
+      events.add(_padInput(
+          gamepadId: 'xbox',
+          button: GamepadButton.a,
+          vendorId: 0x045e,
+          productId: 0x0b0c));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('A · Menu Pause'), findsOneWidget);
+      events.add(_padInput(
+          gamepadId: 'xbox',
+          button: GamepadButton.a,
+          value: 0,
+          vendorId: 0x045e,
+          productId: 0x0b0c));
+      events.add(_padInput(
+          gamepadId: 'sony',
+          button: GamepadButton.a,
+          vendorId: 0x054c,
+          productId: 0x0ba0));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('× · Menu Pause'), findsOneWidget);
+      events.add(_padInput(
+          gamepadId: 'sony',
+          button: GamepadButton.a,
+          value: 0,
+          vendorId: 0x054c,
+          productId: 0x0ba0));
+      await tester.pump();
+      expect(
+          routed.where((event) =>
+              event ==
+              const RuntimeInputEvent.press(RuntimeInputControl.primary)),
+          hasLength(2));
+      final gesture = await tester.startGesture(
+          tester.getCenter(
+              find.byKey(const ValueKey('runtime-player-touch-movement-zone'))),
+          kind: ui.PointerDeviceKind.touch);
+      await tester.pump();
+      await gesture.moveBy(const Offset(55, 0));
+      await tester.pump(const Duration(milliseconds: 80));
+      _expectTouchControls(tester, true);
+      await gesture.up();
+      await tester.pump();
+      events.add(_padInput(
+          gamepadId: 'xbox',
+          button: GamepadButton.a,
+          vendorId: 0x045e,
+          productId: 0x0b0c));
+      await tester.pump();
+      await tester.pump();
+      _expectTouchControls(tester, false);
+      expect(find.text('A · Menu Pause'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a popup touch action takes over from keyboard navigation',
+        (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(_titleOptionsSnapshot());
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_app(_view(controller)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')),
+          kind: ui.PointerDeviceKind.touch);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<RuntimePlayerOptions>(
+                  find.byType(RuntimePlayerOptions, skipOffstage: false))
+              .activeInputSource,
+          PlayerInputSource.keyboard);
+      await tester.tap(find.byKey(const ValueKey('options-choice-fast')),
+          kind: ui.PointerDeviceKind.touch);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
+              .activeInputSource,
+          PlayerInputSource.touch);
+      expect(controller.commands, hasLength(1));
+      expect(controller.commands.single.action,
+          RuntimePlayerAction.updatePreferences);
+      expect(
+          (controller.commands.single.payload! as PlayerPreferencesSnapshot)
+              .dialogueTextSpeed,
+          RuntimeDialogueTextSpeed.fast);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets('routes one canonical surface for every player phase',
       (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(
@@ -322,6 +877,13 @@ void main() {
         tester
             .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
             .activeInputSource,
+        PlayerInputSource.keyboard);
+    await _selectOptionsCategory(tester, 'controls');
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
+            .activeInputSource,
         PlayerInputSource.touch);
     expect(find.text('Tactile'), findsOneWidget);
     expect(controller.commands, isEmpty);
@@ -350,13 +912,12 @@ void main() {
     expect(controller.commands, hasLength(1));
     expect(controller.commands.single.action,
         RuntimePlayerAction.updatePreferences);
-    tester
-        .widget<Focus>(find
+    Focus.of(tester.element(find
             .descendant(
-                of: find.byKey(const ValueKey('options-text-speed-choice')),
-                matching: find.byType(Focus))
-            .first)
-        .focusNode!
+              of: find.byKey(const ValueKey('options-text-speed-choice')),
+              matching: find.byType(GestureDetector),
+            )
+            .first))
         .requestFocus();
     await tester.pump();
     await _hardwareGamepadPress(
@@ -370,13 +931,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
     expect(controller.commands, hasLength(1));
-    tester
-        .widget<Focus>(find
+    Focus.of(tester.element(find
             .descendant(
-                of: find.byKey(const ValueKey('options-text-speed-choice')),
-                matching: find.byType(Focus))
-            .first)
-        .focusNode!
+              of: find.byKey(const ValueKey('options-text-speed-choice')),
+              matching: find.byType(GestureDetector),
+            )
+            .first))
         .requestFocus();
     await tester.pump();
     await _hardwareGamepadPress(
@@ -466,7 +1026,7 @@ void main() {
       const ValueKey<String>('runtime-player-input-hints'),
     );
     expect(hints, findsOneWidget);
-    expect(tester.getSemantics(hints).label, contains('Entrée'));
+    expect(tester.getSemantics(hints).label, 'E · M Pause');
   });
 
   testWidgets('pause footer replaces world input hints', (tester) async {
@@ -1781,13 +2341,10 @@ void main() {
       const RuntimeInputEvent.press(RuntimeInputControl.menu),
     );
     await tester.pump();
-    expect(gameplayEvents, hasLength(5));
+    expect(gameplayEvents, hasLength(2));
     expect(
       gameplayEvents.skip(1),
       const <RuntimeInputEvent>[
-        RuntimeInputEvent.release(RuntimeInputControl.up),
-        RuntimeInputEvent.release(RuntimeInputControl.down),
-        RuntimeInputEvent.release(RuntimeInputControl.left),
         RuntimeInputEvent.release(RuntimeInputControl.right),
       ],
     );
@@ -1833,10 +2390,6 @@ void main() {
       gameplayEvents,
       const <RuntimeInputEvent>[
         RuntimeInputEvent.press(RuntimeInputControl.right),
-        RuntimeInputEvent.release(RuntimeInputControl.right),
-        RuntimeInputEvent.release(RuntimeInputControl.up),
-        RuntimeInputEvent.release(RuntimeInputControl.down),
-        RuntimeInputEvent.release(RuntimeInputControl.left),
         RuntimeInputEvent.release(RuntimeInputControl.right),
       ],
     );
@@ -2056,12 +2609,7 @@ void main() {
     expect(controller.commands, hasLength(1));
     expect(
       gameplayEvents,
-      const <RuntimeInputEvent>[
-        RuntimeInputEvent.release(RuntimeInputControl.up),
-        RuntimeInputEvent.release(RuntimeInputControl.down),
-        RuntimeInputEvent.release(RuntimeInputControl.left),
-        RuntimeInputEvent.release(RuntimeInputControl.right),
-      ],
+      isEmpty,
       reason: 'No new gameplay press may enter while Menu is opening.',
     );
 
@@ -2085,6 +2633,39 @@ void main() {
   });
 }
 
+void _expectTouchControls(WidgetTester tester, bool visible) {
+  final opacity = tester
+      .widget<Opacity>(
+          find.byKey(const ValueKey('runtime-player-touch-controls-opacity')))
+      .opacity;
+  expect(opacity, visible ? greaterThan(0) : 0);
+  expect(find.byKey(const ValueKey('runtime-player-touch-primary-button')),
+      visible ? findsOneWidget : findsNothing);
+}
+
+NormalizedGamepadEvent _padInput(
+        {GamepadButton? button,
+        GamepadAxis? axis,
+        double value = 1,
+        String gamepadId = 'pad',
+        int? vendorId,
+        int? productId}) =>
+    NormalizedGamepadEvent(
+      gamepadId: gamepadId,
+      timestamp: 1,
+      value: value,
+      button: button,
+      axis: axis,
+      rawEvent: GamepadEvent(
+          gamepadId: gamepadId,
+          vendorId: vendorId,
+          productId: productId,
+          timestamp: 1,
+          type: button == null ? KeyType.analog : KeyType.button,
+          key: (button?.name ?? axis!.name),
+          value: value),
+    );
+
 PokeMapPlayerSessionView _view(
   RuntimePlayerViewController controller, {
   _SceneLifecycle? lifecycle,
@@ -2092,6 +2673,8 @@ PokeMapPlayerSessionView _view(
   bool touchControlsAvailable = false,
   PlayerGameplayInputRoute? gameplayInputRoute,
   Stream<RuntimeInputEvent>? controllerInputEvents,
+  Stream<NormalizedGamepadEvent>? normalizedControllerInputEvents,
+  ValueListenable<Set<String>>? connectedControllerIds,
   ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority,
   ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation,
   ValueChanged<DialoguePresentationCommand>? onDialogueCommand,
@@ -2124,8 +2707,11 @@ PokeMapPlayerSessionView _view(
     battlePresentation: battlePresentation,
     onBattleCommand: onBattleCommand,
     controllerInputEvents: controllerInputEvents,
-    controllerInputEnabled:
-        controllerInputEnabled ?? controllerInputEvents != null,
+    normalizedControllerInputEvents: normalizedControllerInputEvents,
+    connectedControllerIds: connectedControllerIds,
+    controllerInputEnabled: controllerInputEnabled ??
+        (controllerInputEvents != null ||
+            normalizedControllerInputEvents != null),
     onShowDiagnostics: onShowDiagnostics,
     hapticFeedback: hapticFeedback,
     controlProfile: controlProfile,
