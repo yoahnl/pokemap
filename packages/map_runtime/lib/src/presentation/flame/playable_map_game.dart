@@ -2392,7 +2392,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       RuntimeInputSurface.completion =>
         RuntimeInputContext.blocked,
     };
+    final sprintAllowed = isLoaded &&
+        _externalInputLocks.isEmpty &&
+        context == RuntimeInputContext.overworld;
+    if (!sprintAllowed) _sprintPressed = false;
     return RuntimeInputAuthoritySnapshot(
+      sprintAllowed: sprintAllowed,
+      sprintAccepted: sprintAllowed && _sprintPressed,
       context: context,
       externalLocks:
           Set<RuntimeExternalInputLock>.unmodifiable(_externalInputLocks.keys),
@@ -4044,6 +4050,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
       if (control == RuntimeInputControl.sprint) {
         _sprintPressed = false;
+        _publishInputAuthoritySnapshot();
       }
       return true;
     }
@@ -4054,9 +4061,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final inputAuthority = inputAuthoritySnapshot;
 
     if (control == RuntimeInputControl.sprint) {
-      _sprintPressed =
-          inputAuthority.context == RuntimeInputContext.overworld &&
-              event.isPress;
+      _sprintPressed = inputAuthority.sprintAllowed && event.isPress;
+      _publishInputAuthoritySnapshot();
       return true;
     }
 
@@ -4236,7 +4242,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     try {
       _updateRuntime(dt);
     } finally {
-      _publishOverworldInteractions();
+      _publishInputAuthoritySnapshot();
     }
   }
 

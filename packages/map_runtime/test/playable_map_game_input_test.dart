@@ -35,6 +35,76 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame runtime input seam', () {
+    test('sprint authority is accepted intent and revocation never revives it',
+        () async {
+      final unloaded = PlayableMapGame(
+          bundle: _baseBundle(), projectFilePath: '/tmp/project.json');
+      expect(unloaded.inputAuthoritySnapshot.sprintAllowed, isFalse);
+      expect(unloaded.inputAuthoritySnapshot.sprintAccepted, isFalse);
+      unloaded.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+      expect(unloaded.inputAuthoritySnapshot.sprintAccepted, isFalse);
+      final game = _TestPlayableMapGame(
+        bundle: _baseBundle(), projectFilePath: '/tmp/project.json');
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await _pumpUntil(game, () => !game.debugIsMapActivationDispatchInFlight);
+      game.update(0);
+      expect(game.inputAuthorityListenable.value.sprintAllowed, isTrue);
+      game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+      expect(game.inputAuthorityListenable.value.sprintAccepted, isTrue);
+      expect(game.debugPlayerGridPosition, isNotNull);
+      game.setExternalInputLock(RuntimeExternalInputLock.lifecycle,
+          locked: true);
+      expect(game.inputAuthorityListenable.value.sprintAllowed, isFalse);
+      expect(game.inputAuthorityListenable.value.sprintAccepted, isFalse);
+      expect(
+          game.handleRuntimeInputEvent(
+              const RuntimeInputEvent.press(RuntimeInputControl.sprint)),
+          isTrue);
+      expect(game.inputAuthorityListenable.value.sprintAccepted, isFalse);
+      game.setExternalInputLock(RuntimeExternalInputLock.lifecycle,
+          locked: false);
+      expect(game.inputAuthorityListenable.value.sprintAllowed, isTrue);
+      expect(game.inputAuthorityListenable.value.sprintAccepted, isFalse);
+      game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+      expect(game.inputAuthorityListenable.value.sprintAccepted, isTrue);
+      game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.sprint));
+      expect(game.inputAuthorityListenable.value.sprintAccepted, isFalse);
+    });
+
+    test('sprint remains accepted against a collision and in surf mode', () async {
+      final game = _TestPlayableMapGame(bundle: _baseBundle(), projectFilePath: '/tmp/project.json');
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      game.debugSetPlayerStateForTest(position: const GridPos(x: 0, y: 0), facing: Direction.west);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.left));
+      game.update(.2);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+      expect(game.debugIsPlayerStepping, isFalse);
+      expect(game.inputAuthorityListenable.value.sprintAccepted, isTrue);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.left));
+      game.setPlayerMovementMode(MovementMode.surf);
+      expect(game.inputAuthoritySnapshot.sprintAllowed, isTrue);
+      expect(game.inputAuthoritySnapshot.sprintAccepted, isTrue);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.sprint));
+    });
+
+    test('first loaded update publishes sprint permission after onLoad', () async {
+      final game = _TestPlayableMapGame(bundle: _baseBundle(), projectFilePath: '/tmp/project.json')
+        ..loadedForTest = false;
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      expect(game.inputAuthorityListenable.value.sprintAllowed, isFalse);
+      game.loadedForTest = true;
+      game.update(0);
+      expect(game.inputAuthorityListenable.value.sprintAllowed, isTrue);
+    });
+
     test('public runtime input API is safe before onLoad', () {
       final game = PlayableMapGame(
         bundle: _baseBundle(),
@@ -2752,8 +2822,10 @@ class _TestPlayableMapGame extends PlayableMapGame {
     super.runtimeTilesetImageLoader,
   });
 
+  bool loadedForTest = true;
+
   @override
-  bool get isLoaded => true;
+  bool get isLoaded => loadedForTest;
 
   @override
   Future<void> onLoad() async {

@@ -6,6 +6,182 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('gesture sprint uses real origin thresholds and directional hysteresis',
+      () {
+    final driver = RuntimePlayerFloatingTouchDriver(sprintAllowed: true);
+    driver.begin(1, const Offset(100, 400));
+    expect(driver.update(1, const Offset(141, 400)),
+        const [RuntimeInputEvent.press(RuntimeInputControl.right)]);
+    expect(driver.update(1, const Offset(142, 400)),
+        const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
+    expect(driver.update(1, const Offset(140, 400)), isEmpty);
+    expect(driver.update(1, const Offset(100, 440)), const [
+      RuntimeInputEvent.release(RuntimeInputControl.right),
+      RuntimeInputEvent.press(RuntimeInputControl.down),
+    ]);
+    expect(driver.update(1, const Offset(100, 431)), isEmpty);
+    expect(driver.update(1, const Offset(100, 430)),
+        const [RuntimeInputEvent.release(RuntimeInputControl.sprint)]);
+    expect(driver.update(1, const Offset(100, 441)), isEmpty);
+    expect(driver.update(1, const Offset(100, 442)),
+        const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
+    expect(driver.cancel(), const [
+      RuntimeInputEvent.release(RuntimeInputControl.sprint),
+      RuntimeInputEvent.release(RuntimeInputControl.down),
+    ]);
+    expect(driver.cancel(), isEmpty);
+  });
+
+  test('revocation requires a fresh threshold crossing or gesture', () {
+    final driver = RuntimePlayerFloatingTouchDriver(sprintAllowed: true);
+    driver.begin(1, Offset.zero);
+    driver.update(1, const Offset(50, 0));
+    expect(driver.setSprintAllowed(false),
+        const [RuntimeInputEvent.release(RuntimeInputControl.sprint)]);
+    expect(driver.setSprintAllowed(true), isEmpty);
+    expect(driver.update(1, const Offset(60, 0)), isEmpty);
+    driver.update(1, const Offset(30, 0));
+    expect(driver.update(1, const Offset(42, 0)),
+        const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
+  });
+
+  test('movement while forbidden cannot prearm a held gesture', () {
+    for (final mode in [RuntimePlayerTouchRunMode.gesture, RuntimePlayerTouchRunMode.automatic]) {
+      final driver = RuntimePlayerFloatingTouchDriver(sprintAllowed: true, runMode: mode);
+      driver.begin(1, Offset.zero);
+      driver.update(1, const Offset(50, 0));
+      driver.setSprintAllowed(false);
+      driver.update(1, const Offset(30, 0));
+      driver.update(1, const Offset(50, 0));
+      driver.setSprintAllowed(true);
+      expect(driver.update(1, const Offset(51, 0)), isEmpty);
+      driver.cancel();
+      driver.setSprintAllowed(false);
+      driver.begin(2, Offset.zero);
+      driver.update(2, const Offset(50, 0));
+      driver.setSprintAllowed(true);
+      expect(driver.update(2, const Offset(51, 0)), isEmpty);
+    }
+  });
+
+  test('walking forbids sprint and automatic starts only with a drag', () {
+    for (final mode in RuntimePlayerTouchRunMode.values) {
+      final driver =
+          RuntimePlayerFloatingTouchDriver(sprintAllowed: true, runMode: mode);
+      driver.begin(1, Offset.zero);
+      expect(driver.update(1, const Offset(5, 0)), isEmpty);
+      final drag = driver.update(1, const Offset(20, 0));
+      expect(drag.where((event) => event.control == RuntimeInputControl.sprint),
+          mode == RuntimePlayerTouchRunMode.automatic ? hasLength(1) : isEmpty);
+      final outer = driver.update(1, const Offset(100, 0));
+      expect(
+          outer.where((event) => event.control == RuntimeInputControl.sprint),
+          mode == RuntimePlayerTouchRunMode.gesture ? hasLength(1) : isEmpty);
+      driver.setSprintAllowed(false);
+      driver.setSprintAllowed(true);
+      expect(driver.update(1, const Offset(110, 0)), isEmpty);
+    }
+  });
+
+  testWidgets(
+      'running feedback waits for acceptance and revocation requires rearming',
+      (tester) async {
+    final events = <RuntimeInputEvent>[];
+    var allowed = true;
+    var accepted = false;
+    var feedback = 0;
+    late StateSetter rebuild;
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: StatefulBuilder(builder: (context, setState) {
+          rebuild = setState;
+          return RuntimePlayerTouchControls(
+              dispatch: events.add,
+              sprintAllowed: allowed,
+              sprintAccepted: accepted,
+              onSprintAccepted: () => feedback++,
+              readGameplayViewport: () => const Rect.fromLTWH(0, 0, 800, 600));
+        })));
+    final pointer = await tester.startGesture(const Offset(100, 400),
+        kind: ui.PointerDeviceKind.touch);
+    await pointer.moveBy(const Offset(50, 0));
+    await tester.pump();
+    expect(events.where((e) => e.control == RuntimeInputControl.sprint),
+        const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
+    expect(
+        tester
+            .widget<PlayerOverworldJoystickVisual>(
+                find.byType(PlayerOverworldJoystickVisual))
+            .running,
+        isFalse);
+    expect(feedback, 0);
+    rebuild(() => accepted = true);
+    await tester.pump();
+    expect(
+        tester
+            .widget<PlayerOverworldJoystickVisual>(
+                find.byType(PlayerOverworldJoystickVisual))
+            .running,
+        isTrue);
+    expect(feedback, 1);
+    rebuild(() {});
+    await tester.pump();
+    expect(feedback, 1);
+    rebuild(() {
+      accepted = false;
+      allowed = false;
+    });
+    await tester.pump();
+    expect(events.last,
+        const RuntimeInputEvent.release(RuntimeInputControl.sprint));
+    rebuild(() => allowed = true);
+    await tester.pump();
+    final count = events.length;
+    await pointer.moveBy(const Offset(20, 0));
+    expect(events.length, count);
+    await pointer.moveTo(const Offset(130, 400));
+    await pointer.moveTo(const Offset(142, 400));
+    expect(
+        events.last, const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+    await pointer.cancel();
+    expect(events.sublist(events.length - 2), const [
+      RuntimeInputEvent.release(RuntimeInputControl.sprint),
+      RuntimeInputEvent.release(RuntimeInputControl.right)
+    ]);
+    expect(find.byKey(const ValueKey('runtime-player-touch-sprint-button')),
+        findsNothing);
+  });
+
+  testWidgets('run preference replacement cancels the owned sprint gesture',
+      (tester) async {
+    final events = <RuntimeInputEvent>[];
+    var mode = RuntimePlayerTouchRunMode.gesture;
+    late StateSetter rebuild;
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: StatefulBuilder(builder: (context, setState) {
+          rebuild = setState;
+          return RuntimePlayerTouchControls(
+              dispatch: events.add,
+              sprintAllowed: true,
+              runMode: mode,
+              readGameplayViewport: () => const Rect.fromLTWH(0, 0, 800, 600));
+        })));
+    final pointer = await tester.startGesture(const Offset(100, 400),
+        kind: ui.PointerDeviceKind.touch);
+    await pointer.moveBy(const Offset(50, 0));
+    rebuild(() => mode = RuntimePlayerTouchRunMode.walkOnly);
+    await tester.pump();
+    expect(events.sublist(events.length - 2), const [
+      RuntimeInputEvent.release(RuntimeInputControl.sprint),
+      RuntimeInputEvent.release(RuntimeInputControl.right)
+    ]);
+    final count = events.length;
+    await pointer.moveBy(const Offset(50, 0));
+    await pointer.up();
+    expect(events.length, count);
+  });
+
   test('tap never moves and reports its original pointer and position', () {
     final driver = RuntimePlayerFloatingTouchDriver();
     expect(driver.begin(4, const Offset(20, 30)), isTrue);

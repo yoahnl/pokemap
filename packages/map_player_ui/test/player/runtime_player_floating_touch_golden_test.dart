@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -28,18 +29,21 @@ void main() {
         .load();
   });
 
-  for (final (name, size, mirrored) in [
-    ('floating_landscape', const Size(844, 390), false),
-    ('floating_portrait_right', const Size(390, 844), true),
+  for (final (name, size, mirrored, running) in [
+    ('floating_landscape', const Size(844, 390), false, false),
+    ('floating_portrait_right', const Size(390, 844), true, false),
+    ('floating_running_accepted', const Size(844, 390), false, true),
   ]) {
     testWidgets('recognized pointer renders $name and disappears on release',
         (tester) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final theme = PokeMapPlayerTheme.dark();
+      var sprintAccepted = false;
       await tester.pumpWidget(MaterialApp(
-        theme: theme.copyWith(textTheme: theme.textTheme.apply(
-            fontFamily: 'packages/map_player_ui/PokeMapSplashDMSans')),
+        theme: theme.copyWith(
+            textTheme: theme.textTheme.apply(
+                fontFamily: 'packages/map_player_ui/PokeMapSplashDMSans')),
         home: RepaintBoundary(
           key: const ValueKey('floating-capture'),
           child: Builder(
@@ -49,11 +53,21 @@ void main() {
                       data: MediaQueryData(
                           size: size,
                           padding: const EdgeInsets.fromLTRB(24, 30, 24, 24)),
-                      child: RuntimePlayerTouchControls(
-                        leftHanded: mirrored,
-                        readGameplayViewport: () => Offset.zero & size,
-                        dispatch: (_) {},
-                      ),
+                      child: StatefulBuilder(
+                          builder: (context, setState) =>
+                              RuntimePlayerTouchControls(
+                                leftHanded: mirrored,
+                                sprintAllowed: running,
+                                sprintAccepted: sprintAccepted,
+                                readGameplayViewport: () => Offset.zero & size,
+                                dispatch: (event) {
+                                  if (event.control ==
+                                      RuntimeInputControl.sprint) {
+                                    setState(
+                                        () => sprintAccepted = event.isPress);
+                                  }
+                                },
+                              )),
                     ),
                   )),
         ),
@@ -63,10 +77,16 @@ void main() {
         Offset(mirrored ? size.width - 90 : 90, size.height * .55),
         kind: ui.PointerDeviceKind.touch,
       );
-      await gesture.moveBy(const Offset(32, -8));
+      await gesture.moveBy(Offset(running ? 48 : 32, -8));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(PlayerOverworldJoystickVisual), findsOneWidget);
+      expect(
+          tester
+              .widget<PlayerOverworldJoystickVisual>(
+                  find.byType(PlayerOverworldJoystickVisual))
+              .running,
+          running);
       expect(tester.takeException(), isNull);
       await expectLater(find.byKey(const ValueKey('floating-capture')),
           matchesGoldenFile('goldens/overworld_primitives/$name.png'));

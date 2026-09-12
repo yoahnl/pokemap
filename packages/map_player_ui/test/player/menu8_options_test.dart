@@ -10,6 +10,34 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('touch options omit the removed sprint button binding',
+      (tester) async {
+    await _pump(tester, activeInputSource: PlayerInputSource.touch);
+    await _category(tester, 'controls');
+    expect(find.byKey(const ValueKey('options-binding-sprint-choice')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('options-touch-run-mode-choice')),
+        findsOneWidget);
+  });
+
+  testWidgets('touch running alternatives save and reset through controls',
+      (tester) async {
+    final changes = <PlayerPreferencesSnapshot>[];
+    await _pump(tester, onChanged: changes.add);
+    await _category(tester, 'controls');
+    await _tap(tester, 'options-touch-run-mode-choice');
+    await _tap(tester, 'options-choice-walkOnly');
+    expect(changes.single.touchRunMode, RuntimePlayerTouchRunMode.walkOnly);
+    await _tap(tester, 'options-touch-run-mode-choice');
+    await _tap(tester, 'options-choice-automatic');
+    expect(changes.last.touchRunMode, RuntimePlayerTouchRunMode.automatic);
+    await _tap(tester, 'options-defaults');
+    await _tap(tester, 'options-reset-confirm');
+    expect(changes.last.touchRunMode, RuntimePlayerTouchRunMode.gesture);
+    expect(changes.last.audioMix, _preferences.audioMix);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('touch side setting persists and resets with controls',
       (tester) async {
     final changes = <PlayerPreferencesSnapshot>[];

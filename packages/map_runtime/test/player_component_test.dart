@@ -32,6 +32,25 @@ void main() {
       expect(component.debugActorLocalPosition!.y, 0);
     });
 
+    test('walk and run preserve their established durations and velocities', () async {
+      expect(PlayerComponent.kDefaultStepSeconds, .12);
+      expect(PlayerComponent.kRunStepSeconds, .075);
+      for (final duration in [PlayerComponent.kDefaultStepSeconds, PlayerComponent.kRunStepSeconds]) {
+        final component = PlayerComponent(bundle: _bundle(),
+          state: _stateAt(const GridPos(x: 0, y: 0)),
+          tileImages: const {}, mapOrigin: Vector2.zero());
+        await component.onLoad();
+        final start = component.position.x;
+        component.startStep(_stateAt(const GridPos(x: 1, y: 0)), durationSeconds: duration);
+        component.update(duration / 2);
+        final halfway = component.position.x;
+        expect(component.isStepping, isTrue);
+        component.update(duration / 2);
+        expect(component.isStepping, isFalse);
+        expect(halfway - start, closeTo((component.position.x - start) / 2, .000001));
+      }
+    });
+
     test('cardinal step has stable frame deltas', () async {
       final component = PlayerComponent(
         bundle: _bundle(),

@@ -12,6 +12,85 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final enabled in [false, true]) {
+    testWidgets('OW005 accepted sprint haptic respects preference $enabled', (tester) async {
+      var haptics = 0;
+      final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1,
+        phase: RuntimePlayerPhase.playing,
+        preferences: PlayerPreferencesSnapshot(locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(hapticsEnabled: enabled))));
+      final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+        context: RuntimeInputContext.overworld, sprintAllowed: true));
+      addTearDown(controller.dispose);
+      addTearDown(authority.dispose);
+      await tester.pumpWidget(_app(_view(controller,
+        touchControlsAvailable: true, gameplayInputAuthority: authority,
+        gameplayInputRoute: (_) => true,
+        hapticFeedback: () async { haptics++; throw MissingPluginException(); },
+      )));
+      final pointer = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
+      await pointer.moveBy(const Offset(20, 0));
+      await tester.pump();
+      final beforeSprint = haptics;
+      await pointer.moveBy(const Offset(30, 0));
+      await tester.pump();
+      expect(haptics, beforeSprint);
+      authority.value = const RuntimeInputAuthoritySnapshot(
+        context: RuntimeInputContext.overworld, sprintAllowed: true, sprintAccepted: true);
+      await tester.pump();
+      expect(haptics, beforeSprint + (enabled ? 1 : 0));
+      await pointer.moveBy(const Offset(5, 0));
+      await tester.pump();
+      expect(haptics, beforeSprint + (enabled ? 1 : 0));
+      expect(tester.takeException(), isNull);
+      await pointer.up();
+    });
+  }
+
+  testWidgets('OW005 authority revocation releases sprint synchronously without revival', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+    final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.overworld, sprintAllowed: true));
+    final events = <RuntimeInputEvent>[];
+    addTearDown(controller.dispose);
+    addTearDown(authority.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+      touchControlsAvailable: true, gameplayInputAuthority: authority,
+      gameplayInputRoute: (event) { events.add(event); return true; })));
+    final pointer = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
+    await pointer.moveBy(const Offset(50, 0));
+    expect(events.where((e) => e.control == RuntimeInputControl.sprint),
+      const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
+    authority.value = const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.dialogue);
+    expect(events.where((e) => e.control == RuntimeInputControl.sprint), const [
+      RuntimeInputEvent.press(RuntimeInputControl.sprint), RuntimeInputEvent.release(RuntimeInputControl.sprint)]);
+    authority.value = const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.overworld, sprintAllowed: true);
+    await tester.pump();
+    await pointer.moveBy(const Offset(50, 0));
+    await pointer.up();
+    expect(events.where((e) => e.control == RuntimeInputControl.sprint), hasLength(2));
+  });
+
+  testWidgets('OW005 hardware sprint preserves its existing route and haptic', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+    final input = StreamController<RuntimeInputEvent>.broadcast();
+    final events = <RuntimeInputEvent>[];
+    var haptics = 0;
+    addTearDown(controller.dispose);
+    addTearDown(input.close);
+    await tester.pumpWidget(_app(_view(controller,
+      controllerInputEvents: input.stream,
+      gameplayInputRoute: (event) { events.add(event); return true; },
+      hapticFeedback: () async => haptics++)));
+    input.add(const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+    await tester.pump();
+    input.add(const RuntimeInputEvent.release(RuntimeInputControl.sprint));
+    await tester.pump();
+    expect(events, const [RuntimeInputEvent.press(RuntimeInputControl.sprint),
+      RuntimeInputEvent.release(RuntimeInputControl.sprint)]);
+    expect(haptics, 1);
+  });
+
   testWidgets('OW004 measures scaled gameplay viewport in session coordinates', (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
     final viewportKey = GlobalKey();

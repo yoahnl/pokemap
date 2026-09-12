@@ -492,6 +492,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         command.action == PlayerInputAction.left ||
         command.action == PlayerInputAction.right;
     if (handled &&
+        !(source == PlayerInputSource.touch &&
+            command.action == PlayerInputAction.sprint) &&
         command.isPress &&
         !command.isRepeat &&
         command.action != PlayerInputAction.menu &&
@@ -884,6 +886,10 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           Positioned.fill(
             child: RuntimePlayerTouchControls(
               showControls: showTouchControls,
+              sprintAllowed: inputAuthority.sprintAllowed,
+              sprintAccepted: inputAuthority.sprintAccepted,
+              runMode: snapshot.preferences?.touchRunMode ?? RuntimePlayerTouchRunMode.gesture,
+              onSprintAccepted: () => unawaited(_performHaptic()),
               cancellationSignal: _touchCancellation,
               readGameplayViewport: () => _rectInSession(widget.gameplayViewportKey),
               readExcludedRects: () => [

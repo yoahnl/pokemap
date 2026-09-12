@@ -116,12 +116,15 @@ abstract interface class PlayerSaveGateway {
 /// Global player preferences transported as data.
 enum RuntimePlayerMenuEffects { full, reduced, opaque }
 
+enum RuntimePlayerTouchRunMode { gesture, walkOnly, automatic }
+
 final class PlayerPreferencesSnapshot {
   const PlayerPreferencesSnapshot({
     required this.locale,
     required this.accessibility,
     this.touchControlsOpacity = 0.82,
     this.leftHandedTouchControls = false,
+    this.touchRunMode = RuntimePlayerTouchRunMode.gesture,
     this.audioMix = const RuntimeAudioMix(),
     this.highContrast = false,
     this.showInputHints = true,
@@ -137,6 +140,7 @@ final class PlayerPreferencesSnapshot {
   final GameSessionAccessibilityOptions accessibility;
   final double touchControlsOpacity;
   final bool leftHandedTouchControls;
+  final RuntimePlayerTouchRunMode touchRunMode;
   final RuntimeAudioMix audioMix;
   final bool highContrast;
   final bool showInputHints;
@@ -148,6 +152,7 @@ final class PlayerPreferencesSnapshot {
     GameSessionAccessibilityOptions? accessibility,
     double? touchControlsOpacity,
     bool? leftHandedTouchControls,
+    RuntimePlayerTouchRunMode? touchRunMode,
     RuntimeAudioMix? audioMix,
     bool? highContrast,
     bool? showInputHints,
@@ -160,6 +165,7 @@ final class PlayerPreferencesSnapshot {
         touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
         leftHandedTouchControls:
             leftHandedTouchControls ?? this.leftHandedTouchControls,
+        touchRunMode: touchRunMode ?? this.touchRunMode,
         audioMix: audioMix ?? this.audioMix,
         highContrast: highContrast ?? this.highContrast,
         showInputHints: showInputHints ?? this.showInputHints,

@@ -94,13 +94,22 @@ final class PlayerOptionsStrings {
       text('Opacité des commandes tactiles', 'Touch controls opacity');
   String get leftHandedTouchControls =>
       text('Joystick tactile à droite', 'Touch joystick on the right');
+  String get touchRunMode => text('Course tactile', 'Touch running');
+  String runningMode(RuntimePlayerTouchRunMode mode) => switch (mode) {
+        RuntimePlayerTouchRunMode.gesture =>
+          text('Course au geste', 'Run with a wider gesture'),
+        RuntimePlayerTouchRunMode.walkOnly =>
+          text('Marche seule', 'Walk only'),
+        RuntimePlayerTouchRunMode.automatic =>
+          text('Course automatique si permise', 'Run automatically when allowed'),
+      };
   String resetTitle(PlayerOptionsCategory value) =>
       text('Rétablir ${category(value)} ?', 'Reset ${category(value)}?');
   String resetMessage(PlayerOptionsCategory value) => value ==
           PlayerOptionsCategory.controls
       ? text(
-          'Le côté du joystick, les aides et l’opacité des commandes tactiles seront rétablis. Les touches restent inchangées ; utilisez Réinitialiser dans cette catégorie pour rétablir celles du périphérique affiché.',
-          'Joystick side, control hints and touch controls opacity will be reset. Bindings are kept; use Reset in this category to restore the displayed device’s bindings.')
+          'La course tactile, le côté du joystick, les aides et l’opacité des commandes seront rétablis. Les touches restent inchangées ; utilisez Réinitialiser dans cette catégorie pour rétablir celles du périphérique affiché.',
+          'Touch running, joystick side, control hints and opacity will be reset. Bindings are kept; use Reset in this category to restore the displayed device’s bindings.')
       : text(
           'Seuls les réglages de la catégorie « ${category(value)} » seront rétablis. Votre sauvegarde et les autres catégories seront conservées.',
           'Only the settings in “${category(value)}” will be reset. Your save and other categories will be kept.');

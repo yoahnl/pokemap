@@ -525,6 +525,23 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                       effectsVolume: value)))),
         ],
       PlayerOptionsCategory.controls => [
+          _choiceRow(
+              _strings.touchRunMode,
+              _strings.runningMode(preferences.touchRunMode),
+              'touch-run-mode',
+              compact, () async {
+            final value = await _choose(
+                _strings.touchRunMode,
+                preferences.touchRunMode,
+                {
+                  for (final value in RuntimePlayerTouchRunMode.values)
+                    value: _strings.runningMode(value)
+                },
+                (value) => value.name);
+            if (value != null) {
+              await _save(_confirmed.copyWith(touchRunMode: value));
+            }
+          }),
           _toggle(
               _strings.leftHandedTouchControls,
               'runtime-player-left-handed-touch-toggle',
@@ -747,7 +764,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                     second: RuntimeInputControl.secondary,
                   )),
         ),
-      for (final control in RuntimeInputControl.values)
+      for (final control in RuntimeInputControl.values.where((control) =>
+          device != PlayerControlDevice.touch ||
+          control != RuntimeInputControl.sprint))
         _choiceRow(strings.control(control), _profile.glyphFor(device, control),
             'binding-${control.name}', compact, () async {
           final inputs = switch (device) {
@@ -951,6 +970,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       PlayerOptionsCategory.audio =>
         _confirmed.copyWith(audioMix: defaults.audioMix),
       PlayerOptionsCategory.controls => _confirmed.copyWith(
+          touchRunMode: defaults.touchRunMode,
           leftHandedTouchControls: defaults.leftHandedTouchControls,
           showInputHints: defaults.showInputHints,
           touchControlsOpacity: defaults.touchControlsOpacity),

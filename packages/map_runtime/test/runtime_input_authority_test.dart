@@ -3,6 +3,28 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('RuntimeInputAuthoritySnapshot', () {
+    test('sprint intent participates in observable snapshot equality', () {
+      const idle =
+          RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.overworld);
+      const allowed = RuntimeInputAuthoritySnapshot(
+          context: RuntimeInputContext.overworld, sprintAllowed: true);
+      const accepted = RuntimeInputAuthoritySnapshot(
+          context: RuntimeInputContext.overworld,
+          sprintAllowed: true,
+          sprintAccepted: true);
+      expect(idle.sprintAllowed, isFalse);
+      expect(idle.sprintAccepted, isFalse);
+      expect(allowed, isNot(idle));
+      expect(accepted, isNot(allowed));
+      expect({idle, allowed, accepted}, hasLength(3));
+      expect(
+          accepted,
+          const RuntimeInputAuthoritySnapshot(
+              context: RuntimeInputContext.overworld,
+              sprintAllowed: true,
+              sprintAccepted: true));
+    });
+
     test('overworld accepts runtime and overworld input without external lock',
         () {
       const snapshot = RuntimeInputAuthoritySnapshot(

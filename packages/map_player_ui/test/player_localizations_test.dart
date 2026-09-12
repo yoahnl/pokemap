@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('touch running mode survives storage and runtime round trips', () {
+    for (final mode in RuntimePlayerTouchRunMode.values) {
+      final preferences = const PlayerPreferences().copyWith(touchRunMode: mode);
+      final restored = PlayerPreferences.fromJson(preferences.toJson());
+      expect(restored, preferences);
+      final runtime = restored.toRuntimeSnapshot(fallbackLocale: 'fr');
+      expect(runtime.touchRunMode, mode);
+      expect(runtime.copyWith(locale: 'en').touchRunMode, mode);
+      expect(restored.copyWithRuntimeSnapshot(runtime).touchRunMode, mode);
+    }
+    expect(() => PlayerPreferences.fromJson({
+      ...const PlayerPreferences().toJson(),
+      'touchRunMode': 'teleport',
+    }), throwsFormatException);
+  });
+
   test('touch side survives storage and runtime preference updates', () {
     const defaults = PlayerPreferences();
     final mirrored = defaults.copyWith(leftHandedTouchControls: true);

@@ -60,7 +60,39 @@ final class RuntimePlayerFloatingTouchDriver {
   RuntimePlayerFloatingTouchDriver(
       {this.dragThreshold = 12,
       this.deadZone = 8,
-      this.directionHysteresis = 1.2});
+      this.directionHysteresis = 1.2,
+      this.runMode = RuntimePlayerTouchRunMode.gesture,
+      bool sprintAllowed = false})
+      : _sprintAllowed = sprintAllowed;
+
+  final RuntimePlayerTouchRunMode runMode;
+  static const usefulRadius = 56.0;
+  static const sprintEntry = .75;
+  static const sprintExit = .55;
+  bool _sprintAllowed;
+  bool _sprintPressed = false;
+  bool _sprintArmed = true;
+  double get amplitude => (displacement.distance / usefulRadius).clamp(0, 1);
+
+  List<RuntimeInputEvent> setSprintAllowed(bool allowed) {
+    if (_sprintAllowed == allowed) return const [];
+    _sprintAllowed = allowed;
+    if (!allowed) {
+      _sprintArmed = false;
+      return _sprintTransition(false);
+    }
+    return const [];
+  }
+
+  List<RuntimeInputEvent> _sprintTransition(bool pressed) {
+    if (_sprintPressed == pressed) return const [];
+    _sprintPressed = pressed;
+    return [
+      pressed
+          ? const RuntimeInputEvent.press(RuntimeInputControl.sprint)
+          : const RuntimeInputEvent.release(RuntimeInputControl.sprint)
+    ];
+  }
 
   final double dragThreshold;
   final double deadZone;
@@ -75,6 +107,7 @@ final class RuntimePlayerFloatingTouchDriver {
   bool begin(int pointer, Offset position) {
     if (this.pointer != null) return false;
     this.pointer = pointer;
+    _sprintArmed = _sprintAllowed;
     origin = position;
     displacement = Offset.zero;
     dragging = false;
@@ -104,7 +137,17 @@ final class RuntimePlayerFloatingTouchDriver {
         next = y >= 0 ? RuntimeInputControl.down : RuntimeInputControl.up;
       }
     }
-    return _transition(next);
+    if (_sprintAllowed && amplitude <= sprintExit) _sprintArmed = true;
+    final wantsSprint = _sprintAllowed &&
+        _sprintArmed &&
+        next != null &&
+        switch (runMode) {
+          RuntimePlayerTouchRunMode.walkOnly => false,
+          RuntimePlayerTouchRunMode.automatic => true,
+          RuntimePlayerTouchRunMode.gesture =>
+            _sprintPressed ? amplitude > sprintExit : amplitude >= sprintEntry,
+        };
+    return [..._sprintTransition(wantsSprint), ..._transition(next)];
   }
 
   List<RuntimeInputEvent> end(int pointer) {
@@ -128,7 +171,7 @@ final class RuntimePlayerFloatingTouchDriver {
     displacement = Offset.zero;
     dragging = false;
     _tapCandidate = null;
-    return _transition(null);
+    return [..._sprintTransition(false), ..._transition(null)];
   }
 
   List<RuntimeInputEvent> _transition(RuntimeInputControl? next) {
@@ -156,6 +199,10 @@ class RuntimePlayerTouchControls extends StatefulWidget {
     this.leftHanded = false,
     this.onTapCandidate,
     this.cancellationSignal,
+    this.sprintAllowed = false,
+    this.sprintAccepted = false,
+    this.runMode = RuntimePlayerTouchRunMode.gesture,
+    this.onSprintAccepted,
   }) : assert(opacity >= 0.3 && opacity <= 1);
 
   final ValueChanged<RuntimeInputEvent> dispatch;
@@ -168,6 +215,10 @@ class RuntimePlayerTouchControls extends StatefulWidget {
   final bool leftHanded;
   final ValueChanged<RuntimePlayerTouchTapCandidate>? onTapCandidate;
   final Listenable? cancellationSignal;
+  final bool sprintAllowed;
+  final bool sprintAccepted;
+  final RuntimePlayerTouchRunMode runMode;
+  final VoidCallback? onSprintAccepted;
 
   @override
   State<RuntimePlayerTouchControls> createState() =>
@@ -176,7 +227,7 @@ class RuntimePlayerTouchControls extends StatefulWidget {
 
 class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
     with WidgetsBindingObserver {
-  final _driver = RuntimePlayerFloatingTouchDriver();
+  late RuntimePlayerFloatingTouchDriver _driver;
   final _surfaceKey = GlobalKey();
   final _actionsKey = GlobalKey();
   Rect? _gestureViewport;
@@ -188,6 +239,8 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
   @override
   void initState() {
     super.initState();
+    _driver = RuntimePlayerFloatingTouchDriver(
+        sprintAllowed: widget.sprintAllowed, runMode: widget.runMode);
     WidgetsBinding.instance.addObserver(this);
     widget.cancellationSignal?.addListener(_cancel);
   }
@@ -203,6 +256,17 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
   @override
   void didUpdateWidget(covariant RuntimePlayerTouchControls oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.runMode != widget.runMode) {
+      _cancel(rebuild: false);
+      _driver = RuntimePlayerFloatingTouchDriver(
+          sprintAllowed: widget.sprintAllowed, runMode: widget.runMode);
+    }
+    _dispatchAll(_driver.setSprintAllowed(widget.sprintAllowed));
+    if (!oldWidget.sprintAccepted &&
+        widget.sprintAccepted &&
+        _driver.dragging) {
+      widget.onSprintAccepted?.call();
+    }
     if (oldWidget.cancellationSignal != widget.cancellationSignal) {
       oldWidget.cancellationSignal?.removeListener(_cancel);
       widget.cancellationSignal?.addListener(_cancel);
@@ -373,6 +437,7 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
                     PlayerOverworldJoystickVisual(
                       key: const ValueKey('runtime-player-touch-joystick'),
                       anchor: anchor,
+                      running: widget.sprintAccepted,
                       displacement: _driver.displacement /
                           PokeMapPlayerOverworldTheme.joystickTravel,
                     ),
@@ -400,8 +465,6 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
                         _dispatchButton('primaryButton', pressed),
                     onSecondaryChanged: (pressed) =>
                         _dispatchButton('secondaryButton', pressed),
-                    onSprintChanged: (pressed) =>
-                        _dispatchButton('sprintButton', pressed),
                   ),
                 )),
           ),
@@ -470,7 +533,6 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
     required this.buttonSize,
     required this.onPrimaryChanged,
     required this.onSecondaryChanged,
-    required this.onSprintChanged,
     required this.profile,
   });
 
@@ -478,7 +540,6 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
   final double buttonSize;
   final ValueChanged<bool> onPrimaryChanged;
   final ValueChanged<bool> onSecondaryChanged;
-  final ValueChanged<bool> onSprintChanged;
   final PlayerControlProfile profile;
 
   @override
@@ -505,25 +566,16 @@ class _RuntimePlayerTouchActionCluster extends StatelessWidget {
       primary: true,
       onChanged: onPrimaryChanged,
     );
-    final sprint = _RuntimePlayerTouchButton(
-      key: const ValueKey<String>('runtime-player-touch-sprint-button'),
-      label: _label(context, 'sprintButton'),
-      icon: _icon('sprintButton'),
-      semanticLabel: _label(context, 'sprintButton'),
-      size: buttonSize * .78,
-      primary: false,
-      onChanged: onSprintChanged,
-    );
     const gap = SizedBox.square(dimension: PlayerSpacing.sm);
     return portrait
         ? Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[sprint, gap, secondary, gap, primary],
+            children: <Widget>[secondary, gap, primary],
           )
         : Row(
             mainAxisSize: MainAxisSize.min,
-            children: <Widget>[sprint, gap, secondary, gap, primary],
+            children: <Widget>[secondary, gap, primary],
           );
   }
 

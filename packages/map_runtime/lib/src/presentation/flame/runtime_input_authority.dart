@@ -29,8 +29,12 @@ final class RuntimeInputAuthoritySnapshot {
   const RuntimeInputAuthoritySnapshot({
     required this.context,
     this.externalLocks = const <RuntimeExternalInputLock>{},
+    this.sprintAllowed = false,
+    this.sprintAccepted = false,
   });
 
+  final bool sprintAllowed;
+  final bool sprintAccepted;
   final RuntimeInputContext context;
   final Set<RuntimeExternalInputLock> externalLocks;
 
@@ -48,12 +52,16 @@ final class RuntimeInputAuthoritySnapshot {
       identical(this, other) ||
       other is RuntimeInputAuthoritySnapshot &&
           context == other.context &&
+          sprintAllowed == other.sprintAllowed &&
+          sprintAccepted == other.sprintAccepted &&
           externalLocks.length == other.externalLocks.length &&
           externalLocks.every(other.externalLocks.contains);
 
   @override
   int get hashCode => Object.hashAllUnordered(<Object>[
         context,
+        sprintAllowed,
+        sprintAccepted,
         ...externalLocks,
       ]);
 }

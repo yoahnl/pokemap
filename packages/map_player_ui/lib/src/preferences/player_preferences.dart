@@ -21,6 +21,7 @@ final class PlayerPreferences {
     this.showInputHints = true,
     this.touchControlsOpacity = 0.82,
     this.leftHandedTouchControls = false,
+    this.touchRunMode = RuntimePlayerTouchRunMode.gesture,
     this.launchMostRecentGameOnStartup = false,
     this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
     this.menuEffects = RuntimePlayerMenuEffects.full,
@@ -41,6 +42,7 @@ final class PlayerPreferences {
       'showInputHints',
       'touchControlsOpacity',
       'leftHandedTouchControls',
+      'touchRunMode',
       'launchMostRecentGameOnStartup',
       'dialogueTextSpeed',
       'menuEffects',
@@ -70,7 +72,10 @@ final class PlayerPreferences {
     final menuEffects = RuntimePlayerMenuEffects.values
         .where((value) => value.name == (json['menuEffects'] ?? 'full'))
         .firstOrNull;
-    if (dialogueTextSpeed == null || menuEffects == null) {
+    final touchRunMode = RuntimePlayerTouchRunMode.values
+        .where((value) => value.name == (json['touchRunMode'] ?? 'gesture'))
+        .firstOrNull;
+    if (dialogueTextSpeed == null || menuEffects == null || touchRunMode == null) {
       throw const FormatException('Invalid player presentation preference.');
     }
     final masterVolume = read<num>('masterVolume').toDouble();
@@ -122,6 +127,7 @@ final class PlayerPreferences {
       showInputHints: read<bool>('showInputHints'),
       touchControlsOpacity: touchControlsOpacity,
       leftHandedTouchControls: leftHandedTouchControls,
+      touchRunMode: touchRunMode,
       launchMostRecentGameOnStartup:
           rawLaunchMostRecentGameOnStartup as bool? ?? false,
     );
@@ -140,6 +146,7 @@ final class PlayerPreferences {
   final bool showInputHints;
   final double touchControlsOpacity;
   final bool leftHandedTouchControls;
+  final RuntimePlayerTouchRunMode touchRunMode;
   final bool launchMostRecentGameOnStartup;
   final RuntimeDialogueTextSpeed dialogueTextSpeed;
   final RuntimePlayerMenuEffects menuEffects;
@@ -166,6 +173,7 @@ final class PlayerPreferences {
         ),
         touchControlsOpacity: touchControlsOpacity,
         leftHandedTouchControls: leftHandedTouchControls,
+        touchRunMode: touchRunMode,
         audioMix: RuntimeAudioMix(
           masterVolume: masterVolume,
           musicVolume: musicVolume,
@@ -189,6 +197,7 @@ final class PlayerPreferences {
         hapticsEnabled: snapshot.accessibility.hapticsEnabled,
         touchControlsOpacity: snapshot.touchControlsOpacity,
         leftHandedTouchControls: snapshot.leftHandedTouchControls,
+        touchRunMode: snapshot.touchRunMode,
         masterVolume: snapshot.audioMix.masterVolume,
         musicVolume: snapshot.audioMix.musicVolume,
         effectsVolume: snapshot.audioMix.effectsVolume,
@@ -211,6 +220,7 @@ final class PlayerPreferences {
     bool? showInputHints,
     double? touchControlsOpacity,
     bool? leftHandedTouchControls,
+    RuntimePlayerTouchRunMode? touchRunMode,
     bool? launchMostRecentGameOnStartup,
     RuntimeDialogueTextSpeed? dialogueTextSpeed,
     RuntimePlayerMenuEffects? menuEffects,
@@ -231,6 +241,7 @@ final class PlayerPreferences {
         touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
         leftHandedTouchControls:
             leftHandedTouchControls ?? this.leftHandedTouchControls,
+        touchRunMode: touchRunMode ?? this.touchRunMode,
         launchMostRecentGameOnStartup:
             launchMostRecentGameOnStartup ?? this.launchMostRecentGameOnStartup,
       );
@@ -251,6 +262,7 @@ final class PlayerPreferences {
         'showInputHints': showInputHints,
         'touchControlsOpacity': touchControlsOpacity,
         'leftHandedTouchControls': leftHandedTouchControls,
+        'touchRunMode': touchRunMode.name,
         'launchMostRecentGameOnStartup': launchMostRecentGameOnStartup,
       };
 
@@ -272,6 +284,7 @@ final class PlayerPreferences {
       showInputHints == other.showInputHints &&
       touchControlsOpacity == other.touchControlsOpacity &&
       leftHandedTouchControls == other.leftHandedTouchControls &&
+      touchRunMode == other.touchRunMode &&
       launchMostRecentGameOnStartup == other.launchMostRecentGameOnStartup;
 
   @override
@@ -291,6 +304,7 @@ final class PlayerPreferences {
         showInputHints,
         touchControlsOpacity,
         leftHandedTouchControls,
+        touchRunMode,
         launchMostRecentGameOnStartup,
       );
 }
