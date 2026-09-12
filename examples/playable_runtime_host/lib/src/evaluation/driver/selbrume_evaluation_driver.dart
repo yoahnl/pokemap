@@ -240,6 +240,7 @@ final class SelbrumeEvaluationDriver
       x: current.playerPosition.x,
       y: current.playerPosition.y,
       movementMode: current.playerMovementMode.name,
+      availableInteractions: game.overworldInteractionSnapshot.toJson(),
       facts: current.narrativeFactRuntimeState.overridesByFactId,
       eventLedger: Map<String, Object?>.from(
         current.narrativeEventProgress.toJson(),

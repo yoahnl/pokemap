@@ -81,6 +81,16 @@ class ScenarioRuntimeSourceEvent {
   final String? outcomeId;
 }
 
+final class ScenarioRuntimeSourceSelection {
+  const ScenarioRuntimeSourceSelection({
+    required this.scenario,
+    required this.sourceNode,
+  });
+
+  final ScenarioAsset scenario;
+  final ScenarioNode sourceNode;
+}
+
 /// Type d'effet réellement déclenché par le bridge runtime.
 enum ScenarioRuntimeEffectType {
   dialogue,

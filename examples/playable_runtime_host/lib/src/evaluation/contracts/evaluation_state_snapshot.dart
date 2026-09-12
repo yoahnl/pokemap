@@ -11,6 +11,7 @@ final class EvaluationStateSnapshot {
     required this.y,
     required String movementMode,
     Map<String, bool> entityVisibility = const <String, bool>{},
+    Map<String, Object?>? availableInteractions,
     Map<String, Object?> facts = const <String, Object?>{},
     Map<String, Object?> eventLedger = const <String, Object?>{},
     Map<String, Object?> progression = const <String, Object?>{},
@@ -30,6 +31,9 @@ final class EvaluationStateSnapshot {
         mapId = _nonBlank(mapId, 'mapId'),
         movementMode = _nonBlank(movementMode, 'movementMode'),
         entityVisibility = Map<String, bool>.unmodifiable(entityVisibility),
+        availableInteractions = availableInteractions == null
+            ? null
+            : _freezeMap(availableInteractions),
         facts = _freezeMap(facts),
         eventLedger = _freezeMap(eventLedger),
         progression = _freezeMap(progression),
@@ -52,6 +56,7 @@ final class EvaluationStateSnapshot {
   final int y;
   final String movementMode;
   final Map<String, bool> entityVisibility;
+  final Map<String, Object?>? availableInteractions;
   final Map<String, Object?> facts;
   final Map<String, Object?> eventLedger;
   final Map<String, Object?> progression;
@@ -78,6 +83,7 @@ final class EvaluationStateSnapshot {
         'position': <String, Object?>{'x': x, 'y': y},
         'movementMode': movementMode,
         'entityVisibility': entityVisibility,
+        'availableInteractions': availableInteractions,
       },
       'facts': facts,
       'eventLedger': eventLedger,
@@ -106,6 +112,25 @@ final class EvaluationStateSnapshot {
 
   Map<String, Object?> _digestJson() {
     final json = toJson()..remove('runId');
+    final interactions = availableInteractions;
+    if (interactions != null) {
+      final stableInteractions = Map<String, Object?>.from(interactions)
+        ..remove('sessionId')
+        ..remove('mapActivationId');
+      final action = interactions['primaryAction'];
+      if (action is Map) {
+        final stableAction = Map<String, Object?>.from(action);
+        final request = action['request'];
+        if (request is Map) {
+          stableAction['request'] = Map<String, Object?>.from(request)
+            ..remove('sessionId')
+            ..remove('mapActivationId');
+        }
+        stableInteractions['primaryAction'] = stableAction;
+      }
+      (json['world']! as Map<String, Object?>)['availableInteractions'] =
+          stableInteractions;
+    }
     final save = Map<String, Object?>.from(saveMetadata)
       ..remove('createdAt')
       ..remove('savedAt')

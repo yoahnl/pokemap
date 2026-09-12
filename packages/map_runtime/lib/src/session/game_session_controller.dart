@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:map_core/map_core.dart';
 
+import '../application/runtime_overworld_interaction.dart';
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_host.dart';
 import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
+import 'runtime_overworld_interaction_port.dart';
 
 /// Authoritative session state machine shared by in-process and child adapters.
 ///
@@ -18,7 +20,8 @@ final class GameSessionController
     implements
         RuntimePlayerPauseDataPort,
         RuntimePlayerPauseCommandPort,
-        RuntimeWorldServicePort {
+        RuntimeWorldServicePort,
+        RuntimeOverworldInteractionPort {
   GameSessionController({
     required GameSessionAdapterFactory adapterFactory,
     required GameSessionCheckpointCommitter commitCheckpoint,
@@ -45,6 +48,11 @@ final class GameSessionController
   final _snapshots = StreamController<GameSessionSnapshot>.broadcast();
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
+  final _overworldInteractionSnapshots =
+      StreamController<RuntimeOverworldInteractionSnapshot?>.broadcast();
+  StreamSubscription<RuntimeOverworldInteractionSnapshot?>?
+      _adapterInteractions;
+  RuntimeOverworldInteractionPort? _overworldInteractionPort;
   Future<void> _tail = Future<void>.value();
   GameSessionSnapshot _snapshot = const GameSessionSnapshot.idle();
   GameSessionDescriptor? _descriptor;
@@ -78,6 +86,25 @@ final class GameSessionController
   @override
   Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
       _worldServiceSnapshots.stream;
+
+  @override
+  RuntimeOverworldInteractionSnapshot? get overworldInteractionSnapshot =>
+      _controllerDisposed || _snapshot.state != GameSessionState.running
+          ? null
+          : _overworldInteractionPort?.overworldInteractionSnapshot;
+
+  @override
+  Stream<RuntimeOverworldInteractionSnapshot?>
+      get overworldInteractionSnapshots =>
+          _overworldInteractionSnapshots.stream;
+
+  @override
+  bool dispatchOverworldInteraction(
+          RuntimeOverworldInteractionRequest request) =>
+      !_controllerDisposed &&
+      _snapshot.state == GameSessionState.running &&
+      (_overworldInteractionPort?.dispatchOverworldInteraction(request) ??
+          false);
 
   @override
   Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
@@ -210,6 +237,12 @@ final class GameSessionController
           _publishWorldService(port.worldServiceSnapshot);
           _adapterWorldServices = port.worldServiceSnapshots.listen(
             _publishWorldService,
+          );
+        }
+        if (adapter case final RuntimeOverworldInteractionPort port) {
+          _overworldInteractionPort = port;
+          _adapterInteractions = port.overworldInteractionSnapshots.listen(
+            (_) => _publishOverworldInteractions(),
           );
         }
         _publish(_snapshot.copyWith(state: GameSessionState.prepared));
@@ -489,6 +522,7 @@ final class GameSessionController
     _controllerDisposed = true;
     await _snapshots.close();
     await _worldServiceSnapshots.close();
+    await _overworldInteractionSnapshots.close();
   }
 
   /// Loading signals are presentation-only and may arrive while [start] owns
@@ -837,6 +871,15 @@ final class GameSessionController
 
   Future<Object?> _disposeAdapter() async {
     Object? firstError;
+    final interactions = _adapterInteractions;
+    _adapterInteractions = null;
+    _overworldInteractionPort = null;
+    try {
+      await interactions?.cancel();
+    } on Object catch (error) {
+      firstError = error;
+    }
+    _publishOverworldInteractions();
     final worldServices = _adapterWorldServices;
     _adapterWorldServices = null;
     _worldServicePort = null;
@@ -897,12 +940,19 @@ final class GameSessionController
   void _publish(GameSessionSnapshot next) {
     _snapshot = next;
     if (!_snapshots.isClosed) _snapshots.add(next);
+    _publishOverworldInteractions();
   }
 
   void _publishWorldService(RuntimeWorldServiceSnapshot? snapshot) {
     _worldServiceSnapshot = snapshot;
     if (!_worldServiceSnapshots.isClosed) {
       _worldServiceSnapshots.add(snapshot);
+    }
+  }
+
+  void _publishOverworldInteractions() {
+    if (!_overworldInteractionSnapshots.isClosed) {
+      _overworldInteractionSnapshots.add(overworldInteractionSnapshot);
     }
   }
 

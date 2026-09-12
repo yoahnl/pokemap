@@ -393,6 +393,8 @@ export 'src/presentation/flutter/post_battle_presentation_snapshot.dart'
         PostBattlePresentationCommandRejection,
         PostBattlePresentationCommandValidation,
         validatePostBattlePresentationCommand;
+export 'src/application/runtime_overworld_interaction.dart';
+export 'src/session/runtime_overworld_interaction_port.dart';
 export 'src/presentation/flame/runtime_input_event.dart'
     show RuntimeInputControl, RuntimeInputEvent, RuntimeInputEventPhase;
 export 'src/presentation/flame/runtime_input_key_bindings.dart'
@@ -529,6 +531,7 @@ export 'src/application/scenario_runtime/scenario_runtime_models.dart'
     show
         ScenarioRuntimeSourceType,
         ScenarioRuntimeSourceEvent,
+        ScenarioRuntimeSourceSelection,
         ScenarioRuntimeEffectType,
         ScenarioRuntimeEffect,
         ScenarioRuntimeExecutionStatus,

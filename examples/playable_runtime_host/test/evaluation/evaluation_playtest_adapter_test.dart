@@ -72,22 +72,47 @@ void main() {
     expect(await sandboxes.single.exists(), isFalse);
   });
 
-  test('canonical port drives the real Selbrume evaluation runtime', () async {
-    final projectRoot =
+  test('canonical port drives interactions on an isolated Selbrume QA copy',
+      () async {
+    late SelbrumeEvaluationDriver runtimeDriver;
+    final sourceRoot =
         Directory(p.join(_findRepositoryRoot().path, 'selbrume'));
+    final sourceRevision = await computeEvaluationProjectRevision(sourceRoot);
+    final qaRoot = await Directory.systemTemp.createTemp('ow001-selbrume-qa_');
+    addTearDown(() async {
+      if (await qaRoot.exists()) await qaRoot.delete(recursive: true);
+    });
+    final projectRoot =
+        await Directory(p.join(qaRoot.path, 'selbrume')).create();
+    await for (final entity
+        in sourceRoot.list(recursive: true, followLinks: false)) {
+      final target = p.join(
+        projectRoot.path,
+        p.relative(entity.path, from: sourceRoot.path),
+      );
+      if (entity is Directory) {
+        await Directory(target).create(recursive: true);
+      } else if (entity is File) {
+        await File(target).parent.create(recursive: true);
+        await entity.copy(target);
+      } else {
+        throw StateError('QA project copy refuses symbolic links.');
+      }
+    }
     final revision = await computeEvaluationProjectRevision(projectRoot);
-    final beforeRevision = await computeEvaluationProjectRevision(projectRoot);
+    expect(revision, sourceRevision);
     final port = RuntimePlaytestPort(
       pokemonCatalogPreflight: _readyPokemonCatalog,
       driverFactory: (request) => EvaluationPlaytestDriver.start(
         request: request,
         projectRoot: projectRoot,
-        driverFactory: ({required runId, required seed}) {
+        driverFactory: ({required runId, required seed}) async {
           expect(seed, 0);
-          return SelbrumeEvaluationDriver.start(
+          runtimeDriver = await SelbrumeEvaluationDriver.start(
             projectRoot: projectRoot,
             runId: runId,
           );
+          return runtimeDriver;
         },
       ),
     );
@@ -100,6 +125,7 @@ void main() {
         seed: 0,
       ),
     );
+    addTearDown(session.stop);
 
     final execution = await session.execute(
       PlaytestCommand(
@@ -108,6 +134,42 @@ void main() {
         arguments: const <String, Object?>{'value': 1123},
       ),
     );
+    expect(
+      (execution.snapshot.state['world']! as Map)['availableInteractions'],
+      runtimeDriver.game.overworldInteractionSnapshot.toJson(),
+    );
+    final repeated = await session.snapshot();
+    expect(repeated.stateDigest, execution.snapshot.stateDigest);
+    final observedActions = <RuntimeOverworldInteractionAction>[];
+    void observeInteraction() {
+      final action =
+          runtimeDriver.game.overworldInteractionSnapshot.primaryAction;
+      if (action != null) observedActions.add(action);
+    }
+    runtimeDriver.game.overworldInteractions.addListener(observeInteraction);
+    final interaction = await session.execute(
+      PlaytestCommand(
+        commandId: 'read-intro-sign',
+        operation: 'world.interact',
+        arguments: const <String, Object?>{'entityId': 'p6_03_intro_sign'},
+      ),
+    );
+    runtimeDriver.game.overworldInteractions
+        .removeListener(observeInteraction);
+    expect(
+      observedActions.any(
+        (action) => action.request.targetId == 'p6_03_intro_sign',
+      ),
+      isTrue,
+    );
+    expect(
+      (interaction.snapshot.state['world']! as Map)['availableInteractions'],
+      runtimeDriver.game.overworldInteractionSnapshot.toJson(),
+    );
+    expect(
+      runtimeDriver.game.gameStateSnapshot.storyFlags.activeFlags,
+      contains('p6.selbrume.first_interaction.seen'),
+    );
     final receipt = await session.stop();
 
     expect(
@@ -115,7 +177,13 @@ void main() {
       1123,
     );
     expect(receipt.terminalState, PlaytestSessionState.stopped);
-    expect(await computeEvaluationProjectRevision(projectRoot), beforeRevision);
+    final finalQaRevision = await computeEvaluationProjectRevision(projectRoot);
+    final finalSourceRevision =
+        await computeEvaluationProjectRevision(sourceRoot);
+    expect(finalQaRevision, revision);
+    expect(finalSourceRevision, sourceRevision);
+    stdout.writeln('OW001 QA source=${sourceRoot.path} copy=${projectRoot.path} '
+        'before=$revision after=$finalQaRevision sourceAfter=$finalSourceRevision');
   }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('bounded player-state service drives Bag commands without durable writes',

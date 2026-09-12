@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:map_core/map_core.dart';
 
+import '../application/runtime_overworld_interaction.dart';
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_host.dart';
 import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
+import 'runtime_overworld_interaction_port.dart';
 
 typedef GameSessionProgressReporter = void Function(
   GameSessionLoadingProgress progress,
@@ -46,7 +48,8 @@ final class InProcessGameSessionAdapter
         GameSessionInputLockPort,
         RuntimePlayerPauseDataPort,
         RuntimePlayerPauseCommandPort,
-        RuntimeWorldServicePort {
+        RuntimeWorldServicePort,
+        RuntimeOverworldInteractionPort {
   InProcessGameSessionAdapter({
     required InProcessGameSessionRuntimeFactory runtimeFactory,
   }) : _runtimeFactory = runtimeFactory;
@@ -55,6 +58,12 @@ final class InProcessGameSessionAdapter
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
+  final _overworldInteractionSnapshots =
+      StreamController<RuntimeOverworldInteractionSnapshot?>.broadcast();
+  StreamSubscription<RuntimeOverworldInteractionSnapshot?>?
+      _runtimeInteractions;
+  RuntimeOverworldInteractionPort? _overworldInteractionPort;
+  bool _interactionsEnabled = false;
   InProcessGameSessionRuntime? _runtime;
   StreamSubscription<GameSessionAdapterEvent>? _runtimeEvents;
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _runtimeWorldServices;
@@ -112,7 +121,32 @@ final class InProcessGameSessionAdapter
     if (runtime case final RuntimePlayerPauseCommandPort port) {
       _pauseCommandPort = port;
     }
+    if (runtime case final RuntimeOverworldInteractionPort port) {
+      _overworldInteractionPort = port;
+      _runtimeInteractions = port.overworldInteractionSnapshots.listen(
+        (_) => _publishOverworldInteractions(),
+      );
+    }
   }
+
+  @override
+  RuntimeOverworldInteractionSnapshot? get overworldInteractionSnapshot =>
+      _disposed || !_interactionsEnabled
+          ? null
+          : _overworldInteractionPort?.overworldInteractionSnapshot;
+
+  @override
+  Stream<RuntimeOverworldInteractionSnapshot?>
+      get overworldInteractionSnapshots =>
+          _overworldInteractionSnapshots.stream;
+
+  @override
+  bool dispatchOverworldInteraction(
+          RuntimeOverworldInteractionRequest request) =>
+      !_disposed &&
+      _interactionsEnabled &&
+      (_overworldInteractionPort?.dispatchOverworldInteraction(request) ??
+          false);
 
   @override
   RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
@@ -193,12 +227,16 @@ final class InProcessGameSessionAdapter
         GameSessionLoading(descriptor.sessionId, progress),
       ),
     );
+    _interactionsEnabled = true;
+    _publishOverworldInteractions();
     _emit(GameSessionRunning(descriptor.sessionId));
   }
 
   @override
   Future<void> pause() async {
     final descriptor = _requirePrepared();
+    _interactionsEnabled = false;
+    _publishOverworldInteractions();
     await _runtime!.pause();
     _emit(GameSessionPaused(descriptor.sessionId));
   }
@@ -207,6 +245,8 @@ final class InProcessGameSessionAdapter
   Future<void> resume() async {
     final descriptor = _requirePrepared();
     await _runtime!.resume();
+    _interactionsEnabled = true;
+    _publishOverworldInteractions();
     _emit(GameSessionRunning(descriptor.sessionId));
   }
 
@@ -226,16 +266,22 @@ final class InProcessGameSessionAdapter
       _requireRuntime().captureCheckpoint();
 
   @override
-  Future<void> lockGameplayForCompletion() =>
-      _requireRuntime().lockGameplayForCompletion();
+  Future<void> lockGameplayForCompletion() {
+    _interactionsEnabled = false;
+    _publishOverworldInteractions();
+    return _requireRuntime().lockGameplayForCompletion();
+  }
 
   @override
   Future<void> acknowledgeCompletion({required bool accepted}) =>
       _requireRuntime().acknowledgeCompletion(accepted: accepted);
 
   @override
-  Future<void> stop(GameSessionExitReason reason) =>
-      _requireRuntime().stop(reason);
+  Future<void> stop(GameSessionExitReason reason) {
+    _interactionsEnabled = false;
+    _publishOverworldInteractions();
+    return _requireRuntime().stop(reason);
+  }
 
   @override
   bool handleInput(RuntimeInputEvent event) =>
@@ -245,6 +291,10 @@ final class InProcessGameSessionAdapter
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    await _runtimeInteractions?.cancel();
+    _runtimeInteractions = null;
+    _overworldInteractionPort = null;
+    _publishOverworldInteractions();
     await _runtimeEvents?.cancel();
     _runtimeEvents = null;
     await _runtimeWorldServices?.cancel();
@@ -258,6 +308,7 @@ final class InProcessGameSessionAdapter
     await runtime?.dispose();
     await _events.close();
     await _worldServiceSnapshots.close();
+    await _overworldInteractionSnapshots.close();
   }
 
   GameSessionDescriptor _requirePrepared() {
@@ -281,6 +332,12 @@ final class InProcessGameSessionAdapter
     _worldServiceSnapshot = snapshot;
     if (!_worldServiceSnapshots.isClosed) {
       _worldServiceSnapshots.add(snapshot);
+    }
+  }
+
+  void _publishOverworldInteractions() {
+    if (!_overworldInteractionSnapshots.isClosed) {
+      _overworldInteractionSnapshots.add(overworldInteractionSnapshot);
     }
   }
 }

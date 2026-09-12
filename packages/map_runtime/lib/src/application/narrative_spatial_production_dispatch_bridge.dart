@@ -104,6 +104,30 @@ typedef NarrativeSpatialLegacyFallback = Future<void> Function(
   GameState gameState,
 );
 
+final class NarrativeSpatialInteractionGuard {
+  const NarrativeSpatialInteractionGuard({
+    required this.isApplicable,
+    this.eventId,
+    this.sceneId,
+  });
+
+  final String? eventId;
+  final String? sceneId;
+  final bool Function() isApplicable;
+
+  bool get _expectsLegacy => eventId == null && sceneId == null;
+
+  bool _matchesDecision(NarrativeEventDispatchDecision decision) {
+    return switch (decision) {
+      NarrativeEventDispatchHandled() =>
+        decision.eventId == eventId && decision.sceneId == sceneId,
+      NarrativeEventDispatchNoMatch() =>
+        _expectsLegacy && decision.legacyFallbackAllowed,
+      NarrativeEventDispatchClaimedButIneligible() => false,
+    };
+  }
+}
+
 /// Production boundary shared by entity-interaction and trigger-entry hooks.
 ///
 /// One stable [occurrenceId] is claimed before the first asynchronous boundary.
@@ -151,6 +175,7 @@ final class NarrativeSpatialProductionDispatchBridge {
   Future<NarrativeSpatialProductionDispatchResult> dispatch({
     required String occurrenceId,
     required NarrativeEventOccurrence occurrence,
+    NarrativeSpatialInteractionGuard? interactionGuard,
   }) async {
     try {
       _validateOccurrence(occurrenceId, occurrence);
@@ -192,6 +217,15 @@ final class NarrativeSpatialProductionDispatchBridge {
         );
       }
       final authority = preparation as NarrativeEventDispatchAuthorityReady;
+      if (interactionGuard != null) {
+        if (!interactionGuard.isApplicable()) {
+          return _stale(occurrenceId, occurrence);
+        }
+        final decision = authority.plan(gameState: _currentGameState());
+        if (!interactionGuard._matchesDecision(decision)) {
+          return _stale(occurrenceId, occurrence);
+        }
+      }
       final coordinator = NarrativeEventExecutionCoordinator(
         stateTransactions: _stateTransactions,
         planner: NarrativeEventDispatchPlanner(),
@@ -199,6 +233,14 @@ final class NarrativeSpatialProductionDispatchBridge {
           if (!_isCurrentOccurrence(occurrenceId)) {
             return NarrativeSceneExecutionResult.cancelled(
               'Spatial occurrence became stale before Scene execution.',
+            );
+          }
+          if (interactionGuard != null &&
+              (request.eventId != interactionGuard.eventId ||
+                  request.sceneId != interactionGuard.sceneId ||
+                  !interactionGuard.isApplicable())) {
+            return NarrativeSceneExecutionResult.cancelled(
+              'Spatial interaction changed before Scene execution.',
             );
           }
           final result = await _executeScene(request);
@@ -264,6 +306,11 @@ final class NarrativeSpatialProductionDispatchBridge {
 
       final gameState = await _stateTransactions.read();
       if (!_isCurrentOccurrence(occurrenceId)) {
+        return _stale(occurrenceId, occurrence);
+      }
+      if (interactionGuard != null &&
+          (!interactionGuard._expectsLegacy ||
+              !interactionGuard.isApplicable())) {
         return _stale(occurrenceId, occurrence);
       }
       await _legacyFallback(occurrenceId, occurrence, gameState);

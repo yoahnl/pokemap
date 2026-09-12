@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../application/runtime_overworld_interaction.dart';
 import '../application/load_runtime_map_bundle.dart';
 import '../application/dialogue_portrait_resolver.dart';
 import '../application/map_activation.dart';
@@ -24,6 +25,7 @@ import '../../domain/repositories/game_save_repository.dart';
 import 'game_session_contract.dart';
 import 'in_process_game_session_adapter.dart';
 import 'runtime_session_strings.dart';
+import 'runtime_overworld_interaction_port.dart';
 
 typedef PlayableMapGameMount = Future<void> Function(PlayableMapGame game);
 typedef PlayableMapGameUnmount = Future<void> Function(PlayableMapGame game);
@@ -48,7 +50,8 @@ final class PlayableMapGameSessionRuntime
         GameSessionInputLockPort,
         RuntimePlayerPauseDataPort,
         RuntimePlayerPauseCommandPort,
-        RuntimeWorldServicePort {
+        RuntimeWorldServicePort,
+        RuntimeOverworldInteractionPort {
   /// Loaders partagés pour la vie de la session : les caps de soin/Sac
   /// relisaient sinon les fichiers espèces/attaques à chaque ouverture.
   final RuntimePokemonSpeciesLoader _recoveryCapsSpeciesLoader =
@@ -85,6 +88,9 @@ final class PlayableMapGameSessionRuntime
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
+  final _overworldInteractionSnapshots =
+      StreamController<RuntimeOverworldInteractionSnapshot?>.broadcast();
+  bool _interactionsEnabled = false;
   final Stopwatch _playWatch = Stopwatch();
 
   PlayableMapGame? _game;
@@ -128,6 +134,25 @@ final class PlayableMapGameSessionRuntime
   @override
   Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
       _worldServiceSnapshots.stream;
+
+  @override
+  RuntimeOverworldInteractionSnapshot? get overworldInteractionSnapshot =>
+      _disposed || !_interactionsEnabled
+          ? null
+          : _game?.overworldInteractionSnapshot;
+
+  @override
+  Stream<RuntimeOverworldInteractionSnapshot?>
+      get overworldInteractionSnapshots =>
+          _overworldInteractionSnapshots.stream;
+
+  @override
+  bool dispatchOverworldInteraction(
+          RuntimeOverworldInteractionRequest request) =>
+      !_disposed &&
+      _interactionsEnabled &&
+      !_completionEmitted &&
+      (_game?.dispatchOverworldInteraction(request) ?? false);
 
   @override
   Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
@@ -278,6 +303,7 @@ final class PlayableMapGameSessionRuntime
       preloadedInitialMap?.dispose();
     }
     _game = game;
+    game.overworldInteractions.addListener(_publishOverworldInteractions);
     if (_playerPreferences case final preferences?) {
       game.applyPlayerPreferences(preferences);
     }
@@ -320,6 +346,8 @@ final class PlayableMapGameSessionRuntime
     );
     await _mountGame(game);
     _mounted = true;
+    _interactionsEnabled = true;
+    _publishOverworldInteractions();
     _playWatch.start();
     reportProgress(
       const GameSessionLoadingProgress(
@@ -333,6 +361,8 @@ final class PlayableMapGameSessionRuntime
   @override
   Future<void> pause() async {
     final game = _requireGame();
+    _interactionsEnabled = false;
+    _publishOverworldInteractions();
     _playWatch.stop();
     game.pauseEngine();
   }
@@ -397,6 +427,8 @@ final class PlayableMapGameSessionRuntime
       throw StateError('A completed game cannot resume gameplay.');
     }
     game.resumeEngine();
+    _interactionsEnabled = true;
+    _publishOverworldInteractions();
     _playWatch.start();
   }
 
@@ -467,6 +499,8 @@ final class PlayableMapGameSessionRuntime
   @override
   Future<void> lockGameplayForCompletion() async {
     final game = _requireGame();
+    _interactionsEnabled = false;
+    _publishOverworldInteractions();
     _playWatch.stop();
     game.setExternalInputLock(
       RuntimeExternalInputLock.gameCompletion,
@@ -483,6 +517,8 @@ final class PlayableMapGameSessionRuntime
 
   @override
   Future<void> stop(GameSessionExitReason reason) async {
+    _interactionsEnabled = false;
+    _publishOverworldInteractions();
     final game = _game;
     if (game == null) return;
     _playWatch.stop();
@@ -499,6 +535,7 @@ final class PlayableMapGameSessionRuntime
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    _publishOverworldInteractions();
     _playWatch.stop();
     await _playerServiceSnapshots?.cancel();
     _playerServiceSnapshots = null;
@@ -507,6 +544,7 @@ final class PlayableMapGameSessionRuntime
     await playerServices?.dispose();
     _publishWorldService(null);
     final game = _game;
+    game?.overworldInteractions.removeListener(_publishOverworldInteractions);
     _game = null;
     _projectRootDirectory = null;
     _pausePortraitResolver = null;
@@ -519,6 +557,7 @@ final class PlayableMapGameSessionRuntime
     game?.dispose();
     await _events.close();
     await _worldServiceSnapshots.close();
+    await _overworldInteractionSnapshots.close();
   }
 
   void _validateInitialSave(SaveEnvelope? save) {
@@ -553,6 +592,12 @@ final class PlayableMapGameSessionRuntime
     _worldServiceSnapshot = snapshot;
     if (!_worldServiceSnapshots.isClosed) {
       _worldServiceSnapshots.add(snapshot);
+    }
+  }
+
+  void _publishOverworldInteractions() {
+    if (!_overworldInteractionSnapshots.isClosed) {
+      _overworldInteractionSnapshots.add(overworldInteractionSnapshot);
     }
   }
 }

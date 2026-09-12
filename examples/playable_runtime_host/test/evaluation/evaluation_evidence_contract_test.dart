@@ -7,6 +7,51 @@ import 'package:pokemap_loader/src/evaluation/runner/evaluation_state_diff.dart'
 
 void main() {
   group('EvaluationStateSnapshot', () {
+    test(
+      'interaction identity is observable but does not change replay digest',
+      () {
+        final left = _snapshot(
+          availableInteractions: _interactions('session-a', 'activation-a'),
+        );
+        final right = _snapshot(
+          availableInteractions: _interactions('session-b', 'activation-b'),
+        );
+        expect(left.digestSha256, right.digestSha256);
+        expect(left.availableInteractions!['sessionId'], 'session-a');
+        expect(
+          (left.toJson()['world']! as Map)['availableInteractions'],
+          left.availableInteractions,
+        );
+        final changed = _interactions('session-b', 'activation-b');
+        (changed['primaryAction']! as Map)['verb'] = 'read';
+        expect(
+          left.digestSha256,
+          isNot(_snapshot(availableInteractions: changed).digestSha256),
+        );
+      },
+    );
+
+    test(
+      'interaction observations are deeply immutable and retain target identity',
+      () {
+        final interactions = _interactions('session-a', 'activation-a');
+        final snapshot = _snapshot(availableInteractions: interactions);
+        final action = snapshot.availableInteractions!['primaryAction']! as Map;
+        final request = action['request']! as Map;
+        ((interactions['primaryAction']! as Map)['request']!
+                as Map)['targetId'] =
+            'changed';
+        expect(request['targetId'], 'npc-guide');
+        expect(() => request['targetId'] = 'changed', throwsUnsupportedError);
+        final changed = _interactions('session-a', 'activation-a');
+        ((changed['primaryAction']! as Map)['request']! as Map)['targetId'] =
+            'npc-other';
+        expect(
+          snapshot.digestSha256,
+          isNot(_snapshot(availableInteractions: changed).digestSha256),
+        );
+      },
+    );
     test('digest ignores map insertion order and run id', () {
       final left = _snapshot(
         runId: 'run-left',
@@ -128,6 +173,26 @@ void main() {
   });
 
   group('EvaluationReceipt', () {
+    test(
+      'round-trips interaction projection including guarded request identity',
+      () {
+        final json = _receipt().toJson();
+        final state = json['finalState']! as Map;
+        (state['world']! as Map)['availableInteractions'] = _interactions(
+          'session-a',
+          'activation-a',
+        );
+        final receipt = EvaluationReceipt.fromJson(json);
+        expect(
+          receipt.finalState.availableInteractions,
+          _interactions('session-a', 'activation-a'),
+        );
+        expect(
+          (receipt.toJson()['finalState']! as Map)['world'],
+          state['world'],
+        );
+      },
+    );
     test('rejects absolute and escaping artifact paths', () {
       expect(
         () => _receipt(artifacts: <String>['/tmp/capture.png']),
@@ -238,6 +303,7 @@ EvaluationStateSnapshot _snapshot({
   int money = 1000,
   Map<String, Object?> facts = const <String, Object?>{},
   Map<String, int> bag = const <String, int>{},
+  Map<String, Object?>? availableInteractions,
 }) {
   return EvaluationStateSnapshot(
     projectId: 'selbrume',
@@ -249,8 +315,33 @@ EvaluationStateSnapshot _snapshot({
     facts: facts,
     money: money,
     bag: bag,
+    availableInteractions: availableInteractions,
   );
 }
+
+Map<String, Object?> _interactions(String sessionId, String activationId) => {
+  'sessionId': sessionId,
+  'mapActivationId': activationId,
+  'mapId': 'map_port_brisants',
+  'primaryAction': <String, Object?>{
+    'verb': 'talk',
+    'targetCell': <String, Object?>{'x': 12, 'y': 9},
+    'targetBounds': <String, Object?>{
+      'leftPx': 384,
+      'topPx': 288,
+      'widthPx': 32,
+      'heightPx': 32,
+    },
+    'request': <String, Object?>{
+      'sessionId': sessionId,
+      'mapActivationId': activationId,
+      'mapId': 'map_port_brisants',
+      'targetKind': 'entity',
+      'targetId': 'npc-guide',
+      'actionId': 'npc-guide:talk',
+    },
+  },
+};
 
 EvaluationReceipt _receipt({
   String projectTreeHash = _hashA,

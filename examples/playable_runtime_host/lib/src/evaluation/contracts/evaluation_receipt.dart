@@ -463,6 +463,7 @@ EvaluationStateSnapshot _snapshotFromJson(
     y: _jsonInt(position, 'y'),
     movementMode: _jsonString(world, 'movementMode'),
     entityVisibility: _jsonBoolMap(world, 'entityVisibility'),
+    availableInteractions: _jsonNullableMap(world, 'availableInteractions'),
     facts: _jsonMap(json, 'facts'),
     eventLedger: _jsonMap(json, 'eventLedger'),
     progression: _jsonMap(json, 'progression'),

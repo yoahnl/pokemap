@@ -61,6 +61,7 @@ import '../../application/runtime_battle_bag_hp_heal_item_apply.dart';
 import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
+import '../../application/runtime_overworld_interaction.dart';
 import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_item_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_grant.dart';
@@ -155,6 +156,7 @@ import 'smart_tile_animation_activation_controller.dart';
 import 'warp_transition_overlay_component.dart';
 
 part 'playable_map_game_support.dart';
+part 'playable_map_game_interactions.dart';
 
 const double _kViewportTilesX = 15.0;
 const double _kViewportTilesY = 11.0;
@@ -549,6 +551,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     ),
   );
   RuntimeInputAuthoritySnapshot? _pendingInputAuthoritySnapshot;
+  static int _nextInteractionSessionId = 0;
+  final String _interactionSessionId =
+      '${DateTime.now().microsecondsSinceEpoch}:${++_nextInteractionSessionId}';
+  Object? _interactionResolutionKey;
+  _ResolvedOverworldInteraction? _cachedInteractionResolution;
+  RuntimeOverworldInteractionSnapshot? _cachedInteractionSnapshot;
+  late final ValueNotifier<RuntimeOverworldInteractionSnapshot>
+      _overworldInteractions = ValueNotifier(overworldInteractionSnapshot);
+  bool _interactionPublicationScheduled = false;
+  MapData? _interactionEventMap;
+  final Map<GridPos, MapEventDefinition> _interactionEventsByCell = {};
   bool _inputAuthorityPostFrameFlushScheduled = false;
   DialoguePresentationSnapshot? _pendingDialoguePresentationSnapshot;
   bool _dialoguePresentationPostFrameFlushScheduled = false;
@@ -876,27 +889,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     await beforeNarrativeAuthorityPreparation?.call(occurrence);
     final project = _bundle.manifest;
     final registry = project.eventRegistry;
-    late final NarrativeEventDispatchAuthorityPreparation preparation;
-    if (registry == null || registry.mode == EventSystemMode.legacyOnly) {
-      preparation = NarrativeEventDispatchAuthority.prepare(
-        registryResult: registry == null
-            ? EventRegistryDecodeResult.absent()
-            : EventRegistryDecodeResult.decoded(registry),
-        occurrence: occurrence,
-        factResolver: NarrativeFactRuntimeResolver.fromFacts(project.facts),
-      );
-    } else {
-      final snapshot = await _narrativeRuntimeSnapshotFor(project);
-      preparation = NarrativeEventDispatchAuthority.prepare(
-        registryResult: snapshot.registryResult,
-        occurrence: occurrence,
-        factResolver: snapshot.factResolver,
-        legacyClaimIndex: snapshot.legacyClaimIndex,
-        projectCatalog: snapshot.projectCatalog,
-        project: snapshot.project,
-        maps: snapshot.mapsById.values.toList(growable: false),
-      );
+    if (registry != null && registry.mode != EventSystemMode.legacyOnly) {
+      await _narrativeRuntimeSnapshotFor(project);
     }
+    final preparation = _readInteractionAuthority(occurrence)!;
     await afterNarrativeAuthorityPreparation?.call(occurrence, preparation);
     return preparation;
   }
@@ -972,6 +968,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<NarrativeSpatialProductionDispatchResult> _dispatchSpatialOccurrence({
     required NarrativeEventOccurrence occurrence,
     required Future<void> Function(GameState gameState) legacyFallback,
+    NarrativeSpatialInteractionGuard? interactionGuard,
   }) async {
     final occurrenceId = _nextNarrativeRuntimeId('spocc');
     _currentSpatialOccurrenceIds.add(occurrenceId);
@@ -996,6 +993,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final result = await _spatialDispatchBridge.dispatch(
         occurrenceId: occurrenceId,
         occurrence: occurrence,
+        interactionGuard: interactionGuard,
       );
       final transientCheckpointBlock =
           result is NarrativeSpatialProductionDispatchFailed &&
@@ -1015,6 +1013,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _spatialOccurrenceActivationIds.remove(occurrenceId);
       _currentSpatialOccurrenceIds.remove(occurrenceId);
       _inFlightSpatialDispatchCount--;
+      _publishOverworldInteractions();
     }
   }
 
@@ -1289,6 +1288,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     } finally {
       dispatchLease?.close();
       _inFlightMapActivationDispatchIds.remove(activation.activationId);
+      _publishOverworldInteractions();
     }
   }
 
@@ -2350,6 +2350,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
+  RuntimeOverworldInteractionSnapshot get overworldInteractionSnapshot =>
+      _readOverworldInteractionSnapshot();
+
+  ValueListenable<RuntimeOverworldInteractionSnapshot> get overworldInteractions =>
+      _overworldInteractions;
+
+  bool dispatchOverworldInteraction(RuntimeOverworldInteractionRequest request) {
+    final interaction = _resolveOverworldInteraction();
+    if (interaction == null || interaction.action.request != request) {
+      return false;
+    }
+    _executeOverworldInteraction(interaction);
+    _publishOverworldInteractions();
+    return true;
+  }
+
   /// The single player-input authority exposed to Flutter hosts and tests.
   RuntimeInputAuthoritySnapshot get inputAuthoritySnapshot {
     _syncDerivedInputLocks();
@@ -2384,6 +2400,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _publishInputAuthoritySnapshot() {
+    _publishOverworldInteractions();
     final next = inputAuthoritySnapshot;
     final binding = SchedulerBinding.instance;
     final phase = binding.schedulerPhase;
@@ -3786,6 +3803,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    _publishOverworldInteractions();
     if (!_onLoadInProgress) {
       _tilesetImageCache.dispose();
       _battleVisualAssetCache.dispose();
@@ -4215,6 +4233,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void update(double dt) {
     super.update(dt);
+    try {
+      _updateRuntime(dt);
+    } finally {
+      _publishOverworldInteractions();
+    }
+  }
+
+  void _updateRuntime(double dt) {
     for (final loaded in _loadedMapsById.values) {
       loaded.smartTileAnimationController.update(dt);
       loaded.actorOcclusionLayers.update(dt);
@@ -9857,6 +9883,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _handleInteract() {
+    if (!_canResolveOverworldInteraction()) return;
+    final interaction = _resolveOverworldInteraction(includeHidden: true);
+    if (interaction != null) {
+      _executeOverworldInteraction(interaction);
+      return;
+    }
     final result = stepGameplayWorld(_world, const InteractIntent());
     _world = result.world;
 
@@ -9883,8 +9915,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   Future<void> _dispatchNarrativeEntityInteraction(
     GameplayStepResult result,
-    MapEntity entity,
-  ) async {
+    MapEntity entity, {
+    NarrativeSpatialInteractionGuard? interactionGuard,
+  }) async {
     await _dispatchSpatialOccurrence(
       occurrence: NarrativeEventOccurrence(
         source: NarrativeEventSourceRef.entityInteract(
@@ -9893,6 +9926,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       ),
       legacyFallback: (_) async => _runLegacyInteractionFallback(result),
+      interactionGuard: interactionGuard,
     );
   }
 
@@ -10001,46 +10035,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    final facing = _world.player.facing;
-    final tx = _world.player.pos.x + facing.dx;
-    final ty = _world.player.pos.y + facing.dy;
-
-    final map = _bundle.map;
-    MapEventDefinition? event;
-    for (final e in map.events) {
-      if (e.position.x == tx && e.position.y == ty) {
-        event = e;
-        break;
-      }
-    }
-
-    if (event == null) return;
-
-    final factContext = ScriptEvaluationContext(
-      narrativeFactResolver: _narrativeFactResolver,
-    );
-    final activePage = _storyBranching.pageResolver.resolve(
-      event,
-      _gameState,
-      contextForPage: (page) =>
-          hasEventBuilderPageProvenance(page) ? factContext : null,
-    );
-
-    if (activePage == null) return;
-
-    final worldRuleProjection = _resolveWorldRuleProjectionForMap(
-      map.id,
-      _bundle.manifest,
-    );
-    final defaultEnabled = !activePage.page.isDisabled;
-    if (worldRuleProjection != null &&
-        !worldRuleProjection.canTriggerMapEvent(
-          event,
-          defaultEnabled: defaultEnabled,
-        )) {
-      return;
-    }
-    if (worldRuleProjection == null && activePage.page.isDisabled) return;
+    final selected = _selectInteractionMapEvent();
+    if (selected == null) return;
+    final (event, activePage) = selected;
 
     debugPrint('[interact] MapEvent: ${event.id} page=${activePage.pageIndex}');
     _handleMapEventInteraction(event, activePage);

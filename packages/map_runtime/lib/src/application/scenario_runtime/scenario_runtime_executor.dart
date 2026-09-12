@@ -159,6 +159,40 @@ class ScenarioRuntimeExecutor {
     );
   }
 
+  ScenarioRuntimeSourceSelection? selectSource({
+    required List<ScenarioAsset> scenarios,
+    required ScenarioRuntimeSourceEvent sourceEvent,
+    required GameState gameState,
+    ScenarioRuntimeShouldSkipScenario? shouldSkipScenario,
+  }) {
+    for (final scenario in _candidateScenarios(
+      scenarios: scenarios,
+      sourceEvent: sourceEvent,
+    )) {
+      if (!_scenarioActivationPasses(scenario, gameState)) {
+        continue;
+      }
+      final sourceNode = _findMatchingSourceNode(
+        scenario: scenario,
+        sourceEvent: sourceEvent,
+      );
+      if (sourceNode == null) {
+        continue;
+      }
+      final scenarioId = scenario.id.trim();
+      if (shouldSkipScenario != null &&
+          scenarioId.isNotEmpty &&
+          shouldSkipScenario(scenarioId)) {
+        continue;
+      }
+      return ScenarioRuntimeSourceSelection(
+        scenario: scenario,
+        sourceNode: sourceNode,
+      );
+    }
+    return null;
+  }
+
   /// Reprend l'exécution d'un flow scénario après un node déjà exécuté.
   ///
   /// Cas d'usage:
@@ -265,28 +299,16 @@ class ScenarioRuntimeExecutor {
       );
     }
 
-    for (final scenario in _candidateScenarios(
+    final selection = selectSource(
       scenarios: scenarios,
       sourceEvent: sourceEvent,
-    )) {
-      if (!_scenarioActivationPasses(scenario, context.gameState)) {
-        continue;
-      }
-      final sourceNode = _findMatchingSourceNode(
-        scenario: scenario,
-        sourceEvent: sourceEvent,
-      );
-      if (sourceNode == null) {
-        continue;
-      }
-      final scenarioId = scenario.id.trim();
-      final skip = context.shouldSkipScenario;
-      if (skip != null && scenarioId.isNotEmpty && skip(scenarioId)) {
-        continue;
-      }
+      gameState: context.gameState,
+      shouldSkipScenario: context.shouldSkipScenario,
+    );
+    if (selection != null) {
       return _executeScenarioFromSource(
-        scenario: scenario,
-        sourceNode: sourceNode,
+        scenario: selection.scenario,
+        sourceNode: selection.sourceNode,
         sourceEvent: sourceEvent,
         context: context,
         scenarios: scenarios,

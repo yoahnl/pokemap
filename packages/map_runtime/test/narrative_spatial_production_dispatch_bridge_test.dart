@@ -6,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/narrative_spatial_production_dispatch_bridge.dart';
 
 const _eventId = 'evt_019abcde-0000-7000-8000-000000000001';
+const _otherEventId = 'evt_019abcde-0000-7000-8000-000000000005';
 const _executionId = 'evx_019abcde-0000-7000-8000-000000000002';
 const _correlationId = 'corr_019abcde-0000-7000-8000-000000000003';
 const _deliveryId = 'outd_019abcde-0000-7000-8000-000000000004';
@@ -455,6 +456,236 @@ void main() {
       expect(fallbackCalls, 0);
     });
   });
+
+  group('NarrativeSpatialInteractionGuard', () {
+    test('rejects a target that becomes stale during authority preparation',
+        () async {
+      final preparing = Completer<void>();
+      final release = Completer<void>();
+      var applicable = true;
+      final harness = _GuardHarness(
+        beforeAuthorityPrepared: () async {
+          preparing.complete();
+          await release.future;
+        },
+      );
+
+      final dispatch = harness.dispatch(_v2Guard(() => applicable));
+      await preparing.future;
+      applicable = false;
+      release.complete();
+
+      expect(await dispatch, isA<NarrativeSpatialProductionDispatchStale>());
+      expect(harness.sceneCalls, 0);
+      expect(harness.legacyCalls, 0);
+    });
+
+    test('replans against current runtime state after authority preparation',
+        () async {
+      final preparing = Completer<void>();
+      final release = Completer<void>();
+      final harness = _GuardHarness(
+        beforeAuthorityPrepared: () async {
+          preparing.complete();
+          await release.future;
+        },
+      );
+
+      final dispatch = harness.dispatch(_v2Guard(() => true));
+      await preparing.future;
+      harness.currentState = _consumeEvent(harness.currentState);
+      release.complete();
+
+      expect(await dispatch, isA<NarrativeSpatialProductionDispatchStale>());
+      expect(harness.sceneCalls, 0);
+      expect(harness.legacyCalls, 0);
+    });
+
+    test('rejects authority decisions for another action or dispatch system',
+        () async {
+      for (final testCase in [
+        (
+          mode: EventSystemMode.v2Only,
+          guard: NarrativeSpatialInteractionGuard(
+            eventId: _otherEventId,
+            sceneId: 'scene_spatial',
+            isApplicable: () => true,
+          ),
+        ),
+        (
+          mode: EventSystemMode.v2Only,
+          guard: NarrativeSpatialInteractionGuard(
+            eventId: _eventId,
+            sceneId: 'scene_other',
+            isApplicable: () => true,
+          ),
+        ),
+        (
+          mode: EventSystemMode.v2Only,
+          guard: NarrativeSpatialInteractionGuard(isApplicable: () => true),
+        ),
+        (
+          mode: EventSystemMode.legacyOnly,
+          guard: _v2Guard(() => true),
+        ),
+      ]) {
+        final harness = _GuardHarness(mode: testCase.mode);
+
+        expect(
+          await harness.dispatch(testCase.guard),
+          isA<NarrativeSpatialProductionDispatchStale>(),
+        );
+        expect(harness.sceneCalls, 0);
+        expect(harness.legacyCalls, 0);
+      }
+    });
+
+    test('legacy guard requires an authority-approved legacy fallback',
+        () async {
+      final harness = _GuardHarness(records: []);
+
+      expect(
+        await harness.dispatch(
+          NarrativeSpatialInteractionGuard(isApplicable: () => true),
+        ),
+        isA<NarrativeSpatialProductionDispatchStale>(),
+      );
+      expect(harness.sceneCalls, 0);
+      expect(harness.legacyCalls, 0);
+    });
+
+    test('cancels a stale target immediately before Scene execution', () async {
+      final gate = _ActivityGate(NarrativeEventActivity.sceneActive);
+      var applicable = true;
+      final harness = _GuardHarness(activityPort: gate);
+
+      final dispatch = harness.dispatch(_v2Guard(() => applicable));
+      await gate.reached.future;
+      applicable = false;
+      gate.release.complete();
+
+      expect(
+        await dispatch,
+        isA<NarrativeSpatialProductionDispatchNoFallback>(),
+      );
+      expect(harness.sceneCalls, 0);
+      expect(harness.legacyCalls, 0);
+      expect(
+        (await harness.transactions.read())
+            .narrativeEventProgress
+            .consumedNarrativeEventIds,
+        isEmpty,
+      );
+    });
+
+    test('cancels a different V2 action selected after coordination begins',
+        () async {
+      final gate = _ActivityGate(NarrativeEventActivity.dispatching);
+      final harness = _GuardHarness(
+        activityPort: gate,
+        records: [
+          _record(_guardSource, reusePolicy: NarrativeEventReusePolicy.oneShot),
+          _record(
+            _guardSource,
+            id: _otherEventId,
+            sceneId: 'scene_other',
+          ),
+        ],
+      );
+
+      final dispatch = harness.dispatch(_v2Guard(() => true));
+      await gate.reached.future;
+      await harness.transactions.transact((state) {
+        return NarrativeEventStateTransaction.commit(
+            _consumeEvent(state), null);
+      });
+      gate.release.complete();
+
+      expect(
+        await dispatch,
+        isA<NarrativeSpatialProductionDispatchNoFallback>(),
+      );
+      expect(harness.sceneCalls, 0);
+      expect(harness.legacyCalls, 0);
+    });
+
+    test('V2 guard cannot become a legacy fallback after coordination begins',
+        () async {
+      final gate = _ActivityGate(NarrativeEventActivity.dispatching);
+      final harness = _GuardHarness(
+        mode: EventSystemMode.dualRead,
+        activityPort: gate,
+      );
+
+      final dispatch = harness.dispatch(_v2Guard(() => true));
+      await gate.reached.future;
+      await harness.transactions.transact((state) {
+        return NarrativeEventStateTransaction.commit(
+            _consumeEvent(state), null);
+      });
+      gate.release.complete();
+
+      expect(await dispatch, isA<NarrativeSpatialProductionDispatchStale>());
+      expect(harness.sceneCalls, 0);
+      expect(harness.legacyCalls, 0);
+    });
+
+    test('rejects a stale target immediately before legacy fallback', () async {
+      final gate = _ActivityGate(
+        NarrativeEventActivity.dispatching,
+        afterAction: true,
+      );
+      var applicable = true;
+      final harness = _GuardHarness(
+        mode: EventSystemMode.legacyOnly,
+        activityPort: gate,
+      );
+
+      final dispatch = harness.dispatch(
+        NarrativeSpatialInteractionGuard(isApplicable: () => applicable),
+      );
+      await gate.reached.future;
+      applicable = false;
+      gate.release.complete();
+
+      expect(await dispatch, isA<NarrativeSpatialProductionDispatchStale>());
+      expect(harness.sceneCalls, 0);
+      expect(harness.legacyCalls, 0);
+    });
+
+    test('executes the expected action without rechecking its own effects',
+        () async {
+      for (final mode in [EventSystemMode.v2Only, EventSystemMode.legacyOnly]) {
+        var applicable = true;
+        final harness = _GuardHarness(
+          mode: mode,
+          onEffect: () => applicable = false,
+        );
+        final guard = mode == EventSystemMode.v2Only
+            ? _v2Guard(() => applicable)
+            : NarrativeSpatialInteractionGuard(isApplicable: () => applicable);
+
+        final result = await harness.dispatch(guard);
+
+        if (mode == EventSystemMode.v2Only) {
+          expect(result, isA<NarrativeSpatialProductionDispatchV2Handled>());
+          expect(harness.sceneCalls, 1);
+          expect(harness.legacyCalls, 0);
+          expect(
+            harness
+                .currentState.narrativeEventProgress.consumedNarrativeEventIds,
+            contains(_eventId),
+          );
+        } else {
+          expect(
+              result, isA<NarrativeSpatialProductionDispatchLegacyFallback>());
+          expect(harness.sceneCalls, 0);
+          expect(harness.legacyCalls, 1);
+        }
+        expect(applicable, isFalse);
+      }
+    });
+  });
 }
 
 NarrativeSpatialProductionDispatchBridge _bridge({
@@ -472,6 +703,7 @@ NarrativeSpatialProductionDispatchBridge _bridge({
   ) legacyFallback,
   NarrativeSceneExecutionCallback? executeScene,
   bool Function(String occurrenceId)? isCurrentOccurrence,
+  NarrativeEventActivityPort? activityPort,
 }) {
   return NarrativeSpatialProductionDispatchBridge(
     stateTransactions: stateTransactions,
@@ -484,7 +716,7 @@ NarrativeSpatialProductionDispatchBridge _bridge({
               qualifiedOutcomes: const [],
             ),
     legacyFallback: legacyFallback,
-    activityPort: NoopNarrativeEventActivityPort(),
+    activityPort: activityPort ?? NoopNarrativeEventActivityPort(),
     isCurrentOccurrence: isCurrentOccurrence ?? (_) => true,
     executionIdFactory: () => _executionId,
     correlationIdFactory: () => _correlationId,
@@ -522,15 +754,18 @@ NarrativeEventRegistry _registry(
 NarrativeEventRecord _record(
   NarrativeEventSourceRef source, {
   bool enabled = true,
+  String id = _eventId,
+  String sceneId = 'scene_spatial',
+  NarrativeEventReusePolicy reusePolicy = NarrativeEventReusePolicy.reusable,
 }) {
   return NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition(
-      id: _eventId,
+      id: id,
       name: 'Spatial event',
       source: source,
       conditions: const [],
-      sceneId: 'scene_spatial',
-      reusePolicy: NarrativeEventReusePolicy.reusable,
+      sceneId: sceneId,
+      reusePolicy: reusePolicy,
       priority: 0,
       order: 0,
     ),
@@ -646,4 +881,120 @@ SceneAsset _scene(String id) {
       ],
     },
   });
+}
+
+final _guardSource = NarrativeEventSourceRef.entityInteract('map', 'npc');
+
+NarrativeSpatialInteractionGuard _v2Guard(bool Function() isApplicable) {
+  return NarrativeSpatialInteractionGuard(
+    eventId: _eventId,
+    sceneId: 'scene_spatial',
+    isApplicable: isApplicable,
+  );
+}
+
+GameState _consumeEvent(GameState state) {
+  return state.copyWith(
+    narrativeEventProgress: NarrativeEventProgress(
+      consumedNarrativeEventIds: [_eventId],
+    ),
+  );
+}
+
+class _GuardHarness {
+  _GuardHarness({
+    EventSystemMode mode = EventSystemMode.v2Only,
+    List<NarrativeEventRecord>? records,
+    Future<void> Function()? beforeAuthorityPrepared,
+    NarrativeEventActivityPort? activityPort,
+    void Function()? onEffect,
+  }) {
+    transactions = NarrativeEventStateTransactions(currentState);
+    final registry = _registry(
+      mode,
+      records: records ??
+          [
+            _record(
+              _guardSource,
+              reusePolicy: NarrativeEventReusePolicy.oneShot,
+            ),
+          ],
+    );
+    bridge = _bridge(
+      stateTransactions: transactions,
+      currentGameState: () => currentState,
+      onGameStateCommitted: (value) => currentState = value,
+      prepareAuthority: (_, occurrence) async {
+        await beforeAuthorityPrepared?.call();
+        return _prepareAuthority(
+          registry: registry,
+          occurrence: occurrence,
+          legacyClaimIndex: mode == EventSystemMode.dualRead
+              ? buildRuntimeValidatedLegacyClaimIndex(
+                  registry,
+                  runtimeEvidence:
+                      LegacyClaimRuntimeEvidence(entries: const []),
+                )
+              : null,
+        );
+      },
+      executeScene: (request) async {
+        sceneCalls++;
+        onEffect?.call();
+        return NarrativeSceneExecutionResult.completed(
+          updatedGameState: request.gameState,
+          qualifiedOutcomes: const [],
+        );
+      },
+      legacyFallback: (_, __, ___) async {
+        legacyCalls++;
+        onEffect?.call();
+      },
+      activityPort: activityPort,
+    );
+  }
+
+  GameState currentState = const GameState(saveId: 'save');
+  late final NarrativeEventStateTransactions transactions;
+  late final NarrativeSpatialProductionDispatchBridge bridge;
+  int sceneCalls = 0;
+  int legacyCalls = 0;
+
+  Future<NarrativeSpatialProductionDispatchResult> dispatch(
+    NarrativeSpatialInteractionGuard guard,
+  ) {
+    return bridge.dispatch(
+      occurrenceId: 'guarded-interaction',
+      occurrence: NarrativeEventOccurrence(source: _guardSource),
+      interactionGuard: guard,
+    );
+  }
+}
+
+class _ActivityGate implements NarrativeEventActivityPort {
+  _ActivityGate(this.activityToPause, {this.afterAction = false});
+
+  final NarrativeEventActivity activityToPause;
+  final bool afterAction;
+  final reached = Completer<void>();
+  final release = Completer<void>();
+
+  @override
+  Future<T> runWithActivity<T>(
+    NarrativeEventActivity activity,
+    Future<T> Function() action,
+  ) async {
+    if (activity != activityToPause) {
+      return action();
+    }
+    if (afterAction) {
+      final result = await action();
+      reached.complete();
+      await release.future;
+      return result;
+    }
+    reached.complete();
+    await release.future;
+    return action();
+  }
 }
