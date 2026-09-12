@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 import 'package:pokemap_loader/main.dart' as runtime_host;
@@ -9,6 +10,22 @@ import 'menu_performance_probe.dart';
 Future<void> main() async {
   MarionetteBinding.ensureInitialized();
   registerMenuPerformanceProbe();
+  registerMarionetteExtension(
+    name: 'player.qaOrientation',
+    description: 'Requests a native orientation for Player capture validation.',
+    callback: (params) async {
+      final orientations = switch (params['orientation']) {
+        'portrait' => [DeviceOrientation.portraitUp],
+        'landscape' => [DeviceOrientation.landscapeLeft],
+        'automatic' => <DeviceOrientation>[],
+        _ => throw ArgumentError.value(params['orientation'], 'orientation'),
+      };
+      await SystemChrome.setPreferredOrientations(orientations);
+      return MarionetteExtensionResult.success({
+        'requestedOrientation': params['orientation'],
+      });
+    },
+  );
   const configuredPath = String.fromEnvironment('MARIONETTE_PROJECT_PATH');
   if (configuredPath.isEmpty || !configuredPath.startsWith('/')) {
     throw StateError(

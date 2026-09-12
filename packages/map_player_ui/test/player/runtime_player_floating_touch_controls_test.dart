@@ -3,9 +3,298 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  const request = RuntimeOverworldInteractionRequest(
+      sessionId: 'session',
+      mapActivationId: 'activation',
+      mapId: 'map',
+      targetKind: RuntimeOverworldInteractionTargetKind.entity,
+      targetId: 'npc',
+      actionId: 'talk');
+
+  testWidgets('world tap captures its visible target outside the movement zone',
+      (tester) async {
+    final taps = <RuntimeOverworldInteractionRequest>[];
+    final movement = <RuntimeInputEvent>[];
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: RuntimePlayerTouchControls(
+            dispatch: movement.add,
+            readGameplayViewport: () => const Rect.fromLTRB(100, 50, 700, 550),
+            resolveTapTarget: (position) =>
+                const Rect.fromLTWH(500, 70, 80, 80).contains(position)
+                    ? request
+                    : null,
+            onTap: taps.add)));
+    final pointer = await tester.startGesture(const Offset(530, 100),
+        kind: ui.PointerDeviceKind.touch);
+    expect(taps, isEmpty);
+    await pointer.up();
+    expect(taps, [request]);
+    expect(movement, isEmpty);
+    expect(find.byKey(const ValueKey('runtime-player-touch-primary-button')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('runtime-player-touch-secondary-button')),
+        findsNothing);
+  });
+
+  testWidgets(
+      'drag returning to its origin and targets appearing after down never tap',
+      (tester) async {
+    final taps = <RuntimeOverworldInteractionRequest>[];
+    var targetVisible = true;
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: RuntimePlayerTouchControls(
+            dispatch: (_) {},
+            readGameplayViewport: () => const Rect.fromLTWH(0, 0, 800, 600),
+            resolveTapTarget: (_) => targetVisible ? request : null,
+            onTap: taps.add)));
+    final drag = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    await drag.moveBy(const Offset(12, 0));
+    await drag.moveTo(const Offset(600, 100));
+    await drag.up();
+    expect(taps, isEmpty);
+    targetVisible = false;
+    final stale = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    targetVisible = true;
+    await stale.up();
+    expect(taps, isEmpty);
+  });
+
+  testWidgets('second world tap leaves the first joystick pointer held',
+      (tester) async {
+    final taps = <RuntimeOverworldInteractionRequest>[];
+    final movement = <RuntimeInputEvent>[];
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: RuntimePlayerTouchControls(
+            dispatch: movement.add,
+            readGameplayViewport: () => const Rect.fromLTWH(0, 0, 800, 600),
+            resolveTapTarget: (position) => position.dx > 500 ? request : null,
+            onTap: taps.add)));
+    final joystick = await tester.startGesture(const Offset(100, 400),
+        pointer: 1, kind: ui.PointerDeviceKind.touch);
+    await joystick.moveBy(const Offset(30, 0));
+    final action = await tester.startGesture(const Offset(600, 100),
+        pointer: 2, kind: ui.PointerDeviceKind.touch);
+    await action.up();
+    expect(taps, [request]);
+    expect(
+        movement, const [RuntimeInputEvent.press(RuntimeInputControl.right)]);
+    await joystick.up();
+    expect(movement.last,
+        const RuntimeInputEvent.release(RuntimeInputControl.right));
+  });
+
+  testWidgets(
+      'target A to B to A invalidates a tap immediately and preserves joystick',
+      (tester) async {
+    const other = RuntimeOverworldInteractionRequest(
+        sessionId: 'session',
+        mapActivationId: 'activation',
+        mapId: 'map',
+        targetKind: RuntimeOverworldInteractionTargetKind.entity,
+        targetId: 'other',
+        actionId: 'talk');
+    RuntimeOverworldInteractionSnapshot snapshot(
+            RuntimeOverworldInteractionRequest request) =>
+        RuntimeOverworldInteractionSnapshot(
+            sessionId: request.sessionId,
+            mapActivationId: request.mapActivationId,
+            mapId: request.mapId,
+            primaryAction: RuntimeOverworldInteractionAction(
+                request: request,
+                verb: RuntimeOverworldInteractionVerb.talk,
+                targetCell: const GridPos(x: 1, y: 1),
+                targetBounds: const PixelRect(
+                    leftPx: 20, topPx: 20, widthPx: 32, heightPx: 32)));
+    final interaction = ValueNotifier(snapshot(request));
+    addTearDown(interaction.dispose);
+    final taps = <RuntimeOverworldInteractionRequest>[];
+    final movement = <RuntimeInputEvent>[];
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: RuntimePlayerTouchControls(
+            dispatch: movement.add,
+            interactionChanges: interaction,
+            readGameplayViewport: () => const Rect.fromLTWH(0, 0, 800, 600),
+            resolveTapTarget: (_) => interaction.value.primaryAction?.request,
+            onTap: taps.add)));
+    final joystick = await tester.startGesture(const Offset(100, 400),
+        pointer: 1, kind: ui.PointerDeviceKind.touch);
+    await joystick.moveBy(const Offset(30, 0));
+    final action = await tester.startGesture(const Offset(600, 100),
+        pointer: 2, kind: ui.PointerDeviceKind.touch);
+    interaction.value = snapshot(other);
+    interaction.value = snapshot(request);
+    await action.up();
+    expect(taps, isEmpty);
+    expect(
+        movement, const [RuntimeInputEvent.press(RuntimeInputControl.right)]);
+    interaction.value = const RuntimeOverworldInteractionSnapshot(
+        sessionId: 'session',
+        mapActivationId: 'other-activation',
+        mapId: 'map');
+    expect(movement.last,
+        const RuntimeInputEvent.release(RuntimeInputControl.right));
+    await joystick.moveBy(const Offset(30, 0));
+    await joystick.up();
+    expect(movement, hasLength(2));
+  });
+
+  testWidgets('tap target change and viewport mutation reject pending actions',
+      (tester) async {
+    var available = true;
+    var viewport = const Rect.fromLTWH(0, 0, 800, 600);
+    final taps = <RuntimeOverworldInteractionRequest>[];
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: RuntimePlayerTouchControls(
+            dispatch: (_) {},
+            readGameplayViewport: () => viewport,
+            resolveTapTarget: (_) => available ? request : null,
+            onTap: taps.add)));
+    final changedTarget = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    available = false;
+    await changedTarget.up();
+    expect(taps, isEmpty);
+    available = true;
+    final changedViewport = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    viewport = const Rect.fromLTRB(100, 0, 800, 600);
+    await changedViewport.up();
+    expect(taps, isEmpty);
+  });
+
+  testWidgets('first tap after hardware survives visual source activation once',
+      (tester) async {
+    var show = false;
+    late StateSetter rebuild;
+    final taps = <RuntimeOverworldInteractionRequest>[];
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: StatefulBuilder(builder: (context, setState) {
+          rebuild = setState;
+          return RuntimePlayerTouchControls(
+              dispatch: (_) {},
+              showControls: show,
+              readGameplayViewport: () => const Rect.fromLTWH(0, 0, 800, 600),
+              resolveTapTarget: (_) => request,
+              onTap: taps.add);
+        })));
+    final action = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    rebuild(() => show = true);
+    await tester.pump();
+    await action.up();
+    expect(taps, [request]);
+  });
+
+  testWidgets('bands safe insets and excluded UI never capture a world action',
+      (tester) async {
+    final taps = <RuntimeOverworldInteractionRequest>[];
+    final passed = <Offset>[];
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: MediaQuery(
+            data: const MediaQueryData(
+                padding: EdgeInsets.fromLTRB(100, 80, 40, 60)),
+            child: Stack(children: [
+              Positioned.fill(
+                  child: Listener(
+                      behavior: HitTestBehavior.opaque,
+                      onPointerDown: (event) =>
+                          passed.add(event.localPosition))),
+              Positioned.fill(
+                  child: RuntimePlayerTouchControls(
+                      dispatch: (_) {},
+                      readGameplayViewport: () =>
+                          const Rect.fromLTRB(70, 50, 780, 580),
+                      readExcludedRects: () =>
+                          [const Rect.fromLTWH(500, 100, 80, 60)],
+                      resolveTapTarget: (_) => request,
+                      onTap: taps.add)),
+            ]))));
+    for (final point in [
+      const Offset(90, 100),
+      const Offset(200, 60),
+      const Offset(770, 400),
+      const Offset(500, 550),
+      const Offset(520, 120)
+    ]) {
+      final pointer =
+          await tester.startGesture(point, kind: ui.PointerDeviceKind.touch);
+      await pointer.up();
+    }
+    expect(passed, hasLength(5));
+    expect(taps, isEmpty);
+  });
+
+  testWidgets(
+      'world taps are cancelled by source lifecycle and pointer cancellation',
+      (tester) async {
+    final cancellation = ChangeNotifier();
+    addTearDown(cancellation.dispose);
+    final taps = <RuntimeOverworldInteractionRequest>[];
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: RuntimePlayerTouchControls(
+            dispatch: (_) {},
+            cancellationSignal: cancellation,
+            readGameplayViewport: () => const Rect.fromLTWH(0, 0, 800, 600),
+            resolveTapTarget: (_) => request,
+            onTap: taps.add)));
+    final source = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    cancellation.notifyListeners();
+    await source.up();
+    final background = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await background.up();
+    final cancelled = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    await cancelled.cancel();
+    expect(taps, isEmpty);
+    final fresh = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    await fresh.up();
+    expect(taps, [request]);
+  });
+
+  testWidgets(
+      'cancelled secondary world pointer never cancels joystick ownership',
+      (tester) async {
+    final events = <RuntimeInputEvent>[];
+    final taps = <RuntimeOverworldInteractionRequest>[];
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: RuntimePlayerTouchControls(
+            dispatch: events.add,
+            readGameplayViewport: () => const Rect.fromLTWH(0, 0, 800, 600),
+            resolveTapTarget: (_) => request,
+            onTap: taps.add)));
+    final joystick = await tester.startGesture(const Offset(100, 400),
+        pointer: 1, kind: ui.PointerDeviceKind.touch);
+    await joystick.moveBy(const Offset(30, 0));
+    final cancelled = await tester.startGesture(const Offset(600, 100),
+        pointer: 2, kind: ui.PointerDeviceKind.touch);
+    await cancelled.cancel();
+    expect(events, const [RuntimeInputEvent.press(RuntimeInputControl.right)]);
+    expect(taps, isEmpty);
+    await joystick.up();
+    expect(events.last,
+        const RuntimeInputEvent.release(RuntimeInputControl.right));
+  });
+
   test('gesture sprint uses real origin thresholds and directional hysteresis',
       () {
     final driver = RuntimePlayerFloatingTouchDriver(sprintAllowed: true);
@@ -46,8 +335,12 @@ void main() {
   });
 
   test('movement while forbidden cannot prearm a held gesture', () {
-    for (final mode in [RuntimePlayerTouchRunMode.gesture, RuntimePlayerTouchRunMode.automatic]) {
-      final driver = RuntimePlayerFloatingTouchDriver(sprintAllowed: true, runMode: mode);
+    for (final mode in [
+      RuntimePlayerTouchRunMode.gesture,
+      RuntimePlayerTouchRunMode.automatic
+    ]) {
+      final driver =
+          RuntimePlayerFloatingTouchDriver(sprintAllowed: true, runMode: mode);
       driver.begin(1, Offset.zero);
       driver.update(1, const Offset(50, 0));
       driver.setSprintAllowed(false);
@@ -253,7 +546,7 @@ void main() {
       await pointer.moveTo(const Offset(300, 440));
       await pointer.up();
     }
-    expect(taps, hasLength(3));
+    expect(taps, hasLength(2));
     expect(events, isEmpty);
     final pointer = await tester.startGesture(const Offset(110, 450),
         kind: ui.PointerDeviceKind.touch);
@@ -358,7 +651,7 @@ void main() {
       await pointer.moveBy(const Offset(40, 0));
       await pointer.up();
     }
-    expect(passed, hasLength(4));
+    expect(passed, hasLength(3));
     expect(events, isEmpty);
     final pointer = await tester.startGesture(const Offset(650, 400),
         kind: ui.PointerDeviceKind.touch);
@@ -452,13 +745,14 @@ void main() {
   testWidgets('absent viewport never captures and release cannot begin a drag',
       (tester) async {
     final events = <RuntimeInputEvent>[];
-    final candidates = <RuntimePlayerTouchTapCandidate>[];
+    final candidates = <RuntimeOverworldInteractionRequest>[];
     var viewportAvailable = false;
     await tester.pumpWidget(MaterialApp(
         theme: PokeMapPlayerTheme.dark(),
         home: RuntimePlayerTouchControls(
             dispatch: events.add,
-            onTapCandidate: candidates.add,
+            resolveTapTarget: (_) => request,
+            onTap: candidates.add,
             readGameplayViewport: () => viewportAvailable
                 ? const Rect.fromLTWH(0, 0, 800, 600)
                 : null)));
@@ -474,7 +768,7 @@ void main() {
     await pointer.down(const Offset(100, 400));
     await pointer.up();
     expect(events, isEmpty);
-    expect(candidates.single.pointer, 9);
+    expect(candidates.single, request);
   });
   testWidgets('app suspension cancels a held drag without replay on resume',
       (tester) async {

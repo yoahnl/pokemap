@@ -1421,6 +1421,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             gameplayInputRoute: host.sessionController.handleInput,
             gameplayViewportKey: _interactiveGameSurfaceKey,
             gameplayInputAuthority: game?.inputAuthorityListenable,
+            overworldInteractions: game?.overworldInteractions,
+            hitTestOverworldInteraction: game?.hitTestOverworldInteraction,
+            onOverworldInteraction: game?.dispatchOverworldInteraction,
             dialoguePresentation: game?.dialoguePresentationListenable,
             onDialogueCommand: game?.dispatchDialoguePresentationCommand,
             battlePresentation: game?.battleCommandOverlayListenable,
@@ -1522,7 +1525,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
                   dispatch: game.handleRuntimeInputEvent,
                 ),
               ),
-            if (_showRuntimeDebugPanel)
+            if (_startupViewController == null && _showRuntimeDebugPanel)
               Positioned(
                 top: 12,
                 right: 12,

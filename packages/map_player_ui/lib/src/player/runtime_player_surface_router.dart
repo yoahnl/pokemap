@@ -44,6 +44,7 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
     this.onShowDiagnostics,
     this.gameplayTouchMenuEnabled = true,
     this.gameplayTouchMenuKey,
+    this.gameplayAction,
     this.touchControlsOpacity = 0.82,
     this.onPreferencesChanged,
     this.onPauseCommand,
@@ -72,6 +73,7 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
   final VoidCallback? onShowDiagnostics;
   final bool gameplayTouchMenuEnabled;
   final GlobalKey? gameplayTouchMenuKey;
+  final Widget? gameplayAction;
   final double touchControlsOpacity;
   final FutureOr<void> Function(PlayerPreferencesSnapshot)?
       onPreferencesChanged;
@@ -345,6 +347,7 @@ class _RuntimePlayerSurfaceRouterState
         ),
       RuntimePlayerPhase.playing => RuntimePlayerTouchMenuButton(
           hitRegionKey: widget.gameplayTouchMenuKey,
+          actionCapsule: widget.gameplayAction,
           onPressed: widget.gameplayTouchMenuEnabled
               ? _callbackFor(RuntimePlayerAction.openMenu)
               : null,

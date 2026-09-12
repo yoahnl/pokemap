@@ -12,6 +12,166 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('OW006 hidden item world tap dispatches once without a capsule',
+      (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+        revision: 1, phase: RuntimePlayerPhase.playing));
+    final interactions = ValueNotifier(_overworldSnapshot(tapOnly: true));
+    final requests = <RuntimeOverworldInteractionRequest>[];
+    final inputs = <RuntimeInputEvent>[];
+    final viewportKey = GlobalKey();
+    addTearDown(controller.dispose);
+    addTearDown(interactions.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+        gameplayViewportKey: viewportKey,
+        gameSceneBuilder: (_) => SizedBox.expand(key: viewportKey),
+        touchControlsAvailable: true,
+        gameplayInputRoute: (event) { inputs.add(event); return true; },
+        overworldInteractions: interactions,
+        hitTestOverworldInteraction: (point) =>
+            const Rect.fromLTWH(580, 80, 40, 40).contains(point)
+                ? interactions.value.tapAction?.request : null,
+        onOverworldInteraction: (request) { requests.add(request); return true; })));
+    expect(interactions.value.primaryAction, isNull);
+    expect(find.byType(PlayerOverworldActionCapsule), findsNothing);
+    final pointer = await tester.startGesture(const Offset(600, 100),
+        kind: ui.PointerDeviceKind.touch);
+    expect(requests, isEmpty);
+    await pointer.up();
+    await tester.pump();
+    expect(requests, [interactions.value.tapAction!.request]);
+    expect(inputs, isEmpty);
+    expect(find.byType(PlayerOverworldActionCapsule), findsNothing);
+    expect(find.byKey(const ValueKey('runtime-player-touch-primary-button')),
+        findsNothing);
+  });
+
+  for (final interruption in ['drag', 'A B A', 'authority', 'Menu']) {
+    testWidgets('OW006 hidden item tap is cancelled by $interruption',
+        (tester) async {
+      final menuTransition = Completer<RuntimePlayerCommandResult>();
+      final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+          revision: 1, phase: RuntimePlayerPhase.playing,
+          actions: const [RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.openMenu)]),
+          commandCompleter: interruption == 'Menu' ? menuTransition : null);
+      final interactions = ValueNotifier(_overworldSnapshot(tapOnly: true));
+      final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+          context: RuntimeInputContext.overworld));
+      final requests = <RuntimeOverworldInteractionRequest>[];
+      final viewportKey = GlobalKey();
+      addTearDown(controller.dispose);
+      addTearDown(interactions.dispose);
+      addTearDown(authority.dispose);
+      await tester.pumpWidget(_app(_view(controller,
+          gameplayViewportKey: viewportKey,
+          gameSceneBuilder: (_) => SizedBox.expand(key: viewportKey),
+          touchControlsAvailable: true,
+          gameplayInputRoute: (_) => true,
+          gameplayInputAuthority: authority,
+          hapticFeedback: () async {},
+          overworldInteractions: interactions,
+          hitTestOverworldInteraction: (point) =>
+              const Rect.fromLTWH(580, 80, 40, 40).contains(point)
+                  ? interactions.value.tapAction?.request : null,
+          onOverworldInteraction: (request) { requests.add(request); return true; })));
+      final pointer = await tester.startGesture(const Offset(600, 100),
+          kind: ui.PointerDeviceKind.touch);
+      switch (interruption) {
+        case 'drag':
+          await pointer.moveBy(const Offset(20, 0));
+          await pointer.moveTo(const Offset(600, 100));
+        case 'A B A':
+          interactions.value = _overworldSnapshot(target: 'other', tapOnly: true);
+          interactions.value = _overworldSnapshot(tapOnly: true);
+        case 'authority':
+          authority.value = const RuntimeInputAuthoritySnapshot(
+              context: RuntimeInputContext.dialogue);
+          authority.value = const RuntimeInputAuthoritySnapshot(
+              context: RuntimeInputContext.overworld);
+        case 'Menu':
+          await tester.tap(find.byType(PlayerOverworldMenuButton));
+          await tester.pump();
+          expect(controller.commands, hasLength(1));
+      }
+      await pointer.up();
+      await tester.pump();
+      expect(requests, isEmpty);
+      expect(find.byType(PlayerOverworldActionCapsule), findsNothing);
+      if (interruption == 'Menu') {
+        menuTransition.complete(const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.accepted));
+        await tester.idle();
+        await tester.pump();
+        expect(tester.widget<RuntimePlayerTouchControls>(
+            find.byType(RuntimePlayerTouchControls)).showControls, isTrue);
+      }
+      final fresh = await tester.startGesture(const Offset(600, 100),
+          kind: ui.PointerDeviceKind.touch);
+      await fresh.up();
+      await tester.pump();
+      expect(requests, [interactions.value.tapAction!.request]);
+      expect(find.byType(PlayerOverworldActionCapsule), findsNothing);
+    });
+  }
+
+  testWidgets('OW006 capsule and transformed world tap dispatch the same target', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1,
+      phase: RuntimePlayerPhase.playing, preferences: const PlayerPreferencesSnapshot(locale: 'fr', accessibility: GameSessionAccessibilityOptions()),
+      actions: const [RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu)]));
+    final interactions = ValueNotifier(_overworldSnapshot());
+    final requests = <RuntimeOverworldInteractionRequest>[];
+    final canvasPoints = <Offset>[];
+    final viewportKey = GlobalKey();
+    addTearDown(controller.dispose);
+    addTearDown(interactions.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+      gameplayViewportKey: viewportKey,
+      gameSceneBuilder: (_) => Stack(children: [Positioned(left: 100, top: 40,
+        child: Transform.scale(scale: .5, alignment: Alignment.topLeft,
+          child: SizedBox(key: viewportKey, width: 400, height: 600)))]),
+      touchControlsAvailable: true, gameplayInputRoute: (_) => true,
+      overworldInteractions: interactions,
+      hitTestOverworldInteraction: (point) { canvasPoints.add(point); return interactions.value.primaryAction?.request; },
+      onOverworldInteraction: (request) { requests.add(request); return true; },
+    )));
+    expect(find.text('Parler'), findsOneWidget);
+    expect(tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule)).glyph, isNull);
+    final tap = await tester.startGesture(const Offset(150, 90), kind: ui.PointerDeviceKind.touch);
+    await tap.up();
+    await tester.pump();
+    expect(canvasPoints, everyElement(const Offset(100, 100)));
+    expect(requests, [interactions.value.primaryAction!.request]);
+    final capsule = await tester.startGesture(tester.getCenter(find.byType(PlayerOverworldActionCapsule)), kind: ui.PointerDeviceKind.touch);
+    await capsule.up();
+    await tester.pump();
+    expect(requests, [interactions.value.primaryAction!.request, interactions.value.primaryAction!.request]);
+    expect(find.byKey(const ValueKey('runtime-player-touch-primary-button')), findsNothing);
+    expect(find.byKey(const ValueKey('runtime-player-touch-secondary-button')), findsNothing);
+  });
+
+  testWidgets('OW006 capsule never retargets a press across A B A availability', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1,
+      phase: RuntimePlayerPhase.playing,
+      actions: const [RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu)]));
+    final interactions = ValueNotifier(_overworldSnapshot());
+    final requests = <RuntimeOverworldInteractionRequest>[];
+    addTearDown(controller.dispose);
+    addTearDown(interactions.dispose);
+    await tester.pumpWidget(_app(_view(controller, touchControlsAvailable: true,
+      gameplayInputRoute: (_) => true, overworldInteractions: interactions,
+      onOverworldInteraction: (request) { requests.add(request); return true; })));
+    final tap = await tester.startGesture(tester.getCenter(find.byType(PlayerOverworldActionCapsule)), kind: ui.PointerDeviceKind.touch);
+    interactions.value = _overworldSnapshot(target: 'other');
+    interactions.value = _overworldSnapshot();
+    await tap.up();
+    await tester.pump();
+    expect(requests, isEmpty);
+    interactions.value = _overworldSnapshot(hasAction: false);
+    await tester.pump();
+    expect(find.byType(PlayerOverworldActionCapsule), findsNothing);
+  });
+
   for (final enabled in [false, true]) {
     testWidgets('OW005 accepted sprint haptic respects preference $enabled', (tester) async {
       var haptics = 0;
@@ -89,6 +249,35 @@ void main() {
     expect(events, const [RuntimeInputEvent.press(RuntimeInputControl.sprint),
       RuntimeInputEvent.release(RuntimeInputControl.sprint)]);
     expect(haptics, 1);
+  });
+
+  testWidgets('contextual capsule follows locale and disabled hardware hints', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1,
+      phase: RuntimePlayerPhase.playing,
+      preferences: const PlayerPreferencesSnapshot(locale: 'en',
+        accessibility: GameSessionAccessibilityOptions(), showInputHints: false)));
+    final interactions = ValueNotifier(_overworldSnapshot());
+    addTearDown(controller.dispose);
+    addTearDown(interactions.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+      overworldInteractions: interactions, onOverworldInteraction: (_) => true)));
+    var capsule = tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule));
+    expect(capsule.label, 'Talk');
+    expect(capsule.glyph, isNull);
+    controller.publish(_snapshot(revision: 2, phase: RuntimePlayerPhase.playing,
+      preferences: const PlayerPreferencesSnapshot(locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(), showInputHints: true)));
+    await tester.pump();
+    capsule = tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule));
+    expect(capsule.label, 'Parler');
+    expect(capsule.glyph, 'E');
+    controller.publish(_snapshot(revision: 3, phase: RuntimePlayerPhase.playing,
+      preferences: const PlayerPreferencesSnapshot(locale: 'en',
+        accessibility: GameSessionAccessibilityOptions(), showInputHints: false)));
+    await tester.pump();
+    capsule = tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule));
+    expect(capsule.label, 'Talk');
+    expect(capsule.glyph, isNull);
   });
 
   testWidgets('OW004 measures scaled gameplay viewport in session coordinates', (tester) async {
@@ -203,15 +392,16 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(_app(_view(controller,
       gameplayViewportKey: viewportKey,
-      gameSceneBuilder: (_) => Stack(children: [Positioned(left: 250, top: 0,
-        child: SizedBox(key: viewportKey, width: 140, height: 100))]),
+      gameSceneBuilder: (_) => SizedBox.expand(key: viewportKey),
       touchControlsAvailable: true,
       gameplayInputRoute: (event) { events.add(event); return true; },
     )));
-    final first = await tester.startGesture(const Offset(320, 85), pointer: 1, kind: ui.PointerDeviceKind.touch);
+    final first = await tester.startGesture(const Offset(320, 600), pointer: 1, kind: ui.PointerDeviceKind.touch);
     await first.moveBy(const Offset(-30, 0));
     expect(events.single, const RuntimeInputEvent.press(RuntimeInputControl.left));
-    final menu = await tester.startGesture(const Offset(350, 50), pointer: 2, kind: ui.PointerDeviceKind.touch);
+    final menuPosition = tester.getCenter(find.byType(PlayerOverworldMenuButton));
+    expect(menuPosition.dy, greaterThan(700));
+    final menu = await tester.startGesture(menuPosition, pointer: 2, kind: ui.PointerDeviceKind.touch);
     await menu.up();
     await tester.pump();
     expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
@@ -380,8 +570,9 @@ void main() {
         routed.add(event);
         return true;
       })));
-      await tester.tap(
-          find.byKey(const ValueKey('runtime-player-touch-primary-button')));
+      final touch = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
+      await touch.moveBy(const Offset(20, 0));
+      await touch.up();
       await tester.pump();
       routed.clear();
       connected.value = {'pad'};
@@ -508,17 +699,20 @@ void main() {
               control: RuntimeInputControl.primary,
               inputId: 'x')
           .profile;
+      final interactions = ValueNotifier(_overworldSnapshot());
+      addTearDown(interactions.dispose);
       addTearDown(controller.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
       await tester.pumpWidget(_app(_view(controller,
+          overworldInteractions: interactions, onOverworldInteraction: (_) => true,
           connectedControllerIds: connected,
           normalizedControllerInputEvents: events.stream,
           controlProfile: profile, gameplayInputRoute: (event) {
         routed.add(event);
         return true;
       })));
-      expect(find.text('Z · M Pause'), findsOneWidget);
+      expect(tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule)).glyph, 'Z');
       await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
       expect(routed, const [
         RuntimeInputEvent.press(RuntimeInputControl.primary),
@@ -553,7 +747,7 @@ void main() {
       await tester.pump();
       expect(
           routed, const [RuntimeInputEvent.press(RuntimeInputControl.primary)]);
-      expect(find.text('Bouton ouest · Menu Pause'), findsOneWidget);
+      expect(tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule)).glyph, 'Bouton ouest');
       events.add(_padInput(button: GamepadButton.x, value: 0));
       await tester.pump();
       expect(routed, const [
@@ -733,11 +927,13 @@ void main() {
       final connected = ValueNotifier<Set<String>>({'xbox', 'sony'});
       final events = StreamController<NormalizedGamepadEvent>.broadcast();
       final routed = <RuntimeInputEvent>[];
+      final interactions = ValueNotifier(_overworldSnapshot());
+      addTearDown(interactions.dispose);
       addTearDown(controller.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
-      await tester.pumpWidget(_app(_view(
-        controller,
+      await tester.pumpWidget(_app(_view(controller,
+          overworldInteractions: interactions, onOverworldInteraction: (_) => true,
         touchControlsAvailable: true,
         connectedControllerIds: connected,
         normalizedControllerInputEvents: events.stream,
@@ -753,7 +949,7 @@ void main() {
           productId: 0x0b0c));
       await tester.pump();
       await tester.pump();
-      expect(find.text('A · Menu Pause'), findsOneWidget);
+      expect(tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule)).glyph, 'A');
       events.add(_padInput(
           gamepadId: 'xbox',
           button: GamepadButton.a,
@@ -767,7 +963,7 @@ void main() {
           productId: 0x0ba0));
       await tester.pump();
       await tester.pump();
-      expect(find.text('× · Menu Pause'), findsOneWidget);
+      expect(tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule)).glyph, '×');
       events.add(_padInput(
           gamepadId: 'sony',
           button: GamepadButton.a,
@@ -798,7 +994,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       _expectTouchControls(tester, false);
-      expect(find.text('A · Menu Pause'), findsOneWidget);
+      expect(tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule)).glyph, 'A');
       expect(tester.takeException(), isNull);
     });
 
@@ -1157,7 +1353,7 @@ void main() {
             .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
             .activeInputSource,
         PlayerInputSource.touch);
-    expect(find.text('Tactile'), findsOneWidget);
+    expect(find.byKey(const ValueKey('options-touch-run-mode-choice')), findsOneWidget);
     expect(controller.commands, isEmpty);
     expect(tester.takeException(), isNull);
   });
@@ -1301,7 +1497,7 @@ void main() {
     expect(tester.getSemantics(hints).label, 'E · M Pause');
   });
 
-  testWidgets('pause footer replaces world input hints', (tester) async {
+  testWidgets('pause hides the contextual world capsule', (tester) async {
     const preferences = PlayerPreferencesSnapshot(
       locale: 'fr',
       accessibility: GameSessionAccessibilityOptions(),
@@ -1314,13 +1510,14 @@ void main() {
         preferences: preferences,
       ),
     );
-    addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(controller)));
+    final interactions = ValueNotifier(_overworldSnapshot());
+      addTearDown(interactions.dispose);
+      addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+          overworldInteractions: interactions, onOverworldInteraction: (_) => true,)));
     await tester.pumpAndSettle();
-    final hints = find.byKey(
-      const ValueKey<String>('runtime-player-input-hints'),
-    );
-    expect(hints, findsOneWidget);
+    final capsule = find.byType(PlayerOverworldActionCapsule);
+    expect(capsule, findsOneWidget);
 
     controller.publish(
       _snapshot(
@@ -1330,12 +1527,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(hints, findsNothing);
+    expect(capsule, findsNothing);
+    expect(find.byKey(const ValueKey('runtime-player-input-hints')), findsNothing);
   });
 
   testWidgets('runtime haptics follow the projected preference',
       (tester) async {
     var hapticCalls = 0;
+    var acceptsAction = true;
     final controller = _FakeRuntimePlayerCoordinator(
       _snapshot(
         revision: 83,
@@ -1348,21 +1547,21 @@ void main() {
         ),
       ),
     );
-    addTearDown(controller.dispose);
+    final interactions = ValueNotifier(_overworldSnapshot());
+      addTearDown(interactions.dispose);
+      addTearDown(controller.dispose);
 
     await tester.pumpWidget(
       _app(
-        _view(
-          controller,
+        _view(controller,
+          overworldInteractions: interactions, onOverworldInteraction: (_) => acceptsAction,
           gameplayInputRoute: (_) => true,
           touchControlsAvailable: true,
           hapticFeedback: () async => hapticCalls++,
         ),
       ),
     );
-    final primary = find.byKey(
-      const ValueKey<String>('runtime-player-touch-primary-button'),
-    );
+    final primary = find.byType(PlayerOverworldActionCapsule);
     await tester.tap(primary);
     expect(hapticCalls, 0);
 
@@ -1379,6 +1578,10 @@ void main() {
       ),
     );
     await tester.pump();
+    acceptsAction = false;
+    await tester.tap(primary);
+    expect(hapticCalls, 0);
+    acceptsAction = true;
     await tester.tap(primary);
     expect(hapticCalls, 1);
   });
@@ -2080,6 +2283,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final gameplayEvents = <RuntimeInputEvent>[];
+    final interactionsDispatched = <RuntimeOverworldInteractionRequest>[];
     final controller = _FakeRuntimePlayerCoordinator(
       _snapshot(
         revision: 23,
@@ -2091,12 +2295,14 @@ void main() {
         ],
       ),
     );
-    addTearDown(controller.dispose);
+    final interactions = ValueNotifier(_overworldSnapshot());
+      addTearDown(interactions.dispose);
+      addTearDown(controller.dispose);
 
     await tester.pumpWidget(
       _app(
-        _view(
-          controller,
+        _view(controller,
+          overworldInteractions: interactions, onOverworldInteraction: (request) { interactionsDispatched.add(request); return true; },
           touchControlsAvailable: true,
           gameplayInputRoute: (event) {
             gameplayEvents.add(event);
@@ -2111,30 +2317,21 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(
-        const ValueKey<String>('runtime-player-touch-primary-button'),
-      ),
+      find.byType(PlayerOverworldActionCapsule),
       findsOneWidget,
     );
     expect(
       find.byKey(
         const ValueKey<String>('runtime-player-touch-secondary-button'),
       ),
-      findsOneWidget,
+      findsNothing,
     );
 
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-touch-primary-button'),
-      ),
+      find.byType(PlayerOverworldActionCapsule),
     );
-    expect(
-      gameplayEvents,
-      const <RuntimeInputEvent>[
-        RuntimeInputEvent.press(RuntimeInputControl.primary),
-        RuntimeInputEvent.release(RuntimeInputControl.primary),
-      ],
-    );
+    expect(interactionsDispatched, [interactions.value.primaryAction!.request]);
+    expect(gameplayEvents, isEmpty);
 
     tester.view.physicalSize = const Size(844, 390);
     await tester.pump();
@@ -2142,6 +2339,10 @@ void main() {
       find.byKey(const ValueKey<String>('runtime-player-touch-movement-zone')),
       findsOneWidget,
     );
+    expect(find.byType(PlayerOverworldActionCapsule), findsOneWidget);
+    await tester.tap(find.byType(PlayerOverworldActionCapsule));
+    expect(interactionsDispatched, hasLength(2));
+    expect(gameplayEvents, isEmpty);
     expect(tester.takeException(), isNull);
   });
 
@@ -2168,12 +2369,14 @@ void main() {
         ],
       ),
     );
-    addTearDown(controller.dispose);
+    final interactions = ValueNotifier(_overworldSnapshot());
+      addTearDown(interactions.dispose);
+      addTearDown(controller.dispose);
 
     await tester.pumpWidget(
       _app(
-        _view(
-          controller,
+        _view(controller,
+          overworldInteractions: interactions, onOverworldInteraction: (_) => true,
           touchControlsAvailable: true,
           gameplayInputRoute: (_) => true,
           gameplayInputAuthority: authority,
@@ -2190,6 +2393,7 @@ void main() {
       findsOneWidget,
     );
 
+    expect(find.byType(PlayerOverworldActionCapsule), findsOneWidget);
     authority.value = const RuntimeInputAuthoritySnapshot(
       context: RuntimeInputContext.battle,
     );
@@ -2199,9 +2403,7 @@ void main() {
       findsNothing,
     );
     expect(
-      find.byKey(
-        const ValueKey<String>('runtime-player-touch-primary-button'),
-      ),
+      find.byType(PlayerOverworldActionCapsule),
       findsNothing,
     );
     expect(
@@ -2220,9 +2422,7 @@ void main() {
     );
     await tester.pump();
     expect(
-      find.byKey(
-        const ValueKey<String>('runtime-player-touch-primary-button'),
-      ),
+      find.byType(PlayerOverworldActionCapsule),
       findsNothing,
     );
     expect(
@@ -2239,9 +2439,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(
-        const ValueKey<String>('runtime-player-touch-primary-button'),
-      ),
+      find.byType(PlayerOverworldActionCapsule),
       findsOneWidget,
     );
   });
@@ -2376,12 +2574,14 @@ void main() {
         ),
       ),
     );
-    addTearDown(controller.dispose);
+    final interactions = ValueNotifier(_overworldSnapshot());
+      addTearDown(interactions.dispose);
+      addTearDown(controller.dispose);
 
     await tester.pumpWidget(
       _app(
-        _view(
-          controller,
+        _view(controller,
+          overworldInteractions: interactions, onOverworldInteraction: (_) => true,
           battlePresentation: battle,
           onBattleCommand: commands.add,
         ),
@@ -2390,7 +2590,7 @@ void main() {
 
     expect(find.byType(PlayerBattleOverlay), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('runtime-player-input-hints')),
+      find.byType(PlayerOverworldActionCapsule),
       findsNothing,
     );
     expect(find.text('Roucool'), findsOneWidget);
@@ -2409,13 +2609,13 @@ void main() {
 
     battle.value = null;
     await tester.pump();
+    expect(
+      find.byType(PlayerOverworldActionCapsule),
+      findsOneWidget,
+    );
     await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
     await tester.pump();
     expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
-    expect(
-      find.byKey(const ValueKey<String>('runtime-player-input-hints')),
-      findsOneWidget,
-    );
   });
 
   testWidgets('applies touch opacity and clamps floating visual inside viewport',
@@ -2856,6 +3056,9 @@ void main() {
     final focusNode = FocusNode();
     addTearDown(focusNode.dispose);
 
+    final menuPosition = tester.getCenter(find.byKey(
+      const ValueKey<String>('runtime-player-touch-menu-open'),
+    ));
     inputAuthority.onKeyEvent!(
       focusNode,
       const KeyDownEvent(
@@ -2865,11 +3068,8 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-touch-menu-open'),
-      ),
-    );
+    expect(find.byKey(const ValueKey<String>('runtime-player-touch-menu-open')), findsNothing);
+    await tester.tapAt(menuPosition);
     await tester.pump();
     inputAuthority.onKeyEvent!(
       focusNode,
@@ -2914,8 +3114,9 @@ void _expectTouchControls(WidgetTester tester, bool visible) {
           find.byKey(const ValueKey('runtime-player-touch-controls-opacity')))
       .opacity;
   expect(opacity, visible ? greaterThan(0) : 0);
-  expect(find.byKey(const ValueKey('runtime-player-touch-primary-button')),
-      visible ? findsOneWidget : findsNothing);
+  expect(tester.widget<RuntimePlayerTouchControls>(find.byType(RuntimePlayerTouchControls)).showControls, visible);
+  expect(find.byKey(const ValueKey('runtime-player-touch-primary-button')), findsNothing);
+  expect(find.byKey(const ValueKey('runtime-player-touch-secondary-button')), findsNothing);
 }
 
 NormalizedGamepadEvent _padInput(
@@ -2953,6 +3154,9 @@ PokeMapPlayerSessionView _view(
   Stream<NormalizedGamepadEvent>? normalizedControllerInputEvents,
   ValueListenable<Set<String>>? connectedControllerIds,
   ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority,
+  ValueListenable<RuntimeOverworldInteractionSnapshot>? overworldInteractions,
+  RuntimeOverworldInteractionRequest? Function(Offset)? hitTestOverworldInteraction,
+  bool Function(RuntimeOverworldInteractionRequest)? onOverworldInteraction,
   ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation,
   ValueChanged<DialoguePresentationCommand>? onDialogueCommand,
   ValueListenable<BattleCommandOverlaySnapshot?>? battlePresentation,
@@ -2981,6 +3185,9 @@ PokeMapPlayerSessionView _view(
     touchControlsAvailable: touchControlsAvailable,
     gameplayInputRoute: gameplayInputRoute,
     gameplayInputAuthority: gameplayInputAuthority,
+    overworldInteractions: overworldInteractions,
+    hitTestOverworldInteraction: hitTestOverworldInteraction,
+    onOverworldInteraction: onOverworldInteraction,
     dialoguePresentation: dialoguePresentation,
     onDialogueCommand: onDialogueCommand,
     battlePresentation: battlePresentation,
@@ -2998,6 +3205,16 @@ PokeMapPlayerSessionView _view(
     presentationContentPort: presentationContentPort,
     onPresentationSkip: onPresentationSkip,
   );
+}
+
+RuntimeOverworldInteractionSnapshot _overworldSnapshot({String target = 'npc', bool hasAction = true, bool tapOnly = false}) {
+  final action = !hasAction ? null : RuntimeOverworldInteractionAction(
+        request: RuntimeOverworldInteractionRequest(sessionId: 'session', mapActivationId: 'activation', mapId: 'map',
+          targetKind: RuntimeOverworldInteractionTargetKind.entity, targetId: target, actionId: 'talk'),
+        verb: RuntimeOverworldInteractionVerb.talk, targetCell: const GridPos(x: 1, y: 1),
+        targetBounds: const PixelRect(leftPx: 32, topPx: 32, widthPx: 32, heightPx: 32));
+  return RuntimeOverworldInteractionSnapshot(sessionId: 'session', mapActivationId: 'activation', mapId: 'map',
+      primaryAction: tapOnly ? null : action, tapAction: action);
 }
 
 RuntimePlayerSnapshot _snapshot({

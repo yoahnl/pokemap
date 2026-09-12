@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../localization/player_localizations.dart';
-import '../theme/pokemap_player_theme.dart';
-import 'runtime_player_layout.dart';
+import '../foundation/player_overworld_components.dart';
+import '../theme/pokemap_player_overworld_theme.dart';
 import 'player_control_profile.dart';
 
 final class RuntimePlayerLocalActionNotification extends Notification {}
@@ -209,6 +209,7 @@ class RuntimePlayerTouchMenuButton extends StatelessWidget {
     required this.onPressed,
     this.activeInputSource,
     this.hitRegionKey,
+    this.actionCapsule,
     this.opacity = 0.82,
   }) : assert(opacity >= 0.3 && opacity <= 1);
 
@@ -216,47 +217,20 @@ class RuntimePlayerTouchMenuButton extends StatelessWidget {
   final PlayerInputSource? activeInputSource;
   final double opacity;
   final GlobalKey? hitRegionKey;
+  final Widget? actionCapsule;
 
   @override
   Widget build(BuildContext context) {
-    if (onPressed == null) return const SizedBox.shrink();
-    return SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (classifyRuntimePlayerLayout(constraints) ==
-              RuntimePlayerLayoutClass.expanded) {
-            return const SizedBox.shrink();
-          }
-          return Align(
-            alignment: Alignment.topRight,
-            child: Padding(
-              padding: const EdgeInsets.all(PlayerSpacing.sm),
-              child: AnimatedOpacity(
-                opacity: opacity *
-                    (activeInputSource == PlayerInputSource.controller
-                        ? .42
-                        : 1),
-                duration: context.playerMotion.fast,
-                child: Material(
-                  key: hitRegionKey,
-                  type: MaterialType.transparency,
-                  child: IconButton.filled(
-                    key: const ValueKey<String>(
-                      'runtime-player-touch-menu-open',
-                    ),
-                    tooltip: context.playerL10n.pause,
-                    onPressed: onPressed,
-                    constraints: const BoxConstraints.tightFor(
-                      width: 56,
-                      height: 56,
-                    ),
-                    icon: const Icon(Icons.menu_rounded),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+    if (onPressed == null && actionCapsule == null) return const SizedBox.shrink();
+    return Opacity(
+      opacity: context.playerOverworldTheme.opaque ? 1 : opacity,
+      child: PlayerOverworldControlsLayout(
+        actionCapsule: actionCapsule,
+        menuButton: SizedBox(key: hitRegionKey, child: PlayerOverworldMenuButton(
+          key: const ValueKey('runtime-player-touch-menu-open'),
+          label: context.playerL10n.menu,
+          onPressed: onPressed,
+        )),
       ),
     );
   }

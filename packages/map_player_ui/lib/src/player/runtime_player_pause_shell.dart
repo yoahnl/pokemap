@@ -838,8 +838,16 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         scrollKey: scrollKey,
         scrollController: controller,
         focusController: _focusController,
-        controlProfile: widget.controlProfile,
-        controllerFamily: widget.controllerFamily,
+        confirmShortcut: (widget.controlProfile ?? PlayerControlProfile.standard)
+            .promptFor(
+          switch (_focusController.activeInputSource) {
+            PlayerInputSource.controller => PlayerControlDevice.gamepad,
+            PlayerInputSource.touch => PlayerControlDevice.touch,
+            _ => PlayerControlDevice.keyboard,
+          },
+          RuntimeInputControl.primary,
+          family: widget.controllerFamily,
+        ),
         labels: widget.labels,
         presentation: _isIllustrated
             ? PlayerPausePresentation(

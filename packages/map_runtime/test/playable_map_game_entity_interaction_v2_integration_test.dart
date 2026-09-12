@@ -211,6 +211,74 @@ void main() {
               .contains(fixture.eventId));
     });
 
+    test('a hidden item tap executes its canonical Event V2 action only once',
+        () async {
+      final original = _entityFixtures[2];
+      final fixture = _EntityFixture(
+          entity: original.entity.copyWith(
+              item: original.entity.item!
+                  .copyWith(visibility: MapEntityItemVisibility.hidden)),
+          eventId: original.eventId,
+          sceneId: original.sceneId,
+          factId: original.factId);
+      var preparations = 0;
+      final bundle = _v2Bundle(fixture);
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: '/tmp/overworld_hidden_tap/project.json',
+        beforeNarrativeAuthorityPreparation: (occurrence) async {
+          if (occurrence.source.kind ==
+              NarrativeEventSourceKind.entityInteract) {
+            preparations++;
+          }
+        },
+      );
+      await _load(game);
+      final projection = game.overworldInteractionSnapshot;
+      expect(projection.primaryAction, isNull);
+      final action = projection.tapAction!;
+      expect(action.request.targetId, fixture.entity.id);
+      expect(action.request.targetKind,
+          RuntimeOverworldInteractionTargetKind.entity);
+      expect(action.targetCell, const GridPos(x: 1, y: 0));
+      final settings = bundle.manifest.settings;
+      final point = game.camera.localToGlobal(
+          game.debugMapOriginWorldTopLeft +
+              Vector2(
+                  (action.targetBounds.leftPx +
+                          action.targetBounds.widthPx / 2) *
+                      settings.displayScale,
+                  (action.targetBounds.topPx +
+                          action.targetBounds.heightPx / 2) *
+                      settings.displayScale));
+      final request = game.hitTestOverworldInteraction(point.toOffset());
+      expect(request, same(action.request));
+      expect(preparations, 0);
+      expect(game.debugNotificationText, isNull);
+      expect(game.dispatchOverworldInteraction(request!), isTrue);
+      expect(game.dispatchOverworldInteraction(request), isFalse);
+      await _pumpUntil(
+          game,
+          () =>
+              game.gameStateSnapshot.narrativeEventProgress
+                  .consumedNarrativeEventIds
+                  .contains(fixture.eventId) &&
+              !game.debugIsNarrativeSpatialDispatchInFlight);
+      expect(preparations, 1);
+      expect(
+          game.gameStateSnapshot.narrativeFactRuntimeState
+              .overridesByFactId[fixture.factId],
+          isTrue);
+      expect(game.gameStateSnapshot.storyFlags.activeFlags,
+          isNot(contains(_legacyFlag)));
+      expect(game.overworldInteractionSnapshot.primaryAction, isNull);
+      expect(game.overworldInteractionSnapshot.tapAction, isNull);
+      expect(game.hitTestOverworldInteraction(point.toOffset()), isNull);
+      expect(game.dispatchOverworldInteraction(request), isFalse);
+      await _pumpMicrotasks(game);
+      expect(preparations, 1);
+    });
+
     test('unchanged frames do not publish and do not invalidate a request',
         () async {
       final game = _TestPlayableMapGame(
@@ -274,6 +342,19 @@ void main() {
           projectFilePath: '/tmp/overworld_placed_automatic/project.json');
       await _load(game);
       expect(game.overworldInteractionSnapshot.primaryAction, isNull);
+    });
+
+    test('an invisible placed element does not become a hidden-item tap',
+        () async {
+      final game = _TestPlayableMapGame(
+          bundle: _placedMessageBundle(MapPlacedElementTriggerType.onAction,
+              opacity: 0),
+          projectFilePath: '/tmp/overworld_invisible_placed/project.json');
+      await _load(game);
+      expect(game.overworldInteractionSnapshot.primaryAction, isNull);
+      expect(game.overworldInteractionSnapshot.tapAction, isNull);
+      expect(_pressPrimary(game), isTrue);
+      expect(game.debugNotificationText, _tileEventMessage);
     });
 
     test('removing the runtime withdraws its observable action', () async {
@@ -372,6 +453,7 @@ void main() {
         final action = game.overworldInteractionSnapshot.primaryAction;
         if (hidden) {
           expect(action, isNull);
+          expect(game.overworldInteractionSnapshot.tapAction, isNull);
           expect(_pressPrimary(game), isTrue);
         } else {
           expect(action!.request.targetKind,
@@ -1047,7 +1129,8 @@ RuntimeMapBundle _spawnExclusionBundle() {
   );
 }
 
-RuntimeMapBundle _placedMessageBundle(MapPlacedElementTriggerType trigger) {
+RuntimeMapBundle _placedMessageBundle(MapPlacedElementTriggerType trigger,
+    {double opacity = 1}) {
   final base = _legacyOnlyBundle(
       _entityFixtures.last.entity.copyWith(pos: const GridPos(x: 2, y: 1)));
   return RuntimeMapBundle(
@@ -1070,6 +1153,7 @@ RuntimeMapBundle _placedMessageBundle(MapPlacedElementTriggerType trigger) {
           layerId: 'objects',
           elementId: 'notice',
           pos: const GridPos(x: 1, y: 0),
+          opacity: opacity,
           applyCollision: false,
           behaviors: [
             MapPlacedElementBehavior(

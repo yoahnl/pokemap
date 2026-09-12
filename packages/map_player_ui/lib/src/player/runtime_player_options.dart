@@ -741,39 +741,19 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   }
 
   List<Widget> _bindings(bool compact) {
+    if (widget.activeInputSource == PlayerInputSource.touch) return const [];
     final strings = PlayerControlStrings.of(context);
-    final device = switch (widget.activeInputSource) {
-      PlayerInputSource.controller => PlayerControlDevice.gamepad,
-      PlayerInputSource.touch => PlayerControlDevice.touch,
-      _ => PlayerControlDevice.keyboard,
-    };
+    final device = widget.activeInputSource == PlayerInputSource.controller
+        ? PlayerControlDevice.gamepad
+        : PlayerControlDevice.keyboard;
     return [
       Text(strings.device(device), style: context.playerMenuTheme.label),
-      if (device == PlayerControlDevice.touch &&
-          widget.onControlProfileChanged != null)
-        PlayerActionButton(
-          key: const ValueKey('options-controls-touch-swap'),
-          label: strings.swapTouch,
-          icon: Icons.swap_horiz,
-          secondary: true,
-          onPressed: _pending
-              ? null
-              : () => _saveProfile(_profile.swapBindings(
-                    device: device,
-                    first: RuntimeInputControl.primary,
-                    second: RuntimeInputControl.secondary,
-                  )),
-        ),
-      for (final control in RuntimeInputControl.values.where((control) =>
-          device != PlayerControlDevice.touch ||
-          control != RuntimeInputControl.sprint))
+      for (final control in RuntimeInputControl.values)
         _choiceRow(strings.control(control), _profile.glyphFor(device, control),
             'binding-${control.name}', compact, () async {
-          final inputs = switch (device) {
-            PlayerControlDevice.keyboard => playerKeyboardInputs.keys,
-            PlayerControlDevice.gamepad => playerGamepadInputs,
-            PlayerControlDevice.touch => playerTouchInputs,
-          };
+          final inputs = device == PlayerControlDevice.keyboard
+              ? playerKeyboardInputs.keys
+              : playerGamepadInputs;
           final value = await _choose(
               strings.control(control),
               _profile.bindingFor(device, control),
@@ -791,9 +771,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           }
           await _saveProfile(result.profile);
         },
-            enabled: device != PlayerControlDevice.touch &&
-                !_pending &&
-                widget.onControlProfileChanged != null),
+            enabled: !_pending && widget.onControlProfileChanged != null),
       if (widget.onControlProfileChanged != null)
         PlayerActionButton(
           key: const ValueKey('options-controls-reset'),

@@ -99,6 +99,7 @@ final class PokeMapPlayerOverworldTheme {
       reducedMotion ? Duration.zero : const Duration(milliseconds: 150);
 
   TextStyle get label => typography.bodyStyle(TextStyle(
+        decoration: TextDecoration.none,
         fontFamily: typography.bodyFamily ??
             'packages/map_player_ui/PokeMapSplashDMSans',
         fontSize: 15,

@@ -17,6 +17,23 @@ Widget host(Widget child,
                 effects: effects, child: Scaffold(body: child))));
 
 void main() {
+  testWidgets('capsule text has no inherited decoration without a Material surface',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: Center(
+            child: PlayerOverworldActionCapsule(
+                label: 'Interagir',
+                glyph: 'E',
+                icon: Icons.touch_app_outlined,
+                onPressed: () {}))));
+    for (final label in ['Interagir', 'E']) {
+      final richText = tester.widget<RichText>(find.descendant(
+          of: find.text(label), matching: find.byType(RichText)));
+      expect(richText.text.style?.decoration, TextDecoration.none);
+    }
+  });
+
   testWidgets('layout keeps menu safe and wraps long action at text scale two',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);

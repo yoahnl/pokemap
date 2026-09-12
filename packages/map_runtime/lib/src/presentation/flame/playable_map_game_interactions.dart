@@ -40,16 +40,25 @@ extension _PlayableMapInteractions on PlayableMapGame {
   }
 
   RuntimeOverworldInteractionSnapshot _readOverworldInteractionSnapshot() {
+    final primaryAction = _resolveOverworldInteraction()?.action;
     final next = RuntimeOverworldInteractionSnapshot(
       sessionId: _interactionSessionId,
       mapActivationId: _currentMapActivationId ?? '',
       mapId: _activeMapId,
-      primaryAction: _resolveOverworldInteraction()?.action,
+      primaryAction: primaryAction,
+      tapAction: primaryAction ?? _resolveHiddenItemTapInteraction()?.action,
     );
     if (_cachedInteractionSnapshot != next) {
       _cachedInteractionSnapshot = next;
     }
     return _cachedInteractionSnapshot!;
+  }
+
+  _ResolvedOverworldInteraction? _resolveHiddenItemTapInteraction() {
+    final interaction = _resolveOverworldInteraction(includeHidden: true);
+    return interaction?.entity?.item?.visibility == MapEntityItemVisibility.hidden
+        ? interaction
+        : null;
   }
 
   void _publishOverworldInteractions() {
@@ -253,7 +262,8 @@ extension _PlayableMapInteractions on PlayableMapGame {
         topPx: cell.y * settings.tileHeight,
         widthPx: settings.tileWidth,
         heightPx: settings.tileHeight);
-    if (kind == RuntimeOverworldInteractionTargetKind.entity) {
+    if (kind == RuntimeOverworldInteractionTargetKind.entity &&
+        entity?.item?.visibility != MapEntityItemVisibility.hidden) {
       bounds = resolveEntityCollisionRectPx(entity!,
           tileWidthPx: settings.tileWidth, tileHeightPx: settings.tileHeight);
     } else if (result is PlacedElementInteracted) {

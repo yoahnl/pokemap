@@ -108,8 +108,8 @@ final class PlayerOptionsStrings {
   String resetMessage(PlayerOptionsCategory value) => value ==
           PlayerOptionsCategory.controls
       ? text(
-          'La course tactile, le côté du joystick, les aides et l’opacité des commandes seront rétablis. Les touches restent inchangées ; utilisez Réinitialiser dans cette catégorie pour rétablir celles du périphérique affiché.',
-          'Touch running, joystick side, control hints and opacity will be reset. Bindings are kept; use Reset in this category to restore the displayed device’s bindings.')
+          'La course tactile, le côté du joystick, les aides et l’opacité des commandes seront rétablis. Les raccourcis clavier et manette restent inchangés.',
+          'Touch running, joystick side, control hints and opacity will be reset. Keyboard and controller bindings will be kept.')
       : text(
           'Seuls les réglages de la catégorie « ${category(value)} » seront rétablis. Votre sauvegarde et les autres catégories seront conservées.',
           'Only the settings in “${category(value)}” will be reset. Your save and other categories will be kept.');

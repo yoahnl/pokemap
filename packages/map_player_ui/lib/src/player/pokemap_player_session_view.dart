@@ -9,6 +9,7 @@ import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_overworld_components.dart';
 import '../foundation/player_text_scaler.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
@@ -129,6 +130,9 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.normalizedControllerInputEvents,
     this.connectedControllerIds,
     this.gameplayInputAuthority,
+    this.overworldInteractions,
+    this.hitTestOverworldInteraction,
+    this.onOverworldInteraction,
     this.dialoguePresentation,
     this.onDialogueCommand,
     this.battlePresentation,
@@ -173,6 +177,9 @@ class PokeMapPlayerSessionView extends StatefulWidget {
 
   /// Runtime-owned authority deciding whether overworld touch chrome is legal.
   final ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority;
+  final ValueListenable<RuntimeOverworldInteractionSnapshot>? overworldInteractions;
+  final RuntimeOverworldInteractionRequest? Function(Offset)? hitTestOverworldInteraction;
+  final bool Function(RuntimeOverworldInteractionRequest)? onOverworldInteraction;
 
   /// Optional Flutter dialogue projection published by the mounted runtime.
   final ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation;
@@ -196,6 +203,9 @@ class PokeMapPlayerSessionView extends StatefulWidget {
 class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   final _sessionSurfaceKey = GlobalKey();
   final _touchMenuKey = GlobalKey();
+  final _overworldActionKey = GlobalKey();
+  int _overworldActionEpoch = 0;
+  RuntimeOverworldInteractionRequest? _lastOverworldRequest;
   final _touchCancellation = ValueNotifier<int>(0);
   var _pauseFocusController = RuntimePlayerFocusController();
   final _partyNavigation = RuntimePlayerPartyNavigation();
@@ -232,13 +242,23 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     HardwareKeyboard.instance.addHandler(_observeHardwareInput);
     GestureBinding.instance.pointerRouter.addGlobalRoute(_observePointerInput);
     widget.presentationFrame?.addListener(_handlePresentationFrameChanged);
+    widget.dialoguePresentation?.addListener(_handlePresentationFrameChanged);
+    widget.battlePresentation?.addListener(_handlePresentationFrameChanged);
     widget.gameplayInputAuthority?.addListener(_handleGameplayAuthorityChanged);
+    _lastOverworldRequest = widget.overworldInteractions?.value.primaryAction?.request;
+    widget.overworldInteractions?.addListener(_handleOverworldInteractionsChanged);
     _bindControllerInputs();
   }
 
   @override
   void didUpdateWidget(covariant PokeMapPlayerSessionView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.overworldInteractions != widget.overworldInteractions) {
+      oldWidget.overworldInteractions?.removeListener(_handleOverworldInteractionsChanged);
+      widget.overworldInteractions?.addListener(_handleOverworldInteractionsChanged);
+      _overworldActionEpoch++;
+      _lastOverworldRequest = widget.overworldInteractions?.value.primaryAction?.request;
+    }
     if (oldWidget.controller != widget.controller ||
         oldWidget.gameplayInputAuthority != widget.gameplayInputAuthority) {
       for (final event in _inputPolicy.releaseAll()) {
@@ -266,6 +286,14 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       );
       widget.presentationFrame?.addListener(_handlePresentationFrameChanged);
     }
+    if (oldWidget.dialoguePresentation != widget.dialoguePresentation) {
+      oldWidget.dialoguePresentation?.removeListener(_handlePresentationFrameChanged);
+      widget.dialoguePresentation?.addListener(_handlePresentationFrameChanged);
+    }
+    if (oldWidget.battlePresentation != widget.battlePresentation) {
+      oldWidget.battlePresentation?.removeListener(_handlePresentationFrameChanged);
+      widget.battlePresentation?.addListener(_handlePresentationFrameChanged);
+    }
     if (oldWidget.controllerInputEnabled != widget.controllerInputEnabled ||
         oldWidget.controllerInputEvents != widget.controllerInputEvents ||
         oldWidget.normalizedControllerInputEvents != widget.normalizedControllerInputEvents ||
@@ -286,7 +314,98 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     }
   }
 
+  void _handleOverworldInteractionsChanged() {
+    final request = widget.overworldInteractions?.value.primaryAction?.request;
+    if (request != _lastOverworldRequest) {
+      _overworldActionEpoch++;
+      _lastOverworldRequest = request;
+    }
+    if (mounted) setState(() {});
+  }
+
+  bool get _acceptsOverworldInteraction =>
+      !_menuTransitionPending &&
+      _latestSnapshot.phase == RuntimePlayerPhase.playing &&
+      _latestSnapshot.worldService == null &&
+      widget.presentationFrame?.value == null &&
+      widget.dialoguePresentation?.value == null &&
+      widget.battlePresentation?.value == null &&
+      (widget.gameplayInputAuthority?.value.acceptsOverworldInput ?? true);
+
+  RuntimeOverworldInteractionRequest? _hitTestOverworldInteraction(Offset position) {
+    if (!_acceptsOverworldInteraction) return null;
+    final viewport = widget.gameplayViewportKey?.currentContext?.findRenderObject();
+    final session = _sessionSurfaceKey.currentContext?.findRenderObject();
+    if (viewport is! RenderBox || !viewport.attached || !viewport.hasSize ||
+        session is! RenderBox || !session.attached || !session.hasSize) {
+      return null;
+    }
+    final point = viewport.globalToLocal(session.localToGlobal(position));
+    return widget.hitTestOverworldInteraction?.call(point);
+  }
+
+  void _dispatchOverworldInteraction(RuntimeOverworldInteractionRequest request, {
+    required bool fromTouch,
+    bool fromWorldTap = false,
+    int? epoch,
+    int? cancellation,
+  }) {
+    final interactions = widget.overworldInteractions?.value;
+    final action = fromWorldTap ? interactions?.tapAction : interactions?.primaryAction;
+    if (!mounted || !_acceptsOverworldInteraction ||
+        (epoch != null && epoch != _overworldActionEpoch) ||
+        (cancellation != null && cancellation != _touchCancellation.value) ||
+        action?.request != request) {
+      return;
+    }
+    if (fromTouch) {
+      _pendingPointerKind = null;
+      _setActiveInputSource(PlayerInputSource.touch);
+    }
+    if (widget.onOverworldInteraction?.call(request) ?? false) {
+      unawaited(_performHaptic());
+    }
+  }
+
+  Widget? _overworldAction() {
+    final action = widget.overworldInteractions?.value.primaryAction;
+    if (!_acceptsOverworldInteraction || action == null || widget.onOverworldInteraction == null) return null;
+    final device = switch (_activeInputSource) {
+      PlayerInputSource.touch => PlayerControlDevice.touch,
+      PlayerInputSource.keyboard || PlayerInputSource.mouse => PlayerControlDevice.keyboard,
+      PlayerInputSource.controller => PlayerControlDevice.gamepad,
+    };
+    final glyph = (_latestSnapshot.preferences?.showInputHints ?? true)
+        ? _controlProfile.promptFor(device, RuntimeInputControl.primary, family: _controllerFamily)
+        : '';
+    final epoch = _overworldActionEpoch;
+    final cancellation = _touchCancellation.value;
+    return SizedBox(key: _overworldActionKey, child: Builder(builder: (context) {
+      final l10n = context.playerL10n;
+      final (label, icon) = switch (action.verb) {
+        RuntimeOverworldInteractionVerb.talk => (l10n.talk, Icons.chat_bubble_outline_rounded),
+        RuntimeOverworldInteractionVerb.read => (l10n.read, Icons.search_rounded),
+        RuntimeOverworldInteractionVerb.collect => (l10n.collect, Icons.back_hand_outlined),
+        RuntimeOverworldInteractionVerb.enter => (l10n.enter, Icons.login_rounded),
+        RuntimeOverworldInteractionVerb.interact => (l10n.interact, Icons.touch_app_outlined),
+      };
+      return PlayerOverworldActionCapsule(
+      key: ValueKey((action.request, epoch, cancellation)),
+      label: label,
+      icon: icon,
+      glyph: glyph.isEmpty ? null : glyph,
+      onPressed: () => _dispatchOverworldInteraction(action.request,
+        fromTouch: _pendingPointerKind == ui.PointerDeviceKind.touch,
+        epoch: epoch, cancellation: cancellation),
+      );
+    }));
+  }
+
   void _handlePresentationFrameChanged() {
+    if (!_acceptsOverworldInteraction) {
+      _releaseGameplayDirections();
+      _touchCancellation.value++;
+    }
     if (mounted) setState(() {});
   }
 
@@ -653,7 +772,10 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         safeMessage: 'The player menu is already changing state.',
       );
     }
-    if (isMenuTransition) _menuTransitionPending = true;
+    if (isMenuTransition) {
+      _menuTransitionPending = true;
+      if (mounted) setState(() {});
+    }
     if (action == RuntimePlayerAction.openMenu) {
       _releaseGameplayDirections();
       _touchCancellation.value++;
@@ -671,7 +793,10 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       }
       return result;
     } finally {
-      if (isMenuTransition) _menuTransitionPending = false;
+      if (isMenuTransition) {
+        _menuTransitionPending = false;
+        if (mounted) setState(() {});
+      }
     }
   }
 
@@ -738,7 +863,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     RuntimePlayerSnapshot snapshot,
     RuntimeInputAuthoritySnapshot inputAuthority,
   ) {
-    final acceptsOverworldTouch = inputAuthority.acceptsOverworldInput;
+    final acceptsOverworldTouch = inputAuthority.acceptsOverworldInput && _acceptsOverworldInteraction;
     final acceptsTouchControls = _touchControlsAvailable &&
         widget.gameplayInputRoute != null &&
         snapshot.phase == RuntimePlayerPhase.playing &&
@@ -749,6 +874,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     final touchControlsOpacity =
         snapshot.preferences?.touchControlsOpacity ?? 0.82;
     final showInputHints = !showTouchControls &&
+        snapshot.phase != RuntimePlayerPhase.playing &&
         snapshot.phase != RuntimePlayerPhase.paused &&
         snapshot.phase != RuntimePlayerPhase.preSession &&
         widget.presentationFrame?.value == null &&
@@ -777,6 +903,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           onShowDiagnostics: widget.onShowDiagnostics,
           gameplayTouchMenuEnabled: acceptsOverworldTouch,
           gameplayTouchMenuKey: _touchMenuKey,
+          gameplayAction: _overworldAction(),
           touchControlsOpacity: touchControlsOpacity,
           onPreferencesChanged: (preferences) async {
             final unavailableMessage = context.playerL10n.actionUnavailable;
@@ -894,7 +1021,11 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
               readGameplayViewport: () => _rectInSession(widget.gameplayViewportKey),
               readExcludedRects: () => [
                 if (_rectInSession(_touchMenuKey) case final rect?) rect,
+                if (_rectInSession(_overworldActionKey) case final rect?) rect,
               ],
+              interactionChanges: widget.overworldInteractions,
+              resolveTapTarget: _hitTestOverworldInteraction,
+              onTap: (request) => _dispatchOverworldInteraction(request, fromTouch: true, fromWorldTap: true),
               leftHanded: snapshot.preferences?.leftHandedTouchControls ?? false,
               onMovementGesture: () => _setActiveInputSource(PlayerInputSource.touch),
               opacity: touchControlsOpacity,
@@ -982,7 +1113,10 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     _bagNavigation.dispose();
     _pokedexNavigation.dispose();
     widget.presentationFrame?.removeListener(_handlePresentationFrameChanged);
+    widget.dialoguePresentation?.removeListener(_handlePresentationFrameChanged);
+    widget.battlePresentation?.removeListener(_handlePresentationFrameChanged);
     widget.gameplayInputAuthority?.removeListener(_handleGameplayAuthorityChanged);
+    widget.overworldInteractions?.removeListener(_handleOverworldInteractionsChanged);
     _releaseGameplayDirections();
     _touchCancellation.dispose();
     super.dispose();

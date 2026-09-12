@@ -2356,8 +2356,33 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ValueListenable<RuntimeOverworldInteractionSnapshot> get overworldInteractions =>
       _overworldInteractions;
 
+  RuntimeOverworldInteractionRequest? hitTestOverworldInteraction(
+      Offset canvasPosition) {
+    if (!canvasPosition.isFinite) return null;
+    final action = overworldInteractionSnapshot.tapAction;
+    final activeMap = _loadedMapsById[_activeMapId];
+    if (action == null || activeMap == null) return null;
+    final point = Vector2(canvasPosition.dx, canvasPosition.dy);
+    if (!containsLocalPoint(point) ||
+        !camera.viewport.containsLocalPoint(
+            camera.viewport.globalToLocal(point))) {
+      return null;
+    }
+    final mapPosition =
+        (camera.globalToLocal(point) - _originPixelsOf(activeMap)) /
+            _bundle.manifest.settings.displayScale;
+    final bounds = action.targetBounds;
+    final target = Rect.fromLTWH(
+        bounds.leftPx.toDouble(),
+        bounds.topPx.toDouble(),
+        bounds.widthPx.toDouble(),
+        bounds.heightPx.toDouble());
+    return target.contains(mapPosition.toOffset()) ? action.request : null;
+  }
+
   bool dispatchOverworldInteraction(RuntimeOverworldInteractionRequest request) {
-    final interaction = _resolveOverworldInteraction();
+    final interaction =
+        _resolveOverworldInteraction() ?? _resolveHiddenItemTapInteraction();
     if (interaction == null || interaction.action.request != request) {
       return false;
     }

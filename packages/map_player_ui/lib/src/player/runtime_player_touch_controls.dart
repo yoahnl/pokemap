@@ -1,6 +1,6 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui show PointerDeviceKind;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -8,8 +8,6 @@ import 'package:map_runtime/map_runtime.dart';
 import '../foundation/player_overworld_components.dart';
 import '../theme/pokemap_player_overworld_theme.dart';
 
-import '../theme/pokemap_player_theme.dart';
-import '../localization/player_localizations.dart';
 import 'player_control_profile.dart';
 
 const double kRuntimePlayerTouchDeadZone = 0.35;
@@ -197,7 +195,9 @@ class RuntimePlayerTouchControls extends StatefulWidget {
     this.readGameplayViewport,
     this.readExcludedRects,
     this.leftHanded = false,
-    this.onTapCandidate,
+    this.resolveTapTarget,
+    this.onTap,
+    this.interactionChanges,
     this.cancellationSignal,
     this.sprintAllowed = false,
     this.sprintAccepted = false,
@@ -213,7 +213,10 @@ class RuntimePlayerTouchControls extends StatefulWidget {
   final Rect? Function()? readGameplayViewport;
   final Iterable<Rect> Function()? readExcludedRects;
   final bool leftHanded;
-  final ValueChanged<RuntimePlayerTouchTapCandidate>? onTapCandidate;
+  final RuntimeOverworldInteractionRequest? Function(Offset)? resolveTapTarget;
+  final ValueChanged<RuntimeOverworldInteractionRequest>? onTap;
+  final ValueListenable<RuntimeOverworldInteractionSnapshot>?
+      interactionChanges;
   final Listenable? cancellationSignal;
   final bool sprintAllowed;
   final bool sprintAccepted;
@@ -228,8 +231,14 @@ class RuntimePlayerTouchControls extends StatefulWidget {
 class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
     with WidgetsBindingObserver {
   late RuntimePlayerFloatingTouchDriver _driver;
-  final _surfaceKey = GlobalKey();
-  final _actionsKey = GlobalKey();
+  final _tapCandidates = <int,
+      ({
+    Offset origin,
+    RuntimeOverworldInteractionRequest request,
+    int generation
+  })>{};
+  RuntimeOverworldInteractionSnapshot? _interactionSnapshot;
+  int _tapGeneration = 0;
   Rect? _gestureViewport;
   Offset? _anchor;
   EdgeInsets _safePadding = EdgeInsets.zero;
@@ -243,6 +252,8 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
         sprintAllowed: widget.sprintAllowed, runMode: widget.runMode);
     WidgetsBinding.instance.addObserver(this);
     widget.cancellationSignal?.addListener(_cancel);
+    _interactionSnapshot = widget.interactionChanges?.value;
+    widget.interactionChanges?.addListener(_handleInteractionChanged);
   }
 
   @override
@@ -256,6 +267,12 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
   @override
   void didUpdateWidget(covariant RuntimePlayerTouchControls oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.interactionChanges != widget.interactionChanges) {
+      oldWidget.interactionChanges?.removeListener(_handleInteractionChanged);
+      _interactionSnapshot = widget.interactionChanges?.value;
+      widget.interactionChanges?.addListener(_handleInteractionChanged);
+      _cancel(rebuild: false);
+    }
     if (oldWidget.runMode != widget.runMode) {
       _cancel(rebuild: false);
       _driver = RuntimePlayerFloatingTouchDriver(
@@ -291,44 +308,59 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
 
   bool _accepts(Offset position) {
     final viewport = _viewport();
+    return viewport != null &&
+        viewport.contains(position) &&
+        !(widget.readExcludedRects?.call() ?? const <Rect>[])
+            .any((rect) => rect.contains(position));
+  }
+
+  bool _acceptsMovement(Offset position) {
+    final viewport = _viewport();
     if (viewport == null) return false;
-    final zone = Rect.fromLTRB(
+    return Rect.fromLTRB(
       widget.leftHanded ? viewport.left + viewport.width * .4 : viewport.left,
       viewport.top + viewport.height * .4,
       widget.leftHanded ? viewport.right : viewport.left + viewport.width * .6,
       viewport.bottom,
-    );
-    if (!zone.contains(position)) return false;
-    final actions = _actionsKey.currentContext?.findRenderObject();
-    final surface = _surfaceKey.currentContext?.findRenderObject();
-    if (actions is RenderBox &&
-        actions.hasSize &&
-        surface is RenderBox &&
-        surface.hasSize) {
-      final rect = MatrixUtils.transformRect(
-          actions.getTransformTo(surface), Offset.zero & actions.size);
-      if (rect.contains(position)) return false;
-    }
-    return !(widget.readExcludedRects?.call() ?? const <Rect>[])
-        .any((rect) => rect.contains(position));
+    ).contains(position);
   }
+
+  void _invalidateTaps() {
+    _tapGeneration++;
+    _tapCandidates.clear();
+  }
+
+  void _handleInteractionChanged() {
+    final previous = _interactionSnapshot;
+    final next = widget.interactionChanges?.value;
+    if (previous == next) return;
+    _interactionSnapshot = next;
+    if (previous?.sessionId != next?.sessionId ||
+        previous?.mapActivationId != next?.mapActivationId ||
+        previous?.mapId != next?.mapId) {
+      _cancel();
+    } else {
+      _invalidateTaps();
+    }
+  }
+
+  bool get _hasActivePointers =>
+      _driver.pointer != null || _tapCandidates.isNotEmpty;
 
   void _scheduleGeometryCheck() {
     if (_geometryCheckScheduled) return;
     _geometryCheckScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _geometryCheckScheduled = false;
-      if (mounted &&
-          _driver.pointer != null &&
-          _viewport() != _gestureViewport) {
+      if (mounted && _hasActivePointers && _viewport() != _gestureViewport) {
         _cancel();
       }
-      if (mounted && _driver.pointer != null) _scheduleGeometryCheck();
+      if (mounted && _hasActivePointers) _scheduleGeometryCheck();
     });
   }
 
   bool _checkGeometry() {
-    if (_driver.pointer != null && _viewport() != _gestureViewport) {
+    if (_hasActivePointers && _viewport() != _gestureViewport) {
       _cancel();
       return false;
     }
@@ -340,9 +372,21 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
         !_accepts(event.localPosition)) {
       return;
     }
-    if (!_driver.begin(event.pointer, event.localPosition)) return;
-    _gestureViewport = _viewport();
+    if (!_checkGeometry()) return;
+    if (!_hasActivePointers) _gestureViewport = _viewport();
+    final request = widget.resolveTapTarget?.call(event.localPosition);
+    if (request != null) {
+      _tapCandidates[event.pointer] = (
+        origin: event.localPosition,
+        request: request,
+        generation: _tapGeneration
+      );
+    }
     _scheduleGeometryCheck();
+    if (!_acceptsMovement(event.localPosition) ||
+        !_driver.begin(event.pointer, event.localPosition)) {
+      return;
+    }
     final viewport = _gestureViewport!;
     const radius = PokeMapPlayerOverworldTheme.joystickSize / 2;
     double clampAnchor(double value, double min, double max) =>
@@ -356,7 +400,13 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
   }
 
   void _move(PointerMoveEvent event) {
-    if (!_checkGeometry() || _driver.pointer != event.pointer) return;
+    if (!_checkGeometry()) return;
+    final tap = _tapCandidates[event.pointer];
+    if (tap != null &&
+        (event.localPosition - tap.origin).distance >= _driver.dragThreshold) {
+      _tapCandidates.remove(event.pointer);
+    }
+    if (_driver.pointer != event.pointer) return;
     final wasDragging = _driver.dragging;
     final events = _driver.update(event.pointer, event.localPosition);
     if (!wasDragging && _driver.dragging) widget.onMovementGesture?.call();
@@ -365,14 +415,23 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
   }
 
   void _up(PointerUpEvent event) {
-    if (!_checkGeometry() || _driver.pointer != event.pointer) return;
-    _dispatchAll(_driver.end(event.pointer));
-    final candidate = _driver.takeTapCandidate();
-    setState(() => _anchor = null);
-    if (candidate != null) widget.onTapCandidate?.call(candidate);
+    if (!_checkGeometry()) return;
+    final tap = _tapCandidates.remove(event.pointer);
+    if (_driver.pointer == event.pointer) {
+      _dispatchAll(_driver.end(event.pointer));
+      setState(() => _anchor = null);
+    }
+    if (tap != null &&
+        tap.generation == _tapGeneration &&
+        (event.localPosition - tap.origin).distance < _driver.dragThreshold &&
+        _accepts(event.localPosition) &&
+        widget.resolveTapTarget?.call(event.localPosition) == tap.request) {
+      widget.onTap?.call(tap.request);
+    }
   }
 
   void _cancel({bool rebuild = true}) {
+    _invalidateTaps();
     _dispatchAll(_driver.cancel());
     _gestureViewport = null;
     _anchor = null;
@@ -385,31 +444,13 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
     }
   }
 
-  void _dispatchButton(String inputId, bool pressed) {
-    final control = (widget.controlProfile ?? PlayerControlProfile.standard)
-        .controlForTouchInput(inputId);
-    if (control == null) return;
-    widget.dispatch(pressed
-        ? RuntimeInputEvent.press(control)
-        : RuntimeInputEvent.release(control));
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       _size = constraints.biggest;
       _safePadding = MediaQuery.paddingOf(context);
       _scheduleGeometryCheck();
-      final portrait = _size.height >= _size.width;
-      final actionSize = (portrait
-              ? _size.width.clamp(0, 520) * .17
-              : _size.height.clamp(0, 720) * .19)
-          .clamp(62.0, 88.0);
-      final bottom =
-          (portrait ? (_size.height * .075).clamp(54.0, 84.0) : 12.0) +
-              _safePadding.bottom;
-      final horizontal = portrait ? 18.0 : 22.0;
-      return Stack(key: _surfaceKey, fit: StackFit.expand, children: [
+      return Stack(fit: StackFit.expand, children: [
         Positioned.fill(
             child: _RuntimePlayerTouchHitRegion(
           accepts: _accepts,
@@ -421,6 +462,7 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
             onPointerMove: _move,
             onPointerUp: _up,
             onPointerCancel: (event) {
+              _tapCandidates.remove(event.pointer);
               if (event.pointer == _driver.pointer) _cancel();
             },
             child: Opacity(
@@ -446,28 +488,6 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
             ),
           ),
         )),
-        if (widget.showControls)
-          Positioned(
-            left: widget.leftHanded ? horizontal + _safePadding.left : null,
-            right: widget.leftHanded ? null : horizontal + _safePadding.right,
-            bottom: bottom,
-            child: SizedBox(
-                key: _actionsKey,
-                child: Opacity(
-                  key: const ValueKey('runtime-player-touch-actions-opacity'),
-                  opacity: widget.opacity,
-                  child: _RuntimePlayerTouchActionCluster(
-                    profile:
-                        widget.controlProfile ?? PlayerControlProfile.standard,
-                    portrait: portrait,
-                    buttonSize: actionSize,
-                    onPrimaryChanged: (pressed) =>
-                        _dispatchButton('primaryButton', pressed),
-                    onSecondaryChanged: (pressed) =>
-                        _dispatchButton('secondaryButton', pressed),
-                  ),
-                )),
-          ),
       ]);
     });
   }
@@ -475,6 +495,8 @@ class _RuntimePlayerTouchControlsState extends State<RuntimePlayerTouchControls>
   @override
   void dispose() {
     widget.cancellationSignal?.removeListener(_cancel);
+    widget.interactionChanges?.removeListener(_handleInteractionChanged);
+    _invalidateTaps();
     WidgetsBinding.instance.removeObserver(this);
     _dispatchAll(_driver.cancel());
     super.dispose();
@@ -524,166 +546,5 @@ class _RuntimePlayerTouchHitBox extends RenderProxyBox {
   void performLayout() {
     super.performLayout();
     onLayout();
-  }
-}
-
-class _RuntimePlayerTouchActionCluster extends StatelessWidget {
-  const _RuntimePlayerTouchActionCluster({
-    required this.portrait,
-    required this.buttonSize,
-    required this.onPrimaryChanged,
-    required this.onSecondaryChanged,
-    required this.profile,
-  });
-
-  final bool portrait;
-  final double buttonSize;
-  final ValueChanged<bool> onPrimaryChanged;
-  final ValueChanged<bool> onSecondaryChanged;
-  final PlayerControlProfile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final secondary = _RuntimePlayerTouchButton(
-      key: const ValueKey<String>(
-        'runtime-player-touch-secondary-button',
-      ),
-      label: _label(context, 'secondaryButton'),
-      icon: _icon('secondaryButton'),
-      semanticLabel: _label(context, 'secondaryButton'),
-      size: buttonSize,
-      primary: false,
-      onChanged: onSecondaryChanged,
-    );
-    final primary = _RuntimePlayerTouchButton(
-      key: const ValueKey<String>(
-        'runtime-player-touch-primary-button',
-      ),
-      label: _label(context, 'primaryButton'),
-      icon: _icon('primaryButton'),
-      semanticLabel: _label(context, 'primaryButton'),
-      size: buttonSize,
-      primary: true,
-      onChanged: onPrimaryChanged,
-    );
-    const gap = SizedBox.square(dimension: PlayerSpacing.sm);
-    return portrait
-        ? Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[secondary, gap, primary],
-          )
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[secondary, gap, primary],
-          );
-  }
-
-  String _label(BuildContext context, String inputId) =>
-      switch (profile.controlForTouchInput(inputId)) {
-        RuntimeInputControl.primary => context.playerL10n.interact,
-        RuntimeInputControl.secondary => context.playerL10n.back,
-        RuntimeInputControl.sprint => context.playerL10n.run,
-        RuntimeInputControl.menu => context.playerL10n.pause,
-        _ => profile.controlForTouchInput(inputId)?.name ?? '',
-      };
-
-  IconData _icon(String inputId) =>
-      switch (profile.controlForTouchInput(inputId)) {
-        RuntimeInputControl.primary => Icons.touch_app_rounded,
-        RuntimeInputControl.secondary => Icons.arrow_back_rounded,
-        RuntimeInputControl.sprint => Icons.directions_run_rounded,
-        RuntimeInputControl.menu => Icons.menu_rounded,
-        _ => Icons.navigation_rounded,
-      };
-}
-
-class _RuntimePlayerTouchButton extends StatefulWidget {
-  const _RuntimePlayerTouchButton({
-    super.key,
-    required this.label,
-    required this.icon,
-    required this.semanticLabel,
-    required this.size,
-    required this.primary,
-    required this.onChanged,
-  });
-
-  final String label;
-  final IconData icon;
-  final String semanticLabel;
-  final double size;
-  final bool primary;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  State<_RuntimePlayerTouchButton> createState() =>
-      _RuntimePlayerTouchButtonState();
-}
-
-class _RuntimePlayerTouchButtonState extends State<_RuntimePlayerTouchButton> {
-  bool _pressed = false;
-
-  void _setPressed(bool pressed) {
-    if (_pressed == pressed) return;
-    setState(() => _pressed = pressed);
-    widget.onChanged(pressed);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.playerColors;
-    final semantic = context.playerSemanticTheme;
-    final fill = widget.primary ? colors.primary : semantic.overworldHudSurface;
-    final foreground = widget.primary ? colors.onPrimary : colors.textPrimary;
-    return Semantics(
-      button: true,
-      label: widget.semanticLabel,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => _setPressed(true),
-        onTapUp: (_) => _setPressed(false),
-        onTapCancel: () => _setPressed(false),
-        child: AnimatedContainer(
-          duration: context.playerMotion.fast,
-          width: widget.size,
-          height: widget.size,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: fill.withValues(alpha: _pressed ? .98 : .86),
-            border: Border.all(
-              color: colors.focus.withValues(alpha: _pressed ? 1 : .74),
-              width: 2,
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: colors.scrim.withValues(alpha: _pressed ? .22 : .16),
-                blurRadius: _pressed ? 6 : 10,
-                offset: Offset(0, _pressed ? 2 : 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(widget.icon,
-                  color: foreground, size: math.max(18, widget.size * .3)),
-              Text(widget.label,
-                  style: TextStyle(
-                      color: foreground,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    if (_pressed) widget.onChanged(false);
-    super.dispose();
   }
 }

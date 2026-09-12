@@ -10,14 +10,26 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
-  testWidgets('touch options omit the removed sprint button binding',
+  testWidgets('touch options omit removed bindings and retain gesture settings',
       (tester) async {
-    await _pump(tester, activeInputSource: PlayerInputSource.touch);
+    final changes = <PlayerControlProfile>[];
+    await _pump(tester,
+        activeInputSource: PlayerInputSource.touch,
+        onControlChanged: changes.add);
     await _category(tester, 'controls');
-    expect(find.byKey(const ValueKey('options-binding-sprint-choice')),
+    for (final control in RuntimeInputControl.values) {
+      expect(find.byKey(ValueKey('options-binding-${control.name}-choice')),
+          findsNothing);
+    }
+    expect(find.byKey(const ValueKey('options-controls-touch-swap')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('options-controls-reset')),
         findsNothing);
     expect(find.byKey(const ValueKey('options-touch-run-mode-choice')),
         findsOneWidget);
+    expect(find.byKey(const ValueKey('runtime-player-left-handed-touch-toggle')),
+        findsOneWidget);
+    expect(changes, isEmpty);
   });
 
   testWidgets('touch running alternatives save and reset through controls',
@@ -255,31 +267,40 @@ void main() {
     });
   }
 
-  testWidgets('touch controls can exchange confirm and back', (tester) async {
-    final changes = <PlayerControlProfile>[];
-    await _pump(tester,
-        activeInputSource: PlayerInputSource.touch,
-        onControlChanged: changes.add);
-    await _category(tester, 'controls');
-    await _tap(tester, 'options-controls-touch-swap');
-    expect(
-        changes.single
-            .bindingFor(PlayerControlDevice.touch, RuntimeInputControl.primary),
-        'secondaryButton');
-    expect(
-        changes.single.bindingFor(
-            PlayerControlDevice.touch, RuntimeInputControl.secondary),
-        'primaryButton');
-    expect(changes.single.keyboard, PlayerControlProfile.standard.keyboard);
-    expect(changes.single.gamepad, PlayerControlProfile.standard.gamepad);
-    expect(
-        tester
-            .widget<PlayerMenuSelectableRow>(
-                find.byKey(const ValueKey('options-binding-up-choice')))
-            .onPressed,
-        isNull);
-    expect(changes.single.touch[RuntimeInputControl.up], 'joystickUp');
-  });
+  for (final source in [
+    PlayerInputSource.keyboard,
+    PlayerInputSource.controller
+  ]) {
+    testWidgets('$source options preserve hardware remapping', (tester) async {
+      final changes = <PlayerControlProfile>[];
+      await _pump(tester,
+          activeInputSource: source, onControlChanged: changes.add);
+      await _category(tester, 'controls');
+      for (final control in RuntimeInputControl.values) {
+        expect(
+            tester.widget<PlayerMenuSelectableRow>(find.byKey(
+                ValueKey('options-binding-${control.name}-choice'))).onPressed,
+            isNotNull);
+      }
+      expect(find.byKey(const ValueKey('options-controls-reset')), findsOneWidget);
+      await _tap(tester, 'options-binding-primary-choice');
+      final input = source == PlayerInputSource.keyboard ? 'space' : 'x';
+      await _tap(tester, 'options-choice-$input');
+      final device = source == PlayerInputSource.keyboard
+          ? PlayerControlDevice.keyboard
+          : PlayerControlDevice.gamepad;
+      expect(
+          changes.single.bindingFor(device, RuntimeInputControl.primary), input);
+      expect(changes.single.touch, PlayerControlProfile.standard.touch);
+      expect(
+          device == PlayerControlDevice.keyboard
+              ? changes.single.gamepad
+              : changes.single.keyboard,
+          device == PlayerControlDevice.keyboard
+              ? PlayerControlProfile.standard.gamepad
+              : PlayerControlProfile.standard.keyboard);
+    });
+  }
 
   testWidgets('options has six categories and separate return to title',
       (tester) async {
