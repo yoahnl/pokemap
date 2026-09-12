@@ -63,6 +63,7 @@ class HubInstalledGamePlayer extends StatefulWidget {
 
 class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     with WidgetsBindingObserver {
+  final _gameplayViewportKey = GlobalKey();
   RuntimeStartupBootstrapCoordinator<HubRuntimeStartupPreparedData>?
   _startupCoordinator;
   HubRuntimeStartupAdapter? _startupAdapter;
@@ -375,6 +376,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       pauseMenuLabels: presentation.pauseMenuLabels,
       pausePresentation: presentation.pausePresentation,
       gameplayInputRoute: _sessions?.handleInput,
+      gameplayViewportKey: _gameplayViewportKey,
       gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
       dialoguePresentation: _mountedGame?.dialoguePresentationListenable,
       onDialogueCommand: _mountedGame?.dispatchDialoguePresentationCommand,
@@ -402,7 +404,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         // MediaQuery. Chaque build — donc chaque rotation — pousse les
         // insets réels au jeu.
         game.setViewSafeAreaPadding(MediaQuery.viewPaddingOf(context));
-        return GameWidget(key: ObjectKey(game), game: game, autofocus: false);
+        return SizedBox.expand(
+          key: _gameplayViewportKey,
+          child: GameWidget(key: ObjectKey(game), game: game, autofocus: false),
+        );
       },
     );
   }

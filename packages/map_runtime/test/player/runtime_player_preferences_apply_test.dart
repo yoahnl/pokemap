@@ -50,6 +50,7 @@ void main() {
       locale: 'en',
       dialogueTextSpeed: RuntimeDialogueTextSpeed.fast,
       menuEffects: RuntimePlayerMenuEffects.opaque,
+      leftHandedTouchControls: true,
     );
     harness.adapter.pauseDetailsLoader = () async => {
       RuntimePlayerPauseSection.map: RuntimePlayerPauseDetailSnapshot(
@@ -65,6 +66,9 @@ void main() {
     expect(result.status, RuntimePlayerCommandStatus.accepted);
     expect(harness.adapter.appliedPreferences.last, same(preferences));
     expect(harness.coordinator.snapshot.preferences, same(preferences));
+    expect(harness.coordinator.snapshot.preferences!.leftHandedTouchControls,
+        isTrue);
+    expect(harness.preferences.current.leftHandedTouchControls, isTrue);
     expect(harness.coordinator.snapshot.pauseDetailFor(RuntimePlayerPauseSection.map)!.title, 'en');
   });
 

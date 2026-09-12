@@ -12,6 +12,199 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('OW004 measures scaled gameplay viewport in session coordinates', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+    final viewportKey = GlobalKey();
+    final events = <RuntimeInputEvent>[];
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+      gameplayViewportKey: viewportKey,
+      gameSceneBuilder: (_) => Stack(children: [Positioned(left: 100, top: 40,
+        child: Transform.scale(scale: .5, alignment: Alignment.topLeft,
+          child: SizedBox(key: viewportKey, width: 400, height: 600)))]),
+      touchControlsAvailable: true,
+      gameplayInputRoute: (event) { events.add(event); return true; },
+    )));
+    for (final origin in [const Offset(350, 240), const Offset(120, 400)]) {
+      final pointer = await tester.startGesture(origin, kind: ui.PointerDeviceKind.touch);
+      await pointer.moveBy(const Offset(50, 0));
+      await pointer.up();
+    }
+    expect(events, isEmpty);
+    final pointer = await tester.startGesture(const Offset(120, 240), kind: ui.PointerDeviceKind.touch);
+    await pointer.moveBy(const Offset(50, 0));
+    expect(events.single, const RuntimeInputEvent.press(RuntimeInputControl.right));
+    await pointer.up();
+    expect(events.last, const RuntimeInputEvent.release(RuntimeInputControl.right));
+  });
+
+  testWidgets('OW004 viewport translation cancels stationary pointer without session rebuild', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+    final viewportKey = GlobalKey();
+    final events = <RuntimeInputEvent>[];
+    var offset = 0.0;
+    late StateSetter moveViewport;
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+      gameplayViewportKey: viewportKey,
+      gameSceneBuilder: (_) => StatefulBuilder(builder: (context, setState) {
+        moveViewport = setState;
+        return Stack(children: [Positioned(left: offset, top: 0,
+          child: SizedBox(key: viewportKey, width: 500, height: 600))]);
+      }),
+      touchControlsAvailable: true,
+      gameplayInputRoute: (event) { events.add(event); return true; },
+    )));
+    final pointer = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
+    await pointer.moveBy(const Offset(50, 0));
+    await tester.pump();
+    expect(events.single, const RuntimeInputEvent.press(RuntimeInputControl.right));
+    moveViewport(() => offset = 30);
+    await tester.pump();
+    expect(events.last, const RuntimeInputEvent.release(RuntimeInputControl.right));
+    await pointer.moveBy(const Offset(50, 0));
+    await pointer.up();
+    expect(events, hasLength(2));
+  });
+
+  testWidgets('OW004 authority change immediately releases and cancels the gesture', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+    final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.overworld));
+    final events = <RuntimeInputEvent>[];
+    addTearDown(controller.dispose);
+    addTearDown(authority.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+      touchControlsAvailable: true, gameplayInputAuthority: authority,
+      gameplayInputRoute: (event) { events.add(event); return true; },
+    )));
+    final pointer = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
+    await pointer.moveBy(const Offset(50, 0));
+    expect(events.single, const RuntimeInputEvent.press(RuntimeInputControl.right));
+    authority.value = const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.dialogue);
+    expect(events.last, const RuntimeInputEvent.release(RuntimeInputControl.right));
+    authority.value = const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.overworld);
+    await tester.pump();
+    await pointer.moveBy(const Offset(50, 0));
+    await pointer.up();
+    expect(events, hasLength(2));
+  });
+
+  testWidgets('OW004 lifecycle snapshot preserves accepted touch release while blocked', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+    final events = <RuntimeInputEvent>[];
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+      touchControlsAvailable: true,
+      gameplayInputRoute: (event) { events.add(event); return true; },
+    )));
+    final pointer = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
+    await pointer.moveBy(const Offset(50, 0));
+    controller.publish(_snapshot(revision: 2, phase: RuntimePlayerPhase.lifecyclePaused));
+    await tester.pump();
+    expect(events, const [RuntimeInputEvent.press(RuntimeInputControl.right),
+      RuntimeInputEvent.release(RuntimeInputControl.right)]);
+    controller.publish(_snapshot(revision: 3, phase: RuntimePlayerPhase.playing));
+    await tester.pump();
+    await pointer.moveBy(const Offset(50, 0));
+    await pointer.up();
+    expect(events, hasLength(2));
+  });
+
+  testWidgets('OW004 measured Menu excludes gesture capture and cancels first finger', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1,
+      phase: RuntimePlayerPhase.playing,
+      preferences: const PlayerPreferencesSnapshot(locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(), leftHandedTouchControls: true),
+      actions: const [RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu)]));
+    final viewportKey = GlobalKey();
+    final events = <RuntimeInputEvent>[];
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+      gameplayViewportKey: viewportKey,
+      gameSceneBuilder: (_) => Stack(children: [Positioned(left: 250, top: 0,
+        child: SizedBox(key: viewportKey, width: 140, height: 100))]),
+      touchControlsAvailable: true,
+      gameplayInputRoute: (event) { events.add(event); return true; },
+    )));
+    final first = await tester.startGesture(const Offset(320, 85), pointer: 1, kind: ui.PointerDeviceKind.touch);
+    await first.moveBy(const Offset(-30, 0));
+    expect(events.single, const RuntimeInputEvent.press(RuntimeInputControl.left));
+    final menu = await tester.startGesture(const Offset(350, 50), pointer: 2, kind: ui.PointerDeviceKind.touch);
+    await menu.up();
+    await tester.pump();
+    expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
+    expect(events.last, const RuntimeInputEvent.release(RuntimeInputControl.left));
+    await first.moveBy(const Offset(80, 0));
+    await first.up();
+    expect(events, hasLength(2));
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final replaceController in [true, false]) {
+    testWidgets('OW004 replacement releases old owner when controller changes $replaceController', (tester) async {
+      final oldController = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+      final newController = _FakeRuntimePlayerCoordinator(_snapshot(revision: 2, phase: RuntimePlayerPhase.playing));
+      final oldAuthority = ValueNotifier(const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.overworld));
+      final newAuthority = ValueNotifier(const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.overworld));
+      final viewportKey = GlobalKey();
+      final oldEvents = <RuntimeInputEvent>[];
+      final newEvents = <RuntimeInputEvent>[];
+      addTearDown(oldController.dispose);
+      addTearDown(newController.dispose);
+      addTearDown(oldAuthority.dispose);
+      addTearDown(newAuthority.dispose);
+      await tester.pumpWidget(_app(_view(oldController,
+        gameplayViewportKey: viewportKey, gameplayInputAuthority: oldAuthority,
+        touchControlsAvailable: true,
+        gameplayInputRoute: (event) { oldEvents.add(event); return true; },
+      )));
+      final held = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
+      await held.moveBy(const Offset(50, 0));
+      expect(oldEvents.single, const RuntimeInputEvent.press(RuntimeInputControl.right));
+      await tester.pumpWidget(_app(_view(replaceController ? newController : oldController,
+        gameplayViewportKey: viewportKey,
+        gameplayInputAuthority: replaceController ? oldAuthority : newAuthority,
+        touchControlsAvailable: true,
+        gameplayInputRoute: (event) { newEvents.add(event); return true; },
+      )));
+      expect(oldEvents, const [RuntimeInputEvent.press(RuntimeInputControl.right),
+        RuntimeInputEvent.release(RuntimeInputControl.right)]);
+      expect(newEvents, isEmpty);
+      await held.moveBy(const Offset(-100, 0));
+      await held.up();
+      expect(newEvents, isEmpty);
+      final fresh = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
+      await fresh.moveBy(const Offset(-30, 0));
+      expect(newEvents.single, const RuntimeInputEvent.press(RuntimeInputControl.left));
+      await fresh.up();
+      expect(newEvents.last, const RuntimeInputEvent.release(RuntimeInputControl.left));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('OW004 ordinary route closure rebuild preserves the active gesture', (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
+    final viewportKey = GlobalKey();
+    final events = <RuntimeInputEvent>[];
+    addTearDown(controller.dispose);
+    Widget view() => _app(_view(controller,
+      gameplayViewportKey: viewportKey, touchControlsAvailable: true,
+      gameplayInputRoute: (event) { events.add(event); return true; },
+    ));
+    await tester.pumpWidget(view());
+    final held = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
+    await held.moveBy(const Offset(50, 0));
+    await tester.pumpWidget(view());
+    expect(events.single, const RuntimeInputEvent.press(RuntimeInputControl.right));
+    await held.moveBy(const Offset(20, 0));
+    expect(events, hasLength(1));
+    await held.up();
+    expect(events.last, const RuntimeInputEvent.release(RuntimeInputControl.right));
+  });
+
   group('OW002 adaptive input', () {
     for (final initiallyConnected in [false, true]) {
       testWidgets(
@@ -673,7 +866,7 @@ void main() {
       expect(find.byKey(const ValueKey<String>('test-game-scene')),
           findsOneWidget);
       expect(
-        find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+        find.byKey(const ValueKey<String>('runtime-player-touch-movement-zone')),
         findsNothing,
       );
       await tester.tap(
@@ -687,7 +880,7 @@ void main() {
 
       expect(find.byType(PresentationFrameRenderer), findsNothing);
       expect(
-        find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+        find.byKey(const ValueKey<String>('runtime-player-touch-movement-zone')),
         findsOneWidget,
       );
       expect(tester.takeException(), isNull);
@@ -1835,7 +2028,7 @@ void main() {
     );
 
     expect(
-      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      find.byKey(const ValueKey<String>('runtime-player-touch-movement-zone')),
       findsOneWidget,
     );
     expect(
@@ -1867,7 +2060,7 @@ void main() {
     tester.view.physicalSize = const Size(844, 390);
     await tester.pump();
     expect(
-      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      find.byKey(const ValueKey<String>('runtime-player-touch-movement-zone')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -1910,7 +2103,7 @@ void main() {
     );
 
     expect(
-      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      find.byKey(const ValueKey<String>('runtime-player-touch-movement-zone')),
       findsOneWidget,
     );
     expect(
@@ -1923,7 +2116,7 @@ void main() {
     );
     await tester.pump();
     expect(
-      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      find.byKey(const ValueKey<String>('runtime-player-touch-movement-zone')),
       findsNothing,
     );
     expect(
@@ -1963,7 +2156,7 @@ void main() {
     );
     await tester.pump();
     expect(
-      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      find.byKey(const ValueKey<String>('runtime-player-touch-movement-zone')),
       findsOneWidget,
     );
     expect(
@@ -2146,7 +2339,7 @@ void main() {
     );
   });
 
-  testWidgets('keeps portrait controls above the bottom thumb obstruction',
+  testWidgets('applies touch opacity and clamps floating visual inside viewport',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -2179,6 +2372,8 @@ void main() {
       ),
     );
 
+    final gesture = await tester.startGesture(const Offset(20, 820), kind: ui.PointerDeviceKind.touch);
+    await tester.pump();
     expect(
       tester
           .getBottomLeft(
@@ -2187,7 +2382,7 @@ void main() {
             ),
           )
           .dy,
-      lessThanOrEqualTo(790),
+      lessThanOrEqualTo(844),
     );
     expect(
       tester
@@ -2199,6 +2394,7 @@ void main() {
           .opacity,
       .45,
     );
+    await gesture.up();
   });
 
   testWidgets('rejects exploration menu input while battle owns input',
@@ -2669,6 +2865,8 @@ NormalizedGamepadEvent _padInput(
 PokeMapPlayerSessionView _view(
   RuntimePlayerViewController controller, {
   _SceneLifecycle? lifecycle,
+  GlobalKey? gameplayViewportKey,
+  WidgetBuilder? gameSceneBuilder,
   VoidCallback? onShowDiagnostics,
   bool touchControlsAvailable = false,
   PlayerGameplayInputRoute? gameplayInputRoute,
@@ -2688,17 +2886,19 @@ PokeMapPlayerSessionView _view(
   PresentationFrameContentPort? presentationContentPort,
   Future<void> Function()? onPresentationSkip,
 }) {
+  final viewportKey = gameplayViewportKey ?? GlobalKey();
   return PokeMapPlayerSessionView(
+    gameplayViewportKey: viewportKey,
     controller: controller,
     titlePresentation: const RuntimePlayerTitlePresentation(
       author: 'Studio Test',
       description: 'Une aventure de test.',
     ),
     payloadForAction: payloadForAction,
-    gameSceneBuilder: (_) => _SceneProbe(
+    gameSceneBuilder: gameSceneBuilder ?? (_) => SizedBox.expand(key: viewportKey, child: _SceneProbe(
       key: const ValueKey<String>('test-game-scene'),
       lifecycle: lifecycle ?? _SceneLifecycle(),
-    ),
+    )),
     touchControlsAvailable: touchControlsAvailable,
     gameplayInputRoute: gameplayInputRoute,
     gameplayInputAuthority: gameplayInputAuthority,

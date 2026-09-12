@@ -208,12 +208,14 @@ class RuntimePlayerTouchMenuButton extends StatelessWidget {
     super.key,
     required this.onPressed,
     this.activeInputSource,
+    this.hitRegionKey,
     this.opacity = 0.82,
   }) : assert(opacity >= 0.3 && opacity <= 1);
 
   final VoidCallback? onPressed;
   final PlayerInputSource? activeInputSource;
   final double opacity;
+  final GlobalKey? hitRegionKey;
 
   @override
   Widget build(BuildContext context) {
@@ -236,6 +238,7 @@ class RuntimePlayerTouchMenuButton extends StatelessWidget {
                         : 1),
                 duration: context.playerMotion.fast,
                 child: Material(
+                  key: hitRegionKey,
                   type: MaterialType.transparency,
                   child: IconButton.filled(
                     key: const ValueKey<String>(

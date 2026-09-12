@@ -1419,6 +1419,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             pauseMenuLabels: playerPresentation.pauseMenuLabels,
             pausePresentation: playerPresentation.pausePresentation,
             gameplayInputRoute: host.sessionController.handleInput,
+            gameplayViewportKey: _interactiveGameSurfaceKey,
             gameplayInputAuthority: game?.inputAuthorityListenable,
             dialoguePresentation: game?.dialoguePresentationListenable,
             onDialogueCommand: game?.dispatchDialoguePresentationCommand,

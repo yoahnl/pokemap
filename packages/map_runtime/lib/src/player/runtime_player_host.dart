@@ -121,6 +121,7 @@ final class PlayerPreferencesSnapshot {
     required this.locale,
     required this.accessibility,
     this.touchControlsOpacity = 0.82,
+    this.leftHandedTouchControls = false,
     this.audioMix = const RuntimeAudioMix(),
     this.highContrast = false,
     this.showInputHints = true,
@@ -135,6 +136,7 @@ final class PlayerPreferencesSnapshot {
   final String locale;
   final GameSessionAccessibilityOptions accessibility;
   final double touchControlsOpacity;
+  final bool leftHandedTouchControls;
   final RuntimeAudioMix audioMix;
   final bool highContrast;
   final bool showInputHints;
@@ -145,6 +147,7 @@ final class PlayerPreferencesSnapshot {
     String? locale,
     GameSessionAccessibilityOptions? accessibility,
     double? touchControlsOpacity,
+    bool? leftHandedTouchControls,
     RuntimeAudioMix? audioMix,
     bool? highContrast,
     bool? showInputHints,
@@ -155,6 +158,8 @@ final class PlayerPreferencesSnapshot {
         locale: locale ?? this.locale,
         accessibility: accessibility ?? this.accessibility,
         touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
+        leftHandedTouchControls:
+            leftHandedTouchControls ?? this.leftHandedTouchControls,
         audioMix: audioMix ?? this.audioMix,
         highContrast: highContrast ?? this.highContrast,
         showInputHints: showInputHints ?? this.showInputHints,

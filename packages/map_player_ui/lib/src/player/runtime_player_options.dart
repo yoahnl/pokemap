@@ -526,6 +526,13 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         ],
       PlayerOptionsCategory.controls => [
           _toggle(
+              _strings.leftHandedTouchControls,
+              'runtime-player-left-handed-touch-toggle',
+              preferences.leftHandedTouchControls,
+              compact,
+              (value) => _save(
+                  _confirmed.copyWith(leftHandedTouchControls: value))),
+          _toggle(
               _strings.hints,
               'runtime-player-input-hints-toggle',
               preferences.showInputHints,
@@ -944,6 +951,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       PlayerOptionsCategory.audio =>
         _confirmed.copyWith(audioMix: defaults.audioMix),
       PlayerOptionsCategory.controls => _confirmed.copyWith(
+          leftHandedTouchControls: defaults.leftHandedTouchControls,
           showInputHints: defaults.showInputHints,
           touchControlsOpacity: defaults.touchControlsOpacity),
       PlayerOptionsCategory.language =>

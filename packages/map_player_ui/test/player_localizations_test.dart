@@ -3,6 +3,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  test('touch side survives storage and runtime preference updates', () {
+    const defaults = PlayerPreferences();
+    final mirrored = defaults.copyWith(leftHandedTouchControls: true);
+    final restored = PlayerPreferences.fromJson(mirrored.toJson());
+    expect(restored, mirrored);
+    expect(restored, isNot(defaults));
+    final snapshot = restored.toRuntimeSnapshot(fallbackLocale: 'fr');
+    expect(snapshot.leftHandedTouchControls, isTrue);
+    expect(snapshot.copyWith(locale: 'en').leftHandedTouchControls, isTrue);
+    expect(
+      restored.copyWithRuntimeSnapshot(snapshot.copyWith(
+          leftHandedTouchControls: false)).leftHandedTouchControls,
+      isFalse,
+    );
+    expect(
+      () => PlayerPreferences.fromJson({
+        ...mirrored.toJson(),
+        'leftHandedTouchControls': 'true',
+      }),
+      throwsFormatException,
+    );
+  });
+
   test('preferences round-trip and clamp unsafe presentation values', () {
     final preferences = PlayerPreferences.fromJson(const <String, Object?>{
       'schemaVersion': 1,

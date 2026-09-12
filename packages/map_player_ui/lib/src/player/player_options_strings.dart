@@ -92,13 +92,15 @@ final class PlayerOptionsStrings {
       text('Afficher les aides de commandes', 'Show control hints');
   String get touchOpacity =>
       text('Opacité des commandes tactiles', 'Touch controls opacity');
+  String get leftHandedTouchControls =>
+      text('Joystick tactile à droite', 'Touch joystick on the right');
   String resetTitle(PlayerOptionsCategory value) =>
       text('Rétablir ${category(value)} ?', 'Reset ${category(value)}?');
   String resetMessage(PlayerOptionsCategory value) => value ==
           PlayerOptionsCategory.controls
       ? text(
-          'Les aides et l’opacité des commandes tactiles seront rétablies. Les touches restent inchangées ; utilisez Réinitialiser dans cette catégorie pour rétablir celles du périphérique affiché.',
-          'Control hints and touch controls opacity will be reset. Bindings are kept; use Reset in this category to restore the displayed device’s bindings.')
+          'Le côté du joystick, les aides et l’opacité des commandes tactiles seront rétablis. Les touches restent inchangées ; utilisez Réinitialiser dans cette catégorie pour rétablir celles du périphérique affiché.',
+          'Joystick side, control hints and touch controls opacity will be reset. Bindings are kept; use Reset in this category to restore the displayed device’s bindings.')
       : text(
           'Seuls les réglages de la catégorie « ${category(value)} » seront rétablis. Votre sauvegarde et les autres catégories seront conservées.',
           'Only the settings in “${category(value)}” will be reset. Your save and other categories will be kept.');

@@ -34,6 +34,7 @@ void main() {
     expect(snapshot.highContrast, isFalse);
     expect(snapshot.showInputHints, isTrue);
     expect(snapshot.touchControlsOpacity, 0.82);
+    expect(snapshot.leftHandedTouchControls, isFalse);
     expect(snapshot.audioMix.masterVolume, 1);
     expect(snapshot.audioMix.musicVolume, 0.8);
     expect(snapshot.audioMix.effectsVolume, 0.8);
@@ -108,6 +109,7 @@ void main() {
           hapticsEnabled: false,
         ),
         touchControlsOpacity: 0.45,
+        leftHandedTouchControls: true,
         highContrast: true,
         showInputHints: false,
         audioMix: RuntimeAudioMix(
@@ -129,6 +131,8 @@ void main() {
     expect(persisted.musicVolume, 0.7);
     expect(persisted.effectsVolume, 0.5);
     expect(persisted.touchControlsOpacity, 0.45);
+    expect(persisted.leftHandedTouchControls, isTrue);
+    expect((await gateway.load()).leftHandedTouchControls, isTrue);
   });
 
   test('projects persisted bus transitions into active runtime channels',

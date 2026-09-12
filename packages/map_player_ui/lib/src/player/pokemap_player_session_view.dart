@@ -122,6 +122,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.payloadForAction,
     this.onShowDiagnostics,
     this.gameplayInputRoute,
+    this.gameplayViewportKey,
     this.touchControlsAvailable,
     this.controllerInputEnabled = true,
     this.controllerInputEvents,
@@ -155,6 +156,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final RuntimePlayerActionPayloadBuilder? payloadForAction;
   final VoidCallback? onShowDiagnostics;
   final PlayerGameplayInputRoute? gameplayInputRoute;
+  final GlobalKey? gameplayViewportKey;
 
   /// Overrides platform detection in embedders and widget tests.
   ///
@@ -192,6 +194,9 @@ class PokeMapPlayerSessionView extends StatefulWidget {
 }
 
 class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
+  final _sessionSurfaceKey = GlobalKey();
+  final _touchMenuKey = GlobalKey();
+  final _touchCancellation = ValueNotifier<int>(0);
   var _pauseFocusController = RuntimePlayerFocusController();
   final _partyNavigation = RuntimePlayerPartyNavigation();
   final _bagNavigation = RuntimePlayerBagNavigation();
@@ -227,12 +232,28 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     HardwareKeyboard.instance.addHandler(_observeHardwareInput);
     GestureBinding.instance.pointerRouter.addGlobalRoute(_observePointerInput);
     widget.presentationFrame?.addListener(_handlePresentationFrameChanged);
+    widget.gameplayInputAuthority?.addListener(_handleGameplayAuthorityChanged);
     _bindControllerInputs();
   }
 
   @override
   void didUpdateWidget(covariant PokeMapPlayerSessionView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.gameplayInputAuthority != widget.gameplayInputAuthority) {
+      for (final event in _inputPolicy.releaseAll()) {
+        oldWidget.gameplayInputRoute?.call(event);
+      }
+    }
+    if (oldWidget.gameplayInputAuthority != widget.gameplayInputAuthority) {
+      oldWidget.gameplayInputAuthority?.removeListener(_handleGameplayAuthorityChanged);
+      widget.gameplayInputAuthority?.addListener(_handleGameplayAuthorityChanged);
+      _touchCancellation.value++;
+    }
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.gameplayViewportKey != widget.gameplayViewportKey) {
+      _touchCancellation.value++;
+    }
     if (oldWidget.controller != widget.controller) {
       _pokedexNavigation.clearForNewSession();
       _pauseFocusController.dispose();
@@ -258,11 +279,21 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     }
   }
 
+  void _handleGameplayAuthorityChanged() {
+    if (!(widget.gameplayInputAuthority?.value.acceptsOverworldInput ?? true)) {
+      _releaseGameplayDirections();
+      _touchCancellation.value++;
+    }
+  }
+
   void _handlePresentationFrameChanged() {
     if (mounted) setState(() {});
   }
 
   void _setActiveInputSource(PlayerInputSource source) {
+    if (source != PlayerInputSource.touch) {
+      _touchCancellation.value++;
+    }
     final previous = _activeInputSource;
     _inputPolicy.recognizeSource(PlayerInputOwner(source));
     if (mounted && previous != _activeInputSource) {
@@ -407,7 +438,12 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     String deviceId = '',
     String inputId = '',
   }) async {
-    if (source != PlayerInputSource.touch) _pendingPointerKind = null;
+    if (source != PlayerInputSource.touch) {
+      _pendingPointerKind = null;
+      if (event.isPress && !event.isRepeat) {
+        _touchCancellation.value++;
+      }
+    }
     final previous = _activeInputSource;
     final previousControllerId = _inputPolicy.activeControllerId;
     final events = _inputPolicy.route(event,
@@ -424,6 +460,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     RuntimeInputEvent event, {
     required PlayerInputSource source,
   }) async {
+    if (source == PlayerInputSource.touch && !event.isPress &&
+        const {RuntimeInputControl.up, RuntimeInputControl.down,
+          RuntimeInputControl.left, RuntimeInputControl.right,
+          RuntimeInputControl.sprint}.contains(event.control)) {
+      widget.gameplayInputRoute?.call(event);
+      return;
+    }
     final command = playerInputCommandFromRuntimeEvent(event, source: source);
     if (widget.presentationFrame?.value != null && command.isPress) {
       if (command.action == PlayerInputAction.confirm &&
@@ -609,7 +652,10 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       );
     }
     if (isMenuTransition) _menuTransitionPending = true;
-    if (action == RuntimePlayerAction.openMenu) _releaseGameplayDirections();
+    if (action == RuntimePlayerAction.openMenu) {
+      _releaseGameplayDirections();
+      _touchCancellation.value++;
+    }
     try {
       final result = await widget.controller.dispatch(
         RuntimePlayerCommand(
@@ -674,6 +720,18 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     );
   }
 
+  Rect? _rectInSession(GlobalKey? key) {
+    final target = key?.currentContext?.findRenderObject();
+    final session = _sessionSurfaceKey.currentContext?.findRenderObject();
+    if (target is! RenderBox || !target.attached || !target.hasSize ||
+        session is! RenderBox || !session.attached || !session.hasSize) {
+      return null;
+    }
+    return MatrixUtils.transformRect(
+      target.getTransformTo(session), Offset.zero & target.size,
+    );
+  }
+
   Widget _buildSessionStack(
     RuntimePlayerSnapshot snapshot,
     RuntimeInputAuthoritySnapshot inputAuthority,
@@ -702,6 +760,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
             controllerFamily: _controllerFamily),
         );
     final stack = Stack(
+      key: _sessionSurfaceKey,
       fit: StackFit.expand,
       children: <Widget>[
         RuntimePlayerSurfaceRouter(
@@ -715,6 +774,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           gameSceneBuilder: widget.gameSceneBuilder,
           onShowDiagnostics: widget.onShowDiagnostics,
           gameplayTouchMenuEnabled: acceptsOverworldTouch,
+          gameplayTouchMenuKey: _touchMenuKey,
           touchControlsOpacity: touchControlsOpacity,
           onPreferencesChanged: (preferences) async {
             final unavailableMessage = context.playerL10n.actionUnavailable;
@@ -824,6 +884,12 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           Positioned.fill(
             child: RuntimePlayerTouchControls(
               showControls: showTouchControls,
+              cancellationSignal: _touchCancellation,
+              readGameplayViewport: () => _rectInSession(widget.gameplayViewportKey),
+              readExcludedRects: () => [
+                if (_rectInSession(_touchMenuKey) case final rect?) rect,
+              ],
+              leftHanded: snapshot.preferences?.leftHandedTouchControls ?? false,
               onMovementGesture: () => _setActiveInputSource(PlayerInputSource.touch),
               opacity: touchControlsOpacity,
               controlProfile: _controlProfile,
@@ -910,7 +976,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     _bagNavigation.dispose();
     _pokedexNavigation.dispose();
     widget.presentationFrame?.removeListener(_handlePresentationFrameChanged);
+    widget.gameplayInputAuthority?.removeListener(_handleGameplayAuthorityChanged);
     _releaseGameplayDirections();
+    _touchCancellation.dispose();
     super.dispose();
   }
 }

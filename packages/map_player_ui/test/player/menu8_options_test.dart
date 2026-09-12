@@ -10,6 +10,21 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('touch side setting persists and resets with controls',
+      (tester) async {
+    final changes = <PlayerPreferencesSnapshot>[];
+    await _pump(tester, onChanged: changes.add);
+    await _category(tester, 'controls');
+    await _tap(tester, 'runtime-player-left-handed-touch-toggle');
+    expect(changes.single.leftHandedTouchControls, isTrue);
+    expect(changes.single.audioMix, _preferences.audioMix);
+    await _tap(tester, 'options-defaults');
+    await _tap(tester, 'options-reset-confirm');
+    expect(changes.last.leftHandedTouchControls, isFalse);
+    expect(changes.last.audioMix, _preferences.audioMix);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final size in [const Size(390, 844), const Size(844, 390)]) {
     testWidgets('options footer keeps two aligned touch buttons at $size',
         (tester) async {
