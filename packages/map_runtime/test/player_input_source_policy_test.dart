@@ -6,6 +6,23 @@ const touch = PlayerInputOwner(PlayerInputSource.touch);
 const pad = PlayerInputOwner(PlayerInputSource.controller, deviceId: 'pad');
 
 void main() {
+  test('neutralization releases actions once and requires a fresh physical press', () {
+    final policy = PlayerInputSourcePolicy(touchAvailable: true);
+    const primary = RuntimeInputEvent.press(RuntimeInputControl.primary);
+    const right = RuntimeInputEvent.press(RuntimeInputControl.right);
+    policy.route(primary, owner: keyboard);
+    policy.route(right, owner: keyboard);
+    expect(policy.releaseHeld(), unorderedEquals(const [
+      RuntimeInputEvent.release(RuntimeInputControl.primary),
+      RuntimeInputEvent.release(RuntimeInputControl.right),
+    ]));
+    expect(policy.releaseHeld(), isEmpty);
+    expect(policy.route(primary, owner: keyboard), isEmpty);
+    expect(policy.route(const RuntimeInputEvent.press(RuntimeInputControl.right, isRepeat: true), owner: keyboard), isEmpty);
+    expect(policy.route(const RuntimeInputEvent.release(RuntimeInputControl.right), owner: keyboard), isEmpty);
+    expect(policy.route(right, owner: keyboard), [right]);
+  });
+
   test('physical aliases act independently and release the last held direction',
       () {
     final policy = PlayerInputSourcePolicy(touchAvailable: true);

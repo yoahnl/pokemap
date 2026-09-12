@@ -5,6 +5,34 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('RuntimePlayerGamepadBridge', () {
+    test('a newly mapped held button must be released before activation', () {
+      final first = RuntimePlayerGamepadBridge();
+      expect(first.handleButton(gamepadId: 'pad', button: GamepadButton.x, value: 1), isEmpty);
+      final remapped = first.rebind(PlayerControlProfile.standard.rebind(
+        device: PlayerControlDevice.gamepad,
+        control: RuntimeInputControl.primary,
+        inputId: GamepadButton.x.name,
+      ).profile);
+      expect(remapped.handleButton(gamepadId: 'pad', button: GamepadButton.x, value: 1), isEmpty);
+      expect(remapped.handleButton(gamepadId: 'pad', button: GamepadButton.x, value: 0), isEmpty);
+      expect(remapped.handleButton(gamepadId: 'pad', button: GamepadButton.x, value: 1),
+        const [RuntimeInputEvent.press(RuntimeInputControl.primary)]);
+    });
+
+    test('a released unmapped button can be rebound without a second release', () {
+      final first = RuntimePlayerGamepadBridge();
+      first.handleButton(gamepadId: 'pad', button: GamepadButton.a, value: 1);
+      final remapped = first.rebind(PlayerControlProfile.standard.rebind(
+        device: PlayerControlDevice.gamepad,
+        control: RuntimeInputControl.primary,
+        inputId: GamepadButton.x.name,
+      ).profile);
+      expect(remapped.handleButton(gamepadId: 'pad', button: GamepadButton.a, value: 0), isEmpty);
+      final restored = remapped.rebind(PlayerControlProfile.standard);
+      expect(restored.handleButton(gamepadId: 'pad', button: GamepadButton.a, value: 1),
+        const [RuntimeInputEvent.press(RuntimeInputControl.primary)]);
+    });
+
     test('recognizes only identified controller models and keeps unknowns neutral', () {
       for (final (vendor, product, family) in [
         (0x045e, 0x0b0c, PlayerControllerFamily.xbox),

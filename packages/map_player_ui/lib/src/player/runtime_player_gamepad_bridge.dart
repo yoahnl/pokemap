@@ -38,6 +38,27 @@ final class RuntimePlayerGamepadBridge {
   final Map<String, Set<GamepadButton>> _blockedButtons = {};
   final Map<String, Offset> _blockedSticks = {};
 
+  RuntimePlayerGamepadBridge rebind(PlayerControlProfile controlProfile) {
+    final next = RuntimePlayerGamepadBridge(
+      stickDeadZone: _stickDeadZone,
+      stickReleaseDeadZone: _stickReleaseDeadZone,
+      controlProfile: controlProfile,
+    );
+    for (final entry in _blockedButtons.entries) {
+      next._blockedButtons[entry.key] = Set.of(entry.value);
+    }
+    next._blockedSticks.addAll(_blockedSticks);
+    for (final entry in _devices.entries) {
+      if (entry.value.physicalButtons.isNotEmpty) {
+        next._blockedButtons.putIfAbsent(entry.key, () => {}).addAll(entry.value.physicalButtons);
+      }
+      if (entry.value.vector.distance > _stickReleaseDeadZone) {
+        next._blockedSticks[entry.key] = entry.value.vector;
+      }
+    }
+    return next;
+  }
+
   List<RuntimeInputEvent> handle(NormalizedGamepadEvent event) {
     if (event.button case final button?) {
       return handleButton(
@@ -59,8 +80,6 @@ final class RuntimePlayerGamepadBridge {
     required double value,
   }) {
     if (!value.isFinite) return const [];
-    final control = _controlProfile.controlForGamepadButton(button);
-    if (control == null) return const [];
     final pressed = value >= kRuntimePlayerGamepadPressedThreshold;
     final blocked = _blockedButtons[gamepadId];
     if (blocked?.contains(button) ?? false) {
@@ -72,6 +91,13 @@ final class RuntimePlayerGamepadBridge {
     }
     final state =
         _devices.putIfAbsent(gamepadId, _RuntimePlayerGamepadState.new);
+    if (pressed) {
+      state.physicalButtons.add(button);
+    } else {
+      state.physicalButtons.remove(button);
+    }
+    final control = _controlProfile.controlForGamepadButton(button);
+    if (control == null) return const [];
     final previous = state.controls;
     if (pressed) {
       state.buttons[button] = control;
@@ -119,10 +145,10 @@ final class RuntimePlayerGamepadBridge {
   List<RuntimeInputEvent> disconnect(String gamepadId) {
     final state = _devices.remove(gamepadId);
     if (state == null) return const [];
-    if (state.buttons.isNotEmpty) {
+    if (state.physicalButtons.isNotEmpty) {
       _blockedButtons
           .putIfAbsent(gamepadId, () => {})
-          .addAll(state.buttons.keys);
+          .addAll(state.physicalButtons);
     }
     if (state.vector.distance > _stickReleaseDeadZone) {
       _blockedSticks[gamepadId] = state.vector;
@@ -144,6 +170,7 @@ final class RuntimePlayerGamepadBridge {
 }
 
 final class _RuntimePlayerGamepadState {
+  final Set<GamepadButton> physicalButtons = {};
   final Map<GamepadButton, RuntimeInputControl> buttons = {};
   Offset vector = Offset.zero;
   RuntimeInputControl? stickControl;

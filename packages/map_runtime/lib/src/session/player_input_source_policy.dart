@@ -48,10 +48,15 @@ final class PlayerInputSourcePolicy {
   void recognizeSource(PlayerInputOwner owner) => _select(owner);
 
   List<RuntimeInputEvent> releaseAll() {
+    final events = releaseHeld();
+    _physicalPresses.clear();
+    return events;
+  }
+
+  List<RuntimeInputEvent> releaseHeld() {
     final events =
         _held.keys.map(RuntimeInputEvent.release).toList(growable: false);
     _held.clear();
-    _physicalPresses.clear();
     return events;
   }
 
