@@ -45,6 +45,37 @@ class PlayerComponent extends PositionComponent {
   final ProjectCharacterEntry? characterEntry;
   final Map<String, RuntimeTilesetImage> tileImages;
 
+  late final bool hasRunningAnimation = _hasRunningAnimation();
+
+  bool _hasRunningAnimation() {
+    final character = characterEntry;
+    if (character == null) return false;
+    final resolver = CharacterAnimationSourceResolver();
+    final availableImageIds = tileImages.keys.toSet();
+    return EntityFacing.values.every((direction) {
+      final animations = character.animations.where((animation) =>
+          animation.state == CharacterAnimationState.run &&
+          animation.direction == direction);
+      if (animations.isEmpty) return false;
+      final animation = animations.last;
+      return animation.frames.isNotEmpty &&
+          animation.frames.every((frame) {
+            final source = resolver.resolveFrame(
+              character: character,
+              animation: animation,
+              frame: frame,
+              tileWidth: bundle.manifest.settings.tileWidth,
+              tileHeight: bundle.manifest.settings.tileHeight,
+              availableImageIds: availableImageIds,
+            );
+            return source != null &&
+                tileImages[source.imageId]
+                        ?.containsSourceRect(source.sourceRect) ==
+                    true;
+          });
+    });
+  }
+
   GameplayPlayerState _state;
   Vector2 _mapOrigin;
   OverworldActorComponent? _actor;

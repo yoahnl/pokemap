@@ -8,6 +8,34 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('absent pause style selects the current illustrated menu', () {
+    final installed = RuntimePlayerPresentation.fromRuntime(
+      const RuntimeStartupResolvedPresentation(),
+      imageForAsset: (_) => null,
+    );
+    final preview = RuntimePlayerPresentation.fromProfile(
+      const ProjectPresentationProfile(
+        pause: ProjectPausePresentationProfile(title: 'Voyage'),
+      ),
+    );
+    expect(installed.pausePresentation.style,
+        ProjectPauseMenuStyle.nightIllustrated);
+    expect(preview.pausePresentation.style,
+        ProjectPauseMenuStyle.nightIllustrated);
+    expect(preview.pausePresentation.title, 'Voyage');
+  });
+
+  test('explicit pause styles remain the authored choice', () {
+    for (final style in ProjectPauseMenuStyle.values) {
+      final presentation = RuntimePlayerPresentation.fromProfile(
+        ProjectPresentationProfile(
+          pause: ProjectPausePresentationProfile(style: style),
+        ),
+      );
+      expect(presentation.pausePresentation.style, style);
+    }
+  });
+
   test(
       'preview and installed presentation resolve the same menu image contract',
       () {

@@ -3,6 +3,8 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:video_player/video_player.dart';
 
 import 'player_intro_video_controller.dart';
+import 'presentation_video_source_stub.dart'
+    if (dart.library.io) 'presentation_video_source_io.dart' as video_source;
 
 abstract interface class PresentationVideoController {
   Widget buildVideo();
@@ -58,6 +60,7 @@ final class VideoPlayerPresentationPlaybackDriver
   final PresentationVideoControllerFactory _controllerFactory;
   final Map<Object, PresentationVideoController> _controllers =
       <Object, PresentationVideoController>{};
+  final Map<Object, video_source.PreparedPresentationVideoSource> _sources = {};
 
   int get activeDecoderCount => _controllers.length;
 
@@ -66,16 +69,23 @@ final class VideoPlayerPresentationPlaybackDriver
     Uri source, {
     required double initialVolume,
   }) async {
-    final controller = _controllerFactory(source);
+    final prepared = await video_source.preparePresentationVideoSource(source);
+    PresentationVideoController? controller;
     try {
+      controller = _controllerFactory(prepared.uri);
       await controller.initialize();
       await controller.setVolume(initialVolume);
     } on Object {
-      await controller.dispose();
+      try {
+        await controller?.dispose();
+      } finally {
+        await prepared.dispose();
+      }
       rethrow;
     }
     final handle = Object();
     _controllers[handle] = controller;
+    _sources[handle] = prepared;
     return handle;
   }
 
@@ -99,7 +109,12 @@ final class VideoPlayerPresentationPlaybackDriver
   @override
   Future<void> dispose(Object handle) async {
     final controller = _controllers.remove(handle);
-    if (controller != null) await controller.dispose();
+    final source = _sources.remove(handle);
+    try {
+      if (controller != null) await controller.dispose();
+    } finally {
+      await source?.dispose();
+    }
   }
 
   PresentationVideoController _require(Object handle) {

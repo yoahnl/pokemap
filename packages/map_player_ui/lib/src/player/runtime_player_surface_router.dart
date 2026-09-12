@@ -110,6 +110,9 @@ class _RuntimePlayerSurfaceRouterState
   RuntimePlayerPokedexNavigation get _pokedexNavigation =>
       widget.pokedexNavigation ?? _ownedPokedexNavigation;
 
+  PlayerPausePresentation get _pausePresentation =>
+      widget.pausePresentation ?? const PlayerPausePresentation();
+
   @override
   void didUpdateWidget(RuntimePlayerSurfaceRouter oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -382,8 +385,7 @@ class _RuntimePlayerSurfaceRouterState
           logicalSelectionId: widget.snapshot.logicalSelectionId,
           labels: widget.pauseMenuLabels,
           presentation:
-              (widget.pausePresentation ?? const PlayerPausePresentation())
-                  .resolveVisibility(widget.snapshot.pauseMenuState),
+              _pausePresentation.resolveVisibility(widget.snapshot.pauseMenuState),
           saveMessage: _saveDialogRoute != null ||
                   widget.snapshot.saveReceipt == null ||
                   identical(widget.snapshot.saveReceipt, _shownSaveReceipt)
@@ -391,7 +393,7 @@ class _RuntimePlayerSurfaceRouterState
               : PlayerSaveStrings.of(context)
                   .saved(widget.snapshot.saveReceipt!),
           detail: RuntimePlayerDetailRouter(
-            optionsNavigation: widget.pausePresentation?.style ==
+            optionsNavigation: _pausePresentation.style ==
                     ProjectPauseMenuStyle.nightIllustrated
                 ? _optionsNavigation
                 : null,
@@ -454,7 +456,7 @@ class _RuntimePlayerSurfaceRouterState
                           widget.snapshot.isActionEnabled(
                               RuntimePlayerAction.openOptions) &&
                           widget.snapshot.preferences != null &&
-                          widget.pausePresentation?.style ==
+                          _pausePresentation.style ==
                               ProjectPauseMenuStyle.nightIllustrated
                       ? ListenableBuilder(
                           listenable: _optionsNavigation,
@@ -463,7 +465,7 @@ class _RuntimePlayerSurfaceRouterState
                       : (widget.snapshot.pauseSection == RuntimePlayerPauseSection.pokedex ||
                                   widget.snapshot.pauseSection == RuntimePlayerPauseSection.profile ||
                                   widget.snapshot.pauseSection == RuntimePlayerPauseSection.options) &&
-                              widget.pausePresentation?.style != ProjectPauseMenuStyle.nightIllustrated
+                              _pausePresentation.style != ProjectPauseMenuStyle.nightIllustrated
                           ? PlayerActionButton(
                               key:
                                   const ValueKey('runtime-pause-detail-return'),

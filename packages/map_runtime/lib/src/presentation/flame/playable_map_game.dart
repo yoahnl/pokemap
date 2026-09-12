@@ -508,6 +508,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late final bool _isProjectNewGameBoot;
   late GameplayWorldState _world;
   late PlayerComponent _player;
+  bool _playerSupportsRunning = false;
   bool _actorContactShadowRuntimeReady = false;
   String _activeMapId = '';
   String? _previousMapId;
@@ -2418,6 +2419,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         RuntimeInputContext.blocked,
     };
     final sprintAllowed = isLoaded &&
+        _playerSupportsRunning &&
         _externalInputLocks.isEmpty &&
         context == RuntimeInputContext.overworld;
     if (!sprintAllowed) _sprintPressed = false;
@@ -4000,6 +4002,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileImages: images,
         mapOrigin: _originPixelsOf(rootMap),
       );
+      _playerSupportsRunning = _player.hasRunningAnimation;
       await world.add(_player);
       if (_isRemoved) return;
       _actorContactShadowRuntimeReady = true;

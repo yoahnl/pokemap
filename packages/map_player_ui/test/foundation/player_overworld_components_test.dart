@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -179,6 +181,59 @@ void main() {
     expect(knob.center.dx, greaterThan(base.center.dx));
     await tester.tapAt(base.center);
     expect(taps, 1);
+  });
+  testWidgets(
+      'running arc follows the joystick through all cardinal directions',
+      (tester) async {
+    const directions = [
+      Offset(1, 0),
+      Offset(0, 1),
+      Offset(-1, 0),
+      Offset(0, -1),
+      Offset.zero,
+      Offset.zero,
+    ];
+    const size = PokeMapPlayerOverworldTheme.joystickSize;
+    const center = Offset(size / 2, size / 2);
+    const radius = size / 2 - PokeMapPlayerOverworldTheme.runningInset;
+    CustomPainter? previous;
+    for (var index = 0; index < directions.length; index++) {
+      final direction = directions[index];
+      await tester.pumpWidget(host(Stack(children: [
+        PlayerOverworldJoystickVisual(
+            anchor: const Offset(150, 200),
+            displacement: direction,
+            running: true)
+      ])));
+      await tester.pumpAndSettle();
+      final painter = tester
+          .widget<CustomPaint>(find.descendant(
+              of: find.byType(PlayerOverworldJoystickVisual),
+              matching: find.byType(CustomPaint)))
+          .painter!;
+      if (previous != null && index < 4) {
+        expect(painter.shouldRepaint(previous), isTrue);
+      }
+      if (index == 5) {
+        expect(painter.shouldRepaint(previous!), isFalse);
+      }
+      previous = painter;
+      final recorder = ui.PictureRecorder();
+      painter.paint(Canvas(recorder), const Size.square(size));
+      final picture = recorder.endRecording();
+      final image = picture.toImageSync(size.toInt(), size.toInt());
+      final pixels = (await tester.runAsync(
+          () => image.toByteData(format: ui.ImageByteFormat.rawRgba)))!;
+      for (var cardinal = 0; cardinal < 4; cardinal++) {
+        final point = center + directions[cardinal] * radius;
+        final alpha = pixels.getUint8(
+            (point.dy.floor() * size.toInt() + point.dx.floor()) * 4 + 3);
+        expect(alpha, cardinal == (index < 4 ? index : 3) ? greaterThan(0) : 0,
+            reason: 'direction $direction, sampled ${directions[cardinal]}');
+      }
+      image.dispose();
+      picture.dispose();
+    }
   });
   testWidgets('synthetic key down cannot activate a control', (tester) async {
     var calls = 0;

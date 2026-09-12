@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/narrative_event_runtime_snapshot.dart';
 import 'package:path/path.dart' as p;
 import 'support/project_manifest_test_support.dart';
 
@@ -50,6 +51,55 @@ void main() {
 
     expect(bundle.manifest, same(manifest));
     expect(bundle.map.id, 'p3_test_map');
+  });
+
+  test('preloaded raw manifests share Event V2 authority with disk map loads',
+      () async {
+    final workspace = await Directory.systemTemp.createTemp(
+      'runtime_preloaded_collision_authority_',
+    );
+    addTearDown(() => workspace.delete(recursive: true));
+    final projectFile = File(p.join(workspace.path, 'project.json'));
+    final raw = withPokeMapBetaPokemonRuleset(_legacyBuildingProjectJson());
+    raw['maps'] = [
+      const ProjectMapEntry(
+        id: 'train',
+        name: 'Train',
+        relativePath: 'train.json',
+      ).toJson(),
+    ];
+    raw['eventRegistry'] = NarrativeEventRegistry(
+      schemaVersion: 1,
+      mode: EventSystemMode.dualRead,
+      records: const [],
+      legacyClaims: const [],
+    ).toJson();
+    await projectFile.writeAsString(jsonEncode(raw));
+    await File(p.join(workspace.path, 'train.json')).writeAsString(
+      jsonEncode(const MapData(
+        id: 'train',
+        name: 'Train',
+        size: GridSize(width: 4, height: 4),
+      ).toJson()),
+    );
+    final preloaded = await loadRuntimeMapBundle(
+      projectFilePath: projectFile.path,
+      mapId: 'train',
+      preloadedManifest: ProjectManifest.fromJson(raw),
+    );
+    final snapshot = await NarrativeEventRuntimeSnapshot.build(
+      project: preloaded.manifest,
+      loadMap: (mapId) async {
+        final bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFile.path,
+          mapId: mapId,
+        );
+        return (project: bundle.manifest, map: bundle.map);
+      },
+    );
+    expect(snapshot.mapsById.keys, ['train']);
+    expect(preloaded.manifest.elements.single.collisionProfile!.cells,
+        _buildingBlockingCells);
   });
 
   test('rejects an unsupported future visual-stack version explicitly',

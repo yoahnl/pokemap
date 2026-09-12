@@ -77,7 +77,8 @@ void main() {
         Offset(mirrored ? size.width - 90 : 90, size.height * .55),
         kind: ui.PointerDeviceKind.touch,
       );
-      await gesture.moveBy(Offset(running ? 48 : 32, -8));
+      await gesture.moveBy(Offset(running ? 56 : 32, -8));
+      if (running) await gesture.moveBy(const Offset(-8, 0));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(PlayerOverworldJoystickVisual), findsOneWidget);

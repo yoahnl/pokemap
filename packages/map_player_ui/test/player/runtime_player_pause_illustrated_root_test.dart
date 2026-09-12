@@ -5,6 +5,30 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    testWidgets('unconfigured mobile pause uses the illustrated menu $size',
+        (tester) async {
+      await _surface(tester, size);
+      final selected = <PlayerPauseAction>[];
+      await tester.pumpWidget(_app(RuntimePlayerPauseShell.root(
+        gameTitle: 'Voyage',
+        actions: _actions(),
+        onSelected: selected.add,
+        detail: const SizedBox.shrink(),
+        activeInputSource: PlayerInputSource.touch,
+      )));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('runtime-night-illustrated-frame')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('pause-root-rail')), findsNothing);
+      await tester.ensureVisible(find.byKey(const ValueKey('pause.options')));
+      await tester.tap(find.byKey(const ValueKey('pause.options')));
+      await tester.tap(find.byKey(const ValueKey('pause-frame-return-surface')));
+      expect(selected, [PlayerPauseAction.options, PlayerPauseAction.resume]);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('expanded root keeps eight entries inside its left rail',
       (tester) async {
     await _surface(tester, const Size(1440, 900));

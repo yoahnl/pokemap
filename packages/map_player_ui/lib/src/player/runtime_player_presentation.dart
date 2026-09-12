@@ -206,7 +206,7 @@ final class RuntimePlayerPresentationViewData {
           'returnToTitle': presentation.pauseMenuLabels.returnToTitle,
         },
         'pause': <String, Object?>{
-          'style': presentation.pausePresentation.style?.name,
+          'style': presentation.pausePresentation.style.name,
           'background': presentation.pausePresentation.background?.toJson(),
           'title': presentation.pausePresentation.title,
           'hint': presentation.pausePresentation.hint,

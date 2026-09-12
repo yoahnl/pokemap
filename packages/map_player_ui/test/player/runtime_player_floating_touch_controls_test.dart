@@ -299,20 +299,20 @@ void main() {
       () {
     final driver = RuntimePlayerFloatingTouchDriver(sprintAllowed: true);
     driver.begin(1, const Offset(100, 400));
-    expect(driver.update(1, const Offset(141, 400)),
+    expect(driver.update(1, const Offset(153, 400)),
         const [RuntimeInputEvent.press(RuntimeInputControl.right)]);
-    expect(driver.update(1, const Offset(142, 400)),
+    expect(driver.update(1, const Offset(154, 400)),
         const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
-    expect(driver.update(1, const Offset(140, 400)), isEmpty);
-    expect(driver.update(1, const Offset(100, 440)), const [
+    expect(driver.update(1, const Offset(150, 400)), isEmpty);
+    expect(driver.update(1, const Offset(100, 450)), const [
       RuntimeInputEvent.release(RuntimeInputControl.right),
       RuntimeInputEvent.press(RuntimeInputControl.down),
     ]);
-    expect(driver.update(1, const Offset(100, 431)), isEmpty);
-    expect(driver.update(1, const Offset(100, 430)),
+    expect(driver.update(1, const Offset(100, 448)), isEmpty);
+    expect(driver.update(1, const Offset(100, 447)),
         const [RuntimeInputEvent.release(RuntimeInputControl.sprint)]);
-    expect(driver.update(1, const Offset(100, 441)), isEmpty);
-    expect(driver.update(1, const Offset(100, 442)),
+    expect(driver.update(1, const Offset(100, 453)), isEmpty);
+    expect(driver.update(1, const Offset(100, 454)),
         const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
     expect(driver.cancel(), const [
       RuntimeInputEvent.release(RuntimeInputControl.sprint),
@@ -324,13 +324,13 @@ void main() {
   test('revocation requires a fresh threshold crossing or gesture', () {
     final driver = RuntimePlayerFloatingTouchDriver(sprintAllowed: true);
     driver.begin(1, Offset.zero);
-    driver.update(1, const Offset(50, 0));
+    driver.update(1, const Offset(56, 0));
     expect(driver.setSprintAllowed(false),
         const [RuntimeInputEvent.release(RuntimeInputControl.sprint)]);
     expect(driver.setSprintAllowed(true), isEmpty);
     expect(driver.update(1, const Offset(60, 0)), isEmpty);
     driver.update(1, const Offset(30, 0));
-    expect(driver.update(1, const Offset(42, 0)),
+    expect(driver.update(1, const Offset(54, 0)),
         const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
   });
 
@@ -342,18 +342,18 @@ void main() {
       final driver =
           RuntimePlayerFloatingTouchDriver(sprintAllowed: true, runMode: mode);
       driver.begin(1, Offset.zero);
-      driver.update(1, const Offset(50, 0));
+      driver.update(1, const Offset(56, 0));
       driver.setSprintAllowed(false);
       driver.update(1, const Offset(30, 0));
-      driver.update(1, const Offset(50, 0));
+      driver.update(1, const Offset(56, 0));
       driver.setSprintAllowed(true);
-      expect(driver.update(1, const Offset(51, 0)), isEmpty);
+      expect(driver.update(1, const Offset(57, 0)), isEmpty);
       driver.cancel();
       driver.setSprintAllowed(false);
       driver.begin(2, Offset.zero);
-      driver.update(2, const Offset(50, 0));
+      driver.update(2, const Offset(56, 0));
       driver.setSprintAllowed(true);
-      expect(driver.update(2, const Offset(51, 0)), isEmpty);
+      expect(driver.update(2, const Offset(57, 0)), isEmpty);
     }
   });
 
@@ -397,7 +397,7 @@ void main() {
         })));
     final pointer = await tester.startGesture(const Offset(100, 400),
         kind: ui.PointerDeviceKind.touch);
-    await pointer.moveBy(const Offset(50, 0));
+    await pointer.moveBy(const Offset(56, 0));
     await tester.pump();
     expect(events.where((e) => e.control == RuntimeInputControl.sprint),
         const [RuntimeInputEvent.press(RuntimeInputControl.sprint)]);
@@ -433,7 +433,7 @@ void main() {
     await pointer.moveBy(const Offset(20, 0));
     expect(events.length, count);
     await pointer.moveTo(const Offset(130, 400));
-    await pointer.moveTo(const Offset(142, 400));
+    await pointer.moveTo(const Offset(154, 400));
     expect(
         events.last, const RuntimeInputEvent.press(RuntimeInputControl.sprint));
     await pointer.cancel();
@@ -462,7 +462,7 @@ void main() {
         })));
     final pointer = await tester.startGesture(const Offset(100, 400),
         kind: ui.PointerDeviceKind.touch);
-    await pointer.moveBy(const Offset(50, 0));
+    await pointer.moveBy(const Offset(56, 0));
     rebuild(() => mode = RuntimePlayerTouchRunMode.walkOnly);
     await tester.pump();
     expect(events.sublist(events.length - 2), const [

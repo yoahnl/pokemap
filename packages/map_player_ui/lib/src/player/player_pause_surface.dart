@@ -75,7 +75,7 @@ final class PlayerPauseMenuLabels {
 @immutable
 final class PlayerPausePresentation {
   const PlayerPausePresentation({
-    this.style,
+    ProjectPauseMenuStyle? style,
     this.background,
     this.backgroundImage,
     this.title,
@@ -85,7 +85,7 @@ final class PlayerPausePresentation {
     this.actionIcons = const <PlayerPauseAction, ProjectPauseActionIcon>{},
     this.hiddenActions = const <PlayerPauseAction>{},
     this.composition,
-  });
+  }) : style = style ?? ProjectPauseMenuStyle.nightIllustrated;
 
   factory PlayerPausePresentation.fromProfile(
     ProjectPausePresentationProfile? profile, {
@@ -141,7 +141,7 @@ final class PlayerPausePresentation {
         },
       );
 
-  final ProjectPauseMenuStyle? style;
+  final ProjectPauseMenuStyle style;
   final ProjectPauseBackgroundProfile? background;
   final ImageProvider? backgroundImage;
   final String? title;

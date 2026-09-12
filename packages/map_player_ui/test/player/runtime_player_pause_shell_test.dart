@@ -346,7 +346,7 @@ void main() {
         PlayerPauseAction.quests:
             const PlayerActionAvailability.disabled(reason),
       },
-      presentation: const PlayerPausePresentation(),
+      presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
       details: const <PlayerPauseAction, PlayerPausePreviewDetailData>{
         PlayerPauseAction.quests: PlayerPausePreviewDetailData(
           action: PlayerPauseAction.quests,
@@ -476,7 +476,7 @@ void main() {
     await tester.pumpWidget(_app(PlayerPausePreviewShell(
       gameTitle: 'Aube',
       actions: _actions(),
-      presentation: const PlayerPausePresentation(),
+      presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
       details: {
         PlayerPauseAction.profile:
             PlayerPausePreviewDetailData.demonstrationProfile(),
@@ -527,6 +527,7 @@ void main() {
     var backCalls = 0;
 
     await tester.pumpWidget(_app(RuntimePlayerPauseShell(
+      presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
       gameTitle: 'Aube',
       pauseSection: RuntimePlayerPauseSection.root,
       actions: _actions(),
@@ -555,6 +556,7 @@ void main() {
     expect(selected, PlayerPauseAction.party);
 
     await tester.pumpWidget(_app(RuntimePlayerPauseShell(
+      presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
       gameTitle: 'Aube',
       pauseSection: RuntimePlayerPauseSection.party,
       actions: _actions(),
@@ -577,6 +579,7 @@ void main() {
     await _setSurface(tester, const Size(844, 390));
 
     await tester.pumpWidget(_app(RuntimePlayerPauseShell(
+      presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
       gameTitle: 'Aube',
       pauseSection: RuntimePlayerPauseSection.party,
       actions: _actions(),
@@ -627,6 +630,7 @@ void main() {
           color: Colors.green,
         ),
         RuntimePlayerPauseShell(
+          presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
           gameTitle: 'Aube',
           pauseSection: RuntimePlayerPauseSection.party,
           actions: _actions(),
@@ -661,6 +665,7 @@ void main() {
     await tester.pumpWidget(
       _app(
         RuntimePlayerPauseShell(
+          presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
           gameTitle: 'Aube',
           pauseSection: RuntimePlayerPauseSection.party,
           actions: _actions(),
@@ -698,6 +703,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           RuntimePlayerPauseShell.root(
+            presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
             gameTitle: 'Aube',
             actions: _actions(),
             onSelected: (_) {},
@@ -729,6 +735,7 @@ void main() {
 
     await tester.pumpWidget(_app(
       RuntimePlayerPauseShell(
+        presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
         gameTitle: 'Aube',
         pauseSection: RuntimePlayerPauseSection.root,
         actions: _actions(),
@@ -761,6 +768,7 @@ void main() {
     const safePadding = EdgeInsets.fromLTRB(24, 59, 18, 34);
     final presentation = PlayerPausePresentation.fromProfile(
       ProjectPausePresentationProfile(
+        style: ProjectPauseMenuStyle.standard,
         hint: 'Bouton A pour sélectionner une entrée',
         actions: <ProjectPauseActionProfile>[
           for (final action in defaultProjectPauseActions)
@@ -836,6 +844,7 @@ void main() {
     var resumeCalls = 0;
 
     await tester.pumpWidget(_app(RuntimePlayerPauseShell(
+      presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
       gameTitle: 'Aube',
       pauseSection: RuntimePlayerPauseSection.root,
       actions: _actions(),
@@ -874,8 +883,9 @@ void main() {
       detail: const Text('DÉTAIL CARNET'),
     )));
 
-    expect(find.text('Interlude'), findsOneWidget);
-    expect(find.text('Carnet'), findsNWidgets(2));
+    expect(find.byKey(const ValueKey('runtime-night-illustrated-frame')),
+        findsOneWidget);
+    expect(find.text('Carnet'), findsOneWidget);
     expect(find.text('Pokédex'), findsNothing);
   });
 
@@ -887,6 +897,7 @@ void main() {
     final selected = <PlayerPauseAction>[];
     final presentation = PlayerPausePresentation.fromProfile(
       const ProjectPausePresentationProfile(
+        style: ProjectPauseMenuStyle.standard,
         title: 'Interlude',
         hint: 'A pour choisir',
         actions: <ProjectPauseActionProfile>[
@@ -1046,6 +1057,7 @@ void main() {
           activeInputSource: PlayerInputSource.controller,
           presentation: PlayerPausePresentation.fromProfile(
             const ProjectPausePresentationProfile(
+              style: ProjectPauseMenuStyle.standard,
               actions: <ProjectPauseActionProfile>[
                 ProjectPauseActionProfile(id: ProjectPauseActionId.resume),
                 ProjectPauseActionProfile(
@@ -1154,6 +1166,7 @@ void main() {
           onSelected: (_) {},
           detail: const SizedBox.shrink(),
           presentation: const PlayerPausePresentation(
+            style: ProjectPauseMenuStyle.standard,
             composition: ProjectResponsivePauseCompositionProfile(
               compactPortrait: ProjectPauseCompositionVariantProfile(
                 showRootDetailPanel: true,
@@ -1180,6 +1193,7 @@ void main() {
 
     await tester.pumpWidget(_app(
       RuntimePlayerPauseShell(
+        presentation: const PlayerPausePresentation(style: ProjectPauseMenuStyle.standard),
         gameTitle: 'Aube',
         pauseSection: RuntimePlayerPauseSection.root,
         actions: _actions(),

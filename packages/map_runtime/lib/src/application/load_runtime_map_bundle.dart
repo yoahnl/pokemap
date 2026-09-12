@@ -278,7 +278,8 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     watch.stop();
     manifestLoadMicroseconds = watch.elapsedMicroseconds;
   } else {
-    manifest = preloadedManifest;
+    final normalized = normalizeRuntimeProjectManifest(preloadedManifest);
+    manifest = normalized == preloadedManifest ? preloadedManifest : normalized;
   }
   progressSink?.call(RuntimeMapBundleLoadStage.manifest);
   final entry = projectMapEntryForId(manifest, mapId);

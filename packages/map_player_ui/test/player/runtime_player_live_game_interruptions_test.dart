@@ -9,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart' show Direction;
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -22,7 +23,7 @@ void main() {
     final initialPosition = game.debugPlayerGridPosition;
     final held = await tester.startGesture(const Offset(100, 600),
         pointer: 1, kind: ui.PointerDeviceKind.touch);
-    await held.moveBy(const Offset(48, 0));
+    await held.moveBy(const Offset(56, 0));
     await tester.pump();
     expect(game.inputAuthoritySnapshot.sprintAccepted, isTrue);
     _advance(game, frames: 1);
@@ -58,7 +59,7 @@ void main() {
 
     final fresh = await tester.startGesture(const Offset(100, 600),
         pointer: 3, kind: ui.PointerDeviceKind.touch);
-    await fresh.moveBy(const Offset(48, 0));
+    await fresh.moveBy(const Offset(56, 0));
     await tester.pump();
     expect(game.inputAuthoritySnapshot.sprintAccepted, isTrue);
     _advance(game, frames: 15);
@@ -204,8 +205,32 @@ Future<_LoadedGame> _loadGame(WidgetTester tester,
         'playable_runtime_host',
         'golden_item_system',
         'project.json'));
-    final bundle = await loadRuntimeMapBundle(
+    final loadedBundle = await loadRuntimeMapBundle(
         projectFilePath: projectPath, mapId: 'golden_item_lab');
+    final bundle = loadedBundle.copyWith(
+        tilesetAbsolutePathsById: const {'runner': '/tmp/runner.png'},
+        manifest: loadedBundle.manifest.copyWith(
+          tilesets: const [ProjectTilesetEntry(id: 'runner', name: 'Runner', relativePath: 'runner.png')],
+      settings: loadedBundle.manifest.settings
+          .copyWith(defaultPlayerCharacterId: 'runner'),
+      characters: [
+        ProjectCharacterEntry(
+            id: 'runner',
+            name: 'Runner',
+            tilesetId: 'runner',
+            animations: [
+              for (final direction in EntityFacing.values)
+                CharacterAnimation(
+                    state: CharacterAnimationState.run,
+                    direction: direction,
+                    frames: const [
+                      CharacterAnimationFrame(
+                          source: TilesetSourceRect(
+                              x: 0, y: 0, width: 1, height: 1))
+                    ])
+            ])
+      ],
+    ));
     final game = _LoadedGame(bundle: bundle, projectFilePath: projectPath);
     game.onGameResize(
         game.camera.viewfinder.position.clone()..setValues(390, 844));
@@ -280,7 +305,13 @@ void _expectStopped(
 }
 
 final class _LoadedGame extends PlayableMapGame {
-  _LoadedGame({required super.bundle, required super.projectFilePath});
+  _LoadedGame({required super.bundle, required super.projectFilePath})
+      : super(
+          runtimeTilesetImageLoader: (_, {transparentColorByTilesetId = const {}}) async => {
+            'runner': RuntimeTilesetImage(
+                images: const [], chunks: const [], width: 64, height: 64),
+          },
+        );
 
   bool _loaded = false;
 

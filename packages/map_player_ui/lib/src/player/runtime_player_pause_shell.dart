@@ -226,8 +226,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   Widget build(BuildContext context) => PlayerSurfacePaletteScope(
         role: ProjectPresentationSurfaceRole.pauseMenu,
         child: Builder(
-          builder: (context) => widget.presentation?.style ==
-                  ProjectPauseMenuStyle.nightIllustrated
+          builder: (context) => _isIllustrated
               ? PlayerMenuThemeScope(
                   child: Builder(builder: _buildIllustratedFrame))
               : PlayerPauseSurface.composed(child: _buildSurface(context)),
@@ -235,7 +234,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       );
 
   bool get _isIllustrated =>
-      widget.presentation?.style == ProjectPauseMenuStyle.nightIllustrated;
+      _presentation.style == ProjectPauseMenuStyle.nightIllustrated;
 
   bool get _returnToTitleInOptions =>
       _isIllustrated &&
@@ -268,7 +267,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           );
           final layout = _layoutClass(constraints, resolved);
           final tokens = context.playerMenuTheme;
-          final presentation = widget.presentation!;
+          final presentation = _presentation;
           final image = presentation.backgroundImage;
           final background = presentation.background;
           final isRoot = widget.pauseSection == RuntimePlayerPauseSection.root;
@@ -480,8 +479,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           },
           child: Material(
             key: const ValueKey<String>('runtime-pause-backdrop'),
-            color: widget.presentation?.style ==
-                    ProjectPauseMenuStyle.nightIllustrated
+            color: _isIllustrated
                 ? context.playerMenuTheme.base.withValues(alpha: 0)
                 : context.playerPauseBackdropColor,
             child: SafeArea(

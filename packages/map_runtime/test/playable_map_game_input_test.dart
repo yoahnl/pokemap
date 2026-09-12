@@ -35,6 +35,50 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame runtime input seam', () {
+    test('missing player running animation rejects sprint from every input source',
+        () async {
+      final game = _TestPlayableMapGame(
+          bundle: _baseBundle(), projectFilePath: '/tmp/project.json');
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      addTearDown(game.onRemove);
+      game.update(0);
+      expect(game.inputAuthoritySnapshot.sprintAllowed, isFalse);
+      game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+      expect(game.inputAuthoritySnapshot.sprintAccepted, isFalse);
+      game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right));
+      game.update(.016);
+      game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right));
+      game.update(.08);
+      expect(game.debugIsPlayerStepping, isTrue);
+      game.update(.05);
+      expect(game.debugIsPlayerStepping, isFalse);
+    });
+
+    for (final (name, bundle, allowed) in [
+      ('four grid directions', _runningBundle(), true),
+      ('four dedicated directions', _runningBundle(sourceAssetId: 'runner-run'), true),
+      ('missing direction', _runningBundle(directions: [EntityFacing.south]), false),
+      ('empty run frames', _runningBundle(emptyFrames: true), false),
+      ('missing dedicated image', _runningBundle(sourceAssetId: 'absent'), false),
+      ('out of bounds frame', _runningBundle(sourceAssetId: 'runner-run', sourceX: 64), false),
+    ]) {
+      test('sprint animation availability: $name', () async {
+        final game = _TestPlayableMapGame(bundle: bundle,
+          projectFilePath: '/tmp/project.json', runtimeTilesetImageLoader: _runningImages);
+        game.onGameResize(_testViewportSize);
+        await game.onLoad();
+        addTearDown(game.onRemove);
+        game.update(0);
+        expect(game.inputAuthoritySnapshot.sprintAllowed, allowed);
+        game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+        expect(game.inputAuthoritySnapshot.sprintAccepted, allowed);
+      });
+    }
+
     test('sprint authority is accepted intent and revocation never revives it',
         () async {
       final unloaded = PlayableMapGame(
@@ -45,7 +89,8 @@ void main() {
           const RuntimeInputEvent.press(RuntimeInputControl.sprint));
       expect(unloaded.inputAuthoritySnapshot.sprintAccepted, isFalse);
       final game = _TestPlayableMapGame(
-        bundle: _baseBundle(), projectFilePath: '/tmp/project.json');
+        bundle: _runningBundle(), projectFilePath: '/tmp/project.json',
+        runtimeTilesetImageLoader: _runningImages);
       game.onGameResize(_testViewportSize);
       await game.onLoad();
       await _pumpUntil(game, () => !game.debugIsMapActivationDispatchInFlight);
@@ -77,7 +122,8 @@ void main() {
     });
 
     test('sprint remains accepted against a collision and in surf mode', () async {
-      final game = _TestPlayableMapGame(bundle: _baseBundle(), projectFilePath: '/tmp/project.json');
+      final game = _TestPlayableMapGame(bundle: _runningBundle(), projectFilePath: '/tmp/project.json',
+        runtimeTilesetImageLoader: _runningImages);
       game.onGameResize(_testViewportSize);
       await game.onLoad();
       game.debugSetPlayerStateForTest(position: const GridPos(x: 0, y: 0), facing: Direction.west);
@@ -95,7 +141,8 @@ void main() {
     });
 
     test('first loaded update publishes sprint permission after onLoad', () async {
-      final game = _TestPlayableMapGame(bundle: _baseBundle(), projectFilePath: '/tmp/project.json')
+      final game = _TestPlayableMapGame(bundle: _runningBundle(), projectFilePath: '/tmp/project.json',
+        runtimeTilesetImageLoader: _runningImages)
         ..loadedForTest = false;
       game.onGameResize(_testViewportSize);
       await game.onLoad();
@@ -2839,6 +2886,33 @@ class _TestPlayableMapGame extends PlayableMapGame {
     fail('Timed out waiting for the initial map activation dispatch.');
   }
 }
+
+RuntimeMapBundle _runningBundle({
+  Iterable<EntityFacing> directions = EntityFacing.values,
+  String? sourceAssetId,
+  bool emptyFrames = false,
+  int sourceX = 0,
+}) {
+  final bundle = _baseBundle();
+  return bundle.copyWith(
+    tilesetAbsolutePathsById: const {'runner': '/tmp/runner.png'},
+    characterAnimationAbsolutePathsByAssetId: const {'runner-run': '/tmp/runner-run.png'},
+    manifest: bundle.manifest.copyWith(
+    settings: bundle.manifest.settings.copyWith(defaultPlayerCharacterId: 'runner'),
+    characters: [ProjectCharacterEntry(id: 'runner', name: 'Runner', tilesetId: 'runner',
+      animations: [for (final direction in directions) CharacterAnimation(
+        state: CharacterAnimationState.run, direction: direction,
+        sourceAssetId: sourceAssetId,
+        frames: emptyFrames ? [] : [CharacterAnimationFrame(
+          source: TilesetSourceRect(x: sourceX, y: 0, width: 64, height: 64))])])],
+  ));
+}
+
+Future<Map<String, RuntimeTilesetImage>> _runningImages(Map<String, String> _,
+  {Map<String, TilesetTransparentColor> transparentColorByTilesetId = const {}}) async => {
+  'runner': RuntimeTilesetImage(images: const [], chunks: const [], width: 64, height: 64),
+  'character-animation:runner-run': RuntimeTilesetImage(images: const [], chunks: const [], width: 64, height: 64),
+};
 
 RuntimeMapBundle _baseBundle() {
   return RuntimeMapBundle(

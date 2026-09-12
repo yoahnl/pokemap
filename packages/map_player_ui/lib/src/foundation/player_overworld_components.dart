@@ -394,7 +394,12 @@ class PlayerOverworldJoystickVisual extends StatelessWidget {
                       enabled: enabled, circular: true))),
           if (running)
             Positioned.fill(
-                child: CustomPaint(painter: _RunningArcPainter(tokens))),
+                child: CustomPaint(
+                    painter: _RunningArcPainter(
+                        tokens,
+                        normalized == Offset.zero
+                            ? -math.pi / 2
+                            : normalized.direction))),
           Positioned(
               left: (size - knobSize) / 2 + offset.dx,
               top: (size - knobSize) / 2 + offset.dy,
@@ -409,14 +414,15 @@ class PlayerOverworldJoystickVisual extends StatelessWidget {
 }
 
 class _RunningArcPainter extends CustomPainter {
-  const _RunningArcPainter(this.tokens);
+  const _RunningArcPainter(this.tokens, this.direction);
   final PokeMapPlayerOverworldTheme tokens;
+  final double direction;
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawArc(
         (Offset.zero & size).deflate(PokeMapPlayerOverworldTheme.runningInset),
-        -math.pi / 2,
+        direction - math.pi / 4,
         math.pi / 2,
         false,
         Paint()
@@ -428,5 +434,6 @@ class _RunningArcPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RunningArcPainter oldDelegate) =>
-      oldDelegate.tokens.accent != tokens.accent;
+      oldDelegate.tokens.accent != tokens.accent ||
+      oldDelegate.direction != direction;
 }

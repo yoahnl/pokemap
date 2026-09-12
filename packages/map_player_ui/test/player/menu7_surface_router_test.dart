@@ -7,6 +7,22 @@ import 'package:map_player_ui/src/player/runtime_player_pokedex.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('unconfigured router uses current menu for root and detail',
+      (tester) async {
+    final snapshot = ValueNotifier(_snapshot());
+    addTearDown(snapshot.dispose);
+    final actions = <RuntimePlayerAction>[];
+    await _pump(tester, snapshot, actions: actions, withoutPresentation: true);
+    expect(find.byKey(const ValueKey('runtime-night-illustrated-frame')),
+        findsOneWidget);
+    await _tap(tester, 'pause-frame-return-surface');
+    expect(actions, [RuntimePlayerAction.returnToPauseRoot]);
+    expect(snapshot.value.pauseSection, RuntimePlayerPauseSection.root);
+    expect(find.byKey(const ValueKey('runtime-pause-illustrated-layout')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final style in ProjectPauseMenuStyle.values) {
     for (final keyboard in [false, true]) {
       testWidgets(
@@ -196,6 +212,7 @@ RuntimePlayerSnapshot _snapshot({
 Future<void> _pump(
     WidgetTester tester, ValueNotifier<RuntimePlayerSnapshot> snapshot,
     {List<RuntimePlayerAction>? actions,
+    bool withoutPresentation = false,
     ProjectPauseMenuStyle style = ProjectPauseMenuStyle.nightIllustrated,
     RuntimePlayerPokedexNavigation? navigation}) async {
   tester.view.devicePixelRatio = 1;
@@ -213,7 +230,9 @@ Future<void> _pump(
                 snapshot: value,
                 titlePresentation:
                     const RuntimePlayerTitlePresentation(author: 'Studio'),
-                pausePresentation: PlayerPausePresentation(style: style),
+                pausePresentation: withoutPresentation
+                    ? null
+                    : PlayerPausePresentation(style: style),
                 pokedexNavigation: navigation,
                 gameSceneBuilder: (_) => const SizedBox.expand(),
                 onAction: (action) async {

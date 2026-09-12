@@ -65,8 +65,8 @@ final class RuntimePlayerFloatingTouchDriver {
 
   final RuntimePlayerTouchRunMode runMode;
   static const usefulRadius = 56.0;
-  static const sprintEntry = .75;
-  static const sprintExit = .55;
+  static const sprintEntry = .95;
+  static const sprintExit = .85;
   bool _sprintAllowed;
   bool _sprintPressed = false;
   bool _sprintArmed = true;
