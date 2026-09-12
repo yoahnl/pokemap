@@ -94,7 +94,10 @@ class GameplayWorldState {
       map,
       project: project,
     );
-    final tileCollisionCellCache = _buildTileCollisionCellCache(map);
+    final tileCollisionCellCache = _buildTileCollisionCellCache(
+      map,
+      project: project,
+    );
     return GameplayWorldState._(
       map: map,
       player: GameplayPlayerState.fromGridSpawn(
@@ -173,7 +176,10 @@ class GameplayWorldState {
       tileWidthPx: tileWidth,
       tileHeightPx: tileHeight,
     );
-    final cache = _buildTileCollisionCellCache(map);
+    final cache = _buildTileCollisionCellCache(
+      map,
+      project: project,
+    );
     final placedElementCellCollisionCache =
         _buildPlacedElementCellCollisionCache(
       map,
@@ -757,15 +763,49 @@ String _resolveBehaviorIdentity(MapPlacedElementBehavior behavior) {
   return '${behavior.trigger.name}:${behavior.effect.type.name}';
 }
 
-/// Calque collision **éditeur** uniquement (bool par cellule carte).
-List<bool> _buildTileCollisionCellCache(MapData map) {
+/// Collision statique issue des calques de collision et des propriétés de tileset.
+List<bool> _buildTileCollisionCellCache(
+  MapData map, {
+  ProjectManifest? project,
+}) {
   final size = map.size.width * map.size.height;
   final cache = List<bool>.filled(size, false);
+  if (size <= 0) {
+    return List<bool>.unmodifiable(cache);
+  }
+  final blockedTileIdsByTileset = <String, Set<int>>{};
+  if (project != null) {
+    for (final tileset in project.tilesets) {
+      final source = tileset.source;
+      if (source is ProjectRegularAtlasTilesetSource) {
+        blockedTileIdsByTileset[tileset.id] = {
+          for (final property in source.tileProperties)
+            if (!property.passable) property.tileId,
+        };
+      }
+    }
+  }
   for (final layer in map.layers) {
     layer.whenOrNull(
       collision: (id, name, isVisible, opacity, collisions) {
         for (var i = 0; i < collisions.length && i < size; i++) {
           if (collisions[i]) {
+            cache[i] = true;
+          }
+        }
+      },
+      tile: (id, name, isVisible, opacity, purpose, palette, cells) {
+        if (!isVisible || purpose != MapLayerPurpose.visual) {
+          return;
+        }
+        for (var i = 0; i < cells.length && i < size; i++) {
+          final rawPaletteIndex = cells[i];
+          if (rawPaletteIndex <= 0 || rawPaletteIndex > palette.length) {
+            continue;
+          }
+          final entry = palette[rawPaletteIndex - 1];
+          final blockedTileIds = blockedTileIdsByTileset[entry.tilesetId];
+          if (blockedTileIds?.contains(entry.localTileId) ?? false) {
             cache[i] = true;
           }
         }

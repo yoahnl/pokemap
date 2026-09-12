@@ -7,6 +7,113 @@ import 'package:test/test.dart';
 
 void main() {
   group('GameplayWorldState collision storage', () {
+    test('reads intrinsic tile passability from the project tileset library',
+        () {
+      final map = MapData(
+        id: 'tileset-map',
+        name: 'Tileset map',
+        size: const GridSize(width: 2, height: 1),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            palette: const <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(tilesetId: 'terrain', localTileId: 1),
+            ],
+            cells: const <int>[1, 0],
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'Tileset project',
+        maps: const <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'terrain',
+            name: 'Terrain',
+            relativePath: 'terrain.png',
+            source: const ProjectTilesetSource.regularAtlas(
+              assetId: 'terrain',
+              pixelWidth: 64,
+              pixelHeight: 32,
+              tileWidth: 32,
+              tileHeight: 32,
+              tileProperties: <VisualTileProperty>[
+                VisualTileProperty(tileId: 1, passable: false),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final world = GameplayWorldState.initial(
+        map: map,
+        playerPos: const GridPos(x: 1, y: 0),
+        project: project,
+      );
+
+      expect(world.isBlocked(0, 0), isTrue);
+      expect(world.isBlocked(1, 0), isFalse);
+    });
+
+    test('ignores hidden and data tile layers for intrinsic passability', () {
+      final map = MapData(
+        id: 'tileset-map',
+        name: 'Tileset map',
+        size: const GridSize(width: 2, height: 1),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'hidden',
+            name: 'Hidden',
+            isVisible: false,
+            palette: const <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(tilesetId: 'terrain', localTileId: 1),
+            ],
+            cells: const <int>[1, 0],
+          ),
+          TileLayer(
+            id: 'data',
+            name: 'Data',
+            purpose: MapLayerPurpose.data,
+            palette: const <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(tilesetId: 'terrain', localTileId: 1),
+            ],
+            cells: const <int>[0, 1],
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'Tileset project',
+        maps: const <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'terrain',
+            name: 'Terrain',
+            relativePath: 'terrain.png',
+            source: const ProjectTilesetSource.regularAtlas(
+              assetId: 'terrain',
+              pixelWidth: 64,
+              pixelHeight: 32,
+              tileWidth: 32,
+              tileHeight: 32,
+              tileProperties: <VisualTileProperty>[
+                VisualTileProperty(tileId: 1, passable: false),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final world = GameplayWorldState.initial(
+        map: map,
+        playerPos: const GridPos(x: 1, y: 0),
+        project: project,
+      );
+
+      expect(world.isBlocked(0, 0), isFalse);
+      expect(world.isBlocked(1, 0), isFalse);
+    });
+
     test('allocates no world-pixel chunks without an element mask', () {
       final collisions = List<bool>.filled(256 * 256, false);
       collisions[10 * 256 + 10] = true;
