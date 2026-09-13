@@ -153,6 +153,7 @@ typedef _NarrativeEventSourceCleanupInterlock = ({
 });
 typedef _MapDiskMutationLease = ({
   Object token,
+  bool isReadOnly,
   String? projectRootPath,
   ProjectManifest? project,
   MapData? activeMap,
@@ -2785,6 +2786,14 @@ class EditorNotifier extends _$EditorNotifier
     if (state.mapStrokeStart != null) {
       return ActiveMapSaveOutcome.unavailable;
     }
+    if (!state.isDirty &&
+        identical(map, state.savedMapSnapshot) &&
+        !_hasPendingBorderPreview()) {
+      if (_rejectNonCanonicalActiveMapAuthoring()) {
+        return ActiveMapSaveOutcome.unavailable;
+      }
+      return ActiveMapSaveOutcome.saved;
+    }
     if (_rejectNonCanonicalActiveMapAuthoring(revalidateManifest: true)) {
       return ActiveMapSaveOutcome.unavailable;
     }
@@ -3208,7 +3217,10 @@ class EditorNotifier extends _$EditorNotifier
     final ownsLease = mapWriteLeaseToken == null;
     final _MapDiskMutationLease? operationLease;
     if (ownsLease) {
-      operationLease = _beginMapDiskMutationLease(allowCleanupInterlock: true);
+      operationLease = _beginMapDiskMutationLease(
+        allowCleanupInterlock: true,
+        isReadOnly: true,
+      );
       if (operationLease == null) {
         return (_mapDiskMutationLease != null || state.isSaving)
             ? MapActivationOutcome.busy
@@ -3618,6 +3630,7 @@ class EditorNotifier extends _$EditorNotifier
 
   _MapDiskMutationLease? _beginMapDiskMutationLease({
     bool allowCleanupInterlock = false,
+    bool isReadOnly = false,
   }) {
     if (!allowCleanupInterlock &&
         _narrativeEventSourceCleanupInterlock != null) {
@@ -3630,19 +3643,24 @@ class EditorNotifier extends _$EditorNotifier
     }
     if (_mapDiskMutationLease != null || state.isSaving) {
       state = state.copyWith(
-        errorMessage: 'Une écriture de map est déjà en cours.',
+        errorMessage: _mapDiskMutationLease?.isReadOnly == true
+            ? 'Une carte est en cours de chargement.'
+            : 'Une écriture de map est déjà en cours.',
       );
       return null;
     }
     final lease = (
       token: Object(),
+      isReadOnly: isReadOnly,
       projectRootPath: state.projectRootPath,
       project: state.project,
       activeMap: state.activeMap,
       activeMapPath: state.activeMapPath,
     );
     _mapDiskMutationLease = lease;
-    state = _projectSessionController.markMapSaving(state);
+    state = isReadOnly
+        ? state.copyWith(statusMessage: 'Chargement de la carte…')
+        : _projectSessionController.markMapSaving(state);
     return lease;
   }
 
@@ -3675,9 +3693,11 @@ class EditorNotifier extends _$EditorNotifier
     if (token == null && allowedLeaseToken == null) return false;
     if (token != null && identical(token, allowedLeaseToken)) return false;
     state = state.copyWith(
-      errorMessage:
-          'Une écriture de map est en cours. '
-          'Attendez sa fin avant de modifier ou recharger la map.',
+      errorMessage: _mapDiskMutationLease?.isReadOnly == true
+          ? 'Une carte est en cours de chargement. '
+                'Attendez sa fin avant de modifier la carte.'
+          : 'Une écriture de map est en cours. '
+                'Attendez sa fin avant de modifier ou recharger la map.',
     );
     return true;
   }
@@ -3690,6 +3710,7 @@ class EditorNotifier extends _$EditorNotifier
     if (!_ownsMapDiskMutationLease(token)) return;
     _mapDiskMutationLease = (
       token: token,
+      isReadOnly: _mapDiskMutationLease!.isReadOnly,
       projectRootPath: state.projectRootPath,
       project: state.project,
       activeMap: state.activeMap,

@@ -221,7 +221,7 @@ void main() {
       final snapshot = await harness.loader.load(harness.opened.projectHandle);
 
       expect(snapshot.maps, hasLength(2));
-      expect(worker.calls, 4);
+      expect(worker.calls, 4 + snapshot.resourceFingerprints.length);
     });
   });
 }

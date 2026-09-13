@@ -771,9 +771,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       transformForId: (tilesetId) {
         final transparentColor = _lastTilesetTransparentColorById[tilesetId];
         if (transparentColor == null) return null;
-        return (bytes) {
+        return (bytes) async {
           try {
-            return applyTilesetTransparentColorToPngBytes(
+            return await applyTilesetTransparentColorToPngBytesAsync(
               imageBytes: bytes,
               transparentColor: transparentColor,
             );

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart';
 
@@ -62,16 +64,16 @@ final class ProjectOpenService {
       projectRoot: canonicalRoot,
       relativePath: 'project.json',
     );
-    final manifest = _decodeManifest(manifestBytes);
-    final fingerprint = computeNarrativeProjectFingerprint([
-      NarrativeProjectFingerprintEntry(
-        relativePath: 'project.json',
-        bytes: manifestBytes,
-      ),
-    ]);
+    final ownedBytes = manifestBytes is Uint8List
+        ? manifestBytes
+        : Uint8List.fromList(manifestBytes);
+    final inspection = ownedBytes.length >= 1024 * 1024
+        ? await Isolate.run(() => _inspectProjectManifest(ownedBytes))
+        : _inspectProjectManifest(ownedBytes);
+    final fingerprint = inspection.fingerprint;
     final reader = _fileReader;
     final registered = _handles.registerProject(
-      projectName: manifest.name,
+      projectName: inspection.name,
       initialFingerprint: fingerprint,
       readBytes: (relativePath) => reader.readBytes(
         projectRoot: canonicalRoot,
@@ -103,7 +105,7 @@ final class ProjectOpenService {
     return OpenedProject(
       workspaceHandle: registered.workspaceHandle,
       projectHandle: registered.projectHandle,
-      projectName: manifest.name,
+      projectName: inspection.name,
       fingerprint: fingerprint,
       expiresAt: registered.expiresAt,
     );
@@ -111,6 +113,19 @@ final class ProjectOpenService {
 
   bool closeWorkspace(WorkspaceHandle handle) =>
       _handles.closeWorkspace(handle);
+}
+
+({String name, String fingerprint}) _inspectProjectManifest(List<int> bytes) {
+  final manifest = _decodeManifest(bytes);
+  return (
+    name: manifest.name,
+    fingerprint: computeNarrativeProjectFingerprint([
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'project.json',
+        bytes: bytes,
+      ),
+    ]),
+  );
 }
 
 ProjectManifest _decodeManifest(List<int> bytes) {

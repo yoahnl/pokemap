@@ -328,17 +328,18 @@ work accumulated **501 orphaned `flutter_tester` processes holding 7.6 GB**,
 which is what makes later suites crawl and time out, which causes more runs to
 be abandoned, which leaks more processes.
 
-So: **kill everything, always, permanently.** After finishing a test run — and
-before diagnosing any suite that seems inexplicably slow or hung — reap the
-harnesses:
+After each test run, inspect and reap only leftover harnesses owned by that run.
+Record the test runner PID and its descendant PIDs while the run is active.
+Before terminating a leftover PID, verify its command and ownership again so a
+reused PID or a concurrent session cannot be stopped accidentally. Prefer a
+normal termination before escalating to SIGKILL for a confirmed stuck child.
 
-```bash
-pkill -9 -f flutter_tester; pkill -9 -f frontend_server_aot; pkill -9 -f 'flutter_tools.snapshot test'
-```
-
-This is safe by construction: every one of those processes is either finished or
-abandoned, and a live run you actually want will be re-spawned by the next
-command. Do it without asking.
+Never use blanket process-name kills for `flutter_tester`,
+`frontend_server_aot`, or `flutter_tools.snapshot test`. The same compiler also
+belongs to live IDE and `flutter run` sessions: killing it causes
+`The Dart compiler exited unexpectedly` and disconnects the application.
+A quiet process, an old process, or a familiar executable name is not proof
+that it is abandoned. If ownership cannot be proved, leave it running.
 
 Same discipline for MCP servers, which are spawned per session and never
 reaped. Kill any older than two hours — no live session is a day old:

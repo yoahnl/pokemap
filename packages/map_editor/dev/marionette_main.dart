@@ -344,7 +344,10 @@ Future<void> main() async {
     }
     final notifier = container.read(editorNotifierProvider.notifier);
     notifier.selectMapWorkspace();
-    await notifier.loadMap(relativePath);
+    await notifier.loadMap(
+      relativePath,
+      forceReload: parameters['forceReload'] != 'false',
+    );
     final activeEditor = container.read(editorNotifierProvider);
     return developer.ServiceExtensionResponse.result(
       jsonEncode(<String, Object?>{

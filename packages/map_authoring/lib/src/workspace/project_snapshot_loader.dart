@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:typed_data';
@@ -65,6 +66,7 @@ final class ProjectSnapshotDecodeExecutor {
   final int offloadThresholdBytes;
   final ProjectSnapshotDecodeWorkerRunner _workerRunner;
 
+  var _localWorkMicroseconds = 0;
   var _localOperations = 0;
   var _workerOperations = 0;
   var _workerFailures = 0;
@@ -90,13 +92,55 @@ final class ProjectSnapshotDecodeExecutor {
   Future<ProjectItemCatalog> decodeItemCatalog(List<int> bytes) =>
       _execute(bytes, _decodeItemCatalog);
 
+  Future<ContentArtifactRef> inspectArtifact(
+    List<int> bytes, {
+    required String mediaType,
+  }) =>
+      _execute(
+        bytes,
+        (ownedBytes) => ContentArtifactRef.fromBytes(
+          ownedBytes,
+          mediaType: mediaType,
+        ),
+        maximumLocalBytes: 256 * 1024,
+      );
+
+  Future<String> fingerprintResource(
+    List<int> bytes, {
+    required String relativePath,
+  }) =>
+      _execute(
+        bytes,
+        (ownedBytes) => (NarrativeProjectFingerprintBuilder()
+              ..startEntry(
+                relativePath: relativePath,
+                byteLength: ownedBytes.length,
+              )
+              ..addBytes(ownedBytes)
+              ..endEntry())
+            .close(),
+        maximumLocalBytes: 256 * 1024,
+      );
+
   Future<T> _execute<T>(
     List<int> bytes,
-    T Function(List<int>) decode,
-  ) async {
-    if (bytes.length < offloadThresholdBytes) {
+    T Function(List<int>) decode, {
+    int? maximumLocalBytes,
+  }) async {
+    final threshold =
+        maximumLocalBytes != null && maximumLocalBytes < offloadThresholdBytes
+            ? maximumLocalBytes
+            : offloadThresholdBytes;
+    if (bytes.length < threshold) {
       _localOperations++;
-      return decode(bytes);
+      final timer = Stopwatch()..start();
+      final result = decode(bytes);
+      _localWorkMicroseconds += timer.elapsedMicroseconds;
+      if (_localWorkMicroseconds >= 4000) {
+        _localWorkMicroseconds = 0;
+        await Future<void>.delayed(Duration.zero);
+      }
+      return result;
     }
     final ownedBytes = bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
     _workerOperations++;
@@ -629,7 +673,7 @@ final class ProjectSnapshotLoader {
             (cache?.isAssetBlobCertified(blobIdentity) ?? false);
         if (!certified) {
           profiler?.recordAssetBlobVerification();
-          final inspected = ContentArtifactRef.fromBytes(
+          final inspected = await _decodeExecutor.inspectArtifact(
             bytes.bytes,
             mediaType: artifact.mediaType,
           );
@@ -748,23 +792,17 @@ final class ProjectSnapshotLoader {
             )
             .join('|');
 
-    String buildFingerprint(_LoadedProjectResource resource) =>
-        (NarrativeProjectFingerprintBuilder()
-              ..startEntry(
-                relativePath: resource.relativePath,
-                byteLength: resource.bytes.typedBytes.length,
-              )
-              ..addBytes(resource.bytes.typedBytes)
-              ..endEntry())
-            .close();
-
     final resourceFingerprints = <String, String>{};
     final orderedFingerprints = <String>[];
     for (final resource in resources) {
       final identity = identities[resource.relativePath];
       final reused =
           identity == null ? null : cache?.resourceFingerprint(identity);
-      final fingerprint = reused ?? buildFingerprint(resource);
+      final fingerprint = reused ??
+          await _decodeExecutor.fingerprintResource(
+            resource.bytes.typedBytes,
+            relativePath: resource.relativePath,
+          );
       if (reused == null && identity != null) {
         cache?.storeResourceFingerprint(identity, fingerprint);
       }

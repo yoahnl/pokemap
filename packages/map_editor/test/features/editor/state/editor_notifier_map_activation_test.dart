@@ -379,6 +379,112 @@ void main() {
       },
     );
 
+    test('connected map loading never advertises a save', () async {
+      final loadStarted = Completer<void>();
+      final releaseLoad = Completer<MapData>();
+      final fixture = _ActivationFixture(
+        loadHandler: (_) {
+          loadStarted.complete();
+          return releaseLoad.future;
+        },
+      );
+      final map = _alphaSaved.copyWith(
+        connections: const [
+          MapConnection(
+            direction: MapConnectionDirection.north,
+            targetMapId: 'beta',
+            offset: 0,
+          ),
+        ],
+      );
+      final notifier = fixture.notifier
+        ..state = _cleanSourceState().copyWith(
+          activeMap: map,
+          savedMapSnapshot: map,
+        );
+      final activation = notifier.activateConnectedMap(
+        MapConnectionDirection.north,
+      );
+      await loadStarted.future;
+      try {
+        expect(notifier.state.isSaving, isFalse);
+        expect(fixture.repository.savedPaths, isEmpty);
+        expect(
+          await notifier.activateMap('maps/gamma.json'),
+          MapActivationOutcome.busy,
+        );
+        expect(notifier.state.errorMessage, isNull);
+      } finally {
+        releaseLoad.complete(_beta);
+        await activation;
+      }
+      expect(notifier.state.activeMap, same(_beta));
+      expect(notifier.state.isDirty, isFalse);
+      expect(notifier.state.isSaving, isFalse);
+    });
+
+    test(
+      'saving an unchanged map during navigation performs no write',
+      () async {
+        final loadStarted = Completer<void>();
+        final releaseLoad = Completer<MapData>();
+        final fixture = _ActivationFixture(
+          loadHandler: (_) {
+            loadStarted.complete();
+            return releaseLoad.future;
+          },
+        );
+        final notifier = fixture.notifier..state = _cleanSourceState();
+        final activation = notifier.activateMap('maps/beta.json');
+        await loadStarted.future;
+        try {
+          expect(await notifier.saveActiveMap(), ActiveMapSaveOutcome.saved);
+          expect(fixture.repository.savedPaths, isEmpty);
+          expect(notifier.state.errorMessage, isNull);
+        } finally {
+          releaseLoad.complete(_beta);
+          await activation;
+        }
+        expect(notifier.state.activeMap, same(_beta));
+      },
+    );
+
+    test(
+      'failed loading releases the guard and preserves the source',
+      () async {
+        final loadStarted = Completer<void>();
+        final releaseLoad = Completer<MapData>();
+        final fixture = _ActivationFixture(
+          loadHandler: (path) => path.endsWith('beta.json')
+              ? Future<MapData>.sync(() {
+                  loadStarted.complete();
+                  return releaseLoad.future;
+                })
+              : Future<MapData>.value(_gamma),
+        );
+        final notifier = fixture.notifier..state = _cleanSourceState();
+        final source = notifier.state.activeMap!;
+        final activation = notifier.activateMap('maps/beta.json');
+        await loadStarted.future;
+        notifier.updateMapMetadata(
+          source.mapMetadata.copyWith(displayName: 'Blocked edit'),
+        );
+        expect(notifier.state.activeMap, same(source));
+        expect(notifier.state.errorMessage, contains('chargement'));
+        releaseLoad.completeError(StateError('Read failed'));
+        expect(await activation, MapActivationOutcome.failed);
+        expect(notifier.state.activeMap, same(source));
+        expect(notifier.state.isSaving, isFalse);
+        expect(notifier.state.isDirty, isFalse);
+        expect(fixture.repository.savedPaths, isEmpty);
+        expect(
+          await notifier.activateMap('maps/gamma.json'),
+          MapActivationOutcome.activated,
+        );
+        expect(notifier.state.activeMap, same(_gamma));
+      },
+    );
+
     test('rejects a second concurrent activation as busy', () async {
       final loadStarted = Completer<void>();
       final releaseLoad = Completer<MapData>();

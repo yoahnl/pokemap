@@ -1395,6 +1395,31 @@ void main() {
     );
   });
 
+  testWidgets('long press activates the battle command', (tester) async {
+    BattlePresentationCommand? command;
+    await _pumpOverlay(
+      tester,
+      snapshot: _rootSnapshot(),
+      onCommand: (value) => command = value,
+    );
+
+    await tester.longPress(
+      find.byKey(const ValueKey<String>('battle-entry-0')),
+    );
+
+    expect(
+      command,
+      isA<BattleSelectEntryCommand>()
+          .having((value) => value.snapshotRevision, 'revision', 12)
+          .having(
+            (value) => value.expectedMode,
+            'mode',
+            BattleCommandOverlayMode.root,
+          )
+          .having((value) => value.entryIndex, 'index', 0),
+    );
+  });
+
   testWidgets('disables unavailable entries and exposes the reason',
       (tester) async {
     var commandCount = 0;

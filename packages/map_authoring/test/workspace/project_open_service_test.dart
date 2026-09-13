@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
+import 'package:map_core/map_core.dart';
 
 void main() {
   group('ProjectOpenService', () {
@@ -116,6 +119,77 @@ void main() {
         ),
       );
     });
+
+    test('large manifest yields while preserving its canonical fingerprint',
+        () async {
+      final fixture = _realFixtureDirectory();
+      final bytes = Uint8List.fromList([
+        ...await File(_join(fixture.path, 'project.json')).readAsBytes(),
+        ...List<int>.filled(1024 * 1024, 32),
+      ]);
+      final reader = _ScheduledManifestReader(bytes);
+      final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [fixture.parent.path],
+        fileReader: reader,
+      );
+      final service = ProjectOpenService(
+        policy: policy,
+        fileReader: reader,
+        handles: WorkspaceHandleStore(),
+      );
+
+      final opened = await service.openProject(fixture.path);
+
+      expect(reader.eventDelivered, isTrue);
+      expect(opened.projectName, 'P3 Narrative Smoke Slice');
+      expect(
+        opened.fingerprint,
+        computeNarrativeProjectFingerprint([
+          NarrativeProjectFingerprintEntry(
+            relativePath: 'project.json',
+            bytes: bytes,
+          ),
+        ]),
+      );
+    });
+
+    for (final malformed in [false, true]) {
+      test(
+          'large manifest preserves ${malformed ? 'invalid' : 'ruleset'} error',
+          () async {
+        final fixture = _realFixtureDirectory();
+        final fixtureJson = jsonDecode(
+          await File(_join(fixture.path, 'project.json')).readAsString(),
+        ) as Map<String, dynamic>;
+        (fixtureJson['pokemon'] as Map<String, dynamic>).remove('ruleset');
+        final bytes = Uint8List.fromList([
+          ...utf8.encode(malformed ? '{broken' : jsonEncode(fixtureJson)),
+          ...List<int>.filled(1024 * 1024, 32),
+        ]);
+        final reader = _ScheduledManifestReader(bytes);
+        final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [fixture.parent.path],
+          fileReader: reader,
+        );
+        final service = ProjectOpenService(
+          policy: policy,
+          fileReader: reader,
+          handles: WorkspaceHandleStore(),
+        );
+
+        await expectLater(
+          service.openProject(fixture.path),
+          throwsA(isA<ProjectOpenException>().having(
+            (error) => error.code,
+            'code',
+            malformed
+                ? 'project.manifest_invalid'
+                : 'project.pokemon_ruleset_required',
+          )),
+        );
+        expect(reader.eventDelivered, isTrue);
+      });
+    }
 
     test('rejects an unknown project handle', () {
       var token = 0;
@@ -294,3 +368,23 @@ String _join(
       if (third != null) third,
       if (fourth != null) fourth,
     ].join(Platform.pathSeparator);
+
+final class _ScheduledManifestReader implements ProjectFileReader {
+  _ScheduledManifestReader(this.bytes);
+
+  final Uint8List bytes;
+  bool eventDelivered = false;
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      const LocalProjectFileReader().canonicalizeDirectory(path);
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    Timer(Duration.zero, () => eventDelivered = true);
+    return Future.value(bytes);
+  }
+}

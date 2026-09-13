@@ -1731,6 +1731,7 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
       label: entry.primaryLabel,
       hint: enabled ? details : disabledReason,
       child: Tooltip(
+        triggerMode: TooltipTriggerMode.manual,
         message: enabled && details.isNotEmpty
             ? '${entry.primaryLabel} · $details'
             : enabled
