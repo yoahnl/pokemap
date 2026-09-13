@@ -692,6 +692,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   BattleMusicSelection? _activeBattleMusicSelection;
   bool _battleVictoryMusicActive = false;
   bool _trainerEncounterMusicActive = false;
+  int _presentationCinematicDepth = 0;
 
   RuntimeMusicService get _music =>
       _injectedMusicService ??
@@ -715,6 +716,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ///    jusqu'au passage de témoin au combat) ;
   /// 3. musique de la carte active (parité RMXP `Game_Map#autoplay`).
   void _syncRuntimeMusic() {
+    if (_isRemoved) return;
+    if (_presentationCinematicDepth > 0) {
+      unawaited(_music.update(route: RuntimeAudioRoute.overworld, path: null));
+      return;
+    }
     String? path;
     var route = RuntimeAudioRoute.overworld;
     switch (_flowPhase) {
@@ -10309,6 +10315,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         if (player == null) {
           throw StateError('The host has no Presentation cinematic player.');
         }
+        if (_isRemoved) {
+          throw StateError(
+            'The runtime was removed before Presentation playback.',
+          );
+        }
         final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
           runtimeSourceId: runtimeExecutionSourceId,
           projectRevision: computeNarrativeProjectFingerprint([
@@ -10320,11 +10331,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           assets: _bundle.manifest.presentationCinematics,
           player: player,
         );
-        final result = await adapter.playPresentationCinematic(intent);
-        if (!result.success || result.scenePortId == null) {
-          throw StateError(result.message ?? 'Presentation playback failed.');
+        _presentationCinematicDepth++;
+        try {
+          await _music.update(route: RuntimeAudioRoute.overworld, path: null);
+          if (_isRemoved) {
+            throw StateError(
+              'The runtime was removed before Presentation playback.',
+            );
+          }
+          final result = await adapter.playPresentationCinematic(intent);
+          if (!result.success || result.scenePortId == null) {
+            throw StateError(result.message ?? 'Presentation playback failed.');
+          }
+          return result.scenePortId!;
+        } finally {
+          _presentationCinematicDepth--;
+          _syncRuntimeMusic();
         }
-        return result.scenePortId!;
       },
       executeInteractiveCommand: SceneInteractiveCommandRuntimeExecutor(
         warp: (command) => _executeSceneWarpCommand(

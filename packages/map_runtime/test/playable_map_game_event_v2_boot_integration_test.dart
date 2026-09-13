@@ -25,42 +25,7 @@ void main() {
 
   test('world Presentation awaits playback before committing its Event', () async {
     final player = _WorldPresentationPlayer();
-    final original = _bundle();
-    final scene = _scene();
-    final graph = scene.graph;
-    final presentationScene = SceneAsset(id: scene.id, name: scene.name, graph: SceneGraph(
-      startNodeId: graph.startNodeId,
-      nodes: [
-        ...graph.nodes,
-        SceneNode(
-          id: 'presentation',
-          kind: SceneNodeKind.presentationCinematic,
-          payload: ScenePresentationCinematicPayload(
-            presentationCinematicId: 'train_departure',
-          ),
-        ),
-      ],
-      edges: [
-        for (final edge in graph.edges)
-          if (edge.fromNodeId == 'start')
-            SceneEdge(id: edge.id, fromNodeId: edge.fromNodeId, fromPortId: edge.fromPortId, toNodeId: 'presentation', kind: edge.kind)
-          else
-            edge,
-        SceneEdge(
-          id: 'presentation_to_fact',
-          fromNodeId: 'presentation',
-          fromPortId: 'completed',
-          toNodeId: 'set_fact',
-          kind: SceneEdgeKind.presentationCompleted,
-        ),
-      ],
-    ));
-    final bundle = original.copyWith(manifest: original.manifest.copyWith(
-      scenes: [presentationScene],
-      presentationCinematics: [PresentationCinematicAsset(
-        id: 'train_departure', title: 'Train departure', durationUs: 1000000,
-      )],
-    ));
+    final bundle = _presentationBundle();
     final game = PlayableMapGame(
       bundle: bundle,
       projectFilePath: '/tmp/event_v2_presentation/project.json',
@@ -86,6 +51,108 @@ void main() {
     expect(game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
         contains(_eventId));
     game.onRemove();
+  });
+
+  for (final terminal in RuntimePresentationExecutionResult.values) {
+    test('Presentation owns music until ${terminal.name}', () async {
+      final fixture = _MusicPresentationFixture();
+      addTearDown(fixture.dispose);
+      await fixture.start();
+
+      expect(fixture.driver.events, ['play', 'stop']);
+      expect(fixture.player.musicPlayingAtLaunch, isFalse);
+      expect(fixture.music.isPlaying, isFalse);
+      fixture.game.debugResetBattleForTest();
+      await Future<void>.delayed(Duration.zero);
+      expect(fixture.driver.events, ['play', 'stop']);
+
+      final cinematicVolumes = <double>[];
+      final cinematicChannel = Object();
+      await fixture.mixer.register(
+        channel: cinematicChannel,
+        route: RuntimeAudioRoute.cinematicMusic,
+        sourceVolume: 0.7,
+        setVolume: (volume) async => cinematicVolumes.add(volume),
+      );
+      expect(cinematicVolumes, [0.7]);
+      fixture.mixer.unregister(cinematicChannel);
+
+      fixture.finish(terminal);
+      await _waitForActivationDispatch(fixture.game);
+      await _waitUntil(fixture.game, () => fixture.music.isPlaying);
+      expect(fixture.driver.events, ['play', 'stop', 'play']);
+      expect(fixture.music.playingPath, endsWith('/audio/map.ogg'));
+    });
+  }
+
+  test('Presentation restores music when the player throws', () async {
+    final fixture = _MusicPresentationFixture();
+    addTearDown(fixture.dispose);
+    await fixture.start();
+    expect(fixture.player.musicPlayingAtLaunch, isFalse);
+    fixture.player.terminal.completeError(StateError('Decoder failed'));
+    await _waitForActivationDispatch(fixture.game);
+    await _waitUntil(fixture.game, () => fixture.music.isPlaying);
+    expect(fixture.driver.events, ['play', 'stop', 'play']);
+  });
+
+  test('Presentation waits for the music fade before launching', () async {
+    final fade = Completer<void>();
+    var fading = false;
+    final fixture = _MusicPresentationFixture(fadeDelay: (_) {
+      fading = true;
+      return fade.future;
+    });
+    addTearDown(() async {
+      if (!fade.isCompleted) fade.complete();
+      await fixture.dispose();
+    });
+    await fixture.load();
+    await _waitUntil(fixture.game, () => fading || fixture.player.request != null);
+    expect(fading, isTrue);
+    expect(fixture.player.request, isNull);
+    expect(fixture.driver.events, ['play']);
+    fixture.game.debugResetBattleForTest();
+    fade.complete();
+    await _waitUntil(fixture.game, () => fixture.player.request != null);
+    expect(fixture.player.musicPlayingAtLaunch, isFalse);
+    expect(fixture.driver.events, ['play', 'stop']);
+    fixture.finish(RuntimePresentationExecutionResult.completed);
+    await _waitForActivationDispatch(fixture.game);
+  });
+
+  test('Presentation never restarts music after the game is removed', () async {
+    final fixture = _MusicPresentationFixture();
+    addTearDown(fixture.dispose);
+    await fixture.start();
+    expect(fixture.driver.events, ['play', 'stop']);
+    fixture.remove();
+    fixture.finish(RuntimePresentationExecutionResult.cancelled);
+    await _waitForActivationDispatch(fixture.game);
+    await Future<void>.delayed(Duration.zero);
+    expect(fixture.driver.events, ['play', 'stop']);
+    expect(fixture.music.isPlaying, isFalse);
+  });
+
+  test('Presentation never launches when removed during its music fade', () async {
+    final fade = Completer<void>();
+    var fading = false;
+    final fixture = _MusicPresentationFixture(fadeDelay: (_) {
+      fading = true;
+      return fade.future;
+    });
+    addTearDown(() async {
+      if (!fade.isCompleted) fade.complete();
+      await fixture.dispose();
+    });
+    await fixture.load();
+    await _waitUntil(fixture.game, () => fading);
+    fixture.remove();
+    fade.complete();
+    await _waitForActivationDispatch(fixture.game);
+    expect(fixture.player.request, isNull);
+    expect(fixture.driver.events, ['play', 'stop']);
+    expect(fixture.music.isPlaying, isFalse);
   });
 
   test('v2Only mapEnter executes the real Scene and suppresses legacy',
@@ -331,6 +398,64 @@ RuntimeMapBundle _bundle() {
   return _bundleForRegistry(registry, scene);
 }
 
+RuntimeMapBundle _presentationBundle({String? musicPath}) {
+  final original = _bundle();
+  final scene = _scene();
+  final graph = scene.graph;
+  final presentationScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    graph: SceneGraph(
+      startNodeId: graph.startNodeId,
+      nodes: [
+        ...graph.nodes,
+        SceneNode(
+          id: 'presentation',
+          kind: SceneNodeKind.presentationCinematic,
+          payload: ScenePresentationCinematicPayload(
+            presentationCinematicId: 'train_departure',
+          ),
+        ),
+      ],
+      edges: [
+        for (final edge in graph.edges)
+          if (edge.fromNodeId == 'start')
+            SceneEdge(
+              id: edge.id,
+              fromNodeId: edge.fromNodeId,
+              fromPortId: edge.fromPortId,
+              toNodeId: 'presentation',
+              kind: edge.kind,
+            )
+          else
+            edge,
+        SceneEdge(
+          id: 'presentation_to_fact',
+          fromNodeId: 'presentation',
+          fromPortId: 'completed',
+          toNodeId: 'set_fact',
+          kind: SceneEdgeKind.presentationCompleted,
+        ),
+      ],
+    ),
+  );
+  return original.copyWith(
+    map: original.map.copyWith(
+      mapMetadata: original.map.mapMetadata.copyWith(musicPath: musicPath),
+    ),
+    manifest: original.manifest.copyWith(
+      scenes: [presentationScene],
+      presentationCinematics: [
+        PresentationCinematicAsset(
+          id: 'train_departure',
+          title: 'Train departure',
+          durationUs: 1000000,
+        ),
+      ],
+    ),
+  );
+}
+
 RuntimeMapBundle _dialogueBundle() {
   final registry = NarrativeEventRegistry(
     schemaVersion: 1,
@@ -508,6 +633,10 @@ Future<void> _waitForActivationDispatch(PlayableMapGame game) {
 }
 
 final class _WorldPresentationPlayer implements ScenePresentationCinematicRuntimePlayer {
+  _WorldPresentationPlayer({this.isMusicPlaying});
+
+  final bool Function()? isMusicPlaying;
+  bool? musicPlayingAtLaunch;
   ScenePresentationCinematicRuntimeRequest? request;
   final terminal = Completer<RuntimePresentationExecutionTerminal>();
 
@@ -515,8 +644,84 @@ final class _WorldPresentationPlayer implements ScenePresentationCinematicRuntim
   Future<RuntimePresentationExecutionTerminal> playPresentationCinematic(
     ScenePresentationCinematicRuntimeRequest value,
   ) {
+    musicPlayingAtLaunch = isMusicPlaying?.call();
     request = value;
     return terminal.future;
+  }
+}
+
+final class _MusicPresentationFixture {
+  _MusicPresentationFixture({RuntimeAudioFadeDelay? fadeDelay}) {
+    music = RuntimeMusicService(
+      driver: driver,
+      mixer: mixer,
+      fadeDelay: fadeDelay ?? (_) async {},
+    );
+    player = _WorldPresentationPlayer(isMusicPlaying: () => music.isPlaying);
+    game = PlayableMapGame(
+      bundle: _presentationBundle(musicPath: 'audio/map.ogg'),
+      projectFilePath: '/tmp/event_v2_boot/project.json',
+      presentationCinematicPlayer: player,
+      musicService: music,
+      audioMixer: mixer,
+    );
+  }
+
+  final driver = _PresentationMusicDriver();
+  final mixer = RuntimeAudioMixer();
+  late final RuntimeMusicService music;
+  late final _WorldPresentationPlayer player;
+  late final PlayableMapGame game;
+  var removed = false;
+
+  Future<void> load() async {
+    game.onGameResize(Vector2(320, 240));
+    await game.onLoad();
+  }
+
+  Future<void> start() async {
+    await load();
+    await _waitUntil(game, () => player.request != null);
+  }
+
+  void finish(RuntimePresentationExecutionResult result) {
+    player.terminal.complete(RuntimePresentationExecutionTerminal(
+      runToken: const RuntimePresentationRunToken(1),
+      result: result,
+    ));
+  }
+
+  void remove() {
+    if (removed) return;
+    removed = true;
+    game.onRemove();
+  }
+
+  Future<void> dispose() async {
+    if (!player.terminal.isCompleted) {
+      finish(RuntimePresentationExecutionResult.cancelled);
+    }
+    remove();
+    await _waitForActivationDispatch(game);
+    await music.dispose();
+  }
+}
+
+final class _PresentationMusicDriver implements FlameCinematicAudioDriver {
+  final events = <String>[];
+
+  @override
+  Future<Object> play(String path, {required double volume, required bool loop}) async {
+    events.add('play');
+    return Object();
+  }
+
+  @override
+  Future<void> setVolume(Object handle, double volume) async {}
+
+  @override
+  Future<void> stop(Object handle) async {
+    events.add('stop');
   }
 }
 
