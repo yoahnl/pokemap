@@ -1,5 +1,7 @@
 # PokéMap
 
+**Français** · [English](documentation/en/README.md)
+
 **Créer des mondes, raconter des histoires et les rendre jouables.**
 
 PokéMap est un environnement de création de RPG 2D en tuiles, orienté Pokémon-like et conçu autour d'une approche **no-code**. Le projet réunit un éditeur visuel, des moteurs de gameplay et de combat, un runtime Flutter/Flame, ainsi qu'une application de lecture des jeux : **Avelune**.
