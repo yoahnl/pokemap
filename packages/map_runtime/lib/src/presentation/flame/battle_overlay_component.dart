@@ -1873,6 +1873,9 @@ class BattleOverlayComponent extends PositionComponent {
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
+    if (_sceneLayout?.viewportSize == Size(size.x, size.y)) {
+      return;
+    }
     _applyViewportLayout(size);
   }
 

@@ -2416,6 +2416,12 @@ void main() {
       final rootSnapshot = game.battleCommandOverlayListenable.value!;
       expect(rootSnapshot.mode, BattleCommandOverlayMode.root);
       expect(rootSnapshot.revision, greaterThan(0));
+      game.onGameResize(_testViewportSize.clone());
+      expect(
+        game.battleCommandOverlayListenable.value!.revision,
+        rootSnapshot.revision,
+        reason: 'A same-size Flutter rebuild must not invalidate visible commands.',
+      );
       expect(
         game.inputAuthorityListenable.value.context,
         RuntimeInputContext.battle,
