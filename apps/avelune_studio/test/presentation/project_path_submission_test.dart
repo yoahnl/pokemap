@@ -55,7 +55,7 @@ void main() {
       ),
     );
     await tester.enterText(find.byType(TextField), '/brouillon');
-    await tester.tap(find.text('Parcourir'));
+    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNothing);
     expect(port.requests, isEmpty);
@@ -87,7 +87,7 @@ void main() {
         },
       ),
     );
-    await tester.tap(find.text('Ouvrir un projet'));
+    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
     await tester.pumpAndSettle();
     expect(selections, 1);
     expect(port.requests, isEmpty);
@@ -114,7 +114,7 @@ void main() {
     await tester.pumpAndSettle();
     final before = session.state;
     await tester.enterText(find.byType(TextField), ' /brouillon ');
-    await tester.tap(find.text('Parcourir'));
+    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
     await tester.pumpAndSettle();
     expect(identical(session.state, before), isTrue);
     expect(port.requests, ['/refus ']);
@@ -140,7 +140,7 @@ void main() {
         ),
       );
       await tester.enterText(find.byType(TextField), '/projets/MonJeu ');
-      await tester.tap(find.text('Ouvrir un projet'));
+      await tester.tap(find.byKey(const ValueKey('open-project-path')));
       await tester.pump();
       port.pending.single.completeError(
         const ProjectOpenFailure(ProjectOpenProblem.pathNotPreserved),
@@ -157,7 +157,7 @@ void main() {
       expect(port.requests, ['/projets/MonJeu ']);
       expect(port.released, isEmpty);
       await tester.enterText(find.byType(TextField), exampleA.directoryPath);
-      await tester.tap(find.text('Ouvrir un projet'));
+      await tester.tap(find.byKey(const ValueKey('open-project-path')));
       await tester.pump();
       expect(port.requests, ['/projets/MonJeu ', exampleA.directoryPath]);
       port.pending.last.complete(exampleA);
@@ -186,7 +186,7 @@ void main() {
         chooseDirectory: () => selection.future,
       ),
     );
-    await tester.tap(find.text('Parcourir'));
+    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
     await tester.pump();
     await tester.pumpWidget(const SizedBox());
     selection.complete('/projets/MonJeu ');

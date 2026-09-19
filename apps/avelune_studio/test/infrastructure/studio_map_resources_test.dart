@@ -55,12 +55,15 @@ void main() {
     () async {
       final resources = await StudioMapResources.load(session, manifest);
       addTearDown(resources.dispose);
+      expect(resources.images, isEmpty);
+      final renderer = resources.renderer(exampleMap('test', 'Test'))
+        ..update(0);
+      resources.setActiveMap(exampleMap('test', 'Test'));
+      await resources.settled;
       expect(resources.warnings, isEmpty);
       expect(resources.images, hasLength(1));
       expect(resources.decodedBytes, 160 * 64 * 4);
       await File('${directory.path}/assets/atelier.png').delete();
-      final renderer = resources.renderer(exampleMap('test', 'Test'))
-        ..update(0);
       final recorder = ui.PictureRecorder();
       renderer.paint(ui.Canvas(recorder));
       final picture = recorder.endRecording();
@@ -92,6 +95,8 @@ void main() {
         maximumBytes: 4000,
       );
       addTearDown(resources.dispose);
+      resources.setActiveMap(exampleMap('test', 'Test'));
+      await resources.settled;
       expect(resources.images, isEmpty);
       expect(resources.warnings.single, contains('Atelier libre'));
       expect(manifest.elements.first.tilesetId, 'atelier');
@@ -103,6 +108,8 @@ void main() {
     await File('${directory.path}/assets/atelier.png').delete();
     final resources = await StudioMapResources.load(session, manifest);
     addTearDown(resources.dispose);
+    resources.setActiveMap(exampleMap('test', 'Test'));
+    await resources.settled;
     expect(resources.images, isEmpty);
     expect(resources.warnings, hasLength(1));
     expect(
@@ -123,6 +130,8 @@ void main() {
     ).create('${outside.path}/atlas.png');
     final resources = await StudioMapResources.load(session, manifest);
     addTearDown(resources.dispose);
+    resources.setActiveMap(exampleMap('test', 'Test'));
+    await resources.settled;
     expect(resources.images, isEmpty);
     expect(resources.warnings, hasLength(1));
   });

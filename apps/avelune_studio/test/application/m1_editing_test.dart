@@ -111,7 +111,12 @@ void main() {
   test('reorder undo redo keeps list priority and every non-order field', () {
     document.selectedId = 'a';
     document.stackPosition = const GridPos(x: 1, y: 1);
+    expect(commands.canReorder(forward: true), isTrue);
+    expect(commands.canReorder(forward: false), isFalse);
+    expect(document.dirty, isFalse);
     commands.reorder(forward: true);
+    expect(commands.canReorder(forward: true), isFalse);
+    expect(commands.canReorder(forward: false), isTrue);
     final reordered = document.current;
     expect(commands.stack(document.stackPosition!).map((e) => e.id), [
       'a',

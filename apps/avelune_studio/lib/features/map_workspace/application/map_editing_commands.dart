@@ -70,17 +70,26 @@ class MapEditingCommands {
   }
 
   void reorder({required bool forward}) {
+    document.commit(_reordered(forward: forward));
+  }
+
+  bool canReorder({required bool forward}) =>
+      _reordered(forward: forward) != document.current;
+
+  MapData _reordered({required bool forward}) {
     final id = document.selectedId;
-    if (id == null) return;
-    document.commit(
-      moveMapPlacedElementVisualOrder(
+    if (id == null) return document.current;
+    try {
+      return moveMapPlacedElementVisualOrder(
         document.current,
         manifest: project,
         instanceId: id,
         forward: forward,
         at: document.stackPosition,
-      ),
-    );
+      );
+    } on ValidationException {
+      return document.current;
+    }
   }
 
   List<MapPlacedElement> stack(GridPos position) => mapPlacedElementsAt(

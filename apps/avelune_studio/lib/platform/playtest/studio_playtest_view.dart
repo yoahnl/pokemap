@@ -69,21 +69,41 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Row(
-        children: [
-          StudioButton(label: 'Retour à la carte', onPressed: widget.onClose),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              '${widget.entry.name} · révision ${widget.expectedRevision.substring(0, 8)} · sauvegardes de test temporaires',
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            bottom: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
             ),
           ),
-        ],
+        ),
+        child: Row(
+          children: [
+            StudioButton(
+              label: 'Retour à la carte',
+              icon: Icons.arrow_back,
+              onPressed: widget.onClose,
+              secondary: true,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                '${widget.entry.name} · révision ${widget.expectedRevision.substring(0, 8)} · sauvegardes de test temporaires',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
       ),
-      const Padding(
-        padding: EdgeInsets.all(8),
+      Padding(
+        padding: const EdgeInsets.all(8),
         child: Text(
           'Cliquez dans la carte · flèches pour marcher · Entrée pour interagir',
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
       Expanded(

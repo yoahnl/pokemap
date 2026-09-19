@@ -20,7 +20,7 @@ original de test, trois décors et un personnage. Il refuse une cible déjà exi
 Un argument permet de choisir un autre nouveau dossier. Aucun asset personnel ni
 de jeu tiers n’est nécessaire.
 
-Dans Studio, **Parcourir** permet de choisir ce dossier. Le sandbox macOS conserve
+Dans Studio, **Ouvrir un projet** permet de choisir ce dossier. Le sandbox macOS conserve
 ses protections et accorde la lecture/écriture uniquement au dossier choisi.
 Une saisie manuelle peut nécessiter cette sélection préalable. Les plugins Apple
 utilisent Swift Package Manager. SDK vérifié : Flutter 3.48.0-0.4.pre,
@@ -63,8 +63,17 @@ il ne remplace pas la profondeur dynamique du personnage.
 La peinture ne remplace pas Smart Tile Studio ou la bibliothèque de ressources.
 Les autres familles de données restent conservées ; leurs studios spécialisés,
 la sélection multiple, l’import et la 3D ne font pas partie de M1.
-Les atlas manquants/inaccessibles ou dépassant le budget de 128 images/256 Mio
-sont signalés sans modifier leurs références.
+Les métadonnées sont indexées à l'ouverture. Les images sont demandées pour la
+carte active, le pinceau puis les miniatures visibles ; aucun plafond de 128 atlas.
+Le cache conserve au plus 256 Mio décodés, avec éviction des images non utilisées.
+Un décodage à la fois, limité à 64 Mio encodés et 64 Mio décodés par image,
+borne les allocations temporaires. Les consommateurs retiennent leurs images
+jusqu'à leur retrait ; changer de carte recharge une image évincée à la demande.
+
+La barre d'état compte uniquement les incidents des ressources demandées.
+**Détails** ouvre une liste filtrable par carte active ; le réessai cible les échecs.
+Une image froide ou évincée n'est pas déclarée absente. La pression mémoire
+reste distincte d'un fichier absent, d'un accès refusé ou d'un échec de décodage.
 
 Les formats dont une réécriture perdrait des champs sont refusés pour l’édition.
 AS-ARC-002-bis reste actif : un chemin d’entrée ou une racine résolue altérable
@@ -75,8 +84,8 @@ native historique reste distincte de M1.
 ## Organisation du code
 
 L'organisation reprend la séparation de Grimaldi entre métier, présentation,
-intégrations natives et composition. Les composants graphiques conservent leur
-apparence et leur comportement.
+intégrations natives et composition. Le thème desktop sombre et les contrôles
+compacts sont centralisés dans presentation/theme et presentation/shared/widgets.
 
 ```text
 lib/
@@ -118,10 +127,17 @@ consomme ce barrel sans dépendre des implémentations disque ou natives.
 Riverpod gère l'injection et la portée des contrôleurs. La session globale vit
 jusqu'à la destruction du scope racine ; chaque workspace possède un contrôleur
 lié à son instance de projet, libéré lorsqu'il quitte l'écran. Les contrôleurs
-métier restent en Dart pur avec leurs notifications existantes. Le chargement,
-les documents en mémoire, les gestes et le rendu gardent leurs cycles actuels.
+métier restent en Dart pur avec leurs notifications existantes. Les documents en mémoire,
+les gestes et les opérations d'édition conservent leurs garanties existantes.
 Les adaptateurs de rendu restent sous `platform` car ils accèdent aux ressources
 locales ; ce ne sont pas des widgets génériques de présentation.
+
+## Projet volumineux reproductible
+
+`dart run tool/create_example_project.dart --stress /nouveau/dossier` produit
+132 atlas valides, trois cartes et 200 incidents représentatifs, sans utiliser
+d'assets personnels. La première carte référence l'atlas 131. Le générateur
+refuse toute destination déjà existante.
 
 ## Vérifier
 
@@ -132,7 +148,7 @@ flutter build macos --debug --no-pub
 ```
 
 Les preuves et les réserves de recette sont détaillées dans le
-[rapport M1](../../documentation/reports/avelune_studio/M1_integration/README.md).
+[rapport UX et ressources](../../documentation/reports/avelune_studio/M1_ux_ressources/README.md).
 Le runner existant `tool/run_check.py` conserve sorties, codes et descendants de
 tests ; son répertoire historique par défaut reste AS-ARC-002. La mission M1
 redirige ce chemin en mémoire vers son propre dossier de preuves.

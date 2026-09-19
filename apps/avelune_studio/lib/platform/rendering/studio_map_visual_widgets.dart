@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
@@ -23,10 +21,15 @@ class StudioMapVisual extends StatefulWidget {
 
 class _StudioMapVisualState extends State<StudioMapVisual> {
   late RuntimeAuthoringMapRenderer renderer;
+  final Object _owner = Object();
 
   @override
   void initState() {
     super.initState();
+    widget.resources.retain(
+      _owner,
+      widget.resources.mapResourceIds(widget.map),
+    );
     renderer = widget.resources.renderer(widget.map)..update(0);
   }
 
@@ -35,8 +38,19 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.map, widget.map) ||
         !identical(oldWidget.resources, widget.resources)) {
+      oldWidget.resources.release(_owner);
+      widget.resources.retain(
+        _owner,
+        widget.resources.mapResourceIds(widget.map),
+      );
       renderer = widget.resources.renderer(widget.map)..update(0);
     }
+  }
+
+  @override
+  void dispose() {
+    widget.resources.release(_owner);
+    super.dispose();
   }
 
   @override
@@ -47,7 +61,7 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
         widget.map.size.width * settings.tileWidth * settings.displayScale,
         widget.map.size.height * settings.tileHeight * settings.displayScale,
       ),
-      painter: _MapPainter(renderer),
+      painter: _MapPainter(renderer, widget.resources),
       foregroundPainter: _MissingResourcePainter(
         widget.map,
         widget.resources,
@@ -76,7 +90,8 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
 }
 
 class _MissingResourcePainter extends CustomPainter {
-  _MissingResourcePainter(this.map, this.resources, this.color);
+  _MissingResourcePainter(this.map, this.resources, this.color)
+    : super(repaint: resources);
   final MapData map;
   final StudioMapResources resources;
   final Color color;
@@ -86,9 +101,7 @@ class _MissingResourcePainter extends CustomPainter {
     final settings = resources.manifest.settings;
     final width = settings.tileWidth * settings.displayScale;
     final height = settings.tileHeight * settings.displayScale;
-    final elements = {
-      for (final entry in resources.manifest.elements) entry.id: entry,
-    };
+    final elements = resources.elements;
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -101,6 +114,7 @@ class _MissingResourcePainter extends CustomPainter {
           ? element?.tilesetId
           : frame.tilesetId;
       if (frame != null && resources.images.containsKey(id)) continue;
+      if (id == null || !resources.hasFailure({id})) continue;
       final rect = Rect.fromLTWH(
         instance.pos.x * width,
         instance.pos.y * height,
@@ -122,7 +136,8 @@ class _MissingResourcePainter extends CustomPainter {
 }
 
 class _MapPainter extends CustomPainter {
-  _MapPainter(this.renderer);
+  _MapPainter(this.renderer, StudioMapResources resources)
+    : super(repaint: resources);
   final RuntimeAuthoringMapRenderer renderer;
 
   @override
@@ -132,70 +147,4 @@ class _MapPainter extends CustomPainter {
   @override
   bool shouldRepaint(_MapPainter oldDelegate) =>
       renderer != oldDelegate.renderer;
-}
-
-class StudioMapThumbnail extends StatelessWidget {
-  const StudioMapThumbnail({
-    super.key,
-    required this.element,
-    required this.resources,
-    required this.size,
-  });
-
-  final ProjectElementEntry element;
-  final StudioMapResources resources;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final frame = element.frames.firstOrNull;
-    final image =
-        resources.images[frame == null || frame.tilesetId.isEmpty
-            ? element.tilesetId
-            : frame.tilesetId];
-    if (frame == null || image == null) {
-      return SizedBox.square(
-        dimension: size,
-        child: const Icon(Icons.broken_image_outlined),
-      );
-    }
-    final settings = resources.manifest.settings;
-    final source = ui.Rect.fromLTWH(
-      frame.source.x * settings.tileWidth.toDouble(),
-      frame.source.y * settings.tileHeight.toDouble(),
-      frame.source.width * settings.tileWidth.toDouble(),
-      frame.source.height * settings.tileHeight.toDouble(),
-    );
-    if (!image.containsSourceRect(source)) {
-      return SizedBox.square(
-        dimension: size,
-        child: const Icon(Icons.broken_image_outlined),
-      );
-    }
-    return CustomPaint(
-      size: Size.square(size),
-      painter: _ThumbnailPainter(image, source),
-    );
-  }
-}
-
-class _ThumbnailPainter extends CustomPainter {
-  _ThumbnailPainter(this.image, this.source);
-  final RuntimeTilesetImage image;
-  final Rect source;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final fitted = applyBoxFit(BoxFit.contain, source.size, size).destination;
-    image.drawImageRect(
-      canvas,
-      source,
-      Alignment.center.inscribe(fitted, Offset.zero & size),
-      Paint()..filterQuality = FilterQuality.none,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_ThumbnailPainter oldDelegate) =>
-      image != oldDelegate.image || source != oldDelegate.source;
 }

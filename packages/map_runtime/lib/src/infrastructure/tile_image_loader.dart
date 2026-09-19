@@ -37,6 +37,12 @@ final class RuntimeTilesetImageSingleFlightCache {
       <_RuntimeTilesetImageCacheKey, Future<RuntimeTilesetImage?>>{};
   bool _isDisposed = false;
 
+  void evictImage(RuntimeTilesetImage image) {
+    final owned = _completed.values.any((value) => identical(value, image));
+    _completed.removeWhere((key, value) => identical(value, image));
+    if (owned) image.dispose();
+  }
+
   Future<Map<String, RuntimeTilesetImage>> loadById(
     Map<String, String> absolutePathByTilesetId, {
     Map<String, TilesetTransparentColor> transparentColorByTilesetId =

@@ -20,7 +20,7 @@ void main() {
       ),
     );
     await tester.enterText(find.byType(TextField), '/brouillon');
-    await tester.tap(find.text('Parcourir'));
+    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
     await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNothing);
     picked.complete(null);
@@ -47,7 +47,7 @@ void main() {
   ) async {
     final port = _Port();
     await tester.pumpWidget(_app(port));
-    await tester.tap(find.text('Ouvrir un projet'));
+    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
     await tester.pump();
     expect(find.text('Lecture du projet…'), findsOneWidget);
     expect(port.opened, ['/exemple']);
@@ -69,7 +69,7 @@ void main() {
     final port = _Port();
     await tester.pumpWidget(_app(port));
     await tester.enterText(find.byType(TextField), '/invalide');
-    await tester.tap(find.text('Ouvrir un projet'));
+    await tester.tap(find.byKey(const ValueKey('open-project-path')));
     await tester.pump();
     port.pending.completeError(
       const ProjectOpenFailure(ProjectOpenProblem.manifestInvalid),
@@ -79,7 +79,7 @@ void main() {
     expect(find.text('Projet ouvert — lecture seule'), findsNothing);
     port.pending = Completer<ProjectSession>();
     await tester.enterText(find.byType(TextField), '/corrige');
-    await tester.tap(find.text('Ouvrir un projet'));
+    await tester.tap(find.byKey(const ValueKey('open-project-path')));
     await tester.pump();
     port.pending.complete(_project);
     await tester.pumpAndSettle();
@@ -103,12 +103,13 @@ void main() {
         chooseDirectory: () async => '/exemple',
       );
       await tester.pumpWidget(app());
-      await tester.tap(find.text('Ouvrir un projet'));
+      await tester.tap(find.byKey(const ValueKey('open-project-picker')));
       await tester.pump();
       port.pending.complete(_project);
       await tester.pumpAndSettle();
       await tester.pumpWidget(app());
       await tester.binding.setSurfaceSize(const Size(480, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(created, 1);
@@ -117,7 +118,6 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
       expect(port.closed, [_project]);
-      await tester.binding.setSurfaceSize(null);
     },
   );
 
@@ -143,7 +143,7 @@ void main() {
   ) async {
     final port = _Port();
     await tester.pumpWidget(_app(port));
-    await tester.tap(find.text('Ouvrir un projet'));
+    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
     await tester.pump();
     await tester.tap(find.text('Annuler l’ouverture'));
     await tester.pump();
@@ -165,7 +165,7 @@ void main() {
         chooseDirectory: () => picked.future,
       ),
     );
-    await tester.tap(find.text('Ouvrir un projet'));
+    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
     await tester.pump();
     await tester.pumpWidget(const SizedBox());
     picked.complete('/tardif');

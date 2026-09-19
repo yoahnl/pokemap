@@ -1,0 +1,9 @@
+git diff --check: exit 0, aucune sortie.
+git diff --cached --numstat: aucune sortie, index sans modifications.
+HEAD final: 3482dddf6d2a2143cbb985a3b1cca82d9216dbf6
+POKEMAP_MARKDOWN_MAX_NEW=1 bash tools/scripts/check_markdown_hygiene.sh: exit 0.
+Markdown hygiene: 1 new Markdown file(s), all in canonical locations.
+SHA256 exécutable macOS final:
+dac223ad04ca2988b96a5e9d93852ab80e9cec5d2824b02f27b6a8568367041a
+apps/avelune_studio/build/macos/Build/Products/Debug/Avelune Studio.app/Contents/MacOS/Avelune Studio
+Identité du code Dart associé: final-source-state.json et reçu build-acceptance.json.

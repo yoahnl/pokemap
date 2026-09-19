@@ -1,0 +1,15 @@
+Analyzing avelune_studio...                                     
+
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/platform/rendering/studio_map_resources.dart:94:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/platform/rendering/studio_map_resources.dart:138:7 • curly_braces_in_flow_control_structures
+warning • The member 'notifyListeners' can only be used within 'package:flutter/src/foundation/change_notifier.dart' or a test • lib/platform/rendering/studio_map_resources.dart:219:32 • invalid_use_of_visible_for_testing_member
+warning • The member 'notifyListeners' can only be used within instance members of subclasses of 'ChangeNotifier' • lib/platform/rendering/studio_map_resources.dart:219:32 • invalid_use_of_protected_member
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/platform/rendering/studio_resource_decoder.dart:111:9 • curly_braces_in_flow_control_structures
+   info • The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive • lib/platform/rendering/studio_resource_thumbnail.dart:2:8 • unnecessary_import
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/platform/rendering/studio_resource_thumbnail.dart:59:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/platform/rendering/studio_resource_thumbnail.dart:61:7 • curly_braces_in_flow_control_structures
+   info • 'cacheExtent' is deprecated and shouldn't be used. Use scrollCacheExtent instead. This feature was deprecated after v3.41.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/presentation/features/map_workspace/map_workspace_panels.dart:115:21 • deprecated_member_use
+   info • 'cacheExtent' is deprecated and shouldn't be used. Use scrollCacheExtent instead. This feature was deprecated after v3.41.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/presentation/features/map_workspace/map_workspace_panels.dart:196:9 • deprecated_member_use
+  error • Missing concrete implementation of 'MapWorkspaceVisuals.setBrush'. Try implementing the missing method, or make the class abstract • test/presentation/workspace_resource_diagnostics_test.dart:153:7 • non_abstract_class_inherits_abstract_member
+
+11 issues found. (ran in 5.7s)

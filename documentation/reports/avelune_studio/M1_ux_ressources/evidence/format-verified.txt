@@ -1,0 +1,5 @@
+Formatted lib/platform/rendering/studio_map_resources.dart
+Formatted lib/platform/rendering/studio_resource_index.dart
+Formatted test/presentation/desktop_workspace_layout_test.dart
+Formatted test/presentation/train_workspace_capture_test.dart
+Formatted 84 files (4 changed) in 0.23 seconds.

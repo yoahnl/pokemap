@@ -1,0 +1,24 @@
+Formatted lib/platform/playtest/studio_playtest_view.dart
+Formatted lib/platform/rendering/studio_image_store.dart
+Formatted lib/platform/rendering/studio_map_resources.dart
+Formatted lib/platform/rendering/studio_map_visual_widgets.dart
+Formatted lib/platform/rendering/studio_resource_decoder.dart
+Formatted lib/platform/rendering/studio_resource_thumbnail.dart
+Formatted lib/presentation/features/map_workspace/map_workspace_panels.dart
+Formatted lib/presentation/features/map_workspace/map_workspace_screen.dart
+Formatted lib/presentation/features/map_workspace/map_workspace_toolbar.dart
+Formatted lib/presentation/features/map_workspace/workspace_resource_diagnostic.dart
+Formatted lib/presentation/features/map_workspace/workspace_resource_diagnostic_detail.dart
+Formatted lib/presentation/features/map_workspace/workspace_resource_diagnostics.dart
+Formatted lib/presentation/features/project_session/project_session_screen.dart
+Formatted lib/presentation/shared/widgets/buttons/studio_tool.dart
+Formatted lib/presentation/shared/widgets/feedback/studio_notice.dart
+Formatted lib/presentation/shared/widgets/inputs/studio_choice.dart
+Formatted lib/presentation/shared/widgets/layout/studio_sidebar.dart
+Formatted lib/presentation/shell/studio_shell.dart
+Formatted lib/presentation/theme/studio_theme.dart
+Formatted test/presentation/workspace_resource_diagnostics_test.dart
+Formatted test/support/map_workspace_fixture.dart
+Formatted test/support/resource_stress_fixture.dart
+Formatted tool/stress_example_project.dart
+Formatted 77 files (23 changed) in 0.23 seconds.

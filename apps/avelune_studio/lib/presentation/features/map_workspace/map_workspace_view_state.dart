@@ -9,6 +9,7 @@ class MapWorkspaceViewState {
   ProjectElementEntry? brush;
   TileLayerPaletteEntry? tile;
   bool grid = true;
+  bool paletteTiles = false;
   bool positioned = false;
   VoidCallback? recenter;
 

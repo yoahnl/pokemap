@@ -1,0 +1,12 @@
+Source: /Users/karim/Project/pokemonProject
+HEAD avant: 3482dddf6d2a2143cbb985a3b1cca82d9216dbf6
+Statut initial: propre (git status --short --untracked-files=all sans sortie).
+Interdits: aucune commande Git d'écriture, aucun Notion, aucune écriture original.
+Copie Train avant essais:
+original /Users/karim/Desktop/pokeMap Project/le_train_de_17h42
+copie /Users/karim/Documents/Codex/2026-09-19/nous-terminons-la-validation-native-d/work/train-copy
+12289 fichiers, 667309112 octets, 0 symlinks, inode manifeste distinct.
+SHA256 agrégé chemins + contenus des deux arbres identique:
+7487b956eddc76bf26931265bfcc8836f51cfbbe15bdb3dc2e2049532b52d5b3
+Sous-arbres: project.json, maps, assets, data, dialogues.
+Exclus: .pokemap (cache), .codex-stage et verrous.

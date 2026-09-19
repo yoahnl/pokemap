@@ -1,0 +1,12 @@
+2026-09-19 Europe/Paris
+Binaire: apps/avelune_studio/build/macos/Build/Products/Debug/Avelune Studio.app
+Build macOS debug validé: build-native-debug.json (exit 0).
+Processus lancé directement: PID 8137, démarré Sat Sep 19 18:40:22 2026.
+VM service: http://127.0.0.1:64908/JvJ2YQ9J5V8=/
+Accueil natif capturé dans native-home.jpg; arbre AX cohérent avec nouvelle présentation.
+Chemin copie Train saisi exactement; ouverture manuelle refusée « Impossible de lire ce projet ».
+Sandbox actif; aucune protection désactivée. La cause précise de ce refus n'est pas établie par ce seul message.
+Clic sélecteur natif: pilote retourne timeoutReached après 33.9 s.
+Unique reconnexion contrôlée getApp même bundle: noWindowsAvailable après 24.3 s.
+PID 8137 encore présent après l'échec; ne pas confondre indisponibilité pilote et crash applicatif.
+Arrêt des essais CUA à cette limite; tests et captures de rendu Flutter hors écran poursuivis.

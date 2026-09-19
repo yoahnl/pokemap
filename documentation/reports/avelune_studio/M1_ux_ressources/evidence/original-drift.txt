@@ -1,0 +1,16 @@
+Contrôle lecture seule pendant la recette, 2026-09-19.
+Empreinte initiale original et copie identiques:
+7487b956eddc76bf26931265bfcc8836f51cfbbe15bdb3dc2e2049532b52d5b3
+Contrôle suivant de l'original: 12289 fichiers, 667322048 octets.
+Empreinte agrégée e9db0c21dbedf2cd3883eb9b4c56cb5dd7e2d3606226f0f7b1ee5273a43b782b
+Un seul fichier diffère de la copie de recette: maps/hanazuki-gare.json.
+Original: 1071729 octets, inode 1145228310, mtime 1789836406.5742884.
+Copie: 1058793 octets, inode 1145203148, mtime 1789835637.1279168.
+SHA256 original: 930bd00af687e3b12940fda4b1d3036ec8464c35573d1d46e4692506a35c964e
+SHA256 copie: 7d91215553ea6089c895a2261d5d5a6fd086bbdcc47260ea9b2fc5bf2dc9ee2d
+Aucune commande ni test de cette mission n'a ciblé l'original en écriture.
+Les fixtures et le parcours Train utilisent exclusivement work/train-copy.
+La provenance de la modification concomitante de l'original n'est pas attribuée.
+Aucune tentative de restauration ou de synchronisation de l'original n'a été effectuée.
+Contrôle final copie: 12289 fichiers, empreinte 7487b956eddc76bf26931265bfcc8836f51cfbbe15bdb3dc2e2049532b52d5b3.
+La copie est donc restée identique à son état initial pendant les essais.

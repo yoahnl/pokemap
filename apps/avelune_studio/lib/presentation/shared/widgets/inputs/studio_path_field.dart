@@ -18,7 +18,10 @@ class StudioPathField extends StatelessWidget {
     onSubmitted: (_) => onSubmitted(),
     decoration: const InputDecoration(
       labelText: 'Dossier du projet',
+      floatingLabelBehavior: FloatingLabelBehavior.always,
       hintText: 'Choisissez un dossier ou saisissez son chemin',
+      prefixIcon: Icon(Icons.folder_outlined, size: 16),
+      prefixIconConstraints: BoxConstraints(minWidth: 34, minHeight: 32),
     ),
   );
 }

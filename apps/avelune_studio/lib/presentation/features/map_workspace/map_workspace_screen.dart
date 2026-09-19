@@ -1,9 +1,9 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
+import 'workspace_resource_diagnostics.dart';
+import 'map_workspace_inspector.dart';
 import 'package:avelune_studio/presentation/shared/widgets/dialogs/confirm_studio_close.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
@@ -40,6 +40,10 @@ class MapWorkspaceScreen extends StatefulWidget {
 
 class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _views = <String, MapWorkspaceViewState>{};
+  final _search = TextEditingController();
+  bool _palette = true;
+  bool? _inspector;
+  MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
   String? _resourceError;
   int _gestureGeneration = 0;
@@ -71,7 +75,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
         await visuals.dispose();
         return;
       }
-      setState(() => _visuals = visuals);
+      _visuals = visuals;
+      visuals.addListener(_changed);
+      _changed();
     } catch (_) {
       if (mounted) {
         setState(
@@ -83,11 +89,17 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _changed() {
+    final map = _controller.active?.current;
+    if (map != null && _visuals != null && !identical(map, _preparedMap)) {
+      _preparedMap = map;
+      _visuals!.setActiveMap(map);
+    }
     if (mounted) setState(() {});
   }
 
   void _toolChanged() {
     _gestureGeneration++;
+    _visuals?.setBrush(_view?.brush, _view?.tile);
     _changed();
   }
 
@@ -160,7 +172,11 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     widget.registerExitGuard(null);
     _controller.removeListener(_changed);
     final visuals = _visuals;
-    if (visuals != null) unawaited(visuals.dispose());
+    if (visuals != null) {
+      visuals.removeListener(_changed);
+      unawaited(visuals.dispose());
+    }
+    _search.dispose();
     for (final view in _views.values) {
       view.dispose();
     }
@@ -183,94 +199,95 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
             key: const ValueKey('workspace-preparing'),
             absorbing: _testing,
             child: SafeArea(
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Text(
-                        'Avelune Studio · ${_controller.session.name}',
-                        style: Theme.of(context).textTheme.titleLarge,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final expandedText =
+                      MediaQuery.textScalerOf(context).scale(14) > 20;
+                  final inspector =
+                      _inspector ??
+                      (constraints.maxWidth >= 1150 && !expandedText);
+                  return Column(
+                    children: [
+                      MapWorkspaceToolbar(
+                        controller: _controller,
+                        view: view,
+                        onChanged: _toolChanged,
+                        paletteVisible: _palette,
+                        inspectorVisible: inspector,
+                        onPalette: () => setState(() => _palette = !_palette),
+                        onInspector: () =>
+                            setState(() => _inspector = !inspector),
+                        onActivate: (entry) {
+                          _gestureGeneration++;
+                          unawaited(_controller.activate(entry));
+                        },
+                        onSave: document == null || document.saving
+                            ? null
+                            : () => _controller.save(document),
+                        onTest: document == null || _testing || document.saving
+                            ? null
+                            : _test,
+                        onClose: _close,
                       ),
-                    ),
-                  ),
-                  MapWorkspaceToolbar(
-                    controller: _controller,
-                    view: view,
-                    onChanged: _toolChanged,
-                    onActivate: (entry) {
-                      _gestureGeneration++;
-                      unawaited(_controller.activate(entry));
-                    },
-                    onSave: document == null || document.saving
-                        ? null
-                        : () => _controller.save(document),
-                    onTest: document == null || _testing || document.saving
-                        ? null
-                        : _test,
-                    onClose: _close,
-                  ),
-                  if (error != null)
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: StudioNotice(error, isError: true),
-                    ),
-                  if (visuals != null && visuals.warnings.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: StudioNotice(
-                        visuals.warnings.join(' · '),
-                        isError: true,
-                      ),
-                    ),
-                  Expanded(
-                    child:
-                        _controller.loading ||
-                            (project == null && error == null) ||
-                            (project != null &&
-                                visuals == null &&
-                                _resourceError == null)
-                        ? const Center(child: CircularProgressIndicator())
-                        : document == null ||
-                              visuals == null ||
-                              view == null ||
-                              project == null
-                        ? const Center(
-                            child: Text(
-                              'Choisissez une carte disponible dans ce projet.',
-                            ),
-                          )
-                        : Row(
-                            children: [
-                              MapWorkspacePalette(
-                                project: project,
-                                document: document,
-                                visuals: visuals,
-                                view: view,
-                                onChanged: _toolChanged,
-                              ),
-                              Expanded(
-                                child: MapWorkspaceCanvas(
-                                  key: ValueKey(document.base.mapId),
-                                  document: document,
-                                  project: project,
-                                  visuals: visuals,
-                                  view: view,
-                                  onChanged: _changed,
-                                  gestureGeneration: _gestureGeneration,
+                      if (error != null)
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: StudioNotice(error, isError: true),
+                        ),
+                      Expanded(
+                        child:
+                            _controller.loading ||
+                                (project == null && error == null) ||
+                                (project != null &&
+                                    visuals == null &&
+                                    _resourceError == null)
+                            ? const Center(child: CircularProgressIndicator())
+                            : document == null ||
+                                  visuals == null ||
+                                  view == null ||
+                                  project == null
+                            ? const Center(
+                                child: Text(
+                                  'Choisissez une carte disponible dans ce projet.',
                                 ),
+                              )
+                            : Row(
+                                children: [
+                                  if (_palette)
+                                    MapWorkspacePalette(
+                                      project: project,
+                                      document: document,
+                                      visuals: visuals,
+                                      view: view,
+                                      search: _search,
+                                      onChanged: _toolChanged,
+                                    ),
+                                  Expanded(
+                                    child: MapWorkspaceCanvas(
+                                      key: ValueKey(document.base.mapId),
+                                      document: document,
+                                      project: project,
+                                      visuals: visuals,
+                                      view: view,
+                                      onChanged: _changed,
+                                      gestureGeneration: _gestureGeneration,
+                                    ),
+                                  ),
+                                  if (inspector)
+                                    MapWorkspaceInspector(
+                                      project: project,
+                                      document: document,
+                                      visuals: visuals,
+                                      onChanged: _toolChanged,
+                                    ),
+                                ],
                               ),
-                              MapWorkspaceInspector(
-                                project: project,
-                                document: document,
-                                visuals: visuals,
-                                onChanged: _toolChanged,
-                              ),
-                            ],
-                          ),
-                  ),
-                ],
+                      ),
+                      if (visuals != null)
+                        WorkspaceResourceDiagnostics(visuals: visuals),
+                    ],
+                  );
+                },
               ),
             ),
           ),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
@@ -108,6 +109,23 @@ class WorkspaceMemoryPort implements MapWorkspacePort {
 
 class WorkspaceTestVisuals implements MapWorkspaceVisuals {
   bool disposed = false;
+  @override
+  void addListener(VoidCallback listener) {}
+  @override
+  void removeListener(VoidCallback listener) {}
+  @override
+  List<WorkspaceResourceDiagnostic> get diagnostics => [];
+  @override
+  Set<String> get activeResourceIds => {};
+  @override
+  void setActiveMap(MapData map) {}
+  @override
+  void setBrush(ProjectElementEntry? element, TileLayerPaletteEntry? tile) {}
+  @override
+  Future<void> retryResources(Iterable<String> resourceIds) async {}
+  @override
+  Widget tileThumbnail(TileLayerPaletteEntry tile, {double size = 48}) =>
+      SizedBox.square(dimension: size);
   @override
   Widget canvas(MapData map) => const SizedBox.expand();
   @override

@@ -5,22 +5,25 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'example_project_assets.dart';
+import 'stress_example_project.dart';
 
 Future<void> main(List<String> arguments) async {
-  if (arguments.length > 1) {
+  final stress = arguments.contains('--stress');
+  final paths = arguments.where((argument) => argument != '--stress').toList();
+  if (paths.length > 1 || paths.any((path) => path.startsWith('--'))) {
     stderr.writeln(
-      'Usage: dart run tool/create_example_project.dart [dossier]',
+      'Usage: dart run tool/create_example_project.dart [--stress] [dossier]',
     );
     exitCode = 64;
     return;
   }
   final Directory directory;
-  if (arguments.isEmpty) {
+  if (paths.isEmpty) {
     directory = await Directory.systemTemp.createTemp(
       'avelune_studio_example_',
     );
   } else {
-    final target = p.absolute(arguments.single);
+    final target = p.absolute(paths.single);
     if (await FileSystemEntity.type(target, followLinks: false) !=
         FileSystemEntityType.notFound) {
       stderr.writeln(
@@ -31,11 +34,16 @@ Future<void> main(List<String> arguments) async {
     }
     directory = await Directory(target).create();
   }
-  await writeExampleProject(directory);
+  await writeExampleProject(directory, stress: stress);
   stdout.writeln(await directory.resolveSymbolicLinks());
 }
 
-Future<void> writeExampleProject(Directory directory) async {
+Future<void> writeExampleProject(
+  Directory directory, {
+  bool stress = false,
+  int stressAtlasCount = 132,
+  int stressErrorCount = 200,
+}) async {
   await Directory(p.join(directory.path, 'maps')).create();
   await Directory(p.join(directory.path, 'assets')).create();
   await File(
@@ -114,6 +122,15 @@ Future<void> writeExampleProject(Directory directory) async {
   await File(
     p.join(directory.path, 'project.json'),
   ).writeAsString(encoder.convert(manifest.toJson()));
+  if (stress) {
+    await writeStressExampleProject(
+      directory,
+      manifest,
+      maps,
+      atlasCount: stressAtlasCount,
+      errorCount: stressErrorCount,
+    );
+  }
 }
 
 ProjectElementEntry _element(
