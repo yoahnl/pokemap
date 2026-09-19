@@ -1,0 +1,24 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart",
+    "format",
+    "lib",
+    "test",
+    "tool/create_example_project.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:30:36.190583+00:00",
+  "finishedAt": "2026-09-19T12:30:36.807934+00:00",
+  "exitCode": 0,
+  "runnerPid": 16420,
+  "trackedProcesses": {
+    "16420": {
+      "parent": 16411,
+      "uid": 501,
+      "started": "Sat Sep 19 14:30:36 2026",
+      "command": "<defunct>"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

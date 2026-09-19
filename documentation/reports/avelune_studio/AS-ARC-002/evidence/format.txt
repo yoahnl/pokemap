@@ -1,0 +1,9 @@
+Formatted lib/main.dart
+Formatted lib/src/bootstrap/studio_app.dart
+Formatted lib/src/features/project_session/presentation/project_open_message.dart
+Formatted lib/src/features/project_session/presentation/project_session_screen.dart
+Formatted lib/src/shared/design_system/studio_controls.dart
+Formatted lib/src/shared/design_system/studio_surfaces.dart
+Formatted lib/src/shared/design_system/studio_theme.dart
+Formatted test/presentation/studio_app_test.dart
+Formatted 23 files (8 changed) in 0.06 seconds.

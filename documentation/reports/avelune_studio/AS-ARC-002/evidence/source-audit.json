@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import json,pathlib,subprocess; app=pathlib.Path.cwd(); root=app.parents[1]; files=subprocess.check_output([\"git\",\"ls-files\",\"--others\",\"--exclude-standard\",\"apps/avelune_studio\"],cwd=root,text=True).splitlines(); print(\"Source inventory:\"); print(\"\\n\".join(files)); checked=[]; problems=[]; extensions={\".dart\",\".py\",\".swift\",\".yaml\",\".md\",\".xcconfig\",\".entitlements\",\".plist\",\".xib\",\".pbxproj\",\".xcscheme\",\".xcworkspacedata\",\".json\"}; textfiles=[]; binaries=[]; sizes=[];\nfor name in files:\n p=root/name\n if p.suffix in extensions or p.name in {\".gitignore\",\".metadata\",\"pubspec.lock\"}:\n  text=p.read_text(); textfiles.append(name)\n  if \"/lib/\" in name or \"/test/\" in name or \"/tool/\" in name:\n   sizes.append((len(text.splitlines()),name)); problems += [name] if len(text.splitlines())>300 else []\n else: binaries.append(name)\nprint(\"Manual source sizes:\",json.dumps(sorted(sizes,reverse=True),indent=2)); print(\"Text files inspected:\",len(textfiles)); print(\"Generated binary assets:\",binaries); print(\"Oversized manual files:\",problems); assert not problems; outside=[p for p in subprocess.check_output([\"git\",\"ls-files\",\"--others\",\"--exclude-standard\"],cwd=root,text=True).splitlines() if not p.startswith((\"apps/avelune_studio/\",\"documentation/reports/avelune_studio/AS-ARC-002/\"))]; print(\"Untracked outside scope:\",outside); assert not outside; tracked=subprocess.check_output([\"git\",\"diff\",\"--name-only\"],cwd=root,text=True); print(\"Tracked changes:\",tracked or \"none\"); assert not tracked"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:41:54.745765+00:00",
+  "finishedAt": "2026-09-19T12:41:55.342045+00:00",
+  "exitCode": 0,
+  "runnerPid": 28241,
+  "trackedProcesses": {
+    "28241": {
+      "parent": 28232,
+      "uid": 501,
+      "started": "Sat Sep 19 14:41:54 2026",
+      "command": "<defunct>"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

@@ -1,0 +1,43 @@
+{
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub",
+    "test/presentation/studio_app_test.dart",
+    "--plain-name",
+    "releases the path field while the native picker owns input"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:36:06.106545+00:00",
+  "finishedAt": "2026-09-19T12:36:12.916846+00:00",
+  "exitCode": 1,
+  "runnerPid": 22719,
+  "trackedProcesses": {
+    "22719": {
+      "parent": 22709,
+      "uid": 501,
+      "started": "Sat Sep 19 14:36:06 2026",
+      "command": "<defunct>"
+    },
+    "22756": {
+      "parent": 22719,
+      "uid": 501,
+      "started": "Sat Sep 19 14:36:06 2026",
+      "command": "(sysctl)"
+    },
+    "22789": {
+      "parent": 22719,
+      "uid": 501,
+      "started": "Sat Sep 19 14:36:08 2026",
+      "command": "(dartaotruntime)"
+    },
+    "22822": {
+      "parent": 22719,
+      "uid": 501,
+      "started": "Sat Sep 19 14:36:10 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

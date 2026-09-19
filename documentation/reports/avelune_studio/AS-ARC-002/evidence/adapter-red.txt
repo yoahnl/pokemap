@@ -1,0 +1,207 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart
+00:00 +0: reads actual name and preserves every project byte and entry
+00:00 +0 -1: reads actual name and preserves every project byte and entry [E]
+  Bad state: Adapter pending implementation
+  package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+  test/infrastructure/local_project_session_adapter_test.dart 31:35                                           main.<fn>
+  
+00:00 +0 -1: only reads project.json for identity and never rereads on close
+00:00 +0 -2: only reads project.json for identity and never rereads on close [E]
+  Bad state: Adapter pending implementation
+  package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+  test/infrastructure/local_project_session_adapter_test.dart 46:35                                           main.<fn>
+  
+00:00 +0 -2: rejects invalid manifest without changing it
+00:00 +0 -3: rejects invalid manifest without changing it [E]
+  Expected: throws <Instance of 'ProjectOpenFailure'> with `problem`: ProjectOpenProblem:<ProjectOpenProblem.manifestInvalid>
+    Actual: <Instance of 'Future<ProjectSession>'>
+     Which: threw StateError:<Bad state: Adapter pending implementation>
+            stack package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+                  test/infrastructure/local_project_session_adapter_test.dart 58:52                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  package:matcher                                                                                             expectLater
+                  package:flutter_test/src/widget_tester.dart 507:8                                                           expectLater
+                  test/infrastructure/local_project_session_adapter_test.dart 58:11                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  dart:async                                                                                                  Zone.registerUnaryCallback
+                  test/infrastructure/local_project_session_adapter_test.dart 53:21                                           main.<fn>
+                  
+            which is not an instance of 'ProjectOpenFailure'
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/infrastructure/local_project_session_adapter_test.dart 58:11  main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                         Zone.registerUnaryCallback
+  test/infrastructure/local_project_session_adapter_test.dart 53:21  main.<fn>
+  
+00:00 +0 -3: reports a missing manifest without creating it
+00:00 +0 -4: reports a missing manifest without creating it [E]
+  Expected: throws <Instance of 'ProjectOpenFailure'> with `problem`: ProjectOpenProblem:<ProjectOpenProblem.manifestMissing>
+    Actual: <Instance of 'Future<ProjectSession>'>
+     Which: threw StateError:<Bad state: Adapter pending implementation>
+            stack package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+                  test/infrastructure/local_project_session_adapter_test.dart 66:52                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  package:matcher                                                                                             expectLater
+                  package:flutter_test/src/widget_tester.dart 507:8                                                           expectLater
+                  test/infrastructure/local_project_session_adapter_test.dart 66:11                                           main.<fn>
+                  
+            which is not an instance of 'ProjectOpenFailure'
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/infrastructure/local_project_session_adapter_test.dart 66:11  main.<fn>
+  
+00:00 +0 -4: reports an absent directory
+00:00 +0 -5: reports an absent directory [E]
+  Expected: throws <Instance of 'ProjectOpenFailure'> with `problem`: ProjectOpenProblem:<ProjectOpenProblem.directoryUnavailable>
+    Actual: <Instance of 'Future<ProjectSession>'>
+     Which: threw StateError:<Bad state: Adapter pending implementation>
+            stack package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+                  test/infrastructure/local_project_session_adapter_test.dart 73:38                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  package:matcher                                                                                             expectLater
+                  package:flutter_test/src/widget_tester.dart 507:8                                                           expectLater
+                  test/infrastructure/local_project_session_adapter_test.dart 72:11                                           main.<fn>
+                  
+            which is not an instance of 'ProjectOpenFailure'
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/infrastructure/local_project_session_adapter_test.dart 72:11  main.<fn>
+  
+00:00 +0 -5: reports a selected file instead of a directory
+00:00 +0 -6: reports a selected file instead of a directory [E]
+  Expected: throws <Instance of 'ProjectOpenFailure'> with `problem`: ProjectOpenProblem:<ProjectOpenProblem.directoryUnavailable>
+    Actual: <Instance of 'Future<ProjectSession>'>
+     Which: threw StateError:<Bad state: Adapter pending implementation>
+            stack package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+                  test/infrastructure/local_project_session_adapter_test.dart 79:52                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  package:matcher                                                                                             expectLater
+                  package:flutter_test/src/widget_tester.dart 507:8                                                           expectLater
+                  test/infrastructure/local_project_session_adapter_test.dart 79:11                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  dart:async                                                                                                  Zone.registerUnaryCallback
+                  test/infrastructure/local_project_session_adapter_test.dart 78:18                                           main.<fn>
+                  
+            which is not an instance of 'ProjectOpenFailure'
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/infrastructure/local_project_session_adapter_test.dart 79:11  main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                         Zone.registerUnaryCallback
+  test/infrastructure/local_project_session_adapter_test.dart 78:18  main.<fn>
+  
+00:00 +0 -6: rejects invalid path 
+00:00 +0 -7: rejects invalid path  [E]
+  Expected: throws <Instance of 'ProjectOpenFailure'> with `problem`: ProjectOpenProblem:<ProjectOpenProblem.invalidPath>
+    Actual: <Instance of 'Future<ProjectSession>'>
+     Which: threw StateError:<Bad state: Adapter pending implementation>
+            stack package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+                  test/infrastructure/local_project_session_adapter_test.dart 85:54                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  package:matcher                                                                                             expectLater
+                  package:flutter_test/src/widget_tester.dart 507:8                                                           expectLater
+                  test/infrastructure/local_project_session_adapter_test.dart 85:13                                           main.<fn>
+                  
+            which is not an instance of 'ProjectOpenFailure'
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/infrastructure/local_project_session_adapter_test.dart 85:13  main.<fn>
+  
+00:00 +0 -7: rejects invalid path relative/project
+00:00 +0 -8: rejects invalid path relative/project [E]
+  Expected: throws <Instance of 'ProjectOpenFailure'> with `problem`: ProjectOpenProblem:<ProjectOpenProblem.invalidPath>
+    Actual: <Instance of 'Future<ProjectSession>'>
+     Which: threw StateError:<Bad state: Adapter pending implementation>
+            stack package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+                  test/infrastructure/local_project_session_adapter_test.dart 85:54                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  package:matcher                                                                                             expectLater
+                  package:flutter_test/src/widget_tester.dart 507:8                                                           expectLater
+                  test/infrastructure/local_project_session_adapter_test.dart 85:13                                           main.<fn>
+                  
+            which is not an instance of 'ProjectOpenFailure'
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/infrastructure/local_project_session_adapter_test.dart 85:13  main.<fn>
+  
+00:00 +0 -8: rejects invalid path /tmp/../project
+00:00 +0 -9: rejects invalid path /tmp/../project [E]
+  Expected: throws <Instance of 'ProjectOpenFailure'> with `problem`: ProjectOpenProblem:<ProjectOpenProblem.invalidPath>
+    Actual: <Instance of 'Future<ProjectSession>'>
+     Which: threw StateError:<Bad state: Adapter pending implementation>
+            stack package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+                  test/infrastructure/local_project_session_adapter_test.dart 85:54                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  package:matcher                                                                                             expectLater
+                  package:flutter_test/src/widget_tester.dart 507:8                                                           expectLater
+                  test/infrastructure/local_project_session_adapter_test.dart 85:13                                           main.<fn>
+                  
+            which is not an instance of 'ProjectOpenFailure'
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/infrastructure/local_project_session_adapter_test.dart 85:13  main.<fn>
+  
+00:00 +0 -9: rejects invalid path /tmp/NUL
+00:00 +0 -10: rejects invalid path /tmp/NUL [E]
+  Expected: throws <Instance of 'ProjectOpenFailure'> with `problem`: ProjectOpenProblem:<ProjectOpenProblem.invalidPath>
+    Actual: <Instance of 'Future<ProjectSession>'>
+     Which: threw StateError:<Bad state: Adapter pending implementation>
+            stack package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+                  test/infrastructure/local_project_session_adapter_test.dart 85:54                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  package:matcher                                                                                             expectLater
+                  package:flutter_test/src/widget_tester.dart 507:8                                                           expectLater
+                  test/infrastructure/local_project_session_adapter_test.dart 85:13                                           main.<fn>
+                  
+            which is not an instance of 'ProjectOpenFailure'
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/infrastructure/local_project_session_adapter_test.dart 85:13  main.<fn>
+  
+00:00 +0 -10: rejects a manifest symlink escaping the selected root
+00:00 +0 -11: rejects a manifest symlink escaping the selected root [E]
+  Expected: throws <Instance of 'ProjectOpenFailure'> with `problem`: ProjectOpenProblem:<ProjectOpenProblem.accessDenied>
+    Actual: <Instance of 'Future<ProjectSession>'>
+     Which: threw StateError:<Bad state: Adapter pending implementation>
+            stack package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+                  test/infrastructure/local_project_session_adapter_test.dart 97:52                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  package:matcher                                                                                             expectLater
+                  package:flutter_test/src/widget_tester.dart 507:8                                                           expectLater
+                  test/infrastructure/local_project_session_adapter_test.dart 97:11                                           main.<fn>
+                  ===== asynchronous gap ===========================
+                  dart:async                                                                                                  Zone.registerUnaryCallback
+                  test/infrastructure/local_project_session_adapter_test.dart 91:21                                           main.<fn>
+                  
+            which is not an instance of 'ProjectOpenFailure'
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/infrastructure/local_project_session_adapter_test.dart 97:11  main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                         Zone.registerUnaryCallback
+  test/infrastructure/local_project_session_adapter_test.dart 91:21  main.<fn>
+  
+00:00 +0 -11: closing one session invalidates only its own handle
+00:00 +0 -12: closing one session invalidates only its own handle [E]
+  Bad state: Adapter pending implementation
+  package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart 13:5  LocalProjectSessionAdapter.open
+  test/infrastructure/local_project_session_adapter_test.dart 108:33                                          main.<fn>
+  
+00:00 +0 -12: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart: closing one session invalidates only its own handle
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart: only reads project.json for identity and never rereads on close
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart: reads actual name and preserves every project byte and entry
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart: rejects a manifest symlink escaping the selected root
+  ... and 8 more

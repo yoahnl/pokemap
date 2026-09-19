@@ -1,0 +1,14 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_controller_test.dart
+00:00 +0: opens the requested project and propagates its actual identity
+00:00 +0 -1: opens the requested project and propagates its actual identity [E]
+  Expected: ProjectSessionStatus:<ProjectSessionStatus.opening>
+    Actual: ProjectSessionStatus:<ProjectSessionStatus.idle>
+  
+  package:matcher                                             expect
+  package:flutter_test/src/widget_tester.dart 473:18          expect
+  test/application/project_session_controller_test.dart 33:5  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_controller_test.dart: opens the requested project and propagates its actual identity

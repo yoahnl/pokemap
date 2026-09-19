@@ -1,0 +1,15 @@
+Creating project apps/avelune_studio...
+Wrote 38 files.
+
+All done!
+You can find general documentation for Flutter at: https://docs.flutter.dev/
+Detailed API documentation is available at: https://api.flutter.dev/
+If you prefer video documentation, consider: https://www.youtube.com/c/flutterdev
+
+In order to run your empty application, type:
+
+  $ cd apps/avelune_studio
+  $ flutter run
+
+Your empty application code is in apps/avelune_studio/lib/main.dart.
+[exit 0]

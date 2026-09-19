@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import subprocess; commands=[[\"git\",\"branch\",\"--show-current\"],[\"git\",\"rev-parse\",\"HEAD\"],[\"git\",\"status\",\"--short\",\"--untracked-files=all\"],[\"git\",\"diff\",\"--stat\"],[\"git\",\"diff\",\"--cached\",\"--stat\"],[\"git\",\"diff\",\"--name-only\"],[\"git\",\"diff\",\"--check\"],[\"git\",\"status\",\"--short\",\"--ignored\",\"apps/avelune_studio\"]]; codes=[];\nfor command in commands:\n print(\"$ \"+\" \".join(command),flush=True); result=subprocess.run(command,cwd=\"../..\"); print(\"exitCode=\"+str(result.returncode),flush=True); codes.append(result.returncode)\nraise SystemExit(max(codes))"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:45:03.228454+00:00",
+  "finishedAt": "2026-09-19T12:45:04.127489+00:00",
+  "exitCode": 0,
+  "runnerPid": 31509,
+  "trackedProcesses": {
+    "31509": {
+      "parent": 31500,
+      "uid": 501,
+      "started": "Sat Sep 19 14:45:03 2026",
+      "command": "<defunct>"
+    },
+    "31515": {
+      "parent": 31509,
+      "uid": 501,
+      "started": "Sat Sep 19 14:45:03 2026",
+      "command": "(git)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

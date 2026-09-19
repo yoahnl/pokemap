@@ -1,0 +1,45 @@
+
+┌─────────────────────────────────────────────────────────┐
+│ A new version of Flutter is available!                  │
+│                                                         │
+│ To update to the latest version, run "flutter upgrade". │
+└─────────────────────────────────────────────────────────┘
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart
+00:00 +0: releases the path field while the native picker owns input
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: no matching candidates
+  Actual: _TypeWidgetFinder:<Found 1 widget with type "TextField": [
+            TextField(controller: TextEditingController#ffcab(TextEditingValue(text: ┤/brouillon├,
+selection: TextSelection.collapsed(offset: 10, affinity: TextAffinity.downstream, isDirectional:
+false), composing: TextRange(start: -1, end: -1))), enabled: false, decoration:
+InputDecoration(labelText: "Dossier du projet", hintText: "Choisissez un dossier ou saisissez son
+chemin"), autocorrect: false, enableSuggestions: false, textInputAction: done, dependencies:
+[DefaultSelectionStyle, InheritedCupertinoTheme, MediaQuery, UnmanagedRestorationScope,
+_InheritedTheme, _LocalizationsScope-[GlobalKey#8ff1a]], state: _TextFieldState#d65a9),
+          ]>
+   Which: means one was found but none were expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart:21:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart line 21
+The test description was:
+  releases the path field while the native picker owns input
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +0 -1: releases the path field while the native picker owns input [E]
+  Test failed. See exception logs above.
+  The test description was: releases the path field while the native picker owns input
+  
+00:01 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: releases the path field while the native picker owns input

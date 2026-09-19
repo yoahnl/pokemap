@@ -1,0 +1,24 @@
+$ pwd
+/Users/karim/Project/pokemonProject
+[exit 0]
+
+$ git rev-parse --show-toplevel
+/Users/karim/Project/pokemonProject
+[exit 0]
+
+$ git branch --show-current
+main
+[exit 0]
+
+$ git rev-parse HEAD
+e019b0a60cae474d9676b65b9c9ad026dd37cab5
+[exit 0]
+
+$ git status --short --untracked-files=all
+[exit 0]
+
+$ git diff --stat
+[exit 0]
+
+$ git diff --cached --stat
+[exit 0]

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "from pathlib import Path; p=Path(\"macos/Runner.xcodeproj/project.pbxproj\"); print(\"SPM Xcode references:\"); print(\"\\n\".join(l for l in p.read_text().splitlines() if \"FlutterGeneratedPluginSwiftPackage\" in l or \"XCLocalSwiftPackageReference\" in l)); s=Path(\"macos/Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage/Package.swift\"); print(s); print(s.read_text()); pods=list(Path(\"macos\").rglob(\"Podfile\"))+list(Path(\"macos\").rglob(\"Podfile.lock\")); print(\"CocoaPods files:\",pods); assert not pods"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:41:13.167782+00:00",
+  "finishedAt": "2026-09-19T12:41:13.585268+00:00",
+  "exitCode": 0,
+  "runnerPid": 27854,
+  "trackedProcesses": {
+    "27854": {
+      "parent": 27845,
+      "uid": 501,
+      "started": "Sat Sep 19 14:41:13 2026",
+      "command": "(python3.14)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

@@ -1,0 +1,113 @@
+{
+  "command": [
+    "env",
+    "POKEMAP_MARKDOWN_MAX_NEW=2",
+    "bash",
+    "../../tools/scripts/check_markdown_hygiene.sh"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:44:58.071938+00:00",
+  "finishedAt": "2026-09-19T12:45:01.766669+00:00",
+  "exitCode": 0,
+  "runnerPid": 30261,
+  "trackedProcesses": {
+    "30261": {
+      "parent": 30252,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:58 2026",
+      "command": "<defunct>"
+    },
+    "30277": {
+      "parent": 30261,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:58 2026",
+      "command": "bash ../../tools/scripts/check_markdown_hygiene.sh"
+    },
+    "30278": {
+      "parent": 30277,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:58 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/git -C /Users/karim/Project/pokemonProject ls-files --others --exclude-standard"
+    },
+    "30435": {
+      "parent": 30261,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:58 2026",
+      "command": "(bash)"
+    },
+    "30438": {
+      "parent": 30435,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:58 2026",
+      "command": "(tr)"
+    },
+    "30545": {
+      "parent": 30261,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:58 2026",
+      "command": "(bash)"
+    },
+    "30638": {
+      "parent": 30261,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:58 2026",
+      "command": "bash ../../tools/scripts/check_markdown_hygiene.sh"
+    },
+    "30639": {
+      "parent": 30638,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:58 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/git -C /Users/karim/Project/pokemonProject ls-files --others --ignored --exclude-standard -- :(icase,glob)**/*.md :(icase,glob)**/*.mdx :(icase,glob)**/*.markdown"
+    },
+    "30656": {
+      "parent": 30261,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:59 2026",
+      "command": "(bash)"
+    },
+    "30724": {
+      "parent": 30656,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:59 2026",
+      "command": "(bash)"
+    },
+    "30857": {
+      "parent": 30656,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:59 2026",
+      "command": "(bash)"
+    },
+    "30859": {
+      "parent": 30857,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:59 2026",
+      "command": "(tr)"
+    },
+    "30996": {
+      "parent": 30656,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:59 2026",
+      "command": "(bash)"
+    },
+    "31009": {
+      "parent": 30261,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:59 2026",
+      "command": "bash ../../tools/scripts/check_markdown_hygiene.sh"
+    },
+    "31133": {
+      "parent": 31009,
+      "uid": 501,
+      "started": "Sat Sep 19 14:44:59 2026",
+      "command": "(bash)"
+    },
+    "31264": {
+      "parent": 31009,
+      "uid": 501,
+      "started": "Sat Sep 19 14:45:00 2026",
+      "command": "(bash)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

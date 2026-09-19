@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import hashlib,json,pathlib; p=pathlib.Path(\"/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_studio_example_Zo6KhS\"); print(json.dumps({str(f.relative_to(p)): {\"sha256\":hashlib.sha256(f.read_bytes()).hexdigest(),\"bytes\":f.stat().st_size,\"mtime_ns\":f.stat().st_mtime_ns} for f in sorted(p.rglob(\"*\")) if f.is_file()},sort_keys=True,indent=2))"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:34:19.009254+00:00",
+  "finishedAt": "2026-09-19T12:34:19.428389+00:00",
+  "exitCode": 0,
+  "runnerPid": 21392,
+  "trackedProcesses": {
+    "21392": {
+      "parent": 21382,
+      "uid": 501,
+      "started": "Sat Sep 19 14:34:19 2026",
+      "command": "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python -c import hashlib,json,pathlib; p=pathlib.Path(\"/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_studio_example_Zo6KhS\"); print(json.dumps({str(f.relative_to(p)): {\"sha256\":hashlib.sha256(f.read_bytes()).hexdigest(),\"bytes\":f.stat().st_size,\"mtime_ns\":f.stat().st_mtime_ns} for f in sorted(p.rglob(\"*\")) if f.is_file()},sort_keys=True,indent=2))"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

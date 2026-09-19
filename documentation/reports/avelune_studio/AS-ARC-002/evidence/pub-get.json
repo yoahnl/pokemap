@@ -1,0 +1,22 @@
+{
+  "command": [
+    "flutter",
+    "pub",
+    "get"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:18:54.780225+00:00",
+  "finishedAt": "2026-09-19T12:18:56.570404+00:00",
+  "exitCode": 0,
+  "runnerPid": 8718,
+  "trackedProcesses": {
+    "8718": {
+      "parent": 8709,
+      "uid": 501,
+      "started": "Sat Sep 19 14:18:54 2026",
+      "command": "bash /opt/homebrew/bin/flutter pub get"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

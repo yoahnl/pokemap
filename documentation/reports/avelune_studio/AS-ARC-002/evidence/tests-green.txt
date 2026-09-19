@@ -1,0 +1,54 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_controller_test.dart: starts idle without reading a project
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: late A is released without replacing or closing ready B
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: detecte I/O derriere un import relatif et un export
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: detecte I/O derriere un import relatif et un export
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: detecte I/O derriere un import relatif et un export
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: close during a read releases its late success and stays idle
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: detecte I/O derriere un barrel package public
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_controller_test.dart: exposes ProjectOpenProblem.invalidPath and allows an explicit retry
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: close during a read ignores its late failure
+00:00 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_controller_test.dart: exposes ProjectOpenProblem.accessDenied and allows an explicit retry
+00:00 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_controller_test.dart: exposes ProjectOpenProblem.accessDenied and allows an explicit retry
+00:00 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:00 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:00 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:00 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_controller_test.dart: removing a listener stops future notifications
+00:00 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur ou runtime de jeu
+00:00 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+00:00 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_errors_test.dart: reports access denied without attempting a manifest read
+00:00 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_errors_test.dart: maps an undifferentiated filesystem read error honestly
+00:00 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_errors_test.dart: maps a surfaced native permission error
+00:01 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: shows the real opening action without loading at startup
+00:02 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: opens from the native selection, displays identity and closes
+00:02 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: shows an actionable failure and retries the entered directory
+00:02 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: rebuilds and resizes without recreating or reloading a session
+00:02 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: supports keyboard submission and focus traversal
+00:02 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: cancels a pending read and disposes its late result
+00:02 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: does not open a directory picker result after disposal
+00:02 +52: All tests passed!

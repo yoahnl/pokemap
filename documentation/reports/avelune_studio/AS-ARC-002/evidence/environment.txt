@@ -1,0 +1,96 @@
+$ uname -a
+Darwin MacBookPro.localdomain 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000 arm64
+[exit 0]
+
+$ command -v flutter
+/opt/homebrew/bin/flutter
+[exit 0]
+
+$ command -v dart
+/opt/homebrew/bin/dart
+[exit 0]
+
+$ flutter --version
+Waiting for another flutter command to release the startup lock...
+Flutter 3.48.0-0.4.pre • channel beta • https://github.com/flutter/flutter.git
+Framework • revision e3005e3402 (2 weeks ago) • 2026-09-02 14:26:34 -0700
+Engine • hash aff4b9780ffb288258c26c3196e66d79f9c2550f (revision e2149387c6) (18 days ago) • 2026-08-31 23:16:20.000Z
+Tools • Dart 3.14.0 (build 3.14.0-95.2.beta) • DevTools 2.61.0-dev.0
+[exit 0]
+
+$ dart --version
+Dart SDK version: 3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on "macos_arm64"
+[exit 0]
+
+$ flutter devices --machine
+[
+  {
+    "name": "Karimflut’s iPhone",
+    "id": "00008130-001A01441A8B803A",
+    "isSupported": true,
+    "targetPlatform": "ios",
+    "cpuArch": "arm64",
+    "emulator": false,
+    "sdk": "iOS 27.0 24A435",
+    "capabilities": {
+      "hotReload": true,
+      "hotRestart": true,
+      "screenshot": true,
+      "flutterExit": true,
+      "hardwareRendering": false,
+      "startPaused": false
+    }
+  },
+  {
+    "name": "iPhone 17 Pro",
+    "id": "143CE64A-C480-4FC6-8655-1B272E182AC6",
+    "isSupported": true,
+    "targetPlatform": "ios",
+    "cpuArch": "arm64",
+    "emulator": true,
+    "sdk": "com.apple.CoreSimulator.SimRuntime.iOS-27-0",
+    "capabilities": {
+      "hotReload": true,
+      "hotRestart": true,
+      "screenshot": true,
+      "flutterExit": true,
+      "hardwareRendering": false,
+      "startPaused": true
+    }
+  },
+  {
+    "name": "macOS",
+    "id": "macos",
+    "isSupported": true,
+    "targetPlatform": "darwin",
+    "cpuArch": "arm64",
+    "emulator": false,
+    "sdk": "macOS 27.0 26A428 darwin-arm64",
+    "capabilities": {
+      "hotReload": true,
+      "hotRestart": true,
+      "screenshot": false,
+      "flutterExit": true,
+      "hardwareRendering": false,
+      "startPaused": true
+    }
+  },
+  {
+    "name": "Chrome",
+    "id": "chrome",
+    "isSupported": true,
+    "targetPlatform": "web-javascript",
+    "cpuArch": "unknown",
+    "emulator": false,
+    "sdk": "Google Chrome 152.0.7977.83",
+    "capabilities": {
+      "hotReload": true,
+      "hotRestart": true,
+      "screenshot": false,
+      "flutterExit": false,
+      "hardwareRendering": false,
+      "startPaused": true
+    }
+  }
+]
+[exit 0]

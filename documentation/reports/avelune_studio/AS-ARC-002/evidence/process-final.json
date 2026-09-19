@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import json,pathlib,subprocess; folder=pathlib.Path(\"../../documentation/reports/avelune_studio/AS-ARC-002/evidence\"); rows=subprocess.check_output([\"ps\",\"-axo\",\"pid=,ppid=,uid=,lstart=,command=\"],text=True); current={int(f[0]):f for line in rows.splitlines() if len(f:=line.split(None,8))==9}; found=[];\nfor p in sorted(folder.glob(\"*.json\")):\n data=json.loads(p.read_text())\n if not isinstance(data,dict): continue\n for pid,known in data.get(\"trackedProcesses\",{}).items():\n  now=current.get(int(pid))\n  if now and int(now[2])==known[\"uid\"] and \" \".join(now[3:8])==known[\"started\"] and now[8]==known[\"command\"]: found.append({\"run\":p.stem,\"pid\":pid,\"command\":now[8]})\nprint(json.dumps(found,indent=2)); apps=[l for l in rows.splitlines() if \"/Avelune Studio.app/Contents/MacOS/\" in l and not \"python\" in l]; print(\"Native app processes:\",apps); assert not apps; print(\"Final test metadata:\"); print(json.dumps(json.loads((folder/\"tests-final.json\").read_text())[\"remainingOwnedProcesses\"])); print(\"No unowned process was terminated\")"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:45:02.198453+00:00",
+  "finishedAt": "2026-09-19T12:45:02.774420+00:00",
+  "exitCode": 0,
+  "runnerPid": 31462,
+  "trackedProcesses": {
+    "31462": {
+      "parent": 31453,
+      "uid": 501,
+      "started": "Sat Sep 19 14:45:02 2026",
+      "command": "<defunct>"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

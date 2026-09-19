@@ -1,0 +1,3 @@
+Formatted lib/src/features/project_session/presentation/project_session_screen.dart
+Formatted test/presentation/studio_app_test.dart
+Formatted 23 files (2 changed) in 0.05 seconds.

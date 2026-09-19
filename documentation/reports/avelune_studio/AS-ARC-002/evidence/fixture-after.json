@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import hashlib,json,pathlib; p=pathlib.Path(\"/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_studio_example_Zo6KhS\"); result=json.dumps({str(f.relative_to(p)): {\"sha256\":hashlib.sha256(f.read_bytes()).hexdigest(),\"bytes\":f.stat().st_size,\"mtime_ns\":f.stat().st_mtime_ns} for f in sorted(p.rglob(\"*\")) if f.is_file()},sort_keys=True,indent=2); print(result); before=pathlib.Path(\"../../documentation/reports/avelune_studio/AS-ARC-002/evidence/fixture-before.txt\").read_text().strip(); assert result==before; print(\"Identical inventory, bytes, SHA-256 and mtime before/after native smoke\")"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:40:02.726491+00:00",
+  "finishedAt": "2026-09-19T12:40:03.149494+00:00",
+  "exitCode": 0,
+  "runnerPid": 26615,
+  "trackedProcesses": {
+    "26615": {
+      "parent": 26604,
+      "uid": 501,
+      "started": "Sat Sep 19 14:40:02 2026",
+      "command": "(python3.14)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

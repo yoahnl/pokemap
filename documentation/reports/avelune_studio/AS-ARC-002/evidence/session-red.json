@@ -1,0 +1,25 @@
+{
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub",
+    "test/application/project_session_controller_test.dart",
+    "--plain-name",
+    "opens the requested project and propagates its actual identity"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T12:20:22.731796+00:00",
+  "finishedAt": "2026-09-19T12:20:29.312410+00:00",
+  "exitCode": 1,
+  "runnerPid": 10034,
+  "trackedProcesses": {
+    "10034": {
+      "parent": 10025,
+      "uid": 501,
+      "started": "Sat Sep 19 14:20:22 2026",
+      "command": "bash /opt/homebrew/bin/flutter test --no-pub test/application/project_session_controller_test.dart --plain-name opens the requested project and propagates its actual identity"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

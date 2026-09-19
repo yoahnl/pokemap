@@ -1,0 +1,162 @@
+Source inventory:
+apps/avelune_studio/.gitignore
+apps/avelune_studio/.metadata
+apps/avelune_studio/README.md
+apps/avelune_studio/analysis_options.yaml
+apps/avelune_studio/lib/main.dart
+apps/avelune_studio/lib/src/bootstrap/studio_app.dart
+apps/avelune_studio/lib/src/features/project_session/application/project_session.dart
+apps/avelune_studio/lib/src/features/project_session/application/project_session_controller.dart
+apps/avelune_studio/lib/src/features/project_session/application/project_session_state.dart
+apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart
+apps/avelune_studio/lib/src/features/project_session/infrastructure/native_project_directory_picker.dart
+apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart
+apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart
+apps/avelune_studio/lib/src/shared/design_system/studio_controls.dart
+apps/avelune_studio/lib/src/shared/design_system/studio_surfaces.dart
+apps/avelune_studio/lib/src/shared/design_system/studio_theme.dart
+apps/avelune_studio/macos/.gitignore
+apps/avelune_studio/macos/Flutter/Flutter-Debug.xcconfig
+apps/avelune_studio/macos/Flutter/Flutter-Release.xcconfig
+apps/avelune_studio/macos/Flutter/GeneratedPluginRegistrant.swift
+apps/avelune_studio/macos/Runner.xcodeproj/project.pbxproj
+apps/avelune_studio/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+apps/avelune_studio/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+apps/avelune_studio/macos/Runner.xcworkspace/contents.xcworkspacedata
+apps/avelune_studio/macos/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+apps/avelune_studio/macos/Runner/AppDelegate.swift
+apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json
+apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png
+apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png
+apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png
+apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png
+apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png
+apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png
+apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png
+apps/avelune_studio/macos/Runner/Base.lproj/MainMenu.xib
+apps/avelune_studio/macos/Runner/Configs/AppInfo.xcconfig
+apps/avelune_studio/macos/Runner/Configs/Debug.xcconfig
+apps/avelune_studio/macos/Runner/Configs/Release.xcconfig
+apps/avelune_studio/macos/Runner/Configs/Warnings.xcconfig
+apps/avelune_studio/macos/Runner/DebugProfile.entitlements
+apps/avelune_studio/macos/Runner/Info.plist
+apps/avelune_studio/macos/Runner/MainFlutterWindow.swift
+apps/avelune_studio/macos/Runner/Release.entitlements
+apps/avelune_studio/macos/RunnerTests/RunnerTests.swift
+apps/avelune_studio/pubspec.lock
+apps/avelune_studio/pubspec.yaml
+apps/avelune_studio/test/application/project_session_controller_test.dart
+apps/avelune_studio/test/application/project_session_races_test.dart
+apps/avelune_studio/test/architecture/architecture_boundaries_test.dart
+apps/avelune_studio/test/architecture/dart_dependency_graph.dart
+apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart
+apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart
+apps/avelune_studio/test/infrastructure/local_project_session_errors_test.dart
+apps/avelune_studio/test/infrastructure/project_fixture.dart
+apps/avelune_studio/test/presentation/studio_app_test.dart
+apps/avelune_studio/test/support/controlled_project_session_port.dart
+apps/avelune_studio/tool/create_example_project.dart
+apps/avelune_studio/tool/run_check.py
+Manual source sizes: [
+  [
+    204,
+    "apps/avelune_studio/test/presentation/studio_app_test.dart"
+  ],
+  [
+    185,
+    "apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart"
+  ],
+  [
+    168,
+    "apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart"
+  ],
+  [
+    144,
+    "apps/avelune_studio/test/application/project_session_controller_test.dart"
+  ],
+  [
+    134,
+    "apps/avelune_studio/test/application/project_session_races_test.dart"
+  ],
+  [
+    122,
+    "apps/avelune_studio/tool/run_check.py"
+  ],
+  [
+    121,
+    "apps/avelune_studio/test/architecture/architecture_boundaries_test.dart"
+  ],
+  [
+    105,
+    "apps/avelune_studio/test/infrastructure/local_project_session_errors_test.dart"
+  ],
+  [
+    95,
+    "apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart"
+  ],
+  [
+    95,
+    "apps/avelune_studio/lib/src/features/project_session/application/project_session_controller.dart"
+  ],
+  [
+    87,
+    "apps/avelune_studio/test/architecture/dart_dependency_graph.dart"
+  ],
+  [
+    85,
+    "apps/avelune_studio/lib/src/shared/design_system/studio_surfaces.dart"
+  ],
+  [
+    78,
+    "apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart"
+  ],
+  [
+    75,
+    "apps/avelune_studio/test/infrastructure/project_fixture.dart"
+  ],
+  [
+    61,
+    "apps/avelune_studio/lib/src/bootstrap/studio_app.dart"
+  ],
+  [
+    55,
+    "apps/avelune_studio/lib/src/shared/design_system/studio_theme.dart"
+  ],
+  [
+    41,
+    "apps/avelune_studio/tool/create_example_project.dart"
+  ],
+  [
+    41,
+    "apps/avelune_studio/lib/src/shared/design_system/studio_controls.dart"
+  ],
+  [
+    36,
+    "apps/avelune_studio/test/support/controlled_project_session_port.dart"
+  ],
+  [
+    31,
+    "apps/avelune_studio/lib/src/features/project_session/application/project_session.dart"
+  ],
+  [
+    18,
+    "apps/avelune_studio/lib/main.dart"
+  ],
+  [
+    17,
+    "apps/avelune_studio/lib/src/features/project_session/application/project_session_state.dart"
+  ],
+  [
+    15,
+    "apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart"
+  ],
+  [
+    10,
+    "apps/avelune_studio/lib/src/features/project_session/infrastructure/native_project_directory_picker.dart"
+  ]
+]
+Text files inspected: 51
+Generated binary assets: ['apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png', 'apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png', 'apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png', 'apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png', 'apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png', 'apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png', 'apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png']
+Oversized manual files: []
+Untracked outside scope: []
+Tracked changes: none

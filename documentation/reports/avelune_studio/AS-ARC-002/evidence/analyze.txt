@@ -1,0 +1,9 @@
+Analyzing avelune_studio...                                     
+
+  error • The getter 'platform' isn't defined for the type 'FilePicker'. Try importing the library that defines 'platform', correcting the name to the name of an existing getter, or defining a getter or field named 'platform' • lib/src/features/project_session/infrastructure/native_project_directory_picker.dart:6:42 • undefined_getter
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/src/features/project_session/presentation/project_session_screen.dart:51:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/src/features/project_session/presentation/project_session_screen.dart:60:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/src/features/project_session/presentation/project_session_screen.dart:73:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/src/features/project_session/presentation/project_session_screen.dart:77:7 • curly_braces_in_flow_control_structures
+
+5 issues found. (ran in 5.0s)

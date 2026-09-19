@@ -1,0 +1,85 @@
+Launching lib/main.dart on macOS in debug mode...
+Building macOS application...                                   
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+[IMPORTANT:flutter/shell/platform/embedder/embedder_surface_metal_impeller.mm(53)] Using the Impeller rendering backend (MetalSDF).
+Syncing files to device macOS...                                   175ms
+
+Flutter run key commands.
+r Hot reload. 🔥🔥🔥
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on macOS is available at: http://127.0.0.1:57980/vMOM30VBSfk=/
+The Flutter DevTools debugger and profiler on macOS is available at: http://127.0.0.1:57980/vMOM30VBSfk=/devtools/?uri=ws://127.0.0.1:57980/vMOM30VBSfk=/ws
+*** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[AXPlatformNodeCocoa startEditing]: unrecognized selector sent to instance 0x775dc42820'
+*** First throw call stack:
+(
+	0   CoreFoundation                      0x000000018b8168c0 __exceptionPreprocess + 176
+	1   libobjc.A.dylib                     0x000000018b27460c objc_exception_throw + 88
+	2   CoreFoundation                      0x000000018b8decac -[NSObject(NSObject) __retain_OA] + 0
+	3   CoreFoundation                      0x000000018b783f70 ___forwarding___ + 1504
+	4   CoreFoundation                      0x000000018b7838d0 __forwarding_prep_0___ + 96
+	5   FlutterMacOS                        0x000000010545e548 _ZNK7flutter22AccessibilityBridgeMac22MacOSEventsFromAXEventEN2ui16AXEventGenerator5EventERKNS1_6AXNodeE + 1212
+	6   FlutterMacOS                        0x000000010545df44 _ZN7flutter22AccessibilityBridgeMac20OnAccessibilityEventEN2ui16AXEventGenerator13TargetedEventE + 196
+	7   FlutterMacOS                        0x0000000105e0de14 _ZN7flutter19AccessibilityBridge13CommitUpdatesEv + 1520
+	8   FlutterMacOS                        0x0000000105495e8c -[FlutterViewController updateSemantics:] + 184
+	9   FlutterMacOS                        0x000000010547820c _ZZ35-[FlutterEngine runWithEntrypoint:]EN3$_58__invokeEPK23FlutterSemanticsUpdate2Pv + 88
+	10  FlutterMacOS                        0x0000000105e22074 _ZNSt4__fl10__function6__funcIZ39CreateEmbedderSemanticsUpdateCallbackV3PFvPK23FlutterSemanticsUpdate2PvES5_E3$_0NS_9allocatorIS8_EEFvxNS_13unordered_mapIiN7flutter13SemanticsNodeENS_4hashIiEENS_	11  FlutterMacOS                        0x0000000105e36c20 _ZN7flutter20PlatformViewEmbedder15UpdateSemanticsExNSt4__fl13unordered_mapIiNS_13SemanticsNodeENS1_4hashIiEENS1_8equal_toIiEENS1_9allocatorINS1_4pairIKiS3_EEEEEENS2_IiNS_25CustomAccessibilityAct	12  FlutterMacOS                        0x0000000105d26088 _ZNSt4__fl10__function6__funcIZN7flutter5Shell23OnEngineUpdateSemanticsExNS_13unordered_mapIiNS2_13SemanticsNodeENS_4hashIiEENS_8equal_toIiEENS_9allocatorINS_4pairIKiS5_EEEEEENS4_IiNS2_25CustomAc	13  FlutterMacOS                        0x0000000105d12290 _ZN7flutter5Shell23OnEngineUpdateSemanticsExNSt4__fl13unordered_mapIiNS_13SemanticsNodeENS1_4hashIiEENS1_8equal_toIiEENS1_9allocatorINS1_4pairIKiS3_EEEEEENS2_IiNS_25CustomAccessibilityActionES5_S	14  FlutterMacOS                        0x0000000105cf8848 _ZN7flutter6Engine15UpdateSemanticsExNSt4__fl13unordered_mapIiNS_13SemanticsNodeENS1_4hashIiEENS1_8equal_toIiEENS1_9allocatorINS1_4pairIKiS3_EEEEEENS2_IiNS_25CustomAccessibilityActionES5_S7_NS8_I	15  FlutterMacOS                        0x0000000105de5efc _ZN7flutter17RuntimeController15UpdateSemanticsExPNS_15SemanticsUpdateE + 100
+	16  ???                                 0x0000000124c08058 0x0 + 4911562840
+	17  ???                                 0x000000012f9bb56c 0x0 + 5093700972
+	18  ???                                 0x000000012f9bb45c 0x0 + 5093700700
+	19  ???                                 0x000000012f9bb2f0 0x0 + 5093700336
+	20  ???                                 0x000000012f9bb164 0x0 + 5093699940
+	21  ???                                 0x000000012f9baff4 0x0 + 5093699572
+	22  ???                                 0x00000001353cd4f4 0x0 + 5188146420
+	23  ???                                 0x00000001317a2bd0 0x0 + 5125057488
+	24  ???                                 0x00000001317a2d2c 0x0 + 5125057836
+	25  ???                                 0x000000013110f480 0x0 + 5118162048
+	26  ???                                 0x0000000131102994 0x0 + 5118110100
+	27  ???                                 0x0000000131102278 0x0 + 5118108280
+	28  ???                                 0x0000000131102160 0x0 + 5118108000
+	29  ???                                 0x0000000131101bc4 0x0 + 5118106564
+	30  ???                                 0x0000000131100524 0x0 + 5118100772
+	31  ???                                 0x00000001317c9cb0 0x0 + 5125217456
+	32  ???                                 0x00000001317c99e8 0x0 + 5125216744
+	33  ???                                 0x0000000125419c64 0x0 + 4920024164
+	34  ???                                 0x00000001317c9828 0x0 + 5125216296
+	35  ???                                 0x00000001317c96b8 0x0 + 5125215928
+	36  ???                                 0x00000001317c95c8 0x0 + 5125215688
+	37  ???                                 0x0000000124c03a44 0x0 + 4911544900
+	38  FlutterMacOS                        0x0000000105e96398 _ZN4dart9DartEntry14InvokeFunctionERKNS_8FunctionERKNS_5ArrayES6_ + 288
+	39  FlutterMacOS                        0x0000000105e969b8 _ZN4dart9DartEntry14InvokeCallableEPNS_6ThreadERKNS_8FunctionERKNS_5ArrayES8_ + 364
+	40  FlutterMacOS                        0x00000001062fed64 Dart_InvokeClosure + 1028
+	41  FlutterMacOS                        0x0000000105d41ebc _ZN5tonic14DartInvokeVoidEP12_Dart_Handle + 44
+	42  FlutterMacOS                        0x0000000105d8cfdc _ZN7flutter21PlatformConfiguration10BeginFrameEN3fml9TimePointEy + 524
+	43  FlutterMacOS                        0x0000000105de5454 _ZN7flutter17RuntimeController10BeginFrameEN3fml9TimePointEy + 196
+	44  FlutterMacOS                        0x0000000105cf02dc _ZN7flutter8Animator10BeginFrameENSt4__fl10unique_ptrINS_20FrameTimingsRecorderENS1_14default_deleteIS3_EEEE + 860
+	45  FlutterMacOS                        0x0000000105cf44cc _ZNSt4__fl10__function6__funcIZN7flutter8Animator10AwaitVSyncEvE3$_0NS_9allocatorIS4_EEFvNS_10unique_ptrINS2_20FrameTimingsRecorderENS_14default_deleteIS8_EEEEEEclEOSB_ + 96
+	46  FlutterMacOS                        0x0000000105d37b28 _ZNSt4__fl10__function6__funcIZN7flutter11VsyncWaiter12FireCallbackEN3fml9TimePointES5_bE3$_0NS_9allocatorIS6_EEFvvEEclEv + 136
+	47  FlutterMacOS                        0x0000000105e33aa4 _ZN7flutter18EmbedderTaskRunner8PostTaskEy + 576
+	48  FlutterMacOS                        0x0000000105e279d0 _ZN7flutter14EmbedderEngine7RunTaskEPK11FlutterTask + 56
+	49  FlutterMacOS                        0x0000000105e1a210 FlutterEngineRunTask + 68
+	50  FlutterMacOS                        0x00000001054778b8 __60-[FlutterEngine postMainThreadTask:targetTimeInNanoseconds:]_block_invoke + 72
+	51  FlutterMacOS                        0x00000001054dce88 $sIeyB_Ieg_TR + 16
+	52  FlutterMacOS                        0x00000001054dbd58 $s20InternalFlutterSwift0B7RunLoopC19performExpiredTasks33_D4CDF1FCA38C25E611593B39D16A3F51LLyyF + 956
+	53  FlutterMacOS                        0x00000001054db97c $s20InternalFlutterSwift0B7RunLoopCACyc33_D4CDF1FCA38C25E611593B39D16A3F51LlfcySvSgcfU_ + 204
+	54  FlutterMacOS                        0x00000001054dbda0 $s20InternalFlutterSwift0B7RunLoopCACyc33_D4CDF1FCA38C25E611593B39D16A3F51LlfcySvSgcfU_To + 12
+	55  CoreFoundation                      0x000000018b7a6944 __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ + 28
+	56  CoreFoundation                      0x000000018b7a68d8 __CFRunLoopDoSource0 + 224
+	57  CoreFoundation                      0x000000018b7a6610 __CFRunLoopDoSources0 + 232
+	58  CoreFoundation                      0x000000018b7a51e0 __CFRunLoopRun + 832
+	59  CoreFoundation                      0x000000018b87f82c _CFRunLoopRunSpecificWithOptions + 536
+	60  HIToolbox                           0x0000000198bd8590 RunCurrentEventLoopInMode + 320
+	61  HIToolbox                           0x0000000198bdb91c ReceiveNextEventCommon + 492
+	62  HIToolbox                           0x0000000198d5e380 _BlockUntilNextEventMatchingListInMode + 48
+	63  AppKit                              0x000000019009f29c _DPSBlockUntilNextEventMatchingListInMode + 292
+	64  AppKit                              0x000000018fd5c4fc _DPSNextEvent + 580
+	65  AppKit                              0x00000001905d4748 -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 780
+	66  AppKit                              0x00000001905d426c -[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:] + 292
+	67  AppKit                              0x000000018fd4f90c -[NSApplication run] + 396
+	68  AppKit                              0x000000018fd2
+libc++abi: terminating due to uncaught exception of type NSException
+Lost connection to device.

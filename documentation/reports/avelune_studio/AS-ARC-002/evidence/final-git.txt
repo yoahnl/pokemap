@@ -1,0 +1,144 @@
+$ git branch --show-current
+main
+exitCode=0
+$ git rev-parse HEAD
+e019b0a60cae474d9676b65b9c9ad026dd37cab5
+exitCode=0
+$ git status --short --untracked-files=all
+?? apps/avelune_studio/.gitignore
+?? apps/avelune_studio/.metadata
+?? apps/avelune_studio/README.md
+?? apps/avelune_studio/analysis_options.yaml
+?? apps/avelune_studio/lib/main.dart
+?? apps/avelune_studio/lib/src/bootstrap/studio_app.dart
+?? apps/avelune_studio/lib/src/features/project_session/application/project_session.dart
+?? apps/avelune_studio/lib/src/features/project_session/application/project_session_controller.dart
+?? apps/avelune_studio/lib/src/features/project_session/application/project_session_state.dart
+?? apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart
+?? apps/avelune_studio/lib/src/features/project_session/infrastructure/native_project_directory_picker.dart
+?? apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart
+?? apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart
+?? apps/avelune_studio/lib/src/shared/design_system/studio_controls.dart
+?? apps/avelune_studio/lib/src/shared/design_system/studio_surfaces.dart
+?? apps/avelune_studio/lib/src/shared/design_system/studio_theme.dart
+?? apps/avelune_studio/macos/.gitignore
+?? apps/avelune_studio/macos/Flutter/Flutter-Debug.xcconfig
+?? apps/avelune_studio/macos/Flutter/Flutter-Release.xcconfig
+?? apps/avelune_studio/macos/Flutter/GeneratedPluginRegistrant.swift
+?? apps/avelune_studio/macos/Runner.xcodeproj/project.pbxproj
+?? apps/avelune_studio/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+?? apps/avelune_studio/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+?? apps/avelune_studio/macos/Runner.xcworkspace/contents.xcworkspacedata
+?? apps/avelune_studio/macos/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+?? apps/avelune_studio/macos/Runner/AppDelegate.swift
+?? apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json
+?? apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png
+?? apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png
+?? apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png
+?? apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png
+?? apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png
+?? apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png
+?? apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png
+?? apps/avelune_studio/macos/Runner/Base.lproj/MainMenu.xib
+?? apps/avelune_studio/macos/Runner/Configs/AppInfo.xcconfig
+?? apps/avelune_studio/macos/Runner/Configs/Debug.xcconfig
+?? apps/avelune_studio/macos/Runner/Configs/Release.xcconfig
+?? apps/avelune_studio/macos/Runner/Configs/Warnings.xcconfig
+?? apps/avelune_studio/macos/Runner/DebugProfile.entitlements
+?? apps/avelune_studio/macos/Runner/Info.plist
+?? apps/avelune_studio/macos/Runner/MainFlutterWindow.swift
+?? apps/avelune_studio/macos/Runner/Release.entitlements
+?? apps/avelune_studio/macos/RunnerTests/RunnerTests.swift
+?? apps/avelune_studio/pubspec.lock
+?? apps/avelune_studio/pubspec.yaml
+?? apps/avelune_studio/test/application/project_session_controller_test.dart
+?? apps/avelune_studio/test/application/project_session_races_test.dart
+?? apps/avelune_studio/test/architecture/architecture_boundaries_test.dart
+?? apps/avelune_studio/test/architecture/dart_dependency_graph.dart
+?? apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart
+?? apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart
+?? apps/avelune_studio/test/infrastructure/local_project_session_errors_test.dart
+?? apps/avelune_studio/test/infrastructure/project_fixture.dart
+?? apps/avelune_studio/test/presentation/studio_app_test.dart
+?? apps/avelune_studio/test/support/controlled_project_session_port.dart
+?? apps/avelune_studio/tool/create_example_project.dart
+?? apps/avelune_studio/tool/run_check.py
+?? documentation/reports/avelune_studio/AS-ARC-002/README.md
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/adapter-red.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/adapter-red.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/analyze-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/analyze-final.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/analyze-green.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/analyze-green.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/analyze.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/analyze.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/build-debug.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/build-debug.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/build-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/build-final.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/environment.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/example.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/example.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/final-git.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/fixture-after.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/fixture-after.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/fixture-before.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/fixture-before.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/flutter-create.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/focus-red.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/focus-red.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/format-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/format-final.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/format.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/format.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/initial-git.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/markdown-hygiene.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/markdown-hygiene.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-closed-ax.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-closed.jpg
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-exit-apps.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-exit-confirmed.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-final-initial.jpg
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-initial-thumbnail.jpg
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-initial.jpg
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-opened-ax.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-ready-ax.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-ready.jpg
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-run-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-run-final.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-run.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/native-run.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/process-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/process-final.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/pub-get.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/pub-get.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/session-red.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/session-red.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/source-audit.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/source-audit.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/spm-proof.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/spm-proof.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/tests-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/tests-final.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/tests-green.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/tests-green.txt
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/widgets-red.json
+?? documentation/reports/avelune_studio/AS-ARC-002/evidence/widgets-red.txt
+exitCode=0
+$ git diff --stat
+exitCode=0
+$ git diff --cached --stat
+exitCode=0
+$ git diff --name-only
+exitCode=0
+$ git diff --check
+exitCode=0
+$ git status --short --ignored apps/avelune_studio
+?? apps/avelune_studio/
+!! apps/avelune_studio/.dart_tool/
+!! apps/avelune_studio/.flutter-plugins-dependencies
+!! apps/avelune_studio/.idea/
+!! apps/avelune_studio/avelune_studio.iml
+!! apps/avelune_studio/build/
+!! apps/avelune_studio/macos/Flutter/ephemeral/
+exitCode=0
