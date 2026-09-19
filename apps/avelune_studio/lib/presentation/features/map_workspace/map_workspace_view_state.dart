@@ -1,7 +1,16 @@
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 
-enum StudioMapTool { select, place, paint, terrain, erase, pan }
+enum StudioMapTool {
+  select,
+  place,
+  paint,
+  terrain,
+  character,
+  zone,
+  erase,
+  pan,
+}
 
 class MapWorkspaceViewState {
   final transform = TransformationController();
@@ -9,6 +18,10 @@ class MapWorkspaceViewState {
   ProjectElementEntry? brush;
   TileLayerPaletteEntry? tile;
   ProjectSmartTilePreset? terrain;
+  ProjectCharacterEntry? character;
+  String? selectedEntityId;
+  String characterQuery = '';
+  double characterScrollOffset = 0;
   bool grid = true;
   bool paletteTiles = false;
   String paletteTab = 'Décors';

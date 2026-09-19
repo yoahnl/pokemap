@@ -55,5 +55,6 @@ Future<bool> useResourceOnMap({
     state.terrain = null;
     state.tool = StudioMapTool.place;
   }
+  state.character = null;
   return true;
 }

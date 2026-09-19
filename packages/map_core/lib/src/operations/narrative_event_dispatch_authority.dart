@@ -180,7 +180,8 @@ final class NarrativeEventDispatchAuthorityReady
     Set<String> inFlightNarrativeEventIds = const <String>{},
   }) {
     final source = occurrence.source;
-    if (mode == EventSystemMode.legacyOnly) {
+    if (mode == EventSystemMode.legacyOnly &&
+        !_registry.ownsSourceInLegacyMode(source)) {
       return NarrativeEventDispatchNoMatch(
         source: source,
         mode: mode,
@@ -238,7 +239,8 @@ final class NarrativeEventDispatchAuthorityReady
     return NarrativeEventDispatchNoMatch(
       source: source,
       mode: mode,
-      legacyFallbackAllowed: mode == EventSystemMode.dualRead,
+      legacyFallbackAllowed: mode == EventSystemMode.dualRead &&
+          !_registry.ownsSourceInLegacyMode(source),
       reasons: _sortedReasons(reasons),
     );
   }
@@ -330,7 +332,9 @@ final class NarrativeEventDispatchAuthorityReady
   ) {
     final records = [
       for (final record in _registry.records)
-        if (record.definitionOrNull?.source == source) record,
+        if (record.definitionOrNull?.source == source &&
+            (mode != EventSystemMode.legacyOnly || record.activeInLegacyMode))
+          record,
     ]..sort((left, right) {
         final a = left.definitionOrNull!;
         final b = right.definitionOrNull!;
@@ -725,21 +729,22 @@ abstract final class NarrativeEventDispatchAuthority {
           records: const [],
           legacyClaims: const [],
         );
-    if (registry.mode != EventSystemMode.legacyOnly && !factResolver.isValid) {
+    final requiresModernAuthority = registry.mode != EventSystemMode.legacyOnly ||
+        registry.ownsSourceInLegacyMode(occurrence.source);
+    if (requiresModernAuthority && !factResolver.isValid) {
       return NarrativeEventDispatchAuthorityBlocked(
         reason: NarrativeEventDispatchAuthorityBlockReason.invalidFactResolver,
         diagnostics: [for (final issue in factResolver.issues) issue.message],
       );
     }
-    if (registry.mode != EventSystemMode.legacyOnly && projectCatalog == null) {
+    if (requiresModernAuthority && projectCatalog == null) {
       return NarrativeEventDispatchAuthorityBlocked(
         reason:
             NarrativeEventDispatchAuthorityBlockReason.projectCatalogRequired,
         diagnostics: const ['Event V2 dispatch requires a project catalog.'],
       );
     }
-    if (registry.mode != EventSystemMode.legacyOnly &&
-        projectCatalog!.hasBlockingDiagnostics) {
+    if (requiresModernAuthority && projectCatalog!.hasBlockingDiagnostics) {
       return NarrativeEventDispatchAuthorityBlocked(
         reason:
             NarrativeEventDispatchAuthorityBlockReason.projectCatalogBlocked,
@@ -751,7 +756,7 @@ abstract final class NarrativeEventDispatchAuthority {
         ],
       );
     }
-    if (registry.mode != EventSystemMode.legacyOnly &&
+    if (requiresModernAuthority &&
         !_catalogMatchesRegistry(registry, projectCatalog!)) {
       return NarrativeEventDispatchAuthorityBlocked(
         reason: NarrativeEventDispatchAuthorityBlockReason

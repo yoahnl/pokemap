@@ -92,7 +92,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
                   shortcut: '⌘Z / CtrlZ',
                   onPressed: document?.canUndo == true
                       ? () {
-                          document!.restore(redo: false);
+                          controller.restore(redo: false);
                           onChanged();
                         }
                       : null,
@@ -103,7 +103,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
                   shortcut: '⌘⇧Z / Ctrl⇧Z',
                   onPressed: document?.canRedo == true
                       ? () {
-                          document!.restore(redo: true);
+                          controller.restore(redo: true);
                           onChanged();
                         }
                       : null,
@@ -182,13 +182,17 @@ class MapWorkspaceToolbar extends StatelessWidget {
                           selected:
                               view?.tool == StudioMapTool.paint ||
                               view?.tool == StudioMapTool.place ||
-                              view?.tool == StudioMapTool.terrain,
+                              view?.tool == StudioMapTool.terrain ||
+                              view?.tool == StudioMapTool.character,
                           onPressed:
                               view?.tile != null ||
                                   view?.brush != null ||
-                                  view?.terrain != null
+                                  view?.terrain != null ||
+                                  view?.character != null
                               ? () => tool(
-                                  view?.terrain != null
+                                  view?.character != null
+                                      ? StudioMapTool.character
+                                      : view?.terrain != null
                                       ? StudioMapTool.terrain
                                       : view?.brush != null
                                       ? StudioMapTool.place
@@ -201,6 +205,12 @@ class MapWorkspaceToolbar extends StatelessWidget {
                           icon: Icons.auto_fix_normal,
                           selected: view?.tool == StudioMapTool.erase,
                           onPressed: () => tool(StudioMapTool.erase),
+                        ),
+                        StudioTool(
+                          label: 'Dessiner une zone d’histoire',
+                          icon: Icons.crop_square,
+                          selected: view?.tool == StudioMapTool.zone,
+                          onPressed: () => tool(StudioMapTool.zone),
                         ),
                         StudioTool(
                           label: 'Déplacer la vue',

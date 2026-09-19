@@ -1,0 +1,36 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/dart",
+    "analyze",
+    "lib/platform/playtest",
+    "lib/features/narrative/application/narrative_interaction.dart",
+    "lib/features/narrative/application/narrative_interaction_reader.dart",
+    "lib/features/narrative/application/narrative_sequence_projection.dart",
+    "test/m3_story_runtime_test.dart",
+    "test/narrative_interaction_projection_test.dart",
+    "test/support/m3_runtime_driver.dart",
+    "test/support/m3_story_fixture.dart",
+    "test/support/capture_m3_widget.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:21:13.232830+00:00",
+  "finishedAt": "2026-09-19T19:21:20.156811+00:00",
+  "exitCode": 0,
+  "runnerPid": 68259,
+  "trackedProcesses": {
+    "68259": {
+      "parent": 68249,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:13 2026",
+      "command": "(dart)"
+    },
+    "68288": {
+      "parent": 68259,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:13 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

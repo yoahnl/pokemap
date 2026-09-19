@@ -1,0 +1,47 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/flutter",
+    "test",
+    "--no-pub",
+    "test/narrative_interaction_projection_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:17:24.216052+00:00",
+  "finishedAt": "2026-09-19T19:17:29.196241+00:00",
+  "exitCode": 0,
+  "runnerPid": 64063,
+  "trackedProcesses": {
+    "64063": {
+      "parent": 64051,
+      "uid": 501,
+      "started": "Sat Sep 19 21:17:24 2026",
+      "command": "<defunct>"
+    },
+    "64067": {
+      "parent": 64063,
+      "uid": 501,
+      "started": "Sat Sep 19 21:17:24 2026",
+      "command": "(bash)"
+    },
+    "64130": {
+      "parent": 64063,
+      "uid": 501,
+      "started": "Sat Sep 19 21:17:24 2026",
+      "command": "(xcrun)"
+    },
+    "64155": {
+      "parent": 64063,
+      "uid": 501,
+      "started": "Sat Sep 19 21:17:25 2026",
+      "command": "(dartaotruntime)"
+    },
+    "64201": {
+      "parent": 64063,
+      "uid": 501,
+      "started": "Sat Sep 19 21:17:27 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.879FQC/flutter_test_listener.Od8rJ0/listener.dart.dill"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

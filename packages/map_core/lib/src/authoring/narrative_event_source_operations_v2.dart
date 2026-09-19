@@ -189,6 +189,7 @@ NarrativeEventAuthoringResult _setNarrativeEventSource({
         resetPolicy: definition.resetPolicy,
       ),
       enabled: false,
+      activeInLegacyMode: record.activeInLegacyMode,
     ),
   );
   final catalogRejection = _catalogBlockRejection(

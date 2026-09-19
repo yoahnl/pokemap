@@ -1,0 +1,1739 @@
+{
+  "kind": "final_source_inventory",
+  "capturedAt": "2026-09-19T19:43:17.609212+00:00",
+  "head": "2abaea0a71033fc6f9d62bf5f8dc01775cb4fbb6",
+  "note": "All changed source/document files. Evidence artifacts are listed in final-state.txt. No full source snapshots.",
+  "files": [
+    {
+      "path": "apps/avelune_studio/README.md",
+      "status": " M",
+      "lines": 236,
+      "zones": [
+        {
+          "line": 1,
+          "declaration": "# Avelune Studio — Personnages et histoire M3"
+        },
+        {
+          "line": 9,
+          "declaration": "## Lancer l’exemple"
+        },
+        {
+          "line": 31,
+          "declaration": "## Utiliser une carte"
+        },
+        {
+          "line": 57,
+          "declaration": "## Des ressources à la carte"
+        },
+        {
+          "line": 83,
+          "declaration": "## Limites explicites"
+        },
+        {
+          "line": 85,
+          "declaration": "### Personnages, conversations et histoire"
+        },
+        {
+          "line": 120,
+          "declaration": "### Limites conservées de la carte et des ressources"
+        },
+        {
+          "line": 160,
+          "declaration": "## Organisation du code"
+        },
+        {
+          "line": 214,
+          "declaration": "## Projet volumineux reproductible"
+        },
+        {
+          "line": 221,
+          "declaration": "## Vérifier"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -1 +1 @@",
+        "@@ -6 +6,2 @@ la carte dans le runtime existant. M2 ajoute l’import PNG, la préparation de",
+        "@@ -83,0 +85,37 @@ pendant une saisie de texte."
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/app/di/providers.dart",
+      "status": " M",
+      "lines": 4,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -3,0 +4 @@ export 'resource_providers.dart';"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/app/studio_bootstrap.dart",
+      "status": " M",
+      "lines": 74,
+      "zones": [
+        {
+          "line": 16,
+          "declaration": "class StudioBootstrap extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -5,0 +6 @@ import 'package:avelune_studio/app/studio_app.dart';",
+        "@@ -43,10 +44,7 @@ class StudioBootstrap extends StatelessWidget {",
+        "@@ -53,0 +52,12 @@ class StudioBootstrap extends StatelessWidget {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/editable_map_document.dart",
+      "status": " M",
+      "lines": 73,
+      "zones": [
+        {
+          "line": 6,
+          "declaration": "class EditableMapDocument {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -44 +44 @@ class EditableMapDocument {",
+        "@@ -52,0 +53 @@ class EditableMapDocument {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart",
+      "status": " M",
+      "lines": 170,
+      "zones": [
+        {
+          "line": 7,
+          "declaration": "class MapWorkspaceController {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -18,0 +19 @@ class MapWorkspaceController {",
+        "@@ -96,0 +98,44 @@ class MapWorkspaceController {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/playtest/studio_playtest_view.dart",
+      "status": " M",
+      "lines": 211,
+      "zones": [
+        {
+          "line": 15,
+          "declaration": "class StudioPlaytestView extends StatefulWidget {"
+        },
+        {
+          "line": 37,
+          "declaration": "class _StudioPlaytestViewState extends State<StudioPlaytestView> {"
+        },
+        {
+          "line": 211,
+          "declaration": "class StudioPlaytestSaveRepository extends StudioPlaytestSession {}"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -6,0 +7,4 @@ import 'package:path/path.dart' as p;",
+        "@@ -18,0 +23 @@ class StudioPlaytestView extends StatefulWidget {",
+        "@@ -25,0 +31 @@ class StudioPlaytestView extends StatefulWidget {",
+        "@@ -32 +38 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {",
+        "@@ -34 +40,3 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {",
+        "@@ -65 +73 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {",
+        "@@ -68,0 +77,37 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {",
+        "@@ -108,0 +154,28 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {",
+        "@@ -122,5 +195,8 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {",
+        "@@ -135,15 +211 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_map_resources.dart",
+      "status": " M",
+      "lines": 291,
+      "zones": [
+        {
+          "line": 18,
+          "declaration": "final class StudioMapResources"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -1,2 +0,0 @@",
+        "@@ -5 +2,0 @@ import 'package:map_core/map_core.dart';",
+        "@@ -7,2 +3,0 @@ import 'package:map_runtime/map_runtime_authoring.dart';",
+        "@@ -18,0 +14,3 @@ import 'studio_atlas_preview.dart';",
+        "@@ -21 +19,4 @@ final class StudioMapResources",
+        "@@ -32 +33 @@ final class StudioMapResources",
+        "@@ -39,0 +41 @@ final class StudioMapResources",
+        "@@ -43 +44,0 @@ final class StudioMapResources",
+        "@@ -100,11 +101,8 @@ final class StudioMapResources",
+        "@@ -123,2 +121,8 @@ final class StudioMapResources",
+        "@@ -129,0 +134,2 @@ final class StudioMapResources",
+        "@@ -139,0 +146,2 @@ final class StudioMapResources",
+        "@@ -160,0 +169 @@ final class StudioMapResources",
+        "@@ -173,0 +183 @@ final class StudioMapResources",
+        "@@ -181,0 +192,23 @@ final class StudioMapResources",
+        "@@ -224,9 +257 @@ final class StudioMapResources",
+        "@@ -235,9 +260 @@ final class StudioMapResources",
+        "@@ -275,4 +291,0 @@ final class StudioMapResources"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_map_visual_widgets.dart",
+      "status": " M",
+      "lines": 189,
+      "zones": [
+        {
+          "line": 23,
+          "declaration": "class StudioMapVisual extends StatefulWidget {"
+        },
+        {
+          "line": 37,
+          "declaration": "class _StudioMapVisualState extends State<StudioMapVisual> {"
+        },
+        {
+          "line": 131,
+          "declaration": "class _MissingResourcePainter extends CustomPainter {"
+        },
+        {
+          "line": 177,
+          "declaration": "class _MapPainter extends CustomPainter {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -3,0 +4 @@ import 'package:map_runtime/map_runtime_authoring.dart';",
+        "@@ -7,0 +9,14 @@ import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notic"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_resource_catalog.dart",
+      "status": " M",
+      "lines": 76,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -1,0 +2 @@ import 'dart:convert';",
+        "@@ -7,0 +9,4 @@ import 'package:map_runtime/map_runtime_authoring.dart';",
+        "@@ -35 +40 @@ Future<Map<String, String>> resolveStudioResourcePaths(",
+        "@@ -40,0 +46,30 @@ Future<Map<String, String>> resolveStudioResourcePaths("
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_resource_index.dart",
+      "status": " M",
+      "lines": 156,
+      "zones": [
+        {
+          "line": 6,
+          "declaration": "final class StudioResourceIndex {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -2,0 +3,2 @@ import 'package:map_runtime/map_runtime_authoring.dart';",
+        "@@ -48,0 +51,9 @@ final class StudioResourceIndex {",
+        "@@ -117,0 +129,7 @@ final class StudioResourceIndex {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_overlay.dart",
+      "status": " M",
+      "lines": 166,
+      "zones": [
+        {
+          "line": 4,
+          "declaration": "class MapCanvasOverlay extends CustomPainter {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -14,0 +15,5 @@ class MapCanvasOverlay extends CustomPainter {",
+        "@@ -24,0 +30,49 @@ class MapCanvasOverlay extends CustomPainter {",
+        "@@ -46,0 +101 @@ class MapCanvasOverlay extends CustomPainter {",
+        "@@ -59,0 +115,23 @@ class MapCanvasOverlay extends CustomPainter {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas.dart",
+      "status": " M",
+      "lines": 300,
+      "zones": [
+        {
+          "line": 15,
+          "declaration": "class MapWorkspaceCanvas extends StatefulWidget {"
+        },
+        {
+          "line": 37,
+          "declaration": "class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -12,0 +13 @@ import 'map_canvas_stroke.dart';",
+        "@@ -22,0 +24 @@ class MapWorkspaceCanvas extends StatefulWidget {",
+        "@@ -29,0 +32 @@ class MapWorkspaceCanvas extends StatefulWidget {",
+        "@@ -40,0 +44 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {",
+        "@@ -69,0 +74,16 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {",
+        "@@ -78,0 +99 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {",
+        "@@ -110,0 +132,4 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {",
+        "@@ -129,0 +155,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {",
+        "@@ -155,0 +188 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {",
+        "@@ -166,0 +200 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {",
+        "@@ -222 +256,4 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {",
+        "@@ -231,0 +269,9 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {",
+        "@@ -236 +282,3 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart",
+      "status": " M",
+      "lines": 250,
+      "zones": [
+        {
+          "line": 15,
+          "declaration": "class MapWorkspaceLayout extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -11 +10,0 @@ import 'map_workspace_panels.dart';",
+        "@@ -12,0 +12,2 @@ import 'workspace_resource_diagnostics.dart';",
+        "@@ -38,0 +40,5 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -59,0 +66,5 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -68,0 +80,2 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -70 +83,52 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -90 +154 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -96 +160 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -98,0 +163,8 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -117,3 +189,17 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -141,11 +227 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -160,0 +237 @@ class MapWorkspaceLayout extends StatelessWidget {",
+        "@@ -163,9 +240,2 @@ class MapWorkspaceLayout extends StatelessWidget {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_panels.dart",
+      "status": " M",
+      "lines": 253,
+      "zones": [
+        {
+          "line": 11,
+          "declaration": "class MapWorkspacePalette extends StatefulWidget {"
+        },
+        {
+          "line": 35,
+          "declaration": "class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -8,0 +9 @@ import 'map_workspace_visuals.dart';",
+        "@@ -96,6 +97,9 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {",
+        "@@ -103,2 +106,0 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {",
+        "@@ -110 +112,6 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {",
+        "@@ -122,5 +129,6 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {",
+        "@@ -129,40 +137,12 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {",
+        "@@ -171 +151,2 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {",
+        "@@ -174,10 +155,8 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {",
+        "@@ -185,19 +164,73 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {",
+        "@@ -209 +242,2 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "status": " M",
+      "lines": 299,
+      "zones": [
+        {
+          "line": 24,
+          "declaration": "class MapWorkspaceScreen extends StatefulWidget {"
+        },
+        {
+          "line": 48,
+          "declaration": "class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -4 +4,3 @@ import 'package:map_core/map_core_domain.dart';",
+        "@@ -14 +16 @@ import '../resources/resource_image_import.dart';",
+        "@@ -16,0 +19,2 @@ import 'map_workspace_layout.dart';",
+        "@@ -18,6 +22 @@ import 'map_workspace_layout.dart';",
+        "@@ -34,0 +34 @@ class MapWorkspaceScreen extends StatefulWidget {",
+        "@@ -37,0 +38 @@ class MapWorkspaceScreen extends StatefulWidget {",
+        "@@ -51 +52 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -52,0 +54,2 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -58,2 +61 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -72 +74,13 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -77,3 +90,0 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -81,15 +92,10 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -118,4 +124 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -125,22 +127,0 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -148,35 +129 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -186 +133 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -190,2 +137,2 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -201,0 +149 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -219 +167,21 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -231 +199 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -238 +206,5 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -240 +212,13 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -246 +230,5 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -248,0 +237 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -268,2 +257,4 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -271 +262 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -274 +265,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {",
+        "@@ -285,7 +282,10 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_shortcuts.dart",
+      "status": " M",
+      "lines": 101,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -3,0 +4,2 @@ import 'package:flutter/services.dart';",
+        "@@ -11,2 +13,3 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(",
+        "@@ -17,0 +21,24 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(",
+        "@@ -22,4 +49,2 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(",
+        "@@ -33 +58 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(",
+        "@@ -40 +65 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(",
+        "@@ -46 +71,15 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts("
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_toolbar.dart",
+      "status": " M",
+      "lines": 284,
+      "zones": [
+        {
+          "line": 7,
+          "declaration": "class MapWorkspaceToolbar extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -95 +95 @@ class MapWorkspaceToolbar extends StatelessWidget {",
+        "@@ -106 +106 @@ class MapWorkspaceToolbar extends StatelessWidget {",
+        "@@ -185 +185,2 @@ class MapWorkspaceToolbar extends StatelessWidget {",
+        "@@ -189 +190,2 @@ class MapWorkspaceToolbar extends StatelessWidget {",
+        "@@ -191 +193,3 @@ class MapWorkspaceToolbar extends StatelessWidget {",
+        "@@ -204,0 +209,6 @@ class MapWorkspaceToolbar extends StatelessWidget {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_view_state.dart",
+      "status": " M",
+      "lines": 32,
+      "zones": [
+        {
+          "line": 4,
+          "declaration": "enum StudioMapTool {"
+        },
+        {
+          "line": 15,
+          "declaration": "class MapWorkspaceViewState {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -4 +4,10 @@ import 'package:map_core/map_core_domain.dart';",
+        "@@ -11,0 +21,4 @@ class MapWorkspaceViewState {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/resources/resource_brush_selection.dart",
+      "status": " M",
+      "lines": 60,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -57,0 +58 @@ Future<bool> useResourceOnMap({"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/shell/studio_workspace_host.dart",
+      "status": " M",
+      "lines": 34,
+      "zones": [
+        {
+          "line": 8,
+          "declaration": "class StudioWorkspaceHost extends ConsumerWidget {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -23 +22,0 @@ class StudioWorkspaceHost extends ConsumerWidget {",
+        "@@ -26,0 +26 @@ class StudioWorkspaceHost extends ConsumerWidget {",
+        "@@ -29 +29 @@ class StudioWorkspaceHost extends ConsumerWidget {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/support/load_desktop_capture_fonts.dart",
+      "status": " M",
+      "lines": 54,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -47,0 +48,5 @@ Future<void> loadDesktopCaptureFonts() async {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/tool/create_example_project.dart",
+      "status": " M",
+      "lines": 219,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -95 +95 @@ Future<void> writeExampleProject(",
+        "@@ -108 +108 @@ Future<void> writeExampleProject("
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/tool/example_project_assets.dart",
+      "status": " M",
+      "lines": 40,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -33,6 +33,6 @@ List<int> exampleAtlasPng() {"
+      ]
+    },
+    {
+      "path": "packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart",
+      "status": " M",
+      "lines": 532,
+      "zones": [
+        {
+          "line": 68,
+          "declaration": "typedef MapMutationDraftBuilder = FutureOr<AuthoringMutationDraft> Function("
+        },
+        {
+          "line": 72,
+          "declaration": "final class MapMutationActionRegistration {"
+        },
+        {
+          "line": 85,
+          "declaration": "final class MapMutationDispatcher {"
+        },
+        {
+          "line": 483,
+          "declaration": "typedef AuthoringMutationDraftBuilder = MapMutationDraftBuilder;"
+        },
+        {
+          "line": 484,
+          "declaration": "typedef AuthoringMutationActionRegistration = MapMutationActionRegistration;"
+        },
+        {
+          "line": 485,
+          "declaration": "typedef AuthoringMutationDispatcher = MapMutationDispatcher;"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -33,0 +34 @@ import '../domains/narrative/dialogue_actions.dart';",
+        "@@ -387,0 +389,4 @@ final class MapMutationDispatcher {"
+      ]
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/narrative/dialogue_authoring_service.dart",
+      "status": " M",
+      "lines": 368,
+      "zones": [
+        {
+          "line": 3,
+          "declaration": "enum NarrativeAuthoringDiagnosticSeverity { warning, error }"
+        },
+        {
+          "line": 5,
+          "declaration": "final class DialogueAuthoringDiagnostic {"
+        },
+        {
+          "line": 41,
+          "declaration": "final class DialogueAuthoringCompileResult {"
+        },
+        {
+          "line": 79,
+          "declaration": "final class DialogueAuthoringCompiler {"
+        },
+        {
+          "line": 180,
+          "declaration": "final class DialogueSimulationTrace {"
+        },
+        {
+          "line": 210,
+          "declaration": "final class DialogueSimulationService {"
+        },
+        {
+          "line": 276,
+          "declaration": "final class DialogueLegacyMigrationPreview {"
+        },
+        {
+          "line": 303,
+          "declaration": "final class DialogueLegacyMigrationService {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -1 +1 @@",
+        "@@ -93,0 +94,2 @@ final class DialogueAuthoringCompiler {",
+        "@@ -96 +98 @@ final class DialogueAuthoringCompiler {"
+      ]
+    },
+    {
+      "path": "packages/map_authoring/lib/src/parity/full_authoring_parity.dart",
+      "status": " M",
+      "lines": 1490,
+      "zones": [
+        {
+          "line": 4,
+          "declaration": "enum AuthoringParityStatus {"
+        },
+        {
+          "line": 11,
+          "declaration": "enum AuthoringParityCapability {"
+        },
+        {
+          "line": 28,
+          "declaration": "enum AuthoringTransport { directApi, editor, cli, mcp }"
+        },
+        {
+          "line": 30,
+          "declaration": "final class AuthoringTransportExecutionReceipt {"
+        },
+        {
+          "line": 134,
+          "declaration": "final class AuthoringParityCell {"
+        },
+        {
+          "line": 178,
+          "declaration": "final class AuthoringResourceParity {"
+        },
+        {
+          "line": 218,
+          "declaration": "final class AuthoringMutationParityEvidence {"
+        },
+        {
+          "line": 327,
+          "declaration": "final class AuthoringFullParityCatalog {"
+        },
+        {
+          "line": 1070,
+          "declaration": "final class _ContractEvidenceRule {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -1280,0 +1281,4 @@ const _contractEvidenceRules = <_ContractEvidenceRule>["
+      ]
+    },
+    {
+      "path": "packages/map_core/lib/src/authoring/narrative_event_activation_operations.dart",
+      "status": " M",
+      "lines": 227,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -81,0 +82 @@ NarrativeEventAuthoringResult activateNarrativeEvent({",
+        "@@ -145,0 +147 @@ NarrativeEventAuthoringResult deactivateNarrativeEvent({"
+      ]
+    },
+    {
+      "path": "packages/map_core/lib/src/authoring/narrative_event_configuration_operations.dart",
+      "status": " M",
+      "lines": 761,
+      "zones": [
+        {
+          "line": 601,
+          "declaration": "final class _ConfigurationTarget {"
+        },
+        {
+          "line": 619,
+          "declaration": "final class _EditableNarrativeEvent {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -632,0 +633 @@ final class _EditableNarrativeEvent {",
+        "@@ -663,0 +665 @@ final class _EditableNarrativeEvent {",
+        "@@ -679,0 +682 @@ final class _EditableNarrativeEvent {",
+        "@@ -715,0 +719 @@ final class _EditableNarrativeEvent {",
+        "@@ -734,0 +739 @@ final class _EditableNarrativeEvent {"
+      ]
+    },
+    {
+      "path": "packages/map_core/lib/src/authoring/narrative_event_source_operations_v2.dart",
+      "status": " M",
+      "lines": 595,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -191,0 +192 @@ NarrativeEventAuthoringResult _setNarrativeEventSource({"
+      ]
+    },
+    {
+      "path": "packages/map_core/lib/src/dialogue/runtime_dialogue_document.dart",
+      "status": " M",
+      "lines": 410,
+      "zones": [
+        {
+          "line": 7,
+          "declaration": "final class RuntimeDialogueDocument {"
+        },
+        {
+          "line": 73,
+          "declaration": "final class RuntimeDialogueNode {"
+        },
+        {
+          "line": 107,
+          "declaration": "sealed class RuntimeDialogueStep {"
+        },
+        {
+          "line": 113,
+          "declaration": "final class RuntimeDialogueLine extends RuntimeDialogueStep {"
+        },
+        {
+          "line": 166,
+          "declaration": "final class RuntimeDialogueJump extends RuntimeDialogueStep {"
+        },
+        {
+          "line": 189,
+          "declaration": "final class RuntimeDialogueChoiceBlock extends RuntimeDialogueStep {"
+        },
+        {
+          "line": 216,
+          "declaration": "final class RuntimeDialogueChoice {"
+        },
+        {
+          "line": 256,
+          "declaration": "final class RuntimeDialogueDocumentCodec {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -118 +118,2 @@ final class RuntimeDialogueLine extends RuntimeDialogueStep {",
+        "@@ -121 +122 @@ final class RuntimeDialogueLine extends RuntimeDialogueStep {",
+        "@@ -220 +221,2 @@ final class RuntimeDialogueChoice {",
+        "@@ -223 +225 @@ final class RuntimeDialogueChoice {",
+        "@@ -310,0 +313 @@ final class RuntimeDialogueDocumentCodec {",
+        "@@ -345,0 +349 @@ final class RuntimeDialogueDocumentCodec {"
+      ]
+    },
+    {
+      "path": "packages/map_core/lib/src/dialogue/yarn_dialogue_compiler.dart",
+      "status": " M",
+      "lines": 272,
+      "zones": [
+        {
+          "line": 5,
+          "declaration": "final class YarnDialogueFormatException extends FormatException {"
+        },
+        {
+          "line": 16,
+          "declaration": "final class _PortraitDirective {"
+        },
+        {
+          "line": 31,
+          "declaration": "final class YarnDialogueCompiler {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -0,0 +1,2 @@",
+        "@@ -23 +25 @@ final class _PortraitDirective {",
+        "@@ -72,0 +75,13 @@ final class YarnDialogueCompiler {",
+        "@@ -93 +108 @@ final class YarnDialogueCompiler {",
+        "@@ -98,0 +114 @@ final class YarnDialogueCompiler {",
+        "@@ -108,0 +125 @@ final class YarnDialogueCompiler {",
+        "@@ -183 +200,6 @@ final class YarnDialogueCompiler {",
+        "@@ -210 +232,7 @@ final class YarnDialogueCompiler {",
+        "@@ -219 +247,2 @@ final class YarnDialogueCompiler {",
+        "@@ -237,0 +267,6 @@ final class YarnDialogueCompiler {"
+      ]
+    },
+    {
+      "path": "packages/map_core/lib/src/models/narrative_event_definition.dart",
+      "status": " M",
+      "lines": 1385,
+      "zones": [
+        {
+          "line": 49,
+          "declaration": "enum NarrativeEventReusePolicy { oneShot, reusable }"
+        },
+        {
+          "line": 51,
+          "declaration": "enum NarrativeEventConditionExpressionKind { leaf, all, any, not }"
+        },
+        {
+          "line": 59,
+          "declaration": "sealed class NarrativeEventConditionExpression {"
+        },
+        {
+          "line": 107,
+          "declaration": "final class NarrativeEventConditionLeaf"
+        },
+        {
+          "line": 130,
+          "declaration": "sealed class _NarrativeEventConditionGroup"
+        },
+        {
+          "line": 150,
+          "declaration": "final class NarrativeEventConditionAll extends _NarrativeEventConditionGroup {"
+        },
+        {
+          "line": 162,
+          "declaration": "final class NarrativeEventConditionAny extends _NarrativeEventConditionGroup {"
+        },
+        {
+          "line": 174,
+          "declaration": "final class NarrativeEventConditionNot"
+        },
+        {
+          "line": 195,
+          "declaration": "sealed class NarrativeEventResetPolicy {"
+        },
+        {
+          "line": 227,
+          "declaration": "final class NarrativeEventResetNever extends NarrativeEventResetPolicy {"
+        },
+        {
+          "line": 237,
+          "declaration": "final class NarrativeEventResetOnMapReentry extends NarrativeEventResetPolicy {"
+        },
+        {
+          "line": 247,
+          "declaration": "final class NarrativeEventResetOnOutcomeReceived"
+        },
+        {
+          "line": 264,
+          "declaration": "sealed class NarrativeEventCondition {"
+        },
+        {
+          "line": 406,
+          "declaration": "final class _FactNarrativeEventCondition extends NarrativeEventCondition {"
+        },
+        {
+          "line": 491,
+          "declaration": "final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {"
+        },
+        {
+          "line": 548,
+          "declaration": "final class NarrativeEventDefinition {"
+        },
+        {
+          "line": 689,
+          "declaration": "final class NarrativeEventDraft {"
+        },
+        {
+          "line": 834,
+          "declaration": "sealed class NarrativeEventRecord {"
+        },
+        {
+          "line": 923,
+          "declaration": "final class _NarrativeEventDraftRecord extends NarrativeEventRecord {"
+        },
+        {
+          "line": 963,
+          "declaration": "final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -45,0 +46 @@ const Set<String> _recordWireFields = {",
+        "@@ -842,0 +844 @@ sealed class NarrativeEventRecord {",
+        "@@ -872 +874,4 @@ sealed class NarrativeEventRecord {",
+        "@@ -888,0 +894,4 @@ sealed class NarrativeEventRecord {",
+        "@@ -902,0 +912 @@ sealed class NarrativeEventRecord {",
+        "@@ -956,0 +967 @@ final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {",
+        "@@ -960,0 +972,2 @@ final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {",
+        "@@ -986,0 +1000 @@ final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {",
+        "@@ -994 +1008,2 @@ final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {",
+        "@@ -997 +1012 @@ final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {"
+      ]
+    },
+    {
+      "path": "packages/map_core/lib/src/models/narrative_event_registry.dart",
+      "status": " M",
+      "lines": 688,
+      "zones": [
+        {
+          "line": 19,
+          "declaration": "enum EventSystemMode { legacyOnly, dualRead, v2Only }"
+        },
+        {
+          "line": 22,
+          "declaration": "sealed class LegacySourceRef {"
+        },
+        {
+          "line": 96,
+          "declaration": "final class _LegacyMapEventSourceRef extends LegacySourceRef {"
+        },
+        {
+          "line": 130,
+          "declaration": "final class _LegacyScenarioSourceNodeRef extends LegacySourceRef {"
+        },
+        {
+          "line": 178,
+          "declaration": "final class LegacySourceClaimMember {"
+        },
+        {
+          "line": 234,
+          "declaration": "final class LegacySourceClaim {"
+        },
+        {
+          "line": 374,
+          "declaration": "final class NarrativeEventRegistry {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -449,0 +450,8 @@ final class NarrativeEventRegistry {"
+      ]
+    },
+    {
+      "path": "packages/map_core/lib/src/operations/narrative_event_dispatch_authority.dart",
+      "status": " M",
+      "lines": 1015,
+      "zones": [
+        {
+          "line": 19,
+          "declaration": "enum NarrativeEventDispatchAuthorityBlockReason {"
+        },
+        {
+          "line": 32,
+          "declaration": "enum NarrativeEventDispatchReason {"
+        },
+        {
+          "line": 48,
+          "declaration": "sealed class NarrativeEventDispatchAuthorityPreparation {"
+        },
+        {
+          "line": 55,
+          "declaration": "final class NarrativeEventDispatchAuthorityBlocked"
+        },
+        {
+          "line": 70,
+          "declaration": "final class NarrativeEventDispatchAuthorityReady"
+        },
+        {
+          "line": 650,
+          "declaration": "final class _NarrativeEventCandidateEvaluation {"
+        },
+        {
+          "line": 657,
+          "declaration": "final class _ConditionExpressionEvaluation {"
+        },
+        {
+          "line": 667,
+          "declaration": "enum _NarrativeEventWorldRuleState { none, enabled, disabled, hidden }"
+        },
+        {
+          "line": 859,
+          "declaration": "sealed class NarrativeEventDispatchDecision {"
+        },
+        {
+          "line": 874,
+          "declaration": "final class NarrativeEventDispatchHandled"
+        },
+        {
+          "line": 894,
+          "declaration": "final class NarrativeEventDispatchClaimedButIneligible"
+        },
+        {
+          "line": 904,
+          "declaration": "final class NarrativeEventDispatchNoMatch"
+        },
+        {
+          "line": 914,
+          "declaration": "enum _LegacyClaimAuthorityResolution { absent, valid, tombstone }"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -183 +183,2 @@ final class NarrativeEventDispatchAuthorityReady",
+        "@@ -241 +242,2 @@ final class NarrativeEventDispatchAuthorityReady",
+        "@@ -333 +335,3 @@ final class NarrativeEventDispatchAuthorityReady",
+        "@@ -728 +732,3 @@ abstract final class NarrativeEventDispatchAuthority {",
+        "@@ -734 +740 @@ abstract final class NarrativeEventDispatchAuthority {",
+        "@@ -741,2 +747 @@ abstract final class NarrativeEventDispatchAuthority {",
+        "@@ -754 +759 @@ abstract final class NarrativeEventDispatchAuthority {"
+      ]
+    },
+    {
+      "path": "packages/map_runtime/lib/map_runtime_authoring.dart",
+      "status": " M",
+      "lines": 12,
+      "zones": [],
+      "trackedDiffHunks": [
+        "@@ -2,0 +3,2 @@ library;"
+      ]
+    },
+    {
+      "path": "packages/map_runtime/lib/src/application/authoring_preview/runtime_authoring_map_renderer.dart",
+      "status": " M",
+      "lines": 84,
+      "zones": [
+        {
+          "line": 10,
+          "declaration": "final class RuntimeAuthoringMapRenderer {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -1,0 +2 @@ import 'dart:ui';",
+        "@@ -6,0 +8 @@ import '../runtime_map_bundle.dart';",
+        "@@ -12 +14,5 @@ final class RuntimeAuthoringMapRenderer {",
+        "@@ -27,0 +34,37 @@ final class RuntimeAuthoringMapRenderer {",
+        "@@ -37,0 +81 @@ final class RuntimeAuthoringMapRenderer {"
+      ]
+    },
+    {
+      "path": "packages/map_runtime/lib/src/application/narrative_event_runtime_snapshot.dart",
+      "status": " M",
+      "lines": 175,
+      "zones": [
+        {
+          "line": 8,
+          "declaration": "final class NarrativeEventRuntimeSnapshot {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -49 +49 @@ final class NarrativeEventRuntimeSnapshot {"
+      ]
+    },
+    {
+      "path": "packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart",
+      "status": " M",
+      "lines": 14843,
+      "zones": [
+        {
+          "line": 171,
+          "declaration": "enum _RuntimeFlowPhase {"
+        },
+        {
+          "line": 203,
+          "declaration": "final class _NarrativeOutcomeRetryPendingException implements Exception {"
+        },
+        {
+          "line": 219,
+          "declaration": "typedef RuntimeMapBundleLoader = Future<RuntimeMapBundle> Function({"
+        },
+        {
+          "line": 224,
+          "declaration": "typedef RuntimeTilesetImageLoader = Future<Map<String, RuntimeTilesetImage>>"
+        },
+        {
+          "line": 229,
+          "declaration": "typedef RuntimeDialogueSessionLoader = Future<DialogueSession?> Function("
+        },
+        {
+          "line": 232,
+          "declaration": "typedef RuntimePostBattleOverlayMounter = Future<void> Function("
+        },
+        {
+          "line": 235,
+          "declaration": "typedef DefeatRecoveryCheckpointEmitter = Future<void> Function();"
+        },
+        {
+          "line": 237,
+          "declaration": "class PlayableMapGame extends FlameGame with KeyboardEvents {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -899 +899,2 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {"
+      ]
+    },
+    {
+      "path": "packages/map_runtime/lib/src/presentation/flame/playable_map_game_interactions.dart",
+      "status": " M",
+      "lines": 430,
+      "zones": [
+        {
+          "line": 3,
+          "declaration": "final class _ResolvedOverworldInteraction {"
+        },
+        {
+          "line": 19,
+          "declaration": "extension _PlayableMapInteractions on PlayableMapGame {"
+        }
+      ],
+      "trackedDiffHunks": [
+        "@@ -91 +91,3 @@ extension _PlayableMapInteractions on PlayableMapGame {"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/lib/app/di/narrative_providers.dart",
+      "status": "??",
+      "lines": 18,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/characters/application/character_editing_commands.dart",
+      "status": "??",
+      "lines": 105,
+      "zones": [
+        {
+          "line": 4,
+          "declaration": "class CharacterEditingCommands {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/dialogue_draft_codec.dart",
+      "status": "??",
+      "lines": 157,
+      "zones": [
+        {
+          "line": 9,
+          "declaration": "class DialogueDraftCodec {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/dialogue_editing_controller.dart",
+      "status": "??",
+      "lines": 112,
+      "zones": [
+        {
+          "line": 5,
+          "declaration": "class DialogueEditingController {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/interaction_edit_session.dart",
+      "status": "??",
+      "lines": 54,
+      "zones": [
+        {
+          "line": 5,
+          "declaration": "class InteractionEditState {"
+        },
+        {
+          "line": 11,
+          "declaration": "class InteractionEditSession {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/narrative_editing.dart",
+      "status": "??",
+      "lines": 60,
+      "zones": [
+        {
+          "line": 5,
+          "declaration": "extension NarrativeInteractionEditing on NarrativeInteractionDraft {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/narrative_interaction.dart",
+      "status": "??",
+      "lines": 109,
+      "zones": [
+        {
+          "line": 5,
+          "declaration": "enum NarrativeSequenceKind { dialogue, facing, wait, setFact, completeStep }"
+        },
+        {
+          "line": 7,
+          "declaration": "class NarrativeSequenceStep {"
+        },
+        {
+          "line": 23,
+          "declaration": "class NarrativeInteractionDraft {"
+        },
+        {
+          "line": 78,
+          "declaration": "class NarrativeInteractionProjection {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/narrative_interaction_reader.dart",
+      "status": "??",
+      "lines": 146,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/narrative_sequence_projection.dart",
+      "status": "??",
+      "lines": 143,
+      "zones": [
+        {
+          "line": 5,
+          "declaration": "class NarrativeSequenceProjection {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/narrative_workspace_controller.dart",
+      "status": "??",
+      "lines": 296,
+      "zones": [
+        {
+          "line": 12,
+          "declaration": "class NarrativeWorkspaceController {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/data/local_narrative_adapter.dart",
+      "status": "??",
+      "lines": 224,
+      "zones": [
+        {
+          "line": 14,
+          "declaration": "class LocalNarrativeAdapter implements NarrativePort {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/domain/dialogue_draft.dart",
+      "status": "??",
+      "lines": 77,
+      "zones": [
+        {
+          "line": 3,
+          "declaration": "class DialogueLineDraft {"
+        },
+        {
+          "line": 14,
+          "declaration": "class DialogueChoiceDraft {"
+        },
+        {
+          "line": 25,
+          "declaration": "class DialogueBranchDraft {"
+        },
+        {
+          "line": 49,
+          "declaration": "class DialogueDraft {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/domain/narrative_port.dart",
+      "status": "??",
+      "lines": 64,
+      "zones": [
+        {
+          "line": 5,
+          "declaration": "class NarrativeDialogueSource {"
+        },
+        {
+          "line": 16,
+          "declaration": "class NarrativePublication {"
+        },
+        {
+          "line": 37,
+          "declaration": "class NarrativePublicationReceipt {"
+        },
+        {
+          "line": 59,
+          "declaration": "class NarrativeFailure implements Exception {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/playtest/studio_playtest_session.dart",
+      "status": "??",
+      "lines": 21,
+      "zones": [
+        {
+          "line": 4,
+          "declaration": "class StudioPlaytestSession implements GameSaveRepository {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_character_thumbnail.dart",
+      "status": "??",
+      "lines": 86,
+      "zones": [
+        {
+          "line": 6,
+          "declaration": "class StudioCharacterThumbnail extends StatefulWidget {"
+        },
+        {
+          "line": 23,
+          "declaration": "class _StudioCharacterThumbnailState extends State<StudioCharacterThumbnail> {"
+        },
+        {
+          "line": 78,
+          "declaration": "class _CharacterPainter extends CustomPainter {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_resource_notifications.dart",
+      "status": "??",
+      "lines": 22,
+      "zones": [
+        {
+          "line": 4,
+          "declaration": "final class StudioResourceNotifications extends ChangeNotifier {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/characters/character_inspector.dart",
+      "status": "??",
+      "lines": 190,
+      "zones": [
+        {
+          "line": 11,
+          "declaration": "class CharacterInspector extends StatefulWidget {"
+        },
+        {
+          "line": 35,
+          "declaration": "class _CharacterInspectorState extends State<CharacterInspector> {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/characters/character_palette.dart",
+      "status": "??",
+      "lines": 119,
+      "zones": [
+        {
+          "line": 7,
+          "declaration": "class CharacterPalette extends StatefulWidget {"
+        },
+        {
+          "line": 31,
+          "declaration": "class _CharacterPaletteState extends State<CharacterPalette> {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/characters/character_workspace_visuals.dart",
+      "status": "??",
+      "lines": 11,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_character_gesture.dart",
+      "status": "??",
+      "lines": 131,
+      "zones": [
+        {
+          "line": 8,
+          "declaration": "class MapCharacterGesture {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_selection_inspector.dart",
+      "status": "??",
+      "lines": 132,
+      "zones": [
+        {
+          "line": 13,
+          "declaration": "class MapSelectionInspector extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_actions.dart",
+      "status": "??",
+      "lines": 100,
+      "zones": [
+        {
+          "line": 8,
+          "declaration": "typedef StudioRuntimeBuilder ="
+        },
+        {
+          "line": 15,
+          "declaration": "class WorkspaceActions {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_compact_panel.dart",
+      "status": "??",
+      "lines": 56,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_secondary_content.dart",
+      "status": "??",
+      "lines": 41,
+      "zones": [
+        {
+          "line": 10,
+          "declaration": "enum WorkspaceSpace { map, resources, story, interaction }"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_session_loader.dart",
+      "status": "??",
+      "lines": 78,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/dialogue_lines_editor.dart",
+      "status": "??",
+      "lines": 251,
+      "zones": [
+        {
+          "line": 14,
+          "declaration": "class DialogueLinesEditor extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/dialogue_portrait_choice.dart",
+      "status": "??",
+      "lines": 72,
+      "zones": [
+        {
+          "line": 5,
+          "declaration": "class DialoguePortraitChoice extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_conditions_editor.dart",
+      "status": "??",
+      "lines": 99,
+      "zones": [
+        {
+          "line": 7,
+          "declaration": "class NarrativeConditionsEditor extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_interaction_pane.dart",
+      "status": "??",
+      "lines": 211,
+      "zones": [
+        {
+          "line": 12,
+          "declaration": "class NarrativeInteractionPane extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_name_dialog.dart",
+      "status": "??",
+      "lines": 43,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_navigation.dart",
+      "status": "??",
+      "lines": 45,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_sequence_editor.dart",
+      "status": "??",
+      "lines": 202,
+      "zones": [
+        {
+          "line": 8,
+          "declaration": "class NarrativeSequenceEditor extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane.dart",
+      "status": "??",
+      "lines": 220,
+      "zones": [
+        {
+          "line": 10,
+          "declaration": "typedef _Interaction = ({String id, String name, NarrativeEventRecord? record});"
+        },
+        {
+          "line": 12,
+          "declaration": "class NarrativeStoryPane extends StatelessWidget {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_draft_field.dart",
+      "status": "??",
+      "lines": 51,
+      "zones": [
+        {
+          "line": 3,
+          "declaration": "class StudioDraftField extends StatefulWidget {"
+        },
+        {
+          "line": 20,
+          "declaration": "class _StudioDraftFieldState extends State<StudioDraftField> {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/characters/character_canvas_test.dart",
+      "status": "??",
+      "lines": 154,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/characters/character_compact_workspace_test.dart",
+      "status": "??",
+      "lines": 145,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/characters/character_editing_test.dart",
+      "status": "??",
+      "lines": 134,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/characters/character_render_io_test.dart",
+      "status": "??",
+      "lines": 201,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/characters/character_widgets_test.dart",
+      "status": "??",
+      "lines": 123,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/characters/dialogue_portrait_choice_test.dart",
+      "status": "??",
+      "lines": 96,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/characters/story_zone_overlay_test.dart",
+      "status": "??",
+      "lines": 77,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/m3_conditions_widgets_test.dart",
+      "status": "??",
+      "lines": 181,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/m3_story_runtime_test.dart",
+      "status": "??",
+      "lines": 175,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart",
+      "status": "??",
+      "lines": 114,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/narrative/narrative_editing_test.dart",
+      "status": "??",
+      "lines": 200,
+      "zones": [
+        {
+          "line": 170,
+          "declaration": "class _Port implements NarrativePort {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/narrative/narrative_history_guard_test.dart",
+      "status": "??",
+      "lines": 86,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/narrative/narrative_publication_test.dart",
+      "status": "??",
+      "lines": 186,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart",
+      "status": "??",
+      "lines": 152,
+      "zones": [
+        {
+          "line": 144,
+          "declaration": "class _Port implements NarrativePort {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/narrative_interaction_projection_test.dart",
+      "status": "??",
+      "lines": 114,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/brush_retention_transition_test.dart",
+      "status": "??",
+      "lines": 184,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/m3_authoring_journey_test.dart",
+      "status": "??",
+      "lines": 249,
+      "zones": [
+        {
+          "line": 213,
+          "declaration": "class _WidgetNarrativePort implements NarrativePort {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/m3_workspace_actions_test.dart",
+      "status": "??",
+      "lines": 95,
+      "zones": [
+        {
+          "line": 82,
+          "declaration": "class _FailingNarrativePort implements NarrativePort {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/support/capture_m3_widget.dart",
+      "status": "??",
+      "lines": 27,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/support/m3_runtime_driver.dart",
+      "status": "??",
+      "lines": 89,
+      "zones": [
+        {
+          "line": 5,
+          "declaration": "class M3RuntimeDriver {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "apps/avelune_studio/test/support/m3_story_fixture.dart",
+      "status": "??",
+      "lines": 288,
+      "zones": [
+        {
+          "line": 14,
+          "declaration": "class M3StoryFixture {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "documentation/reports/avelune_studio/M3_personnages_histoire/README.md",
+      "status": "??",
+      "lines": 113,
+      "zones": [
+        {
+          "line": 1,
+          "declaration": "# M3 — Des personnages à une première histoire jouable"
+        },
+        {
+          "line": 5,
+          "declaration": "## Mandat, audit initial et décisions"
+        },
+        {
+          "line": 24,
+          "declaration": "## Zones modifiées et inventaire"
+        },
+        {
+          "line": 45,
+          "declaration": "## Preuves exécutées"
+        },
+        {
+          "line": 73,
+          "declaration": "## Parité, captures et vérifications finales"
+        },
+        {
+          "line": 92,
+          "declaration": "## Verdict des passes et limites"
+        },
+        {
+          "line": 109,
+          "declaration": "## Lancement"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "packages/map_authoring/lib/map_authoring_narrative.dart",
+      "status": "??",
+      "lines": 1,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/narrative/narrative_document_actions.dart",
+      "status": "??",
+      "lines": 196,
+      "zones": [
+        {
+          "line": 17,
+          "declaration": "class NarrativeDocumentActions {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "packages/map_authoring/test/domains/narrative/narrative_document_publication_test.dart",
+      "status": "??",
+      "lines": 96,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "packages/map_core/test/narrative_local_authority_test.dart",
+      "status": "??",
+      "lines": 107,
+      "zones": [],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "packages/map_runtime/lib/src/application/authoring_preview/runtime_authoring_character_renderer.dart",
+      "status": "??",
+      "lines": 59,
+      "zones": [
+        {
+          "line": 7,
+          "declaration": "final class RuntimeAuthoringCharacterRenderer {"
+        }
+      ],
+      "trackedDiffHunks": []
+    },
+    {
+      "path": "tools/pokemap_mcp/test/studio_narrative_publication.test.ts",
+      "status": "??",
+      "lines": 69,
+      "zones": [],
+      "trackedDiffHunks": []
+    }
+  ]
+}

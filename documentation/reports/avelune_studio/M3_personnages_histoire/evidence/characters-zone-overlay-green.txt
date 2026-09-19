@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/story_zone_overlay_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_canvas_test.dart: selection distinguishes covered character and decor without moving either
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/story_zone_overlay_test.dart: saved story zones render bounded labels and outlines without showing other triggers
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_canvas_test.dart: canvas places, drags once, cancels and draws a bounded story zone
+00:00 +3: All tests passed!

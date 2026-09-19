@@ -1,0 +1,8 @@
+00:00 +0: loading test/narrative_event_dispatch_truth_table_test.dart
+00:00 +0: legacyOnly and v2Only expose their closed fallback decisions
+00:00 +1: unclaimed dualRead falls back only when no candidate is eligible
+00:00 +2: valid claim blocks fallback and may select a non-target candidate
+00:00 +3: valid claim blocks fallback when its oneShot target is consumed
+00:00 +4: local claim tombstone blocks only that occurrence
+00:00 +5: Event Builder simulation returns the same winner as gameplay planner
+00:00 +6: All tests passed!

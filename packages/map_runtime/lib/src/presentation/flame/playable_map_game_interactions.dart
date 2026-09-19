@@ -88,7 +88,9 @@ extension _PlayableMapInteractions on PlayableMapGame {
       NarrativeEventOccurrence occurrence) {
     final project = _bundle.manifest;
     final registry = project.eventRegistry;
-    if (registry == null || registry.mode == EventSystemMode.legacyOnly) {
+    if (registry == null ||
+        (registry.mode == EventSystemMode.legacyOnly &&
+            !registry.ownsSourceInLegacyMode(occurrence.source))) {
       return NarrativeEventDispatchAuthority.prepare(
         registryResult: registry == null
             ? EventRegistryDecodeResult.absent()

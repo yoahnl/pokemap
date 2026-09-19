@@ -1,4 +1,4 @@
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 enum NarrativeAuthoringDiagnosticSeverity { warning, error }
 
@@ -91,9 +91,11 @@ final class DialogueAuthoringCompiler {
     final lines = source.split('\n');
     final commandPattern = RegExp(r'<<\s*([^\s>]+)');
     for (var index = 0; index < lines.length; index++) {
+      final literal = lines[index].trim();
+      if (literal.startsWith(r'\"') || literal.startsWith(r'-> \"')) continue;
       for (final match in commandPattern.allMatches(lines[index])) {
         final command = match.group(1) ?? '';
-        if (!const {'jump', 'outcome'}.contains(command)) {
+        if (!const {'jump', 'outcome', 'portrait', 'speaker'}.contains(command)) {
           diagnostics.add(
             DialogueAuthoringDiagnostic(
               code: 'yarn.command_unknown',

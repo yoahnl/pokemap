@@ -1,5 +1,7 @@
 library;
 
+export 'src/application/authoring_preview/runtime_authoring_character_renderer.dart';
+
 export 'src/application/authoring_preview/runtime_authoring_map_renderer.dart';
 export 'src/application/load_runtime_map_bundle.dart'
     show resolveTilesetAbsolutePaths;

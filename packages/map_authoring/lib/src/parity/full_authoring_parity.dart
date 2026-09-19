@@ -1278,6 +1278,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/narrative/dialogue_script_authoring_test.dart',
   ),
   _ContractEvidenceRule(
+    ['narrative.publish_document'],
+    'test/domains/narrative/narrative_document_publication_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['cinematic.'],
     'test/domains/narrative/cinematic_authoring_gate_test.dart',
   ),

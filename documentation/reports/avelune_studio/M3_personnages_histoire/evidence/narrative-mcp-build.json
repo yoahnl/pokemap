@@ -1,0 +1,28 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:11:53.847595+00:00",
+  "finishedAt": "2026-09-19T19:11:55.264842+00:00",
+  "exitCode": 0,
+  "runnerPid": 57485,
+  "trackedProcesses": {
+    "57485": {
+      "parent": 57476,
+      "uid": 501,
+      "started": "Sat Sep 19 21:11:53 2026",
+      "command": "<defunct>"
+    },
+    "57521": {
+      "parent": 57485,
+      "uid": 501,
+      "started": "Sat Sep 19 21:11:54 2026",
+      "command": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp/node_modules/@typescript/typescript-darwin-arm64/lib/tsc -p tsconfig.json"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

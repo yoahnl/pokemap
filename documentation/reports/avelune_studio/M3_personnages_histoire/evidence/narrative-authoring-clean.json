@@ -1,0 +1,33 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart",
+    "analyze",
+    "lib/map_authoring_narrative.dart",
+    "lib/src/domains/narrative/narrative_document_actions.dart",
+    "lib/src/domains/narrative/dialogue_authoring_service.dart",
+    "lib/src/application/map_mutation_dispatcher.dart",
+    "lib/src/parity/full_authoring_parity.dart",
+    "test/domains/narrative/narrative_document_publication_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:15:57.108023+00:00",
+  "finishedAt": "2026-09-19T19:15:59.359723+00:00",
+  "exitCode": 0,
+  "runnerPid": 62109,
+  "trackedProcesses": {
+    "62109": {
+      "parent": 62100,
+      "uid": 501,
+      "started": "Sat Sep 19 21:15:57 2026",
+      "command": "<defunct>"
+    },
+    "62111": {
+      "parent": 62109,
+      "uid": 501,
+      "started": "Sat Sep 19 21:15:57 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

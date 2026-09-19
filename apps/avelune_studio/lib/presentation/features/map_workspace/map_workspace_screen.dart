@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:avelune_studio/presentation/shared/widgets/dialogs/confirm_studio_close.dart';
+import 'workspace_actions.dart';
+import 'workspace_session_loader.dart';
+import '../narrative/narrative_navigation.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_shortcuts.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
@@ -11,16 +13,13 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../resources/resource_navigation.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_image_import.dart';
-import '../resources/resource_workspace_pane.dart';
+import 'workspace_secondary_content.dart';
 import '../resources/resource_brush_selection.dart';
 import 'map_workspace_layout.dart';
+import '../../../features/narrative/domain/narrative_port.dart';
+import '../../../features/narrative/application/narrative_workspace_controller.dart';
 
-typedef StudioRuntimeBuilder =
-    Widget Function(
-      ProjectMapEntry entry,
-      String revision,
-      VoidCallback onClose,
-    );
+export 'workspace_actions.dart' show StudioRuntimeBuilder;
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -32,9 +31,11 @@ class MapWorkspaceScreen extends StatefulWidget {
     required this.registerExitGuard,
     this.resourcePort,
     this.imagePicker,
+    this.narrativePort,
   });
   final MapWorkspaceController controller;
   final ResourcePort? resourcePort;
+  final NarrativePort? narrativePort;
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -48,15 +49,16 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _views = <String, MapWorkspaceViewState>{};
   final _search = TextEditingController();
   bool _palette = true;
-  bool _resourceSpace = false;
+  WorkspaceSpace _space = WorkspaceSpace.map;
   ResourceNavigation? _resources;
+  NarrativeWorkspaceController? _narrative;
+
   bool? _inspector;
   MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
   String? _resourceError;
   int _gestureGeneration = 0;
-  bool _testing = false;
-  bool _closing = false;
+  late final WorkspaceActions _actions;
   MapWorkspaceController get _controller => widget.controller;
   MapWorkspaceViewState? get _view {
     final id = _controller.active?.base.mapId;
@@ -69,30 +71,34 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   void initState() {
     super.initState();
     _controller.addListener(_changed);
-    widget.registerExitGuard(_allowClose);
+    _actions = WorkspaceActions(
+      controller: _controller,
+      context: () => context,
+      mounted: () => mounted,
+      changed: () {
+        _gestureGeneration++;
+        _changed();
+      },
+      resources: () => _resources,
+      narrative: () => _narrative,
+      runtimeBuilder: widget.runtimeBuilder,
+    );
+    widget.registerExitGuard(_actions.allowClose);
     unawaited(_initialize());
   }
 
   Future<void> _initialize() async {
-    await _controller.initialize();
-    final project = _controller.project;
-    if (!mounted || project == null) return;
     try {
-      final visuals = await widget.loadVisuals(_controller.session, project);
-      if (!mounted) {
-        await visuals.dispose();
-        return;
-      }
-      _visuals = visuals;
-      if (widget.resourcePort != null) {
-        _resources = ResourceNavigation(
-          workspace: _controller,
-          port: widget.resourcePort!,
-          visuals: visuals,
-          onUse: _useResource,
-        )..addListener(_changed);
-      }
-      visuals.addListener(_changed);
+      final loaded = await loadWorkspaceSession(
+        widget,
+        mounted: () => mounted,
+        changed: _changed,
+        onUse: _useResource,
+      );
+      if (loaded == null) return;
+      _visuals = loaded.visuals;
+      _resources = loaded.resources;
+      _narrative = loaded.narrative;
       _changed();
     } catch (_) {
       if (mounted) {
@@ -115,80 +121,21 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
 
   void _toolChanged() {
     _gestureGeneration++;
-    _visuals?.setBrush(_view?.brush, _view?.tile);
-    if (_visuals case final ResourceWorkspaceVisuals resources) {
-      resources.setTerrainBrush(_view?.terrain);
-    }
+    retainWorkspaceBrush(_visuals, _view);
     _changed();
   }
 
-  Future<bool> _allowClose() async {
-    if (_controller.saving ||
-        _closing ||
-        _testing ||
-        _resources?.busy == true) {
-      return false;
-    }
-    if (!_controller.dirty && _resources?.dirty != true) return true;
-    setState(() => _closing = true);
-    try {
-      final choice = await confirmStudioClose(context);
-      if (!mounted || choice == null || choice == 'cancel') return false;
-      if (choice == 'save') {
-        if (_resources != null && !await _resources!.saveDrafts()) return false;
-        return await _controller.saveAll();
-      }
-      return choice == 'discard';
-    } finally {
-      if (mounted) setState(() => _closing = false);
-    }
-  }
-
   Future<void> _close() async {
-    if (await _allowClose() && mounted) await widget.onClose();
-  }
-
-  Future<void> _test() async {
-    final document = _controller.active;
-    if (document == null || _testing || _controller.loading) return;
-    final entry = _controller.project!.maps.firstWhere(
-      (e) => e.id == document.base.mapId,
-    );
-    setState(() {
-      _testing = true;
-      _gestureGeneration++;
-    });
-    try {
-      if (!await _controller.save(document) || !mounted) return;
-      if (!identical(_controller.active, document) || _controller.loading) {
-        return;
-      }
-      if (document.dirty) {
-        document.error =
-            'La carte a encore changé. Enregistrez-la avant de tester.';
-        return;
-      }
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (routeContext) => widget.runtimeBuilder(
-            entry,
-            document.base.revision,
-            () => Navigator.of(routeContext).pop(),
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _testing = false);
-    }
+    if (await _actions.allowClose() && mounted) await widget.onClose();
   }
 
   void _keyboard(void Function() action) {
-    if (_resourceSpace) return;
+    if (_space != WorkspaceSpace.map) return;
     final focus = FocusManager.instance.primaryFocus;
     if (focus?.context?.findAncestorWidgetOfExactType<EditableText>() != null ||
         _controller.loading ||
-        _testing ||
-        _closing) {
+        _actions.testing ||
+        _actions.closing) {
       return;
     }
     action();
@@ -199,6 +146,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   void dispose() {
     widget.registerExitGuard(null);
     _controller.removeListener(_changed);
+    _controller.historyGuard = null;
     final visuals = _visuals;
     if (visuals != null) {
       visuals.removeListener(_changed);
@@ -216,7 +164,27 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   void _openResources([ProjectElementEntry? element, bool edit = false]) {
     if (_resources == null) return;
     _resources!.openElement(element, edit: edit);
-    setState(() => _resourceSpace = true);
+    _show(WorkspaceSpace.resources);
+  }
+
+  void _show(WorkspaceSpace space) {
+    if (mounted) setState(() => _space = space);
+  }
+
+  void _openMap() => _show(WorkspaceSpace.map);
+
+  Future<void> _editInteraction(MapEntity entity) async {
+    if (_narrative == null || _controller.active == null) return;
+    await _narrative!.openNpc(_controller.active!, entity);
+    if (mounted && _narrative!.active != null) {
+      _show(WorkspaceSpace.interaction);
+    }
+  }
+
+  Future<void> _zone(MapRect area) async {
+    if (_narrative == null) return;
+    await openNarrativeZone(_narrative!, area);
+    if (mounted) _show(WorkspaceSpace.interaction);
   }
 
   Future<void> _useResource(ResourceItem item) async {
@@ -228,24 +196,45 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       view: () => _view,
     );
     if (!mounted || !used) return;
-    setState(() => _resourceSpace = false);
+    _openMap();
     _toolChanged();
   }
 
   @override
   Widget build(BuildContext context) {
     final document = _controller.active;
-    final error = _controller.error ?? document?.error ?? _resourceError;
+    final error =
+        _narrative?.error ??
+        _controller.error ??
+        document?.error ??
+        _resourceError;
     return CallbackShortcuts(
-      bindings: workspaceShortcuts(_controller, _view, _keyboard),
+      bindings: workspaceShortcuts(
+        _controller,
+        _view,
+        _keyboard,
+        onSave: () {
+          if (document != null) {
+            unawaited(
+              _narrative?.save(document: document) ??
+                  _controller.save(document),
+            );
+          }
+        },
+      ),
       child: Focus(
         autofocus: true,
         child: Scaffold(
           body: AbsorbPointer(
             key: const ValueKey('workspace-preparing'),
-            absorbing: _testing || _closing || _resources?.busy == true,
+            absorbing:
+                _actions.testing ||
+                _actions.closing ||
+                _resources?.busy == true ||
+                _narrative?.busy == true,
             child: SafeArea(
               child: MapWorkspaceLayout(
+                activeSpace: _space.name,
                 controller: _controller,
                 view: _view,
                 visuals: _visuals,
@@ -265,13 +254,21 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                 },
                 onSave: document == null || document.saving
                     ? null
-                    : () => _controller.save(document),
-                onTest: document == null || _testing || document.saving
+                    : () =>
+                          _narrative?.save(document: document) ??
+                          _controller.save(document),
+                onTest: document == null || _actions.testing || document.saving
                     ? null
-                    : _test,
+                    : _actions.test,
                 onClose: _close,
                 onResources: _openResources,
-                onMap: () => setState(() => _resourceSpace = false),
+                onMap: _openMap,
+                onStory: _narrative == null
+                    ? null
+                    : () => _show(WorkspaceSpace.story),
+                onEditInteraction: _editInteraction,
+                onZoneDrawn: _narrative == null ? null : _zone,
+                deletionBlocked: _narrative?.blocksDeletion,
                 onOpenElement: (element) => _openResources(element),
                 onEditElement: (element) => _openResources(element, true),
                 onTileset: (tileset) => _useResource(
@@ -282,13 +279,16 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                     tileset: tileset,
                   ),
                 ),
-                resourceContent: !_resourceSpace || _resources == null
-                    ? null
-                    : ResourceWorkspacePane(
-                        navigation: _resources!,
-                        picker: widget.imagePicker ?? () async => null,
-                        onBack: () => setState(() => _resourceSpace = false),
-                      ),
+                resourceContent: workspaceSecondaryContent(
+                  space: _space,
+                  narrative: _narrative,
+                  resources: _resources,
+                  visuals: _visuals,
+                  onMap: _openMap,
+                  onInteraction: () => _show(WorkspaceSpace.interaction),
+                  onTest: _actions.test,
+                  imagePicker: widget.imagePicker,
+                ),
               ),
             ),
           ),

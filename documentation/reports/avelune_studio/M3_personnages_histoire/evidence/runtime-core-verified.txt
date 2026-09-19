@@ -1,0 +1,98 @@
+00:00 +0: loading test/narrative_local_authority_test.dart
+00:00 +0: test/narrative_local_authority_test.dart: opt-in survives wire roundtrip and rejects malformed values
+00:00 +1: test/narrative_local_authority_test.dart: local source uses canonical authority without enabling dormant records
+00:00 +2: test/narrative_local_authority_test.dart: consumed local source cannot fall through and run a second authority
+00:00 +3: test/narrative_local_authority_test.dart: unclaimed sources keep their previous legacy authority
+00:00 +4: test/narrative_event_dispatch_authority_test.dart: preparation blocks invalid and unsupported registry results
+00:00 +5: test/narrative_event_dispatch_authority_test.dart: preparation dualRead requires a runtime-ready index
+00:00 +6: test/narrative_event_dispatch_authority_test.dart: preparation Event V2 requires a matching non-blocked project catalog
+00:00 +7: test/narrative_event_dispatch_authority_test.dart: preparation exact source ordering conflicts fail before dispatch planning
+00:00 +8: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +9: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +10: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +11: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +12: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +13: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +14: test/narrative_event_dispatch_authority_test.dart: truth table and eligibility applies Narrative Event World Rules before selecting a candidate
+00:00 +15: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult maps absent and null registry to absent legacyOnly capabilities
+00:00 +16: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring authors a grouped expression and a one-shot map re-entry reset
+00:00 +17: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring authors a grouped expression and a one-shot map re-entry reset
+00:00 +18: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult decodes a known registry and is the only state that can encode
+00:00 +19: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult decodes a known registry and is the only state that can encode
+00:00 +20: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult decodes a known registry and is the only state that can encode
+00:00 +21: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring rejects reset policies that cannot have an effect
+00:00 +22: test/narrative_event_dispatch_authority_test.dart: truth table and eligibility valid claim with no eligible candidate blocks fallback
+00:00 +23: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult classifies future schema fields and discriminants as unsupported
+00:00 +24: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult classifies future schema fields and discriminants as unsupported
+00:00 +25: test/narrative_event_dispatch_authority_test.dart: truth table and eligibility uses canonical Fact values and narrative progress namespace
+00:00 +26: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring rejects missing draft invalid duplicate and self Event references
+00:00 +27: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring rejects missing draft invalid duplicate and self Event references
+00:00 +28: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring rejects missing draft invalid duplicate and self Event references
+00:00 +29: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult classifies malformed and canonically inconsistent claim hashes as invalid
+00:00 +30: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult classifies malformed and canonically inconsistent claim hashes as invalid
+00:00 +31: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult classifies malformed and canonically inconsistent claim hashes as invalid
+00:00 +32: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult classifies malformed and canonically inconsistent claim hashes as invalid
+00:00 +33: test/narrative_event_registry_codec_test.dart: EventRegistryDecodeResult classifies malformed and canonically inconsistent claim hashes as invalid
+00:00 +34: test/narrative_event_dispatch_authority_test.dart: truth table and eligibility simulation shares dispatch ordering and explains every AND leaf
+00:00 +35: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring rejects missing duplicate unbuildable Scene and enabled edits
+00:00 +36: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight keeps old manifests registry-free through round-trip
+00:00 +37: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight keeps old manifests registry-free through round-trip
+00:00 +38: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight keeps old manifests registry-free through round-trip
+00:00 +39: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight keeps old manifests registry-free through round-trip
+00:00 +40: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight keeps old manifests registry-free through round-trip
+00:00 +41: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight keeps old manifests registry-free through round-trip
+00:00 +42: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight keeps old manifests registry-free through round-trip
+00:00 +43: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight keeps old manifests registry-free through round-trip
+00:00 +44: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight keeps old manifests registry-free through round-trip
+00:00 +45: test/narrative_event_registry_test.dart: Narrative Event V2 B3 registry model encodes the exact empty registry for all three modes
+00:00 +46: test/narrative_event_registry_test.dart: Narrative Event V2 B3 registry model encodes the exact empty registry for all three modes
+00:00 +47: test/narrative_event_registry_codec_test.dart: ProjectManifest Event registry preflight treats explicit null as absent and omits it on the next encode
+00:00 +48: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring allows exact condition and Scene repair while blocking other errors
+00:00 +49: test/narrative_event_registry_test.dart: Narrative Event V2 B3 registry model preserves author record and claim order without mutating inputs
+00:00 +50: test/narrative_event_registry_test.dart: Narrative Event V2 B3 registry model preserves author record and claim order without mutating inputs
+00:00 +51: test/narrative_event_registry_test.dart: Narrative Event V2 B3 registry model preserves author record and claim order without mutating inputs
+00:00 +52: test/narrative_event_registry_test.dart: Narrative Event V2 B3 registry model preserves author record and claim order without mutating inputs
+00:00 +53: test/narrative_event_registry_test.dart: Narrative Event V2 B3 registry model preserves author record and claim order without mutating inputs
+00:00 +54: test/narrative_event_registry_test.dart: Narrative Event V2 B3 registry model preserves author record and claim order without mutating inputs
+00:00 +55: test/narrative_event_registry_test.dart: Narrative Event V2 B3 registry model preserves author record and claim order without mutating inputs
+00:00 +56: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +57: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +58: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +59: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +60: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +61: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +62: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +63: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +64: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +65: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +66: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +67: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +68: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +69: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +70: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +71: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +72: test/narrative_event_activation_test.dart: E3 activation rejects an exact conflict even when activation is repeated
+00:00 +73: test/narrative_event_activation_test.dart: E3 activation rejects an exact conflict even when activation is repeated
+00:00 +74: test/narrative_event_definition_test.dart: Narrative Event V2 B2 encodes the exact definition, conditions, and configured record JSON
+00:00 +75: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring breaks a canonical dependency cycle
+00:00 +76: test/narrative_event_activation_test.dart: E3 activation rejects non-canonical state during deactivation without throwing
+00:00 +77: test/narrative_event_definition_test.dart: Narrative Event V2 B2 fails closed for invalid, unsupported, and forbidden wire fields
+00:00 +78: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs independent canonical cycles one at a time
+00:00 +79: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs independent canonical cycles one at a time
+00:00 +80: test/narrative_event_definition_test.dart: Narrative Event V2 B2 preserves ordered immutable conditions and omits draft null optionals
+00:00 +81: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring rejects a non-normalized Scene identity before construction
+00:00 +82: test/narrative_event_definition_test.dart: Narrative Event V2 B2 keeps condition JSON exact, ordered, immutable, and AND-neutral when empty
+00:00 +83: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring rejects non-canonical stored integers instead of returning no-op
+00:00 +84: test/narrative_event_definition_test.dart: Narrative Event V2 B2 round-trips typed Fact comparisons without changing bool wire
+00:00 +85: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +86: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +87: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +88: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +89: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +90: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +91: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +92: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +93: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +94: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +95: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +96: All tests passed!

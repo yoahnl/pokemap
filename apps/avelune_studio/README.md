@@ -1,9 +1,10 @@
-# Avelune Studio — Ressources et terrains M2
+# Avelune Studio — Personnages et histoire M3
 
 Studio ouvre un projet PokeMap, affiche ses cartes et leurs ressources, permet
 d’éditer les décors préparés et des tuiles simples, puis d’enregistrer et de tester
 la carte dans le runtime existant. M2 ajoute l’import PNG, la préparation de décors
-et de terrains automatiques. L’ancien éditeur reste disponible séparément.
+et de terrains automatiques. M3 ajoute les personnages, conversations à choix,
+conditions, petites scènes et étapes d’histoire. L’ancien éditeur reste disponible séparément.
 
 ## Lancer l’exemple
 
@@ -80,6 +81,43 @@ pendant une saisie de texte.
   une modification extérieure reste un conflit et ne détruit pas le travail local.
 
 ## Limites explicites
+
+### Personnages, conversations et histoire
+
+- Dans **Palette → Personnages**, rechercher un personnage préparé, le choisir
+  puis cliquer sur la carte. Son sprite réel est affiché. La sélection permet
+  déplacement, duplication, nom, orientation et collision de cette instance ;
+  ses paramètres avancés restent conservés. Un geste se défait en une fois.
+- Dans l’inspecteur, **Interaction → Quand le joueur lui parle → Écrire son
+  interaction** ouvre les répliques et leurs locuteurs. Ajouter des suites nommées
+  puis des choix permet de construire deux destinations différentes sans saisir
+  de code. Les sources avancées non représentables restent en lecture seule.
+- **Conditions et répétition** utilise les états booléens du projet. Une variante
+  conditionnelle peut remplacer la conversation initiale quand son état convient.
+  **Après la conversation** et **Après le choix** proposent dialogue, orientation,
+  attente, changement d’état et accomplissement d’une étape, dans l’ordre choisi.
+- **Histoire** permet de créer une progression avec ses étapes, rechercher les
+  interactions et retrouver leur contexte. L’outil **Dessiner une zone d’histoire**
+  crée un rectangle directement sur la carte et ouvre sa conversation d’entrée.
+- **Enregistrer l’interaction et la carte** publie un ensemble cohérent par la
+  transaction canonique, en conservant les autres changements de la carte.
+  Naviguer ou sélectionner ne publie rien. Les brouillons narratifs participent
+  à la confirmation de fermeture ; un échec conserve le travail.
+- **Enregistrer et tester** utilise le vrai runtime. **Enregistrer le test**,
+  **Reprendre le test** et **Nouvelle partie** manipulent une sauvegarde isolée en
+  mémoire, conservée jusqu’à la fermeture du projet. Elle ne remplace jamais une
+  sauvegarde personnelle ni la progression éditoriale du projet.
+
+Le sous-ensemble narratif visuel couvre les états booléens et ces actions simples.
+Les conditions typées complexes, graphes avancés et Character Studio complet ne
+sont pas édités ici. L’aperçu auteur utilise la frame immobile réelle ; les
+animations et portraits de dialogue restent ceux du runtime. Les captures M3 sont
+des widgets Flutter réellement exécutés hors écran. Le pilote natif s’est attaché
+à une ancienne fenêtre personnelle : aucun clic n’y a été tenté, et cette couche
+de validation reste ouverte. Détails et preuves dans le
+[rapport M3](../../documentation/reports/avelune_studio/M3_personnages_histoire/README.md).
+
+### Limites conservées de la carte et des ressources
 
 Le Studio prévisualise les animations à leur première frame. Les bordures sont
 conservées mais leur aperçu Studio affiche un avertissement ; le runtime les

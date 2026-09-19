@@ -1,0 +1,48 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/flutter",
+    "test",
+    "--no-pub",
+    "test/narrative/dialogue_draft_codec_test.dart",
+    "test/narrative/narrative_publication_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:09:47.812474+00:00",
+  "finishedAt": "2026-09-19T19:09:54.172185+00:00",
+  "exitCode": 0,
+  "runnerPid": 55200,
+  "trackedProcesses": {
+    "55200": {
+      "parent": 55173,
+      "uid": 501,
+      "started": "Sat Sep 19 21:09:47 2026",
+      "command": "<defunct>"
+    },
+    "55231": {
+      "parent": 55200,
+      "uid": 501,
+      "started": "Sat Sep 19 21:09:47 2026",
+      "command": "(git)"
+    },
+    "55235": {
+      "parent": 55200,
+      "uid": 501,
+      "started": "Sat Sep 19 21:09:48 2026",
+      "command": "(xcrun)"
+    },
+    "55263": {
+      "parent": 55200,
+      "uid": 501,
+      "started": "Sat Sep 19 21:09:48 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root /opt/homebrew/share/flutter/bin/cache/artifacts/engine/common/flutter_patched_sdk/ --incremental --no-print-incremental-dependencies --target=flutter --experimental-emit-debug-metadata -DFLUTTER_BUILD_NAME=0.1.0 -DFLUTTER_BUILD_NUMBER=1 -DFLUTTER_VERSION=3.48.0-0.4.pre -DFLUTTER_CHANNEL=beta -DFLUTTER_GIT_URL=https://github.com/flutter/flutter.git -DFLUTTER_FRAMEWORK_REVISION=e3005e3402 -DFLUTTER_ENGINE_REVISION=e2149387c6 -DFLUTTER_DART_VERSION=3.14.0 (build 3.14.0-95.2.beta) --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.LXuju7/flutter_test_compiler.cb9DUk/output.dill --packages /Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json -Ddart.vm.profile=false -Ddart.vm.product=false --enable-asserts --track-creation-locations --initialize-from-dill /Users/karim/Project/pokemonProject/apps/avelune_studio/build/test_cache/build/96bdb3d9eefa773c53f47e8dfdfce411.cache.dill.track.dill --verbosity=error --enable-experiment=alternative-invalidation-strategy"
+    },
+    "55338": {
+      "parent": 55200,
+      "uid": 501,
+      "started": "Sat Sep 19 21:09:51 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.LXuju7/flutter_test_listener.aoZQhb/listener.dart.dill"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

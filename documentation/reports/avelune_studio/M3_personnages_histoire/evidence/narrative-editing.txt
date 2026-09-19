@@ -1,0 +1,11 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_editing_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart: speaker without portrait survives canonical compiler and visual reopening
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart: literal text preserves quotes accents newlines and reserved commands
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart: advanced source even bearing visual tag remains read only
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_editing_test.dart: consultation and source outside visual subset never create a mutation
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_editing_test.dart: consultation and source outside visual subset never create a mutation
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_editing_test.dart: removing a choice removes its effects in the same undoable edit
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_editing_test.dart: line order and named destinations are undoable and referenced branch deletion blocked
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_editing_test.dart: failed save prevents closure and keeps the complete draft and pending facts
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_editing_test.dart: save acknowledges snapshot only and undo never restores stale source revision
+00:00 +9: All tests passed!

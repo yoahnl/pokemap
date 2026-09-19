@@ -1,0 +1,11 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_publication_test.dart: interrupted multi file publication resumes before reporting success
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_publication_test.dart: interrupted multi file publication resumes before reporting success
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_publication_test.dart: interrupted multi file publication resumes before reporting success
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_publication_test.dart: interrupted multi file publication resumes before reporting success
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_publication_test.dart: interrupted multi file publication resumes before reporting success
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_publication_test.dart: blocked recovery reports failure and never overwrites external map
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_publication_test.dart: coherent publication keeps dirty map and rereads canonical source
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_publication_test.dart: external map edit prevents source and manifest publication
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_publication_test.dart: external dialogue edit blocks overwrite after reading draft
+00:00 +9: All tests passed!

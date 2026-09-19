@@ -45,5 +45,10 @@ Future<void> loadDesktopCaptureFonts() async {
     ..addFont(material.readAsBytes().then(ByteData.sublistView));
   await textLoader.load();
   await iconLoader.load();
+  for (final family in ['Roboto', 'monospace']) {
+    final loader = FontLoader(family)
+      ..addFont(helvetica.readAsBytes().then(ByteData.sublistView));
+    await loader.load();
+  }
   _loaded = true;
 }

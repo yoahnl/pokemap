@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
+
+RuntimeAuthoringMapRenderer createStudioMapRenderer(
+  MapData map,
+  StudioMapResources resources,
+) => RuntimeAuthoringMapRenderer(
+  bundle: RuntimeMapBundle(
+    manifest: resources.manifest,
+    map: map,
+    projectRootDirectory: resources.projectRoot,
+    tilesetAbsolutePathsById: resources.paths,
+  ),
+  images: resources.images,
+  includeCharacters: true,
+);
 
 class StudioMapVisual extends StatefulWidget {
   const StudioMapVisual({

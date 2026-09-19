@@ -1,0 +1,11 @@
+00:00 +0: loading test/runtime_dialogue_document_test.dart
+00:00 +0: test/runtime_dialogue_document_test.dart: RuntimeDialogueDocument compiles the supported Yarn subset into deterministic data-only JSON
+00:00 +1: test/runtime_dialogue_document_test.dart: RuntimeDialogueDocument rejects unknown fields and invalid jump targets
+00:00 +2: test/runtime_dialogue_document_test.dart: RuntimeDialogueDocument rejects duplicate node titles and empty documents
+00:00 +3: test/runtime_dialogue_document_test.dart: RuntimeDialogueDocument preserves legacy choices that complete without a nested step
+00:00 +4: test/runtime_dialogue_portrait_metadata_test.dart: Runtime dialogue portrait metadata portrait directive annotates only the next root line
+00:00 +5: test/runtime_dialogue_portrait_metadata_test.dart: Runtime dialogue portrait metadata portrait directive propagates inside a choice branch
+00:00 +6: test/runtime_dialogue_portrait_metadata_test.dart: Runtime dialogue portrait metadata legacy format remains readable and byte stable
+00:00 +7: test/runtime_dialogue_portrait_metadata_test.dart: Runtime dialogue portrait metadata structured metadata round-trips through the runtime codec
+00:00 +8: test/runtime_dialogue_portrait_metadata_test.dart: Runtime dialogue portrait metadata invalid or dangling portrait directive reports its source line
+00:00 +9: All tests passed!

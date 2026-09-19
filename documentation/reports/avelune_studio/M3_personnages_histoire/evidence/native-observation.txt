@@ -1,0 +1,14 @@
+M3 native attempt, 2026-09-19 Europe/Paris
+
+Marionette tools available, but Studio has no marionette dependency or separate debug entrypoint. Existing native configuration left unchanged. CUA fallback used with one attachment and one reattachment, no UI mutation.
+
+Initial build/run failed while CharacterPalette scroll controller type was being edited. Explicit ScrollController type fixed the compile error.
+Corrected run: flutter run -d macos --no-pub, evidence/native-corrected-build.txt.
+VM service http://127.0.0.1:50288/OS4wcdCCvJ0=/ reached.
+Owned Flutter runner PID 79703, owned application PID 80488, parent 79703, started Sat Sep 19 21:27:37 2026.
+Pre-existing application PID 13487, parent 12684, started Sat Sep 19 18:45:04 2026: never signalled, never operated.
+
+First CUA attachment: Accessibility error AXError.cannotComplete.
+Single reattachment: old window reports Le train de 17h42, map Maison au jardin, 177% zoom, Ressources/Carte but no Histoire. This is not the freshly built M3 window.
+No clicks, keystrokes, project opens or writes were attempted through that window.
+Native interaction acceptance remains unproven. Real offscreen Flutter widgets and the runtime test scenario provide separate evidence.

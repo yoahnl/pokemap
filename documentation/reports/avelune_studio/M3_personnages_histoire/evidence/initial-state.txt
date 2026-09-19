@@ -1,0 +1,12 @@
+M3 initial audit — 2026-09-19
+Repository /Users/karim/Project/pokemonProject
+Branch main
+HEAD 2abaea0a71033fc6f9d62bf5f8dc01775cb4fbb6
+git status --short --untracked-files=all: empty
+git diff --cached --name-only: empty
+Brief read: /Users/karim/Downloads/avelune_studio_codex_M3_personnages_histoire.md
+Pack archive and PROMPT_CODEX.md / REFERENCES_VISUELLES.md not found in Downloads/Desktop.
+Requested exact archive path asynchronously; proceed with independent source implementation.
+Relevant roadmap scope FG-081 conditions, FG-082 execution, FG-088 state,
+FG-093 guided action editor, FG-094 templates; M3 is a Studio surface, not a
+claim of completing every historical lot. No roadmap or Notion status edits.

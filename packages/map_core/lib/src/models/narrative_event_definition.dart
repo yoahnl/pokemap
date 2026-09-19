@@ -43,6 +43,7 @@ const Set<String> _recordWireFields = {
   'draft',
   'definition',
   'enabled',
+  'activeInLegacyMode',
 };
 
 enum NarrativeEventReusePolicy { oneShot, reusable }
@@ -840,6 +841,7 @@ sealed class NarrativeEventRecord {
   factory NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition definition, {
     required bool enabled,
+    bool activeInLegacyMode,
   }) = _NarrativeEventConfiguredRecord;
 
   factory NarrativeEventRecord.fromJson(Object? json) {
@@ -869,7 +871,10 @@ sealed class NarrativeEventRecord {
       case 'configured':
         NarrativeEventWire.expectExactFields(
           object,
-          const {'state', 'definition', 'enabled'},
+          {
+            'state', 'definition', 'enabled',
+            if (object.containsKey('activeInLegacyMode')) 'activeInLegacyMode',
+          },
           path: 'record',
           knownFields: _recordWireFields,
         );
@@ -886,6 +891,10 @@ sealed class NarrativeEventRecord {
             'enabled',
             path: 'record',
           ),
+          activeInLegacyMode: object.containsKey('activeInLegacyMode')
+              ? NarrativeEventWire.requiredBool(
+                  object, 'activeInLegacyMode', path: 'record')
+              : false,
         );
       default:
         return NarrativeEventWire.unsupported(
@@ -900,6 +909,7 @@ sealed class NarrativeEventRecord {
   NarrativeEventDraft? get draftOrNull;
   NarrativeEventDefinition? get definitionOrNull;
   bool? get enabledOrNull;
+  bool get activeInLegacyMode => false;
 
   T when<T>({
     required T Function(NarrativeEventDraft draft) draft,
@@ -954,10 +964,13 @@ final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {
   const _NarrativeEventConfiguredRecord(
     this.definition, {
     required this.enabled,
+    this.activeInLegacyMode = false,
   }) : super._();
 
   final NarrativeEventDefinition definition;
   final bool enabled;
+  @override
+  final bool activeInLegacyMode;
 
   @override
   String get id => definition.id;
@@ -984,6 +997,7 @@ final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {
         'state': 'configured',
         'definition': definition.toJson(),
         'enabled': enabled,
+        if (activeInLegacyMode) 'activeInLegacyMode': true,
       };
 
   @override
@@ -991,10 +1005,11 @@ final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {
       identical(this, other) ||
       other is _NarrativeEventConfiguredRecord &&
           other.definition == definition &&
-          other.enabled == enabled;
+          other.enabled == enabled &&
+          other.activeInLegacyMode == activeInLegacyMode;
 
   @override
-  int get hashCode => Object.hash('configured', definition, enabled);
+  int get hashCode => Object.hash('configured', definition, enabled, activeInLegacyMode);
 }
 
 const int _maximumConditionExpressionDepth = 8;

@@ -1,0 +1,5 @@
+Command: POKEMAP_MARKDOWN_MAX_NEW=1 bash tools/scripts/check_markdown_hygiene.sh
+Working directory: /Users/karim/Project/pokemonProject
+Authorization: M3 explicitly requests exactly one persistent report and the existing Studio README update.
+Exit code: 0
+Markdown hygiene: 1 new Markdown file(s), all in canonical locations.

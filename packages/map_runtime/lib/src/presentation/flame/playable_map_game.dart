@@ -896,7 +896,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     await beforeNarrativeAuthorityPreparation?.call(occurrence);
     final project = _bundle.manifest;
     final registry = project.eventRegistry;
-    if (registry != null && registry.mode != EventSystemMode.legacyOnly) {
+    if (registry != null &&
+        (registry.mode != EventSystemMode.legacyOnly || registry.hasLocalRuntimeAuthority)) {
       await _narrativeRuntimeSnapshotFor(project);
     }
     final preparation = _readInteractionAuthority(occurrence)!;

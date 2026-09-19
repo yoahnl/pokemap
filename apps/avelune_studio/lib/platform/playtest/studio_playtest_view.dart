@@ -4,6 +4,10 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
+import 'studio_playtest_session.dart';
+
+export 'studio_playtest_session.dart';
+
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -16,6 +20,7 @@ class StudioPlaytestView extends StatefulWidget {
     required this.expectedRevision,
     required this.port,
     required this.onClose,
+    this.testSession,
   });
 
   final ProjectSession session;
@@ -23,15 +28,18 @@ class StudioPlaytestView extends StatefulWidget {
   final String expectedRevision;
   final MapWorkspacePort port;
   final VoidCallback onClose;
+  final StudioPlaytestSession? testSession;
 
   @override
   State<StudioPlaytestView> createState() => _StudioPlaytestViewState();
 }
 
 class _StudioPlaytestViewState extends State<StudioPlaytestView> {
-  late final Future<PlayableMapGame> _loading = _load();
+  late Future<PlayableMapGame> _loading = _load();
   PlayableMapGame? _game;
-  final _saves = StudioPlaytestSaveRepository();
+  late final _saves = widget.testSession ?? StudioPlaytestSession();
+  bool _busy = false;
+  String? _message;
 
   Future<PlayableMapGame> _load() async {
     final document = await widget.port.loadMap(widget.session, widget.entry);
@@ -62,8 +70,45 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   @override
   void dispose() {
     _game?.pauseEngine();
-    _saves.delete();
+    if (widget.testSession == null) _saves.delete();
     super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    final saved = await _game?.saveGame() ?? false;
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _message = saved
+          ? 'Test enregistré en mémoire pour cette session.'
+          : 'Terminez l’interaction avant d’enregistrer le test.';
+    });
+  }
+
+  Future<void> _resume() async {
+    setState(() => _busy = true);
+    final loaded = await _game?.loadGame() ?? false;
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _message = loaded
+          ? 'Sauvegarde du test reprise.'
+          : 'Reprise impossible pendant cette interaction ou après ce changement.';
+    });
+  }
+
+  Future<void> _newGame() async {
+    setState(() => _busy = true);
+    _game?.pauseEngine();
+    _game = null;
+    await _saves.delete();
+    if (!mounted) return;
+    setState(() {
+      _loading = _load();
+      _busy = false;
+      _message = 'Nouvelle partie : état de test réinitialisé.';
+    });
   }
 
   @override
@@ -106,6 +151,34 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            StudioButton(
+              label: 'Enregistrer le test',
+              icon: Icons.save_outlined,
+              secondary: true,
+              onPressed: _busy ? null : _save,
+            ),
+            StudioButton(
+              label: 'Reprendre le test',
+              icon: Icons.restore,
+              secondary: true,
+              onPressed: _busy || !_saves.hasSave ? null : _resume,
+            ),
+            StudioButton(
+              label: 'Nouvelle partie',
+              icon: Icons.restart_alt,
+              secondary: true,
+              onPressed: _busy ? null : _newGame,
+            ),
+            if (_message != null) Text(_message!),
+          ],
+        ),
+      ),
       Expanded(
         child: FutureBuilder<PlayableMapGame>(
           future: _loading,
@@ -119,11 +192,14 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
             if (game == null) {
               return const Center(child: CircularProgressIndicator());
             }
-            return GameWidget<PlayableMapGame>(
-              game: game,
-              autofocus: true,
-              errorBuilder: (context, error) =>
-                  Center(child: Text('Erreur du test : $error')),
+            return ClipRect(
+              child: GameWidget<PlayableMapGame>(
+                key: ObjectKey(game),
+                game: game,
+                autofocus: true,
+                errorBuilder: (context, error) =>
+                    Center(child: Text('Erreur du test : $error')),
+              ),
             );
           },
         ),
@@ -132,18 +208,4 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   );
 }
 
-class StudioPlaytestSaveRepository implements GameSaveRepository {
-  GameState? _state;
-
-  @override
-  Future<void> save(GameState state) async => _state = state;
-
-  @override
-  Future<GameState?> load() async => _state;
-
-  @override
-  Future<bool> exists() async => _state != null;
-
-  @override
-  Future<void> delete() async => _state = null;
-}
+class StudioPlaytestSaveRepository extends StudioPlaytestSession {}

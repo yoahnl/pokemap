@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
+import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/platform/files/native_project_directory_picker.dart';
@@ -40,17 +41,26 @@ class StudioBootstrap extends StatelessWidget {
       resourceImagePickerProvider.overrideWithValue(
         const NativeResourceImagePicker().choose,
       ),
-      workspaceVisualsLoaderProvider.overrideWithValue(StudioMapResources.load),
-      workspaceRuntimeBuilderProvider.overrideWithValue(
-        (session, port) =>
-            (entry, revision, close) => StudioPlaytestView(
-              session: session,
-              entry: entry,
-              expectedRevision: revision,
-              port: port,
-              onClose: close,
-            ),
+      narrativePortProvider.overrideWith(
+        (ref, session) => LocalNarrativeAdapter(
+          session: session,
+          mapAdapter:
+              ref.watch(mapWorkspacePortProvider(session))
+                  as LocalMapWorkspaceAdapter,
+        ),
       ),
+      workspaceVisualsLoaderProvider.overrideWithValue(StudioMapResources.load),
+      workspaceRuntimeBuilderProvider.overrideWithValue((session, port) {
+        final testSession = StudioPlaytestSession();
+        return (entry, revision, close) => StudioPlaytestView(
+          session: session,
+          entry: entry,
+          expectedRevision: revision,
+          port: port,
+          onClose: close,
+          testSession: testSession,
+        );
+      }),
     ],
     child: StudioApp(
       workspaceBuilder: (session, close, guard) => StudioWorkspaceHost(

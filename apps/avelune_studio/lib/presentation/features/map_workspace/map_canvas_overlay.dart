@@ -12,6 +12,11 @@ class MapCanvasOverlay extends CustomPainter {
     required this.color,
     this.preview,
     this.strokeCells = const [],
+    this.selectedEntity,
+    this.entityPreview,
+    this.zone,
+    this.labelBackground,
+    this.labelForeground,
   });
   final MapData map;
   final ProjectManifest project;
@@ -22,6 +27,55 @@ class MapCanvasOverlay extends CustomPainter {
   final Color color;
   final GridPos? preview;
   final List<GridPos> strokeCells;
+  final MapEntity? selectedEntity;
+  final GridPos? entityPreview;
+  final MapRect? zone;
+  final Color? labelBackground, labelForeground;
+
+  void _paintStoryZones(Canvas canvas) {
+    final clip = canvas.getLocalClipBounds();
+    final outline = Paint()
+      ..color = color.withValues(alpha: .85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    for (final trigger in map.triggers) {
+      if (trigger.type != TriggerType.event) continue;
+      final area = trigger.area;
+      final rect = Rect.fromLTWH(
+        area.pos.x * cellWidth,
+        area.pos.y * cellHeight,
+        area.size.width * cellWidth,
+        area.size.height * cellHeight,
+      );
+      if (!clip.overlaps(rect)) continue;
+      canvas.drawRect(rect.deflate(.75), outline);
+      if (rect.width < 24 || rect.height < 18) continue;
+      final label = TextPainter(
+        text: TextSpan(
+          text: trigger.name.trim().isEmpty ? 'Zone d’histoire' : trigger.name,
+          style: TextStyle(
+            color: labelForeground ?? color,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '…',
+      )..layout(maxWidth: rect.width - 8);
+      final background = Rect.fromLTWH(
+        rect.left + 1,
+        rect.top + 1,
+        label.width + 6,
+        label.height + 4,
+      );
+      if (labelBackground != null) {
+        canvas.drawRect(background, Paint()..color = labelBackground!);
+      }
+      label.paint(canvas, Offset(rect.left + 4, rect.top + 3));
+      label.dispose();
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -44,6 +98,7 @@ class MapCanvasOverlay extends CustomPainter {
         );
       }
     }
+    _paintStoryZones(canvas);
     paint.color = color.withValues(alpha: .4);
     for (final cell in strokeCells) {
       canvas.drawRect(
@@ -57,6 +112,29 @@ class MapCanvasOverlay extends CustomPainter {
       );
     }
     final instance = selected;
+    final area =
+        zone ??
+        (selectedEntity == null
+            ? null
+            : MapRect(
+                pos: entityPreview ?? selectedEntity!.pos,
+                size: selectedEntity!.size,
+              ));
+    if (area != null) {
+      paint
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+      canvas.drawRect(
+        Rect.fromLTWH(
+          area.pos.x * cellWidth,
+          area.pos.y * cellHeight,
+          area.size.width * cellWidth,
+          area.size.height * cellHeight,
+        ),
+        paint,
+      );
+    }
     if (instance == null) return;
     final entry = project.elements
         .where((e) => e.id == instance.elementId)

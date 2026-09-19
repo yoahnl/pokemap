@@ -41,7 +41,7 @@ class EditableMapDocument {
     _repairSelection();
   }
 
-  void restore({required bool redo}) {
+  void restore({required bool redo, bool Function(MapData)? canRestore}) {
     final result = redo
         ? _history.redo(currentMap: current, undoStack: _undo, redoStack: _redo)
         : _history.undo(
@@ -50,6 +50,7 @@ class EditableMapDocument {
             redoStack: _redo,
           );
     if (result == null) return;
+    if (canRestore != null && !canRestore(result.restoredSnapshot.map)) return;
     current = result.restoredSnapshot.map;
     _undo = result.undoStack;
     _redo = result.redoStack;

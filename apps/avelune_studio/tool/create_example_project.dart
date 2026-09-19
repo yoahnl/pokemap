@@ -92,7 +92,7 @@ Future<void> writeExampleProject(
         id: 'guide',
         name: 'Guide de l’atelier',
         tilesetId: 'atelier',
-        frameWidth: 1,
+        frameWidth: 2,
         frameHeight: 2,
         animations: [
           for (final state in [
@@ -105,7 +105,7 @@ Future<void> writeExampleProject(
                 direction: direction,
                 frames: const [
                   CharacterAnimationFrame(
-                    source: TilesetSourceRect(x: 8, y: 0, width: 1, height: 2),
+                    source: TilesetSourceRect(x: 4, y: 0, width: 2, height: 2),
                   ),
                 ],
               ),

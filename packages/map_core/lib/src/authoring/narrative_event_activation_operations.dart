@@ -79,6 +79,7 @@ NarrativeEventAuthoringResult activateNarrativeEvent({
   final nextRecord = NarrativeEventRecord.configuredStructurallyUnchecked(
     definition,
     enabled: true,
+    activeInLegacyMode: record.activeInLegacyMode,
   );
   final nextRegistry = replaceNarrativeEventRecord(registry, nextRecord);
   return NarrativeEventAuthoringResult.applied(
@@ -143,6 +144,7 @@ NarrativeEventAuthoringResult deactivateNarrativeEvent({
   final nextRecord = NarrativeEventRecord.configuredStructurallyUnchecked(
     definition,
     enabled: false,
+    activeInLegacyMode: record.activeInLegacyMode,
   );
   final nextRegistry = replaceNarrativeEventRecord(registry, nextRecord);
   return NarrativeEventAuthoringResult.applied(

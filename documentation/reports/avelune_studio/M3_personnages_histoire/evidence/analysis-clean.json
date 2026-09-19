@@ -1,0 +1,22 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/flutter",
+    "analyze",
+    "--no-pub"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:40:19.052651+00:00",
+  "finishedAt": "2026-09-19T19:40:37.754922+00:00",
+  "exitCode": 0,
+  "runnerPid": 98758,
+  "trackedProcesses": {
+    "98758": {
+      "parent": 98713,
+      "uid": 501,
+      "started": "Sat Sep 19 21:40:19 2026",
+      "command": "<defunct>"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

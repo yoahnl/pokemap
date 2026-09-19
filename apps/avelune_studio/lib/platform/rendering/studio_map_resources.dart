@@ -1,11 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
-import 'package:path/path.dart' as p;
-
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
@@ -16,9 +11,15 @@ import 'studio_resource_index.dart';
 import 'studio_resource_thumbnail.dart';
 import 'studio_resource_catalog.dart';
 import 'studio_atlas_preview.dart';
+import 'studio_character_thumbnail.dart';
+import 'studio_resource_notifications.dart';
+import '../../presentation/features/characters/character_workspace_visuals.dart';
 
 final class StudioMapResources
-    implements MapWorkspaceVisuals, ResourceWorkspaceVisuals {
+    implements
+        MapWorkspaceVisuals,
+        ResourceWorkspaceVisuals,
+        CharacterWorkspaceVisuals {
   StudioMapResources._(this.projectRoot, this.manifest)
     : _index = StudioResourceIndex(manifest);
 
@@ -29,7 +30,7 @@ final class StudioMapResources
   Map<String, ProjectTilesetEntry> get tilesets => _index.tilesets;
   Map<String, ProjectElementEntry> get elements => _index.elements;
   final Map<String, WorkspaceResourceDiagnostic> _diagnostics = {};
-  final _ResourceChanges _changes = _ResourceChanges();
+  final StudioResourceNotifications _changes = StudioResourceNotifications();
   final Object _activeOwner = Object();
   final Object _brushOwner = Object();
   Set<String> _brushIds = {};
@@ -37,10 +38,10 @@ final class StudioMapResources
   ProjectElementEntry? _brushElement;
   TileLayerPaletteEntry? _brushTile;
   ProjectSmartTilePreset? _terrainPreset;
+  ProjectCharacterEntry? _characterBrush;
   int catalogVersion = 0;
   late final StudioImageStore store;
   bool _disposed = false;
-  bool _notificationPending = false;
   @override
   Set<String> activeResourceIds = {};
   Map<String, RuntimeTilesetImage> get images => store.images;
@@ -97,17 +98,14 @@ final class StudioMapResources
     );
     await store.settled;
     if (_disposed) return;
-    final changed = changedRelativePaths
-        .map((path) => p.normalize(p.join(projectRoot, path)))
-        .toSet();
-    final invalid = {
-      for (final id in {...paths.keys, ...resolved.keys})
-        if (paths[id] != resolved[id] ||
-            _index.colors[id] != next.colors[id] ||
-            changed.contains(paths[id]) ||
-            changed.contains(resolved[id]))
-          id,
-    };
+    final invalid = changedStudioResourceIds(
+      root: projectRoot,
+      before: paths,
+      after: resolved,
+      previousColors: _index.colors,
+      nextColors: next.colors,
+      changedRelativePaths: changedRelativePaths,
+    );
     manifest = updated;
     _index = next;
     paths
@@ -120,13 +118,21 @@ final class StudioMapResources
     catalogVersion++;
     if (_activeMap != null) setActiveMap(_activeMap!);
     final terrain = _terrainPreset;
-    setBrush(elements[_brushElement?.id], _brushTile);
-    if (terrain != null) {
+    final character = _characterBrush;
+    if (character != null) {
+      setCharacterBrush(
+        updated.characters
+            .where((entry) => entry.id == character.id)
+            .firstOrNull,
+      );
+    } else if (terrain != null) {
       setTerrainBrush(
         updated.smartTileCatalog.presets
             .where((item) => item.id == terrain.id)
             .firstOrNull,
       );
+    } else {
+      setBrush(elements[_brushElement?.id], _brushTile);
     }
     _notify();
   }
@@ -137,6 +143,8 @@ final class StudioMapResources
 
   Set<String> elementResourceIds(ProjectElementEntry element) =>
       _index.forElement(element);
+  Set<String> characterResourceIds(ProjectCharacterEntry character) =>
+      _index.forCharacter(character);
   Set<String> tileResourceIds(TileLayerPaletteEntry tile) =>
       _index.forTile(tile);
   Set<String> mapResourceIds(MapData map) => _index.forMap(map);
@@ -158,6 +166,7 @@ final class StudioMapResources
     _brushElement = element;
     _brushTile = tile;
     _terrainPreset = null;
+    _characterBrush = null;
     _brushIds = element != null
         ? elementResourceIds(element)
         : tile != null
@@ -171,6 +180,7 @@ final class StudioMapResources
   void setTerrainBrush(ProjectSmartTilePreset? preset) {
     if (_disposed) return;
     _terrainPreset = preset;
+    _characterBrush = null;
     _brushElement = null;
     _brushTile = null;
     _brushIds = preset == null ? {} : _index.forTerrain(preset);
@@ -179,6 +189,29 @@ final class StudioMapResources
   }
 
   void retain(Object owner, Set<String> ids) => store.retain(owner, ids);
+  @override
+  void setCharacterBrush(ProjectCharacterEntry? character) {
+    if (_disposed) return;
+    _characterBrush = character;
+    _terrainPreset = null;
+    _brushElement = null;
+    _brushTile = null;
+    _brushIds = character == null ? {} : characterResourceIds(character);
+    store.priority = {...activeResourceIds, ..._brushIds};
+    store.retain(_brushOwner, _brushIds);
+  }
+
+  @override
+  Widget characterThumbnail(
+    ProjectCharacterEntry character, {
+    double size = 48,
+    EntityFacing facing = EntityFacing.south,
+  }) => StudioCharacterThumbnail(
+    resources: this,
+    character: character,
+    size: size,
+    facing: facing,
+  );
   void release(Object owner) => store.release(owner);
 
   @override
@@ -221,26 +254,10 @@ final class StudioMapResources
     }
   }
 
-  void _notify() {
-    if (_disposed || _notificationPending) return;
-    _notificationPending = true;
-    scheduleMicrotask(() {
-      _notificationPending = false;
-      if (!_disposed) _changes.emit();
-    });
-  }
-
+  void _notify() => _changes.emitLater();
   RuntimeAuthoringMapRenderer renderer(MapData map) {
     if (_disposed) throw StateError('Ressources fermées');
-    return RuntimeAuthoringMapRenderer(
-      bundle: RuntimeMapBundle(
-        manifest: manifest,
-        map: map,
-        projectRootDirectory: projectRoot,
-        tilesetAbsolutePathsById: paths,
-      ),
-      images: images,
-    );
+    return createStudioMapRenderer(map, this);
   }
 
   @override
@@ -271,8 +288,4 @@ final class StudioMapResources
     store.close();
     _changes.dispose();
   }
-}
-
-final class _ResourceChanges extends ChangeNotifier {
-  void emit() => notifyListeners();
 }

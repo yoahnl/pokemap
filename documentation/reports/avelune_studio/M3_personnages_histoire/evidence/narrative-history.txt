@@ -1,0 +1,4 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_history_guard_test.dart
+00:00 +0: undo never removes the source of a published story and keeps history intact
+00:00 +1: pending story guard rejects undo without consuming its entry
+00:00 +2: All tests passed!

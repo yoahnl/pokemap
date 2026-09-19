@@ -630,6 +630,7 @@ final class _EditableNarrativeEvent {
     required this.resetPolicy,
     required this.configured,
     required this.enabled,
+    this.activeInLegacyMode = false,
   });
 
   factory _EditableNarrativeEvent.fromRecord(NarrativeEventRecord record) {
@@ -661,6 +662,7 @@ final class _EditableNarrativeEvent {
         resetPolicy: definition.resetPolicy,
         configured: true,
         enabled: enabled,
+        activeInLegacyMode: record.activeInLegacyMode,
       ),
     );
   }
@@ -677,6 +679,7 @@ final class _EditableNarrativeEvent {
   final NarrativeEventResetPolicy resetPolicy;
   final bool configured;
   final bool enabled;
+  final bool activeInLegacyMode;
 
   _EditableNarrativeEvent copyWith({
     String? name,
@@ -713,6 +716,7 @@ final class _EditableNarrativeEvent {
       resetPolicy: resetPolicy ?? this.resetPolicy,
       configured: configured,
       enabled: enabled,
+      activeInLegacyMode: activeInLegacyMode,
     );
   }
 
@@ -732,6 +736,7 @@ final class _EditableNarrativeEvent {
         resetPolicy: resetPolicy,
       ),
       enabled: enabled,
+      activeInLegacyMode: activeInLegacyMode,
     );
   }
 

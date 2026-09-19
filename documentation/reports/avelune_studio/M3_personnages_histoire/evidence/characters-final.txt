@@ -1,0 +1,12 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_editing_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_editing_test.dart: place, move, duplicate, properties, deletion and undo use map history
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_editing_test.dart: changing one instance property preserves all advanced payloads
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_editing_test.dart: out of bounds does not add a history entry
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_editing_test.dart: story source references block deletion with the canonical index
+00:02 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_canvas_test.dart: selection distinguishes covered character and decor without moving either
+00:02 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_canvas_test.dart: canvas places, drags once, cancels and draws a bounded story zone
+00:03 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_render_io_test.dart: dedicated Character Studio asset uses canonical pixel source and shared image budget
+00:03 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_render_io_test.dart: existing sprite pixels render on map and instance survives canonical save/reopen
+00:03 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_widgets_test.dart: palette and inspector support real instance edits at enlarged text
+00:04 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_widgets_test.dart: palette and inspector support real instance edits at enlarged text
+00:04 +10: All tests passed!

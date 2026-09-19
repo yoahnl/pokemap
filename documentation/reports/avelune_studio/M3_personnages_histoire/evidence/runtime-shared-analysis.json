@@ -1,0 +1,64 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import subprocess; checks=[(\"../../packages/map_core\", [\"lib/src/models/narrative_event_definition.dart\", \"lib/src/models/narrative_event_registry.dart\", \"lib/src/operations/narrative_event_dispatch_authority.dart\", \"lib/src/authoring/narrative_event_activation_operations.dart\", \"lib/src/authoring/narrative_event_source_operations_v2.dart\", \"lib/src/authoring/narrative_event_configuration_operations.dart\"]), (\"../../packages/map_runtime\", [\"lib/src/application/narrative_event_runtime_snapshot.dart\", \"lib/src/presentation/flame/playable_map_game.dart\", \"lib/src/presentation/flame/playable_map_game_interactions.dart\"])]; results=[subprocess.call([\"/opt/homebrew/share/flutter/bin/dart\", \"analyze\", *files], cwd=cwd) for cwd,files in checks]; raise SystemExit(max(results))"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:21:58.430413+00:00",
+  "finishedAt": "2026-09-19T19:22:04.823202+00:00",
+  "exitCode": 0,
+  "runnerPid": 69318,
+  "trackedProcesses": {
+    "69318": {
+      "parent": 69309,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:58 2026",
+      "command": "<defunct>"
+    },
+    "69320": {
+      "parent": 69318,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:58 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart analyze lib/src/models/narrative_event_definition.dart lib/src/models/narrative_event_registry.dart lib/src/operations/narrative_event_dispatch_authority.dart lib/src/authoring/narrative_event_activation_operations.dart lib/src/authoring/narrative_event_source_operations_v2.dart lib/src/authoring/narrative_event_configuration_operations.dart"
+    },
+    "69346": {
+      "parent": 69320,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:58 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk"
+    },
+    "69350": {
+      "parent": 69318,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:58 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart analyze lib/src/application/narrative_event_runtime_snapshot.dart lib/src/presentation/flame/playable_map_game.dart lib/src/presentation/flame/playable_map_game_interactions.dart"
+    },
+    "69370": {
+      "parent": 69350,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:58 2026",
+      "command": "(bash)"
+    },
+    "69372": {
+      "parent": 69370,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:58 2026",
+      "command": "(bash)"
+    },
+    "69379": {
+      "parent": 69372,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:58 2026",
+      "command": "(git)"
+    },
+    "69385": {
+      "parent": 69350,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:58 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

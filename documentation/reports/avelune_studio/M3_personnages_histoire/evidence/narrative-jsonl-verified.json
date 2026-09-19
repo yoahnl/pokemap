@@ -1,0 +1,29 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart",
+    "test",
+    "test/domains/narrative/narrative_document_publication_test.dart",
+    "test/domains/narrative/dialogue_script_authoring_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:08:21.611786+00:00",
+  "finishedAt": "2026-09-19T19:08:25.562213+00:00",
+  "exitCode": 0,
+  "runnerPid": 53930,
+  "trackedProcesses": {
+    "53930": {
+      "parent": 53921,
+      "uid": 501,
+      "started": "Sat Sep 19 21:08:21 2026",
+      "command": "(dartvm)"
+    },
+    "53934": {
+      "parent": 53930,
+      "uid": 501,
+      "started": "Sat Sep 19 21:08:22 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

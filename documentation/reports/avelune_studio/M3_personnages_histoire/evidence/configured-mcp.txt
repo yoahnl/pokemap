@@ -1,0 +1,8 @@
+2026-09-19: live configured mcp__pokemap__pokemap_describe({})
+ok: false
+error.code: worker.exited
+error.message: The canonical Authoring worker exited unexpectedly (code 78).
+error.retryable: false
+error.details.exitCode: 78
+
+No retry or server configuration change. Separate packaged stdio MCP evidence is recorded in narrative-mcp-live.txt and narrative-mcp-build.txt.

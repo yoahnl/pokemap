@@ -447,6 +447,14 @@ final class NarrativeEventRegistry {
   final List<NarrativeEventRecord> records;
   final List<LegacySourceClaim> legacyClaims;
 
+  bool get hasLocalRuntimeAuthority =>
+      records.any((record) => record.activeInLegacyMode);
+
+  bool ownsSourceInLegacyMode(NarrativeEventSourceRef source) => records.any(
+      (record) => record.activeInLegacyMode &&
+          record.definitionOrNull?.source == source,
+  );
+
   Map<String, Object?> toJson() => {
         'schemaVersion': schemaVersion,
         'mode': mode.name,

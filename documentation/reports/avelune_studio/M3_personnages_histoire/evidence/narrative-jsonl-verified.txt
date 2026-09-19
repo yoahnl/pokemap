@@ -1,0 +1,10 @@
+00:00 +0: loading test/domains/narrative/narrative_document_publication_test.dart
+00:00 +0: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +1: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +2: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +3: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +4: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +5: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +6: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +7: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +8: All tests passed!

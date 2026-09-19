@@ -115,10 +115,11 @@ final class RuntimeDialogueLine extends RuntimeDialogueStep {
     String text, {
     String? characterId,
     String? portraitStateId,
-  }) : text = text.trim(),
+    bool preserveWhitespace = false,
+  }) : text = preserveWhitespace ? text : text.trim(),
        characterId = characterId?.trim(),
        portraitStateId = portraitStateId?.trim() {
-    if (this.text.isEmpty) {
+    if (this.text.trim().isEmpty) {
       throw const FormatException('Runtime dialogue line cannot be empty.');
     }
     if (this.characterId?.isEmpty ?? false) {
@@ -217,10 +218,11 @@ final class RuntimeDialogueChoice {
     required String text,
     required List<RuntimeDialogueStep> steps,
     String? outcomeId,
-  }) : text = text.trim(),
+    bool preserveWhitespace = false,
+  }) : text = preserveWhitespace ? text : text.trim(),
        steps = List.unmodifiable(steps),
        outcomeId = outcomeId?.trim() {
-    if (this.text.isEmpty) {
+    if (this.text.trim().isEmpty) {
       throw const FormatException('Runtime dialogue choice text is required.');
     }
     if (this.outcomeId?.isEmpty ?? false) {
@@ -308,6 +310,7 @@ final class RuntimeDialogueDocumentCodec {
             optional: const <String>{'characterId', 'portraitStateId'},
           )['text'],
         ),
+        preserveWhitespace: true,
         characterId: source.containsKey('characterId')
             ? _string(source['characterId'])
             : null,
@@ -343,6 +346,7 @@ final class RuntimeDialogueDocumentCodec {
     );
     return RuntimeDialogueChoice(
       text: _string(json['text']),
+      preserveWhitespace: true,
       outcomeId: json.containsKey('outcomeId')
           ? _string(json['outcomeId'])
           : null,

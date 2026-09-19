@@ -1,0 +1,34 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import subprocess; raise SystemExit(subprocess.call([\"/opt/homebrew/share/flutter/bin/dart\", \"test\", \"test/narrative_local_authority_test.dart\", \"test/narrative_event_dispatch_authority_test.dart\", \"test/narrative_event_configuration_authoring_test.dart\", \"test/narrative_event_registry_codec_test.dart\", \"test/narrative_event_registry_test.dart\", \"test/narrative_event_activation_test.dart\", \"test/narrative_event_definition_test.dart\"], cwd=\"../../packages/map_core\"))"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:17:21.603557+00:00",
+  "finishedAt": "2026-09-19T19:17:25.466889+00:00",
+  "exitCode": 0,
+  "runnerPid": 63905,
+  "trackedProcesses": {
+    "63905": {
+      "parent": 63896,
+      "uid": 501,
+      "started": "Sat Sep 19 21:17:21 2026",
+      "command": "<defunct>"
+    },
+    "63907": {
+      "parent": 63905,
+      "uid": 501,
+      "started": "Sat Sep 19 21:17:21 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --mark_main_isolate_as_system_isolate --packages=.dart_tool/package_config.json .dart_tool/pub/bin/test/test.dart-3.14.0-95.2.beta.snapshot test/narrative_local_authority_test.dart test/narrative_event_dispatch_authority_test.dart test/narrative_event_configuration_authoring_test.dart test/narrative_event_registry_codec_test.dart test/narrative_event_registry_test.dart test/narrative_event_activation_test.dart test/narrative_event_definition_test.dart"
+    },
+    "63956": {
+      "parent": 63907,
+      "uid": 501,
+      "started": "Sat Sep 19 21:17:22 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/share/flutter/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dart_test.kernel.NHbqv8/output.dill --packages=/Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

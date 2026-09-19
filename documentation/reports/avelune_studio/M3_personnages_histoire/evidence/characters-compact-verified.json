@@ -1,0 +1,54 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/flutter",
+    "test",
+    "--no-pub",
+    "test/characters/character_compact_workspace_test.dart",
+    "test/presentation/desktop_workspace_layout_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:22:40.773348+00:00",
+  "finishedAt": "2026-09-19T19:23:10.597458+00:00",
+  "exitCode": 0,
+  "runnerPid": 70683,
+  "trackedProcesses": {
+    "70683": {
+      "parent": 70658,
+      "uid": 501,
+      "started": "Sat Sep 19 21:22:40 2026",
+      "command": "<defunct>"
+    },
+    "70712": {
+      "parent": 70683,
+      "uid": 501,
+      "started": "Sat Sep 19 21:22:40 2026",
+      "command": "(git)"
+    },
+    "70724": {
+      "parent": 70683,
+      "uid": 501,
+      "started": "Sat Sep 19 21:22:41 2026",
+      "command": "(dartvm)"
+    },
+    "70729": {
+      "parent": 70683,
+      "uid": 501,
+      "started": "Sat Sep 19 21:22:41 2026",
+      "command": "(dartaotruntime)"
+    },
+    "70742": {
+      "parent": 70683,
+      "uid": 501,
+      "started": "Sat Sep 19 21:22:42 2026",
+      "command": "(flutter_tester)"
+    },
+    "70826": {
+      "parent": 70683,
+      "uid": 501,
+      "started": "Sat Sep 19 21:22:46 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

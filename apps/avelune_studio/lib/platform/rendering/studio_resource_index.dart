@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
+import 'package:map_runtime/map_runtime.dart'
+    show characterAnimationRuntimeImageId;
 
 final class StudioResourceIndex {
   StudioResourceIndex(this.manifest) {
@@ -44,6 +46,15 @@ final class StudioResourceIndex {
   Set<String> forElement(ProjectElementEntry element) => expand({
     for (final frame in element.frames)
       frame.tilesetId.isEmpty ? element.tilesetId : frame.tilesetId,
+  });
+
+  Set<String> forCharacter(ProjectCharacterEntry character) => expand({
+    for (final animation in character.animations)
+      if (animation.state == CharacterAnimationState.idle)
+        if (animation.sourceAssetId?.trim().isNotEmpty ?? false)
+          characterAnimationRuntimeImageId(animation.sourceAssetId!)
+        else
+          character.tilesetId,
   });
 
   Set<String> forTerrain(ProjectSmartTilePreset preset) {
@@ -115,6 +126,13 @@ final class StudioResourceIndex {
       ids.remove(map.tilesetId);
     }
     final result = expand(ids);
+    final characters = {
+      for (final entry in manifest.characters) entry.id: entry,
+    };
+    for (final entity in map.entities) {
+      final character = characters[entity.npc?.characterId];
+      if (character != null) result.addAll(forCharacter(character));
+    }
     for (final layer in map.layers) {
       if (!layer.isVisible || !mapLayerParticipatesInVisualComposition(layer)) {
         continue;

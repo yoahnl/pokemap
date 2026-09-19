@@ -31,6 +31,7 @@ import '../domains/gameplay/character_studio/character_studio_animation_clip_act
 import '../domains/gameplay/character_studio/character_studio_character_actions.dart';
 import '../domains/gameplay/character_studio/character_studio_portrait_state_actions.dart';
 import '../domains/narrative/dialogue_actions.dart';
+import '../domains/narrative/narrative_document_actions.dart';
 import '../domains/narrative/cinematic_actions.dart';
 import '../domains/narrative/cinematic_library_actions.dart';
 import '../domains/narrative/presentation_cinematic_actions.dart';
@@ -385,6 +386,10 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: dialogues.build,
         ),
+      MapMutationActionRegistration(
+        descriptor: NarrativeDocumentActions.descriptor,
+        build: const NarrativeDocumentActions().build,
+      ),
       for (final descriptor in CinematicActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,

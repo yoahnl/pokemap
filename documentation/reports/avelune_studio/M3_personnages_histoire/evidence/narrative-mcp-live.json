@@ -1,0 +1,50 @@
+{
+  "command": [
+    "env",
+    "POKEMAP_TEST_DART=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart",
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "test/studio_narrative_publication.test.ts"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:12:45.525399+00:00",
+  "finishedAt": "2026-09-19T19:12:54.346948+00:00",
+  "exitCode": 0,
+  "runnerPid": 58332,
+  "trackedProcesses": {
+    "58332": {
+      "parent": 58322,
+      "uid": 501,
+      "started": "Sat Sep 19 21:12:45 2026",
+      "command": "(node)"
+    },
+    "58334": {
+      "parent": 58332,
+      "uid": 501,
+      "started": "Sat Sep 19 21:12:45 2026",
+      "command": "(node)"
+    },
+    "58354": {
+      "parent": 58334,
+      "uid": 501,
+      "started": "Sat Sep 19 21:12:45 2026",
+      "command": "<defunct>"
+    },
+    "58358": {
+      "parent": 58334,
+      "uid": 501,
+      "started": "Sat Sep 19 21:12:46 2026",
+      "command": "/opt/homebrew/Cellar/node/26.3.1/bin/node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/index.js --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-narrative-mcp-fLR8Mp/project --dart /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart"
+    },
+    "58362": {
+      "parent": 58358,
+      "uid": 501,
+      "started": "Sat Sep 19 21:12:46 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-narrative-mcp-fLR8Mp/project --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

@@ -1,0 +1,185 @@
+Captured at: 2026-09-19T19:43:53.378900+00:00
+Branch: main
+HEAD: 2abaea0a71033fc6f9d62bf5f8dc01775cb4fbb6
+Index entries changed: 0
+Diff check exit: 0
+Status entries: 179
+ M apps/avelune_studio/README.md
+ M apps/avelune_studio/lib/app/di/providers.dart
+ M apps/avelune_studio/lib/app/studio_bootstrap.dart
+ M apps/avelune_studio/lib/features/map_workspace/application/editable_map_document.dart
+ M apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart
+ M apps/avelune_studio/lib/platform/playtest/studio_playtest_view.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_map_resources.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_map_visual_widgets.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_resource_catalog.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_resource_index.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_overlay.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_panels.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_shortcuts.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_toolbar.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_view_state.dart
+ M apps/avelune_studio/lib/presentation/features/resources/resource_brush_selection.dart
+ M apps/avelune_studio/lib/presentation/shell/studio_workspace_host.dart
+ M apps/avelune_studio/test/support/load_desktop_capture_fonts.dart
+ M apps/avelune_studio/tool/create_example_project.dart
+ M apps/avelune_studio/tool/example_project_assets.dart
+ M packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart
+ M packages/map_authoring/lib/src/domains/narrative/dialogue_authoring_service.dart
+ M packages/map_authoring/lib/src/parity/full_authoring_parity.dart
+ M packages/map_core/lib/src/authoring/narrative_event_activation_operations.dart
+ M packages/map_core/lib/src/authoring/narrative_event_configuration_operations.dart
+ M packages/map_core/lib/src/authoring/narrative_event_source_operations_v2.dart
+ M packages/map_core/lib/src/dialogue/runtime_dialogue_document.dart
+ M packages/map_core/lib/src/dialogue/yarn_dialogue_compiler.dart
+ M packages/map_core/lib/src/models/narrative_event_definition.dart
+ M packages/map_core/lib/src/models/narrative_event_registry.dart
+ M packages/map_core/lib/src/operations/narrative_event_dispatch_authority.dart
+ M packages/map_runtime/lib/map_runtime_authoring.dart
+ M packages/map_runtime/lib/src/application/authoring_preview/runtime_authoring_map_renderer.dart
+ M packages/map_runtime/lib/src/application/narrative_event_runtime_snapshot.dart
+ M packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+ M packages/map_runtime/lib/src/presentation/flame/playable_map_game_interactions.dart
+?? apps/avelune_studio/lib/app/di/narrative_providers.dart
+?? apps/avelune_studio/lib/features/characters/application/character_editing_commands.dart
+?? apps/avelune_studio/lib/features/narrative/application/dialogue_draft_codec.dart
+?? apps/avelune_studio/lib/features/narrative/application/dialogue_editing_controller.dart
+?? apps/avelune_studio/lib/features/narrative/application/interaction_edit_session.dart
+?? apps/avelune_studio/lib/features/narrative/application/narrative_editing.dart
+?? apps/avelune_studio/lib/features/narrative/application/narrative_interaction.dart
+?? apps/avelune_studio/lib/features/narrative/application/narrative_interaction_reader.dart
+?? apps/avelune_studio/lib/features/narrative/application/narrative_sequence_projection.dart
+?? apps/avelune_studio/lib/features/narrative/application/narrative_workspace_controller.dart
+?? apps/avelune_studio/lib/features/narrative/data/local_narrative_adapter.dart
+?? apps/avelune_studio/lib/features/narrative/domain/dialogue_draft.dart
+?? apps/avelune_studio/lib/features/narrative/domain/narrative_port.dart
+?? apps/avelune_studio/lib/platform/playtest/studio_playtest_session.dart
+?? apps/avelune_studio/lib/platform/rendering/studio_character_thumbnail.dart
+?? apps/avelune_studio/lib/platform/rendering/studio_resource_notifications.dart
+?? apps/avelune_studio/lib/presentation/features/characters/character_inspector.dart
+?? apps/avelune_studio/lib/presentation/features/characters/character_palette.dart
+?? apps/avelune_studio/lib/presentation/features/characters/character_workspace_visuals.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_character_gesture.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_selection_inspector.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/workspace_actions.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/workspace_compact_panel.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/workspace_secondary_content.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/workspace_session_loader.dart
+?? apps/avelune_studio/lib/presentation/features/narrative/dialogue_lines_editor.dart
+?? apps/avelune_studio/lib/presentation/features/narrative/dialogue_portrait_choice.dart
+?? apps/avelune_studio/lib/presentation/features/narrative/narrative_conditions_editor.dart
+?? apps/avelune_studio/lib/presentation/features/narrative/narrative_interaction_pane.dart
+?? apps/avelune_studio/lib/presentation/features/narrative/narrative_name_dialog.dart
+?? apps/avelune_studio/lib/presentation/features/narrative/narrative_navigation.dart
+?? apps/avelune_studio/lib/presentation/features/narrative/narrative_sequence_editor.dart
+?? apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane.dart
+?? apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_draft_field.dart
+?? apps/avelune_studio/test/characters/character_canvas_test.dart
+?? apps/avelune_studio/test/characters/character_compact_workspace_test.dart
+?? apps/avelune_studio/test/characters/character_editing_test.dart
+?? apps/avelune_studio/test/characters/character_render_io_test.dart
+?? apps/avelune_studio/test/characters/character_widgets_test.dart
+?? apps/avelune_studio/test/characters/dialogue_portrait_choice_test.dart
+?? apps/avelune_studio/test/characters/story_zone_overlay_test.dart
+?? apps/avelune_studio/test/m3_conditions_widgets_test.dart
+?? apps/avelune_studio/test/m3_story_runtime_test.dart
+?? apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart
+?? apps/avelune_studio/test/narrative/narrative_editing_test.dart
+?? apps/avelune_studio/test/narrative/narrative_history_guard_test.dart
+?? apps/avelune_studio/test/narrative/narrative_publication_test.dart
+?? apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart
+?? apps/avelune_studio/test/narrative_interaction_projection_test.dart
+?? apps/avelune_studio/test/presentation/brush_retention_transition_test.dart
+?? apps/avelune_studio/test/presentation/m3_authoring_journey_test.dart
+?? apps/avelune_studio/test/presentation/m3_workspace_actions_test.dart
+?? apps/avelune_studio/test/support/capture_m3_widget.dart
+?? apps/avelune_studio/test/support/m3_runtime_driver.dart
+?? apps/avelune_studio/test/support/m3_story_fixture.dart
+?? documentation/reports/avelune_studio/M3_personnages_histoire/README.md
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/analysis-clean.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/analysis-clean.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/brush-final.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/brush-final.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/brush-red-verified.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/brush-red-verified.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/captures-final.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/captures-final.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-and-portraits-final.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-and-portraits-final.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-compact-verified.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-compact-verified.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-final.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-final.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-runtime-regression.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-runtime-regression.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-zone-overlay-green.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/characters-zone-overlay-green.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/configured-mcp.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/final-state.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/format-final.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/format-final.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/initial-state.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/large-atlas-regression.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/large-atlas-regression.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/legacy-editor-startup.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/legacy-editor-startup.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/macos-final.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/macos-final.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/markdown-hygiene.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-authoring-clean.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-authoring-clean.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-core-regression.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-core-regression.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-editing.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-editing.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-final-analysis.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-final-analysis.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-history.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-history.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-jsonl-verified.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-jsonl-verified.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-mcp-build.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-mcp-build.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-mcp-live.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-mcp-live.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-verified.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/narrative-verified.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/native-corrected-build.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/native-corrected-build.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/native-observation.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-analysis-verified.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-analysis-verified.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-core-verified.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-core-verified.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-gameplay-regression.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-gameplay-regression.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-native-regression.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-native-regression.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-projection-verified.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-projection-verified.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-shared-analysis.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-shared-analysis.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-story-captures-v2.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-story-captures-v2.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-workspace-guards-final.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/runtime-workspace-guards-final.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/screenshots/01-carte-personnages.png
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/screenshots/02-histoire.png
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/screenshots/03-dialogue-choix.png
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/screenshots/04-conditions-sequence.png
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/screenshots/05-runtime-choix.png
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/screenshots/06-runtime-conclusion.png
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/source-inventory.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/studio-final.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/studio-final.txt
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/studio-suite-final.json
+?? documentation/reports/avelune_studio/M3_personnages_histoire/evidence/studio-suite-final.txt
+?? packages/map_authoring/lib/map_authoring_narrative.dart
+?? packages/map_authoring/lib/src/domains/narrative/narrative_document_actions.dart
+?? packages/map_authoring/test/domains/narrative/narrative_document_publication_test.dart
+?? packages/map_core/test/narrative_local_authority_test.dart
+?? packages/map_runtime/lib/src/application/authoring_preview/runtime_authoring_character_renderer.dart
+?? tools/pokemap_mcp/test/studio_narrative_publication.test.ts

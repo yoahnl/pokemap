@@ -20,13 +20,13 @@ class StudioWorkspaceHost extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(mapWorkspaceControllerProvider(session));
-    final runtimeBuilder = ref.watch(workspaceRuntimeBuilderProvider);
     return MapWorkspaceScreen(
       controller: controller,
       resourcePort: ref.watch(resourcePortProvider(session)),
+      narrativePort: ref.watch(narrativePortProvider(session)),
       imagePicker: ref.watch(resourceImagePickerProvider),
       loadVisuals: ref.watch(workspaceVisualsLoaderProvider),
-      runtimeBuilder: runtimeBuilder(session, controller.port),
+      runtimeBuilder: ref.watch(sessionRuntimeBuilderProvider(session)),
       onClose: onClose,
       registerExitGuard: registerExitGuard,
     );

@@ -16,6 +16,7 @@ class MapWorkspaceController {
   EditableMapDocument? active;
   bool loading = false;
   String? error;
+  String? Function(MapData before, MapData after)? historyGuard;
   var _generation = 0;
   var _disposed = false;
 
@@ -92,6 +93,50 @@ class MapWorkspaceController {
       if (!await save(document)) return false;
     }
     return !_disposed && !dirty && !saving;
+  }
+
+  void restore({required bool redo}) {
+    final document = active;
+    final manifest = project;
+    if (document == null || manifest == null || document.saving) return;
+    document.restore(
+      redo: redo,
+      canRestore: (next) {
+        final before = document.current;
+        final removed = <(String, String)>[
+          for (final entity in before.entities)
+            if (!next.entities.any((item) => item.id == entity.id))
+              ('entity', entity.id),
+          for (final trigger in before.triggers)
+            if (!next.triggers.any((item) => item.id == trigger.id))
+              ('trigger', trigger.id),
+        ];
+        final dependencies = buildNarrativeDependencyIndex(
+          project: manifest,
+          maps: [before],
+        );
+        final referenced = removed.any(
+          (item) => dependencies
+              .usagesFor(
+                NarrativeDependencyKey.mapSource(
+                  mapId: before.id,
+                  sourceKind: item.$1,
+                  sourceId: item.$2,
+                ),
+              )
+              .isNotEmpty,
+        );
+        final problem = referenced
+            ? 'Cette annulation retirerait un personnage ou une zone utilisé par l’histoire enregistrée.'
+            : historyGuard?.call(before, next);
+        if (problem != null) {
+          document.error = problem;
+          return false;
+        }
+        return true;
+      },
+    );
+    notify();
   }
 
   void acceptResources(ProjectManifest before, ProjectManifest updated) {

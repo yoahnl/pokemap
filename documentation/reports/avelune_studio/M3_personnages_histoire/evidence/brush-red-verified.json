@@ -1,0 +1,47 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/flutter",
+    "test",
+    "--no-pub",
+    "test/presentation/brush_retention_transition_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:00:13.697552+00:00",
+  "finishedAt": "2026-09-19T19:00:22.235145+00:00",
+  "exitCode": 1,
+  "runnerPid": 46182,
+  "trackedProcesses": {
+    "46182": {
+      "parent": 46173,
+      "uid": 501,
+      "started": "Sat Sep 19 21:00:13 2026",
+      "command": "<defunct>"
+    },
+    "46211": {
+      "parent": 46182,
+      "uid": 501,
+      "started": "Sat Sep 19 21:00:13 2026",
+      "command": "(git)"
+    },
+    "46241": {
+      "parent": 46182,
+      "uid": 501,
+      "started": "Sat Sep 19 21:00:14 2026",
+      "command": "(codesign)"
+    },
+    "46247": {
+      "parent": 46182,
+      "uid": 501,
+      "started": "Sat Sep 19 21:00:14 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root /opt/homebrew/share/flutter/bin/cache/artifacts/engine/common/flutter_patched_sdk/ --incremental --no-print-incremental-dependencies --target=flutter --experimental-emit-debug-metadata -DFLUTTER_BUILD_NAME=0.1.0 -DFLUTTER_BUILD_NUMBER=1 -DFLUTTER_VERSION=3.48.0-0.4.pre -DFLUTTER_CHANNEL=beta -DFLUTTER_GIT_URL=https://github.com/flutter/flutter.git -DFLUTTER_FRAMEWORK_REVISION=e3005e3402 -DFLUTTER_ENGINE_REVISION=e2149387c6 -DFLUTTER_DART_VERSION=3.14.0 (build 3.14.0-95.2.beta) --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.7ucSlE/flutter_test_compiler.GnCU0o/output.dill --packages /Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json -Ddart.vm.profile=false -Ddart.vm.product=false --enable-asserts --track-creation-locations --initialize-from-dill /Users/karim/Project/pokemonProject/apps/avelune_studio/build/test_cache/build/96bdb3d9eefa773c53f47e8dfdfce411.cache.dill.track.dill --verbosity=error --enable-experiment=alternative-invalidation-strategy"
+    },
+    "46345": {
+      "parent": 46182,
+      "uid": 501,
+      "started": "Sat Sep 19 21:00:18 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

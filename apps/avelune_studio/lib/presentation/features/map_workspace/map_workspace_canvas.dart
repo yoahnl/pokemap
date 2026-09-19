@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import '../../theme/studio_tokens.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
@@ -10,6 +11,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_ov
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'map_canvas_stroke.dart';
+import 'map_character_gesture.dart';
 
 class MapWorkspaceCanvas extends StatefulWidget {
   const MapWorkspaceCanvas({
@@ -20,6 +22,7 @@ class MapWorkspaceCanvas extends StatefulWidget {
     required this.view,
     required this.onChanged,
     required this.gestureGeneration,
+    this.onZoneDrawn,
   });
   final EditableMapDocument document;
   final ProjectManifest project;
@@ -27,6 +30,7 @@ class MapWorkspaceCanvas extends StatefulWidget {
   final MapWorkspaceViewState view;
   final VoidCallback onChanged;
   final int gestureGeneration;
+  final ValueChanged<MapRect>? onZoneDrawn;
   @override
   State<MapWorkspaceCanvas> createState() => _MapWorkspaceCanvasState();
 }
@@ -38,6 +42,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   MapPlacedElement? _moving;
   MapCanvasStroke? _stroke;
   MapData? _gestureSource;
+  MapCharacterGesture? _characterGesture;
   double get _width =>
       widget.project.settings.tileWidth *
       widget.project.settings.displayScale.toDouble();
@@ -67,6 +72,22 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     }
     _focus.requestFocus();
     final cell = _cell(event.localPosition);
+    try {
+      _characterGesture = MapCharacterGesture.start(
+        document: widget.document,
+        project: widget.project,
+        view: widget.view,
+        origin: cell,
+      );
+      if (_characterGesture != null) {
+        widget.onChanged();
+        return;
+      }
+    } catch (error) {
+      widget.document.error = error.toString();
+      widget.onChanged();
+      return;
+    }
     _start = cell;
     _gestureSource = widget.document.current;
     final tool = widget.view.tool;
@@ -76,6 +97,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
       _cancel();
       widget.onChanged();
     } else if (tool == StudioMapTool.select) {
+      widget.view.selectedEntityId = null;
       final hits = _commands.stack(cell);
       final selected = widget.document.selected;
       _moving = selected != null && hits.any((e) => e.id == selected.id)
@@ -108,6 +130,10 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   }
 
   void _move(PointerMoveEvent event) {
+    if (_characterGesture != null) {
+      setState(() => _characterGesture!.move(_cell(event.localPosition)));
+      return;
+    }
     final start = _start;
     if (start == null) return;
     final cell = _cell(event.localPosition);
@@ -127,6 +153,13 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   }
 
   void _up(PointerUpEvent event) {
+    if (_characterGesture != null) {
+      final zone = _characterGesture!.commit();
+      setState(_cancel);
+      widget.onChanged();
+      if (zone != null) widget.onZoneDrawn?.call(zone);
+      return;
+    }
     if (_gestureSource != widget.document.current) {
       _cancel();
       return;
@@ -153,6 +186,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     _moving = null;
     _stroke = null;
     _gestureSource = null;
+    _characterGesture = null;
   }
 
   @override
@@ -164,6 +198,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   @override
   Widget build(BuildContext context) {
     final map = widget.document.current;
+    final colors = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
         void recenter() {
@@ -219,7 +254,10 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                     children: [
                       Positioned.fill(
                         child: widget.visuals.canvas(
-                          _stroke?.terrain == true ? _stroke!.preview : map,
+                          _characterGesture?.preview ??
+                              (_stroke?.terrain == true
+                                  ? _stroke!.preview
+                                  : map),
                         ),
                       ),
                       Positioned.fill(
@@ -229,11 +267,22 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                               map: map,
                               project: widget.project,
                               selected: widget.document.selected,
+                              selectedEntity: map.entities
+                                  .where(
+                                    (e) => e.id == widget.view.selectedEntityId,
+                                  )
+                                  .firstOrNull,
+                              entityPreview: _characterGesture?.destination,
+                              zone: _characterGesture?.zone == true
+                                  ? _characterGesture!.rectangle
+                                  : null,
                               preview: _preview,
                               cellWidth: _width,
                               cellHeight: _height,
                               grid: widget.view.grid,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: StudioColors.of(context).canvasSelection,
+                              labelBackground: colors.surface,
+                              labelForeground: colors.onSurface,
                               strokeCells: List.of(_stroke?.cells ?? []),
                             ),
                           ),

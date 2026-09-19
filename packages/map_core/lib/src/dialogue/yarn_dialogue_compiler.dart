@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'runtime_dialogue_document.dart';
 
 final class YarnDialogueFormatException extends FormatException {
@@ -20,7 +22,7 @@ final class _PortraitDirective {
   });
 
   final String characterId;
-  final String portraitStateId;
+  final String? portraitStateId;
   final int lineNumber;
   final String sourceLine;
 }
@@ -70,6 +72,19 @@ final class YarnDialogueCompiler {
       int lineNumber,
       String sourceLine,
     ) {
+      if (value.startsWith('<<speaker')) {
+        if (pendingPortrait != null) requirePortraitConsumed();
+        final match = RegExp(r'^<<speaker\s+([^\s>]+)>>$').firstMatch(value);
+        if (match == null)
+          invalidPortrait('Invalid speaker directive.', lineNumber, sourceLine);
+        pendingPortrait = _PortraitDirective(
+          characterId: match.group(1)!,
+          portraitStateId: null,
+          lineNumber: lineNumber,
+          sourceLine: sourceLine,
+        );
+        return;
+      }
       if (!value.startsWith('<<portrait')) return;
       if (pendingPortrait != null) requirePortraitConsumed();
       final match = RegExp(
@@ -90,12 +105,13 @@ final class YarnDialogueCompiler {
       );
     }
 
-    RuntimeDialogueLine dialogueLine(String text) {
+    RuntimeDialogueLine dialogueLine(String text, {bool literal = false}) {
       final portrait = consumePortrait();
       return RuntimeDialogueLine(
         text,
         characterId: portrait?.characterId,
         portraitStateId: portrait?.portraitStateId,
+        preserveWhitespace: literal,
       );
     }
 
@@ -106,6 +122,7 @@ final class YarnDialogueCompiler {
             text: currentChoiceText!,
             steps: List.unmodifiable(currentChoiceSteps),
             outcomeId: currentChoiceOutcomeId,
+            preserveWhitespace: true,
           ),
         );
         currentChoiceText = null;
@@ -180,7 +197,12 @@ final class YarnDialogueCompiler {
             'Indented Yarn content must belong to a choice.',
           );
         }
-        if (trimmed.startsWith('<<portrait')) {
+        if (trimmed.startsWith(r'\"')) {
+          currentChoiceSteps.add(
+            dialogueLine(_literal(trimmed), literal: true),
+          );
+        } else if (trimmed.startsWith('<<portrait') ||
+            trimmed.startsWith('<<speaker')) {
           readPortraitDirective(trimmed, lineNumber, line);
         } else if (trimmed.startsWith('<<outcome ') && trimmed.endsWith('>>')) {
           requirePortraitConsumed();
@@ -207,7 +229,13 @@ final class YarnDialogueCompiler {
         } else {
           closeChoiceOption();
         }
-        currentChoiceText = trimmed.substring(2).trim();
+        final choiceText = trimmed.substring(2).trim();
+        currentChoiceText = choiceText.startsWith(r'\"')
+            ? _literal(choiceText)
+            : choiceText;
+      } else if (trimmed.startsWith(r'\"')) {
+        if (inChoiceBlock) closeChoiceBlock();
+        rootSteps.add(dialogueLine(_literal(trimmed), literal: true));
       } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
         requirePortraitConsumed();
         if (inChoiceBlock) closeChoiceBlock();
@@ -216,7 +244,8 @@ final class YarnDialogueCompiler {
             trimmed.substring('<<jump '.length, trimmed.length - 2),
           ),
         );
-      } else if (trimmed.startsWith('<<portrait')) {
+      } else if (trimmed.startsWith('<<portrait') ||
+          trimmed.startsWith('<<speaker')) {
         if (inChoiceBlock) closeChoiceBlock();
         readPortraitDirective(trimmed, lineNumber, line);
       } else if (trimmed.startsWith('<<') && trimmed.endsWith('>>')) {
@@ -234,4 +263,10 @@ final class YarnDialogueCompiler {
     }
     return RuntimeDialogueDocument(nodes: nodes);
   }
+}
+
+String _literal(String source) {
+  final value = jsonDecode(source.substring(1));
+  if (value is! String) throw const FormatException('Expected a Yarn literal.');
+  return value;
 }

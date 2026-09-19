@@ -1,0 +1,32 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/flutter",
+    "analyze",
+    "--no-pub",
+    "lib/features/narrative",
+    "lib/features/map_workspace/application/map_workspace_controller.dart",
+    "lib/features/map_workspace/application/editable_map_document.dart",
+    "test/narrative"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:21:52.874769+00:00",
+  "finishedAt": "2026-09-19T19:21:57.616157+00:00",
+  "exitCode": 0,
+  "runnerPid": 69163,
+  "trackedProcesses": {
+    "69163": {
+      "parent": 69154,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:52 2026",
+      "command": "<defunct>"
+    },
+    "69196": {
+      "parent": 69163,
+      "uid": 501,
+      "started": "Sat Sep 19 21:21:53 2026",
+      "command": "(dart)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

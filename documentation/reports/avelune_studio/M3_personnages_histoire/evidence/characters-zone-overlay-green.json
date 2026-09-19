@@ -1,0 +1,48 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/flutter",
+    "test",
+    "--no-pub",
+    "test/characters/story_zone_overlay_test.dart",
+    "test/characters/character_canvas_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T19:33:46.603273+00:00",
+  "finishedAt": "2026-09-19T19:33:50.835279+00:00",
+  "exitCode": 0,
+  "runnerPid": 88536,
+  "trackedProcesses": {
+    "88536": {
+      "parent": 88527,
+      "uid": 501,
+      "started": "Sat Sep 19 21:33:46 2026",
+      "command": "<defunct>"
+    },
+    "88575": {
+      "parent": 88536,
+      "uid": 501,
+      "started": "Sat Sep 19 21:33:47 2026",
+      "command": "(xcrun)"
+    },
+    "88587": {
+      "parent": 88536,
+      "uid": 501,
+      "started": "Sat Sep 19 21:33:47 2026",
+      "command": "(dartaotruntime)"
+    },
+    "88629": {
+      "parent": 88536,
+      "uid": 501,
+      "started": "Sat Sep 19 21:33:48 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.e6x4KS/flutter_test_listener.M31WJQ/listener.dart.dill"
+    },
+    "88660": {
+      "parent": 88536,
+      "uid": 501,
+      "started": "Sat Sep 19 21:33:48 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

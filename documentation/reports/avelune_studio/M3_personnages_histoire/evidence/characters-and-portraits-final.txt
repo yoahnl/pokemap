@@ -1,0 +1,16 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/dialogue_portrait_choice_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_editing_test.dart: place, move, duplicate, properties, deletion and undo use map history
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_canvas_test.dart: selection distinguishes covered character and decor without moving either
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_canvas_test.dart: selection distinguishes covered character and decor without moving either
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_canvas_test.dart: selection distinguishes covered character and decor without moving either
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_canvas_test.dart: selection distinguishes covered character and decor without moving either
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/dialogue_portrait_choice_test.dart: portrait names select canonical state without rewriting the line or speaker
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/dialogue_portrait_choice_test.dart: portrait names select canonical state without rewriting the line or speaker
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/dialogue_portrait_choice_test.dart: portrait names select canonical state without rewriting the line or speaker
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/dialogue_portrait_choice_test.dart: portrait names select canonical state without rewriting the line or speaker
+00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_widgets_test.dart: palette and inspector support real instance edits at enlarged text
+00:01 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_compact_workspace_test.dart: enlarged text keeps palette and character inspector reachable over the map
+00:02 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_compact_workspace_test.dart: enlarged text keeps palette and character inspector reachable over the map
+00:03 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/brush_retention_transition_test.dart: tool integration retains one brush with hidden palette and small budget
+00:03 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/brush_retention_transition_test.dart: tool integration retains one brush with hidden palette and small budget
+00:07 +14: All tests passed!

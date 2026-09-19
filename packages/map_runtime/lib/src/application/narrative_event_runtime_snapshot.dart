@@ -46,7 +46,7 @@ final class NarrativeEventRuntimeSnapshot {
         : EventRegistryDecodeResult.decoded(registry);
     final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
     final validatedProjects = Set<ProjectManifest>.identity()..add(project);
-    if (registry.mode == EventSystemMode.legacyOnly) {
+    if (registry.mode == EventSystemMode.legacyOnly && !registry.hasLocalRuntimeAuthority) {
       return NarrativeEventRuntimeSnapshot._(
         project: project,
         mapsById: const <String, MapData>{},

@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative_interaction_projection_test.dart
+00:00 +0: editable projection roundtrips every branch and ordered native action
+00:00 +1: advanced scene additions remain read-only and unchanged
+00:00 +2: mismatched event and scene titles are never silently reconstructed
+00:00 +3: All tests passed!
