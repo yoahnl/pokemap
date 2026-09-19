@@ -18,7 +18,8 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
 
   @override
   Future<ProjectSession> open(String directoryPath) async {
-    final selectedPath = directoryPath.trim();
+    final selectedPath = directoryPath;
+    _requirePreservedPath(selectedPath);
     if (!p.isAbsolute(selectedPath) ||
         selectedPath.contains('\u0000') ||
         selectedPath.split(RegExp(r'[\\/]')).contains('..')) {
@@ -30,6 +31,7 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
         fileReader: _reader,
       );
       final canonicalPath = await policy.authorizeProjectRoot(selectedPath);
+      _requirePreservedPath(canonicalPath);
       final reader = _reader;
       if (reader is ProjectResourceProbeReader) {
         final probe = await (reader as ProjectResourceProbeReader)
@@ -77,6 +79,12 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
   @override
   Future<void> close(ProjectSession session) async {
     _handles.closeWorkspace(WorkspaceHandle(session.sessionId));
+  }
+
+  void _requirePreservedPath(String path) {
+    if (path != path.trim()) {
+      throw const ProjectOpenFailure(ProjectOpenProblem.pathNotPreserved);
+    }
   }
 
   ProjectOpenProblem _workspaceProblem(String code) => switch (code) {

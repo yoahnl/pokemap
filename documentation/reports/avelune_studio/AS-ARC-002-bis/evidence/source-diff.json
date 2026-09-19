@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import subprocess; commands=[[\"git\",\"diff\",\"--\",\"apps/avelune_studio\"],[\"git\",\"diff\",\"--no-index\",\"--\",\"/dev/null\",\"apps/avelune_studio/test/infrastructure/project_path_identity_test.dart\"],[\"git\",\"diff\",\"--no-index\",\"--\",\"/dev/null\",\"apps/avelune_studio/test/presentation/project_path_submission_test.dart\"]];\nfor c in commands:\n print(\"$ \"+\" \".join(c),flush=True); r=subprocess.run(c,cwd=\"../..\"); print(\"exitCode=\"+str(r.returncode),flush=True); assert r.returncode in ([0,1] if \"--no-index\" in c else [0])"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:22:13.712943+00:00",
+  "finishedAt": "2026-09-19T13:22:14.490742+00:00",
+  "exitCode": 0,
+  "runnerPid": 54146,
+  "trackedProcesses": {
+    "54146": {
+      "parent": 54134,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:13 2026",
+      "command": "<defunct>"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

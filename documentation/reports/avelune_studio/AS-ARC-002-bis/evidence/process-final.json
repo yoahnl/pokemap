@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import pathlib,json,subprocess\ne=pathlib.Path(\"../../documentation/reports/avelune_studio/AS-ARC-002-bis/evidence\")\nsnapshot={}\nfor line in subprocess.check_output([\"ps\",\"-axo\",\"pid=,ppid=,uid=,lstart=,command=\"],text=True).splitlines():\n f=line.split(None,8)\n if len(f)==9: snapshot[f[0]]={\"parent\":int(f[1]),\"uid\":int(f[2]),\"started\":\" \".join(f[3:8]),\"command\":f[8]}\nfor name in [\"regressions-red\",\"neighbor-red\",\"regressions-green\",\"tests-final\",\"analyze-final\",\"build-final\",\"native-run\"]:\n d=json.loads((e/(name+\".json\")).read_text())\n remaining={pid:snapshot[pid] for pid,old in d[\"trackedProcesses\"].items() if pid in snapshot and all(old[k]==snapshot[pid][k] for k in [\"uid\",\"started\",\"command\"])}\n print(name, \"exit\", d[\"exitCode\"], \"remaining owned:\", json.dumps(remaining))\nprint(\"Other Avelune processes (ownership not established; no termination):\")\nfor pid,info in snapshot.items():\n if \"/Avelune Studio.app/Contents/MacOS/Avelune Studio\" in info[\"command\"] and \"python3\" not in info[\"command\"]: print(pid,json.dumps(info))\nprint(\"Diagnostic filenames:\")\nfor p in sorted(pathlib.Path(\"/Users/karim/Library/Logs/DiagnosticReports\").glob(\"*Avelune*\")): print(p.name)\n"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:36:48.858775+00:00",
+  "finishedAt": "2026-09-19T13:36:49.442659+00:00",
+  "exitCode": 0,
+  "runnerPid": 64714,
+  "trackedProcesses": {
+    "64714": {
+      "parent": 64704,
+      "uid": 501,
+      "started": "Sat Sep 19 15:36:48 2026",
+      "command": "<defunct>"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

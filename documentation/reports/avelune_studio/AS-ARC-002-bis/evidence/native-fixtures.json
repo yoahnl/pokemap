@@ -1,0 +1,23 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart",
+    "--packages=.dart_tool/package_config.json",
+    "/tmp/avelune-bis-native-uMg3wu/create_fixtures.dart",
+    "/tmp/avelune-bis-native-uMg3wu"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:18:34.110904+00:00",
+  "finishedAt": "2026-09-19T13:18:41.864371+00:00",
+  "exitCode": 0,
+  "runnerPid": 50171,
+  "trackedProcesses": {
+    "50171": {
+      "parent": 50162,
+      "uid": 501,
+      "started": "Sat Sep 19 15:18:34 2026",
+      "command": "(dartvm)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

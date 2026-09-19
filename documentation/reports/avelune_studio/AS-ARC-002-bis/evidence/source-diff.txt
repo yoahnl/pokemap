@@ -1,0 +1,579 @@
+$ git diff -- apps/avelune_studio
+diff --git a/apps/avelune_studio/README.md b/apps/avelune_studio/README.md
+index 0e2990c5d..09371f8b4 100644
+--- a/apps/avelune_studio/README.md
++++ b/apps/avelune_studio/README.md
+@@ -58,4 +58,12 @@ Le manifeste suffit pour cette identité : les cartes, assets et la jouabilité
+ sont pas validés. Certaines erreurs de permissions sont regroupées en erreur de
+ lecture par l’API existante. Aucun benchmark ni support multiplateforme certifié.
+ 
++AS-ARC-002-bis conserve exactement le chemin saisi ou sélectionné. Si ce chemin,
++ou sa racine résolue après un lien symbolique, serait altéré par le nettoyage du
++lecteur partagé, l’ouverture est refusée avant tout accès au manifeste. Cela inclut
++un nom de dossier terminé par un espace, même suivi d’un séparateur. Les espaces
++internes, accents et liens vers une racine sûre restent acceptés. C’est un refus
++explicite local, pas le support complet de ces noms ni une correction du lecteur
++partagé. Le texte saisi reste disponible pour correction.
++
+ Voir le [rapport et les preuves natives](../../documentation/reports/avelune_studio/AS-ARC-002/README.md).
+diff --git a/apps/avelune_studio/lib/src/features/project_session/application/project_session.dart b/apps/avelune_studio/lib/src/features/project_session/application/project_session.dart
+index 3963a6045..12873f420 100644
+--- a/apps/avelune_studio/lib/src/features/project_session/application/project_session.dart
++++ b/apps/avelune_studio/lib/src/features/project_session/application/project_session.dart
+@@ -17,6 +17,7 @@ abstract interface class ProjectSessionPort {
+ 
+ enum ProjectOpenProblem {
+   invalidPath,
++  pathNotPreserved,
+   directoryUnavailable,
+   manifestMissing,
+   manifestInvalid,
+diff --git a/apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart b/apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart
+index 6691aa89d..bcbdd9553 100644
+--- a/apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart
++++ b/apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart
+@@ -18,7 +18,8 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
+ 
+   @override
+   Future<ProjectSession> open(String directoryPath) async {
+-    final selectedPath = directoryPath.trim();
++    final selectedPath = directoryPath;
++    _requirePreservedPath(selectedPath);
+     if (!p.isAbsolute(selectedPath) ||
+         selectedPath.contains('\u0000') ||
+         selectedPath.split(RegExp(r'[\\/]')).contains('..')) {
+@@ -30,6 +31,7 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
+         fileReader: _reader,
+       );
+       final canonicalPath = await policy.authorizeProjectRoot(selectedPath);
++      _requirePreservedPath(canonicalPath);
+       final reader = _reader;
+       if (reader is ProjectResourceProbeReader) {
+         final probe = await (reader as ProjectResourceProbeReader)
+@@ -79,6 +81,12 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
+     _handles.closeWorkspace(WorkspaceHandle(session.sessionId));
+   }
+ 
++  void _requirePreservedPath(String path) {
++    if (path != path.trim()) {
++      throw const ProjectOpenFailure(ProjectOpenProblem.pathNotPreserved);
++    }
++  }
++
+   ProjectOpenProblem _workspaceProblem(String code) => switch (code) {
+     'workspace.path_invalid' ||
+     'workspace.path_traversal' ||
+diff --git a/apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart b/apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart
+index 734a30975..149277a0f 100644
+--- a/apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart
++++ b/apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart
+@@ -2,6 +2,8 @@ import '../application/project_session.dart';
+ 
+ String projectOpenMessage(ProjectOpenProblem? problem) => switch (problem) {
+   ProjectOpenProblem.invalidPath => 'Indiquez un chemin absolu, sans « .. ».',
++  ProjectOpenProblem.pathNotPreserved =>
++    'Ce chemin ne peut pas être ouvert sans modifier le dossier visé. Aucun projet n’a été ouvert. Vérifiez les espaces en bordure du chemin ou choisissez un autre dossier.',
+   ProjectOpenProblem.directoryUnavailable =>
+     'Dossier absent ou inaccessible. Vérifiez le chemin ou utilisez Parcourir.',
+   ProjectOpenProblem.manifestMissing =>
+diff --git a/apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart b/apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart
+index 507be81d2..b9e1218ea 100644
+--- a/apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart
++++ b/apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart
+@@ -53,7 +53,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
+     }
+     FocusScope.of(context).unfocus();
+     setState(() => _pickerError = null);
+-    var directory = _path.text.trim();
++    var directory = _path.text;
+     if (browse || directory.isEmpty) {
+       final generation = ++_pickerGeneration;
+       setState(() => _picking = true);
+diff --git a/apps/avelune_studio/test/infrastructure/project_fixture.dart b/apps/avelune_studio/test/infrastructure/project_fixture.dart
+index ca698b4b0..006c5c0ba 100644
+--- a/apps/avelune_studio/test/infrastructure/project_fixture.dart
++++ b/apps/avelune_studio/test/infrastructure/project_fixture.dart
+@@ -9,12 +9,13 @@ Future<Directory> createProject(
+   Directory parent,
+   String name, {
+   bool withUnreadMap = false,
++  String? manifestName,
+ }) async {
+   final directory = await Directory(p.join(parent.path, name)).create();
+   await File(p.join(directory.path, 'project.json')).writeAsString(
+     jsonEncode(
+       ProjectManifest(
+-        name: name,
++        name: manifestName ?? name,
+         maps: [
+           if (withUnreadMap)
+             const ProjectMapEntry(
+exitCode=0
+$ git diff --no-index -- /dev/null apps/avelune_studio/test/infrastructure/project_path_identity_test.dart
+diff --git a/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart b/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart
+new file mode 100644
+index 000000000..b48e15dc5
+--- /dev/null
++++ b/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart
+@@ -0,0 +1,246 @@
++import 'dart:io';
++
++import 'package:avelune_studio/src/features/project_session/application/project_session.dart';
++import 'package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:map_authoring/map_authoring_local.dart';
++import 'package:path/path.dart' as p;
++
++import 'project_fixture.dart';
++
++void main() {
++  late Directory sandbox;
++  late _ObservedLocalReader reader;
++  late LocalProjectSessionAdapter adapter;
++
++  setUp(() async {
++    sandbox = await Directory.systemTemp.createTemp('avelune_path_identity_');
++    reader = _ObservedLocalReader();
++    adapter = LocalProjectSessionAdapter(fileReader: reader);
++  });
++
++  tearDown(() async {
++    await sandbox.delete(recursive: true);
++  });
++
++  Future<(Directory, Directory)> neighbors() async {
++    final plain = await createProject(
++      sandbox,
++      'MonJeu',
++      manifestName: 'Projet témoin sans espace',
++    );
++    final spaced = await createProject(
++      sandbox,
++      'MonJeu ',
++      manifestName: 'Projet demandé avec espace final',
++    );
++    final names = await sandbox.list().map((e) => p.basename(e.path)).toList();
++    expect(
++      names,
++      containsAll(['MonJeu', 'MonJeu ']),
++      reason: 'Le filesystem doit représenter les deux noms U+0020 distincts.',
++    );
++    expect(
++      await spaced.resolveSymbolicLinks(),
++      isNot(await plain.resolveSymbolicLinks()),
++      reason: 'Ces tests exigent deux vrais dossiers distincts.',
++    );
++    return (plain, spaced);
++  }
++
++  Future<void> refuseWithoutReads(String path) async {
++    reader.reads.clear();
++    reader.probes.clear();
++    ProjectSession? unexpectedSession;
++    Object? failure;
++    try {
++      unexpectedSession = await adapter.open(path);
++    } catch (error) {
++      failure = error;
++    }
++    if (unexpectedSession != null) await adapter.close(unexpectedSession);
++    expect(
++      unexpectedSession?.name,
++      isNull,
++      reason: 'Un chemin refusé ne doit retourner aucun projet voisin.',
++    );
++    expect(
++      failure,
++      isA<ProjectOpenFailure>().having(
++        (failure) => failure.problem.name,
++        'problem',
++        'pathNotPreserved',
++      ),
++    );
++    expect(reader.reads, isEmpty, reason: 'Aucun manifeste ne doit être lu.');
++    expect(reader.probes, isEmpty, reason: 'Aucun manifeste voisin consulté.');
++  }
++
++  test(
++    'real neighboring projects never substitute the trimmed target',
++    () async {
++      final (plain, spaced) = await neighbors();
++      final before = await _snapshot(sandbox);
++      final plainRoot = await plain.resolveSymbolicLinks();
++
++      final session = await adapter.open(plain.path);
++      expect(session.name, 'Projet témoin sans espace');
++      expect(session.directoryPath, plainRoot);
++      expect(reader.reads, [(root: plainRoot, relativePath: 'project.json')]);
++      await adapter.close(session);
++
++      await refuseWithoutReads(spaced.path);
++
++      expect(await _snapshot(sandbox), before);
++    },
++  );
++
++  test(
++    'trailing space is refused even when no plain neighbor exists',
++    () async {
++      final spaced = await createProject(
++        sandbox,
++        'MonJeu ',
++        manifestName: 'Projet demandé sans voisin',
++      );
++      expect(await Directory(p.join(sandbox.path, 'MonJeu')).exists(), isFalse);
++      expect(p.basename(await spaced.resolveSymbolicLinks()), 'MonJeu ');
++      final before = await _snapshot(sandbox);
++
++      await refuseWithoutReads(spaced.path);
++
++      expect(await _snapshot(sandbox), before);
++    },
++  );
++
++  test('trailing separator cannot hide a risky canonical root', () async {
++    final (_, spaced) = await neighbors();
++    final submitted = '${spaced.path}${Platform.pathSeparator}';
++    expect(submitted.trim(), submitted);
++    final before = await _snapshot(sandbox);
++
++    await refuseWithoutReads(submitted);
++
++    expect(reader.canonicalRequests, contains(submitted));
++    expect(await _snapshot(sandbox), before);
++  });
++
++  test(
++    'ordinary symlink to risky root is refused before manifest access',
++    () async {
++      final (_, spaced) = await neighbors();
++      final alias = await Link(
++        p.join(sandbox.path, 'Alias'),
++      ).create(spaced.path);
++      final before = await _snapshot(sandbox);
++
++      await refuseWithoutReads(alias.path);
++
++      expect(reader.canonicalRequests, contains(alias.path));
++      expect(await alias.target(), spaced.path);
++      expect(await _snapshot(sandbox), before);
++    },
++  );
++
++  test(
++    'ordinary symlink to safe root accepts legitimate canonicalization',
++    () async {
++      final (plain, _) = await neighbors();
++      final alias = await Link(
++        p.join(sandbox.path, 'Alias sûr'),
++      ).create(plain.path);
++      final root = await plain.resolveSymbolicLinks();
++      expect(alias.path, isNot(root));
++      final before = await _snapshot(sandbox);
++
++      final session = await adapter.open(alias.path);
++
++      expect(session.name, 'Projet témoin sans espace');
++      expect(session.directoryPath, root);
++      expect(reader.reads, [(root: root, relativePath: 'project.json')]);
++      await adapter.close(session);
++      expect(await alias.target(), plain.path);
++      expect(await _snapshot(sandbox), before);
++    },
++  );
++
++  test('internal spaces and accents preserve the requested project', () async {
++    final project = await createProject(
++      sandbox,
++      'Mon jeu été à vélo',
++      manifestName: 'Identité réelle accentuée',
++    );
++    final root = await project.resolveSymbolicLinks();
++    final before = await _snapshot(sandbox);
++
++    final session = await adapter.open(project.path);
++
++    expect(session.name, 'Identité réelle accentuée');
++    expect(session.directoryPath, root);
++    expect(reader.reads, [(root: root, relativePath: 'project.json')]);
++    await adapter.close(session);
++    expect(await _snapshot(sandbox), before);
++  });
++
++  test('surrounding whitespace never redirects a direct port call', () async {
++    final (plain, _) = await neighbors();
++    final before = await _snapshot(sandbox);
++
++    await refuseWithoutReads(' ${plain.path} ');
++
++    expect(await _snapshot(sandbox), before);
++  });
++}
++
++Future<Map<String, Object>> _snapshot(Directory directory) async {
++  final entries = await directory
++      .list(recursive: true, followLinks: false)
++      .toList();
++  entries.sort((a, b) => a.path.compareTo(b.path));
++  return {
++    for (final entry in entries)
++      p.relative(entry.path, from: directory.path): switch (entry) {
++        File() => await entry.readAsBytes(),
++        Link() => ('link', await entry.target()),
++        _ => 'directory',
++      },
++  };
++}
++
++final class _ObservedLocalReader
++    implements ProjectFileReader, ProjectResourceProbeReader {
++  final delegate = const LocalProjectFileReader();
++  final canonicalRequests = <String>[];
++  final reads = <({String root, String relativePath})>[];
++  final probes = <({String root, String relativePath})>[];
++
++  @override
++  Future<String> canonicalizeDirectory(String path) {
++    canonicalRequests.add(path);
++    return delegate.canonicalizeDirectory(path);
++  }
++
++  @override
++  Future<List<int>> readBytes({
++    required String projectRoot,
++    required String relativePath,
++  }) {
++    reads.add((root: projectRoot, relativePath: relativePath));
++    return delegate.readBytes(
++      projectRoot: projectRoot,
++      relativePath: relativePath,
++    );
++  }
++
++  @override
++  Future<ProjectResourceProbe> probeResource({
++    required String projectRoot,
++    required String relativePath,
++  }) {
++    probes.add((root: projectRoot, relativePath: relativePath));
++    return delegate.probeResource(
++      projectRoot: projectRoot,
++      relativePath: relativePath,
++    );
++  }
++}
+exitCode=1
+$ git diff --no-index -- /dev/null apps/avelune_studio/test/presentation/project_path_submission_test.dart
+diff --git a/apps/avelune_studio/test/presentation/project_path_submission_test.dart b/apps/avelune_studio/test/presentation/project_path_submission_test.dart
+new file mode 100644
+index 000000000..fca209705
+--- /dev/null
++++ b/apps/avelune_studio/test/presentation/project_path_submission_test.dart
+@@ -0,0 +1,206 @@
++import 'dart:async';
++
++import 'package:avelune_studio/src/bootstrap/studio_app.dart';
++import 'package:avelune_studio/src/features/project_session/application/project_session.dart';
++import 'package:avelune_studio/src/features/project_session/application/project_session_controller.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++
++import '../support/controlled_project_session_port.dart';
++
++void main() {
++  for (final (description, path) in [
++    ('trailing space', '/projets/MonJeu '),
++    ('surrounding spaces', '  /projets/MonJeu  '),
++    ('whitespace only', '   '),
++    ('quoted path', '"/projets/Mon Jeu"'),
++    ('unicode characters', '/projets/E\u0301té\u00a0Mon Jeu'),
++    ('tilde', '~/projets/MonJeu'),
++  ]) {
++    testWidgets('submits $description exactly without invoking the picker', (
++      tester,
++    ) async {
++      final port = ControlledProjectSessionPort();
++      var selections = 0;
++      await tester.pumpWidget(
++        StudioApp(
++          createSession: () => ProjectSessionController(port),
++          chooseDirectory: () async {
++            selections++;
++            return '/alternative';
++          },
++        ),
++      );
++      await tester.enterText(find.byType(TextField), path);
++      await tester.testTextInput.receiveAction(TextInputAction.done);
++      await tester.pump();
++      expect(port.requests, [path]);
++      expect(selections, 0);
++      await tester.pumpWidget(const SizedBox());
++      port.pending.single.complete(exampleA);
++      await tester.pumpAndSettle();
++      expect(port.released, [exampleA]);
++    });
++  }
++
++  testWidgets('passes the native trailing space unchanged to the session', (
++    tester,
++  ) async {
++    final port = ControlledProjectSessionPort();
++    final selection = Completer<String?>();
++    await tester.pumpWidget(
++      StudioApp(
++        createSession: () => ProjectSessionController(port),
++        chooseDirectory: () => selection.future,
++      ),
++    );
++    await tester.enterText(find.byType(TextField), '/brouillon');
++    await tester.tap(find.text('Parcourir'));
++    await tester.pumpAndSettle();
++    expect(find.byType(TextField), findsNothing);
++    expect(port.requests, isEmpty);
++    selection.complete('/projets/MonJeu ');
++    await tester.pump();
++    expect(port.requests, ['/projets/MonJeu ']);
++    port.pending.single.completeError(
++      const ProjectOpenFailure(ProjectOpenProblem.pathNotPreserved),
++    );
++    await tester.pumpAndSettle();
++    expect(find.text(_refusalMessage), findsOneWidget);
++    expect(find.text('Projet ouvert — lecture seule'), findsNothing);
++    expect(_enteredPath(tester), '/projets/MonJeu ');
++    expect(tester.takeException(), isNull);
++    await tester.pumpWidget(const SizedBox());
++  });
++
++  testWidgets('an actually empty field opens the picker without reading', (
++    tester,
++  ) async {
++    final port = ControlledProjectSessionPort();
++    var selections = 0;
++    await tester.pumpWidget(
++      StudioApp(
++        createSession: () => ProjectSessionController(port),
++        chooseDirectory: () async {
++          selections++;
++          return null;
++        },
++      ),
++    );
++    await tester.tap(find.text('Ouvrir un projet'));
++    await tester.pumpAndSettle();
++    expect(selections, 1);
++    expect(port.requests, isEmpty);
++    expect(_enteredPath(tester), '');
++    await tester.pumpWidget(const SizedBox());
++  });
++
++  testWidgets('cancelling the picker preserves the session and entered text', (
++    tester,
++  ) async {
++    final port = ControlledProjectSessionPort();
++    final session = ProjectSessionController(port);
++    final opening = session.open('/refus ');
++    port.pending.single.completeError(
++      const ProjectOpenFailure(ProjectOpenProblem.pathNotPreserved),
++    );
++    await opening;
++    await tester.pumpWidget(
++      StudioApp(
++        createSession: () => session,
++        chooseDirectory: () async => null,
++      ),
++    );
++    await tester.pumpAndSettle();
++    final before = session.state;
++    await tester.enterText(find.byType(TextField), ' /brouillon ');
++    await tester.tap(find.text('Parcourir'));
++    await tester.pumpAndSettle();
++    expect(identical(session.state, before), isTrue);
++    expect(port.requests, ['/refus ']);
++    expect(port.released, isEmpty);
++    expect(_enteredPath(tester), ' /brouillon ');
++    expect(find.text(_refusalMessage), findsOneWidget);
++    await tester.pumpWidget(const SizedBox());
++  });
++
++  testWidgets(
++    'shows the typed refusal in French and accepts a corrected path',
++    (tester) async {
++      final port = ControlledProjectSessionPort();
++      final session = ProjectSessionController(port);
++      var selections = 0;
++      await tester.pumpWidget(
++        StudioApp(
++          createSession: () => session,
++          chooseDirectory: () async {
++            selections++;
++            return '/alternative';
++          },
++        ),
++      );
++      await tester.enterText(find.byType(TextField), '/projets/MonJeu ');
++      await tester.tap(find.text('Ouvrir un projet'));
++      await tester.pump();
++      port.pending.single.completeError(
++        const ProjectOpenFailure(ProjectOpenProblem.pathNotPreserved),
++      );
++      await tester.pumpAndSettle();
++      expect(find.text(_refusalMessage), findsOneWidget);
++      expect(find.text('Projet ouvert — lecture seule'), findsNothing);
++      expect(find.text(exampleA.name), findsNothing);
++      expect(find.textContaining('ProjectOpenFailure'), findsNothing);
++      expect(find.textContaining('Instance of'), findsNothing);
++      expect(session.state.project, isNull);
++      expect(session.state.problem, ProjectOpenProblem.pathNotPreserved);
++      expect(_enteredPath(tester), '/projets/MonJeu ');
++      expect(port.requests, ['/projets/MonJeu ']);
++      expect(port.released, isEmpty);
++      await tester.enterText(find.byType(TextField), exampleA.directoryPath);
++      await tester.tap(find.text('Ouvrir un projet'));
++      await tester.pump();
++      expect(port.requests, ['/projets/MonJeu ', exampleA.directoryPath]);
++      port.pending.last.complete(exampleA);
++      await tester.pumpAndSettle();
++      expect(find.text('Projet ouvert — lecture seule'), findsOneWidget);
++      expect(find.text(exampleA.name), findsOneWidget);
++      expect(find.text(_refusalMessage), findsNothing);
++      expect(selections, 0);
++      expect(tester.takeException(), isNull);
++      await tester.tap(find.text('Fermer le projet'));
++      await tester.pumpAndSettle();
++      expect(port.released, [exampleA]);
++      expect(_enteredPath(tester), exampleA.directoryPath);
++      await tester.pumpWidget(const SizedBox());
++    },
++  );
++
++  testWidgets('a native result after disposal never opens a project', (
++    tester,
++  ) async {
++    final port = ControlledProjectSessionPort();
++    final selection = Completer<String?>();
++    await tester.pumpWidget(
++      StudioApp(
++        createSession: () => ProjectSessionController(port),
++        chooseDirectory: () => selection.future,
++      ),
++    );
++    await tester.tap(find.text('Parcourir'));
++    await tester.pump();
++    await tester.pumpWidget(const SizedBox());
++    selection.complete('/projets/MonJeu ');
++    await tester.pumpAndSettle();
++    expect(port.requests, isEmpty);
++    expect(port.released, isEmpty);
++    expect(tester.takeException(), isNull);
++  });
++}
++
++String _enteredPath(WidgetTester tester) =>
++    tester.widget<TextField>(find.byType(TextField)).controller!.text;
++
++const _refusalMessage =
++    'Ce chemin ne peut pas être ouvert sans modifier le dossier visé. '
++    'Aucun projet n’a été ouvert. Vérifiez les espaces en bordure du chemin '
++    'ou choisissez un autre dossier.';
+exitCode=1

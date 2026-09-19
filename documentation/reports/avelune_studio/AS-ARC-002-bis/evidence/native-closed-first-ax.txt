@@ -1,0 +1,22 @@
+Window: "Avelune Studio", App: Avelune Studio.
+0 standard window Avelune Studio, Secondary Actions: Raise
+	1 container Avelune Studio
+		2 container (settable)
+			3 text (settable) Avelune Studio
+			4 text (settable) Votre monde commence ici.
+			5 text (settable) Ouvrez votre projet
+			6 text (settable) Sélectionnez le dossier qui contient le fichier project.json.
+			7 text field (settable)
+			8 button (settable) Ouvrir un projet
+			9 button (settable) Parcourir
+			10 text (settable) Lecture seule · Aucun fichier de votre projet ne sera modifié.
+	11 close button
+	12 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	13 minimize button
+	14 text Avelune Studio
+15 menu bar
+	16 Avelune Studio
+	17 Edit
+	18 View
+	19 Window
+	20 Help

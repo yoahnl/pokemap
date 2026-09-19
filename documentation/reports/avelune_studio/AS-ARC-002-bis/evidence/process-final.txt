@@ -1,0 +1,13 @@
+regressions-red exit 1 remaining owned: {}
+neighbor-red exit 1 remaining owned: {}
+regressions-green exit 0 remaining owned: {}
+tests-final exit 0 remaining owned: {}
+analyze-final exit 0 remaining owned: {}
+build-final exit 0 remaining owned: {}
+native-run exit 0 remaining owned: {}
+Other Avelune processes (ownership not established; no termination):
+62177 {"parent": 1, "uid": 501, "started": "Sat Sep 19 15:31:48 2026", "command": "/Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/Build/Products/Debug/Avelune Studio.app/Contents/MacOS/Avelune Studio"}
+Diagnostic filenames:
+Avelune Studio-2026-09-19-143347.ips
+Avelune Studio-2026-09-19-143438.ips
+Avelune Studio-2026-09-19-143814.ips

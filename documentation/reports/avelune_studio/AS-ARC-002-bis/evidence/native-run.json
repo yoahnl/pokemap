@@ -1,0 +1,282 @@
+{
+  "command": [
+    "flutter",
+    "run",
+    "-d",
+    "macos",
+    "--no-pub"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:21:55.919073+00:00",
+  "finishedAt": "2026-09-19T13:31:51.816090+00:00",
+  "exitCode": 0,
+  "runnerPid": 53775,
+  "trackedProcesses": {
+    "53775": {
+      "parent": 53765,
+      "uid": 501,
+      "started": "Sat Sep 19 15:21:55 2026",
+      "command": "(dartvm)"
+    },
+    "53796": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:21:56 2026",
+      "command": "(bash)"
+    },
+    "53808": {
+      "parent": 53796,
+      "uid": 501,
+      "started": "Sat Sep 19 15:21:56 2026",
+      "command": "(git)"
+    },
+    "53816": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:21:56 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -version"
+    },
+    "53824": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:21:56 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/xcdevice list --timeout 5"
+    },
+    "53829": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:21:57 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root /opt/homebrew/share/flutter/bin/cache/artifacts/engine/common/flutter_patched_sdk/ --incremental --target=flutter --experimental-emit-debug-metadata -DFLUTTER_BUILD_NAME=0.1.0 -DFLUTTER_BUILD_NUMBER=1 -DFLUTTER_VERSION=3.48.0-0.4.pre -DFLUTTER_CHANNEL=beta -DFLUTTER_GIT_URL=https://github.com/flutter/flutter.git -DFLUTTER_FRAMEWORK_REVISION=e3005e3402 -DFLUTTER_ENGINE_REVISION=e2149387c6 -DFLUTTER_DART_VERSION=3.14.0 (build 3.14.0-95.2.beta) --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.rO2TW0/flutter_tool.9YJOE3/app.dill --packages /Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json -Ddart.vm.profile=false -Ddart.vm.product=false --enable-asserts --track-creation-locations --filesystem-scheme org-dartlang-root --initialize-from-dill build/96bdb3d9eefa773c53f47e8dfdfce411.cache.dill.track.dill --source file:///Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/flutter_build/dart_plugin_registrant.dart --source package:flutter/src/dart_plugin_registrant.dart -Dflutter.dart_plugin_registrant=file:///Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/flutter_build/dart_plugin_registrant.dart --verbosity=error --enable-experiment=alternative-invalidation-strategy"
+    },
+    "53830": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:21:57 2026",
+      "command": "(xcodebuild)"
+    },
+    "53863": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:21:59 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -clonedSourcePackagesDirPath /Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/SourcePackages -skipPackagePluginValidation -skipPackageSignatureValidation -list"
+    },
+    "53891": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:01 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -clonedSourcePackagesDirPath /Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/SourcePackages -skipPackagePluginValidation -skipPackageSignatureValidation -list -project Runner.xcodeproj"
+    },
+    "53945": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:03 2026",
+      "command": "(xcodebuild)"
+    },
+    "53961": {
+      "parent": 53945,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:05 2026",
+      "command": "(SWBBuildService)"
+    },
+    "54003": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:08 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -clonedSourcePackagesDirPath /Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/SourcePackages -workspace /Users/karim/Project/pokemonProject/apps/avelune_studio/macos/Runner.xcworkspace -configuration Debug -scheme Runner -derivedDataPath /Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos -destination platform=macOS,arch=arm64 OBJROOT=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/Build/Intermediates.noindex SYMROOT=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/Build/Products -quiet COMPILER_INDEX_STORE_ENABLE=NO"
+    },
+    "54020": {
+      "parent": 54003,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:10 2026",
+      "command": "/bin/sh /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/SchemeScriptAction-MKspDN.sh"
+    },
+    "54021": {
+      "parent": 54020,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:10 2026",
+      "command": "bash /opt/homebrew/share/flutter/packages/flutter_tools/bin/macos_assemble.sh prepare"
+    },
+    "54029": {
+      "parent": 54021,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:10 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart /opt/homebrew/share/flutter/packages/flutter_tools/bin/xcode_backend.dart prepare macos"
+    },
+    "54030": {
+      "parent": 54029,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:10 2026",
+      "command": "(bash)"
+    },
+    "54031": {
+      "parent": 54030,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:10 2026",
+      "command": "(bash)"
+    },
+    "54035": {
+      "parent": 54031,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:10 2026",
+      "command": "(bash)"
+    },
+    "54036": {
+      "parent": 54035,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:10 2026",
+      "command": "(basename)"
+    },
+    "54060": {
+      "parent": 54029,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:11 2026",
+      "command": "(dartvm)"
+    },
+    "54129": {
+      "parent": 54003,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:12 2026",
+      "command": "/Applications/Xcode.app/Contents/SharedFrameworks/SwiftBuild.framework/Versions/A/PlugIns/SWBBuildService.bundle/Contents/MacOS/SWBBuildService"
+    },
+    "54156": {
+      "parent": 54129,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:13 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend --version"
+    },
+    "54166": {
+      "parent": 54129,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:14 2026",
+      "command": "(bash)"
+    },
+    "54167": {
+      "parent": 54166,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:14 2026",
+      "command": "(bash)"
+    },
+    "54175": {
+      "parent": 54167,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:14 2026",
+      "command": "(dartvm)"
+    },
+    "54187": {
+      "parent": 54175,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:14 2026",
+      "command": "(uname)"
+    },
+    "54212": {
+      "parent": 54175,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:14 2026",
+      "command": "(dartvm)"
+    },
+    "54225": {
+      "parent": 54212,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:15 2026",
+      "command": "(bash)"
+    },
+    "54227": {
+      "parent": 54225,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:15 2026",
+      "command": "(bash)"
+    },
+    "54235": {
+      "parent": 54227,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:15 2026",
+      "command": "(bash)"
+    },
+    "54276": {
+      "parent": 54212,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:17 2026",
+      "command": "(dartaotruntime)"
+    },
+    "54313": {
+      "parent": 54212,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:21 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/impellerc --sksl --runtime-stage-metal --iplr --sl=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/Build/Products/Debug/App.framework/Versions/A/Resources/flutter_assets/shaders/ink_sparkle.frag --spirv=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/Build/Products/Debug/App.framework/Versions/A/Resources/flutter_assets/shaders/ink_sparkle.frag.spirv --input=/opt/homebrew/share/flutter/packages/flutter/lib/src/material/shaders/ink_sparkle.frag --input-type=frag --include=/opt/homebrew/share/flutter/packages/flutter/lib/src/material/shaders --include=/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/shader_lib"
+    },
+    "54315": {
+      "parent": 54212,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:21 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/impellerc --sksl --runtime-stage-metal --iplr --sl=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/Build/Products/Debug/App.framework/Versions/A/Resources/flutter_assets/shaders/stretch_effect.frag --spirv=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/Build/Products/Debug/App.framework/Versions/A/Resources/flutter_assets/shaders/stretch_effect.frag.spirv --input=/opt/homebrew/share/flutter/packages/flutter/lib/src/widgets/shaders/stretch_effect.frag --input-type=frag --include=/opt/homebrew/share/flutter/packages/flutter/lib/src/widgets/shaders --include=/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/shader_lib"
+    },
+    "54343": {
+      "parent": 54129,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:22 2026",
+      "command": "(bash)"
+    },
+    "54344": {
+      "parent": 54343,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:22 2026",
+      "command": "(bash)"
+    },
+    "54352": {
+      "parent": 54344,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:22 2026",
+      "command": "(dartvm)"
+    },
+    "54364": {
+      "parent": 54352,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:22 2026",
+      "command": "(bash)"
+    },
+    "54382": {
+      "parent": 54352,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:22 2026",
+      "command": "(rsync)"
+    },
+    "54383": {
+      "parent": 54382,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:22 2026",
+      "command": "(rsync)"
+    },
+    "54384": {
+      "parent": 54383,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:22 2026",
+      "command": "(rsync)"
+    },
+    "54386": {
+      "parent": 54352,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:23 2026",
+      "command": "(codesign)"
+    },
+    "54388": {
+      "parent": 54352,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:23 2026",
+      "command": "(rsync)"
+    },
+    "54389": {
+      "parent": 54388,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:23 2026",
+      "command": "(rsync)"
+    },
+    "54397": {
+      "parent": 53775,
+      "uid": 501,
+      "started": "Sat Sep 19 15:22:23 2026",
+      "command": "/Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/Build/Products/Debug/Avelune Studio.app/Contents/MacOS/Avelune Studio"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

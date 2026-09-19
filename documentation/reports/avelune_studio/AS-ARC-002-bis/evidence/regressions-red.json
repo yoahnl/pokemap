@@ -1,0 +1,42 @@
+{
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub",
+    "test/infrastructure/project_path_identity_test.dart",
+    "test/presentation/project_path_submission_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:18:45.861698+00:00",
+  "finishedAt": "2026-09-19T13:18:58.602116+00:00",
+  "exitCode": 1,
+  "runnerPid": 50354,
+  "trackedProcesses": {
+    "50354": {
+      "parent": 50345,
+      "uid": 501,
+      "started": "Sat Sep 19 15:18:45 2026",
+      "command": "<defunct>"
+    },
+    "50395": {
+      "parent": 50354,
+      "uid": 501,
+      "started": "Sat Sep 19 15:18:46 2026",
+      "command": "(dartaotruntime)"
+    },
+    "50499": {
+      "parent": 50354,
+      "uid": 501,
+      "started": "Sat Sep 19 15:18:54 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.B0dDRB/flutter_test_listener.YX7apf/listener.dart.dill"
+    },
+    "50507": {
+      "parent": 50354,
+      "uid": 501,
+      "started": "Sat Sep 19 15:18:55 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.B0dDRB/flutter_test_listener.OrT1rP/listener.dart.dill"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

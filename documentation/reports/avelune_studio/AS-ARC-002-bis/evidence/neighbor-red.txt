@@ -1,0 +1,15 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart
+00:00 +0: real neighboring projects never substitute the trimmed target
+00:00 +0 -1: real neighboring projects never substitute the trimmed target [E]
+  Expected: null
+    Actual: 'Projet témoin sans espace'
+  Un chemin refusé ne doit retourner aucun projet voisin.
+  
+  package:matcher                                           expect
+  package:flutter_test/src/widget_tester.dart 473:18        expect
+  test/infrastructure/project_path_identity_test.dart 62:5  main.refuseWithoutReads
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: real neighboring projects never substitute the trimmed target

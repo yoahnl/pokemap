@@ -53,7 +53,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
     }
     FocusScope.of(context).unfocus();
     setState(() => _pickerError = null);
-    var directory = _path.text.trim();
+    var directory = _path.text;
     if (browse || directory.isEmpty) {
       final generation = ++_pickerGeneration;
       setState(() => _picking = true);

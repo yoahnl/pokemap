@@ -1,0 +1,83 @@
+{
+  "command": [
+    "env",
+    "POKEMAP_MARKDOWN_MAX_NEW=1",
+    "bash",
+    "../../tools/scripts/check_markdown_hygiene.sh"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:38:40.809184+00:00",
+  "finishedAt": "2026-09-19T13:38:43.157498+00:00",
+  "exitCode": 0,
+  "runnerPid": 65650,
+  "trackedProcesses": {
+    "65650": {
+      "parent": 65638,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:40 2026",
+      "command": "(bash)"
+    },
+    "65669": {
+      "parent": 65650,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:40 2026",
+      "command": "(bash)"
+    },
+    "65670": {
+      "parent": 65669,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:40 2026",
+      "command": "(git)"
+    },
+    "65721": {
+      "parent": 65650,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:41 2026",
+      "command": "(bash)"
+    },
+    "65724": {
+      "parent": 65721,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:41 2026",
+      "command": "(tr)"
+    },
+    "65795": {
+      "parent": 65650,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:41 2026",
+      "command": "(bash)"
+    },
+    "65796": {
+      "parent": 65795,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:41 2026",
+      "command": "(git)"
+    },
+    "65804": {
+      "parent": 65650,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:41 2026",
+      "command": "(bash)"
+    },
+    "65916": {
+      "parent": 65804,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:41 2026",
+      "command": "(bash)"
+    },
+    "65918": {
+      "parent": 65916,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:41 2026",
+      "command": "(tr)"
+    },
+    "66055": {
+      "parent": 65650,
+      "uid": 501,
+      "started": "Sat Sep 19 15:38:42 2026",
+      "command": "(grep)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

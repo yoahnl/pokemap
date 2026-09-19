@@ -58,4 +58,12 @@ Le manifeste suffit pour cette identité : les cartes, assets et la jouabilité 
 sont pas validés. Certaines erreurs de permissions sont regroupées en erreur de
 lecture par l’API existante. Aucun benchmark ni support multiplateforme certifié.
 
+AS-ARC-002-bis conserve exactement le chemin saisi ou sélectionné. Si ce chemin,
+ou sa racine résolue après un lien symbolique, serait altéré par le nettoyage du
+lecteur partagé, l’ouverture est refusée avant tout accès au manifeste. Cela inclut
+un nom de dossier terminé par un espace, même suivi d’un séparateur. Les espaces
+internes, accents et liens vers une racine sûre restent acceptés. C’est un refus
+explicite local, pas le support complet de ces noms ni une correction du lecteur
+partagé. Le texte saisi reste disponible pour correction.
+
 Voir le [rapport et les preuves natives](../../documentation/reports/avelune_studio/AS-ARC-002/README.md).

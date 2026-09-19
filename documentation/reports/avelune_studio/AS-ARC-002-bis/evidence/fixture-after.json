@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import pathlib,json,hashlib\nroot=pathlib.Path(\"/tmp/avelune-bis-native-uMg3wu/fixtures\")\nafter={str(p.relative_to(root)): {\"kind\":\"file\",\"sha256\":hashlib.sha256(p.read_bytes()).hexdigest(),\"size\":p.stat().st_size,\"mtime_ns\":p.stat().st_mtime_ns} if p.is_file() else {\"kind\":\"directory\"} for p in sorted(root.rglob(\"*\"))}\nbefore=json.loads(pathlib.Path(\"../../documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/fixture-before.txt\").read_text())\nprint(json.dumps(after,ensure_ascii=False,sort_keys=True,indent=2))\nassert after==before\nprint(\"PASS: inventory, bytes (SHA-256), sizes and mtimes unchanged.\")\n"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:36:24.399505+00:00",
+  "finishedAt": "2026-09-19T13:36:24.813219+00:00",
+  "exitCode": 0,
+  "runnerPid": 64469,
+  "trackedProcesses": {
+    "64469": {
+      "parent": 64460,
+      "uid": 501,
+      "started": "Sat Sep 19 15:36:24 2026",
+      "command": "(python3.14)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

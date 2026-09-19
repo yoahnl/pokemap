@@ -17,6 +17,7 @@ abstract interface class ProjectSessionPort {
 
 enum ProjectOpenProblem {
   invalidPath,
+  pathNotPreserved,
   directoryUnavailable,
   manifestMissing,
   manifestInvalid,

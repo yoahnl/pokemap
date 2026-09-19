@@ -1,0 +1,35 @@
+{
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub",
+    "test/infrastructure/project_path_identity_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:20:16.700845+00:00",
+  "finishedAt": "2026-09-19T13:20:20.339796+00:00",
+  "exitCode": 0,
+  "runnerPid": 51523,
+  "trackedProcesses": {
+    "51523": {
+      "parent": 51514,
+      "uid": 501,
+      "started": "Sat Sep 19 15:20:16 2026",
+      "command": "<defunct>"
+    },
+    "51567": {
+      "parent": 51523,
+      "uid": 501,
+      "started": "Sat Sep 19 15:20:17 2026",
+      "command": "(dartaotruntime)"
+    },
+    "51582": {
+      "parent": 51523,
+      "uid": 501,
+      "started": "Sat Sep 19 15:20:18 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

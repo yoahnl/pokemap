@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import subprocess,pathlib,json,re\nroot=pathlib.Path(\"../..\").resolve()\ncommands=[[\"git\",\"status\",\"--short\",\"--untracked-files=all\"],[\"git\",\"diff\",\"--stat\"],[\"git\",\"diff\",\"--cached\",\"--stat\"],[\"git\",\"diff\",\"--name-only\"],[\"git\",\"diff\",\"--check\"],[\"git\",\"branch\",\"--show-current\"],[\"git\",\"rev-parse\",\"HEAD\"]]\nfor command in commands:\n print(\"$ \"+\" \".join(command),flush=True)\n r=subprocess.run(command,cwd=root)\n print(\"exitCode=\"+str(r.returncode),flush=True)\n assert r.returncode==0\ntracked=subprocess.check_output([\"git\",\"diff\",\"--name-only\"],cwd=root,text=True).splitlines()\nallowed={\"apps/avelune_studio/README.md\",\"apps/avelune_studio/lib/src/features/project_session/application/project_session.dart\",\"apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart\",\"apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart\",\"apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart\",\"apps/avelune_studio/test/infrastructure/project_fixture.dart\"}\nassert set(tracked)==allowed,(tracked,allowed)\nuntracked=subprocess.check_output([\"git\",\"ls-files\",\"--others\",\"--exclude-standard\"],cwd=root,text=True).splitlines()\nnewtests={\"apps/avelune_studio/test/infrastructure/project_path_identity_test.dart\",\"apps/avelune_studio/test/presentation/project_path_submission_test.dart\"}\nassert newtests.issubset(untracked)\nassert all(p in newtests or p.startswith(\"documentation/reports/avelune_studio/AS-ARC-002-bis/\") for p in untracked),untracked\nassert not subprocess.check_output([\"git\",\"diff\",\"--cached\",\"--name-only\"],cwd=root,text=True)\nassert subprocess.check_output([\"git\",\"rev-parse\",\"HEAD\"],cwd=root,text=True).strip()==\"a0a6da30d8bc360b96c847c0bc12b0f881ae7902\"\nreport=root/\"documentation/reports/avelune_studio/AS-ARC-002-bis/README.md\"\nmissing=[p for p in re.findall(r\"\\]\\((evidence/[^)]+)\\)\",report.read_text()) if not (report.parent/p).exists()]\nassert not missing,missing\nprint(\"PASS: six tracked files + two new tests + bis report/evidence only; index and HEAD unchanged; report links resolve.\")\nprint(\"PASS: packages, native config, dependencies, lockfiles, old reports and capture tool unchanged.\")\n"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:39:05.755502+00:00",
+  "finishedAt": "2026-09-19T13:39:06.586940+00:00",
+  "exitCode": 0,
+  "runnerPid": 66302,
+  "trackedProcesses": {
+    "66302": {
+      "parent": 66293,
+      "uid": 501,
+      "started": "Sat Sep 19 15:39:05 2026",
+      "command": "<defunct>"
+    },
+    "66308": {
+      "parent": 66302,
+      "uid": 501,
+      "started": "Sat Sep 19 15:39:05 2026",
+      "command": "(git)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

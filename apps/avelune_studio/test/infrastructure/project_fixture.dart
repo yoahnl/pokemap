@@ -9,12 +9,13 @@ Future<Directory> createProject(
   Directory parent,
   String name, {
   bool withUnreadMap = false,
+  String? manifestName,
 }) async {
   final directory = await Directory(p.join(parent.path, name)).create();
   await File(p.join(directory.path, 'project.json')).writeAsString(
     jsonEncode(
       ProjectManifest(
-        name: name,
+        name: manifestName ?? name,
         maps: [
           if (withUnreadMap)
             const ProjectMapEntry(

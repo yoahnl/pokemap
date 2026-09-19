@@ -1,0 +1,9 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart
+00:00 +0: real neighboring projects never substitute the trimmed target
+00:00 +1: trailing space is refused even when no plain neighbor exists
+00:00 +2: trailing separator cannot hide a risky canonical root
+00:00 +3: ordinary symlink to risky root is refused before manifest access
+00:00 +4: ordinary symlink to safe root accepts legitimate canonicalization
+00:00 +5: internal spaces and accents preserve the requested project
+00:00 +6: surrounding whitespace never redirects a direct port call
+00:00 +7: All tests passed!

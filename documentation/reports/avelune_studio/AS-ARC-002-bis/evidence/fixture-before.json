@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import pathlib,json,hashlib; root=pathlib.Path(\"/tmp/avelune-bis-native-uMg3wu/fixtures\"); print(json.dumps({str(p.relative_to(root)): {\"kind\":\"file\",\"sha256\":hashlib.sha256(p.read_bytes()).hexdigest(),\"size\":p.stat().st_size,\"mtime_ns\":p.stat().st_mtime_ns} if p.is_file() else {\"kind\":\"directory\"} for p in sorted(root.rglob(\"*\"))},ensure_ascii=False,sort_keys=True,indent=2))"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T13:21:37.725708+00:00",
+  "finishedAt": "2026-09-19T13:21:38.204476+00:00",
+  "exitCode": 0,
+  "runnerPid": 53467,
+  "trackedProcesses": {
+    "53467": {
+      "parent": 53457,
+      "uid": 501,
+      "started": "Sat Sep 19 15:21:37 2026",
+      "command": "(Python)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

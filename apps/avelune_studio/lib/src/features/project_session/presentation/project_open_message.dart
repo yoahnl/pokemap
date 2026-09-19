@@ -2,6 +2,8 @@ import '../application/project_session.dart';
 
 String projectOpenMessage(ProjectOpenProblem? problem) => switch (problem) {
   ProjectOpenProblem.invalidPath => 'Indiquez un chemin absolu, sans « .. ».',
+  ProjectOpenProblem.pathNotPreserved =>
+    'Ce chemin ne peut pas être ouvert sans modifier le dossier visé. Aucun projet n’a été ouvert. Vérifiez les espaces en bordure du chemin ou choisissez un autre dossier.',
   ProjectOpenProblem.directoryUnavailable =>
     'Dossier absent ou inaccessible. Vérifiez le chemin ou utilisez Parcourir.',
   ProjectOpenProblem.manifestMissing =>

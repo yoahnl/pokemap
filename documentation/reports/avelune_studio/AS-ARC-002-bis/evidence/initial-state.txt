@@ -1,0 +1,55 @@
+$ pwd
+/Users/karim/Project/pokemonProject
+
+exitCode=0
+
+$ git rev-parse --show-toplevel
+/Users/karim/Project/pokemonProject
+
+exitCode=0
+
+$ git branch --show-current
+main
+
+exitCode=0
+
+$ git rev-parse HEAD
+a0a6da30d8bc360b96c847c0bc12b0f881ae7902
+
+exitCode=0
+
+$ git status --short --untracked-files=all
+
+exitCode=0
+
+$ git diff --stat
+
+exitCode=0
+
+$ git diff --cached --stat
+
+exitCode=0
+
+$ command -v flutter
+/opt/homebrew/bin/flutter
+
+exitCode=0
+
+$ command -v dart
+/opt/homebrew/bin/dart
+
+exitCode=0
+
+$ flutter --version
+Flutter 3.48.0-0.4.pre • channel beta • https://github.com/flutter/flutter.git
+Framework • revision e3005e3402 (2 weeks ago) • 2026-09-02 14:26:34 -0700
+Engine • hash aff4b9780ffb288258c26c3196e66d79f9c2550f (revision e2149387c6) (18 days ago) • 2026-08-31 23:16:20.000Z
+Tools • Dart 3.14.0 (build 3.14.0-95.2.beta) • DevTools 2.61.0-dev.0
+
+exitCode=0
+
+$ dart --version
+Dart SDK version: 3.12.1 (stable) (Tue May 26 01:02:21 2026 -0700) on "macos_arm64"
+
+exitCode=0
+

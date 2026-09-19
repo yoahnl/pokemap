@@ -1,0 +1,78 @@
+$ git status --short --untracked-files=all
+ M apps/avelune_studio/README.md
+ M apps/avelune_studio/lib/src/features/project_session/application/project_session.dart
+ M apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart
+ M apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart
+ M apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart
+ M apps/avelune_studio/test/infrastructure/project_fixture.dart
+?? apps/avelune_studio/test/infrastructure/project_path_identity_test.dart
+?? apps/avelune_studio/test/presentation/project_path_submission_test.dart
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/README.md
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/analyze-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/analyze-final.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/build-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/build-final.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/final-git.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/fixture-after.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/fixture-after.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/fixture-before.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/fixture-before.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/format-check.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/format-check.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/format.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/format.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/infrastructure-green.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/infrastructure-green.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/initial-state.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/markdown-hygiene.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/markdown-hygiene.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/native-ax-setvalue-observation.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/native-closed-first-ax.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/native-fixtures.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/native-fixtures.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/native-initial.jpg
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/native-run.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/native-run.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/native-valid-first-ax.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/neighbor-red.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/neighbor-red.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/process-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/process-final.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/regressions-green.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/regressions-green.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/regressions-red.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/regressions-red.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/source-diff.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/source-diff.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/tests-final.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/evidence/tests-final.txt
+exitCode=0
+$ git diff --stat
+ apps/avelune_studio/README.md                                  |  8 ++++++++
+ .../features/project_session/application/project_session.dart  |  1 +
+ .../infrastructure/local_project_session_adapter.dart          | 10 +++++++++-
+ .../project_session/presentation/project_open_message.dart     |  2 ++
+ .../project_session/presentation/project_session_screen.dart   |  2 +-
+ apps/avelune_studio/test/infrastructure/project_fixture.dart   |  3 ++-
+ 6 files changed, 23 insertions(+), 3 deletions(-)
+exitCode=0
+$ git diff --cached --stat
+exitCode=0
+$ git diff --name-only
+apps/avelune_studio/README.md
+apps/avelune_studio/lib/src/features/project_session/application/project_session.dart
+apps/avelune_studio/lib/src/features/project_session/infrastructure/local_project_session_adapter.dart
+apps/avelune_studio/lib/src/features/project_session/presentation/project_open_message.dart
+apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart
+apps/avelune_studio/test/infrastructure/project_fixture.dart
+exitCode=0
+$ git diff --check
+exitCode=0
+$ git branch --show-current
+main
+exitCode=0
+$ git rev-parse HEAD
+a0a6da30d8bc360b96c847c0bc12b0f881ae7902
+exitCode=0
+PASS: six tracked files + two new tests + bis report/evidence only; index and HEAD unchanged; report links resolve.
+PASS: packages, native config, dependencies, lockfiles, old reports and capture tool unchanged.
