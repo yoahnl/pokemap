@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'di/home_providers.dart';
+import '../platform/files/studio_preferences.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
@@ -19,6 +21,7 @@ class StudioBootstrap extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
+      recentProjectsPortProvider.overrideWith((ref) => studioRecentProjects()),
       projectSessionPortProvider.overrideWith(
         (ref) => LocalProjectSessionAdapter(),
       ),

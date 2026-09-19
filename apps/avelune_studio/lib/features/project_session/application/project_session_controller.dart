@@ -29,20 +29,20 @@ class ProjectSessionController {
     _publish(
       ProjectSessionState(
         status: ProjectSessionStatus.opening,
+        project: previous,
         requestedPath: directoryPath,
       ),
     );
 
     ProjectSession session;
     try {
-      if (previous != null) await _port.close(previous);
-      if (!_isCurrent(generation)) return;
       session = await _port.open(directoryPath);
     } catch (error) {
       if (_isCurrent(generation)) {
         _publish(
           ProjectSessionState(
             status: ProjectSessionStatus.failed,
+            project: previous,
             requestedPath: directoryPath,
             problem: error is ProjectOpenFailure
                 ? error.problem
@@ -63,6 +63,22 @@ class ProjectSessionController {
         project: session,
         requestedPath: directoryPath,
       ),
+    );
+    if (previous != null) await _port.close(previous);
+  }
+
+  void cancelOpening() {
+    if (_disposed || _state.status != ProjectSessionStatus.opening) return;
+    _generation++;
+    final previous = _state.project;
+    _publish(
+      previous == null
+          ? const ProjectSessionState()
+          : ProjectSessionState(
+              status: ProjectSessionStatus.ready,
+              project: previous,
+              requestedPath: previous.directoryPath,
+            ),
     );
   }
 

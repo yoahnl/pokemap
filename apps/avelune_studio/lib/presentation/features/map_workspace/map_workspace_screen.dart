@@ -18,8 +18,10 @@ import '../resources/resource_brush_selection.dart';
 import 'map_workspace_layout.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
-
+import '../../shell/studio_home_navigation.dart';
 export 'workspace_actions.dart' show StudioRuntimeBuilder;
+
+part 'workspace_home_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -32,8 +34,10 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.resourcePort,
     this.imagePicker,
     this.narrativePort,
+    this.home,
   });
   final MapWorkspaceController controller;
+  final StudioHomeNavigation? home;
   final ResourcePort? resourcePort;
   final NarrativePort? narrativePort;
   final PickResourceImage? imagePicker;
@@ -52,7 +56,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   WorkspaceSpace _space = WorkspaceSpace.map;
   ResourceNavigation? _resources;
   NarrativeWorkspaceController? _narrative;
-
   bool? _inspector;
   MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
@@ -84,6 +87,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       runtimeBuilder: widget.runtimeBuilder,
     );
     widget.registerExitGuard(_actions.allowClose);
+    widget.home?.allowSwitch = _actions.allowClose;
     unawaited(_initialize());
   }
 
@@ -116,13 +120,20 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       _preparedMap = map;
       _visuals!.setActiveMap(map);
     }
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+      _publishHome();
+    }
   }
 
   void _toolChanged() {
     _gestureGeneration++;
     retainWorkspaceBrush(_visuals, _view);
     _changed();
+  }
+
+  void _show(WorkspaceSpace space) {
+    if (mounted) setState(() => _space = space);
   }
 
   Future<void> _close() async {
@@ -160,18 +171,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     }
     super.dispose();
   }
-
-  void _openResources([ProjectElementEntry? element, bool edit = false]) {
-    if (_resources == null) return;
-    _resources!.openElement(element, edit: edit);
-    _show(WorkspaceSpace.resources);
-  }
-
-  void _show(WorkspaceSpace space) {
-    if (mounted) setState(() => _space = space);
-  }
-
-  void _openMap() => _show(WorkspaceSpace.map);
 
   Future<void> _editInteraction(MapEntity entity) async {
     if (_narrative == null || _controller.active == null) return;
@@ -234,6 +233,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                 _narrative?.busy == true,
             child: SafeArea(
               child: MapWorkspaceLayout(
+                onHome: widget.home?.showHome,
                 activeSpace: _space.name,
                 controller: _controller,
                 view: _view,

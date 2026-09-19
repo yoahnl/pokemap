@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'studio_home_navigation.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -21,6 +22,7 @@ class StudioWorkspaceHost extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(mapWorkspaceControllerProvider(session));
     return MapWorkspaceScreen(
+      home: StudioHomeScope.of(context),
       controller: controller,
       resourcePort: ref.watch(resourcePortProvider(session)),
       narrativePort: ref.watch(narrativePortProvider(session)),

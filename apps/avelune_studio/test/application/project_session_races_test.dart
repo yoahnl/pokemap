@@ -92,43 +92,125 @@ void main() {
     },
   );
 
-  test('opening B clears A immediately and failure never restores A', () async {
-    final first = controller.open('/example/a');
-    port.pending.single.complete(exampleA);
-    await first;
-    port.releaseGate = Completer<void>();
-
-    final second = controller.open('/example/b');
-    expect(controller.state.status, ProjectSessionStatus.opening);
-    expect(controller.state.project, isNull);
-    expect(controller.state.requestedPath, '/example/b');
-    port.releaseGate!.complete();
-    await Future<void>.delayed(Duration.zero);
-    port.pending.last.completeError(
-      const ProjectOpenFailure(ProjectOpenProblem.manifestMissing),
-    );
-    await second;
-
-    expect(controller.state.status, ProjectSessionStatus.failed);
-    expect(controller.state.project, isNull);
-    expect(port.released, [exampleA]);
-  });
-
   test(
-    'a superseded request never starts reading after previous release',
+    'opening B retains A and a failed replacement leaves A available',
     () async {
       final first = controller.open('/example/a');
       port.pending.single.complete(exampleA);
       await first;
-      port.releaseGate = Completer<void>();
       final second = controller.open('/example/b');
-      await controller.close();
-      port.releaseGate!.complete();
+      expect(controller.state.status, ProjectSessionStatus.opening);
+      expect(controller.state.project, same(exampleA));
+      expect(controller.state.requestedPath, '/example/b');
+      expect(port.released, isEmpty);
+      port.pending.last.completeError(
+        const ProjectOpenFailure(ProjectOpenProblem.manifestMissing),
+      );
       await second;
 
-      expect(port.requests, ['/example/a']);
-      expect(port.released, [exampleA]);
+      expect(controller.state.status, ProjectSessionStatus.failed);
+      expect(controller.state.project, same(exampleA));
+      expect(port.released, isEmpty);
+    },
+  );
+
+  test(
+    'close while replacing releases previous and late candidate once each',
+    () async {
+      final first = controller.open('/example/a');
+      port.pending.single.complete(exampleA);
+      await first;
+      final second = controller.open('/example/b');
+      await controller.close();
+      port.pending.last.complete(exampleB);
+      await second;
+
+      expect(port.requests, ['/example/a', '/example/b']);
+      expect(port.released, [exampleA, exampleB]);
       expect(controller.state.status, ProjectSessionStatus.idle);
     },
   );
+
+  test('successful replacement publishes B before releasing A', () async {
+    final first = controller.open('/example/a');
+    port.pending.single.complete(exampleA);
+    await first;
+    port.releaseGate = Completer<void>();
+    final second = controller.open('/example/b');
+    expect(port.released, isEmpty);
+    port.pending.last.complete(exampleB);
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.state.status, ProjectSessionStatus.ready);
+    expect(controller.state.project, same(exampleB));
+    expect(port.released, [exampleA]);
+    port.releaseGate!.complete();
+    await second;
+  });
+
+  test('cancel keeps A ready and closes late B', () async {
+    final first = controller.open('/example/a');
+    port.pending.single.complete(exampleA);
+    await first;
+    final second = controller.open('/example/b');
+    controller.cancelOpening();
+    expect(controller.state.status, ProjectSessionStatus.ready);
+    expect(controller.state.project, same(exampleA));
+    expect(controller.state.requestedPath, exampleA.directoryPath);
+    expect(port.released, isEmpty);
+    port.pending.last.complete(exampleB);
+    await second;
+    expect(controller.state.project, same(exampleA));
+    expect(port.released, [exampleB]);
+  });
+
+  test(
+    'cancel without previous project stays idle after late failure',
+    () async {
+      final opening = controller.open('/example/b');
+      controller.cancelOpening();
+      port.pending.single.completeError(
+        const ProjectOpenFailure(ProjectOpenProblem.manifestInvalid),
+      );
+      await opening;
+      expect(controller.state.status, ProjectSessionStatus.idle);
+      expect(controller.state.project, isNull);
+      expect(controller.state.problem, isNull);
+      expect(port.released, isEmpty);
+    },
+  );
+
+  test(
+    'dispose while replacing releases previous and late candidate',
+    () async {
+      final first = controller.open('/example/a');
+      port.pending.single.complete(exampleA);
+      await first;
+      final second = controller.open('/example/b');
+      await controller.dispose();
+      expect(port.released, [exampleA]);
+      port.pending.last.complete(exampleB);
+      await second;
+      expect(port.released, [exampleA, exampleB]);
+      expect(controller.state.project, isNull);
+    },
+  );
+
+  test('latest replacement failure retains A despite older success', () async {
+    final first = controller.open('/example/a');
+    port.pending.single.complete(exampleA);
+    await first;
+    final second = controller.open('/example/b');
+    final third = controller.open('/example/broken');
+    port.pending.last.completeError(
+      const ProjectOpenFailure(ProjectOpenProblem.manifestMissing),
+    );
+    await third;
+    port.pending[1].complete(exampleB);
+    await second;
+    expect(controller.state.status, ProjectSessionStatus.failed);
+    expect(controller.state.project, same(exampleA));
+    expect(port.released, [exampleB]);
+    await controller.close();
+    expect(port.released, [exampleB, exampleA]);
+  });
 }

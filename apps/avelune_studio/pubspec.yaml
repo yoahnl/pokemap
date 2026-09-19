@@ -33,3 +33,7 @@ flutter:
   config:
     enable-swift-package-manager: true
   uses-material-design: true
+  assets:
+    - assets/home/hero_landscape.png
+    - assets/home/avelune_symbol.png
+    - assets/home/avelune_logo.png

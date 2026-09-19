@@ -1,0 +1,137 @@
+import 'package:flutter/material.dart';
+import '../../theme/studio_tokens.dart';
+
+class StudioHomeNavigation extends StatelessWidget {
+  const StudioHomeNavigation({
+    super.key,
+    required this.onDestination,
+    required this.projectName,
+    required this.busy,
+    required this.canTest,
+    this.compact = false,
+  });
+  final ValueChanged<String> onDestination;
+  final String? projectName;
+  final bool busy, compact, canTest;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final items = [
+      ('Accueil', Icons.home_outlined, 'home'),
+      ('Carte', Icons.map_outlined, 'map'),
+      ('Ressources', Icons.grid_view_outlined, 'resources'),
+      ('Personnages', Icons.people_outline, 'characters'),
+      ('Histoire', Icons.menu_book_outlined, 'story'),
+      ('Test du jeu', Icons.play_circle_outline, 'test'),
+    ];
+    return SizedBox(
+      width: compact ? 72 : 184,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerLow,
+          border: Border(right: BorderSide(color: colors.outlineVariant)),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 26,
+                ),
+                children: [
+                  for (final item in items)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Tooltip(
+                        message: item.$1,
+                        child: Material(
+                          color: item.$3 == 'home'
+                              ? colors.primaryContainer
+                              : colors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(6),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(6),
+                            onTap:
+                                item.$3 != 'home' &&
+                                    (item.$3 != 'test' || canTest) &&
+                                    !busy
+                                ? () => onDestination(item.$3)
+                                : null,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 13,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(item.$2, size: 22),
+                                  if (!compact) ...[
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Text(
+                                        item.$1,
+                                        style: TextStyle(
+                                          fontWeight: item.$3 == 'home'
+                                              ? FontWeight.w700
+                                              : FontWeight.w400,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!compact) ...[
+                    Text(
+                      projectName ?? 'Avelune Studio',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.circle,
+                        size: 8,
+                        color: projectName != null
+                            ? StudioColors.of(context).success
+                            : colors.onSurfaceVariant,
+                      ),
+                      if (!compact) ...[
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            projectName != null
+                                ? 'Projet chargé'
+                                : 'Aucun projet ouvert',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -2,6 +2,7 @@ import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'di/home_providers.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -29,6 +30,7 @@ class _StudioAppState extends ConsumerState<StudioApp> {
   late final ProjectSessionController _session;
   late final AppLifecycleListener _lifecycle;
   Future<bool> Function()? _exitGuard;
+  String? _guardSession;
 
   @override
   void initState() {
@@ -60,15 +62,21 @@ class _StudioAppState extends ConsumerState<StudioApp> {
     supportedLocales: const [Locale('fr')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
     home: ProjectSessionScreen(
+      recentProjects: ref.watch(recentProjectsPortProvider),
       session: _session,
       chooseDirectory: ref.watch(projectDirectoryPickerProvider),
       workspaceBuilder: widget.workspaceBuilder == null
           ? null
-          : (session, close) => widget.workspaceBuilder!(
-              session,
-              close,
-              (guard) => _exitGuard = guard,
-            ),
+          : (session, close) =>
+                widget.workspaceBuilder!(session, close, (guard) {
+                  if (guard != null) {
+                    _exitGuard = guard;
+                    _guardSession = session.sessionId;
+                  } else if (_guardSession == session.sessionId) {
+                    _exitGuard = null;
+                    _guardSession = null;
+                  }
+                }),
     ),
   );
 }

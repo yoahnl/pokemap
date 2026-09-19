@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:avelune_studio/app/di/home_providers.dart';
+import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +22,9 @@ class TestStudioApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
+      recentProjectsPortProvider.overrideWith(
+        (ref) => MemoryRecentProjectsAdapter(),
+      ),
       projectSessionControllerProvider.overrideWith((ref) {
         final controller = createSession();
         ref.onDispose(() => unawaited(controller.dispose()));

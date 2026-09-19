@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../support/test_studio_app.dart';
+import '../support/open_project_path.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:flutter/material.dart';
@@ -19,13 +20,14 @@ void main() {
         chooseDirectory: () => picked.future,
       ),
     );
-    await tester.enterText(find.byType(TextField), '/brouillon');
-    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
-    await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsNothing);
+    await enterProjectPath(tester, '/brouillon');
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(studioProjectPathField(), findsNothing);
     picked.complete(null);
     await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsOneWidget);
+    await revealProjectPath(tester);
+    expect(studioProjectPathField(), findsOneWidget);
     expect(find.text('/brouillon'), findsOneWidget);
     expect(port.opened, isEmpty);
     await tester.pumpWidget(const SizedBox());
@@ -36,8 +38,8 @@ void main() {
   ) async {
     final port = _Port();
     await tester.pumpWidget(_app(port));
-    expect(find.text('Avelune Studio'), findsOneWidget);
-    expect(find.text('Ouvrir un projet'), findsOneWidget);
+    expect(find.text('Avelune Studio'), findsWidgets);
+    expect(find.text('Ouvrir un projet'), findsWidgets);
     expect(port.opened, isEmpty);
     await tester.pumpWidget(const SizedBox());
   });
@@ -47,18 +49,19 @@ void main() {
   ) async {
     final port = _Port();
     await tester.pumpWidget(_app(port));
-    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
     await tester.pump();
     expect(find.text('Lecture du projet…'), findsOneWidget);
     expect(port.opened, ['/exemple']);
     port.pending.complete(_project);
     await tester.pumpAndSettle();
-    expect(find.text('Projet Exemple réellement lu'), findsOneWidget);
+    expect(find.text('Projet Exemple réellement lu'), findsWidgets);
+    await revealProjectPath(tester);
     expect(find.text('/exemple'), findsWidgets);
     expect(find.text('Projet ouvert — lecture seule'), findsOneWidget);
-    await tester.tap(find.text('Fermer le projet'));
+    await tapVisible(tester, find.text('Fermer le projet'));
     await tester.pumpAndSettle();
-    expect(find.text('Projet Exemple réellement lu'), findsNothing);
+    expect(find.text('Projet ouvert — lecture seule'), findsNothing);
     expect(port.closed, [_project]);
     await tester.pumpWidget(const SizedBox());
   });
@@ -68,8 +71,8 @@ void main() {
   ) async {
     final port = _Port();
     await tester.pumpWidget(_app(port));
-    await tester.enterText(find.byType(TextField), '/invalide');
-    await tester.tap(find.byKey(const ValueKey('open-project-path')));
+    await enterProjectPath(tester, '/invalide');
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-path')));
     await tester.pump();
     port.pending.completeError(
       const ProjectOpenFailure(ProjectOpenProblem.manifestInvalid),
@@ -78,13 +81,13 @@ void main() {
     expect(find.textContaining('manifeste'), findsWidgets);
     expect(find.text('Projet ouvert — lecture seule'), findsNothing);
     port.pending = Completer<ProjectSession>();
-    await tester.enterText(find.byType(TextField), '/corrige');
-    await tester.tap(find.byKey(const ValueKey('open-project-path')));
+    await enterProjectPath(tester, '/corrige');
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-path')));
     await tester.pump();
     port.pending.complete(_project);
     await tester.pumpAndSettle();
     expect(port.opened, ['/invalide', '/corrige']);
-    expect(find.text('Projet Exemple réellement lu'), findsOneWidget);
+    expect(find.text('Projet Exemple réellement lu'), findsWidgets);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -103,7 +106,10 @@ void main() {
         chooseDirectory: () async => '/exemple',
       );
       await tester.pumpWidget(app());
-      await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+      await tapVisible(
+        tester,
+        find.byKey(const ValueKey('open-project-picker')),
+      );
       await tester.pump();
       port.pending.complete(_project);
       await tester.pumpAndSettle();
@@ -126,7 +132,7 @@ void main() {
   ) async {
     final port = _Port();
     await tester.pumpWidget(_app(port));
-    await tester.enterText(find.byType(TextField), '/clavier');
+    await enterProjectPath(tester, '/clavier');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
     expect(port.opened, ['/clavier']);
@@ -143,9 +149,9 @@ void main() {
   ) async {
     final port = _Port();
     await tester.pumpWidget(_app(port));
-    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
     await tester.pump();
-    await tester.tap(find.text('Annuler l’ouverture'));
+    await tapVisible(tester, find.text('Annuler l’ouverture'));
     await tester.pump();
     port.pending.complete(_project);
     await tester.pumpAndSettle();
@@ -165,7 +171,7 @@ void main() {
         chooseDirectory: () => picked.future,
       ),
     );
-    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
     await tester.pump();
     await tester.pumpWidget(const SizedBox());
     picked.complete('/tardif');

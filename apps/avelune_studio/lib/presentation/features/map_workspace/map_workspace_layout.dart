@@ -43,6 +43,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.onZoneDrawn,
     this.deletionBlocked,
     this.activeSpace = 'map',
+    this.onHome,
   });
   final MapWorkspaceController controller;
   final MapWorkspaceViewState? view;
@@ -69,6 +70,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final ValueChanged<MapRect>? onZoneDrawn;
   final bool Function(String)? deletionBlocked;
   final String activeSpace;
+  final VoidCallback? onHome;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -141,6 +143,13 @@ class MapWorkspaceLayout extends StatelessWidget {
       return StudioAppShell(
         projectName: controller.session.name,
         destinations: [
+          if (onHome != null)
+            StudioDestination(
+              label: 'Accueil',
+              icon: Icons.home_outlined,
+              onTap: onHome,
+              selected: false,
+            ),
           StudioDestination(
             label: 'Carte',
             icon: Icons.map_outlined,

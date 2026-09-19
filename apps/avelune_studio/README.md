@@ -1,5 +1,119 @@
 # Avelune Studio — Charte graphique et parcours M1/M2/M3
 
+## UI-01 — Accueil, en attente de validation visuelle
+
+Lot réalisé le 19 septembre 2026, uniquement sur l’accueil et ses raccordements.
+Le ZIP annoncé n’était pas disponible : le brief complet
+`avelune_studio_codex_UI01_accueil.md` et l’image originale
+`Downloads/Avelune Studio/01 - page d'accueil.png` ont été lus/ouverts.
+Aucun `PROMPT_CODEX.md` extrait ni fichier de référence inexistant n’est revendiqué.
+
+L’audit initial a identifié un accueil limité à l’ouverture de dossier, un atelier
+déjà fonctionnel et des gardes de brouillons à conserver. L’accueil reprend le
+bandeau illustré, la navigation gauche, les six outils, les cartes et la colonne
+de droite. Les outils ouvrent le sélecteur si aucun projet n’est chargé, puis
+rejoignent leur contexte existant. Le test nécessite une carte disponible.
+La recherche filtre seulement les noms/chemins des projets connus et les cartes
+du manifeste chargé. Aucun scan ni rendu massif de miniatures n’est ajouté.
+
+L’atelier reste monté lors du retour à l’accueil : document modifié, historique,
+zoom et brouillons restent en mémoire. Un remplacement ouvre le candidat avant
+de libérer l’ancien projet ; échec ou annulation conservent celui-ci. La garde
+de sortie possède désormais l’identifiant de sa session, pour que la destruction
+tardive de l’ancien atelier ne désinscrive pas celle du nouveau.
+Les cinq projets récents sont enregistrés hors des projets de jeu, dans
+`~/Library/Application Support/Avelune Studio/recent-projects.json` sur macOS
+(dans le conteneur applicatif lorsque macOS utilise un HOME isolé).
+Retirer un récent ne supprime jamais son dossier.
+
+### Assets et comparaison visuelle
+
+`assets/home/hero_landscape.png` (2172 × 724) est une reconstruction générative
+du paysage de la référence via `image_gen`, pas un recadrage pixel-identique.
+`assets/home/avelune_logo.png` et `avelune_symbol.png` reprennent sans modification
+les exports `logo.png` et `icon.png` du nouveau `Downloads/Avelune_Studio_Kit`,
+avec leurs variantes Flutter 1×/2×/3×. Le logo complet occupe l’en-tête ;
+l’icône seule est utilisée sous 650 px. L’installateur du kit cible l’ancien
+éditeur et n’a pas été exécuté ; les icônes natives restent hors de ce changement.
+Les captures du vrai arbre Flutter ont été comparées à la référence : titre bleu
+éclairci, en-tête compacté à 150 %, composition hero/outils/colonne conservée.
+Les données de démonstration sont explicitement nommées comme telles.
+
+Captures hors dépôt, sous
+`/Users/karim/.codex/visualizations/2026/09/19/01a0b96a-7828-73d0-a984-42e3e3a5753c/ui01/` :
+
+- `ui01-demo-1536.png` : données de démonstration, 1536 × 1024.
+- `ui01-empty.png` : aucun projet ouvert.
+- `ui01-active-project.png` : projet temporaire réel ouvert depuis le disque,
+  carte modifiée non enregistrée conservée pendant l’aller-retour.
+- `ui01-small-150.png` : 1024 × 640, texte à 150 %.
+
+Ce sont des captures de rendu Flutter hors écran avec polices desktop, pas des
+captures d’une fenêtre macOS pilotée. Le pilote natif Marionette n’a pas été
+ajouté : aucune dépendance ou configuration native n’a été changée.
+Les cartes sans miniature affichent un substitut explicite ; aucune miniature
+fictive n’est présentée comme réelle. La création de projet reste désactivée et
+annoncée comme prochain écran. Le second bandeau illustré n’est pas reproduit.
+La validation artistique appartient à l’utilisateur, pas aux tests.
+
+### Vérifications UI-01
+
+Depuis `apps/avelune_studio` :
+
+```bash
+flutter run -d macos -t lib/main.dart
+flutter test --no-pub --reporter expanded
+flutter analyze --no-pub
+dart format --output=none --set-exit-if-changed lib test tool
+flutter build macos --debug --no-pub
+```
+
+Résultats finaux : **261 tests réussis, 2 ignorés** (copie de projet personnel
+non fournie), **No issues found!**, **224 fichiers, 0 changement de format**,
+**Built build/macos/Build/Products/Debug/Avelune Studio.app**.
+Les tests couvrent notamment chemins exacts, annulation, récents/persistance,
+recherche, actions des six outils, identité du document/zoom/historique,
+remplacement annulé et garde de sortie après remplacement. Les tailles 1536,
+1440, 1280, 1024 à 150 % et 480 px sont vérifiées sans débordement.
+Le lanceur de tests suit les descendants et leurs identités : 67 enfants
+observés sur la dernière suite, aucun processus résiduel à terminer.
+Le journal et le reçu sont `final-suite.txt` et `final-suite.json` près des captures.
+À la racine : `bash tools/scripts/check_markdown_hygiene.sh` et
+`git diff --check` réussissent.
+
+### Périmètre des fichiers et verdicts
+
+Tous les chemins ci-dessous sont relatifs à cette application :
+
+| Fichiers | Zone et rôle |
+| --- | --- |
+| `lib/app/studio_app.dart`, `lib/app/studio_bootstrap.dart`, `lib/app/di/home_providers.dart` | Injection des récents et propriété de la garde de sortie. |
+| `lib/features/home/domain/recent_studio_project.dart`, `lib/features/home/application/recent_projects_controller.dart` | Contrat pur, cinq récents et opérations sérialisées. |
+| `lib/features/home/data/local_recent_projects_adapter.dart`, `lib/features/home/data/memory_recent_projects_adapter.dart`, `lib/platform/files/studio_preferences.dart` | Persistance locale atomique et isolation des tests. |
+| `lib/features/project_session/application/project_session_controller.dart` | Remplacement transactionnel et annulation du candidat. |
+| `lib/presentation/features/home/studio_home_screen.dart`, `studio_home_hero.dart`, `studio_home_navigation.dart`, `studio_home_projects.dart`, `studio_home_tools.dart` dans le même dossier | Composition et interactions de l’accueil. |
+| `lib/presentation/features/project_session/project_session_screen.dart`, `project_open_controls.dart` dans le même dossier | Atelier conservé monté, sélecteur, erreurs et chemin exact. |
+| `lib/presentation/shell/studio_home_navigation.dart`, `lib/presentation/shell/studio_workspace_host.dart` | Navigation de présentation et raccordement à l’atelier existant. |
+| `lib/presentation/features/map_workspace/map_workspace_screen.dart`, `map_workspace_layout.dart`, `workspace_home_binding.dart` dans le même dossier | Destination Accueil, projection des cartes connues et callbacks existants. |
+| `lib/presentation/theme/studio_home_tokens.dart`, `assets/home/hero_landscape.png`, `assets/home/avelune_symbol.png`, `pubspec.yaml` | Accent du titre et déclaration des assets, sans changement de dépendance. |
+| `test/home/home_visual_test.dart`, `home_navigation_test.dart`, `home_real_project_test.dart`, `home_exit_guard_test.dart`, `recent_projects_test.dart` dans le même dossier | Rendu, parcours, session et stockage. |
+| `test/application/project_session_races_test.dart`, `test/presentation/studio_app_test.dart`, `test/presentation/project_path_submission_test.dart`, `test/support/open_project_path.dart`, `test/support/test_studio_app.dart` | Régressions et adaptation des finders sans affaiblir les garanties de chemins. |
+| `README.md` | Provenance, commandes, preuves et limites de ce lot. |
+
+Passes : audit/architecture validé ; agent illustration/interface livré et
+analysé ; agent récents/tests livré et analysé ; tests/build validés par la passe
+principale ; critique finale : défaut de désinscription de garde trouvé, corrigé
+et couvert par `home_exit_guard_test.dart`, aucun autre défaut concret relevé.
+Parité MCP : aucune nouvelle sémantique d’édition ; les raccourcis réutilisent les
+commandes existantes, les préférences locales restent propres à l’interface.
+Pas de modification du serveur MCP ou des moteurs, ni de nouvelle action à publier.
+
+Git initial : HEAD `774d99ac1`, modifications hors lot dans les icônes du Hub.
+Git final : uniquement ce lot ajouté dans cette application ; modifications
+concurrentes/préexistantes du Hub (icônes et plist) laissées intactes.
+Aucun commit/push, aucune modification Notion ni écriture dans un projet original.
+Le lot reste **à valider visuellement**. Aucun autre écran n’est commencé.
+
 ## Charte graphique intégrée
 
 La présentation utilise un atelier bleu nuit, des panneaux à bordure fine, une

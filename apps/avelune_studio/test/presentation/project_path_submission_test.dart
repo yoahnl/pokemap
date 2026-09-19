@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../support/test_studio_app.dart';
+import '../support/open_project_path.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +32,7 @@ void main() {
           },
         ),
       );
-      await tester.enterText(find.byType(TextField), path);
+      await enterProjectPath(tester, path);
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pump();
       expect(port.requests, [path]);
@@ -54,10 +55,10 @@ void main() {
         chooseDirectory: () => selection.future,
       ),
     );
-    await tester.enterText(find.byType(TextField), '/brouillon');
-    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
-    await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsNothing);
+    await enterProjectPath(tester, '/brouillon');
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(studioProjectPathField(), findsNothing);
     expect(port.requests, isEmpty);
     selection.complete('/projets/MonJeu ');
     await tester.pump();
@@ -68,6 +69,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(_refusalMessage), findsOneWidget);
     expect(find.text('Projet ouvert — lecture seule'), findsNothing);
+    await revealProjectPath(tester);
     expect(_enteredPath(tester), '/projets/MonJeu ');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
@@ -87,10 +89,11 @@ void main() {
         },
       ),
     );
-    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
     await tester.pumpAndSettle();
     expect(selections, 1);
     expect(port.requests, isEmpty);
+    await revealProjectPath(tester);
     expect(_enteredPath(tester), '');
     await tester.pumpWidget(const SizedBox());
   });
@@ -113,12 +116,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     final before = session.state;
-    await tester.enterText(find.byType(TextField), ' /brouillon ');
-    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+    await enterProjectPath(tester, ' /brouillon ');
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
     await tester.pumpAndSettle();
     expect(identical(session.state, before), isTrue);
     expect(port.requests, ['/refus ']);
     expect(port.released, isEmpty);
+    await revealProjectPath(tester);
     expect(_enteredPath(tester), ' /brouillon ');
     expect(find.text(_refusalMessage), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
@@ -139,8 +143,8 @@ void main() {
           },
         ),
       );
-      await tester.enterText(find.byType(TextField), '/projets/MonJeu ');
-      await tester.tap(find.byKey(const ValueKey('open-project-path')));
+      await enterProjectPath(tester, '/projets/MonJeu ');
+      await tapVisible(tester, find.byKey(const ValueKey('open-project-path')));
       await tester.pump();
       port.pending.single.completeError(
         const ProjectOpenFailure(ProjectOpenProblem.pathNotPreserved),
@@ -153,23 +157,25 @@ void main() {
       expect(find.textContaining('Instance of'), findsNothing);
       expect(session.state.project, isNull);
       expect(session.state.problem, ProjectOpenProblem.pathNotPreserved);
+      await revealProjectPath(tester);
       expect(_enteredPath(tester), '/projets/MonJeu ');
       expect(port.requests, ['/projets/MonJeu ']);
       expect(port.released, isEmpty);
-      await tester.enterText(find.byType(TextField), exampleA.directoryPath);
-      await tester.tap(find.byKey(const ValueKey('open-project-path')));
+      await enterProjectPath(tester, exampleA.directoryPath);
+      await tapVisible(tester, find.byKey(const ValueKey('open-project-path')));
       await tester.pump();
       expect(port.requests, ['/projets/MonJeu ', exampleA.directoryPath]);
       port.pending.last.complete(exampleA);
       await tester.pumpAndSettle();
       expect(find.text('Projet ouvert — lecture seule'), findsOneWidget);
-      expect(find.text(exampleA.name), findsOneWidget);
+      expect(find.text(exampleA.name), findsWidgets);
       expect(find.text(_refusalMessage), findsNothing);
       expect(selections, 0);
       expect(tester.takeException(), isNull);
-      await tester.tap(find.text('Fermer le projet'));
+      await tapVisible(tester, find.text('Fermer le projet'));
       await tester.pumpAndSettle();
       expect(port.released, [exampleA]);
+      await revealProjectPath(tester);
       expect(_enteredPath(tester), exampleA.directoryPath);
       await tester.pumpWidget(const SizedBox());
     },
@@ -186,7 +192,7 @@ void main() {
         chooseDirectory: () => selection.future,
       ),
     );
-    await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
     await tester.pump();
     await tester.pumpWidget(const SizedBox());
     selection.complete('/projets/MonJeu ');
@@ -198,7 +204,7 @@ void main() {
 }
 
 String _enteredPath(WidgetTester tester) =>
-    tester.widget<TextField>(find.byType(TextField)).controller!.text;
+    tester.widget<TextField>(studioProjectPathField()).controller!.text;
 
 const _refusalMessage =
     'Ce chemin ne peut pas être ouvert sans modifier le dossier visé. '
