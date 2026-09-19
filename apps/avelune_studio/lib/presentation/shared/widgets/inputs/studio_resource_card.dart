@@ -12,12 +12,14 @@ class StudioResourceCard extends StatefulWidget {
     required this.onTap,
     this.category,
     this.metadata,
+    this.maxNameLines = 1,
   });
   final String name;
   final Widget preview;
   final bool selected;
   final VoidCallback onTap;
   final String? category, metadata;
+  final int maxNameLines;
   @override
   State<StudioResourceCard> createState() => _StudioResourceCardState();
 }
@@ -54,11 +56,14 @@ class _StudioResourceCardState extends State<StudioResourceCard> {
               children: [
                 Expanded(child: StudioAssetPreview(child: widget.preview)),
                 const SizedBox(height: 8),
-                Text(
-                  widget.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall,
+                Tooltip(
+                  message: widget.name,
+                  child: Text(
+                    widget.name,
+                    maxLines: widget.maxNameLines,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                 ),
                 if (widget.category != null) ...[
                   const SizedBox(height: 6),

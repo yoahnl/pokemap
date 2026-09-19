@@ -52,6 +52,7 @@ class MapWorkspaceScreen extends StatefulWidget {
 class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _views = <String, MapWorkspaceViewState>{};
   final _search = TextEditingController();
+  final _homeSearch = TextEditingController();
   bool _palette = true;
   WorkspaceSpace _space = WorkspaceSpace.map;
   ResourceNavigation? _resources;
@@ -60,6 +61,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
   String? _resourceError;
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _interactionNotice;
+  bool _charactersContext = false;
   int _gestureGeneration = 0;
   late final WorkspaceActions _actions;
   MapWorkspaceController get _controller => widget.controller;
@@ -133,6 +136,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _show(WorkspaceSpace space) {
+    _interactionNotice?.close();
     if (mounted) setState(() => _space = space);
   }
 
@@ -166,18 +170,11 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     _resources?.removeListener(_changed);
     _resources?.dispose();
     _search.dispose();
+    _homeSearch.dispose();
     for (final view in _views.values) {
       view.dispose();
     }
     super.dispose();
-  }
-
-  Future<void> _editInteraction(MapEntity entity) async {
-    if (_narrative == null || _controller.active == null) return;
-    await _narrative!.openNpc(_controller.active!, entity);
-    if (mounted && _narrative!.active != null) {
-      _show(WorkspaceSpace.interaction);
-    }
   }
 
   Future<void> _zone(MapRect area) async {
@@ -203,7 +200,10 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   Widget build(BuildContext context) {
     final document = _controller.active;
     final error =
-        _narrative?.error ??
+        workspaceNarrativeError(
+          _narrative,
+          narrativePage: _space == WorkspaceSpace.interaction,
+        ) ??
         _controller.error ??
         document?.error ??
         _resourceError;
@@ -233,8 +233,11 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                 _narrative?.busy == true,
             child: SafeArea(
               child: MapWorkspaceLayout(
+                homeSearch: widget.home?.search ?? _homeSearch,
+                onSearch: (_) => widget.home?.searchHome(),
+                onCharacters: () => _navigateFromHome('characters', null),
                 onHome: widget.home?.showHome,
-                activeSpace: _space.name,
+                activeSpace: _activeDestination,
                 controller: _controller,
                 view: _view,
                 visuals: _visuals,
@@ -249,6 +252,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                 onChanged: _changed,
                 onToolChanged: _toolChanged,
                 onActivate: (entry) {
+                  _interactionNotice?.close();
                   _gestureGeneration++;
                   unawaited(_controller.activate(entry));
                 },
@@ -271,14 +275,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                 deletionBlocked: _narrative?.blocksDeletion,
                 onOpenElement: (element) => _openResources(element),
                 onEditElement: (element) => _openResources(element, true),
-                onTileset: (tileset) => _useResource(
-                  ResourceItem(
-                    id: tileset.id,
-                    name: tileset.name,
-                    kind: ResourceKind.images,
-                    tileset: tileset,
-                  ),
-                ),
                 resourceContent: workspaceSecondaryContent(
                   space: _space,
                   narrative: _narrative,

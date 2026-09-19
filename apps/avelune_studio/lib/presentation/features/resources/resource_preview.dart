@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
+import 'resource_terrain_preview.dart';
 
 Widget resourcePreview(
   ResourceItem item,
   ProjectManifest project,
   MapWorkspaceVisuals visuals, {
   double size = 80,
+  bool terrainPattern = false,
 }) {
   if (item.element != null) return visuals.thumbnail(item.element!, size: size);
   if (item.tileset != null) {
@@ -18,13 +20,26 @@ Widget resourcePreview(
         child: (visuals as ResourceWorkspaceVisuals).atlasPreview(item.id),
       );
     }
-    return visuals.tileThumbnail(
-      TileLayerPaletteEntry(tilesetId: item.id, localTileId: 0),
-      size: size,
+    return SizedBox.square(
+      dimension: size,
+      child: const Center(
+        child: Text('Vue d’ensemble indisponible', textAlign: TextAlign.center),
+      ),
     );
   }
   final preset = item.terrain;
   if (preset != null) {
+    if (terrainPattern) {
+      return SizedBox.square(
+        dimension: size,
+        child: ResourceTerrainPreview(
+          preset: preset,
+          project: project,
+          visuals: visuals,
+          size: size,
+        ),
+      );
+    }
     for (final rule in preset.rules) {
       for (final candidate in rule.candidates) {
         for (final part in candidate.parts) {

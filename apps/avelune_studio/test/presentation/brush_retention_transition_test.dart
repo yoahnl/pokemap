@@ -112,18 +112,18 @@ void main() {
       await tester.tap(find.text('Décor du pinceau').first);
       await settle();
       expect(resources.store.priority, contains(stressAtlasId(1)));
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
       await tester.tap(find.byTooltip('Déplacer la vue'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Palette'));
       await tester.pump();
       resources.store.request(stressAtlasId(0));
       await settle();
       expect(resources.images.containsKey(stressAtlasId(1)), isTrue);
+      await tester.tap(find.byTooltip('Palette'));
+      await tester.pump();
       await tester.tap(find.byTooltip('Peindre'));
       await tester.pump();
       expect(resources.store.priority, contains(stressAtlasId(1)));
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
       final palette = tester.widget<MapWorkspacePalette>(
         find.byType(MapWorkspacePalette),
       );
@@ -143,9 +143,13 @@ void main() {
       await tester.pump();
       await tester.tap(find.text(terrain.previewPreset.name).first);
       await settle();
+      await tester.tap(find.byTooltip('Déplacer la vue'));
+      await tester.pump();
       await tester.tap(find.byTooltip('Palette'));
       await tester.pump();
-      await tester.tap(find.byTooltip('Déplacer la vue'));
+      expect(find.byType(MapWorkspacePalette), findsNothing);
+      expect(resources.store.priority, contains(stressAtlasId(2)));
+      await tester.tap(find.byTooltip('Palette'));
       await tester.pump();
       await tester.tap(find.byTooltip('Peindre'));
       await settle();
@@ -154,21 +158,21 @@ void main() {
         resources.decodedBytes,
         lessThanOrEqualTo(fixture.decodedAtlasBytes * 2),
       );
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
-      await tester.tap(find.text('Personnages'));
+      await tester.tap(find.text('Personnages').last);
       await tester.pump();
       await tester.tap(find.text(character.name).first);
       await settle();
       expect(resources.store.priority, contains(stressAtlasId(1)));
       expect(resources.store.priority, isNot(contains(stressAtlasId(2))));
-      await tester.tap(find.byTooltip('Palette'));
-      await tester.pump();
       await tester.tap(find.byTooltip('Déplacer la vue'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Palette'));
       await tester.pump();
       resources.store.request(stressAtlasId(0));
       await settle();
-      await tester.tap(find.byTooltip('Peindre'));
+      await tester.tap(find.byTooltip('Palette'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Placer un personnage'));
       await settle();
       expect(resources.images.containsKey(stressAtlasId(1)), isTrue);
       expect(resources.store.priority, contains(stressAtlasId(1)));

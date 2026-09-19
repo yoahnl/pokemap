@@ -5,6 +5,7 @@ import 'package:flame/game.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:avelune_studio/presentation/features/resources/decor_editor_screen.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_catalog_view.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import '../support/m2_ui_fixture.dart';
@@ -112,7 +113,7 @@ void main() {
       2,
     );
     await f.capture(tester, '03-carte-nouveau-decor');
-    await tester.tap(find.byTooltip('Passer derrière · ⌘↓ / Ctrl↓'));
+    await tester.tap(find.byKey(const ValueKey('Passer derrière')));
     await tester.pump();
     await f.capture(tester, '04-empilement');
     await tester.tap(find.text('Gérer les ressources'));
@@ -121,6 +122,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Planche M2').first);
     await pumpIo(tester);
+    await tester.ensureVisible(find.text('Créer un terrain automatique'));
     await tester.tap(find.text('Créer un terrain automatique'));
     await tester.pump();
     expect(find.byType(TerrainEditorScreen), findsOneWidget);
@@ -156,7 +158,7 @@ void main() {
     await stroke.up();
     await pumpIo(tester);
     expect(original.current.layers.whereType<SmartTileLayer>(), isNotEmpty);
-    await tester.tap(find.byTooltip('Enregistrer · ⌘S / CtrlS'));
+    await tester.tap(find.byKey(const ValueKey('Enregistrer')));
     await pumpIo(tester, frames: 50);
     expect(
       original.dirty,
@@ -210,7 +212,7 @@ void main() {
     addTearDown(() => f.dispose());
     await tester.pumpWidget(f.app(tester, textScale: 1.5));
     await pumpIo(tester);
-    await tester.tap(find.text('Ressources'));
+    await tester.tap(find.byTooltip('Ressources'));
     await pumpIo(tester);
     await tester.tap(find.text('Images et tuiles'));
     await tester.pump();
@@ -218,6 +220,16 @@ void main() {
     await pumpIo(tester);
     await f.capture(tester, '06-catalogue-volumineux');
     expect(f.visuals!.manifest.tilesets.length, greaterThan(128));
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Rechercher dans les ressources'),
+      'atlas tardif 132',
+    );
+    await pumpIo(tester);
+    final results = tester.widget<ResourceCatalogView>(
+      find.byType(ResourceCatalogView),
+    );
+    expect(results.items.single.id, 'stress-atlas-131');
+    expect(results.selected!.id, 'stress-atlas-131');
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await pumpIo(tester, frames: 2);

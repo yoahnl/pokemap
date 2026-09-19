@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_resource_card.dart';
+import '../map_workspace/map_workspace_visuals.dart';
+import '../map_workspace/workspace_compact_panel.dart';
+import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/inputs/studio_tabs.dart';
+import '../../shared/widgets/layout/studio_page_header.dart';
 import 'resource_catalog.dart';
+import 'resource_catalog_toolbar.dart';
+import 'resource_catalog_view.dart';
+import 'resource_category_filter.dart';
 import 'resource_detail_panel.dart';
 import 'resource_preview.dart';
-import '../../shared/widgets/layout/studio_page_header.dart';
-import '../../shared/widgets/layout/studio_resource_grid.dart';
-import '../../shared/widgets/inputs/studio_tabs.dart';
-import '../../shared/widgets/inputs/studio_search_field.dart';
-import '../../shared/widgets/feedback/studio_empty_state.dart';
 
 class ResourceLibraryScreen extends StatefulWidget {
   const ResourceLibraryScreen({
@@ -25,6 +24,8 @@ class ResourceLibraryScreen extends StatefulWidget {
     required this.onImport,
     required this.onBack,
     this.openMaps = const [],
+    this.targetMapName,
+    this.canUse = true,
   });
   final ProjectManifest project;
   final List<MapData> openMaps;
@@ -35,6 +36,8 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ValueChanged<ResourceItem> onTerrain;
   final VoidCallback onImport;
   final VoidCallback onBack;
+  final String? targetMapName;
+  final bool canUse;
   @override
   State<ResourceLibraryScreen> createState() => _ResourceLibraryScreenState();
 }
@@ -45,38 +48,30 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
     initialScrollOffset: widget.state.offset,
   );
   List<ResourceItem> items = [];
-  List<ResourceItem> filtered = [];
   ResourceLibraryState get state => widget.state;
+
   @override
   void initState() {
     super.initState();
-    refresh();
+    items = resourceCatalog(widget.project);
     scroll.addListener(remember);
   }
 
   void remember() => state.offset = scroll.offset;
+
   @override
   void didUpdateWidget(ResourceLibraryScreen old) {
     super.didUpdateWidget(old);
-    if (!identical(old.project, widget.project)) refresh();
+    if (!identical(old.project, widget.project)) {
+      items = resourceCatalog(widget.project);
+    }
+    if (search.text != state.query) search.text = state.query;
   }
 
-  void refresh() {
-    items = resourceCatalog(widget.project);
-    filter();
-  }
-
-  void filter() {
-    filtered = items
-        .where(
-          (e) =>
-              e.kind == state.kind &&
-              (state.category.isEmpty || e.category == state.category) &&
-              ('${e.name} ${e.tags.join(' ')}').toLowerCase().contains(
-                state.query.toLowerCase(),
-              ),
-        )
-        .toList();
+  void change(VoidCallback update) {
+    setState(update);
+    state.offset = 0;
+    if (scroll.hasClients) scroll.jumpTo(0);
   }
 
   @override
@@ -87,188 +82,180 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
     super.dispose();
   }
 
-  Widget preview(ResourceItem item, {double size = 80}) =>
-      resourcePreview(item, widget.project, widget.visuals, size: size);
+  Widget detail(ResourceItem? item, {VoidCallback? close}) =>
+      ResourceDetailPanel(
+        item: item,
+        project: widget.project,
+        openUsage: item == null
+            ? 0
+            : resourceOpenMapUsage(item, widget.openMaps),
+        preview: item == null
+            ? const SizedBox()
+            : resourcePreview(
+                item,
+                widget.project,
+                widget.visuals,
+                size: 280,
+                terrainPattern: true,
+              ),
+        targetMapName: widget.targetMapName,
+        canUse: widget.canUse && widget.project.maps.isNotEmpty,
+        onUse: (item) {
+          close?.call();
+          widget.onUse(item);
+        },
+        onEdit: (item) {
+          close?.call();
+          widget.onEdit(item);
+        },
+        onTerrain: (item) {
+          close?.call();
+          widget.onTerrain(item);
+        },
+      );
+
+  Widget categories(Map<String, String> values, {VoidCallback? close}) =>
+      ResourceCategoryFilter(
+        categories: values,
+        items: items,
+        kind: state.kind,
+        selected: state.category,
+        onChanged: (value) {
+          change(() => state.category = value);
+          close?.call();
+        },
+      );
+
+  void showDetail(ResourceItem item) => showWorkspaceCompactPanel(
+    context,
+    title: 'Détail de la ressource',
+    closeLabel: 'Retour aux ressources',
+    builder: (context, refresh, close) => detail(item, close: close),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final selected = items
-        .where((e) => e.id == state.selectedId && e.kind == state.kind)
-        .firstOrNull;
-    final categories = state.kind == ResourceKind.decors
-        ? {for (final e in widget.project.elementCategories) e.id: e.name}
-        : state.kind == ResourceKind.images
-        ? {for (final e in widget.project.tilesetFolders) e.id: e.name}
-        : <String, String>{};
-    return Column(
-      children: [
-        StudioPageHeader(
-          title: 'Ressources',
-          description:
-              'Vos décors, terrains et images, prêts à donner vie à la carte.',
-          actions: [
-            StudioButton(
-              label: 'Retour à la carte',
-              secondary: true,
-              onPressed: widget.onBack,
+    final filtered = state.visibleItems(items);
+    final selected = state.reconcileSelection(filtered);
+    final values = resourceCategories(widget.project, state.kind, items: items);
+    final hasCategories = values.keys.any((value) => value.isNotEmpty);
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        final inlineDetail =
+            bounds.maxWidth >= 1000 &&
+            MediaQuery.textScalerOf(context).scale(14) <= 20;
+        final inlineCategories = bounds.maxWidth >= 1200 && hasCategories;
+        if (state.revealPending) {
+          state.revealPending = false;
+          if (!inlineDetail && selected != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) showDetail(selected);
+            });
+          }
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            StudioPageHeader(
+              title: 'Ressources',
+              alignActionsToEnd: true,
+              description: bounds.maxHeight < 650
+                  ? null
+                  : 'Vos décors, terrains et images, prêts à donner vie à la carte.',
+              actions: [
+                StudioButton(
+                  label: widget.targetMapName == null
+                      ? 'Retour à la carte'
+                      : 'Carte : ${widget.targetMapName}',
+                  icon: Icons.arrow_back,
+                  secondary: true,
+                  onPressed: widget.onBack,
+                ),
+                StudioButton(
+                  label: 'Importer une image',
+                  icon: Icons.add_photo_alternate_outlined,
+                  onPressed: widget.onImport,
+                ),
+              ],
             ),
-            StudioButton(
-              label: 'Importer une image',
-              icon: Icons.add_photo_alternate_outlined,
-              onPressed: widget.onImport,
-            ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              StudioTabs<ResourceKind>(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: StudioTabs<ResourceKind>(
                 items: const {
                   ResourceKind.decors: 'Décors',
                   ResourceKind.terrains: 'Terrains',
                   ResourceKind.images: 'Images et tuiles',
                 },
                 selected: state.kind,
-                onChanged: (kind) => setState(() {
+                onChanged: (kind) => change(() {
                   state.kind = kind;
                   state.category = '';
-                  state.offset = 0;
-                  filter();
-                  if (scroll.hasClients) scroll.jumpTo(0);
                 }),
               ),
-              StudioButton(
-                label: state.grid ? 'Mode liste' : 'Mode grille',
-                secondary: true,
-                onPressed: () => setState(() => state.grid = !state.grid),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: ResourceCatalogToolbar(
+                search: search,
+                state: state,
+                count: filtered.length,
+                onSearch: (value) => change(() => state.query = value),
+                onSort: (value) => change(() => state.sort = value),
+                onGrid: (value) => change(() => state.grid = value),
+                onFilters: hasCategories && !inlineCategories
+                    ? () => showWorkspaceCompactPanel(
+                        context,
+                        title: 'Catégories',
+                        closeLabel: 'Retour aux ressources',
+                        builder: (context, refresh, close) =>
+                            categories(values, close: close),
+                      )
+                    : null,
               ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Expanded(
-                child: StudioSearchField(
-                  controller: search,
-                  label: 'Rechercher une ressource',
-                  onChanged: (v) => setState(() {
-                    state.query = v;
-                    filter();
-                  }),
-                ),
-              ),
-              if (categories.isNotEmpty) ...[
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 180,
-                  child: DropdownButtonFormField<String>(
-                    key: ValueKey(state.kind),
-                    initialValue: state.category,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Catégorie'),
-                    items: [
-                      const DropdownMenuItem(value: '', child: Text('Toutes')),
-                      for (final c in categories.entries)
-                        DropdownMenuItem(
-                          value: c.key,
-                          child: Text(c.value, overflow: TextOverflow.ellipsis),
-                        ),
-                    ],
-                    onChanged: (v) => setState(() {
-                      state.category = v ?? '';
-                      filter();
-                    }),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final details = ResourceDetailPanel(
-                item: selected,
-                openUsage: selected == null
-                    ? 0
-                    : resourceOpenMapUsage(selected, widget.openMaps),
-                project: widget.project,
-                preview: selected == null
-                    ? const SizedBox()
-                    : preview(selected, size: 150),
-                onUse: widget.onUse,
-                onEdit: widget.onEdit,
-                onTerrain: widget.onTerrain,
-              );
-              final grid = filtered.isEmpty
-                  ? const StudioEmptyState(
-                      title: 'Aucune ressource correspondante.',
-                      description: 'Changez les filtres ou importez une image.',
-                    )
-                  : state.grid
-                  ? StudioResourceGrid(
-                      controller: scroll,
-                      itemCount: filtered.length,
-                      itemBuilder: (context, i) {
-                        final item = filtered[i];
-                        return StudioResourceCard(
-                          name: item.name,
-                          preview: preview(item, size: 132),
-                          category: switch (item.kind) {
-                            ResourceKind.decors => 'Décor',
-                            ResourceKind.terrains => 'Terrain automatique',
-                            ResourceKind.images => 'Image et tuiles',
-                          },
-                          metadata: item.tags.isEmpty
-                              ? null
-                              : item.tags.join(' · '),
-                          selected: selected == item,
-                          onTap: () =>
-                              setState(() => state.selectedId = item.id),
-                        );
-                      },
-                    )
-                  : ListView.builder(
-                      controller: scroll,
-                      scrollCacheExtent: const ScrollCacheExtent.pixels(0),
-                      padding: const EdgeInsets.all(12),
-                      itemCount: filtered.length,
-                      itemBuilder: (context, i) {
-                        final item = filtered[i];
-                        return StudioChoice(
-                          label: item.name,
-                          leading: preview(item, size: 48),
-                          selected: selected == item,
-                          onTap: () =>
-                              setState(() => state.selectedId = item.id),
-                        );
-                      },
-                    );
-              if (c.maxWidth < 720 ||
-                  MediaQuery.textScalerOf(context).scale(14) > 21) {
-                return Column(
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: grid),
-                    SizedBox(height: 190, child: details),
+                    if (inlineCategories) ...[
+                      SizedBox(width: 180, child: categories(values)),
+                      const SizedBox(width: 14),
+                    ],
+                    Expanded(
+                      child: ResourceCatalogView(
+                        items: filtered,
+                        selected: selected,
+                        project: widget.project,
+                        visuals: widget.visuals,
+                        scroll: scroll,
+                        grid: state.grid,
+                        catalogEmpty: !items.any(
+                          (item) => item.kind == state.kind,
+                        ),
+                        onSelect: (item) {
+                          setState(() => state.selectedId = item.id);
+                          if (!inlineDetail) {
+                            showDetail(item);
+                          }
+                        },
+                      ),
+                    ),
+                    if (inlineDetail) ...[
+                      const SizedBox(width: 14),
+                      SizedBox(
+                        width: bounds.maxWidth >= 1250 ? 340 : 320,
+                        child: detail(selected),
+                      ),
+                    ],
                   ],
-                );
-              }
-              return Row(
-                children: [
-                  Expanded(child: grid),
-                  const VerticalDivider(width: 1),
-                  SizedBox(width: 290, child: details),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

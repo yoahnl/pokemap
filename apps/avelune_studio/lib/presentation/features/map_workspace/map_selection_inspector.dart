@@ -22,6 +22,7 @@ class MapSelectionInspector extends StatelessWidget {
     required this.onEditElement,
     this.onEditInteraction,
     this.deletionBlocked,
+    this.width = 300,
   });
   final EditableMapDocument document;
   final ProjectManifest project;
@@ -31,6 +32,7 @@ class MapSelectionInspector extends StatelessWidget {
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final ValueChanged<MapEntity>? onEditInteraction;
   final bool Function(String)? deletionBlocked;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -42,12 +44,12 @@ class MapSelectionInspector extends StatelessWidget {
         ? <MapPlacedElement>[]
         : MapEditingCommands(document, project).stack(pos);
     return SizedBox(
-      width: 270,
+      width: width,
       child: Column(
         children: [
           if (entities.isNotEmpty)
             StudioSidebar(
-              width: 270,
+              width: width,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -98,7 +100,7 @@ class MapSelectionInspector extends StatelessWidget {
           Expanded(
             child: selected?.npc != null
                 ? StudioSidebar(
-                    width: 270,
+                    width: width,
                     child: SingleChildScrollView(
                       child: CharacterInspector(
                         document: document,
@@ -123,6 +125,8 @@ class MapSelectionInspector extends StatelessWidget {
                     onChanged: onChanged,
                     onOpenResource: onOpenElement,
                     onEditResource: onEditElement,
+                    width: width,
+                    tool: view.tool,
                   ),
           ),
         ],

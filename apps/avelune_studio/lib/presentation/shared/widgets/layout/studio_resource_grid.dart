@@ -6,10 +6,12 @@ class StudioResourceGrid extends StatelessWidget {
     required this.itemCount,
     required this.itemBuilder,
     this.controller,
+    this.mainAxisExtent,
   });
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
   final ScrollController? controller;
+  final double? mainAxisExtent;
 
   @override
   Widget build(BuildContext context) => GridView.builder(
@@ -19,8 +21,10 @@ class StudioResourceGrid extends StatelessWidget {
     gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
       maxCrossAxisExtent: 230,
       mainAxisExtent:
+          mainAxisExtent ??
           210 +
-          (MediaQuery.textScalerOf(context).scale(14) - 14).clamp(0, 40) * 4,
+              (MediaQuery.textScalerOf(context).scale(14) - 14).clamp(0, 40) *
+                  4,
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
     ),

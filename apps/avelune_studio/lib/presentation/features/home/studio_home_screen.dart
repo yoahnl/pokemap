@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../features/home/domain/recent_studio_project.dart';
-import '../../shared/widgets/inputs/studio_search_field.dart';
+import '../../shared/widgets/layout/studio_application_frame.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'studio_home_hero.dart';
-import 'studio_home_navigation.dart';
 import 'studio_home_projects.dart';
 import 'studio_home_tools.dart';
 
@@ -25,6 +24,8 @@ class StudioHomeScreen extends StatefulWidget {
     required this.onMap,
     this.status,
     this.statusAtTop = false,
+    this.searchController,
+    this.searchFocusNode,
   });
   final String? projectName, projectPath;
   final bool busy, canTest;
@@ -36,24 +37,36 @@ class StudioHomeScreen extends StatefulWidget {
   final List<({String id, String name})> maps;
   final Widget? status;
   final bool statusAtTop;
+  final TextEditingController? searchController;
+  final FocusNode? searchFocusNode;
 
   @override
   State<StudioHomeScreen> createState() => _StudioHomeScreenState();
 }
 
 class _StudioHomeScreenState extends State<StudioHomeScreen> {
-  final _search = TextEditingController();
+  late final _search = widget.searchController ?? TextEditingController();
   String _query = '';
 
   @override
+  void initState() {
+    super.initState();
+    _query = _search.text.trim().toLowerCase();
+    _search.addListener(_searchChanged);
+  }
+
+  void _searchChanged() =>
+      setState(() => _query = _search.text.trim().toLowerCase());
+
+  @override
   void dispose() {
-    _search.dispose();
+    _search.removeListener(_searchChanged);
+    if (widget.searchController == null) _search.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final recent = widget.recentProjects
         .where(
           (entry) =>
@@ -66,7 +79,6 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
         .toList();
     return LayoutBuilder(
       builder: (context, bounds) {
-        final compact = bounds.maxWidth < 1200;
         final sidebar = Column(
           children: [
             StudioHomeRecentProjects(
@@ -172,102 +184,34 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
             ),
           ],
         );
-        return Material(
-          child: Column(
-            children: [
-              Container(
-                constraints: const BoxConstraints(minHeight: 64),
-                decoration: BoxDecoration(
-                  color: colors.surfaceContainerLow,
-                  border: Border(
-                    bottom: BorderSide(color: colors.outlineVariant),
-                  ),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 2,
-                ),
+        return StudioApplicationFrame(
+          searchFocusNode: widget.searchFocusNode,
+          search: _search,
+          onSearch: (_) {},
+          onDestination: widget.onDestination,
+          projectName: widget.projectName,
+          busy: widget.busy,
+          canTest: widget.canTest,
+          child: SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1600),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      width: bounds.maxWidth < 650
-                          ? 48
-                          : compact
-                          ? 318
-                          : 388,
-                      height: 60,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Image.asset(
-                          bounds.maxWidth < 650
-                              ? 'assets/home/avelune_symbol.png'
-                              : 'assets/home/avelune_logo.png',
-                          width: bounds.maxWidth < 650 ? 36 : 200,
-                          height: bounds.maxWidth < 650 ? 36 : 60,
-                          fit: BoxFit.contain,
-                          semanticLabel: 'Avelune Studio',
+                    Expanded(child: main),
+                    if (bounds.maxWidth >= 1150)
+                      SizedBox(
+                        width: 300,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 20, 12, 12),
+                          child: sidebar,
                         ),
                       ),
-                    ),
-                    Expanded(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 560),
-                        child: StudioSearchField(
-                          controller: _search,
-                          label: 'Rechercher dans vos projets et cartes',
-                          onChanged: (value) => setState(
-                            () => _query = value.trim().toLowerCase(),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
                   ],
                 ),
               ),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    StudioHomeNavigation(
-                      canTest: widget.canTest,
-                      onDestination: widget.onDestination,
-                      projectName: widget.projectName,
-                      busy: widget.busy,
-                      compact: compact,
-                    ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 1600),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: main),
-                                if (bounds.maxWidth >= 1150)
-                                  SizedBox(
-                                    width: 300,
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        4,
-                                        20,
-                                        12,
-                                        12,
-                                      ),
-                                      child: sidebar,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },

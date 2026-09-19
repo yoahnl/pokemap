@@ -1,0 +1,124 @@
+AS-UI-003 — Vérifications locales finales, 2026-09-20
+CWD: apps/avelune_studio
+HEAD initial et final: 2b4db9053ab0dafaa6701e5724f9ac17672c4376
+État initial: 46 chemins UI-02 modifiés/non suivis, conservés.
+
+dart format --output=none --set-exit-if-changed lib test
+Formatted 239 files (0 changed) in 0.64 seconds.
+
+flutter analyze --no-pub
+Analyzing avelune_studio...                                     
+No issues found! (ran in 5.6s)
+
+flutter test --no-pub --reporter expanded test/presentation/ui03_resource_journey_test.dart test/presentation/resource_detail_ui03_test.dart test/presentation/resource_catalog_ui03_test.dart test/resource_io/resource_navigation_save_test.dart test/narrative/narrative_error_scope_test.dart
+00:00 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui03_resource_journey_test.dart: UI03 real previews selection search return and compact detail
+00:00 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui03_resource_journey_test.dart: UI03 real previews selection search return and compact detail
+00:00 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui03_resource_journey_test.dart: UI03 real previews selection search return and compact detail
+00:13 +18: All tests passed!
+Process ownership: {"command":["flutter","test","--no-pub","--reporter","expanded","test/presentation/ui03_resource_journey_test.dart","test/presentation/resource_detail_ui03_test.dart","test/presentation/resource_catalog_ui03_test.dart","test/resource_io/resource_navigation_save_test.dart","test/narrative/narrative_error_scope_test.dart"],"runnerPid":9143,"exitCode":0,"reaped":[],"ownedChildren":7}
+
+flutter test --no-pub --reporter expanded
+[event_v2] mapEnter activation=mapact_1789860417889066_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:48 +279 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+00:50 +280 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: large resource library remains usable at narrow enlarged text
+00:52 +281 ~2: All tests passed!
+Process ownership: {"command":["flutter","test","--no-pub","--reporter","expanded"],"runnerPid":10087,"exitCode":0,"reaped":[],"ownedChildren":75}
+
+flutter build macos --debug --no-pub
+Building macOS application...                                   
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+
+Root checks:
+git diff --check: exit 0, no output
+POKEMAP_MARKDOWN_MAX_NEW=2 bash tools/scripts/check_markdown_hygiene.sh
+Markdown hygiene: 2 new Markdown file(s), all in canonical locations.
+
+Git final: 86 chemins (UI-02 conservé, UI-03 et 7 icônes macOS modifiées ailleurs).
+Aucune commande Git en écriture.
+ M apps/avelune_studio/lib/features/narrative/application/narrative_workspace_controller.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_map_visual_widgets.dart
+ M apps/avelune_studio/lib/presentation/features/characters/character_inspector.dart
+ M apps/avelune_studio/lib/presentation/features/characters/character_palette.dart
+ D apps/avelune_studio/lib/presentation/features/home/studio_home_navigation.dart
+ M apps/avelune_studio/lib/presentation/features/home/studio_home_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_selection_inspector.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_panels.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_toolbar.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_view_state.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_compact_panel.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_home_binding.dart
+ M apps/avelune_studio/lib/presentation/features/narrative/narrative_navigation.dart
+ M apps/avelune_studio/lib/presentation/features/project_session/project_session_screen.dart
+ M apps/avelune_studio/lib/presentation/features/resources/atlas_selection_view.dart
+ M apps/avelune_studio/lib/presentation/features/resources/resource_brush_selection.dart
+ M apps/avelune_studio/lib/presentation/features/resources/resource_catalog.dart
+ M apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart
+ M apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart
+ M apps/avelune_studio/lib/presentation/features/resources/resource_navigation.dart
+ M apps/avelune_studio/lib/presentation/features/resources/resource_preview.dart
+ M apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/feedback/studio_notice.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_resource_card.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_search_field.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_depth_control.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_page_header.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_resource_grid.dart
+ M apps/avelune_studio/lib/presentation/shell/studio_home_navigation.dart
+ M apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png
+ M apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png
+ M apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png
+ M apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png
+ M apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png
+ M apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png
+ M apps/avelune_studio/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png
+ M apps/avelune_studio/test/presentation/brush_retention_transition_test.dart
+ M apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart
+ M apps/avelune_studio/test/presentation/m2_end_to_end_test.dart
+ M apps/avelune_studio/test/presentation/m3_authoring_journey_test.dart
+ M apps/avelune_studio/test/presentation/map_workspace_journey_test.dart
+ M apps/avelune_studio/test/presentation/studio_app_test.dart
+ M apps/avelune_studio/test/presentation/studio_gallery_test.dart
+ M apps/avelune_studio/test/resource_io/resource_navigation_save_test.dart
+ M apps/avelune_studio/test/support/m2_ui_fixture.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_creation_tools.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_palette_grid.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_tile_palette.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_catalog_toolbar.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_catalog_view.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_category_filter.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_terrain_preview.dart
+?? apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_palette_tabs.dart
+?? apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_application_frame.dart
+?? apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_palette_card.dart
+?? apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_primary_navigation.dart
+?? apps/avelune_studio/test/narrative/narrative_error_scope_test.dart
+?? apps/avelune_studio/test/presentation/map_inspector_ui02_test.dart
+?? apps/avelune_studio/test/presentation/resource_catalog_ui03_test.dart
+?? apps/avelune_studio/test/presentation/resource_detail_ui03_test.dart
+?? apps/avelune_studio/test/presentation/ui02_map_journey_test.dart
+?? apps/avelune_studio/test/presentation/ui02_palette_test.dart
+?? apps/avelune_studio/test/presentation/ui03_resource_journey_test.dart
+?? apps/avelune_studio/test/support/ui03_resource_fixture.dart
+?? documentation/reports/avelune_studio/UI02_carte/01-carte-generale.png
+?? documentation/reports/avelune_studio/UI02_carte/02-decor-empilement.png
+?? documentation/reports/avelune_studio/UI02_carte/03-palette-tuiles.png
+?? documentation/reports/avelune_studio/UI02_carte/04-compact-150.png
+?? documentation/reports/avelune_studio/UI02_carte/05-accueil-conserve.png
+?? documentation/reports/avelune_studio/UI02_carte/README.md
+?? documentation/reports/avelune_studio/UI02_carte/reference-accueil.png
+?? documentation/reports/avelune_studio/UI02_carte/reference-avant.png
+?? documentation/reports/avelune_studio/UI02_carte/reference-carte.png
+?? documentation/reports/avelune_studio/UI02_carte/verification.log
+?? documentation/reports/avelune_studio/UI03_ressources/01-decors-detail.png
+?? documentation/reports/avelune_studio/UI03_ressources/02-image-atlas.png
+?? documentation/reports/avelune_studio/UI03_ressources/03-terrain-raccord.png
+?? documentation/reports/avelune_studio/UI03_ressources/04-recherche-categorie.png
+?? documentation/reports/avelune_studio/UI03_ressources/05-compact-150.png
+?? documentation/reports/avelune_studio/UI03_ressources/05b-detail-compact-150.png
+?? documentation/reports/avelune_studio/UI03_ressources/06-retour-carte.png
+?? documentation/reports/avelune_studio/UI03_ressources/README.md
+?? documentation/reports/avelune_studio/UI03_ressources/verification.log
+

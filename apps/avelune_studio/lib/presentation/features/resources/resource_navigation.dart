@@ -40,8 +40,7 @@ class ResourceNavigation extends ChangeNotifier {
   void showLibrary([ResourceItem? item]) {
     page = ResourcePage.library;
     if (item != null) {
-      library.kind = item.kind;
-      library.selectedId = item.id;
+      library.reveal(item);
     }
     notifyListeners();
   }
@@ -54,6 +53,8 @@ class ResourceNavigation extends ChangeNotifier {
             name: element.name,
             kind: ResourceKind.decors,
             element: element,
+            category: element.categoryId,
+            tags: element.tags,
           );
     if (edit && item != null) {
       this.edit(item);

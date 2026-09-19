@@ -60,6 +60,7 @@ class M2UiFixture {
   }
 
   Widget app(WidgetTester tester, {double textScale = 1}) => MaterialApp(
+    debugShowCheckedModeBanner: false,
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(
         context,

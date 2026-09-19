@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-import '../../shared/widgets/inputs/studio_choice.dart';
+import '../../shared/widgets/layout/studio_palette_card.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'character_workspace_visuals.dart';
 
@@ -92,23 +92,30 @@ class _CharacterPaletteState extends State<CharacterPalette> {
                     ? 'Aucun personnage préparé dans ce projet. Préparez ses sprites dans Character Studio de PokéMap, puis rouvrez le projet.'
                     : 'Aucun personnage ne correspond à cette recherche.',
               )
-            : ListView.builder(
+            : GridView.builder(
                 controller: _scroll,
                 key: const PageStorageKey('character-catalog'),
                 scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisExtent:
+                      104 +
+                      16 * (MediaQuery.textScalerOf(context).scale(1) - 1),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                ),
                 itemCount: _visible.length,
                 itemBuilder: (context, index) {
                   final character = _visible[index];
                   final visuals = widget.visuals;
-                  return StudioChoice(
+                  return StudioPaletteCard(
                     key: ValueKey('character-${character.id}'),
-                    label: character.name,
-                    subtitle: 'Placer une instance sur la carte',
+                    name: character.name,
                     selected: widget.selectedId == character.id,
-                    leading: visuals is CharacterWorkspaceVisuals
+                    preview: visuals is CharacterWorkspaceVisuals
                         ? (visuals as CharacterWorkspaceVisuals)
-                              .characterThumbnail(character)
-                        : null,
+                              .characterThumbnail(character, size: 72)
+                        : const Icon(Icons.person_outline, size: 48),
                     onTap: () => widget.onPick(character),
                   );
                 },

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/shared/widgets/layout/studio_app_shell.dart';
+import '../../shared/widgets/layout/studio_application_frame.dart';
+import 'map_creation_tools.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
@@ -11,7 +12,6 @@ import 'map_workspace_panels.dart';
 import 'workspace_resource_diagnostics.dart';
 import 'map_selection_inspector.dart';
 import 'workspace_compact_panel.dart';
-import '../../theme/studio_tokens.dart';
 
 class MapWorkspaceLayout extends StatelessWidget {
   const MapWorkspaceLayout({
@@ -36,7 +36,9 @@ class MapWorkspaceLayout extends StatelessWidget {
     required this.onMap,
     required this.onOpenElement,
     required this.onEditElement,
-    required this.onTileset,
+    required this.homeSearch,
+    this.onSearch,
+    this.onCharacters,
     this.resourceContent,
     this.onStory,
     this.onEditInteraction,
@@ -63,7 +65,9 @@ class MapWorkspaceLayout extends StatelessWidget {
   final ValueChanged<ProjectMapEntry> onActivate;
   final VoidCallback? onSave, onTest;
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
-  final ValueChanged<ProjectTilesetEntry> onTileset;
+  final TextEditingController homeSearch;
+  final ValueChanged<String>? onSearch;
+  final VoidCallback? onCharacters;
   final Widget? resourceContent;
   final VoidCallback? onStory;
   final ValueChanged<MapEntity>? onEditInteraction;
@@ -80,42 +84,55 @@ class MapWorkspaceLayout extends StatelessWidget {
       final ready =
           doc != null && project != null && visuals != null && view != null;
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
-      final availableWidth =
-          c.maxWidth -
-          (c.maxWidth < 1480 || largeText
-              ? StudioMetrics.compactNavigationWidth
-              : StudioMetrics.navigationWidth);
-      final compactInspector = availableWidth < 900 || largeText;
-      final compactPalette = availableWidth < 620 || largeText;
-      final showInspector = inspector ?? (availableWidth >= 1150 && !largeText);
+      final availableWidth = c.maxWidth - (c.maxWidth < 1200 ? 72 : 184);
+      final compactInspector = availableWidth < 1000 || largeText;
+      final compactPalette = availableWidth < 650 || largeText;
+      final showInspector = inspector ?? (!compactInspector);
       final showPalette = palette && !compactPalette;
+      final paletteWidth = c.maxWidth >= 1400 ? 240.0 : 220.0;
+      final inspectorWidth = c.maxWidth >= 1400 ? 300.0 : 280.0;
       Widget paletteContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
-        return MapWorkspacePalette(
-          project: project,
-          document: doc,
-          visuals: visuals!,
-          view: view!,
-          search: search,
-          onChanged: () {
-            onToolChanged();
-            refresh();
-            close?.call();
-          },
-          onResources: () {
-            close?.call();
-            onResources();
-          },
-          onTileset: (tileset) {
-            close?.call();
-            onTileset(tileset);
-          },
+        return SizedBox(
+          width: close == null ? paletteWidth : 360,
+          child: Column(
+            children: [
+              MapCreationTools(
+                view: view!,
+                onChanged: () {
+                  onToolChanged();
+                  refresh();
+                },
+                storyAvailable: onZoneDrawn != null,
+              ),
+              Expanded(
+                child: MapWorkspacePalette(
+                  width: close == null ? paletteWidth : 360,
+                  project: project,
+                  document: doc,
+                  visuals: visuals!,
+                  view: view!,
+                  search: search,
+                  onChanged: () {
+                    onToolChanged();
+                    refresh();
+                    close?.call();
+                  },
+                  onResources: () {
+                    close?.call();
+                    onResources();
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       }
 
       Widget inspectorContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
         return MapSelectionInspector(
+          width: inspectorWidth,
           document: doc,
           project: project,
           visuals: visuals!,
@@ -140,44 +157,29 @@ class MapWorkspaceLayout extends StatelessWidget {
         );
       }
 
-      return StudioAppShell(
+      return StudioApplicationFrame(
         projectName: controller.session.name,
-        destinations: [
-          if (onHome != null)
-            StudioDestination(
-              label: 'Accueil',
-              icon: Icons.home_outlined,
-              onTap: onHome,
-              selected: false,
-            ),
-          StudioDestination(
-            label: 'Carte',
-            icon: Icons.map_outlined,
-            onTap: onMap,
-            selected: activeSpace == 'map',
-          ),
-          StudioDestination(
-            label: 'Ressources',
-            icon: Icons.grid_view_outlined,
-            onTap: visuals == null ? null : onResources,
-            selected: activeSpace == 'resources',
-          ),
-          if (onStory != null)
-            StudioDestination(
-              label: 'Histoire',
-              icon: Icons.menu_book_outlined,
-              onTap: onStory,
-              selected: activeSpace == 'story' || activeSpace == 'interaction',
-            ),
-        ],
-        actions: [
-          if (resourceContent != null)
-            IconButton(
-              tooltip: 'Fermer le projet',
-              onPressed: onClose,
-              icon: const Icon(Icons.close),
-            ),
-        ],
+        search: homeSearch,
+        onSearch: onSearch ?? (_) {},
+        canTest: onTest != null,
+        onClose: onClose,
+        active: activeSpace == 'interaction' ? 'story' : activeSpace,
+        onDestination: (destination) {
+          switch (destination) {
+            case 'home':
+              onHome?.call();
+            case 'map':
+              onMap();
+            case 'resources':
+              onResources();
+            case 'characters':
+              onCharacters?.call();
+            case 'story':
+              onStory?.call();
+            case 'test':
+              onTest?.call();
+          }
+        },
         child: Column(
           children: [
             if (resourceContent == null)
@@ -208,7 +210,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                 onTest: onTest,
                 onClose: onClose,
               ),
-            if (error != null) StudioNotice(error!, isError: true),
+            if (error != null) StudioNotice(error!, isError: true, maxLines: 2),
             Expanded(
               child:
                   resourceContent ??
@@ -226,15 +228,31 @@ class MapWorkspaceLayout extends StatelessWidget {
                           children: [
                             if (showPalette) paletteContent(() {}),
                             Expanded(
-                              child: MapWorkspaceCanvas(
-                                key: ValueKey(doc.base.mapId),
-                                document: doc,
-                                project: project,
-                                visuals: visuals!,
-                                view: view!,
-                                onChanged: onChanged,
-                                gestureGeneration: generation,
-                                onZoneDrawn: onZoneDrawn,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outlineVariant,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: MapWorkspaceCanvas(
+                                      key: ValueKey(doc.base.mapId),
+                                      document: doc,
+                                      project: project,
+                                      visuals: visuals!,
+                                      view: view!,
+                                      onChanged: onChanged,
+                                      gestureGeneration: generation,
+                                      onZoneDrawn: onZoneDrawn,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                             if (showInspector && !compactInspector)
@@ -243,7 +261,32 @@ class MapWorkspaceLayout extends StatelessWidget {
                         )),
             ),
             if (visuals != null)
-              WorkspaceResourceDiagnostics(visuals: visuals!),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (doc?.current.layers.any(
+                          (layer) => layer is BorderLayer && layer.isVisible,
+                        ) ==
+                        true)
+                      const Tooltip(
+                        message:
+                            'Les bordures restent conservées et rendues dans le test du jeu.',
+                        child: Text(
+                          'Bordures non prévisualisées · visibles dans le test du jeu',
+                          key: ValueKey('map-border-notice'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    WorkspaceResourceDiagnostics(visuals: visuals!),
+                  ],
+                ),
+              ),
           ],
         ),
       );

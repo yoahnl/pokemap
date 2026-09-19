@@ -10,21 +10,30 @@ class AtlasSelectionView extends StatefulWidget {
     required this.image,
     required this.onSelected,
     this.singleCell = false,
+    this.transformationController,
+    this.initiallyFitted = false,
+    this.onFitted,
+    this.compact = false,
   });
   final ProjectRegularAtlasTilesetSource source;
   final TilesetSourceRect selected;
   final Widget image;
   final ValueChanged<TilesetSourceRect> onSelected;
   final bool singleCell;
+  final TransformationController? transformationController;
+  final bool initiallyFitted;
+  final VoidCallback? onFitted;
+  final bool compact;
   @override
   State<AtlasSelectionView> createState() => _AtlasSelectionViewState();
 }
 
 class _AtlasSelectionViewState extends State<AtlasSelectionView> {
-  final transform = TransformationController();
+  late final transform =
+      widget.transformationController ?? TransformationController();
   GridPos? start;
   bool pan = false;
-  bool fitted = false;
+  late bool fitted = widget.initiallyFitted;
   Size viewport = Size.zero;
 
   void fit() {
@@ -41,11 +50,14 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
     transform.value = Matrix4.identity()
       ..translateByDouble(
         (viewport.width - source.pixelWidth * scale) / 2,
-        (viewport.height - source.pixelHeight * scale) / 2,
+        widget.compact
+            ? 12
+            : (viewport.height - source.pixelHeight * scale) / 2,
         0,
         1,
       )
       ..scaleByDouble(scale, scale, 1, 1);
+    widget.onFitted?.call();
   }
 
   void zoom(double factor) {
@@ -105,7 +117,7 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
 
   @override
   void dispose() {
-    transform.dispose();
+    if (widget.transformationController == null) transform.dispose();
     super.dispose();
   }
 
@@ -114,16 +126,22 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
     final s = widget.source;
     return Column(
       children: [
+        if (widget.compact)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text('Tuiles · ${s.tileWidth} × ${s.tileHeight} px'),
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             children: [
-              Expanded(
-                child: Text(
-                  'Source · ${s.tileWidth} × ${s.tileHeight} px',
-                  overflow: TextOverflow.ellipsis,
+              if (!widget.compact)
+                Expanded(
+                  child: Text(
+                    'Source · ${s.tileWidth} × ${s.tileHeight} px',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
               IconButton(
                 tooltip: 'Ajuster la source',
                 onPressed: fit,

@@ -4,6 +4,7 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 Future<void> showWorkspaceCompactPanel(
   BuildContext context, {
   required String title,
+  String closeLabel = 'Retour à la carte',
   required Widget Function(
     BuildContext context,
     VoidCallback refresh,
@@ -32,7 +33,7 @@ Future<void> showWorkspaceCompactPanel(
                   ),
                 ),
                 StudioTool(
-                  label: 'Retour à la carte',
+                  label: closeLabel,
                   icon: Icons.close,
                   onPressed: () => Navigator.pop(context),
                 ),

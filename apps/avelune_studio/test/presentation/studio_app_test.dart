@@ -38,7 +38,7 @@ void main() {
   ) async {
     final port = _Port();
     await tester.pumpWidget(_app(port));
-    expect(find.text('Avelune Studio'), findsWidgets);
+    expect(find.bySemanticsLabel('Avelune Studio'), findsWidgets);
     expect(find.text('Ouvrir un projet'), findsWidgets);
     expect(port.opened, isEmpty);
     await tester.pumpWidget(const SizedBox());

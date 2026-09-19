@@ -184,7 +184,7 @@ void main() {
       final document = controller.active!;
       await tester.tap(find.text('Tuiles'));
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('tuile 1'));
+      await tester.tap(find.text('Tuile 1'));
       await tester.pumpAndSettle();
       final gesture = await tester.startGesture(cell(tester, 6, 6));
       await gesture.moveTo(cell(tester, 9, 6));

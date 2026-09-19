@@ -29,6 +29,7 @@ class NarrativeWorkspaceController {
   InteractionEditSession? active;
   bool busy = false;
   String? error;
+  String? publicationError;
   String search = '';
   bool get dirty =>
       pendingFacts.isNotEmpty ||
@@ -276,9 +277,10 @@ class NarrativeWorkspaceController {
       pendingFacts.removeWhere((id, v) => identical(factSnapshot[id], v));
       pendingStories.removeWhere((id, v) => identical(storySnapshot[id], v));
       await acceptVisuals(receipt.manifest, receipt.changedPaths.toSet());
+      publicationError = null;
       return true;
     } catch (e) {
-      error = e.toString();
+      publicationError = error = e.toString();
       return false;
     } finally {
       busy = false;

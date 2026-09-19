@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 
 class StudioNotice extends StatelessWidget {
-  const StudioNotice(this.message, {super.key, this.isError = false});
+  const StudioNotice(
+    this.message, {
+    super.key,
+    this.isError = false,
+    this.maxLines,
+  });
   final String message;
   final bool isError;
+  final int? maxLines;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -33,12 +39,17 @@ class StudioNotice extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: isError
-                    ? Theme.of(context).colorScheme.onErrorContainer
-                    : Theme.of(context).colorScheme.onSurface,
+            child: Tooltip(
+              message: maxLines == null ? '' : message,
+              child: Text(
+                message,
+                maxLines: maxLines,
+                overflow: maxLines == null ? null : TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isError
+                      ? Theme.of(context).colorScheme.onErrorContainer
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
           ),

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/layout/studio_sidebar.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/layout/studio_sidebar.dart';
+import '../../shared/widgets/inputs/studio_search_field.dart';
+import '../characters/character_palette.dart';
+import '../resources/resource_catalog.dart';
+import '../resources/resource_preview.dart';
+import '../../shared/widgets/layout/studio_palette_card.dart';
+import 'map_palette_grid.dart';
+import '../../shared/widgets/inputs/studio_palette_tabs.dart';
+import 'map_tile_palette.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
-import '../characters/character_palette.dart';
-import '../../shared/widgets/inputs/studio_tabs.dart';
-import '../../shared/widgets/inputs/studio_search_field.dart';
 
 class MapWorkspacePalette extends StatefulWidget {
   const MapWorkspacePalette({
@@ -21,6 +25,7 @@ class MapWorkspacePalette extends StatefulWidget {
     required this.search,
     this.onResources,
     this.onTileset,
+    this.width = 240,
   });
   final ProjectManifest project;
   final EditableMapDocument document;
@@ -30,13 +35,13 @@ class MapWorkspacePalette extends StatefulWidget {
   final TextEditingController search;
   final VoidCallback? onResources;
   final ValueChanged<ProjectTilesetEntry>? onTileset;
+  final double width;
   @override
   State<MapWorkspacePalette> createState() => _MapWorkspacePaletteState();
 }
 
 class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
   String get kind => widget.view.paletteTab;
-  set kind(String value) => widget.view.paletteTab = value;
   ProjectManifest? _project;
   MapData? _map;
   String? _query;
@@ -44,7 +49,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
   List<ProjectSmartTilePreset> terrains = [];
   List<ProjectTilesetEntry> sources = [];
   List<TileLayerPaletteEntry> tiles = [];
-  Map<String, String> names = {};
+
   @override
   void initState() {
     super.initState();
@@ -81,162 +86,162 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
         .toSet()
         .where((tile) => ids.contains(tile.tilesetId))
         .toList();
-    names = {for (final source in project.tilesets) source.id: source.name};
     _project = project;
     _map = map;
     _query = query;
+  }
+
+  Widget catalog() {
+    final view = widget.view;
+    if (kind == 'Personnages') {
+      return CharacterPalette(
+        project: widget.project,
+        visuals: widget.visuals,
+        selectedId: view.character?.id,
+        query: view.characterQuery,
+        scrollOffset: view.characterScrollOffset,
+        onScrollChanged: (offset) => view.characterScrollOffset = offset,
+        onQueryChanged: (query) => view.characterQuery = query,
+        onPick: (character) {
+          view.character = character;
+          view.brush = null;
+          view.tile = null;
+          view.terrain = null;
+          view.tool = StudioMapTool.character;
+          widget.onChanged();
+        },
+      );
+    }
+    if (kind == 'Tuiles') {
+      return MapTilePalette(
+        sources: sources,
+        knownTiles: tiles,
+        visuals: widget.visuals,
+        view: view,
+        onChanged: widget.onChanged,
+        onAtlasChanged: () => setState(() {}),
+      );
+    }
+    final count = kind == 'Décors' ? elements.length : terrains.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '$count ${kind.toLowerCase()}',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: count == 0
+              ? const Text('Aucune ressource ne correspond à la recherche.')
+              : MapPaletteGrid(
+                  key: ValueKey(
+                    kind == 'Décors' ? 'decor-palette' : 'terrain-palette',
+                  ),
+                  offset: view.paletteScrollOffsets[kind] ?? 0,
+                  onScroll: (offset) =>
+                      view.paletteScrollOffsets[kind] = offset,
+                  columns: widget.width >= 300 ? 3 : 2,
+                  count: count,
+                  itemBuilder: (context, i) {
+                    if (kind == 'Décors') {
+                      final e = elements[i];
+                      return StudioPaletteCard(
+                        key: ValueKey('decor-${e.id}'),
+                        name: e.name,
+                        preview: widget.visuals.thumbnail(e, size: 72),
+                        selected:
+                            view.tool == StudioMapTool.place &&
+                            view.brush?.id == e.id,
+                        onTap: () {
+                          view.brush = e;
+                          view.tile = null;
+                          view.terrain = null;
+                          view.character = null;
+                          view.tool = StudioMapTool.place;
+                          widget.onChanged();
+                        },
+                      );
+                    }
+                    final t = terrains[i];
+                    return StudioPaletteCard(
+                      key: ValueKey('terrain-${t.id}'),
+                      name: t.name,
+                      preview: resourcePreview(
+                        ResourceItem(
+                          id: t.id,
+                          name: t.name,
+                          kind: ResourceKind.terrains,
+                          terrain: t,
+                        ),
+                        widget.project,
+                        widget.visuals,
+                        size: 72,
+                      ),
+                      selected: view.terrain?.id == t.id,
+                      onTap: () {
+                        view.terrain = t;
+                        view.brush = null;
+                        view.tile = null;
+                        view.character = null;
+                        view.tool = StudioMapTool.terrain;
+                        widget.onChanged();
+                      },
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final view = widget.view;
     return StudioSidebar(
+      width: widget.width,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('Palette', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 10),
-          if (kind != 'Personnages')
-            StudioSearchField(
-              controller: widget.search,
-              label: 'Rechercher un décor',
-              hint: 'Nom ou tag',
-              onChanged: (_) => setState(_refresh),
-            ),
           const SizedBox(height: 8),
-          StudioTabs<String>(
-            items: const {
-              'Décors': 'Décors',
-              'Terrains': 'Terrains',
-              'Tuiles': 'Tuiles',
-              'Personnages': 'Personnages',
-            },
+          StudioPaletteTabs(
+            items: const ['Décors', 'Terrains', 'Tuiles', 'Personnages'],
             selected: kind,
             onChanged: (value) => setState(() {
-              kind = value;
+              view.paletteTab = value;
               view.paletteTiles = value == 'Tuiles';
             }),
           ),
           const SizedBox(height: 8),
-          if (kind != 'Personnages')
-            StudioButton(
-              label: 'Gérer les ressources',
-              secondary: true,
-              onPressed: widget.onResources,
+          if (kind != 'Personnages') ...[
+            StudioSearchField(
+              controller: widget.search,
+              label: kind == 'Décors'
+                  ? 'Rechercher un décor'
+                  : 'Rechercher dans la palette',
+              hint: 'Nom ou tag',
+              onChanged: (_) => setState(_refresh),
             ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: kind == 'Personnages'
-                ? CharacterPalette(
-                    project: widget.project,
-                    visuals: widget.visuals,
-                    selectedId: view.character?.id,
-                    query: view.characterQuery,
-                    scrollOffset: view.characterScrollOffset,
-                    onScrollChanged: (offset) =>
-                        view.characterScrollOffset = offset,
-                    onQueryChanged: (query) => view.characterQuery = query,
-                    onPick: (character) {
-                      view.character = character;
-                      view.brush = null;
-                      view.tile = null;
-                      view.terrain = null;
-                      view.tool = StudioMapTool.character;
-                      widget.onChanged();
-                    },
-                  )
-                : ListView.builder(
-                    key: ValueKey(
-                      kind == 'Tuiles'
-                          ? 'tile-palette'
-                          : kind == 'Terrains'
-                          ? 'terrain-palette'
-                          : 'decor-palette',
-                    ),
-                    scrollCacheExtent: const ScrollCacheExtent.pixels(0),
-                    itemCount: kind == 'Décors'
-                        ? elements.length
-                        : kind == 'Terrains'
-                        ? terrains.length
-                        : sources.length + tiles.length,
-                    itemBuilder: (context, i) {
-                      if (kind == 'Décors') {
-                        final e = elements[i];
-                        return StudioChoice(
-                          label: e.name,
-                          leading: widget.visuals.thumbnail(e, size: 48),
-                          selected:
-                              view.tool == StudioMapTool.place &&
-                              view.brush?.id == e.id,
-                          onTap: () {
-                            view.brush = e;
-                            view.tile = null;
-                            view.terrain = null;
-                            view.character = null;
-                            view.tool = StudioMapTool.place;
-                            widget.onChanged();
-                          },
-                        );
-                      }
-                      if (kind == 'Terrains') {
-                        final t = terrains[i];
-                        return StudioChoice(
-                          label: t.name,
-                          leading: const Icon(Icons.terrain_outlined),
-                          selected: view.terrain?.id == t.id,
-                          onTap: () {
-                            view.terrain = t;
-                            view.brush = null;
-                            view.tile = null;
-                            view.character = null;
-                            view.tool = StudioMapTool.terrain;
-                            widget.onChanged();
-                          },
-                        );
-                      }
-                      if (i < sources.length) {
-                        final t = sources[i];
-                        return StudioChoice(
-                          label: t.name,
-                          subtitle: 'Choisir une tuile du projet',
-                          leading: widget.visuals.tileThumbnail(
-                            TileLayerPaletteEntry(
-                              tilesetId: t.id,
-                              localTileId: 0,
-                            ),
-                            size: 48,
-                          ),
-                          onTap: () => widget.onTileset?.call(t),
-                        );
-                      }
-                      final tile = tiles[i - sources.length];
-                      final name = names[tile.tilesetId] ?? 'Ressource';
-                      return StudioChoice(
-                        label: '$name · tuile ${tile.localTileId + 1}',
-                        leading: widget.visuals.tileThumbnail(tile, size: 40),
-                        selected: view.tile == tile,
-                        onTap: () {
-                          view.tile = tile;
-                          view.brush = null;
-                          view.terrain = null;
-                          view.character = null;
-                          view.tool = StudioMapTool.paint;
-                          widget.onChanged();
-                        },
-                      );
-                    },
-                  ),
-          ),
+            const SizedBox(height: 8),
+          ],
+          Expanded(child: catalog()),
           const SizedBox(height: 6),
           Text(
             view.terrain != null
                 ? '${view.terrain!.name} · raccords automatiques'
                 : view.character?.name ??
                       view.brush?.name ??
-                      'Clic pour sélectionner · Échap pour terminer',
+                      'Choisissez une ressource à placer',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 6),
+          StudioButton(
+            label: 'Gérer les ressources',
+            secondary: true,
+            onPressed: widget.onResources,
           ),
         ],
       ),

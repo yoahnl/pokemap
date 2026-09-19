@@ -187,6 +187,8 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
               child: ExcludeFocus(
                 excluding: !homeVisible,
                 child: StudioHomeScreen(
+                  searchController: _home.search,
+                  searchFocusNode: _home.searchFocus,
                   projectName: project?.name,
                   projectPath: project?.directoryPath,
                   busy: busy,

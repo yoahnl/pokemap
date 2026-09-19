@@ -1,6 +1,12 @@
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 
+String? workspaceNarrativeError(
+  NarrativeWorkspaceController? controller, {
+  required bool narrativePage,
+}) =>
+    controller?.publicationError ?? (narrativePage ? controller?.error : null);
+
 String? guardNarrativeHistory(
   NarrativeWorkspaceController narrative,
   MapData before,

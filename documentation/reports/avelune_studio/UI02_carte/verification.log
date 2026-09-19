@@ -1,0 +1,55 @@
+UI-02 — 2026-09-20
+
+Suite Studio
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_ydjrqg/project.json tilesets=2
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=2 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789857194306763_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:47 +263 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:50 +264 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:51 +265 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: large resource library remains usable at narrow enlarged text
+00:52 +266 ~2: All tests passed!
+
+Captures UI02
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart
+00:00 +0: UI02 real map, overlap, shared home and responsive viewport
+00:13 +1: All tests passed!
+
+Analyse
+Analyzing avelune_studio...                                     
+No issues found! (ran in 7.8s)
+
+Build macOS
+Waiting for another flutter command to release the startup lock...
+Building macOS application...                                   
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+
+{"run": "final-suite", "command": ["flutter", "test", "--no-pub", "--reporter", "expanded"], "exitCode": 0, "runnerPid": 61102, "ownedChildren": 73, "reaped": []}
+{"run": "final-captures", "command": ["flutter", "test", "--no-pub", "--reporter", "expanded", "test/presentation/ui02_map_journey_test.dart"], "exitCode": 0, "runnerPid": 60278, "ownedChildren": 22, "reaped": []}
+
+MCP local — tools/pokemap_mcp — npm test (inclut npm run build) — exitCode 0
+✔ Pokemon preflight failure never creates a runtime executor (6513.016041ms)
+✔ retry rebuilds and revalidates a fresh Pokemon projection (6749.481458ms)
+✔ packaged MCP publishes source and authoritative dirty map coherently (7144.058542ms)
+✔ packaged MCP discovers and commits Studio native image import (7012.884125ms)
+ℹ tests 82
+ℹ suites 0
+ℹ pass 82
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 437371.75075
+
+Format final — 35 fichiers Dart, 0 changement, exitCode 0.
+Git diff --check — aucune sortie, exitCode 0.
+Markdown hygiene — 1 new Markdown file(s), all in canonical locations.
+Budget 1 autorisé par le mandat demandant une note courte unique.
+
+MCP connecté — pokemap_describe({})
+worker.exited: The canonical Authoring worker exited unexpectedly (code 78).
+Réponse retryable=false. Aucun projet personnel ouvert.

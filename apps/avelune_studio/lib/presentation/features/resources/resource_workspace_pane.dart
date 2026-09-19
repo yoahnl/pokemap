@@ -131,6 +131,8 @@ class ResourceWorkspacePane extends StatelessWidget {
                   .toList(),
               visuals: visuals,
               state: n.library,
+              targetMapName: n.workspace.active?.current.name,
+              canUse: !n.busy,
               onUse: n.onUse,
               onEdit: n.edit,
               onTerrain: n.prepareTerrain,
@@ -143,7 +145,7 @@ class ResourceWorkspacePane extends StatelessWidget {
     }
     return Column(
       children: [
-        if (n.error != null) StudioNotice(n.error!, isError: true),
+        if (n.error != null) StudioNotice(n.error!, isError: true, maxLines: 2),
         if (n.busy) const LinearProgressIndicator(),
         Expanded(
           child: AbsorbPointer(absorbing: n.busy, child: content),

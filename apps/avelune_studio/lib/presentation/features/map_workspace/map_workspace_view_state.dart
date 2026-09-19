@@ -25,8 +25,17 @@ class MapWorkspaceViewState {
   bool grid = true;
   bool paletteTiles = false;
   String paletteTab = 'Décors';
+  final paletteScrollOffsets = <String, double>{};
+  String? paletteAtlasId;
+  final paletteAtlasTransforms = <String, TransformationController>{};
+  final fittedPaletteAtlases = <String>{};
   bool positioned = false;
   VoidCallback? recenter;
 
-  void dispose() => transform.dispose();
+  void dispose() {
+    transform.dispose();
+    for (final controller in paletteAtlasTransforms.values) {
+      controller.dispose();
+    }
+  }
 }

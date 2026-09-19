@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../buttons/studio_button.dart';
 
 class StudioDepthControl extends StatelessWidget {
@@ -9,31 +10,47 @@ class StudioDepthControl extends StatelessWidget {
   });
   final VoidCallback? onForward, onBackward;
 
-  @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 8,
-    runSpacing: 8,
+  Widget _action(bool forward) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Tooltip(
-        message: 'Passer devant · ⌘↑ / Ctrl↑',
-        child: StudioButton(
-          key: const ValueKey('Passer devant'),
-          label: 'Passer devant',
-          icon: Icons.flip_to_front,
-          secondary: true,
-          onPressed: onForward,
-        ),
+      StudioButton(
+        key: ValueKey(forward ? 'Passer devant' : 'Passer derrière'),
+        label: forward ? 'Passer devant' : 'Passer derrière',
+        secondary: true,
+        onPressed: forward ? onForward : onBackward,
       ),
-      Tooltip(
-        message: 'Passer derrière · ⌘↓ / Ctrl↓',
-        child: StudioButton(
-          key: const ValueKey('Passer derrière'),
-          label: 'Passer derrière',
-          icon: Icons.flip_to_back,
-          secondary: true,
-          onPressed: onBackward,
-        ),
+      const SizedBox(height: 4),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            defaultTargetPlatform == TargetPlatform.macOS
+                ? 'Cmd + '
+                : 'Ctrl + ',
+          ),
+          Icon(forward ? Icons.arrow_upward : Icons.arrow_downward, size: 14),
+        ],
       ),
     ],
+  );
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (constraints.maxWidth <
+          260 * MediaQuery.textScalerOf(context).scale(1)) {
+        return Column(
+          children: [_action(true), const SizedBox(height: 8), _action(false)],
+        );
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: _action(true)),
+          const SizedBox(width: 8),
+          Expanded(child: _action(false)),
+        ],
+      );
+    },
   );
 }

@@ -13,6 +13,9 @@ Future<bool> useResourceOnMap({
   required MapWorkspaceVisuals visuals,
   required MapWorkspaceViewState? Function() view,
 }) async {
+  if (workspace.project == null || workspace.project!.maps.isEmpty) {
+    return false;
+  }
   if (workspace.active == null) {
     final entry = await showDialog<ProjectMapEntry>(
       context: context,

@@ -6,10 +6,12 @@ class StudioPageHeader extends StatelessWidget {
     required this.title,
     this.description,
     this.actions = const [],
+    this.alignActionsToEnd = false,
   });
   final String title;
   final String? description;
   final List<Widget> actions;
+  final bool alignActionsToEnd;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -42,7 +44,11 @@ class StudioPageHeader extends StatelessWidget {
           children: [
             Expanded(child: heading),
             const SizedBox(width: 16),
-            Flexible(child: buttons),
+            Flexible(
+              child: alignActionsToEnd
+                  ? Align(alignment: Alignment.centerRight, child: buttons)
+                  : buttons,
+            ),
           ],
         );
       },

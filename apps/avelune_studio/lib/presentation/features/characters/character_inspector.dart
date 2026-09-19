@@ -5,6 +5,7 @@ import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
+import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'character_workspace_visuals.dart';
 
@@ -92,11 +93,11 @@ class _CharacterInspectorState extends State<CharacterInspector> {
         Text('Personnage', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 10),
         if (character != null && visuals is CharacterWorkspaceVisuals)
-          Align(
-            alignment: Alignment.centerLeft,
+          StudioAssetPreview(
+            height: 104,
             child: (visuals as CharacterWorkspaceVisuals).characterThumbnail(
               character,
-              size: 64,
+              size: 96,
               facing: npc.facing,
             ),
           ),
@@ -118,6 +119,11 @@ class _CharacterInspectorState extends State<CharacterInspector> {
         Text('Sprite partagé : ${character?.name ?? 'ressource manquante'}'),
         Text(
           'Carte : ${widget.document.current.name} · ${entity.pos.x}, ${entity.pos.y}',
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'La profondeur du personnage suit sa position dans le jeu, indépendamment de l’empilement des décors.',
+          style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<EntityFacing>(

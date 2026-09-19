@@ -9,6 +9,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_editing_co
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import '../../shared/widgets/layout/studio_depth_control.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
+import 'map_workspace_view_state.dart';
 
 class MapWorkspaceInspector extends StatefulWidget {
   const MapWorkspaceInspector({
@@ -19,6 +20,8 @@ class MapWorkspaceInspector extends StatefulWidget {
     required this.onChanged,
     this.onOpenResource,
     this.onEditResource,
+    this.width = 300,
+    this.tool = StudioMapTool.select,
   });
   final ProjectManifest project;
   final EditableMapDocument document;
@@ -26,6 +29,8 @@ class MapWorkspaceInspector extends StatefulWidget {
   final VoidCallback onChanged;
   final ValueChanged<ProjectElementEntry>? onOpenResource;
   final ValueChanged<ProjectElementEntry>? onEditResource;
+  final double width;
+  final StudioMapTool tool;
   @override
   State<MapWorkspaceInspector> createState() => _MapWorkspaceInspectorState();
 }
@@ -61,6 +66,9 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
         : commands.stack(position);
     final selected = document.selected;
     final entry = entries[selected?.elementId];
+    final category = project.elementCategories
+        .where((category) => category.id == entry?.categoryId)
+        .firstOrNull;
     final rank = stack.indexWhere((e) => e.id == selected?.id);
     void change(void Function() action) {
       action();
@@ -68,7 +76,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
     }
 
     return StudioSidebar(
-      width: 270,
+      width: widget.width,
       child: CustomScrollView(
         scrollCacheExtent: const ScrollCacheExtent.pixels(0),
         slivers: [
@@ -77,7 +85,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Inspecteur',
+                  selected == null ? 'La carte' : 'Élément sélectionné',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 12),
@@ -85,36 +93,57 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: StudioAssetPreview(
-                      height: 120,
+                      height: 104,
                       child: visuals.thumbnail(entry, size: 100),
                     ),
                   ),
                 Text(
                   entry?.name ??
                       (selected == null
-                          ? 'Cliquez un décor sur la carte.'
+                          ? document.current.name
                           : 'Ressource manquante'),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
+                if (selected == null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '${document.current.size.width} × ${document.current.size.height} cases',
+                  ),
+                  const SizedBox(height: 20),
+                  Text(switch (widget.tool) {
+                    StudioMapTool.select =>
+                      'Sélectionnez un décor ou un personnage pour retrouver ses propriétés ici.',
+                    StudioMapTool.pan =>
+                      'Faites glisser la carte pour explorer. Le zoom reste conservé.',
+                    StudioMapTool.place =>
+                      'Choisissez un décor dans la palette, puis cliquez sur la carte pour le placer.',
+                    StudioMapTool.paint =>
+                      'Choisissez une tuile, puis peignez sur la carte.',
+                    StudioMapTool.terrain =>
+                      'Peignez le terrain choisi : les raccords se calculent automatiquement.',
+                    StudioMapTool.character =>
+                      'Choisissez un personnage, puis cliquez sur sa case de départ.',
+                    StudioMapTool.zone =>
+                      'Tracez une zone sur la carte pour lui associer une interaction.',
+                    StudioMapTool.erase =>
+                      'Cliquez ou faites glisser pour effacer avec la gomme.',
+                  }),
+                ],
                 if (selected != null) ...[
                   const SizedBox(height: 6),
                   Text('Coordonnées : ${selected.pos.x}, ${selected.pos.y}'),
                   if (rank >= 0)
                     Text('Position ${rank + 1} / ${stack.length} · 1 = devant'),
+                  if (category != null) Text('Décor · ${category.name}'),
                   if (entry != null) ...[
                     const SizedBox(height: 8),
-                    const Text('Instance placée · définition partagée'),
-                    StudioButton(
-                      label: 'Ouvrir la ressource',
-                      secondary: true,
-                      onPressed: () => widget.onOpenResource?.call(entry),
-                    ),
-                    const SizedBox(height: 6),
-                    StudioButton(
-                      label: 'Modifier le décor',
-                      secondary: true,
-                      onPressed: () => widget.onEditResource?.call(entry),
+                    const Text('Cette instance · décor placé sur la carte'),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Définition partagée : ${entry.name}',
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                   const SizedBox(height: 8),
@@ -139,20 +168,20 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Ordre local entre décors compatibles.',
+                    'Ordre local entre décors compatibles. Les collisions restent inchangées.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
-                const SizedBox(height: 24),
-                Text(
-                  'Empilement ici',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 8),
-                if (stack.isEmpty)
-                  const Text(
-                    'Cliquez une zone occupée pour retrouver un décor masqué.',
+                if (stack.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Empilement ici',
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
+                  const SizedBox(height: 8),
+                  const Text('Devant en haut · 1 = devant'),
+                  const SizedBox(height: 6),
+                ],
               ],
             ),
           ),
@@ -175,6 +204,32 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
               );
             },
           ),
+          if (entry != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    StudioButton(
+                      label: 'Ouvrir la ressource',
+                      secondary: true,
+                      onPressed: widget.onOpenResource == null
+                          ? null
+                          : () => widget.onOpenResource!(entry),
+                    ),
+                    const SizedBox(height: 6),
+                    StudioButton(
+                      label: 'Modifier la définition',
+                      secondary: true,
+                      onPressed: widget.onEditResource == null
+                          ? null
+                          : () => widget.onEditResource!(entry),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );

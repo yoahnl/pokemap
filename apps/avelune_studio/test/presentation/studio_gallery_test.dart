@@ -60,8 +60,10 @@ void main() {
       await tester.tap(find.text('Nature'));
       await tester.pumpAndSettle();
       expect(find.text('Sélection : Forêt · 2 résultats'), findsOneWidget);
-      await tester.ensureVisible(find.text('Rivière'));
-      await tester.tap(find.text('Rivière'));
+      final river = find.widgetWithText(StudioResourceCard, 'Rivière');
+      await Scrollable.ensureVisible(tester.element(river), alignment: 0.5);
+      await tester.pumpAndSettle();
+      await tester.tap(river);
       await tester.pumpAndSettle();
       expect(find.text('Sélection : Rivière · 2 résultats'), findsOneWidget);
       expect(tester.takeException(), isNull);

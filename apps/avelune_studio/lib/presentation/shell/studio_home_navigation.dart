@@ -3,6 +3,8 @@ import 'package:flutter/widgets.dart';
 typedef StudioHomeMap = ({String id, String name});
 
 class StudioHomeNavigation extends ChangeNotifier {
+  final search = TextEditingController();
+  final searchFocus = FocusNode();
   bool visible = true;
   bool canTest = false;
   List<StudioHomeMap> maps = const [];
@@ -14,6 +16,13 @@ class StudioHomeNavigation extends ChangeNotifier {
   void showHome() {
     visible = true;
     notifyListeners();
+  }
+
+  void searchHome() {
+    showHome();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_disposed && visible) searchFocus.requestFocus();
+    });
   }
 
   void resume() {
@@ -59,6 +68,8 @@ class StudioHomeNavigation extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    search.dispose();
+    searchFocus.dispose();
     super.dispose();
   }
 }

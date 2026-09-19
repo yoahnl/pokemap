@@ -4,7 +4,6 @@ import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 
 RuntimeAuthoringMapRenderer createStudioMapRenderer(
   MapData map,
@@ -107,24 +106,7 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
         Theme.of(context).colorScheme.error,
       ),
     );
-    if (!widget.map.layers.any(
-      (layer) => layer is BorderLayer && layer.isVisible,
-    )) {
-      return paint;
-    }
-    return Stack(
-      children: [
-        paint,
-        const Positioned(
-          left: 12,
-          top: 12,
-          right: 12,
-          child: StudioNotice(
-            'Les bordures de cette carte ne sont pas prévisualisées dans le Studio. Elles restent conservées et rendues dans le test du jeu.',
-          ),
-        ),
-      ],
-    );
+    return paint;
   }
 }
 

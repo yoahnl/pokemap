@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-import '../../theme/studio_tokens.dart';
+import '../../../theme/studio_tokens.dart';
 
-class StudioHomeNavigation extends StatelessWidget {
-  const StudioHomeNavigation({
+class StudioPrimaryNavigation extends StatelessWidget {
+  const StudioPrimaryNavigation({
     super.key,
     required this.onDestination,
     required this.projectName,
     required this.busy,
     required this.canTest,
     this.compact = false,
+    this.active = 'home',
+    this.onClose,
   });
   final ValueChanged<String> onDestination;
   final String? projectName;
   final bool busy, compact, canTest;
+  final String active;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -47,14 +51,14 @@ class StudioHomeNavigation extends StatelessWidget {
                       child: Tooltip(
                         message: item.$1,
                         child: Material(
-                          color: item.$3 == 'home'
+                          color: item.$3 == active
                               ? colors.primaryContainer
                               : colors.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(6),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(6),
                             onTap:
-                                item.$3 != 'home' &&
+                                item.$3 != active &&
                                     (item.$3 != 'test' || canTest) &&
                                     !busy
                                 ? () => onDestination(item.$3)
@@ -73,7 +77,7 @@ class StudioHomeNavigation extends StatelessWidget {
                                       child: Text(
                                         item.$1,
                                         style: TextStyle(
-                                          fontWeight: item.$3 == 'home'
+                                          fontWeight: item.$3 == active
                                               ? FontWeight.w700
                                               : FontWeight.w400,
                                         ),
@@ -95,6 +99,20 @@ class StudioHomeNavigation extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (onClose != null && compact)
+                    IconButton(
+                      key: const ValueKey('Fermer le projet'),
+                      onPressed: onClose,
+                      tooltip: 'Fermer le projet',
+                      icon: const Icon(Icons.folder_off_outlined),
+                    ),
+                  if (onClose != null && !compact)
+                    TextButton.icon(
+                      key: const ValueKey('Fermer le projet'),
+                      onPressed: onClose,
+                      icon: const Icon(Icons.folder_off_outlined),
+                      label: const Text('Fermer le projet'),
+                    ),
                   if (!compact) ...[
                     Text(
                       projectName ?? 'Avelune Studio',

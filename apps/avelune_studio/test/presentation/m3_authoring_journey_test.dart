@@ -65,15 +65,18 @@ void main() {
         ),
       );
       await pumpIo(tester);
-      await tester.tap(find.text('Personnages'));
+      await tester.tap(find.text('Personnages').last);
       await tester.pump();
       final canvas = find.byKey(const ValueKey('map-canvas'));
       final settings = controller.project!.settings;
       await tester.tapAt(
-        tester.getTopLeft(canvas) +
-            Offset(
-              8.4 * settings.tileWidth * settings.displayScale,
-              10.4 * settings.tileHeight * settings.displayScale,
+        tester
+            .renderObject<RenderBox>(canvas)
+            .localToGlobal(
+              Offset(
+                8.4 * settings.tileWidth * settings.displayScale,
+                10.4 * settings.tileHeight * settings.displayScale,
+              ),
             ),
       );
       await tester.pump();

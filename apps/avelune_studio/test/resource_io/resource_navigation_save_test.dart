@@ -42,6 +42,41 @@ void main() {
   });
 
   test(
+    'open from map reveals exact resource without writing or losing drafts',
+    () {
+      final document = workspace.active!;
+      document.commit(document.current.copyWith(name: 'Carte sale'));
+      final draft = navigation.decor!..name = 'Préparation conservée';
+      navigation.library
+        ..kind = ResourceKind.images
+        ..query = 'arbre'
+        ..category = 'other'
+        ..grid = false;
+      final reads = maps.reads;
+      navigation.openElement(workspaceElement);
+      final visible = navigation.library.visibleItems(
+        resourceCatalog(workspace.project!),
+      );
+      expect(visible.single.element, workspaceElement);
+      expect(
+        navigation.library.reconcileSelection(visible)!.identity,
+        'decors:tree',
+      );
+      expect(navigation.library.query, 'arbre');
+      expect(navigation.library.category, '');
+      expect(navigation.library.grid, isFalse);
+      expect(navigation.page, ResourcePage.library);
+      expect(navigation.decor, same(draft));
+      expect(navigation.decors.values, contains(draft));
+      expect(workspace.active, same(document));
+      expect(document.dirty, isTrue);
+      expect(maps.reads, reads);
+      expect(maps.writes, 0);
+      expect(port.saved, isNull);
+    },
+  );
+
+  test(
     'close-save retains concurrent draft changes and refuses completion',
     () async {
       final draft = navigation.decor!..name = 'Version demandée';

@@ -7,11 +7,13 @@ class StudioSearchField extends StatelessWidget {
     required this.onChanged,
     this.label = 'Rechercher',
     this.hint,
+    this.focusNode,
   });
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final String label;
   final String? hint;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) =>
@@ -19,6 +21,7 @@ class StudioSearchField extends StatelessWidget {
         valueListenable: controller,
         builder: (context, value, _) => TextField(
           controller: controller,
+          focusNode: focusNode,
           onChanged: onChanged,
           decoration: InputDecoration(
             labelText: label,

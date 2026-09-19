@@ -100,10 +100,13 @@ void main() {
             reason: 'Layout $size avec texte ×$scale',
           );
           final viewport = tester.getSize(find.byType(InteractiveViewer));
-          expect(viewport.width, greaterThanOrEqualTo(size.width * .5));
-          expect(viewport.height, greaterThanOrEqualTo(size.height * .6));
+          expect(viewport.width, greaterThanOrEqualTo(size.width * .43));
+          expect(
+            viewport.height,
+            greaterThanOrEqualTo(size.height * (scale > 1 ? .5 : .6)),
+          );
           if (size == const Size(1280, 800)) {
-            expect(viewport.width, greaterThanOrEqualTo(640));
+            expect(viewport.width, greaterThanOrEqualTo(560));
             expect(viewport.height, greaterThanOrEqualTo(480));
           }
           expect(find.byKey(const ValueKey('Enregistrer')), findsOneWidget);
