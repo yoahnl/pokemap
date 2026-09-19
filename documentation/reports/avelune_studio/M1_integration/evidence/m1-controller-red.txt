@@ -1,0 +1,35 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart
+00:00 +0: warm map activation keeps edits and loads project and maps only once
+00:00 +1: late activation cannot replace the latest choice
+00:00 +2: simultaneous requests for one map share the same load
+00:00 +3: obsolete load failure does not replace current success
+00:00 +4: disposed project initialization cannot trigger a map load
+00:00 +5: disposed map completion cannot publish or retain a document
+00:00 +6: save uses its snapshot and retains edits made during the write
+00:00 +7: conflict keeps current, base revision and dirty for retry
+00:00 +8: writeFailed keeps current, base revision and dirty for retry
+00:00 +9: saveAll refuses closing if a document changed during save
+00:00 +9 -1: saveAll refuses closing if a document changed during save [E]
+  Expected: false
+    Actual: <true>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test/application/m1_controller_test.dart 136:5      main.<fn>
+  
+00:00 +9 -1: saveAll stops on failure and leaves every later document dirty
+00:00 +10 -1: disposed save completion cannot accept a new baseline
+00:00 +11 -1: a disposed empty controller cannot authorize saveAll close
+00:00 +11 -2: a disposed empty controller cannot authorize saveAll close [E]
+  Expected: false
+    Actual: <true>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test/application/m1_controller_test.dart 169:5      main.<fn>
+  
+00:00 +11 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: a disposed empty controller cannot authorize saveAll close
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll refuses closing if a document changed during save

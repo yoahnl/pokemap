@@ -1,0 +1,148 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: detecte I/O derriere un import relatif et un export
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:00 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+00:01 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: declared traversal is rejected before reading another file
+00:01 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart: reads actual name and preserves every project byte and entry
+00:01 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart: reads actual name and preserves every project byte and entry
+00:01 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+00:01 +57: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+00:01 +58: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+00:01 +59: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+00:01 +60: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+00:01 +61: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+00:01 +62: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+00:01 +63: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/local_project_session_adapter_test.dart: rejects invalid path relative/project
+00:01 +64: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: real neighboring projects never substitute the trimmed target
+00:01 +65: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: real neighboring projects never substitute the trimmed target
+00:01 +66: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: real neighboring projects never substitute the trimmed target
+00:01 +67: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: real neighboring projects never substitute the trimmed target
+00:01 +68: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: real neighboring projects never substitute the trimmed target
+00:01 +69: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: trailing space is refused even when no plain neighbor exists
+00:01 +70: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: trailing separator cannot hide a risky canonical root
+00:01 +71: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: ordinary symlink to risky root is refused before manifest access
+00:01 +72: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: ordinary symlink to safe root accepts legitimate canonicalization
+00:01 +73: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: internal spaces and accents preserve the requested project
+00:02 +74: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: surrounding whitespace never redirects a direct port call
+00:02 +75: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: example is two real maps with atlas, decor and character
+00:02 +76: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: loads once and paints real atlas without reading files again
+00:02 +77: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: budget refuses image before decoding and preserves authored references
+00:02 +78: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: missing resource is local failure and keeps project usable
+00:02 +79: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: resource symlink cannot escape project root
+00:02 +80: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: read is unchanged and save reload preserves untouched data
+00:02 +81: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: external byte revision conflict never overwrites the newer file
+00:02 +82: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: external manifest change blocks saving a previously declared map
+00:02 +83: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: failure at afterTempFlushed preserves last good map and retry works
+00:02 +84: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: failure at afterJournalPrepared preserves last good map and retry works
+00:02 +85: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: failure at beforeSecondCompareAndSwap preserves last good map and retry works
+00:02 +86: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: future unknown map fields are refused instead of lost on save
+00:02 +87: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: future nested fields and unsupported schema are refused
+00:02 +88: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: map id mismatch is refused
+00:02 +89: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: map symlink cannot redirect load or save
+00:02 +90: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: undeclared or traversal entries cannot be loaded
+00:02 +91: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart: clean playtest recheck rejects changed manifest before map read and preserves saved work
+00:02 +92: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart: clean playtest recheck rejects changed manifest before map read and preserves saved work
+00:02 +93: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart: clean playtest recheck rejects changed manifest before map read and preserves saved work
+00:02 +94: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart: clean playtest recheck rejects changed manifest before map read and preserves saved work
+00:02 +95: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart: clean playtest recheck rejects changed manifest before map read and preserves saved work
+00:03 +96: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: playtest saves are isolated per launch and discarded
+00:03 +97: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: revision conflict refuses runtime before file bundle load
+00:03 +98: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_9AjrLW/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_9AjrLW/project.json
+[runtime_loader] project manifest read ok bytes=8480
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_9AjrLW/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_9AjrLW/maps/jardin.json
+[runtime_loader] map file read ok bytes=17182
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_9AjrLW/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_9AjrLW tilesets=1
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_9AjrLW/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789832434305942_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:04 +99: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: releases the path field while the native picker owns input
+00:05 +100: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: releases the path field while the native picker owns input
+00:05 +101: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: releases the path field while the native picker owns input
+00:05 +102: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +103: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +104: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +105: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +106: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +107: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +108: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +109: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +110: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +111: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: preparing runtime blocks input and refuses a changed active document
+00:05 +112: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: supports keyboard submission and focus traversal
+00:05 +113: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: supports keyboard submission and focus traversal
+00:05 +114: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document
+00:05 +115: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document
+00:05 +116: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document
+00:05 +117: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document
+00:05 +118: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document
+00:05 +119: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document
+00:06 +120: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: dirty close offers cancel discard save and save conflict prevents runtime
+00:06 +121: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: paint gesture is one history step and text input does not delete selection
+00:06 +122: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: failed navigation keeps visible and saved target; warm navigation preserves zoom
+00:07 +123: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: eraser reaches visible ground beneath an empty decor support
+00:07 +124: All tests passed!

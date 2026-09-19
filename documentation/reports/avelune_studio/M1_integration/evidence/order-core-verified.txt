@@ -1,0 +1,49 @@
+00:00 +0: loading test/placed_element_visual_order_test.dart
+00:00 +0: test/placed_element_visual_order_test.dart: incompatible split decoration is not crossed by a local step
+00:00 +1: test/placed_element_visual_order_test.dart: visual rank round trips independently of list and properties
+00:00 +2: test/placed_element_visual_order_test.dart: equal ranks are deterministic and sorting never mutates input
+00:00 +3: test/placed_element_visual_order_test.dart: one forward step preserves serialized gameplay priority and all data
+00:00 +4: test/placed_element_visual_order_test.dart: backward, extremes and removal keep a usable stable local stack
+00:00 +5: test/placed_element_visual_order_test.dart: cursor outside selection and missing instances do not change the map
+00:00 +6: test/placed_element_visual_order_test.dart: hit testing uses rotated visual footprint and half-open cell edges
+00:00 +7: test/placed_element_visual_order_test.dart: unfiltered stack follows visible composition layers before local ranks
+00:00 +8: test/placed_element_visual_order_test.dart: foreground is picked above later background layers independently of rank
+00:00 +9: test/placed_elements_test.dart: placedElements identity buildMapPlacedElementId is stable across element changes
+00:00 +10: test/placed_elements_test.dart: placedElements operations removeMapLayer removes placed elements tied to layer
+00:00 +11: test/placed_elements_test.dart: placedElements operations resizeMapData removes placed elements with origin outside bounds
+00:00 +12: test/placed_elements_test.dart: placedElements validation MapValidator accepts elements from another palette source
+00:00 +13: test/placed_elements_test.dart: placedElements validation MapValidator rejects footprint exceeding map bounds
+00:00 +14: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence direct constructor defaults omitted quarterTurns to zero
+00:00 +15: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence historical JSON without quarterTurns defaults to zero
+00:00 +16: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence all normalized quarter-turn values round-trip exactly
+00:00 +17: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence accepts null and integer-valued JSON numbers
+00:00 +18: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence rejects fractional JSON quarterTurns 1.9
+00:00 +19: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence rejects fractional JSON quarterTurns -0.9
+00:00 +20: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence rejects non-integer JSON quarterTurns NaN
+00:00 +21: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence rejects non-integer JSON quarterTurns positive infinity
+00:00 +22: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence rejects non-integer JSON quarterTurns negative infinity
+00:00 +23: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence rejects non-integer JSON quarterTurns string
+00:00 +24: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence rejects non-integer JSON quarterTurns boolean
+00:00 +25: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence decodes four before semantic range validation rejects it
+00:00 +26: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence copy and value equality include quarterTurns
+00:00 +27: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn persistence migration adds the default before the behavior-list early return
+00:00 +28: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn operations absolute setter accepts every normalized value immutably
+00:00 +29: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn operations absolute setter rejects values outside zero through three
+00:00 +30: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn operations delta rotation wraps positive and negative values
+00:00 +31: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn operations delta rotation reduces web-safe integer limits before addition
+00:00 +32: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn operations absolute and delta no-ops return the identical MapData instance
+00:00 +33: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn operations unknown instance fails without modifying the source map
+00:00 +34: test/map_placed_element_rotation_test.dart: QuarterTurnGridTransform normalizes negative and overflowing quarter turns
+00:00 +35: test/map_placed_element_rotation_test.dart: QuarterTurnGridTransform maps and inverse-maps every cell of a three-by-two source
+00:00 +36: test/map_placed_element_rotation_test.dart: QuarterTurnGridTransform resolves a placed element source and rotated destination size
+00:00 +37: test/map_placed_element_rotation_test.dart: QuarterTurnGridTransform preserves the legacy one-cell fallback for invalid frame sizes
+00:00 +38: test/map_placed_element_rotation_test.dart: QuarterTurnGridTransform rejects invalid dimensions, turns, and coordinates in release mode
+00:00 +39: test/map_placed_element_rotation_test.dart: QuarterTurnPixelTransform samples forward pixel centers at exact rational boundaries
+00:00 +40: test/map_placed_element_rotation_test.dart: QuarterTurnPixelTransform samples inverted pixel centers at exact rational boundaries
+00:00 +41: test/map_placed_element_rotation_test.dart: QuarterTurnPixelTransform uses exact fallback when center products exceed web-safe integers
+00:00 +42: test/map_placed_element_rotation_test.dart: QuarterTurnPixelTransform inverse-samples every pixel with unequal world tile dimensions
+00:00 +43: test/map_placed_element_rotation_test.dart: QuarterTurnPixelTransform rejects invalid dimensions, turns, and destination coordinates
+00:00 +44: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn validation rejects stored values outside zero through three without context
+00:00 +45: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn validation does not invent an element footprint without project context
+00:00 +46: test/map_placed_element_rotation_test.dart: MapPlacedElement quarter-turn validation uses the rotated bounding box when project context resolves size
+00:00 +47: All tests passed!

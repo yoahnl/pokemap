@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import '../features/project_session/application/project_session_controller.dart';
+import '../features/project_session/application/project_session.dart';
 import '../features/project_session/presentation/project_session_screen.dart';
 import '../shared/design_system/studio_theme.dart';
 
@@ -13,10 +14,17 @@ class StudioApp extends StatefulWidget {
     super.key,
     required this.createSession,
     required this.chooseDirectory,
+    this.workspaceBuilder,
   });
 
   final ProjectSessionController Function() createSession;
   final Future<String?> Function() chooseDirectory;
+  final Widget Function(
+    ProjectSession,
+    Future<void> Function(),
+    void Function(Future<bool> Function()?),
+  )?
+  workspaceBuilder;
 
   @override
   State<StudioApp> createState() => _StudioAppState();
@@ -25,6 +33,7 @@ class StudioApp extends StatefulWidget {
 class _StudioAppState extends State<StudioApp> {
   late final ProjectSessionController _session;
   late final AppLifecycleListener _lifecycle;
+  Future<bool> Function()? _exitGuard;
 
   @override
   void initState() {
@@ -32,6 +41,9 @@ class _StudioAppState extends State<StudioApp> {
     _session = widget.createSession();
     _lifecycle = AppLifecycleListener(
       onExitRequested: () async {
+        if (_exitGuard != null && !await _exitGuard!()) {
+          return AppExitResponse.cancel;
+        }
         await _session.dispose();
         return AppExitResponse.exit;
       },
@@ -56,6 +68,13 @@ class _StudioAppState extends State<StudioApp> {
     home: ProjectSessionScreen(
       session: _session,
       chooseDirectory: widget.chooseDirectory,
+      workspaceBuilder: widget.workspaceBuilder == null
+          ? null
+          : (session, close) => widget.workspaceBuilder!(
+              session,
+              close,
+              (guard) => _exitGuard = guard,
+            ),
     ),
   );
 }

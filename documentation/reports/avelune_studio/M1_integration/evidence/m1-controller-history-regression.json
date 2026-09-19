@@ -1,0 +1,46 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd ../../packages/map_editor && flutter test --no-pub test/map_history_delta_test.dart test/application/services/map_cell_stroke_buffer_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:23:26.406690+00:00",
+  "finishedAt": "2026-09-19T15:23:34.885477+00:00",
+  "exitCode": 0,
+  "runnerPid": 38061,
+  "trackedProcesses": {
+    "38061": {
+      "parent": 38049,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:26 2026",
+      "command": "<defunct>"
+    },
+    "38063": {
+      "parent": 38061,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:26 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --packages=/opt/homebrew/share/flutter/packages/flutter_tools/.dart_tool/package_config.json /opt/homebrew/share/flutter/bin/cache/flutter_tools.snapshot test --no-pub test/map_history_delta_test.dart test/application/services/map_cell_stroke_buffer_test.dart"
+    },
+    "38136": {
+      "parent": 38063,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:27 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root /opt/homebrew/share/flutter/bin/cache/artifacts/engine/common/flutter_patched_sdk/ --incremental --no-print-incremental-dependencies --target=flutter --experimental-emit-debug-metadata -DFLUTTER_BUILD_NAME=0.3.7 -DFLUTTER_BUILD_NUMBER=307 -DFLUTTER_VERSION=3.48.0-0.4.pre -DFLUTTER_CHANNEL=beta -DFLUTTER_GIT_URL=https://github.com/flutter/flutter.git -DFLUTTER_FRAMEWORK_REVISION=e3005e3402 -DFLUTTER_ENGINE_REVISION=e2149387c6 -DFLUTTER_DART_VERSION=3.14.0 (build 3.14.0-95.2.beta) --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.s59g98/flutter_test_compiler.jK58kw/output.dill --packages /Users/karim/Project/pokemonProject/packages/map_editor/.dart_tool/package_config.json -Ddart.vm.profile=false -Ddart.vm.product=false --enable-asserts --track-creation-locations --initialize-from-dill /Users/karim/Project/pokemonProject/packages/map_editor/build/test_cache/build/922cdbc9c10b7565aa9acbbdbf7a5719.cache.dill.track.dill --verbosity=error --enable-experiment=alternative-invalidation-strategy"
+    },
+    "38176": {
+      "parent": 38063,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:30 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/packages/map_editor/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/packages/map_editor/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.s59g98/flutter_test_listener.AsS5jy/listener.dart.dill"
+    },
+    "38180": {
+      "parent": 38063,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:30 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/packages/map_editor/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/packages/map_editor/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.s59g98/flutter_test_listener.MIQLZ8/listener.dart.dill"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

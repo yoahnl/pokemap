@@ -1,0 +1,17 @@
+Formatted lib/main.dart
+Formatted lib/src/bootstrap/studio_app.dart
+Formatted lib/src/features/project_session/presentation/project_session_screen.dart
+Formatted test/architecture/architecture_boundaries_test.dart
+Formatted lib/src/bootstrap/studio_workspace_host.dart
+Formatted lib/src/features/map_workspace/application/editable_map_document.dart
+Formatted lib/src/features/map_workspace/application/map_editing_commands.dart
+Formatted lib/src/features/map_workspace/application/map_workspace_controller.dart
+Formatted lib/src/features/map_workspace/presentation/map_canvas_overlay.dart
+Formatted lib/src/features/map_workspace/presentation/map_workspace_canvas.dart
+Formatted lib/src/features/map_workspace/presentation/map_workspace_panels.dart
+Formatted lib/src/features/map_workspace/presentation/map_workspace_screen.dart
+Formatted lib/src/features/map_workspace/presentation/map_workspace_toolbar.dart
+Formatted lib/src/shared/design_system/studio_workspace_controls.dart
+Formatted test/presentation/map_workspace_journey_test.dart
+Formatted test/support/map_workspace_fixture.dart
+Formatted 34 files (16 changed) in 0.10 seconds.

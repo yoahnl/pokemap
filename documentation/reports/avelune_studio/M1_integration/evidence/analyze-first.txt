@@ -1,0 +1,7 @@
+Analyzing avelune_studio...                                     
+
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/src/features/map_workspace/presentation/map_workspace_canvas.dart:42:66 • curly_braces_in_flow_control_structures
+warning • Returning a 'Future' without 'await' inside a try block. Try adding an 'await' • lib/src/features/map_workspace/presentation/map_workspace_screen.dart:77:29 • unawaited_return_in_try_block
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/src/features/map_workspace/presentation/map_workspace_screen.dart:101:54 • curly_braces_in_flow_control_structures
+
+3 issues found. (ran in 4.8s)

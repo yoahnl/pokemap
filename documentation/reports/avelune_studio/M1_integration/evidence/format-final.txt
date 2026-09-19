@@ -1,0 +1,9 @@
+Formatted test/architecture/architecture_boundaries_test.dart
+Formatted lib/src/features/map_workspace/application/map_editing_commands.dart
+Formatted lib/src/features/map_workspace/presentation/map_workspace_canvas.dart
+Formatted lib/src/features/map_workspace/presentation/map_workspace_screen.dart
+Formatted lib/src/features/map_workspace/presentation/map_workspace_shortcuts.dart
+Formatted lib/src/features/map_workspace/presentation/map_workspace_toolbar.dart
+Formatted test/presentation/map_workspace_journey_test.dart
+Formatted test/support/map_workspace_fixture.dart
+Formatted 36 files (8 changed) in 0.10 seconds.

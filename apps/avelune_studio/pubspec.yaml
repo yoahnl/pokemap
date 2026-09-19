@@ -1,5 +1,5 @@
 name: avelune_studio
-description: "Socle desktop Avelune Studio, lecture seule de projets PokeMap."
+description: "Avelune Studio, édition de cartes PokeMap."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -15,14 +15,18 @@ dependencies:
   file_picker: 11.0.3
   map_authoring:
     path: ../../packages/map_authoring
+  map_core:
+    path: ../../packages/map_core
+  map_runtime:
+    path: ../../packages/map_runtime
+  flame: ^1.38.0
   path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  map_core:
-    path: ../../packages/map_core
+  image: ^4.2.0
 
 flutter:
   config:

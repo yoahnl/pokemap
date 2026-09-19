@@ -1,0 +1,58 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os, subprocess,sys; dart=\"/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart\"; os.chdir(\"../..\"); jobs=[(\"packages/map_core\",[\"test\",\"test/placed_element_visual_order_test.dart\"]),(\"packages/map_authoring\",[\"test\",\"test/domains/maps/placed_element_visual_order_actions_test.dart\"]),(\"packages/map_gameplay\",[\"test\",\"test/placed_element_visual_order_gameplay_test.dart\"])]; codes=[subprocess.call([dart,*args],cwd=path) for path,args in jobs]; print(\"Exit codes\",codes); sys.exit(max(codes))"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:23:33.999241+00:00",
+  "finishedAt": "2026-09-19T15:23:41.258893+00:00",
+  "exitCode": 0,
+  "runnerPid": 38332,
+  "trackedProcesses": {
+    "38332": {
+      "parent": 38317,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:34 2026",
+      "command": "(Python)"
+    },
+    "38335": {
+      "parent": 38332,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:34 2026",
+      "command": "(dartvm)"
+    },
+    "38355": {
+      "parent": 38335,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:34 2026",
+      "command": "(dartaotruntime)"
+    },
+    "38413": {
+      "parent": 38332,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:35 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --mark_main_isolate_as_system_isolate --packages=.dart_tool/package_config.json .dart_tool/pub/bin/test/test.dart-3.14.0-95.2.beta.snapshot test/domains/maps/placed_element_visual_order_actions_test.dart"
+    },
+    "38434": {
+      "parent": 38413,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:36 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/share/flutter/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dart_test.kernel.Rp5iTS/output.dill --packages=/Users/karim/Project/pokemonProject/packages/map_authoring/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    },
+    "38486": {
+      "parent": 38332,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:38 2026",
+      "command": "(dartvm)"
+    },
+    "38493": {
+      "parent": 38486,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:38 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

@@ -1,0 +1,52 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd ../../packages/map_editor && flutter test --no-pub test/infrastructure/repositories/atomic_map_document_persistence_test.dart test/application/use_cases/map_revisioned_lifecycle_use_cases_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:16:06.527343+00:00",
+  "finishedAt": "2026-09-19T15:16:14.556502+00:00",
+  "exitCode": 0,
+  "runnerPid": 30313,
+  "trackedProcesses": {
+    "30313": {
+      "parent": 30298,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:06 2026",
+      "command": "<defunct>"
+    },
+    "30315": {
+      "parent": 30313,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:06 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --packages=/opt/homebrew/share/flutter/packages/flutter_tools/.dart_tool/package_config.json /opt/homebrew/share/flutter/bin/cache/flutter_tools.snapshot test --no-pub test/infrastructure/repositories/atomic_map_document_persistence_test.dart test/application/use_cases/map_revisioned_lifecycle_use_cases_test.dart"
+    },
+    "30381": {
+      "parent": 30315,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:07 2026",
+      "command": "(xcrun)"
+    },
+    "30407": {
+      "parent": 30315,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:08 2026",
+      "command": "(dartaotruntime)"
+    },
+    "30494": {
+      "parent": 30315,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:12 2026",
+      "command": "(flutter_tester)"
+    },
+    "30496": {
+      "parent": 30315,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:12 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

@@ -7,6 +7,33 @@ void main() {
   const overlap = GridPos(x: 2, y: 2);
 
   group('MapCanvasObjectHitTest', () {
+    test('uses shared visual ranks without changing serialized order', () {
+      final map = _baseMap.copyWith(
+        placedElements: const [
+          MapPlacedElement(
+            id: 'a',
+            layerId: 'top',
+            elementId: 'element-2x2',
+            pos: overlap,
+            visualOrder: 5,
+          ),
+          MapPlacedElement(
+            id: 'b',
+            layerId: 'top',
+            elementId: 'element-2x2',
+            pos: overlap,
+          ),
+        ],
+      );
+      expect(
+        hitTest
+            .hitStack(map: map, project: _project, position: overlap)
+            .map((target) => target.id),
+        ['a', 'b'],
+      );
+      expect(map.placedElements.map((instance) => instance.id), ['a', 'b']);
+    });
+
     test('returns all object families in painter topmost-first order', () {
       final hits = hitTest.hitStack(
         map: _mapWithEveryFamily,
@@ -14,17 +41,14 @@ void main() {
         position: overlap,
       );
 
-      expect(
-        hits.map((target) => target.kind),
-        <MapCanvasObjectKind>[
-          MapCanvasObjectKind.warp,
-          MapCanvasObjectKind.trigger,
-          MapCanvasObjectKind.mapEvent,
-          MapCanvasObjectKind.gameplayZone,
-          MapCanvasObjectKind.entity,
-          MapCanvasObjectKind.placedElement,
-        ],
-      );
+      expect(hits.map((target) => target.kind), <MapCanvasObjectKind>[
+        MapCanvasObjectKind.warp,
+        MapCanvasObjectKind.trigger,
+        MapCanvasObjectKind.mapEvent,
+        MapCanvasObjectKind.gameplayZone,
+        MapCanvasObjectKind.entity,
+        MapCanvasObjectKind.placedElement,
+      ]);
     });
 
     test('uses canonical layer order and later list entries', () {
@@ -57,10 +81,11 @@ void main() {
         position: overlap,
       );
 
-      expect(
-        hits.map((target) => target.id),
-        <String>['top-last', 'top-first', 'bottom'],
-      );
+      expect(hits.map((target) => target.id), <String>[
+        'top-last',
+        'top-first',
+        'bottom',
+      ]);
     });
 
     test('excludes objects attached to hidden layers', () {
@@ -158,14 +183,11 @@ void main() {
       );
 
       expect(deepInside.map((target) => target.id), <String>['large-building']);
-      expect(
-        deepInside.single.size,
-        const GridSize(width: 128, height: 128),
-      );
-      expect(
-        overlapHits.map((target) => target.id),
-        <String>['small-overlay', 'large-building'],
-      );
+      expect(deepInside.single.size, const GridSize(width: 128, height: 128));
+      expect(overlapHits.map((target) => target.id), <String>[
+        'small-overlay',
+        'large-building',
+      ]);
       expect(
         hitTest.cycleTarget(hits: overlapHits, current: overlapHits.first)?.id,
         'large-building',
@@ -208,40 +230,42 @@ void main() {
       }
     });
 
-    test('inverse-maps rotated destination cells before foreground splitting',
-        () {
-      const collisionDestination = GridPos(x: 3, y: 2);
-      const foregroundDestination = GridPos(x: 2, y: 2);
-      const rotated = MapPlacedElement(
-        id: 'rotated',
-        layerId: 'top',
-        elementId: 'element-3x2',
-        pos: overlap,
-        quarterTurns: 1,
-      );
-
-      List<String> hitsAt(GridPos position) {
-        final map = _baseMap.copyWith(
-          placedElements: const <MapPlacedElement>[rotated],
-          entities: <MapEntity>[
-            MapEntity(
-              id: 'entity',
-              kind: MapEntityKind.custom,
-              pos: position,
-            ),
-          ],
+    test(
+      'inverse-maps rotated destination cells before foreground splitting',
+      () {
+        const collisionDestination = GridPos(x: 3, y: 2);
+        const foregroundDestination = GridPos(x: 2, y: 2);
+        const rotated = MapPlacedElement(
+          id: 'rotated',
+          layerId: 'top',
+          elementId: 'element-3x2',
+          pos: overlap,
+          quarterTurns: 1,
         );
-        return hitTest
-            .hitStack(map: map, project: _project, position: position)
-            .map((target) => target.id)
-            .toList(growable: false);
-      }
 
-      // Source (0,0) is the only collision cell. At q1 it lands at
-      // destination-local (1,0), so the entity remains above it.
-      expect(hitsAt(collisionDestination), <String>['entity', 'rotated']);
-      expect(hitsAt(foregroundDestination), <String>['rotated', 'entity']);
-    });
+        List<String> hitsAt(GridPos position) {
+          final map = _baseMap.copyWith(
+            placedElements: const <MapPlacedElement>[rotated],
+            entities: <MapEntity>[
+              MapEntity(
+                id: 'entity',
+                kind: MapEntityKind.custom,
+                pos: position,
+              ),
+            ],
+          );
+          return hitTest
+              .hitStack(map: map, project: _project, position: position)
+              .map((target) => target.id)
+              .toList(growable: false);
+        }
+
+        // Source (0,0) is the only collision cell. At q1 it lands at
+        // destination-local (1,0), so the entity remains above it.
+        expect(hitsAt(collisionDestination), <String>['entity', 'rotated']);
+        expect(hitsAt(foregroundDestination), <String>['rotated', 'entity']);
+      },
+    );
 
     test('uses the currently painted animation frame footprint', () {
       final map = _baseMap.copyWith(
@@ -425,11 +449,7 @@ void main() {
 
     test('empty and out-of-map positions return no target', () {
       expect(
-        hitTest.hitStack(
-          map: _baseMap,
-          project: _project,
-          position: overlap,
-        ),
+        hitTest.hitStack(map: _baseMap, project: _project, position: overlap),
         isEmpty,
       );
       expect(
@@ -664,19 +684,9 @@ const _baseMap = MapData(
   visualStack: MapVisualStackConfig.canonicalV1,
   size: GridSize(width: 8, height: 8),
   layers: <MapLayer>[
-    TileLayer(
-      id: 'top',
-      name: 'Top',
-    ),
-    TileLayer(
-      id: 'hidden',
-      name: 'Hidden',
-      isVisible: false,
-    ),
-    TileLayer(
-      id: 'bottom',
-      name: 'Bottom',
-    ),
+    TileLayer(id: 'top', name: 'Top'),
+    TileLayer(id: 'hidden', name: 'Hidden', isVisible: false),
+    TileLayer(id: 'bottom', name: 'Bottom'),
   ],
 );
 

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os,subprocess; os.chdir(\"../..\"); paths=[\"packages/map_authoring/lib/src/registry/resource_kind_registry.dart\", \"packages/map_authoring/test/registry/action_registry_test.dart\"]; diff=subprocess.check_output([\"git\",\"diff\",\"--\",*paths],text=True); assert not diff, diff; print(\"Registry and expected test list unchanged from HEAD\"); text=subprocess.check_output([\"git\",\"show\",\"HEAD:\"+paths[0]],text=True); print(\"HEAD already registers regionalMap:\", \"id: \\x27regionalMap\\x27\" in text); print(\"HEAD registers element:\", \"id: \\x27element\\x27\" in text)"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:21:51.764528+00:00",
+  "finishedAt": "2026-09-19T15:21:52.430142+00:00",
+  "exitCode": 0,
+  "runnerPid": 36140,
+  "trackedProcesses": {
+    "36140": {
+      "parent": 36131,
+      "uid": 501,
+      "started": "Sat Sep 19 17:21:51 2026",
+      "command": "<defunct>"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

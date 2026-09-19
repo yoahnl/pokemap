@@ -1,0 +1,6 @@
+Analyzing m1_controller_fixture.dart, m1_controller_test.dart, m1_editing_test.dart, application...
+
+   info - lib/src/features/map_workspace/application/map_editing_commands.dart:47:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/features/map_workspace/application/map_editing_commands.dart:89:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+2 issues found.

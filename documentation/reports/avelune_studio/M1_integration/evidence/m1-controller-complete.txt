@@ -1,0 +1,24 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: warm map activation keeps edits and loads project and maps only once
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: selection and inspection never create dirty state or history
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: late activation cannot replace the latest choice
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: move changes only position and out of bounds movement is ignored
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: move changes only position and out of bounds movement is ignored
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: move changes only position and out of bounds movement is ignored
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: move changes only position and out of bounds movement is ignored
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: move changes only position and out of bounds movement is ignored
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: move changes only position and out of bounds movement is ignored
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: move changes only position and out of bounds movement is ignored
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: move changes only position and out of bounds movement is ignored
+00:00 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: move changes only position and out of bounds movement is ignored
+00:00 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll stops on failure and leaves every later document dirty
+00:00 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: reorder undo redo keeps list priority and every non-order field
+00:00 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: disposed save completion cannot accept a new baseline
+00:00 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: delete targets selection and undo restores exact decoration metadata
+00:00 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: delete targets selection and undo restores exact decoration metadata
+00:00 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: delete targets selection and undo restores exact decoration metadata
+00:00 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_controller_test.dart: saveAll succeeds only after all dirty documents finish sequentially
+00:00 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: place validates footprint and one undo removes only the new instance
+00:00 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: one buffered stroke is one undo and interrupted stroke stays clean
+00:00 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/m1_editing_test.dart: new edits after undo discard redo and saved equality governs dirty
+00:00 +22: All tests passed!

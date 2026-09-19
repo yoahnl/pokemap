@@ -1,0 +1,58 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os; os.chdir(\"../../packages/map_editor\"); os.execv(\"/opt/homebrew/bin/flutter\", [\"flutter\", \"test\", \"--no-pub\", \"test/features/editor/application/map_canvas_object_hit_test_test.dart\", \"test/map_grid_painter_layer_order_test.dart\"])"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:22:56.727956+00:00",
+  "finishedAt": "2026-09-19T15:23:05.734645+00:00",
+  "exitCode": 0,
+  "runnerPid": 37304,
+  "trackedProcesses": {
+    "37304": {
+      "parent": 37269,
+      "uid": 501,
+      "started": "Sat Sep 19 17:22:56 2026",
+      "command": "<defunct>"
+    },
+    "37331": {
+      "parent": 37304,
+      "uid": 501,
+      "started": "Sat Sep 19 17:22:56 2026",
+      "command": "(bash)"
+    },
+    "37334": {
+      "parent": 37331,
+      "uid": 501,
+      "started": "Sat Sep 19 17:22:56 2026",
+      "command": "(bash)"
+    },
+    "37345": {
+      "parent": 37334,
+      "uid": 501,
+      "started": "Sat Sep 19 17:22:56 2026",
+      "command": "(git)"
+    },
+    "37413": {
+      "parent": 37304,
+      "uid": 501,
+      "started": "Sat Sep 19 17:22:58 2026",
+      "command": "(dartaotruntime)"
+    },
+    "37479": {
+      "parent": 37304,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:00 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/packages/map_editor/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/packages/map_editor/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.x7pQGu/flutter_test_listener.HTYvTe/listener.dart.dill"
+    },
+    "37538": {
+      "parent": 37304,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:03 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

@@ -1,0 +1,32 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart
+lib/src/features/map_workspace/presentation/map_workspace_screen.dart:173:44: Error: The argument type 'ProjectManifest?' can't be assigned to the parameter type 'ProjectManifest'.
+ - 'ProjectManifest' is from 'package:map_core/src/models/project_manifest.dart' ('../../packages/map_core/lib/src/models/project_manifest.dart').
+              MapWorkspacePalette(project: project, document: document, visuals: visuals, view: view, onChanged: _toolChanged),
+                                           ^
+lib/src/features/map_workspace/presentation/map_workspace_screen.dart:175:46: Error: The argument type 'ProjectManifest?' can't be assigned to the parameter type 'ProjectManifest'.
+ - 'ProjectManifest' is from 'package:map_core/src/models/project_manifest.dart' ('../../packages/map_core/lib/src/models/project_manifest.dart').
+                document: document, project: project, visuals: visuals, view: view,
+                                             ^
+lib/src/features/map_workspace/presentation/map_workspace_screen.dart:177:46: Error: The argument type 'ProjectManifest?' can't be assigned to the parameter type 'ProjectManifest'.
+ - 'ProjectManifest' is from 'package:map_core/src/models/project_manifest.dart' ('../../packages/map_core/lib/src/models/project_manifest.dart').
+              MapWorkspaceInspector(project: project, document: document, visuals: visuals, onChanged: _toolChanged),
+                                             ^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: lib/src/features/map_workspace/presentation/map_workspace_screen.dart:173:44: Error: The argument type 'ProjectManifest?' can't be assigned to the parameter type 'ProjectManifest'.
+   - 'ProjectManifest' is from 'package:map_core/src/models/project_manifest.dart' ('../../packages/map_core/lib/src/models/project_manifest.dart').
+                MapWorkspacePalette(project: project, document: document, visuals: visuals, view: view, onChanged: _toolChanged),
+                                             ^
+  lib/src/features/map_workspace/presentation/map_workspace_screen.dart:175:46: Error: The argument type 'ProjectManifest?' can't be assigned to the parameter type 'ProjectManifest'.
+   - 'ProjectManifest' is from 'package:map_core/src/models/project_manifest.dart' ('../../packages/map_core/lib/src/models/project_manifest.dart').
+                  document: document, project: project, visuals: visuals, view: view,
+                                               ^
+  lib/src/features/map_workspace/presentation/map_workspace_screen.dart:177:46: Error: The argument type 'ProjectManifest?' can't be assigned to the parameter type 'ProjectManifest'.
+   - 'ProjectManifest' is from 'package:map_core/src/models/project_manifest.dart' ('../../packages/map_core/lib/src/models/project_manifest.dart').
+                MapWorkspaceInspector(project: project, document: document, visuals: visuals, onChanged: _toolChanged),
+                                               ^
+  .
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart

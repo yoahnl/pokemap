@@ -1,0 +1,18 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart
+00:00 +0: clean playtest recheck rejects changed manifest before map read and preserves saved work
+00:00 +0 -1: clean playtest recheck rejects changed manifest before map read and preserves saved work [E]
+  Expected: throws <Instance of 'MapWorkspaceFailure'> with `problem`: MapWorkspaceProblem:<MapWorkspaceProblem.conflict>
+    Actual: <Instance of 'Future<MapWorkspaceDocument>'>
+     Which: emitted <Instance of 'MapWorkspaceDocument'>
+  
+  package:matcher                                           expectLater
+  package:flutter_test/src/widget_tester.dart 507:8         expectLater
+  test/infrastructure/m1_manifest_revision_test.dart 40:11  main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                Zone.registerUnaryCallback
+  test/infrastructure/m1_manifest_revision_test.dart 16:23  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart: clean playtest recheck rejects changed manifest before map read and preserves saved work

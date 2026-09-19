@@ -1,0 +1,28 @@
+{
+  "command": [
+    "flutter",
+    "analyze",
+    "--no-pub"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:31:12.249144+00:00",
+  "finishedAt": "2026-09-19T15:31:18.948215+00:00",
+  "exitCode": 1,
+  "runnerPid": 49437,
+  "trackedProcesses": {
+    "49437": {
+      "parent": 49426,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:12 2026",
+      "command": "(dartvm)"
+    },
+    "49509": {
+      "parent": 49437,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:13 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart language-server --dart-sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk --disable-server-feature-completion --disable-server-feature-search"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

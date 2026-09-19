@@ -1,0 +1,14 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart
+00:00 +0: read is unchanged and save reload preserves untouched data
+00:00 +1: external byte revision conflict never overwrites the newer file
+00:00 +2: external manifest change blocks saving a previously declared map
+00:00 +3: failure at afterTempFlushed preserves last good map and retry works
+00:00 +4: failure at afterJournalPrepared preserves last good map and retry works
+00:00 +5: failure at beforeSecondCompareAndSwap preserves last good map and retry works
+00:00 +6: future unknown map fields are refused instead of lost on save
+00:00 +7: future nested fields and unsupported schema are refused
+00:00 +8: map id mismatch is refused
+00:00 +9: map symlink cannot redirect load or save
+00:00 +10: undeclared or traversal entries cannot be loaded
+00:00 +11: a stale baseline cannot overwrite a previous successful save
+00:00 +12: All tests passed!

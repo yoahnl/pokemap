@@ -1,0 +1,30 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart",
+    "analyze",
+    "lib/src/features/map_workspace/application/map_workspace_port.dart",
+    "lib/src/features/map_workspace/infrastructure",
+    "test/infrastructure/map_workspace_io_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:16:05.171000+00:00",
+  "finishedAt": "2026-09-19T15:16:10.001846+00:00",
+  "exitCode": 0,
+  "runnerPid": 30267,
+  "trackedProcesses": {
+    "30267": {
+      "parent": 30239,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:05 2026",
+      "command": "(dart)"
+    },
+    "30270": {
+      "parent": 30267,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:05 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

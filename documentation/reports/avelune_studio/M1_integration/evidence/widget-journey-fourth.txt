@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart
+00:00 +0: place move stack undo redo save and runtime return preserve document
+00:01 +1: dirty close offers cancel discard save and save conflict prevents runtime
+00:01 +2: paint gesture is one history step and text input does not delete selection
+00:02 +3: All tests passed!

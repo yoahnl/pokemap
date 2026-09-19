@@ -1,0 +1,88 @@
+00:00 +0: loading test/domains/maps/placed_element_visual_order_actions_test.dart
+00:00 +0: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +1: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +2: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +3: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +4: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +5: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +6: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +7: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +7 -1: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +7 -1: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds [E]
+  Expected: [
+              'asset',
+              'assetBlob',
+              'assetCatalog',
+              'battleProgression',
+              'borderBlueprint',
+              'borderSnapshot',
+              'campaignContent',
+              'characterStudioCatalog',
+              'characterStudioCharacter',
+              'characterStudioDependency',
+              'characterStudioReadiness',
+              'cinematic',
+              'cinematicLibraryCatalog',
+              'cinematicLibraryEntry',
+              'cinematicLibraryFolder',
+              'dialogue',
+              'dialogueSource',
+              'elementCategory',
+              'encounterTable',
+              'eventV2',
+              'fact',
+              'itemCatalog',
+              'itemDefinition',
+              'itemReadiness',
+              ...
+            ]
+    Actual: MappedListIterable<AuthoringResourceKindDescriptor, String>:[
+              'asset',
+              'assetBlob',
+              'assetCatalog',
+              'battleProgression',
+              'borderBlueprint',
+              'borderSnapshot',
+              'campaignContent',
+              'characterStudioCatalog',
+              'characterStudioCharacter',
+              'characterStudioDependency',
+              'characterStudioReadiness',
+              'cinematic',
+              'cinematicLibraryCatalog',
+              'cinematicLibraryEntry',
+              'cinematicLibraryFolder',
+              'dialogue',
+              'dialogueSource',
+              'elementCategory',
+              'encounterTable',
+              'eventV2',
+              'fact',
+              'itemCatalog',
+              'itemDefinition',
+              'itemReadiness',
+              ...
+            ]
+     Which: at location [44] is 'regionalMap' instead of 'sandboxPlayerState'
+  
+  package:matcher                                expect
+  test/registry/action_registry_test.dart 116:7  main.<fn>.<fn>
+  
+00:00 +7 -2: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +7 -2: test/registry/action_registry_test.dart: AuthoringResourceKindRegistry registers every resource kind used by canonical mutations [E]
+  Expected: empty
+    Actual: Set:['element']
+  
+  package:matcher                                expect
+  test/registry/action_registry_test.dart 222:7  main.<fn>.<fn>
+  
+00:00 +8 -2: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +9 -2: test/domains/maps/placed_element_visual_order_actions_test.dart: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +10 -2: Some tests failed.
+
+Failing tests:
+  test/registry/action_registry_test.dart: AuthoringResourceKindRegistry provides the canonical minimal resource kinds
+  test/registry/action_registry_test.dart: AuthoringResourceKindRegistry registers every resource kind used by canonical mutations
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

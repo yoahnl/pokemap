@@ -1,0 +1,8 @@
+Analyzing avelune_studio...                                     
+
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/src/bootstrap/studio_app.dart:45:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/src/features/map_workspace/presentation/map_workspace_canvas.dart:67:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/src/features/map_workspace/presentation/map_workspace_canvas.dart:120:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • test/support/map_workspace_fixture.dart:95:7 • curly_braces_in_flow_control_structures
+
+4 issues found. (ran in 5.2s)

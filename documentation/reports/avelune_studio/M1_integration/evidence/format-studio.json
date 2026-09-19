@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import subprocess; paths=subprocess.check_output([\"git\",\"diff\",\"--name-only\",\"--\",\".\"],text=True).splitlines()+subprocess.check_output([\"git\",\"ls-files\",\"--others\",\"--exclude-standard\",\"--\",\".\"],text=True).splitlines(); paths=[p.removeprefix(\"apps/avelune_studio/\") for p in paths if p.endswith(\".dart\")]; raise SystemExit(subprocess.call([\"/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart\",\"format\",*paths]))"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:24:02.626283+00:00",
+  "finishedAt": "2026-09-19T15:24:03.333312+00:00",
+  "exitCode": 0,
+  "runnerPid": 39219,
+  "trackedProcesses": {
+    "39219": {
+      "parent": 39207,
+      "uid": 501,
+      "started": "Sat Sep 19 17:24:02 2026",
+      "command": "(Python)"
+    },
+    "39223": {
+      "parent": 39219,
+      "uid": 501,
+      "started": "Sat Sep 19 17:24:02 2026",
+      "command": "(dart)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

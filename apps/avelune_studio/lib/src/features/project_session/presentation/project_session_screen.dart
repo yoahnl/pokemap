@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../shared/design_system/studio_controls.dart';
 import '../../../shared/design_system/studio_surfaces.dart';
 import '../application/project_session_controller.dart';
+import '../application/project_session.dart';
 import '../application/project_session_state.dart';
 import 'project_open_message.dart';
 
@@ -11,9 +12,12 @@ class ProjectSessionScreen extends StatefulWidget {
     super.key,
     required this.session,
     required this.chooseDirectory,
+    this.workspaceBuilder,
   });
   final ProjectSessionController session;
   final Future<String?> Function() chooseDirectory;
+  final Widget Function(ProjectSession, Future<void> Function())?
+  workspaceBuilder;
 
   @override
   State<ProjectSessionScreen> createState() => _ProjectSessionScreenState();
@@ -105,6 +109,9 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
     final state = widget.session.state;
     final project = state.project;
     final busy = _picking || state.status == ProjectSessionStatus.opening;
+    if (project != null && widget.workspaceBuilder != null) {
+      return widget.workspaceBuilder!(project, _close);
+    }
     return StudioShell(
       child: StudioPanel(
         children: [

@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart
+00:00 +0: preparing runtime blocks input and refuses a changed active document
+00:01 +1: place move stack undo redo save and runtime return preserve document
+00:01 +2: dirty close offers cancel discard save and save conflict prevents runtime
+00:01 +3: paint gesture is one history step and text input does not delete selection
+00:02 +4: failed navigation keeps visible and saved target; warm navigation preserves zoom
+00:02 +5: eraser reaches visible ground beneath an empty decor support
+00:02 +6: All tests passed!

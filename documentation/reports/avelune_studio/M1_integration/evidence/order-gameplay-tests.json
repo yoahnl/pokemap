@@ -1,0 +1,34 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os; os.chdir(\"../../packages/map_gameplay\"); os.execv(\"/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart\", [\"dart\", \"test\", \"test/placed_element_visual_order_gameplay_test.dart\", \"test/multi_behavior_resolution_test.dart\"] )"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:16:17.947708+00:00",
+  "finishedAt": "2026-09-19T15:16:26.369191+00:00",
+  "exitCode": 0,
+  "runnerPid": 30634,
+  "trackedProcesses": {
+    "30634": {
+      "parent": 30622,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:17 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=dart --mark_main_isolate_as_system_isolate --packages=.dart_tool/package_config.json .dart_tool/pub/bin/test/test.dart-3.14.0-95.2.beta.snapshot test/placed_element_visual_order_gameplay_test.dart test/multi_behavior_resolution_test.dart"
+    },
+    "30671": {
+      "parent": 30634,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:18 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/share/flutter/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /Users/karim/Project/pokemonProject/packages/map_gameplay/.dart_tool/pub/bin/test/tmpwqKZvw/test.dart-3.14.0-95.2.beta.snapshot.incremental.temp --packages=.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    },
+    "30750": {
+      "parent": 30634,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:21 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

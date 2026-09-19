@@ -1,0 +1,34 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "cd ../../packages/map_authoring && /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart analyze lib/src/documents lib/map_authoring_documents.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:16:03.986608+00:00",
+  "finishedAt": "2026-09-19T15:16:06.054103+00:00",
+  "exitCode": 0,
+  "runnerPid": 30222,
+  "trackedProcesses": {
+    "30222": {
+      "parent": 30213,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:03 2026",
+      "command": "(bash)"
+    },
+    "30224": {
+      "parent": 30222,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:03 2026",
+      "command": "(dart)"
+    },
+    "30225": {
+      "parent": 30224,
+      "uid": 501,
+      "started": "Sat Sep 19 17:16:04 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

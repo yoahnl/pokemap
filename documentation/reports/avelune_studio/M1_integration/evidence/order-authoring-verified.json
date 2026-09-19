@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os; os.chdir(\"../../packages/map_authoring\"); os.execv(\"/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart\", [\"dart\", \"test\", \"test/domains/maps/placed_element_visual_order_actions_test.dart\", \"test/registry/action_registry_test.dart\"] )"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:19:26.364548+00:00",
+  "finishedAt": "2026-09-19T15:19:30.053276+00:00",
+  "exitCode": 1,
+  "runnerPid": 33759,
+  "trackedProcesses": {
+    "33759": {
+      "parent": 33748,
+      "uid": 501,
+      "started": "Sat Sep 19 17:19:26 2026",
+      "command": "<defunct>"
+    },
+    "33763": {
+      "parent": 33759,
+      "uid": 501,
+      "started": "Sat Sep 19 17:19:26 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

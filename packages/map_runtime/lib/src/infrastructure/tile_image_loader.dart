@@ -274,6 +274,11 @@ Future<List<ui.Image>> decodeRuntimeTilesetChunks(
   }
 }
 
+Future<RuntimeTilesetImage> decodeRuntimeTilesetImage(
+  Uint8List bytes, {
+  TilesetTransparentColor? transparentColor,
+}) => _loadTilesetImageWithUiCodec(bytes, transparentColor: transparentColor);
+
 Future<RuntimeTilesetImage> loadTilesetImageFromFilePath(
   String absolutePath, {
   TilesetTransparentColor? transparentColor,

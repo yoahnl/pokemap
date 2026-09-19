@@ -1,0 +1,5 @@
+Analyzing map_placed_element_visual_order.dart, map_data.dart, placed_element_visual_order_test.dart, placed_element_actions.dart, placed_element_visual_order_actions_test.dart, placed_element_visual_order_gameplay_test.dart...
+
+   info - packages/map_core/lib/src/operations/map_placed_element_visual_order.dart:177:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+1 issue found.

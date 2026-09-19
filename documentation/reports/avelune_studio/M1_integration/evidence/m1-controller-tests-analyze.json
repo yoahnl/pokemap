@@ -1,0 +1,31 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart",
+    "analyze",
+    "test/application/m1_controller_fixture.dart",
+    "test/application/m1_controller_test.dart",
+    "test/application/m1_editing_test.dart",
+    "lib/src/features/map_workspace/application/map_workspace_controller.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:25:11.544677+00:00",
+  "finishedAt": "2026-09-19T15:25:15.394925+00:00",
+  "exitCode": 0,
+  "runnerPid": 41695,
+  "trackedProcesses": {
+    "41695": {
+      "parent": 41686,
+      "uid": 501,
+      "started": "Sat Sep 19 17:25:11 2026",
+      "command": "(dart)"
+    },
+    "41700": {
+      "parent": 41695,
+      "uid": 501,
+      "started": "Sat Sep 19 17:25:11 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

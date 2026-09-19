@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os; os.chdir(\"../..\"); os.execv(\"/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart\", [\"dart\", \"analyze\", \"packages/map_core/lib/src/operations/map_placed_element_visual_order.dart\", \"packages/map_core/lib/src/models/map_data.dart\", \"packages/map_core/test/placed_element_visual_order_test.dart\", \"packages/map_authoring/lib/src/domains/maps/placed_element_actions.dart\", \"packages/map_authoring/test/domains/maps/placed_element_visual_order_actions_test.dart\", \"packages/map_gameplay/test/placed_element_visual_order_gameplay_test.dart\"])"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:19:01.766671+00:00",
+  "finishedAt": "2026-09-19T15:19:04.500838+00:00",
+  "exitCode": 0,
+  "runnerPid": 33291,
+  "trackedProcesses": {
+    "33291": {
+      "parent": 33282,
+      "uid": 501,
+      "started": "Sat Sep 19 17:19:01 2026",
+      "command": "<defunct>"
+    },
+    "33293": {
+      "parent": 33291,
+      "uid": 501,
+      "started": "Sat Sep 19 17:19:01 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

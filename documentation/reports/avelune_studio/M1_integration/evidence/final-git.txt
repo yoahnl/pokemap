@@ -1,0 +1,294 @@
+
+COMMAND ['git', 'branch', '--show-current']
+main
+
+
+COMMAND ['git', 'rev-parse', 'HEAD']
+881e3cbe5bae8c54cca14c3c0d9df44db2196961
+
+
+COMMAND ['git', 'status', '--short', '--untracked-files=all']
+ M apps/avelune_studio/README.md
+ M apps/avelune_studio/lib/main.dart
+ M apps/avelune_studio/lib/src/bootstrap/studio_app.dart
+ M apps/avelune_studio/lib/src/features/project_session/presentation/project_session_screen.dart
+ M apps/avelune_studio/lib/src/shared/design_system/studio_surfaces.dart
+ M apps/avelune_studio/macos/Flutter/GeneratedPluginRegistrant.swift
+ M apps/avelune_studio/macos/Runner/DebugProfile.entitlements
+ M apps/avelune_studio/macos/Runner/Release.entitlements
+ M apps/avelune_studio/pubspec.lock
+ M apps/avelune_studio/pubspec.yaml
+ M apps/avelune_studio/test/architecture/architecture_boundaries_test.dart
+ M apps/avelune_studio/tool/create_example_project.dart
+ M packages/map_authoring/lib/src/domains/maps/placed_element_actions.dart
+ M packages/map_authoring/pubspec.yaml
+ M packages/map_core/lib/map_core.dart
+ M packages/map_core/lib/src/models/map_data.dart
+ M packages/map_core/lib/src/models/map_data.freezed.dart
+ M packages/map_core/lib/src/models/map_data.g.dart
+ M packages/map_editor/lib/src/application/errors/application_errors.dart
+ M packages/map_editor/lib/src/application/models/map_history_delta.dart
+ M packages/map_editor/lib/src/application/models/map_history_entry.dart
+ M packages/map_editor/lib/src/application/models/map_history_snapshot.dart
+ D packages/map_editor/lib/src/application/models/map_history_snapshot.freezed.dart
+ M packages/map_editor/lib/src/application/models/narrative_event_authoring_session.dart
+ M packages/map_editor/lib/src/application/services/environment_generated_placement_hover_resolver.dart
+ M packages/map_editor/lib/src/application/services/map_cell_stroke_buffer.dart
+ M packages/map_editor/lib/src/application/services/map_history_coordinator.dart
+ M packages/map_editor/lib/src/domain/models/map_document_persistence.dart
+ M packages/map_editor/lib/src/features/editor/application/map_canvas_object_hit_test.dart
+ M packages/map_editor/lib/src/infrastructure/repositories/atomic_map_document_persistence.dart
+ M packages/map_editor/lib/src/infrastructure/repositories/map_document_write_lock.dart
+ M packages/map_editor/lib/src/ui/canvas/map_canvas/map_grid_painter.dart
+ M packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart
+ M packages/map_editor/test/map_grid_painter_layer_order_test.dart
+ M packages/map_runtime/lib/src/infrastructure/tile_image_loader.dart
+ M packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+?? apps/avelune_studio/lib/src/bootstrap/studio_workspace_host.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/application/editable_map_document.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/application/map_editing_commands.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/application/map_workspace_controller.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/application/map_workspace_port.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/infrastructure/local_map_workspace_adapter.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/infrastructure/map_document_retention.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/presentation/map_canvas_overlay.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/presentation/map_workspace_canvas.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/presentation/map_workspace_panels.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/presentation/map_workspace_screen.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/presentation/map_workspace_shortcuts.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/presentation/map_workspace_toolbar.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/presentation/map_workspace_view_state.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/presentation/map_workspace_visuals.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/rendering/studio_map_resources.dart
+?? apps/avelune_studio/lib/src/features/map_workspace/rendering/studio_map_visual_widgets.dart
+?? apps/avelune_studio/lib/src/features/playtest/infrastructure/studio_playtest_view.dart
+?? apps/avelune_studio/lib/src/shared/design_system/studio_workspace_controls.dart
+?? apps/avelune_studio/test/application/m1_controller_fixture.dart
+?? apps/avelune_studio/test/application/m1_controller_test.dart
+?? apps/avelune_studio/test/application/m1_editing_test.dart
+?? apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart
+?? apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart
+?? apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart
+?? apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart
+?? apps/avelune_studio/test/infrastructure/studio_playtest_test.dart
+?? apps/avelune_studio/test/presentation/map_workspace_journey_test.dart
+?? apps/avelune_studio/test/support/map_workspace_fixture.dart
+?? apps/avelune_studio/tool/example_project_assets.dart
+?? documentation/reports/avelune_studio/M1_integration/README.md
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-delivery.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-delivery.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-first.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-first.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-release.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-release.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-verified.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/analyze-verified.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/build-delivery.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/build-delivery.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/build-first.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/build-first.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/dependencies.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/dependencies.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/example-create-render.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/example-create-render.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/final-git.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/format-delivery.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/format-delivery.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/format-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/format-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/format-release.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/format-release.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/format-studio.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/format-studio.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/frontier-journey-verified.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/frontier-journey-verified.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/initial-state.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-authoring-analyze-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-authoring-analyze-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-authoring-analyze.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-authoring-analyze.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-editor-atomic-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-editor-atomic-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-editor-atomic-regression.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-editor-atomic-regression.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-editor-extraction-analyze.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-editor-extraction-analyze.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-studio-analyze-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-studio-analyze-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-studio-analyze.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-studio-analyze.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-tests-complete.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-tests-complete.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-tests-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-tests-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-tests-first.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/io-tests-first.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-analyze.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-analyze.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-complete.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-complete.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-green.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-green.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-history-regression.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-history-regression.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-red.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-red.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-tests-analyze.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-controller-tests-analyze.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-manifest-revision-analyze.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-manifest-revision-analyze.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-manifest-revision-green.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-manifest-revision-green.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-manifest-revision-red.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/m1-manifest-revision-red.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/markdown-delivery.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/markdown-delivery.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/mcp-live.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/native-run.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/native-run.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/native-stop.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/native-stop.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/native-ui-observation.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-analyze-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-analyze-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-analyze.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-analyze.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-authoring-tests.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-authoring-tests.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-authoring-verified.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-authoring-verified.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-core-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-core-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-core-tests-green.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-core-tests-green.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-core-tests.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-core-tests.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-core-verified.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-core-verified.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-editor-analyze.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-editor-analyze.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-editor-tests.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-editor-tests.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-editor-verified.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-editor-verified.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-final-focused.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-final-focused.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-gameplay-tests.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-gameplay-tests.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-generate.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-generate.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-mcp-build.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-mcp-build.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-mcp-check.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-mcp-check.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-mcp-tests.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-mcp-tests.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-registry-baseline-verified.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-registry-baseline-verified.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-registry-baseline.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-registry-baseline.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-source-analyze-verified.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/order-source-analyze-verified.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/renderer-analysis.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/renderer-analysis.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/runtime-actor-occlusion-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/runtime-actor-occlusion-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/runtime-navigation-regression.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/runtime-navigation-regression.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/runtime-render-order.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/runtime-render-order.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-live-playtest-v2.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-live-playtest-v2.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-live-playtest.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-live-playtest.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-render-playtest-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-render-playtest-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-render-resources.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-render-resources.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-suite-first.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/studio-suite-first.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/tests-final.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/tests-final.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/tests-verified.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/tests-verified.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/widget-journey-first.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/widget-journey-first.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/widget-journey-fourth.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/widget-journey-fourth.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/widget-journey-second.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/widget-journey-second.txt
+?? documentation/reports/avelune_studio/M1_integration/evidence/widget-journey-third.json
+?? documentation/reports/avelune_studio/M1_integration/evidence/widget-journey-third.txt
+?? packages/map_authoring/lib/map_authoring_documents.dart
+?? packages/map_authoring/lib/map_authoring_editing.dart
+?? packages/map_authoring/lib/src/documents/atomic_map_document_persistence.dart
+?? packages/map_authoring/lib/src/documents/document_errors.dart
+?? packages/map_authoring/lib/src/documents/map_document_codec.dart
+?? packages/map_authoring/lib/src/documents/map_document_persistence.dart
+?? packages/map_authoring/lib/src/documents/map_document_write_lock.dart
+?? packages/map_authoring/lib/src/editing/map_cell_stroke_buffer.dart
+?? packages/map_authoring/lib/src/editing/map_history_coordinator.dart
+?? packages/map_authoring/lib/src/editing/map_history_delta.dart
+?? packages/map_authoring/lib/src/editing/map_history_entry.dart
+?? packages/map_authoring/lib/src/editing/map_history_snapshot.dart
+?? packages/map_authoring/lib/src/editing/map_history_snapshot.freezed.dart
+?? packages/map_authoring/test/domains/maps/placed_element_visual_order_actions_test.dart
+?? packages/map_core/lib/map_core_domain.dart
+?? packages/map_core/lib/src/operations/map_placed_element_visual_order.dart
+?? packages/map_core/test/placed_element_visual_order_test.dart
+?? packages/map_gameplay/test/placed_element_visual_order_gameplay_test.dart
+?? packages/map_runtime/lib/map_runtime_authoring.dart
+?? packages/map_runtime/lib/src/application/authoring_preview/runtime_authoring_map_renderer.dart
+?? packages/map_runtime/test/runtime_authoring_map_renderer_order_test.dart
+
+
+COMMAND ['git', 'diff', '--stat']
+ apps/avelune_studio/README.md                      | 128 ++--
+ apps/avelune_studio/lib/main.dart                  |   7 +
+ .../lib/src/bootstrap/studio_app.dart              |  19 +
+ .../presentation/project_session_screen.dart       |   7 +
+ .../src/shared/design_system/studio_surfaces.dart  |   2 +-
+ .../macos/Flutter/GeneratedPluginRegistrant.swift  |   2 +
+ .../macos/Runner/DebugProfile.entitlements         |   2 +-
+ .../macos/Runner/Release.entitlements              |   2 +-
+ apps/avelune_studio/pubspec.lock                   | 285 ++++++-
+ apps/avelune_studio/pubspec.yaml                   |  10 +-
+ .../architecture/architecture_boundaries_test.dart |  15 +-
+ .../tool/create_example_project.dart               | 177 ++++-
+ .../src/domains/maps/placed_element_actions.dart   |  32 +
+ packages/map_authoring/pubspec.yaml                |   1 +
+ packages/map_core/lib/map_core.dart                | 389 +---------
+ packages/map_core/lib/src/models/map_data.dart     |  12 +
+ .../map_core/lib/src/models/map_data.freezed.dart  |  43 +-
+ packages/map_core/lib/src/models/map_data.g.dart   |   4 +
+ .../src/application/errors/application_errors.dart |  62 +-
+ .../src/application/models/map_history_delta.dart  | 822 +-------------------
+ .../src/application/models/map_history_entry.dart  | 128 +---
+ .../application/models/map_history_snapshot.dart   |  44 +-
+ .../models/map_history_snapshot.freezed.dart       | 316 --------
+ .../models/narrative_event_authoring_session.dart  |  22 +-
+ ...ronment_generated_placement_hover_resolver.dart |   4 +-
+ .../services/map_cell_stroke_buffer.dart           | 836 +--------------------
+ .../services/map_history_coordinator.dart          | 363 +--------
+ .../domain/models/map_document_persistence.dart    |  93 +--
+ .../application/map_canvas_object_hit_test.dart    |   4 +-
+ .../atomic_map_document_persistence.dart           | 571 +-------------
+ .../repositories/map_document_write_lock.dart      |  85 +--
+ .../src/ui/canvas/map_canvas/map_grid_painter.dart |  21 +-
+ .../map_canvas_object_hit_test_test.dart           | 156 ++--
+ .../test/map_grid_painter_layer_order_test.dart    | 128 ++--
+ .../lib/src/infrastructure/tile_image_loader.dart  |   5 +
+ .../presentation/flame/map_layers_component.dart   |  10 +-
+ 36 files changed, 839 insertions(+), 3968 deletions(-)
+
+
+COMMAND ['git', 'diff', '--cached', '--name-only']
+
+
+COMMAND ['git', 'diff', '--check']
+
+Exit codes [0, 0, 0, 0, 0, 0]

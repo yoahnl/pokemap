@@ -58,7 +58,6 @@ void main() {
     bool isForbidden(DartDependency edge) =>
         isInfrastructure(edge) ||
         edge.specifier == 'dart:io' ||
-        edge.packageName == 'map_authoring' ||
         edge.packageName == 'file_picker' ||
         edge.packageName == 'file' ||
         edge.packageName == 'path_provider' ||
@@ -92,16 +91,16 @@ void main() {
     expect(violations, isEmpty);
   });
 
-  test('aucune dependance vers ancien editeur ou runtime de jeu', () {
-    bool isForbidden(String name) =>
-        name == 'map_editor' ||
-        name == 'map_runtime' ||
-        name == 'flame' ||
-        name.startsWith('flame_');
+  test('aucune dependance vers ancien editeur', () {
+    bool isForbidden(String name) => name == 'map_editor';
     final forbiddenPackages = graph.packageRoots.keys.where(isForbidden);
     expect(forbiddenPackages, isEmpty);
     final violations = graph
-        .walk(sources.map((file) => file.uri), stopAt: isFramework)
+        .walk(
+          sources.map((file) => file.uri),
+          stopAt: (edge) =>
+              isFramework(edge) || edge.packageName == 'map_runtime',
+        )
         .where((edge) => isForbidden(edge.packageName));
     expect(violations.map((edge) => '$edge'), isEmpty);
   });

@@ -225,6 +225,9 @@ abstract class MapPlacedElement with _$MapPlacedElement {
     required String layerId,
     required String elementId,
     required GridPos pos,
+    @JsonKey(fromJson: _mapPlacedElementVisualOrderFromJson)
+    @Default(0)
+    int visualOrder,
     @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
     @Default(0)
     int quarterTurns,
@@ -239,6 +242,15 @@ abstract class MapPlacedElement with _$MapPlacedElement {
 
   factory MapPlacedElement.fromJson(Map<String, dynamic> json) =>
       _$MapPlacedElementFromJson(migrateMapPlacedElementJson(json));
+}
+
+int _mapPlacedElementVisualOrderFromJson(Object? value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  throw FormatException(
+    'MapPlacedElement.visualOrder must be an integer',
+    value,
+  );
 }
 
 enum MapPlacedElementTriggerType {

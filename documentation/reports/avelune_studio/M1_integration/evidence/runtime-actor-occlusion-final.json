@@ -1,0 +1,48 @@
+{
+  "command": [
+    "/opt/homebrew/bin/flutter",
+    "test",
+    "--no-pub",
+    "test/playable_map_game_placed_element_occlusion_test.dart",
+    "test/runtime_occlusion_visual_smoke_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/packages/map_runtime",
+  "startedAt": "2026-09-19T15:26:18.833332+00:00",
+  "finishedAt": "2026-09-19T15:26:27.053456+00:00",
+  "exitCode": 0,
+  "runnerPid": 43393,
+  "trackedProcesses": {
+    "43393": {
+      "parent": 43390,
+      "uid": 501,
+      "started": "Sat Sep 19 17:26:18 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --packages=/opt/homebrew/share/flutter/packages/flutter_tools/.dart_tool/package_config.json /opt/homebrew/share/flutter/bin/cache/flutter_tools.snapshot test --no-pub test/playable_map_game_placed_element_occlusion_test.dart test/runtime_occlusion_visual_smoke_test.dart"
+    },
+    "43431": {
+      "parent": 43393,
+      "uid": 501,
+      "started": "Sat Sep 19 17:26:19 2026",
+      "command": "(git)"
+    },
+    "43508": {
+      "parent": 43393,
+      "uid": 501,
+      "started": "Sat Sep 19 17:26:20 2026",
+      "command": "(dartaotruntime)"
+    },
+    "43614": {
+      "parent": 43393,
+      "uid": 501,
+      "started": "Sat Sep 19 17:26:24 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/packages/map_runtime/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.VFm2xy/flutter_test_listener.mr4IhZ/listener.dart.dill"
+    },
+    "43619": {
+      "parent": 43393,
+      "uid": 501,
+      "started": "Sat Sep 19 17:26:25 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/packages/map_runtime/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.VFm2xy/flutter_test_listener.UO9C6T/listener.dart.dill"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

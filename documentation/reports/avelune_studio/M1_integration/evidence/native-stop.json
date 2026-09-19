@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os,signal,subprocess\npids={51931:(51222,\"Sat Sep 19 17:33:06 2026\"),51222:(51213,\"Sat Sep 19 17:32:42 2026\"),51213:(69768,\"Sat Sep 19 17:32:42 2026\")}\nfor pid,(parent,started) in pids.items():\n row=subprocess.check_output([\"ps\",\"-p\",str(pid),\"-o\",\"ppid=,lstart=,command=\"],text=True).strip()\n fields=row.split(None,6)\n assert int(fields[0])==parent and \" \".join(fields[1:6])==started,(pid,row)\n if pid==51931: assert fields[6].endswith(\"/Avelune Studio.app/Contents/MacOS/Avelune Studio\")\n if pid==51222: assert \"flutter_tools.snapshot run -d macos --no-pub\" in fields[6]\n if pid==51213: assert \"M1_integration/evidence\" in fields[6] and \"native-run\" in fields[6]\n print(pid,row)\nos.kill(51931,signal.SIGTERM)\nprint(\"Sent SIGTERM only to native child 51931 owned by captured native-run. Pre-existing PID 92752 untouched.\")\n"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:35:43.975554+00:00",
+  "finishedAt": "2026-09-19T15:35:44.402424+00:00",
+  "exitCode": 0,
+  "runnerPid": 54535,
+  "trackedProcesses": {
+    "54535": {
+      "parent": 54525,
+      "uid": 501,
+      "started": "Sat Sep 19 17:35:43 2026",
+      "command": "(python3.14)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

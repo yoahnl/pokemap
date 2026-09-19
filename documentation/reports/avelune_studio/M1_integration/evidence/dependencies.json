@@ -1,0 +1,41 @@
+{
+  "command": [
+    "flutter",
+    "pub",
+    "get",
+    "--offline"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:10:18.648866+00:00",
+  "finishedAt": "2026-09-19T15:10:20.901026+00:00",
+  "exitCode": 0,
+  "runnerPid": 23184,
+  "trackedProcesses": {
+    "23184": {
+      "parent": 23172,
+      "uid": 501,
+      "started": "Sat Sep 19 17:10:18 2026",
+      "command": "<defunct>"
+    },
+    "23224": {
+      "parent": 23184,
+      "uid": 501,
+      "started": "Sat Sep 19 17:10:18 2026",
+      "command": "(sysctl)"
+    },
+    "23231": {
+      "parent": 23184,
+      "uid": 501,
+      "started": "Sat Sep 19 17:10:18 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart pub --suppress-analytics get --offline --example --directory ."
+    },
+    "23269": {
+      "parent": 23184,
+      "uid": 501,
+      "started": "Sat Sep 19 17:10:19 2026",
+      "command": "(xcodebuild)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

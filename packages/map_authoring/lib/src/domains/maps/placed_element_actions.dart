@@ -17,6 +17,14 @@ final class PlacedElementActions {
       ('placed_element.clone', 'Clone a placed element instance'),
       ('placed_element.move', 'Move a placed element instance'),
       ('placed_element.rotate', 'Rotate a placed element instance'),
+      (
+        'placed_element.bring_forward',
+        'Bring a decoration forward one local step'
+      ),
+      (
+        'placed_element.send_backward',
+        'Send a decoration backward one local step'
+      ),
       ('placed_element.delete', 'Delete a placed element instance'),
       (
         'placed_element.replace_for_layer',
@@ -55,6 +63,9 @@ final class PlacedElementActions {
       'placed_element.clone' => const {'instanceId', 'newId', 'x', 'y'},
       'placed_element.move' => const {'instanceId', 'x', 'y'},
       'placed_element.rotate' => const {'instanceId', 'deltaQuarterTurns'},
+      'placed_element.bring_forward' ||
+      'placed_element.send_backward' =>
+        const {'instanceId', 'x', 'y'},
       'placed_element.delete' ||
       'placed_element.clear_shadow_override' ||
       'placed_element.reset_animation' ||
@@ -195,6 +206,27 @@ final class PlacedElementActions {
             updated,
             _instanceById(updated, parameters.string('instanceId')),
           );
+        case 'placed_element.bring_forward':
+        case 'placed_element.send_backward':
+          final x = context.parameters.value('x');
+          final y = context.parameters.value('y');
+          updated = moveMapPlacedElementVisualOrder(
+            context.map,
+            manifest: context.manifest,
+            instanceId: parameters.string('instanceId'),
+            forward: actionId == 'placed_element.bring_forward',
+            at: x == null && y == null
+                ? null
+                : GridPos(
+                    x: parameters.integer('x'),
+                    y: parameters.integer('y'),
+                  ),
+          );
+          changedItems = updated.placedElements.indexed
+              .where((entry) =>
+                  entry.$2.visualOrder !=
+                  context.map.placedElements[entry.$1].visualOrder)
+              .length;
         case 'placed_element.delete':
           updated = removeMapPlacedElement(
             context.map,

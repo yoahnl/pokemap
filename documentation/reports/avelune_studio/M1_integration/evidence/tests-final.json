@@ -1,0 +1,136 @@
+{
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:31:54.201334+00:00",
+  "finishedAt": "2026-09-19T15:32:10.498232+00:00",
+  "exitCode": 0,
+  "runnerPid": 50074,
+  "trackedProcesses": {
+    "50074": {
+      "parent": 50065,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:54 2026",
+      "command": "<defunct>"
+    },
+    "50111": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:54 2026",
+      "command": "(git)"
+    },
+    "50125": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:55 2026",
+      "command": "(dartaotruntime)"
+    },
+    "50172": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:56 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.6xyMhI/listener.dart.dill"
+    },
+    "50173": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:56 2026",
+      "command": "(flutter_tester)"
+    },
+    "50175": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:56 2026",
+      "command": "(flutter_tester)"
+    },
+    "50177": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:56 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.FsGixA/listener.dart.dill"
+    },
+    "50178": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:56 2026",
+      "command": "(flutter_tester)"
+    },
+    "50185": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:57 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.sdXoPy/listener.dart.dill"
+    },
+    "50198": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:59 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.m6wjkF/listener.dart.dill"
+    },
+    "50200": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:31:59 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.aJynDv/listener.dart.dill"
+    },
+    "50254": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:32:02 2026",
+      "command": "(flutter_tester)"
+    },
+    "50258": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:32:02 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.zMzNg7/listener.dart.dill"
+    },
+    "50260": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:32:02 2026",
+      "command": "(flutter_tester)"
+    },
+    "50264": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:32:02 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.c40TPQ/listener.dart.dill"
+    },
+    "50266": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:32:02 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.IbN9jj/listener.dart.dill"
+    },
+    "50299": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:32:03 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.7zhH4N/listener.dart.dill"
+    },
+    "50308": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:32:04 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.2sQSZV/flutter_test_listener.vkhpJy/listener.dart.dill"
+    },
+    "50310": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:32:04 2026",
+      "command": "(flutter_tester)"
+    },
+    "50312": {
+      "parent": 50074,
+      "uid": 501,
+      "started": "Sat Sep 19 17:32:05 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

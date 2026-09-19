@@ -1,0 +1,3 @@
+00:00 +0: loading test/domains/maps/placed_element_visual_order_actions_test.dart
+00:00 +0: canonical JSONL plans and persists forward/backward without gameplay reorder
+00:00 +1: All tests passed!

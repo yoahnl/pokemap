@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import subprocess,sys,json\nfrom pathlib import Path\nr=Path.cwd().parents[1]\ncommands=[[\"git\",\"branch\",\"--show-current\"],[\"git\",\"rev-parse\",\"HEAD\"],[\"git\",\"status\",\"--short\",\"--untracked-files=all\"],[\"git\",\"diff\",\"--stat\"],[\"git\",\"diff\",\"--cached\",\"--name-only\"],[\"git\",\"diff\",\"--check\"]]\ncodes=[]\nfor args in commands:\n print(\"\\nCOMMAND \"+repr(args),flush=True)\n result=subprocess.run(args,cwd=r,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)\n print(result.stdout,flush=True);codes.append(result.returncode)\nprint(\"Exit codes\",codes)\nhead=subprocess.check_output([\"git\",\"rev-parse\",\"HEAD\"],cwd=r,text=True).strip()\nstaged=subprocess.check_output([\"git\",\"diff\",\"--cached\",\"--name-only\"],cwd=r,text=True).strip()\nassert head==\"881e3cbe5bae8c54cca14c3c0d9df44db2196961\"\nassert not staged\nassert not any(codes)\n"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:45:27.716445+00:00",
+  "finishedAt": "2026-09-19T15:45:28.542400+00:00",
+  "exitCode": 0,
+  "runnerPid": 63575,
+  "trackedProcesses": {
+    "63575": {
+      "parent": 63566,
+      "uid": 501,
+      "started": "Sat Sep 19 17:45:27 2026",
+      "command": "<defunct>"
+    },
+    "63582": {
+      "parent": 63575,
+      "uid": 501,
+      "started": "Sat Sep 19 17:45:27 2026",
+      "command": "(git)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

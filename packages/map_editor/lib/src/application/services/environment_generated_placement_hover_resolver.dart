@@ -106,7 +106,9 @@ EnvironmentGeneratedPlacementDeleteTarget?
     if (manifest != null)
       for (final element in manifest.elements) element.id: element,
   };
-  for (final instance in map.placedElements.reversed) {
+  for (final instance in sortMapPlacedElementsForPainting(
+    map.placedElements,
+  ).reversed) {
     if (!generatedIds.contains(instance.id)) continue;
     final element = elementById[instance.elementId];
     if (!_placedElementContainsGridPos(

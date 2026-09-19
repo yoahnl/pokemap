@@ -1,0 +1,35 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest uses shared visual ranks without changing serialized order
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest returns all object families in painter topmost-first order
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest uses canonical layer order and later list entries
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest excludes objects attached to hidden layers
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest uses the authored element footprint and ignores missing assets
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest selects a 128x128 building and preserves overlap priority
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest hit-tests every destination cell of each non-square rotation
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest inverse-maps rotated destination cells before foreground splitting
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest uses the currently painted animation frame footprint
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest respects background and foreground object passes
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest cycles deterministically and restarts when current is absent
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest target equality includes layer anchor and size
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest cycles by stable identity when current geometry changed
+00:00 +13: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: MapCanvasObjectHitTest empty and out-of-map positions return no target
+00:00 +14: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: resolveSelectedCanvasObjectTarget resolves every selected family with the canonical target shape
+00:00 +15: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: resolveSelectedCanvasObjectTarget uses canonical family order when stale selection flags overlap
+00:00 +16: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: resolveSelectedCanvasObjectTarget keeps logical identity when visual frame data is unavailable
+00:00 +17: /Users/karim/Project/pokemonProject/packages/map_editor/test/features/editor/application/map_canvas_object_hit_test_test.dart: resolveSelectedCanvasObjectTarget returns null when every selected identity is stale
+00:03 +18: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order placed visual rank paints above later serialized instances
+00:03 +19: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order paints bottom_to_top opt-in layers in authored list order
+00:03 +20: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order preserves reverse-order rendering for legacy maps
+00:03 +21: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order applies bottom_to_top ordering to the foreground pass
+00:03 +22: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order preserves legacy ordering in the foreground pass
+00:03 +23: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order applies bottom_to_top ordering to placed elements
+00:03 +24: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order preserves legacy ordering for placed elements
+00:03 +25: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order map with Border keeps bottom_to_top foreground Tile order
+00:03 +26: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order map with Border keeps legacy inverse foreground Tile order
+00:03 +27: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order map with Border defers ordinary placed elements below entities
+00:03 +28: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order map with Border keeps foreground Tile above entities
+00:03 +29: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order paints l_tile_overhead after normal entities
+00:03 +30: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order paints l_tile_occlusion after normal entities
+00:03 +31: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order keeps an ordinary tile layer below normal entities
+00:03 +32: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_grid_painter_layer_order_test.dart: MapGridPainter tile layer order group reorder immediately changes the painted top layer
+00:03 +33: All tests passed!

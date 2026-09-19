@@ -1,0 +1,3 @@
+Registry and expected test list unchanged from HEAD
+HEAD already registers regionalMap: True
+HEAD registers element: False

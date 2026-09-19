@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os; os.chdir(\"../../tools/pokemap_mcp\"); os.execvp(\"npm\", [\"npm\", \"run\", \"build\"])"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:24:36.141030+00:00",
+  "finishedAt": "2026-09-19T15:24:37.660112+00:00",
+  "exitCode": 0,
+  "runnerPid": 40556,
+  "trackedProcesses": {
+    "40556": {
+      "parent": 40534,
+      "uid": 501,
+      "started": "Sat Sep 19 17:24:36 2026",
+      "command": "npm run build   "
+    },
+    "40576": {
+      "parent": 40556,
+      "uid": 501,
+      "started": "Sat Sep 19 17:24:36 2026",
+      "command": "(tsc)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

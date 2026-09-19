@@ -158,6 +158,9 @@ _MapPlacedElement _$MapPlacedElementFromJson(Map<String, dynamic> json) =>
       layerId: json['layerId'] as String,
       elementId: json['elementId'] as String,
       pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
+      visualOrder: json['visualOrder'] == null
+          ? 0
+          : _mapPlacedElementVisualOrderFromJson(json['visualOrder']),
       quarterTurns: json['quarterTurns'] == null
           ? 0
           : _mapPlacedElementQuarterTurnsFromJson(json['quarterTurns']),
@@ -192,6 +195,7 @@ Map<String, dynamic> _$MapPlacedElementToJson(_MapPlacedElement instance) =>
       'layerId': instance.layerId,
       'elementId': instance.elementId,
       'pos': instance.pos.toJson(),
+      'visualOrder': instance.visualOrder,
       'quarterTurns': instance.quarterTurns,
       'applyCollision': instance.applyCollision,
       'opacity': instance.opacity,

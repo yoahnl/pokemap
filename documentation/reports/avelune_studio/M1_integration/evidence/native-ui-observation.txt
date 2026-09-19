@@ -1,0 +1,15 @@
+Native UI probe through cua_repl, 2026-09-19:
+cua.getApp('app.avelune.aveluneStudio') returned the existing Avelune Studio window.
+getScreenshot() returned only a small window thumbnail; Raise did not change its AX tree.
+After starting the tracked native-run, getApp returned the old home with this AX text:
+  Ouvrez votre projet
+  Ouvrir un projet
+  Parcourir
+  Lecture seule · Aucun fichier de votre projet ne sera modifié.
+The new M1 source no longer contains that footer. No project was opened or edited through this window.
+listApps exposed one bundle id without a per-process/window selector:
+  {displayName: 'Avelune Studio', id: 'app.avelune.aveluneStudio', isRunning: true}
+Read-only ps identified the earlier PID 92752 (started 16:23:57, parent 1) and our PID 51931 (started 17:33:06, parent Flutter runner 51222).
+The earlier process was left untouched. Our identified native child was stopped via SIGTERM only after rechecking its start time, command and complete parent chain; see native-stop.txt.
+Native-run completed with Lost connection to device after that intentional stop. This is not proof of a normal user quit or of the complete native journey.
+M1 native editing screenshots and native save/reopen/playtest journey remain unverified. Automated widget, real filesystem and actual PlayableMapGame tests are separate evidence.

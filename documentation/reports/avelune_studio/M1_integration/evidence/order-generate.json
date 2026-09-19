@@ -1,0 +1,52 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os; os.chdir(\"../../packages/map_core\"); os.execv(\"/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart\", [\"dart\", \"run\", \"build_runner\", \"build\", \"--delete-conflicting-outputs\", \"--build-filter=lib/src/models/map_data.*.dart\"])"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:09:43.708163+00:00",
+  "finishedAt": "2026-09-19T15:10:08.167587+00:00",
+  "exitCode": 0,
+  "runnerPid": 22491,
+  "trackedProcesses": {
+    "22491": {
+      "parent": 22482,
+      "uid": 501,
+      "started": "Sat Sep 19 17:09:43 2026",
+      "command": "<defunct>"
+    },
+    "22499": {
+      "parent": 22491,
+      "uid": 501,
+      "started": "Sat Sep 19 17:09:44 2026",
+      "command": "(dartaotruntime)"
+    },
+    "22587": {
+      "parent": 22491,
+      "uid": 501,
+      "started": "Sat Sep 19 17:09:47 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart compile aot-snapshot --packages /Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/package_config.json /Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/build/entrypoint/build.dart --output /Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/build/entrypoint/build.dart.aot --depfile /Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/build/entrypoint/build.dart.aot.deps"
+    },
+    "22592": {
+      "parent": 22587,
+      "uid": 501,
+      "started": "Sat Sep 19 17:09:47 2026",
+      "command": "(dartaotruntime)"
+    },
+    "22795": {
+      "parent": 22587,
+      "uid": 501,
+      "started": "Sat Sep 19 17:09:55 2026",
+      "command": "(gen_snapshot)"
+    },
+    "22942": {
+      "parent": 22491,
+      "uid": 501,
+      "started": "Sat Sep 19 17:10:05 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/build/entrypoint/build.dart.aot build --delete-conflicting-outputs --build-filter=lib/src/models/map_data.*.dart --force-aot"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

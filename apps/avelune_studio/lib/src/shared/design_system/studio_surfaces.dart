@@ -31,7 +31,7 @@ class StudioShell extends StatelessWidget {
                 child,
                 const SizedBox(height: 20),
                 Text(
-                  'Lecture seule · Aucun fichier de votre projet ne sera modifié.',
+                  'Les modifications de carte sont écrites uniquement avec Enregistrer.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),

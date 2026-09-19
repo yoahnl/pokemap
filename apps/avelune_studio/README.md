@@ -1,69 +1,87 @@
-# Avelune Studio — AS-ARC-002
+# Avelune Studio — Intégration M1
 
-Application desktop indépendante : ouvrir un dossier de projet PokeMap, lire son
-nom dans `project.json`, puis fermer sa session. Tous les accès au projet sont
-en lecture seule. Aucun canevas, édition, sauvegarde, runtime ou export à ce stade.
+Studio ouvre un projet PokeMap, affiche ses cartes et leurs ressources, permet
+d’éditer les décors préparés et des tuiles simples, puis d’enregistrer et de tester
+la carte dans le runtime existant. L’ancien éditeur reste disponible séparément.
 
-## Prérequis et lancement
+## Lancer l’exemple
 
-macOS, Xcode et Flutter avec desktop macOS activé. Le lot a été vérifié avec
-Flutter **3.48.0-0.4.pre**, Dart embarqué **3.14.0-95.2.beta**, macOS arm64.
-Utiliser le Dart du même SDK Flutter pour les outils Dart ; le Dart autonome
-installé sur la machine de validation était différent. Les plugins Apple utilisent
-Swift Package Manager, sans CocoaPods.
-
-Depuis la racine du dépôt :
+Depuis la racine du dépôt, avec le Dart livré par votre SDK Flutter :
 
 ```sh
 cd apps/avelune_studio
 flutter pub get
+dart run tool/create_example_project.dart
 flutter run -d macos --no-pub
 ```
 
-Choisir **Parcourir** et le dossier contenant `project.json`. Le sélecteur macOS
-accorde sa lecture dans le sandbox. Un chemin saisi manuellement peut nécessiter
-une sélection préalable. Le nom affiché provient du manifeste, jamais du nom du
-dossier. **Fermer le projet** libère la session et revient à l’accueil.
+Le générateur imprime un nouveau dossier temporaire : deux cartes, un atlas
+original de test, trois décors et un personnage. Il refuse une cible déjà existante.
+Un argument permet de choisir un autre nouveau dossier. Aucun asset personnel ni
+de jeu tiers n’est nécessaire.
 
-Pour créer un exemple isolé avec le codec existant :
+Dans Studio, **Parcourir** permet de choisir ce dossier. Le sandbox macOS conserve
+ses protections et accorde la lecture/écriture uniquement au dossier choisi.
+Une saisie manuelle peut nécessiter cette sélection préalable. Les plugins Apple
+utilisent Swift Package Manager. SDK vérifié : Flutter 3.48.0-0.4.pre,
+Dart embarqué 3.14.0-95.2.beta, macOS arm64.
+
+## Utiliser une carte
+
+- Choisir une carte par son nom. Les cartes déjà ouvertes conservent document,
+  historique, sélection et zoom ; changer de carte ne perd pas les modifications.
+- Rechercher un décor dans la palette, puis cliquer plusieurs fois sur la carte.
+  Échap revient à la sélection. Cliquer/glisser déplace un décor avec aperçu ;
+  la modification est validée à la fin du geste.
+- **Empilement ici** sélectionne un décor masqué. **Passer devant / derrière**
+  change son ordre d’un cran parmi les décors compatibles qui se recouvrent.
+  Cet ordre est enregistré sans changer les collisions ni la priorité d’interaction.
+- Choisir une tuile déjà référencée dans la palette pour peindre. La gomme cible
+  le support contenant une tuile visible au départ du trait. Un trait interpolé
+  compte comme une seule opération d’historique.
+- La main déplace la vue ; molette/pincement et boutons règlent le zoom.
+  Recentrage et grille sont disponibles.
+- **Enregistrer** écrit la carte avec contrôle de révision et persistance atomique.
+  Un conflit ou une erreur conserve le travail en mémoire. Aucun écrasement forcé.
+  À la fermeture, choisir Enregistrer, Abandonner ou Annuler.
+- **Enregistrer et tester** démarre le vrai runtime après sauvegarde confirmée et
+  contrôle de révision. Les sauvegardes de jeu restent en mémoire dans cette
+  session de test. Revenir au Studio restaure le document et sa vue.
+
+Raccourcis affichés dans les infobulles : ⌘/Ctrl+Z, ⌘/Ctrl+Maj+Z,
+⌘/Ctrl+S, ⌘/Ctrl+↑/↓ et Suppr/Retour arrière. Ils ne modifient pas la carte
+pendant une saisie de texte.
+
+## Limites explicites
+
+Le Studio prévisualise les animations à leur première frame. Les bordures sont
+conservées mais leur aperçu Studio affiche un avertissement ; le runtime les
+charge normalement. La sélection des décors suit leur empreinte en cellules,
+pas l’alpha exact de l’image. L’ordre fixe est limité aux contextes compatibles :
+il ne remplace pas la profondeur dynamique du personnage.
+
+La peinture ne remplace pas Smart Tile Studio ou la bibliothèque de ressources.
+Les autres familles de données restent conservées ; leurs studios spécialisés,
+la sélection multiple, l’import et la 3D ne font pas partie de M1.
+Les atlas manquants/inaccessibles ou dépassant le budget de 128 images/256 Mio
+sont signalés sans modifier leurs références.
+
+Les formats dont une réécriture perdrait des champs sont refusés pour l’édition.
+AS-ARC-002-bis reste actif : un chemin d’entrée ou une racine résolue altérable
+par le nettoyage partagé est refusé avant lecture de manifeste. Ce refus ne
+constitue pas un support complet des noms terminés par un espace ; sa réserve
+native historique reste distincte de M1.
+
+## Vérifier
 
 ```sh
-dart run tool/create_example_project.dart
+flutter test --no-pub
+flutter analyze --no-pub
+flutter build macos --debug --no-pub
 ```
 
-Le chemin temporaire est imprimé. Un argument permet de choisir un nouveau dossier ;
-le générateur refuse toute cible existante. Cette création explicite d’exemple est
-un outil de vérification, distinct de l’application en lecture seule.
-
-## Vérifications
-
-Depuis ce même dossier, chaque label doit être inédit pour conserver les preuves :
-
-```sh
-python3 tool/run_check.py analyze-local -- flutter analyze --no-pub
-python3 tool/run_check.py --reap-tests tests-local -- flutter test --no-pub
-python3 tool/run_check.py build-local -- flutter build macos --debug --no-pub
-```
-
-Le runner conserve sortie originale, code retour et processus descendants sous
-`documentation/reports/avelune_studio/AS-ARC-002/evidence/`. Il ne termine que les
-harnesses de tests dont il a suivi et revérifié l’identité.
-
-Les tests de frontières parcourent les imports/exports/parts locaux et `package:` ;
-ils constituent un garde ciblé, pas un analyseur Dart universel.
-La fermeture invalide les lectures en cours ; leur résultat tardif est libéré
-sans rouvrir l’écran. Aucun timer, watcher ou rechargement sur rebuild.
-
-Le manifeste suffit pour cette identité : les cartes, assets et la jouabilité ne
-sont pas validés. Certaines erreurs de permissions sont regroupées en erreur de
-lecture par l’API existante. Aucun benchmark ni support multiplateforme certifié.
-
-AS-ARC-002-bis conserve exactement le chemin saisi ou sélectionné. Si ce chemin,
-ou sa racine résolue après un lien symbolique, serait altéré par le nettoyage du
-lecteur partagé, l’ouverture est refusée avant tout accès au manifeste. Cela inclut
-un nom de dossier terminé par un espace, même suivi d’un séparateur. Les espaces
-internes, accents et liens vers une racine sûre restent acceptés. C’est un refus
-explicite local, pas le support complet de ces noms ni une correction du lecteur
-partagé. Le texte saisi reste disponible pour correction.
-
-Voir le [rapport et les preuves natives](../../documentation/reports/avelune_studio/AS-ARC-002/README.md).
+Les preuves et les réserves de recette sont détaillées dans le
+[rapport M1](../../documentation/reports/avelune_studio/M1_integration/README.md).
+Le runner existant `tool/run_check.py` conserve sorties, codes et descendants de
+tests ; son répertoire historique par défaut reste AS-ARC-002. La mission M1
+redirige ce chemin en mémoire vers son propre dossier de preuves.

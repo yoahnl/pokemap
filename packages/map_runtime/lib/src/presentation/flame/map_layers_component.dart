@@ -150,9 +150,11 @@ class MapLayersComponent extends PositionComponent {
   }
 
   final RuntimeMapBundle bundle;
+  late final List<MapPlacedElement> _orderedPlacedElements =
+      sortMapPlacedElementsForPainting(bundle.map.placedElements);
   late final Map<String, int> _placedElementOrderById = {
-    for (var i = 0; i < bundle.map.placedElements.length; i++)
-      bundle.map.placedElements[i].id: i,
+    for (var i = 0; i < _orderedPlacedElements.length; i++)
+      _orderedPlacedElements[i].id: i,
   };
   final Map<String, RuntimeTilesetImage> tileImagesByTilesetId;
   final MapLayerRenderPass renderPass;
@@ -1102,7 +1104,7 @@ class MapLayersComponent extends PositionComponent {
   void Function(Canvas)? placedElementOcclusionOverlayPainter(String ownerId) {
     final index = _placedElementOrderById[ownerId];
     if (index == null) return null;
-    final owner = bundle.map.placedElements[index];
+    final owner = _orderedPlacedElements[index];
     final element = _elementById[owner.elementId];
     if (element == null || owner.opacity != 1) return null;
     final layer =
@@ -1584,7 +1586,7 @@ class MapLayersComponent extends PositionComponent {
       for (final element in bundle.manifest.elements) element.id: element,
     };
     return _RuntimeSpatialIndex<MapPlacedElement>.build(
-      items: bundle.map.placedElements,
+      items: sortMapPlacedElementsForPainting(bundle.map.placedElements),
       bucketWidth: bundle.cellWidth * 8,
       bucketHeight: bundle.cellHeight * 8,
       boundsOf: (instance) {

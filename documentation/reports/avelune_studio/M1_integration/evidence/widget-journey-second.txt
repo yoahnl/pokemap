@@ -1,0 +1,305 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart
+00:00 +0: place move stack undo redo save and runtime return preserve document
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selected: true, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: <2>
+  Actual: <0>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart:53:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart line 53
+The test description was:
+  place move stack undo redo save and runtime return preserve document
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following message was thrown:
+Multiple exceptions (5) were detected during the running of the current test, and at least one was
+unexpected.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +0 -1: place move stack undo redo save and runtime return preserve document [E]
+  Test failed. See exception logs above.
+  The test description was: place move stack undo redo save and runtime return preserve document
+  
+00:01 +0 -1: dirty close offers cancel discard save and save conflict prevents runtime
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selected: true, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 2 widgets with widget matching predicate: [
+  RawTooltip-[LabeledGlobalKey<RawTooltipState>#0cf17]("Fermer le projet", hover delay:
+0:00:00.000000, touch delay: 0:00:01.500000, dismiss delay: 0:00:00.100000, triggerMode:
+TooltipTriggerMode.longPress, enableFeedback: true, positionDelegate: Closure:
+(TooltipPositionContext) => Offset from Function '_getDefaultPositionDelegate@1250220820':., state:
+RawTooltipState#38a58(ticker inactive)),
+  RawTooltip-[LabeledGlobalKey<RawTooltipState>#fbd1b]("Fermer le projet", hover delay:
+0:00:00.000000, touch delay: 0:00:01.500000, dismiss delay: 0:00:00.100000, triggerMode:
+TooltipTriggerMode.longPress, enableFeedback: true, positionDelegate: Closure:
+(TooltipPositionContext) => Offset from Function '_getDefaultPositionDelegate@1250220820':., state:
+RawTooltipState#f6809(ticker inactive)),
+]" (used in a call to "tap()") ambiguously found multiple matching widgets. The "tap()" method needs
+a single target.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2100:7)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.tap (package:flutter_test/src/controller.dart:1080:7)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart:104:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  dirty close offers cancel discard save and save conflict prevents runtime
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following message was thrown:
+Multiple exceptions (5) were detected during the running of the current test, and at least one was
+unexpected.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +0 -2: dirty close offers cancel discard save and save conflict prevents runtime [E]
+  Test failed. See exception logs above.
+  The test description was: dirty close offers cancel discard save and save conflict prevents runtime
+  
+00:01 +0 -2: paint gesture is one history step and text input does not delete selection
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selected: true, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER FRAMEWORK ╞═════════════════════════════════════════════════════════
+The following assertion was thrown:
+ListTile background color or ink splashes may be invisible.
+The ListTile is wrapped in a ColoredBox that has a background color. Because ListTile paints its
+background and ink splashes on the nearest Material ancestor, this ColoredBox will hide those
+effects.
+To fix this, wrap the ListTile in its own Material widget, or remove the background color from the
+intermediate ColoredBox.
+
+ListTile:
+  ListTile(dense: true, shape: RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(8.0)), onTap: Closure: () => void, selected: true, selectedTileColor: Color(alpha: 1.0000, red: 0.0118, green: 0.8549, blue: 0.7765, colorSpace: ColorSpace.sRGB))
+ColoredBox:
+  ColoredBox(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1333, blue: 0.1882, colorSpace: ColorSpace.sRGB))
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: <2>
+  Actual: <0>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart:135:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart line 135
+The test description was:
+  paint gesture is one history step and text input does not delete selection
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following message was thrown:
+Multiple exceptions (7) were detected during the running of the current test, and at least one was
+unexpected.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -3: paint gesture is one history step and text input does not delete selection [E]
+  Test failed. See exception logs above.
+  The test description was: paint gesture is one history step and text input does not delete selection
+  
+00:02 +0 -3: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: dirty close offers cancel discard save and save conflict prevents runtime
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: paint gesture is one history step and text input does not delete selection
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/map_workspace_journey_test.dart: place move stack undo redo save and runtime return preserve document

@@ -7,11 +7,43 @@ import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
   group('MapGridPainter tile layer order', () {
+    test(
+      'placed visual rank paints above later serialized instances',
+      () async {
+        const map = MapData(
+          id: 'rank',
+          name: 'Rank',
+          size: GridSize(width: 1, height: 1),
+          layers: [
+            TileLayer(id: 'decor', name: 'Decor', cells: [0]),
+          ],
+          placedElements: [
+            MapPlacedElement(
+              id: 'red',
+              layerId: 'decor',
+              elementId: 'bottom_element',
+              pos: GridPos(x: 0, y: 0),
+              visualOrder: 2,
+            ),
+            MapPlacedElement(
+              id: 'blue',
+              layerId: 'decor',
+              elementId: 'top_element',
+              pos: GridPos(x: 0, y: 0),
+            ),
+          ],
+        );
+        expect(await _paintMap(map), _red);
+        expect(map.placedElements.map((instance) => instance.id), [
+          'red',
+          'blue',
+        ]);
+      },
+    );
+
     test('paints bottom_to_top opt-in layers in authored list order', () async {
       final color = await _paintOverlappingLayers(
-        properties: const <String, dynamic>{
-          'tileLayerOrder': 'bottom_to_top',
-        },
+        properties: const <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
       );
 
       expect(color, _blue);
@@ -25,9 +57,7 @@ void main() {
 
     test('applies bottom_to_top ordering to the foreground pass', () async {
       final color = await _paintOverlappingLayers(
-        properties: const <String, dynamic>{
-          'tileLayerOrder': 'bottom_to_top',
-        },
+        properties: const <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
         explicitForeground: true,
       );
 
@@ -35,18 +65,14 @@ void main() {
     });
 
     test('preserves legacy ordering in the foreground pass', () async {
-      final color = await _paintOverlappingLayers(
-        explicitForeground: true,
-      );
+      final color = await _paintOverlappingLayers(explicitForeground: true);
 
       expect(color, _red);
     });
 
     test('applies bottom_to_top ordering to placed elements', () async {
       final color = await _paintOverlappingLayers(
-        properties: const <String, dynamic>{
-          'tileLayerOrder': 'bottom_to_top',
-        },
+        properties: const <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
         placedElements: true,
       );
 
@@ -54,18 +80,14 @@ void main() {
     });
 
     test('preserves legacy ordering for placed elements', () async {
-      final color = await _paintOverlappingLayers(
-        placedElements: true,
-      );
+      final color = await _paintOverlappingLayers(placedElements: true);
 
       expect(color, _red);
     });
 
     test('map with Border keeps bottom_to_top foreground Tile order', () async {
       final color = await _paintOverlappingLayers(
-        properties: const <String, dynamic>{
-          'tileLayerOrder': 'bottom_to_top',
-        },
+        properties: const <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
         explicitForeground: true,
         includeBorder: true,
       );
@@ -73,49 +95,44 @@ void main() {
       expect(color, _blue);
     });
 
-    test('map with Border keeps legacy inverse foreground Tile order',
-        () async {
-      final color = await _paintOverlappingLayers(
-        explicitForeground: true,
-        includeBorder: true,
-      );
-
-      expect(color, _red);
-    });
-
-    test('map with Border defers ordinary placed elements below entities',
-        () async {
-      expect(
-        await _paintLayerAgainstEntity(
-          'l_tile_furniture',
-          placedElement: true,
+    test(
+      'map with Border keeps legacy inverse foreground Tile order',
+      () async {
+        final color = await _paintOverlappingLayers(
+          explicitForeground: true,
           includeBorder: true,
-        ),
-        _red,
-      );
-    });
+        );
+
+        expect(color, _red);
+      },
+    );
+
+    test(
+      'map with Border defers ordinary placed elements below entities',
+      () async {
+        expect(
+          await _paintLayerAgainstEntity(
+            'l_tile_furniture',
+            placedElement: true,
+            includeBorder: true,
+          ),
+          _red,
+        );
+      },
+    );
 
     test('map with Border keeps foreground Tile above entities', () async {
       expect(
-        await _paintLayerAgainstEntity(
-          'l_tile_overhead',
-          includeBorder: true,
-        ),
+        await _paintLayerAgainstEntity('l_tile_overhead', includeBorder: true),
         _blue,
       );
     });
 
-    for (final layerId in <String>[
-      'l_tile_overhead',
-      'l_tile_occlusion',
-    ]) {
+    for (final layerId in <String>['l_tile_overhead', 'l_tile_occlusion']) {
       test('paints $layerId after normal entities', () async {
         expect(await _paintLayerAgainstEntity(layerId), _blue);
         expect(
-          await _paintLayerAgainstEntity(
-            layerId,
-            placedElement: true,
-          ),
+          await _paintLayerAgainstEntity(layerId, placedElement: true),
           _blue,
         );
       });
@@ -124,10 +141,7 @@ void main() {
     test('keeps an ordinary tile layer below normal entities', () async {
       expect(await _paintLayerAgainstEntity('l_tile_furniture'), _red);
       expect(
-        await _paintLayerAgainstEntity(
-          'l_tile_furniture',
-          placedElement: true,
-        ),
+        await _paintLayerAgainstEntity('l_tile_furniture', placedElement: true),
         _red,
       );
     });
@@ -233,9 +247,7 @@ Future<ui.Color> _paintMap(MapData map) async {
     offset: ui.Offset.zero,
     tileWidth: 16,
     tileHeight: 16,
-    tilesetImagesById: <String, ui.Image?>{
-      'test_tileset': tilesetImage,
-    },
+    tilesetImagesById: <String, ui.Image?>{'test_tileset': tilesetImage},
     sourceTileWidth: 16,
     sourceTileHeight: 16,
     tilesPerRowById: const <String, int>{'test_tileset': 2},
@@ -353,9 +365,7 @@ Future<ui.Color> _paintLayerAgainstEntity(
     offset: ui.Offset.zero,
     tileWidth: 16,
     tileHeight: 16,
-    tilesetImagesById: <String, ui.Image?>{
-      'test_tileset': tilesetImage,
-    },
+    tilesetImagesById: <String, ui.Image?>{'test_tileset': tilesetImage},
     sourceTileWidth: 16,
     sourceTileHeight: 16,
     tilesPerRowById: const <String, int>{'test_tileset': 2},

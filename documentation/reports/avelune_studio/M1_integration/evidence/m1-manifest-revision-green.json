@@ -1,0 +1,49 @@
+{
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub",
+    "test/infrastructure/m1_manifest_revision_test.dart",
+    "test/infrastructure/map_workspace_io_test.dart",
+    "test/infrastructure/map_workspace_read_safety_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:27:44.562929+00:00",
+  "finishedAt": "2026-09-19T15:27:48.955645+00:00",
+  "exitCode": 0,
+  "runnerPid": 45411,
+  "trackedProcesses": {
+    "45411": {
+      "parent": 45401,
+      "uid": 501,
+      "started": "Sat Sep 19 17:27:44 2026",
+      "command": "<defunct>"
+    },
+    "45480": {
+      "parent": 45411,
+      "uid": 501,
+      "started": "Sat Sep 19 17:27:45 2026",
+      "command": "(dartaotruntime)"
+    },
+    "45520": {
+      "parent": 45411,
+      "uid": 501,
+      "started": "Sat Sep 19 17:27:46 2026",
+      "command": "(flutter_tester)"
+    },
+    "45524": {
+      "parent": 45411,
+      "uid": 501,
+      "started": "Sat Sep 19 17:27:46 2026",
+      "command": "(flutter_tester)"
+    },
+    "45536": {
+      "parent": 45411,
+      "uid": 501,
+      "started": "Sat Sep 19 17:27:46 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

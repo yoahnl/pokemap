@@ -1,0 +1,52 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os; os.chdir(\"../../packages/map_editor\"); os.execv(\"/opt/homebrew/bin/flutter\", [\"flutter\", \"test\", \"--no-pub\", \"test/features/editor/application/map_canvas_object_hit_test_test.dart\", \"test/map_grid_painter_layer_order_test.dart\"])"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:21:36.367470+00:00",
+  "finishedAt": "2026-09-19T15:21:47.638893+00:00",
+  "exitCode": 0,
+  "runnerPid": 35623,
+  "trackedProcesses": {
+    "35623": {
+      "parent": 35613,
+      "uid": 501,
+      "started": "Sat Sep 19 17:21:36 2026",
+      "command": "<defunct>"
+    },
+    "35644": {
+      "parent": 35623,
+      "uid": 501,
+      "started": "Sat Sep 19 17:21:36 2026",
+      "command": "(bash)"
+    },
+    "35657": {
+      "parent": 35644,
+      "uid": 501,
+      "started": "Sat Sep 19 17:21:36 2026",
+      "command": "(git)"
+    },
+    "35738": {
+      "parent": 35623,
+      "uid": 501,
+      "started": "Sat Sep 19 17:21:37 2026",
+      "command": "(dartaotruntime)"
+    },
+    "35804": {
+      "parent": 35623,
+      "uid": 501,
+      "started": "Sat Sep 19 17:21:40 2026",
+      "command": "(flutter_tester)"
+    },
+    "35914": {
+      "parent": 35623,
+      "uid": 501,
+      "started": "Sat Sep 19 17:21:45 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/packages/map_editor/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/packages/map_editor/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.TT9jfr/flutter_test_listener.iFfeIg/listener.dart.dill"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

@@ -1,0 +1,39 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart",
+    "analyze",
+    "lib/src/features/map_workspace/rendering",
+    "lib/src/features/playtest",
+    "lib/src/features/map_workspace/presentation/map_workspace_visuals.dart",
+    "tool/create_example_project.dart",
+    "tool/example_project_assets.dart",
+    "test/infrastructure/studio_map_resources_test.dart",
+    "test/infrastructure/studio_playtest_test.dart",
+    "../../packages/map_runtime/lib/map_runtime_authoring.dart",
+    "../../packages/map_runtime/lib/src/application/authoring_preview/runtime_authoring_map_renderer.dart",
+    "../../packages/map_runtime/lib/src/infrastructure/tile_image_loader.dart",
+    "../../packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart",
+    "../../packages/map_runtime/test/runtime_authoring_map_renderer_order_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:23:26.234242+00:00",
+  "finishedAt": "2026-09-19T15:23:40.615519+00:00",
+  "exitCode": 0,
+  "runnerPid": 38046,
+  "trackedProcesses": {
+    "38046": {
+      "parent": 38010,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:26 2026",
+      "command": "(dart)"
+    },
+    "38048": {
+      "parent": 38046,
+      "uid": 501,
+      "started": "Sat Sep 19 17:23:26 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

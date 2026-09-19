@@ -1,0 +1,6 @@
+Analyzing documents, map_authoring_documents.dart...
+
+   info - lib/src/documents/atomic_map_document_persistence.dart:244:19 - Empty catch block. Try adding statements to the block, adding a comment to the block, or removing the 'catch' clause. - empty_catches
+   info - lib/src/documents/atomic_map_document_persistence.dart:548:28 - Empty catch block. Try adding statements to the block, adding a comment to the block, or removing the 'catch' clause. - empty_catches
+
+2 issues found.

@@ -1,0 +1,25 @@
+  1s compiling builders/aot
+  2s compiling builders/aot
+  3s compiling builders/aot
+  4s compiling builders/aot
+  5s compiling builders/aot
+  6s compiling builders/aot
+  7s compiling builders/aot
+  8s compiling builders/aot
+  9s compiling builders/aot
+  10s compiling builders/aot
+  11s compiling builders/aot
+  12s compiling builders/aot
+  13s compiling builders/aot
+  14s compiling builders/aot
+  15s compiling builders/aot
+  16s compiling builders/aot
+  17s compiling builders/aot
+W These options have been removed and were ignored: --delete-conflicting-outputs
+  0s freezed on 1 input; lib/src/models/map_data.dart
+W SDK language version 3.14.0 is newer than `analyzer` language version 3.12.0. Run `flutter packages upgrade`.
+  1s freezed on 1 input: 1 output
+  0s source_gen:combining_builder on 2 inputs; lib/src/models/map_data.dart
+  0s json_serializable (lazy); lib/src/models/map_data.freezed.dart
+  0s source_gen:combining_builder on 2 inputs: 1 output, 1 no-op
+  Built with build_runner/aot in 20s; wrote 14 outputs.

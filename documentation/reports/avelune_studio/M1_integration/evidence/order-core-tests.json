@@ -1,0 +1,34 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os; os.chdir(\"../../packages/map_core\"); os.execv(\"/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart\", [\"dart\", \"test\", \"test/placed_element_visual_order_test.dart\", \"test/placed_elements_test.dart\", \"test/map_placed_element_rotation_test.dart\"])"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:11:09.842823+00:00",
+  "finishedAt": "2026-09-19T15:11:24.283744+00:00",
+  "exitCode": 1,
+  "runnerPid": 23827,
+  "trackedProcesses": {
+    "23827": {
+      "parent": 23818,
+      "uid": 501,
+      "started": "Sat Sep 19 17:11:09 2026",
+      "command": "<defunct>"
+    },
+    "23829": {
+      "parent": 23827,
+      "uid": 501,
+      "started": "Sat Sep 19 17:11:09 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/share/flutter/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/pub/bin/test/tmp3cPKbW/test.dart-3.14.0-95.2.beta.snapshot.incremental.temp --packages=.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    },
+    "23894": {
+      "parent": 23827,
+      "uid": 501,
+      "started": "Sat Sep 19 17:11:13 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/share/flutter/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dart_test.kernel.hDylkk/output.dill --packages=/Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

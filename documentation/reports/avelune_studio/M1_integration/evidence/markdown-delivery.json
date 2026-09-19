@@ -1,0 +1,185 @@
+{
+  "command": [
+    "env",
+    "POKEMAP_MARKDOWN_MAX_NEW=1",
+    "bash",
+    "../../tools/scripts/check_markdown_hygiene.sh"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:44:33.927405+00:00",
+  "finishedAt": "2026-09-19T15:44:39.226199+00:00",
+  "exitCode": 0,
+  "runnerPid": 61102,
+  "trackedProcesses": {
+    "61102": {
+      "parent": 61092,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:33 2026",
+      "command": "(bash)"
+    },
+    "61142": {
+      "parent": 61102,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:34 2026",
+      "command": "bash ../../tools/scripts/check_markdown_hygiene.sh"
+    },
+    "61143": {
+      "parent": 61142,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:34 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/git -C /Users/karim/Project/pokemonProject ls-files --others --exclude-standard"
+    },
+    "61217": {
+      "parent": 61102,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:34 2026",
+      "command": "(bash)"
+    },
+    "61313": {
+      "parent": 61102,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:34 2026",
+      "command": "(bash)"
+    },
+    "61437": {
+      "parent": 61102,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:34 2026",
+      "command": "(bash)"
+    },
+    "61439": {
+      "parent": 61437,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:34 2026",
+      "command": "(tr)"
+    },
+    "61561": {
+      "parent": 61102,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:34 2026",
+      "command": "(bash)"
+    },
+    "61563": {
+      "parent": 61561,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:34 2026",
+      "command": "(tr)"
+    },
+    "61681": {
+      "parent": 61102,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:35 2026",
+      "command": "(bash)"
+    },
+    "61683": {
+      "parent": 61681,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:35 2026",
+      "command": "(tr)"
+    },
+    "61757": {
+      "parent": 61102,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:35 2026",
+      "command": "bash ../../tools/scripts/check_markdown_hygiene.sh"
+    },
+    "61758": {
+      "parent": 61757,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:35 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/git -C /Users/karim/Project/pokemonProject ls-files --others --ignored --exclude-standard -- :(icase,glob)**/*.md :(icase,glob)**/*.mdx :(icase,glob)**/*.markdown"
+    },
+    "61771": {
+      "parent": 61102,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:35 2026",
+      "command": "bash ../../tools/scripts/check_markdown_hygiene.sh"
+    },
+    "61830": {
+      "parent": 61771,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:35 2026",
+      "command": "(bash)"
+    },
+    "61969": {
+      "parent": 61771,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:35 2026",
+      "command": "(bash)"
+    },
+    "61970": {
+      "parent": 61969,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:35 2026",
+      "command": "(bash)"
+    },
+    "62115": {
+      "parent": 61771,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(bash)"
+    },
+    "62117": {
+      "parent": 62115,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(tr)"
+    },
+    "62262": {
+      "parent": 61771,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(bash)"
+    },
+    "62377": {
+      "parent": 61102,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(bash)"
+    },
+    "62399": {
+      "parent": 62377,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(bash)"
+    },
+    "62402": {
+      "parent": 62399,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(tr)"
+    },
+    "62545": {
+      "parent": 62377,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(bash)"
+    },
+    "62547": {
+      "parent": 62545,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(tr)"
+    },
+    "62704": {
+      "parent": 62377,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(bash)"
+    },
+    "62706": {
+      "parent": 62704,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(tr)"
+    },
+    "62839": {
+      "parent": 62377,
+      "uid": 501,
+      "started": "Sat Sep 19 17:44:36 2026",
+      "command": "(bash)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

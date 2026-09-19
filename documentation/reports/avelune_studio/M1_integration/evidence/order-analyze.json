@@ -1,0 +1,28 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import os; os.chdir(\"../..\"); os.execv(\"/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart\", [\"dart\", \"analyze\", \"packages/map_core/lib/src/operations/map_placed_element_visual_order.dart\", \"packages/map_core/lib/src/models/map_data.dart\", \"packages/map_core/test/placed_element_visual_order_test.dart\", \"packages/map_authoring/lib/src/domains/maps/placed_element_actions.dart\", \"packages/map_authoring/test/domains/maps/placed_element_visual_order_actions_test.dart\", \"packages/map_gameplay/test/placed_element_visual_order_gameplay_test.dart\"])"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:17:53.958837+00:00",
+  "finishedAt": "2026-09-19T15:17:57.051311+00:00",
+  "exitCode": 0,
+  "runnerPid": 32073,
+  "trackedProcesses": {
+    "32073": {
+      "parent": 32061,
+      "uid": 501,
+      "started": "Sat Sep 19 17:17:53 2026",
+      "command": "<defunct>"
+    },
+    "32078": {
+      "parent": 32073,
+      "uid": 501,
+      "started": "Sat Sep 19 17:17:54 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

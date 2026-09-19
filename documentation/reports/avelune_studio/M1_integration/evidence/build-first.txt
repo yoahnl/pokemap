@@ -1,0 +1,42 @@
+Building macOS application...                                   
+/Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:205:14: warning: main actor-isolated property 'eventHandler' can not be referenced from a Sendable closure
+ 18 | 
+ 19 | @MainActor class WrappedMediaPlayer {
+ 20 |   private(set) var eventHandler: AudioPlayersStreamHandler
+ 21 |   private(set) var isPlaying: Bool
+ 22 |   var releaseMode: ReleaseMode
+    :
+203 |         }
+204 |         let status = playerItem.status
+205 |         self.eventHandler.onLog(message: "player status: \(status), change: \(change)")
+    |              `- warning: main actor-isolated property 'eventHandler' can not be referenced from a Sendable closure
+206 | 
+207 |         switch status {
+
+/Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:211:16: warning: call to main actor-isolated instance method 'reset()' in a synchronous nonisolated context [#ActorIsolatedCall]
+209 |           continuation.resume()
+210 |         case .failed:
+211 |           self.reset()
+    |                `- warning: call to main actor-isolated instance method 'reset()' in a synchronous nonisolated context [#ActorIsolatedCall]
+212 |           continuation.resume(throwing: AudioPlayerError.error("Failed to set playerItem"))
+213 |         default:
+    :
+248 |   }
+249 | 
+250 |   private func reset() {
+251 |     playerItemStatusObservation?.invalidate()
+252 |     playerItemStatusObservation = nil
+
+/Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:233:31: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+229 |       object: playerItem,
+230 |       queue: nil
+231 |     ) {
+232 |       (notification) in
+233 |       Task { @MainActor [weak self] in
+    |                               |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+234 |         guard let self = self else {
+235 |           return
+
+[#ActorIsolatedCall]: <https://docs.swift.org/compiler/documentation/diagnostics/actor-isolated-call>
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app

@@ -599,16 +599,17 @@ class MapGridPainter extends CustomPainter {
             tileHeight: tileHeight,
             lightPreviewPreset: shadowLightPreviewPreset,
           );
-    final visiblePlacedElements =
-        shadowProjection?.placedElementsIn(
-          EditorShadowPreviewCellViewport(
-            left: visibleBounds.left,
-            top: visibleBounds.top,
-            right: visibleBounds.right,
-            bottom: visibleBounds.bottom,
-          ),
-        ) ??
-        const <MapPlacedElement>[];
+    final visiblePlacedElements = sortMapPlacedElementsForPainting(
+      shadowProjection?.placedElementsIn(
+            EditorShadowPreviewCellViewport(
+              left: visibleBounds.left,
+              top: visibleBounds.top,
+              right: visibleBounds.right,
+              bottom: visibleBounds.bottom,
+            ),
+          ) ??
+          const <MapPlacedElement>[],
+    );
 
     // Cell-backed layers and placed-element footprints use cell bounds. Shadow
     // projections use their cached exact world-pixel geometry because their

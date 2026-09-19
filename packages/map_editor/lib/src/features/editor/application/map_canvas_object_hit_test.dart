@@ -232,7 +232,9 @@ final class MapCanvasObjectHitTest {
       return;
     }
     final explicitForeground = _isExplicitForegroundLayer(layer);
-    for (final instance in map.placedElements) {
+    for (final instance in sortMapPlacedElementsForPainting(
+      map.placedElements,
+    )) {
       if (instance.layerId.trim() != layer.id.trim() || instance.opacity <= 0) {
         continue;
       }

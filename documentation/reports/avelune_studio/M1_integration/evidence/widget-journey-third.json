@@ -1,0 +1,41 @@
+{
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub",
+    "test/presentation/map_workspace_journey_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T15:22:51.354176+00:00",
+  "finishedAt": "2026-09-19T15:22:58.402728+00:00",
+  "exitCode": 1,
+  "runnerPid": 37122,
+  "trackedProcesses": {
+    "37122": {
+      "parent": 37113,
+      "uid": 501,
+      "started": "Sat Sep 19 17:22:51 2026",
+      "command": "<defunct>"
+    },
+    "37159": {
+      "parent": 37122,
+      "uid": 501,
+      "started": "Sat Sep 19 17:22:51 2026",
+      "command": "(git)"
+    },
+    "37174": {
+      "parent": 37122,
+      "uid": 501,
+      "started": "Sat Sep 19 17:22:52 2026",
+      "command": "(dartaotruntime)"
+    },
+    "37221": {
+      "parent": 37122,
+      "uid": 501,
+      "started": "Sat Sep 19 17:22:53 2026",
+      "command": "(flutter_tester)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}
