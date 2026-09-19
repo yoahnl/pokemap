@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'resource_catalog.dart';
+import '../../shared/widgets/layout/studio_asset_preview.dart';
+import '../../shared/widgets/layout/studio_panel.dart';
+import '../../shared/widgets/feedback/studio_empty_state.dart';
 import 'package:avelune_studio/features/decors/application/decor_source_support.dart';
 
 class ResourceDetailPanel extends StatelessWidget {
@@ -26,7 +29,11 @@ class ResourceDetailPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final entry = item;
     if (entry == null) {
-      return const Center(child: Text('Sélectionnez une ressource.'));
+      return const StudioEmptyState(
+        title: 'Sélectionnez une ressource.',
+        description: 'Son aperçu et ses usages apparaîtront ici.',
+        icon: Icons.image_outlined,
+      );
     }
     final source = entry.tileset?.source;
     final tileset =
@@ -36,10 +43,10 @@ class ResourceDetailPanel extends StatelessWidget {
             .firstOrNull;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: StudioPanel(
+        compact: true,
         children: [
-          Center(child: preview),
+          StudioAssetPreview(height: 180, child: preview),
           const SizedBox(height: 16),
           Text('$openUsage usage(s) dans les cartes ouvertes'),
           const SizedBox(height: 8),

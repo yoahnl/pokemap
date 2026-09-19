@@ -10,7 +10,7 @@ class StudioChoice extends StatefulWidget {
     this.subtitle,
   });
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool selected;
   final Widget? leading;
   final String? subtitle;

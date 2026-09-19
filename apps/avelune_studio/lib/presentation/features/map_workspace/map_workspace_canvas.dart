@@ -4,7 +4,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../theme/studio_tokens.dart';
 import 'package:map_core/map_core_domain.dart';
-
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay.dart';

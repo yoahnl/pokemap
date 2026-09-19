@@ -7,6 +7,11 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_resourc
 import 'resource_catalog.dart';
 import 'resource_detail_panel.dart';
 import 'resource_preview.dart';
+import '../../shared/widgets/layout/studio_page_header.dart';
+import '../../shared/widgets/layout/studio_resource_grid.dart';
+import '../../shared/widgets/inputs/studio_tabs.dart';
+import '../../shared/widgets/inputs/studio_search_field.dart';
+import '../../shared/widgets/feedback/studio_empty_state.dart';
 
 class ResourceLibraryScreen extends StatefulWidget {
   const ResourceLibraryScreen({
@@ -97,26 +102,22 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
         : <String, String>{};
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text('Ressources', style: Theme.of(context).textTheme.titleLarge),
-              StudioButton(
-                label: 'Retour à la carte',
-                secondary: true,
-                onPressed: widget.onBack,
-              ),
-              StudioButton(
-                label: 'Importer une image',
-                icon: Icons.add_photo_alternate_outlined,
-                onPressed: widget.onImport,
-              ),
-            ],
-          ),
+        StudioPageHeader(
+          title: 'Ressources',
+          description:
+              'Vos décors, terrains et images, prêts à donner vie à la carte.',
+          actions: [
+            StudioButton(
+              label: 'Retour à la carte',
+              secondary: true,
+              onPressed: widget.onBack,
+            ),
+            StudioButton(
+              label: 'Importer une image',
+              icon: Icons.add_photo_alternate_outlined,
+              onPressed: widget.onImport,
+            ),
+          ],
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -124,22 +125,21 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final kind in ResourceKind.values)
-                StudioButton(
-                  label: switch (kind) {
-                    ResourceKind.decors => 'Décors',
-                    ResourceKind.terrains => 'Terrains',
-                    ResourceKind.images => 'Images et tuiles',
-                  },
-                  secondary: state.kind != kind,
-                  onPressed: () => setState(() {
-                    state.kind = kind;
-                    state.category = '';
-                    state.offset = 0;
-                    filter();
-                    if (scroll.hasClients) scroll.jumpTo(0);
-                  }),
-                ),
+              StudioTabs<ResourceKind>(
+                items: const {
+                  ResourceKind.decors: 'Décors',
+                  ResourceKind.terrains: 'Terrains',
+                  ResourceKind.images: 'Images et tuiles',
+                },
+                selected: state.kind,
+                onChanged: (kind) => setState(() {
+                  state.kind = kind;
+                  state.category = '';
+                  state.offset = 0;
+                  filter();
+                  if (scroll.hasClients) scroll.jumpTo(0);
+                }),
+              ),
               StudioButton(
                 label: state.grid ? 'Mode liste' : 'Mode grille',
                 secondary: true,
@@ -153,12 +153,9 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
           child: Row(
             children: [
               Expanded(
-                child: TextField(
+                child: StudioSearchField(
                   controller: search,
-                  decoration: const InputDecoration(
-                    labelText: 'Rechercher une ressource',
-                    prefixIcon: Icon(Icons.search, size: 18),
-                  ),
+                  label: 'Rechercher une ressource',
                   onChanged: (v) => setState(() {
                     state.query = v;
                     filter();
@@ -209,27 +206,27 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
                 onTerrain: widget.onTerrain,
               );
               final grid = filtered.isEmpty
-                  ? const Center(
-                      child: Text('Aucune ressource correspondante.'),
+                  ? const StudioEmptyState(
+                      title: 'Aucune ressource correspondante.',
+                      description: 'Changez les filtres ou importez une image.',
                     )
                   : state.grid
-                  ? GridView.builder(
+                  ? StudioResourceGrid(
                       controller: scroll,
-                      scrollCacheExtent: const ScrollCacheExtent.pixels(0),
-                      padding: const EdgeInsets.all(12),
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 180,
-                            mainAxisExtent: 165,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                          ),
                       itemCount: filtered.length,
                       itemBuilder: (context, i) {
                         final item = filtered[i];
                         return StudioResourceCard(
                           name: item.name,
-                          preview: preview(item),
+                          preview: preview(item, size: 132),
+                          category: switch (item.kind) {
+                            ResourceKind.decors => 'Décor',
+                            ResourceKind.terrains => 'Terrain automatique',
+                            ResourceKind.images => 'Image et tuiles',
+                          },
+                          metadata: item.tags.isEmpty
+                              ? null
+                              : item.tags.join(' · '),
                           selected: selected == item,
                           onTap: () =>
                               setState(() => state.selectedId = item.id),

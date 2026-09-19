@@ -1,4 +1,133 @@
-# Avelune Studio — Personnages et histoire M3
+# Avelune Studio — Charte graphique et parcours M1/M2/M3
+
+## Charte graphique intégrée
+
+La présentation utilise un atelier bleu nuit, des panneaux à bordure fine, une
+action principale bleue et des aperçus prioritaires. Les neuf références fournies
+guident la structure de l’éditeur V2, les bibliothèques avec détail, les atlas et
+les écrans narratifs. Leurs bandeaux explicatifs ne font pas partie du produit.
+La gestion manuelle des calques reste exclue.
+
+Les valeurs canoniques sont dans `lib/presentation/theme/studio_theme.dart` et
+`studio_tokens.dart`. Les écrans consomment ces tokens sémantiques.
+
+| Rôle | Valeur |
+| --- | --- |
+| Fond / panneau / surface surélevée | `#071522` / `#0D1D2C` / `#14283B` |
+| Bordure | `#29445F` |
+| Texte principal / secondaire | `#EDF4FF` / `#A4B7CD` |
+| Action principale / sélection sur carte | `#2163DF` / `#3BCEF5` |
+| Succès / attention / erreur | `#25C49A` / `#F1BE58` / `#E45C69` |
+| Accent de fonctionnalité | `#8256E8` |
+
+Le bleu proposé `#2474FF` a été assombri : le contraste texte/bouton atteint
+4,85:1. Corps à 14, texte secondaire à 12, titres de section à 16 et de page à 22.
+Contrôles de 36, outils compacts de 32 ; rayons de 6 et 8 ; espacement principal
+de 12 et marge intérieure de panneau de 16. Les atlas conservent leur ratio,
+leur transparence et leur rendu sans lissage. Le focus clavier reste distinct
+de la sélection persistante.
+
+### Catalogue intégré
+
+Les noms existants sont conservés lorsqu’ils remplissent déjà la responsabilité
+du catalogue. Les composants métier composent le socle partagé ; ils ne sont pas
+recopiés dans une bibliothèque parallèle.
+
+| Famille | Composants | Utilisation |
+| --- | --- | --- |
+| Cadre | `StudioAppShell`, `StudioTopBar`, `StudioNavigationRail`, `StudioSidebar` | Accueil, carte, ressources, histoire, galerie ; navigation compacte avec libellés. |
+| Surfaces | `StudioPageHeader`, `StudioPanel`, `StudioSection` | Titres/actions adaptatifs, surfaces Material, sections repliables. |
+| Actions | `StudioButton`, `StudioTool`, `StudioDepthControl` | Principale, secondaire, discrète, destructive, chargement ; outils et profondeur locale. |
+| Saisie | `StudioDraftField`, `StudioPathField`, `StudioChoice`, `StudioSearchField`, `StudioTabs`, `StudioToggleRow` | Brouillons, recherche effaçable, choix, onglets et options. |
+| Retour utilisateur | `StudioNotice`, `StudioBadge`, `StudioEmptyState` | Erreurs, information, catégories, absence de résultat. |
+| Ressources | `StudioResourceCard`, `StudioResourceGrid`, `StudioAssetPreview`, `ResourceDetailPanel` | Aperçus dominants, grille virtualisée, damier, métadonnées et utilisation sur la carte. |
+| Préparation | `confirmImageImport`, `DecorEditorScreen`, `TerrainEditorScreen`, `AtlasSelectionView`, `TerrainScratchView` | Import, décor, raccords automatiques et essai ; contrôles existants et surfaces communes. |
+| Carte | `MapWorkspaceLayout`, `MapWorkspaceToolbar`, `MapWorkspaceCanvas`, `MapSelectionInspector`, `MapWorkspaceInspector` | Répartition responsive, sélection cyan, aperçu et empilement local. |
+| Personnages | `CharacterPalette`, `CharacterInspector`, `DialoguePortraitChoice` | Palette et propriétés dédiées avec thème et primitives partagés. |
+| Histoire | `NarrativeStoryPane`, `DialogueLinesEditor`, `NarrativeConditionsEditor`, `NarrativeSequenceEditor` | Conversations, choix, conditions et étapes ; panneaux et onglets communs. |
+| Test | `StudioPlaytestView` et session existante | Lancement du vrai runtime depuis la carte ou l’interaction. |
+
+Les personnages restent dans la palette et le test dans les commandes existantes.
+Le sélecteur de projets récents, l’assistant générique multiétape et le bandeau
+générique de variantes du catalogue cible ne sont pas ajoutés comme composants
+inutilisés : les parcours actuels conservent leurs contrôles dédiés. L’accueil
+illustré et une reproduction artistique complète des planches ne sont pas livrés.
+
+### Lancer l’application et la galerie
+
+Depuis `apps/avelune_studio` :
+
+```sh
+flutter run -d macos -t lib/main.dart
+flutter run -d macos -t lib/design_gallery.dart
+```
+
+La galerie permet de manipuler les boutons, le chargement, la recherche, les
+filtres, la sélection, les sections et les couleurs, aux largeurs 480, 840 et
+disponible. Elle est explicitement démonstrative, n’ouvre aucun projet et n’écrit
+aucun contenu utilisateur.
+
+### Vérification de la charte
+
+Tests dédiés : `test/presentation/studio_design_system_test.dart`,
+`studio_gallery_test.dart` et `studio_atlas_preview_test.dart`. Ils vérifient
+chargement, clavier, recherche, sélection, contrastes, fenêtre étroite avec texte
+agrandi et ratio réel d’un atlas rectangulaire. Le test de conditions M3 recherche
+sa section par défilement après redimensionnement, sans supposer qu’elle est déjà
+montée hors écran.
+
+```sh
+flutter test --no-pub --reporter expanded
+flutter analyze --no-pub
+flutter build macos --debug --no-pub
+AVELUNE_CAPTURE_DIR=/tmp/avelune-studio-captures flutter test --no-pub test/presentation/studio_gallery_test.dart test/presentation/desktop_workspace_layout_test.dart test/presentation/m2_end_to_end_test.dart test/presentation/m3_authoring_journey_test.dart
+```
+
+Les captures sont produites par de vrais widgets Flutter hors écran, avec les
+adaptateurs et projets temporaires générés. Elles ne constituent pas une recette
+manuelle de la fenêtre native ou une validation artistique des cartes.
+
+L’audit initial a identifié le thème existant, des cartes sans hiérarchie
+d’information et des panneaux/navigation recomposés par écran. L’intégration
+conserve les contrôleurs, schémas, moteurs et dépendances. La parité sémantique
+API/JSONL/MCP ne nécessite aucune nouvelle action pour cet habillage. Les passages
+import → décor/terrain → carte → sauvegarde → runtime et les dialogues/histoires
+sont vérifiés par les parcours existants.
+
+Validation du 19 septembre 2026 :
+
+- `flutter test --no-pub --reporter expanded` : **243 réussis, 2 ignorés**.
+  Les deux tests ignorés attendent une copie externe explicitement fournie
+  (`AVELUNE_PROJECT_COPY` et la capture Train) ; les parcours temporaires M1/M2/M3
+  et le stress à 132 atlas sont exécutés.
+- `flutter analyze --no-pub` : **No issues found!**
+- `flutter build macos --debug --no-pub` : **Built
+  build/macos/Build/Products/Debug/Avelune Studio.app**.
+- Format ciblé : **79 fichiers, 0 changement**. `git diff --check` est propre.
+  Hygiène Markdown : **no new Markdown files**.
+- `cd tools/pokemap_mcp && npm test` : reconstruction TypeScript puis
+  **82 tests réussis, 0 échec**, incluant les échanges MCP isolés. Le connecteur
+  configuré dans la session échoue toujours sur `pokemap_describe` avec
+  `worker.exited`, code 78 ; sa disponibilité n’est pas revendiquée.
+- Les runners Flutter ont suivi leurs descendants et revérifié leur identité :
+  aucun processus résiduel de ces exécutions à terminer. Aucun arrêt global.
+
+La revue indépendante `design_audit` a relevé puis vérifié le contraste, le
+calcul de largeur après navigation, le ratio d’atlas et la surface Material.
+Verdict final : aucun blocage statique restant. `design_widgets_tests` a ajouté
+les tests d’interaction, de contraste et de galerie ; `design_gallery` a livré
+le catalogue interactif. La passe principale a intégré les écrans, exécuté les
+tests/build et inspecté les captures. La condition de navigation compacte reste
+dupliquée entre shell et workspace : réserve de maintenance, sans refactor métier.
+
+État Git observé : 179 entrées modifiées/non suivies au départ, sur `2abaea0a7`.
+Pendant le travail, une opération extérieure a avancé HEAD vers `505458f03` et
+enregistré une partie des fichiers en cours. Aucune écriture Git n’a été lancée
+par cette tâche ou ses sous-agents. L’état final comporte 35 fichiers modifiés/non
+suivis, tous dans `apps/avelune_studio`. Aucune modification Notion, dépendance,
+configuration native ou projet personnel n’a été effectuée par cette intégration.
+
+## Fonctionnalités M1/M2/M3
 
 Studio ouvre un projet PokeMap, affiche ses cartes et leurs ressources, permet
 d’éditer les décors préparés et des tuiles simples, puis d’enregistrer et de tester

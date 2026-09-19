@@ -7,6 +7,8 @@ import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 import 'atlas_selection_view.dart';
 import 'decor_collision_mask.dart';
+import '../../shared/widgets/layout/studio_page_header.dart';
+import '../../shared/widgets/layout/studio_asset_preview.dart';
 
 class DecorEditorScreen extends StatefulWidget {
   const DecorEditorScreen({
@@ -64,30 +66,23 @@ class _DecorEditorScreenState extends State<DecorEditorScreen> {
     final result = draft.build(validateName: false);
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                draft.original == null
-                    ? 'Préparer un décor'
-                    : 'Modifier la définition',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              StudioButton(
-                label: 'Retour aux ressources',
-                secondary: true,
-                onPressed: busy ? null : widget.onClose,
-              ),
-              StudioButton(
-                label: busy ? 'Enregistrement…' : 'Enregistrer et utiliser',
-                onPressed: busy ? null : save,
-              ),
-            ],
-          ),
+        StudioPageHeader(
+          title: draft.original == null
+              ? 'Préparer un décor'
+              : 'Modifier la définition',
+          description:
+              'Sélectionnez l’apparence et préparez son utilisation sur la carte.',
+          actions: [
+            StudioButton(
+              label: 'Retour aux ressources',
+              secondary: true,
+              onPressed: busy ? null : widget.onClose,
+            ),
+            StudioButton(
+              label: busy ? 'Enregistrement…' : 'Enregistrer et utiliser',
+              onPressed: busy ? null : save,
+            ),
+          ],
         ),
         if (error != null) StudioNotice(error!, isError: true),
         Expanded(
@@ -106,7 +101,10 @@ class _DecorEditorScreenState extends State<DecorEditorScreen> {
                       onChanged: (v) => draft.name = v,
                     ),
                     const SizedBox(height: 16),
-                    Center(child: visuals.thumbnail(result, size: 150)),
+                    StudioAssetPreview(
+                      height: 180,
+                      child: visuals.thumbnail(result, size: 150),
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       '${draft.selection.width} × ${draft.selection.height} cases',

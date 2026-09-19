@@ -142,7 +142,11 @@ void main() {
       await tester.pump();
       tester.view.physicalSize = const Size(1120, 900);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Conditions et répétition'));
+      await tester.scrollUntilVisible(
+        find.text('Conditions et répétition'),
+        -180,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       await captureM3Widget(tester, capture, '04-conditions-sequence');
       expect(tester.takeException(), isNull);

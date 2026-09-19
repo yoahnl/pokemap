@@ -77,10 +77,12 @@ class _AtlasPainter extends CustomPainter {
   final RuntimeTilesetImage image;
   @override
   void paint(Canvas canvas, Size size) {
+    final source = Size(image.width.toDouble(), image.height.toDouble());
+    final fitted = applyBoxFit(BoxFit.contain, source, size);
     image.drawImageRect(
       canvas,
-      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-      Offset.zero & size,
+      Offset.zero & source,
+      Alignment.center.inscribe(fitted.destination, Offset.zero & size),
       Paint()..filterQuality = FilterQuality.none,
     );
   }

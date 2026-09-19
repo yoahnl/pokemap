@@ -28,6 +28,12 @@ class NarrativeInteractionPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final edit = controller.active!;
     final interaction = edit.current.interaction;
+    final mapName =
+        controller.project.maps
+            .where((map) => map.id == edit.document.base.mapId)
+            .firstOrNull
+            ?.name ??
+        'Carte courante';
     void changed() => controller.changed();
     final editor = DialogueEditingController(edit, changed);
     final outcomes = {
@@ -89,7 +95,7 @@ class NarrativeInteractionPane extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               Text(
-                'Carte : ${edit.document.base.mapId} · ${interaction.source.toJson()['kind'] == 'entityInteract' ? 'Interaction avec un personnage' : 'Entrée dans une zone'}',
+                'Carte : $mapName · ${interaction.source.toJson()['kind'] == 'entityInteract' ? 'Interaction avec un personnage' : 'Entrée dans une zone'}',
               ),
               const SizedBox(height: 16),
               if (!edit.editable) ...[

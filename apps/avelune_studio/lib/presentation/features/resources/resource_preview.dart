@@ -11,6 +11,13 @@ Widget resourcePreview(
 }) {
   if (item.element != null) return visuals.thumbnail(item.element!, size: size);
   if (item.tileset != null) {
+    if (visuals is ResourceWorkspaceVisuals) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: (visuals as ResourceWorkspaceVisuals).atlasPreview(item.id),
+      );
+    }
     return visuals.tileThumbnail(
       TileLayerPaletteEntry(tilesetId: item.id, localTileId: 0),
       size: size,

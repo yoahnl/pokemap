@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../shared/widgets/layout/studio_app_shell.dart';
 
 class StudioShell extends StatelessWidget {
   const StudioShell({super.key, required this.child});
@@ -9,44 +10,7 @@ class StudioShell extends StatelessWidget {
     body: SafeArea(
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              border: Border(
-                bottom: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.nightlight_round,
-                  size: 22,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    'Avelune Studio',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Flexible(
-                  child: Text(
-                    'Éditeur de mondes',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const StudioTopBar(projectName: 'Éditeur de mondes'),
           Expanded(
             child: Center(
               child: SingleChildScrollView(

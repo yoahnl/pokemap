@@ -6,6 +6,8 @@ import '../../../features/terrains/domain/terrain_connections.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../resources/atlas_selection_view.dart';
 import 'terrain_scratch_view.dart';
+import '../../shared/widgets/layout/studio_page_header.dart';
+import '../../shared/widgets/layout/studio_panel.dart';
 
 class TerrainEditorScreen extends StatefulWidget {
   const TerrainEditorScreen({
@@ -77,38 +79,29 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
       color: colors.surfaceContainerLowest,
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  'Terrain automatique',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                Text(
-                  model.dirty ? 'Brouillon modifié' : 'Brouillon enregistré',
-                ),
-                StudioButton(
-                  label: 'Retour aux ressources',
-                  secondary: true,
-                  onPressed: model.busy ? null : widget.onClose,
-                ),
-                StudioButton(
-                  label: 'Enregistrer le brouillon',
-                  secondary: true,
-                  onPressed: model.busy ? null : () => _save(false),
-                ),
-                StudioButton(
-                  label: 'Publier et peindre',
-                  onPressed: model.busy || !model.complete
-                      ? null
-                      : () => _save(true),
-                ),
-              ],
-            ),
+          StudioPageHeader(
+            title: 'Terrain automatique',
+            description: model.dirty
+                ? 'Brouillon modifié'
+                : 'Brouillon enregistré',
+            actions: [
+              StudioButton(
+                label: 'Retour aux ressources',
+                secondary: true,
+                onPressed: model.busy ? null : widget.onClose,
+              ),
+              StudioButton(
+                label: 'Enregistrer le brouillon',
+                secondary: true,
+                onPressed: model.busy ? null : () => _save(false),
+              ),
+              StudioButton(
+                label: 'Publier et peindre',
+                onPressed: model.busy || !model.complete
+                    ? null
+                    : () => _save(true),
+              ),
+            ],
           ),
           if (model.error != null)
             Padding(
@@ -119,8 +112,8 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final sourcePanel = Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                final sourcePanel = StudioPanel(
+                  title: 'Image et raccords',
                   children: [
                     TextField(
                       controller: _name,
@@ -158,8 +151,7 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
                     _rules(),
                   ],
                 );
-                final scratchPanel = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                final scratchPanel = StudioPanel(
                   children: [
                     Text(
                       'Terrain d’essai',

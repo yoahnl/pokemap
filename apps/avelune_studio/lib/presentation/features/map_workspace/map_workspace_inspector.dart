@@ -7,6 +7,8 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import '../../shared/widgets/layout/studio_depth_control.dart';
+import '../../shared/widgets/layout/studio_asset_preview.dart';
 
 class MapWorkspaceInspector extends StatefulWidget {
   const MapWorkspaceInspector({
@@ -82,7 +84,10 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                 if (entry != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: visuals.thumbnail(entry, size: 64),
+                    child: StudioAssetPreview(
+                      height: 120,
+                      child: visuals.thumbnail(entry, size: 100),
+                    ),
                   ),
                 Text(
                   entry?.name ??
@@ -113,26 +118,16 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     ),
                   ],
                   const SizedBox(height: 8),
+                  StudioDepthControl(
+                    onForward: commands.canReorder(forward: true)
+                        ? () => change(() => commands.reorder(forward: true))
+                        : null,
+                    onBackward: commands.canReorder(forward: false)
+                        ? () => change(() => commands.reorder(forward: false))
+                        : null,
+                  ),
                   Row(
                     children: [
-                      StudioTool(
-                        label: 'Passer devant',
-                        icon: Icons.flip_to_front,
-                        shortcut: '⌘↑ / Ctrl↑',
-                        onPressed: commands.canReorder(forward: true)
-                            ? () =>
-                                  change(() => commands.reorder(forward: true))
-                            : null,
-                      ),
-                      StudioTool(
-                        label: 'Passer derrière',
-                        icon: Icons.flip_to_back,
-                        shortcut: '⌘↓ / Ctrl↓',
-                        onPressed: commands.canReorder(forward: false)
-                            ? () =>
-                                  change(() => commands.reorder(forward: false))
-                            : null,
-                      ),
                       const SizedBox(width: 10),
                       StudioTool(
                         label: 'Supprimer le décor',

@@ -11,6 +11,7 @@ import 'map_workspace_panels.dart';
 import 'workspace_resource_diagnostics.dart';
 import 'map_selection_inspector.dart';
 import 'workspace_compact_panel.dart';
+import '../../theme/studio_tokens.dart';
 
 class MapWorkspaceLayout extends StatelessWidget {
   const MapWorkspaceLayout({
@@ -77,9 +78,14 @@ class MapWorkspaceLayout extends StatelessWidget {
       final ready =
           doc != null && project != null && visuals != null && view != null;
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
-      final compactInspector = c.maxWidth < 900 || largeText;
-      final compactPalette = c.maxWidth < 620 || largeText;
-      final showInspector = inspector ?? (c.maxWidth >= 1150 && !largeText);
+      final availableWidth =
+          c.maxWidth -
+          (c.maxWidth < 1480 || largeText
+              ? StudioMetrics.compactNavigationWidth
+              : StudioMetrics.navigationWidth);
+      final compactInspector = availableWidth < 900 || largeText;
+      final compactPalette = availableWidth < 620 || largeText;
+      final showInspector = inspector ?? (availableWidth >= 1150 && !largeText);
       final showPalette = palette && !compactPalette;
       Widget paletteContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
