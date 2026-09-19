@@ -1,0 +1,3 @@
+$ POKEMAP_MARKDOWN_MAX_NEW=1 bash tools/scripts/check_markdown_hygiene.sh
+Markdown hygiene: 1 new Markdown file(s), all in canonical locations.
+exitCode: 0

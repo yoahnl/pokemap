@@ -1,0 +1,41 @@
+$ git branch --show-current
+main
+exitCode: 0
+
+$ git rev-parse HEAD
+dbcb62ad5f5502e9c7bf738ee44d12ef64042080
+exitCode: 0
+
+$ git status --short --untracked-files=all
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/README.md
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/a-closed-ax.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/a-valid-ax.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/a-valid.jpg
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/capture-times.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/cleanup-menu-ax.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/environment.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/final-git.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/fixture-after.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/fixture-before.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/initial-git.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/instance.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/markdown-hygiene.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/native-events.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/native-run.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/native-run.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/replacement-final-ax.txt
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/targeted-tests.json
+?? documentation/reports/avelune_studio/AS-ARC-002-bis/native_validation/evidence/targeted-tests.txt
+exitCode: 0
+
+$ git diff --stat
+exitCode: 0
+
+$ git diff --cached --stat
+exitCode: 0
+
+$ git diff --name-only
+exitCode: 0
+
+$ git diff --check
+exitCode: 0

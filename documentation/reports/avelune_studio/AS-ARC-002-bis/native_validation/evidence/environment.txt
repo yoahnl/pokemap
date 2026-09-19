@@ -1,0 +1,19 @@
+Commandes observées depuis apps/avelune_studio :
+$ command -v flutter
+/opt/homebrew/bin/flutter
+$ flutter --version
+Flutter 3.48.0-0.4.pre • channel beta
+Framework revision e3005e3402
+Engine hash aff4b9780ffb288258c26c3196e66d79f9c2550f (revision e2149387c6)
+Tools Dart 3.14.0 (build 3.14.0-95.2.beta) • DevTools 2.61.0-dev.0
+$ /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --version
+Dart SDK version: 3.14.0-95.2.beta (beta) on macos_arm64
+$ flutter devices
+macOS (desktop) • macos • darwin-arm64 • macOS 27.0 26A428 darwin-arm64
+Autres appareils non utilisés; avertissement de découverte réseau iPhone code -27 sans incidence sur la cible macOS.
+
+SDK, dépendances, lockfiles et configuration native inchangés.
+Pas de dépendance marionette_flutter ni d'entrée dédiée dans Studio : aucun ajout. Le parcours suit les actions natives demandées, via CUA.
+Le logger tool/run_check.py existant est chargé en mémoire avec remplacement de sa destination AS-ARC-002/evidence par AS-ARC-002-bis/native_validation/evidence. Son fichier n'est pas modifié.
+Tests : option --reap-tests; aucun descendant restant; aucune suite Flutter concurrente.
+Fixtures : script temporaire work/create_native_fixtures.dart hors dépôt important test/infrastructure/project_fixture.dart; exécuté avec le Dart embarqué et --packages=.dart_tool/package_config.json. Réutilise createProject(manifestName:...) sans modifier les manifestes après génération.

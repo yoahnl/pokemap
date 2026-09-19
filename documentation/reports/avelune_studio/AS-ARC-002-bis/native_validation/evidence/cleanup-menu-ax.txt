@@ -1,0 +1,24 @@
+Window: "Avelune Studio", App: Avelune Studio.
+1 Avelune Studio, Secondary Actions: Cancel, Pick
+	2 menu Secondary Actions: Cancel
+		3 About Avelune Studio
+		4 (disabled) Settings…
+		5 Services
+			6 menu Secondary Actions: Cancel
+				7 Activity Monitor
+				8 Allocations & Leaks
+				9 File Activity
+				10 System Trace
+				11 Time Profile Active Application
+				12 Time Profile App Under Mouse
+				13 Time Profile Entire System
+				14 Toggle Instruments Recording
+				15 Demander à Claude
+				16 Envoyer à Claude
+				17 Nouvelle session Claude Code ici
+				18 Services Settings…
+		19 Hide Avelune Studio
+		20 Hide Others
+		21 Show All
+		22 Quit Avelune Studio
+		23 Quit and Keep Windows

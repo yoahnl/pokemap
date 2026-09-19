@@ -1,0 +1,53 @@
+Observations de cette session, 19 septembre 2026, heure Europe/Paris.
+Ce fichier est une transcription factuelle des appels CUA et commandes, pas un journal interne Flutter.
+
+Préparation
+- Avant le premier appel CUA, aucun processus /Avelune Studio.app/Contents/MacOS n'était listé.
+- cua.getApp(chemin absolu du bundle de build) : Computer Use server error -10005: timeoutReached.
+- PID 88397, parent 1, démarré 16:19:41, même bundle, apparu après cet appel susceptible de lancer l'app.
+- Après vérification de sa commande et de son heure de départ : kill -TERM 88397, nettoyage de ce lancement préliminaire. Ceci ne valide aucune fermeture normale.
+- Aucun code testé avec ce lancement préliminaire.
+- 18 tests ciblés réussis. Fixtures créées ensuite via createProject et ProjectManifest.toJson existants.
+- flutter run -d macos --no-pub via le logger existant. PID runner 89587; app 90159, parent 89587, démarrage 16:21:25.
+- Journal : build réussi; Failed to foreground app; open returned 1. Ce message n'empêche pas la reconnexion CUA suivante, sans en établir la cause.
+- Reconnexion cua.getApp(chemin absolu du bundle) réussie; seule instance applicative listée à ce moment : 90159. Fenêtre « Avelune Studio », accueil. L'API CUA ne donne pas de PID/identifiant de fenêtre dans cette réponse; rapprochement par chemin du bundle, unicité du processus et chronologie.
+
+A — ouverture témoin
+- Clic Parcourir : vraie sheet macOS open-panel.
+- Cmd+Shift+G : champ GoToWindow/PathTextField.
+- paste(chemin fixture ordinaire) échoue : Computer Use server error -10005: Timed out waiting for the application to read the clipboard.
+- Inspection après échec : ancien chemin de fixture historique encore sélectionné. Aucune ouverture de cette ancienne cible.
+- Clic champ, Cmd+A, typeText du chemin de la nouvelle fixture ordinaire : état mis à jour avec le bon chemin.
+- Return : vrai sélecteur; URL du manifeste affichée :
+  file:///private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu/project.json
+- Clic Open (OKButton) : Projet ouvert — lecture seule; Projet témoin sans espace; racine exacte :
+  /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu
+- Capture réelle a-valid.jpg et arbre a-valid-ax.txt conservés à 16:23:23.
+- Clic Fermer le projet : accueil Ouvrez votre projet, champ vide et boutons Ouvrir un projet / Parcourir. a-closed-ax.txt à 16:23:38.
+- Aucun setValue AX, appel contrôleur ou sélecteur fake employé.
+
+B — tentative interrompue
+- Appel groupé demandé : click(champ), Cmd+A, typeText(chemin risqué), Cmd+A, Cmd+C, getAXState.
+- Résultat de cet appel : Computer Use is not active for '/Users/karim/Project/pokemonProject/apps/avelune_studio/build/macos/Build/Products/Debug/Avelune Studio.app'. You first must call get_app_state to get the latest state before doing other Computer Use actions.
+- L'appel ne fournit pas de preuve de l'action exacte atteinte. Aucune saisie, copie ni soumission réussie ne lui est attribuée.
+- Rafraîchissement getAXState : accueil avec champ vide.
+- Vérification processus : 90159 et 89587 absents; PID 92752 parent 1, démarré 16:23:57, même bundle, maintenant présent.
+- Logger du lancement possédé : terminé 16:23:54.820228, Lost connection to device., code 0, aucun descendant possédé restant.
+- Aucune action Quitter ni kill n'a été envoyée à 90159 ou 89587. Le moment et la cause exacts de leur disparition ne sont pas établis.
+- Ne pas attribuer l'état d'accueil postérieur à PID 90159. Origine du PID 92752 non démontrée; possibilité de relance lors d'un appel UI non établie.
+- Arrêt des essais répétés conformément au prompt; aucune lecture de presse-papiers personnel.
+
+C et D
+- Sélection native du dossier risqué : non exécutée.
+- Reprise après refus : non exécutée.
+- Quitter normalement PID 90159 par le menu : non exécuté.
+- Aucun refus natif capturé; aucune mauvaise ouverture lors d'une saisie risquée effectivement soumise démontrée.
+
+Vérification et nettoyage
+- getApp du même bundle sur l'accueil postérieur, puis ouverture du menu Avelune Studio en vue du nettoyage.
+- Menu Quit Avelune Studio observé (cleanup-menu-ax.txt), mais NON activé : la propriété de 92752 reste incertaine.
+- Escape envoyé; replacement-final-ax.txt est seulement la réponse sans changement du pilote, pas une preuve de fermeture.
+- PID 92752 laissé en place. Il ne figure pas dans trackedProcesses du lancement contrôlé.
+- Recherche des noms Avelune dans ~/Library/Logs/DiagnosticReports : seulement Avelune Studio-2026-09-19-143347.ips, -143814.ips, -143438.ips, antérieurs au lancement; contenus personnels non lus.
+- Aucun diagnostic correspondant au lancement n'a été trouvé. Cela n'exclut pas un crash.
+- Inventaire, racines résolues, inodes, tailles, mtime_ns et SHA-256 des fixtures identiques avant/après.

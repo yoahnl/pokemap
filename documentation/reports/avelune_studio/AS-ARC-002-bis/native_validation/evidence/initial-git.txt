@@ -1,0 +1,16 @@
+$ pwd
+/Users/karim/Project/pokemonProject
+$ git rev-parse --show-toplevel
+/Users/karim/Project/pokemonProject
+$ git remote -v
+github	git@github.com:yoahnl/pokemap.git (fetch)
+github	git@github.com:yoahnl/pokemap.git (push)
+origin	git@github.com:yoahnl/pokemap.git (fetch)
+origin	git@github.com:yoahnl/pokemap.git (push)
+$ git branch --show-current
+main
+$ git rev-parse HEAD
+dbcb62ad5f5502e9c7bf738ee44d12ef64042080
+$ git status --short --untracked-files=all
+$ git diff --stat
+$ git diff --cached --stat

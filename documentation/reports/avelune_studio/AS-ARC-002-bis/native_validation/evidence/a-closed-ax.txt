@@ -1,0 +1,8 @@
+The following is a diff from the previous accessibility tree for Window: "Avelune Studio" with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 5-9
++			21 text (settable) Ouvrez votre projet
++			22 text (settable) Sélectionnez le dossier qui contient le fichier project.json.
++			23 text field (settable)
++			24 button (settable) Ouvrir un projet
++			25 button (settable) Parcourir
+The focused UI element is 1 container Avelune Studio

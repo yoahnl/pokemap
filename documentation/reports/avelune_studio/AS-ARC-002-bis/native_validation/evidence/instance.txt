@@ -1,0 +1,4 @@
+  PID  PPID STARTED                      COMMAND
+build/macos/Build/Products/Debug/Avelune Studio.app/Contents/MacOS/Avelune Studio | mtime=2026-09-19T16:21:25+0200 | size=40928
+739656496674e77e5406fed9eb084d7977cef7dd4cca93b566db7fd68dc0d9a9  build/macos/Build/Products/Debug/Avelune Studio.app/Contents/MacOS/Avelune Studio
+app.avelune.aveluneStudio

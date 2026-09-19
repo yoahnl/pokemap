@@ -1,0 +1,53 @@
+[
+  {
+    "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL",
+    "resolved": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL",
+    "type": "directory",
+    "inode": 1145064948,
+    "mtime_ns": 1789827660260472664,
+    "size": 128,
+    "lastCodepoint": "U+004C"
+  },
+  {
+    "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu",
+    "resolved": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu",
+    "type": "directory",
+    "inode": 1145064949,
+    "mtime_ns": 1789827660256495470,
+    "size": 96,
+    "lastCodepoint": "U+0075"
+  },
+  {
+    "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu/project.json",
+    "resolved": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu/project.json",
+    "type": "file",
+    "inode": 1145064950,
+    "mtime_ns": 1789827660258273357,
+    "size": 2167,
+    "lastCodepoint": "U+006E",
+    "sha256": "d13df12b7ba03ae58486596c17b0c31944b4f628a112b30a9b82801659e26ad7",
+    "manifestName": "Projet t\u00e9moin sans espace",
+    "manifestVersion": "v6"
+  },
+  {
+    "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu ",
+    "resolved": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu ",
+    "type": "directory",
+    "inode": 1145064951,
+    "mtime_ns": 1789827660261109335,
+    "size": 96,
+    "lastCodepoint": "U+0020"
+  },
+  {
+    "path": "/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu /project.json",
+    "resolved": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune-bis-validation-NBFBTL/MonJeu /project.json",
+    "type": "file",
+    "inode": 1145064952,
+    "mtime_ns": 1789827660261223253,
+    "size": 2174,
+    "lastCodepoint": "U+006E",
+    "sha256": "6adf4697dcc33b4f531d0e1e05bf6c2db52d05b9e48a9ca9eb55fc276c1ec81b",
+    "manifestName": "Projet demand\u00e9 avec espace final",
+    "manifestVersion": "v6"
+  }
+]
