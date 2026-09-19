@@ -1,0 +1,32 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:avelune_studio/app/di/providers.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+
+class StudioWorkspaceHost extends ConsumerWidget {
+  const StudioWorkspaceHost({
+    super.key,
+    required this.session,
+    required this.onClose,
+    required this.registerExitGuard,
+  });
+
+  final ProjectSession session;
+  final Future<void> Function() onClose;
+  final void Function(Future<bool> Function()?) registerExitGuard;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.watch(mapWorkspaceControllerProvider(session));
+    final runtimeBuilder = ref.watch(workspaceRuntimeBuilderProvider);
+    return MapWorkspaceScreen(
+      controller: controller,
+      loadVisuals: ref.watch(workspaceVisualsLoaderProvider),
+      runtimeBuilder: runtimeBuilder(session, controller.port),
+      onClose: onClose,
+      registerExitGuard: registerExitGuard,
+    );
+  }
+}

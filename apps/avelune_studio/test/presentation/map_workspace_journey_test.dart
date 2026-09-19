@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:avelune_studio/src/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/src/features/map_workspace/presentation/map_workspace_screen.dart';
-import 'package:avelune_studio/src/shared/design_system/studio_theme.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

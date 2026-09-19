@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:avelune_studio/src/bootstrap/studio_app.dart';
-import 'package:avelune_studio/src/features/project_session/application/project_session.dart';
-import 'package:avelune_studio/src/features/project_session/application/project_session_controller.dart';
+import '../support/test_studio_app.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +14,7 @@ void main() {
     final port = _Port();
     final picked = Completer<String?>();
     await tester.pumpWidget(
-      StudioApp(
+      TestStudioApp(
         createSession: () => ProjectSessionController(port),
         chooseDirectory: () => picked.future,
       ),
@@ -98,7 +98,7 @@ void main() {
         return ProjectSessionController(port);
       }
 
-      Widget app() => StudioApp(
+      Widget app() => TestStudioApp(
         createSession: create,
         chooseDirectory: () async => '/exemple',
       );
@@ -160,7 +160,7 @@ void main() {
     final port = _Port();
     final picked = Completer<String?>();
     await tester.pumpWidget(
-      StudioApp(
+      TestStudioApp(
         createSession: () => ProjectSessionController(port),
         chooseDirectory: () => picked.future,
       ),
@@ -181,7 +181,7 @@ const _project = ProjectSession(
   directoryPath: '/exemple',
 );
 
-Widget _app(_Port port) => StudioApp(
+Widget _app(_Port port) => TestStudioApp(
   createSession: () => ProjectSessionController(port),
   chooseDirectory: () async => '/exemple',
 );

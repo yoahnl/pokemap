@@ -72,6 +72,57 @@ par le nettoyage partagé est refusé avant lecture de manifeste. Ce refus ne
 constitue pas un support complet des noms terminés par un espace ; sa réserve
 native historique reste distincte de M1.
 
+## Organisation du code
+
+L'organisation reprend la séparation de Grimaldi entre métier, présentation,
+intégrations natives et composition. Les composants graphiques conservent leur
+apparence et leur comportement.
+
+```text
+lib/
+  app/
+    di/                       Providers Riverpod et barrel providers.dart
+    studio_app.dart           Application et fermeture native
+    studio_bootstrap.dart     Assemblage des adaptateurs concrets
+  features/
+    project_session/
+      domain/                 Session, port et erreurs typées
+      application/            Contrôleur et état de session
+      data/                   Lecture locale du projet
+    map_workspace/
+      domain/                 Contrat et document de carte
+      application/            Documents éditables, commandes et contrôleur
+      data/                   Chargement et sauvegarde des cartes
+  platform/
+    files/                    Sélecteur de dossier natif
+    rendering/                Adaptateurs de ressources et de rendu
+    playtest/                 Intégration du runtime existant
+  presentation/
+    features/                 Écrans et widgets propres à chaque fonctionnalité
+    shell/                    Structure des écrans et hôte du workspace
+    theme/                    Thème et styles Flutter
+    shared/widgets/
+      buttons/                StudioButton et StudioTool
+      inputs/                 StudioPathField et StudioChoice
+      layout/                 StudioPanel et StudioSidebar
+      feedback/               StudioNotice
+      dialogs/                Confirmation de fermeture
+  main.dart
+```
+
+`app/di/providers.dart` contient uniquement des exports. Les définitions de
+providers y sont réparties par responsabilité et exposent des contrats abstraits ;
+seul `studio_bootstrap.dart` les branche sur les adaptateurs. La présentation
+consomme ce barrel sans dépendre des implémentations disque ou natives.
+
+Riverpod gère l'injection et la portée des contrôleurs. La session globale vit
+jusqu'à la destruction du scope racine ; chaque workspace possède un contrôleur
+lié à son instance de projet, libéré lorsqu'il quitte l'écran. Les contrôleurs
+métier restent en Dart pur avec leurs notifications existantes. Le chargement,
+les documents en mémoire, les gestes et le rendu gardent leurs cycles actuels.
+Les adaptateurs de rendu restent sous `platform` car ils accèdent aux ressources
+locales ; ce ne sont pas des widgets génériques de présentation.
+
 ## Vérifier
 
 ```sh

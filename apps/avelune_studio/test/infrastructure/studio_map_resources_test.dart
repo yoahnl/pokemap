@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:avelune_studio/src/features/map_workspace/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/src/features/project_session/application/project_session.dart';
+import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 

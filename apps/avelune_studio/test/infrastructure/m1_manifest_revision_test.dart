@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_studio/src/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/src/features/map_workspace/application/map_workspace_port.dart';
-import 'package:avelune_studio/src/features/map_workspace/infrastructure/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/src/features/project_session/application/project_session.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_core/map_core.dart';

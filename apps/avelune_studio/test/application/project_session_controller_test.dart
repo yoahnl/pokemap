@@ -1,6 +1,6 @@
-import 'package:avelune_studio/src/features/project_session/application/project_session.dart';
-import 'package:avelune_studio/src/features/project_session/application/project_session_controller.dart';
-import 'package:avelune_studio/src/features/project_session/application/project_session_state.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/controlled_project_session_port.dart';

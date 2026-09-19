@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:avelune_studio/src/features/project_session/application/project_session.dart';
-import 'package:avelune_studio/src/features/project_session/infrastructure/local_project_session_adapter.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart' show WorkspaceAccessException;
 import 'package:map_authoring/map_authoring_local.dart';

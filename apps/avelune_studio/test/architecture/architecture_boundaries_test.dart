@@ -27,9 +27,20 @@ void main() {
       edge.packageName == 'flame' ||
       edge.packageName.startsWith('flame_');
 
+  bool isLocal(DartDependency edge) =>
+      edge.target.toString().startsWith(lib.uri.toString());
+
+  bool isComposition(DartDependency edge) =>
+      isLocal(edge) && edge.target.pathSegments.contains('app');
+
   bool isInfrastructure(DartDependency edge) =>
       edge.target.pathSegments.contains('infrastructure') ||
-      edge.target.pathSegments.contains('bootstrap');
+      edge.target.pathSegments.contains('bootstrap') ||
+      (isLocal(edge) &&
+          (edge.target.pathSegments.contains('data') ||
+              edge.target.pathSegments.contains('platform') ||
+              (isComposition(edge) &&
+                  !edge.target.pathSegments.contains('di'))));
 
   test('application et domaine restent purs dans leur graphe transitif', () {
     final entries = sources.where(
@@ -44,6 +55,7 @@ void main() {
           (edge) =>
               isFramework(edge) ||
               isInfrastructure(edge) ||
+              isComposition(edge) ||
               edge.specifier == 'dart:io' ||
               edge.specifier == 'dart:ui',
         );
@@ -69,6 +81,45 @@ void main() {
         )
         .where(isForbidden);
     expect(violations.map((edge) => '$edge'), isEmpty);
+  });
+
+  test('theme et widgets partages independants des features et de la DI', () {
+    final entries = sources.where(
+      (file) =>
+          file.path.contains('/presentation/theme/') ||
+          file.path.contains('/presentation/shared/widgets/'),
+    );
+    expect(entries, isNotEmpty);
+    bool forbidden(DartDependency edge) =>
+        isInfrastructure(edge) ||
+        isComposition(edge) ||
+        (isLocal(edge) && edge.target.pathSegments.contains('features'));
+    final violations = graph
+        .walk(
+          entries.map((file) => file.uri),
+          stopAt: (edge) => isFramework(edge) || forbidden(edge),
+        )
+        .where(forbidden);
+    expect(violations.map((edge) => '$edge'), isEmpty);
+  });
+
+  test('presentation centralisee et barrel DI limite aux exports', () {
+    expect(sources.where((file) => file.path.contains('/lib/src/')), isEmpty);
+    expect(
+      sources.where(
+        (file) =>
+            file.path.contains('/features/') &&
+            file.path.contains('/presentation/') &&
+            !file.path.contains('/lib/presentation/features/'),
+      ),
+      isEmpty,
+    );
+    final barrel = File('${lib.path}/app/di/providers.dart');
+    expect(barrel.existsSync(), isTrue);
+    final lines = barrel.readAsLinesSync().where(
+      (line) => line.trim().isNotEmpty,
+    );
+    expect(lines.every((line) => line.startsWith('export ')), isTrue);
   });
 
   test('aucun import prive inter-package dans les sources Studio', () {

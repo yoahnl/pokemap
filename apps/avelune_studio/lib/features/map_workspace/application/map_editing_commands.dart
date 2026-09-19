@@ -1,0 +1,124 @@
+import 'package:map_core/map_core_domain.dart';
+
+import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+
+class MapEditingCommands {
+  MapEditingCommands(this.document, this.project);
+  final EditableMapDocument document;
+  final ProjectManifest project;
+  static int _nextId = 0;
+
+  void place(ProjectElementEntry element, GridPos position) {
+    var map = document.current;
+    final layer = supportLayer(map);
+    if (!map.layers.any((entry) => entry.id == layer.id)) {
+      final layers = [...map.layers];
+      layers.insert(
+        resolveAuthoredLayerInsertIndex(map, activeLayerId: null),
+        layer,
+      );
+      map = map.copyWith(layers: layers);
+    }
+    String id;
+    do {
+      id = 'studio-${DateTime.now().microsecondsSinceEpoch}-${_nextId++}';
+    } while (map.placedElements.any((element) => element.id == id));
+    final instance = MapPlacedElement(
+      id: id,
+      layerId: layer.id,
+      elementId: element.id,
+      pos: position,
+      visualOrder:
+          map.placedElements
+              .where((e) => e.layerId == layer.id)
+              .fold(
+                0,
+                (rank, e) => e.visualOrder > rank ? e.visualOrder : rank,
+              ) +
+          1,
+    );
+    if (!_fits(instance, element)) return;
+    document.commit(upsertMapPlacedElement(map, instance: instance));
+    document.selectedId = id;
+    document.stackPosition = position;
+  }
+
+  void move(String id, GridPos position) {
+    final instance = document.current.placedElements
+        .where((element) => element.id == id)
+        .firstOrNull;
+    if (instance == null) return;
+    final element = project.elements
+        .where((element) => element.id == instance.elementId)
+        .firstOrNull;
+    if (element == null || !_fits(instance.copyWith(pos: position), element)) {
+      return;
+    }
+    document.commit(
+      upsertMapPlacedElement(
+        document.current,
+        instance: instance.copyWith(pos: position),
+      ),
+    );
+    document.stackPosition = position;
+  }
+
+  void deleteSelected() {
+    final id = document.selectedId;
+    if (id == null) return;
+    document.commit(removeMapPlacedElement(document.current, instanceId: id));
+  }
+
+  void reorder({required bool forward}) {
+    final id = document.selectedId;
+    if (id == null) return;
+    document.commit(
+      moveMapPlacedElementVisualOrder(
+        document.current,
+        manifest: project,
+        instanceId: id,
+        forward: forward,
+        at: document.stackPosition,
+      ),
+    );
+  }
+
+  List<MapPlacedElement> stack(GridPos position) => mapPlacedElementsAt(
+    document.current,
+    project,
+    position,
+  ).reversed.toList();
+
+  TileLayer supportLayer(MapData map) {
+    final plan = buildMapVisualCompositionPlan(map).plan;
+    final layers = plan?.visibleTileLayersInPaintOrder ?? <TileLayer>[];
+    for (final layer in layers.reversed) {
+      if (layer.purpose == MapLayerPurpose.visual &&
+          !mapTileLayerIsExplicitForeground(layer)) {
+        return layer;
+      }
+    }
+    var id = 'studio-decors';
+    var suffix = 1;
+    while (map.layers.any((layer) => layer.id == id)) {
+      id = 'studio-decors-${suffix++}';
+    }
+    return MapLayer.tile(
+          id: id,
+          name: 'Décors',
+          cells: List.filled(map.size.width * map.size.height, 0),
+        )
+        as TileLayer;
+  }
+
+  bool _fits(MapPlacedElement instance, ProjectElementEntry entry) {
+    final size = resolveMapPlacedElementFootprint(
+      instance: instance,
+      element: entry,
+    ).destinationSize;
+    return instance.pos.x >= 0 &&
+        instance.pos.y >= 0 &&
+        instance.pos.x + size.width <= document.current.size.width &&
+        instance.pos.y + size.height <= document.current.size.height;
+  }
+}

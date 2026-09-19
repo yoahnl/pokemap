@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:avelune_studio/src/features/project_session/application/project_session.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
 class ControlledProjectSessionPort implements ProjectSessionPort {
   final requests = <String>[];

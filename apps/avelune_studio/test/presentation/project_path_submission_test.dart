@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:avelune_studio/src/bootstrap/studio_app.dart';
-import 'package:avelune_studio/src/features/project_session/application/project_session.dart';
-import 'package:avelune_studio/src/features/project_session/application/project_session_controller.dart';
+import '../support/test_studio_app.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,7 +23,7 @@ void main() {
       final port = ControlledProjectSessionPort();
       var selections = 0;
       await tester.pumpWidget(
-        StudioApp(
+        TestStudioApp(
           createSession: () => ProjectSessionController(port),
           chooseDirectory: () async {
             selections++;
@@ -49,7 +49,7 @@ void main() {
     final port = ControlledProjectSessionPort();
     final selection = Completer<String?>();
     await tester.pumpWidget(
-      StudioApp(
+      TestStudioApp(
         createSession: () => ProjectSessionController(port),
         chooseDirectory: () => selection.future,
       ),
@@ -79,7 +79,7 @@ void main() {
     final port = ControlledProjectSessionPort();
     var selections = 0;
     await tester.pumpWidget(
-      StudioApp(
+      TestStudioApp(
         createSession: () => ProjectSessionController(port),
         chooseDirectory: () async {
           selections++;
@@ -106,7 +106,7 @@ void main() {
     );
     await opening;
     await tester.pumpWidget(
-      StudioApp(
+      TestStudioApp(
         createSession: () => session,
         chooseDirectory: () async => null,
       ),
@@ -131,7 +131,7 @@ void main() {
       final session = ProjectSessionController(port);
       var selections = 0;
       await tester.pumpWidget(
-        StudioApp(
+        TestStudioApp(
           createSession: () => session,
           chooseDirectory: () async {
             selections++;
@@ -181,7 +181,7 @@ void main() {
     final port = ControlledProjectSessionPort();
     final selection = Completer<String?>();
     await tester.pumpWidget(
-      StudioApp(
+      TestStudioApp(
         createSession: () => ProjectSessionController(port),
         chooseDirectory: () => selection.future,
       ),
