@@ -18,9 +18,7 @@ final class StudioImageStore {
   }) {
     decoder = StudioResourceDecoder(
       projectRoot: projectRoot,
-      maximumDecodeBytes: maximumBytes < 64 * 1024 * 1024
-          ? maximumBytes
-          : 64 * 1024 * 1024,
+      maximumDecodeBytes: maximumBytes,
       reserve: _reserve,
       decode: decode,
     );
@@ -49,31 +47,42 @@ final class StudioImageStore {
   final Set<String> _failures = {};
   final Set<String> _pressure = {};
   final Map<RuntimeTilesetImage, int> _used = Map.identity();
+  final Map<RuntimeTilesetImage, Set<Object>> _retired = Map.identity();
+  final Set<String> _deterministicFailures = {};
   Set<String> priority = {};
   String? _loading;
   bool _closed = false;
   int _clock = 0;
   int evictions = 0;
+  int peakAccountedBytes = 0;
+  int get maximumWorkingBytes => maximumBytes + 256 * 1024 * 1024;
 
-  int get decodedBytes => images.values.toSet().fold(
-    0,
-    (total, image) => total + image.width * image.height * 4,
-  );
+  int get decodedBytes => {
+    ...images.values,
+    ..._retired.keys,
+  }.fold(0, (total, image) => total + image.width * image.height * 4);
   Set<String> get _pinned => _leases.values.expand((ids) => ids).toSet();
   bool get closed => _closed;
 
   void retain(Object owner, Set<String> ids) {
     if (_closed) return;
+    final previous = _pinned;
+    final bytes = decodedBytes;
+    _releaseRetired(owner);
     _leases[owner] = ids;
     for (final id in ids) {
       final image = images[id];
       if (image != null) _used[image] = ++_clock;
-      unawaited(request(id, retry: _pressure.contains(id)));
+      unawaited(request(id));
     }
+    _retryAfterCapacityChange(previous, bytes);
   }
 
   void release(Object owner) {
+    final previous = _pinned;
+    final bytes = decodedBytes;
     _leases.remove(owner);
+    _releaseRetired(owner);
     if (_closed && _leases.isEmpty) _finishDisposal();
     if (_closed) return;
     final pinned = _pinned;
@@ -86,8 +95,57 @@ final class StudioImageStore {
       entry.value.complete();
       _queue.remove(entry.key);
     }
+    _retryAfterCapacityChange(previous, bytes);
+  }
+
+  void _retryAfterCapacityChange(Set<String> previous, int bytes) {
+    final pinned = _pinned;
+    if (bytes <= decodedBytes &&
+        !previous.difference(pinned).any(images.containsKey)) {
+      return;
+    }
     for (final id in _pressure.where(pinned.contains).toList()) {
       unawaited(request(id, retry: true));
+    }
+  }
+
+  void _releaseRetired(Object owner) {
+    for (final entry in _retired.entries.toList()) {
+      entry.value.remove(owner);
+      if (entry.value.isEmpty) {
+        _retired.remove(entry.key);
+        entry.key.dispose();
+      }
+    }
+  }
+
+  void invalidate(Set<String> ids) {
+    final stale = {
+      for (final id in ids)
+        if (images[id] != null) images[id]!,
+    };
+    for (final image in stale) {
+      final aliases = images.keys
+          .where((id) => identical(images[id], image))
+          .toSet();
+      final owners = {
+        for (final entry in _leases.entries)
+          if (entry.value.any(aliases.contains)) entry.key,
+      };
+      images.removeWhere((id, value) => identical(value, image));
+      _cache.evictImage(image, dispose: owners.isEmpty);
+      _used.remove(image);
+      if (owners.isNotEmpty) _retired[image] = owners;
+      ids = {...ids, ...aliases};
+    }
+    for (final id in ids) {
+      _failures.remove(id);
+      _pressure.remove(id);
+      _deterministicFailures.remove(id);
+      failed(id, null);
+    }
+    for (final id in _pinned.intersection(ids)) {
+      unawaited(request(id));
     }
   }
 
@@ -96,7 +154,11 @@ final class StudioImageStore {
     bool retry = false,
     bool retainUntilComplete = false,
   }) {
-    if (_closed || images.containsKey(id)) return Future.value();
+    if (_closed ||
+        images.containsKey(id) ||
+        _deterministicFailures.contains(id)) {
+      return Future.value();
+    }
     if (retry) _failures.remove(id);
     if (_failures.contains(id)) return Future.value();
     if (retainUntilComplete) _explicitRequests.add(id);
@@ -145,8 +207,12 @@ final class StudioImageStore {
       if (!_closed) {
         _failures.add(id);
         if (error is StudioResourceFailure &&
-            error.cause == WorkspaceResourceCause.memoryPressure) {
+            error.cause == WorkspaceResourceCause.memoryPressure &&
+            error.retryable) {
           _pressure.add(id);
+        }
+        if (error is StudioResourceFailure && !error.retryable) {
+          _deterministicFailures.add(id);
         }
         failed(
           id,
@@ -170,8 +236,15 @@ final class StudioImageStore {
     }
   }
 
-  void _reserve(int requiredBytes) {
+  void _reserve(int requiredBytes, int transientBytes) {
     if (_closed) throw StateError('Ressources fermées');
+    if (transientBytes > maximumWorkingBytes) {
+      throw StudioResourceFailure(
+        WorkspaceResourceCause.memoryPressure,
+        'Décodage complet estimé : $transientBytes octets ; budget total : $maximumWorkingBytes octets',
+        retryable: false,
+      );
+    }
     final pinned = _pinned;
     final pinnedImages = {
       for (final id in pinned)
@@ -184,18 +257,24 @@ final class StudioImageStore {
             .toList()
           ..sort((a, b) => (_used[a] ?? 0).compareTo(_used[b] ?? 0));
     for (final image in candidates) {
-      if (decodedBytes + requiredBytes <= maximumBytes) break;
+      if (decodedBytes + requiredBytes <= maximumBytes &&
+          decodedBytes + transientBytes <= maximumWorkingBytes) {
+        break;
+      }
       images.removeWhere((id, value) => identical(value, image));
       _used.remove(image);
       _cache.evictImage(image);
       evictions++;
     }
-    if (decodedBytes + requiredBytes > maximumBytes) {
-      throw const StudioResourceFailure(
+    if (decodedBytes + requiredBytes > maximumBytes ||
+        decodedBytes + transientBytes > maximumWorkingBytes) {
+      throw StudioResourceFailure(
         WorkspaceResourceCause.memoryPressure,
-        'Les images visibles occupent le budget disponible',
+        'Images retenues : $decodedBytes octets ; nouvelle image : $requiredBytes ; décodage estimé : $transientBytes ; budgets résident/total : $maximumBytes/$maximumWorkingBytes octets',
       );
     }
+    final accounted = decodedBytes + transientBytes;
+    if (accounted > peakAccountedBytes) peakAccountedBytes = accounted;
   }
 
   void close() {
@@ -212,5 +291,9 @@ final class StudioImageStore {
     _cache.dispose();
     images.clear();
     _used.clear();
+    for (final image in _retired.keys) {
+      image.dispose();
+    }
+    _retired.clear();
   }
 }

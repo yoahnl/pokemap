@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
@@ -10,6 +9,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_editing_co
 import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'map_canvas_stroke.dart';
 
 class MapWorkspaceCanvas extends StatefulWidget {
   const MapWorkspaceCanvas({
@@ -36,8 +36,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   GridPos? _start;
   GridPos? _preview;
   MapPlacedElement? _moving;
-  MapCellStrokeBuffer? _stroke;
-  final List<GridPos> _strokeCells = [];
+  MapCanvasStroke? _stroke;
   MapData? _gestureSource;
   double get _width =>
       widget.project.settings.tileWidth *
@@ -85,49 +84,26 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
       widget.document.selectedId = _moving?.id;
       widget.document.stackPosition = cell;
       widget.onChanged();
-    } else if (tool == StudioMapTool.paint || tool == StudioMapTool.erase) {
-      if (tool == StudioMapTool.paint && widget.view.tile == null) return;
-      var map = widget.document.current;
-      final plan = buildMapVisualCompositionPlan(map).plan;
-      final occupied = plan?.visibleTileLayersInPaintOrder.reversed
-          .where(
-            (layer) =>
-                resolveTileLayerCell(layer, cell.y * map.size.width + cell.x) !=
-                null,
-          )
-          .firstOrNull;
-      final layer = tool == StudioMapTool.erase && occupied != null
-          ? occupied
-          : _commands.supportLayer(map);
-      if (!map.layers.any((entry) => entry.id == layer.id)) {
-        final layers = [...map.layers];
-        layers.insert(
-          resolveAuthoredLayerInsertIndex(map, activeLayerId: null),
-          layer,
+    } else {
+      try {
+        _stroke = MapCanvasStroke.start(
+          map: widget.document.current,
+          project: widget.project,
+          view: widget.view,
+          commands: _commands,
+          origin: cell,
         );
-        map = map.copyWith(layers: layers);
+        setState(() {});
+      } catch (error) {
+        widget.document.error = error.toString();
+        _cancel();
+        widget.onChanged();
       }
-      _stroke = MapCellStrokeBuffer.tile(sourceMap: map, layerId: layer.id);
-      _paint(cell);
     }
   }
 
   void _paint(GridPos cell) {
-    final map = widget.document.current;
-    if (cell.x < 0 ||
-        cell.y < 0 ||
-        cell.x >= map.size.width ||
-        cell.y >= map.size.height) {
-      return;
-    }
-    _stroke?.paintTiles(
-      origin: cell,
-      patternSize: const GridSize(width: 1, height: 1),
-      tiles: [
-        widget.view.tool == StudioMapTool.erase ? null : widget.view.tile,
-      ],
-    );
-    if (!_strokeCells.contains(cell)) _strokeCells.add(cell);
+    _stroke?.paint(cell);
     setState(() {});
   }
 
@@ -161,14 +137,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     final stroke = _stroke;
     if (stroke != null) {
       try {
-        widget.document.commit(
-          stroke.commit(
-            project: widget.project,
-            validate: (context) {
-              MapDeltaValidator.validate(context);
-            },
-          ),
-        );
+        widget.document.commit(stroke.commit());
       } catch (_) {
         widget.document.error =
             'Ce trait ne peut pas être appliqué à cette carte.';
@@ -184,7 +153,6 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     _moving = null;
     _stroke = null;
     _gestureSource = null;
-    _strokeCells.clear();
   }
 
   @override
@@ -249,7 +217,11 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                   height: map.size.height * _height,
                   child: Stack(
                     children: [
-                      Positioned.fill(child: widget.visuals.canvas(map)),
+                      Positioned.fill(
+                        child: widget.visuals.canvas(
+                          _stroke?.terrain == true ? _stroke!.preview : map,
+                        ),
+                      ),
                       Positioned.fill(
                         child: IgnorePointer(
                           child: CustomPaint(
@@ -262,7 +234,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                               cellHeight: _height,
                               grid: widget.view.grid,
                               color: Theme.of(context).colorScheme.primary,
-                              strokeCells: List.of(_strokeCells),
+                              strokeCells: List.of(_stroke?.cells ?? []),
                             ),
                           ),
                         ),

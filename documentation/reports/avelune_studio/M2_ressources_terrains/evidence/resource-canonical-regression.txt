@@ -1,0 +1,23 @@
+00:00 +0: loading test/domains/assets/tileset_image_import_test.dart
+00:00 +0: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +1: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +2: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +3: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +4: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +5: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +6: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +7: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +8: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +9: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +10: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +11: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +12: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +13: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +14: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +15: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +16: test/domains/assets/tileset_image_import_test.dart: JSONL discovers, stages, plans, applies and reopens image import
+00:00 +17: test/domains/assets/tileset_image_import_test.dart: image import preflight rejects invalid geometry without publishing
+00:00 +18: test/domains/assets/tileset_image_import_test.dart: concurrent manifest update between plan and apply is never overwritten
+00:00 +19: test/domains/assets/tileset_image_import_test.dart: interrupted publication resumes its journal without losing source or maps
+00:00 +20: test/domains/assets/tileset_image_import_test.dart: element category creation validates geometry in the same transaction
+00:00 +21: All tests passed!

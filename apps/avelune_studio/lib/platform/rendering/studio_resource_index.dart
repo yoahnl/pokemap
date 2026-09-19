@@ -46,6 +46,35 @@ final class StudioResourceIndex {
       frame.tilesetId.isEmpty ? element.tilesetId : frame.tilesetId,
   });
 
+  Set<String> forTerrain(ProjectSmartTilePreset preset) {
+    final ids = <String>{};
+    addSmartTileTilesetIds(
+      ids,
+      MapData(
+        id: 'brush',
+        name: 'Brush',
+        size: const GridSize(width: 1, height: 1),
+        layers: [
+          MapLayer.smartTile(
+            id: 'brush',
+            name: 'Brush',
+            presetId: preset.id,
+            usage: preset.usage,
+            field: const SmartTileField.cell(semanticCells: [0]),
+          ),
+        ],
+      ),
+      manifest.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog(
+          atlases: manifest.smartTileCatalog.atlases,
+          animations: manifest.smartTileCatalog.animations,
+          presets: [preset],
+        ),
+      ),
+    );
+    return expand(ids);
+  }
+
   Set<String> forTile(TileLayerPaletteEntry tile) {
     final source = tilesets[tile.tilesetId]?.source;
     if (source is! ProjectImageCollectionTilesetSource) {

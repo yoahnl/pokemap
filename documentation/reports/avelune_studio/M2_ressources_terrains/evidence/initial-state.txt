@@ -1,0 +1,7 @@
+Root: /Users/karim/Project/pokemonProject
+Branch: main
+HEAD: 3e9352b1f259fffcd834dd94dfba67021b338b7b
+git status --short --untracked-files=all: empty
+git diff --cached --name-only: empty
+M2 source spec: /Users/karim/Downloads/avelune_studio_codex_M2_ressources_terrains.md
+PROMPT_CODEX.md, REFERENCES_VISUELLES.md, references/: not found in supplied Downloads, repository or Desktop scan. Continued using the provided written M2 requirements; no missing mockup claimed as viewed.

@@ -22,3 +22,12 @@ typedef LoadWorkspaceVisuals =
       ProjectSession session,
       ProjectManifest manifest,
     );
+
+abstract interface class ResourceWorkspaceVisuals {
+  void setTerrainBrush(ProjectSmartTilePreset? preset);
+  Widget atlasPreview(String tilesetId);
+  Future<void> updateCatalog(
+    ProjectManifest manifest, {
+    Set<String> changedRelativePaths = const {},
+  });
+}

@@ -1,0 +1,21 @@
+Running build hooks...Running build hooks...00:00 +0: loading ../../packages/map_core/test/smart_tiles/smart_tile_layer_creation_test.dart
+00:00 +0: authoritative document creation keeps the full catalog and dirty map
+00:00 +1: planNativeSmartTileLayerCreation rejects a manifest map omitted from the project snapshot
+00:00 +2: planNativeSmartTileLayerCreation rejects a project snapshot map absent from the manifest
+00:00 +3: planNativeSmartTileLayerCreation rejects duplicate map ids in the project snapshot
+00:00 +4: planNativeSmartTileLayerCreation rejects duplicate map ids in the manifest
+00:00 +5: planNativeSmartTileLayerCreation returns a structured failure for an invalid field size
+00:00 +6: planNativeSmartTileLayerCreation rejects an excessive field product before allocating lists
+00:00 +7: planNativeSmartTileLayerCreation Simple allocates only semantic cells
+00:00 +8: planNativeSmartTileLayerCreation projects the target map and manifest without mutating inputs
+00:00 +9: planNativeSmartTileLayerCreation preserves a v7 manifest while keeping the projected map at v6
+00:00 +10: planNativeSmartTileLayerCreation rejects a projected catalog with missing material definitions
+00:00 +11: planNativeSmartTileLayerCreation preserves the projected catalog diagnostic code
+00:00 +12: planNativeSmartTileLayerCreation refuses a second terrain provider
+00:00 +13: planNativeSmartTileLayerCreation complete wangEdge4 field initializes active lattices for empty
+00:00 +14: planNativeSmartTileLayerCreation complete wangEdge4 field initializes active lattices for connected
+00:00 +15: planNativeSmartTileLayerCreation complete wangCorner4 field initializes active lattices for empty
+00:00 +16: planNativeSmartTileLayerCreation complete wangCorner4 field initializes active lattices for connected
+00:00 +17: planNativeSmartTileLayerCreation complete wang8 field initializes active lattices for empty
+00:00 +18: planNativeSmartTileLayerCreation complete wang8 field initializes active lattices for connected
+00:00 +19: All tests passed!

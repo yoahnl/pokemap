@@ -1,0 +1,26 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart
+00:00 +0: new imported and published terrain renders its pixels in real runtime and walks
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Ho4Ys0/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Ho4Ys0/project.json
+[runtime_loader] project manifest read ok bytes=43142
+[runtime_loader] project manifest validated maps=2 tilesets=2 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Ho4Ys0/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Ho4Ys0/maps/jardin.json
+[runtime_loader] map file read ok bytes=22682
+[runtime_loader] map validated id=jardin size=24x16 layers=4 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier,source_1789840452275353_4079863685
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Ho4Ys0/assets/atelier.png
+[runtime_loader] bundle tileset path id=source_1789840452275353_4079863685 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Ho4Ys0/assets/.pokemap-store/9417e071d7b249ab91d1e45db390e4a3b5b332ee420f1ae0f5acd110df673697.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Ho4Ys0 tilesets=2
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=2
+[runtime_game] tileset cache resolve ok result=2
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Ho4Ys0/project.json tilesets=2
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=2 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789840454068015_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:02 +1: All tests passed!

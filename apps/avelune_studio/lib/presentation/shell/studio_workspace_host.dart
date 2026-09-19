@@ -23,6 +23,8 @@ class StudioWorkspaceHost extends ConsumerWidget {
     final runtimeBuilder = ref.watch(workspaceRuntimeBuilderProvider);
     return MapWorkspaceScreen(
       controller: controller,
+      resourcePort: ref.watch(resourcePortProvider(session)),
+      imagePicker: ref.watch(resourceImagePickerProvider),
       loadVisuals: ref.watch(workspaceVisualsLoaderProvider),
       runtimeBuilder: runtimeBuilder(session, controller.port),
       onClose: onClose,

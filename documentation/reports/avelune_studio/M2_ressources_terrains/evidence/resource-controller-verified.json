@@ -1,0 +1,47 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/flutter",
+    "test",
+    "--no-pub",
+    "test/resource_io"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T17:51:16.274593+00:00",
+  "finishedAt": "2026-09-19T17:51:22.987891+00:00",
+  "exitCode": 0,
+  "runnerPid": 77799,
+  "trackedProcesses": {
+    "77799": {
+      "parent": 77790,
+      "uid": 501,
+      "started": "Sat Sep 19 19:51:16 2026",
+      "command": "<defunct>"
+    },
+    "77850": {
+      "parent": 77799,
+      "uid": 501,
+      "started": "Sat Sep 19 19:51:17 2026",
+      "command": "(dartaotruntime)"
+    },
+    "77947": {
+      "parent": 77799,
+      "uid": 501,
+      "started": "Sat Sep 19 19:51:19 2026",
+      "command": "(flutter_tester)"
+    },
+    "77949": {
+      "parent": 77799,
+      "uid": 501,
+      "started": "Sat Sep 19 19:51:19 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.sUjXB1/flutter_test_listener.i0JFMS/listener.dart.dill"
+    },
+    "77952": {
+      "parent": 77799,
+      "uid": 501,
+      "started": "Sat Sep 19 19:51:19 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.sUjXB1/flutter_test_listener.OTOPg4/listener.dart.dill"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

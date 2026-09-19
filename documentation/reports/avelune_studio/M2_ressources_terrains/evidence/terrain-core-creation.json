@@ -1,0 +1,41 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/dart",
+    "test",
+    "--no-color",
+    "../../packages/map_core/test/smart_tiles/smart_tile_layer_creation_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T17:42:44.828462+00:00",
+  "finishedAt": "2026-09-19T17:42:59.695290+00:00",
+  "exitCode": 0,
+  "runnerPid": 67175,
+  "trackedProcesses": {
+    "67175": {
+      "parent": 67162,
+      "uid": 501,
+      "started": "Sat Sep 19 19:42:44 2026",
+      "command": "<defunct>"
+    },
+    "67209": {
+      "parent": 67175,
+      "uid": 501,
+      "started": "Sat Sep 19 19:42:44 2026",
+      "command": "(codesign)"
+    },
+    "67211": {
+      "parent": 67175,
+      "uid": 501,
+      "started": "Sat Sep 19 19:42:45 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/share/flutter/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/pub/bin/test/tmpELLA1Z/test.dart-3.14.0-95.2.beta.snapshot.incremental.temp --packages=.dart_tool/package_config.json --incremental --no-print-incremental-dependencies --native-assets /Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/native_assets.yaml"
+    },
+    "67279": {
+      "parent": 67175,
+      "uid": 501,
+      "started": "Sat Sep 19 19:42:48 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

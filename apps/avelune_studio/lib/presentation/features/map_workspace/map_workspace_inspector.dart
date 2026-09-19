@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_tool.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_sidebar.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
@@ -14,11 +15,15 @@ class MapWorkspaceInspector extends StatefulWidget {
     required this.document,
     required this.visuals,
     required this.onChanged,
+    this.onOpenResource,
+    this.onEditResource,
   });
   final ProjectManifest project;
   final EditableMapDocument document;
   final MapWorkspaceVisuals visuals;
   final VoidCallback onChanged;
+  final ValueChanged<ProjectElementEntry>? onOpenResource;
+  final ValueChanged<ProjectElementEntry>? onEditResource;
   @override
   State<MapWorkspaceInspector> createState() => _MapWorkspaceInspectorState();
 }
@@ -90,7 +95,23 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                 if (selected != null) ...[
                   const SizedBox(height: 6),
                   Text('Coordonnées : ${selected.pos.x}, ${selected.pos.y}'),
-                  if (rank >= 0) Text('Position ${rank + 1} / ${stack.length}'),
+                  if (rank >= 0)
+                    Text('Position ${rank + 1} / ${stack.length} · 1 = devant'),
+                  if (entry != null) ...[
+                    const SizedBox(height: 8),
+                    const Text('Instance placée · définition partagée'),
+                    StudioButton(
+                      label: 'Ouvrir la ressource',
+                      secondary: true,
+                      onPressed: () => widget.onOpenResource?.call(entry),
+                    ),
+                    const SizedBox(height: 6),
+                    StudioButton(
+                      label: 'Modifier le décor',
+                      secondary: true,
+                      onPressed: () => widget.onEditResource?.call(entry),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Row(
                     children: [

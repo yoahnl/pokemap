@@ -1,0 +1,25 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart: detached image stays alive for its owner and same path loads a new generation
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart: overlapping callers share normalized paths and preserve batch load
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart: ids sharing one key inside a batch converge on one loader id
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart: same path with different transparent colors uses distinct cache keys
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart: omitted ids stay omitted and are retried by a later request
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart: partial batch success caches success and retries only omitted id
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart: disposes loader images returned for ids outside the requested batch
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart: equivalent RGB values share the transparent-color cache key
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_singleflight_test.dart: batch errors are shared by concurrent callers and allow retry
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_codec_disposal_test.dart: decodeFirstFrameAndDispose disposes codec after success
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_codec_disposal_test.dart: decodeFirstFrameAndDispose disposes codec after success
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_codec_disposal_test.dart: decodeFirstFrameAndDispose disposes codec after success
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_codec_disposal_test.dart: decodeFirstFrameAndDispose disposes codec after decode error
+00:00 +13: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_codec_disposal_test.dart: chunk decode failure disposes images from earlier chunks
+00:00 +14: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_codec_disposal_test.dart: batch file load failure disposes tilesets loaded earlier
+00:00 +15: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_codec_disposal_test.dart: batch progress advances only when individual files finish
+00:00 +16: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_codec_disposal_test.dart: single-flight cache dispose releases completed images once
+00:00 +17: /Users/karim/Project/pokemonProject/packages/map_runtime/test/tile_image_loader_codec_disposal_test.dart: cache disposed in flight releases the late image
+00:00 +18: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_tileset_image_test.dart: buildRuntimeTilesetChunks splits tall tilesets into bounded vertical chunks
+00:00 +19: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_tileset_image_test.dart: resolveRuntimeTilesetDrawSlices splits a source rect that crosses a chunk boundary
+00:00 +20: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_tileset_image_test.dart: resolveRuntimeTilesetDrawSlices returns empty when the source rect exceeds the atlas bounds
+00:00 +21: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_tileset_image_test.dart: loadTilesetImageFromFilePath chunks very tall tilesets
+00:00 +22: /Users/karim/Project/pokemonProject/packages/map_runtime/test/runtime_tileset_image_test.dart: loadTilesetImageFromFilePath applies transparent color preview
+00:00 +23: All tests passed!

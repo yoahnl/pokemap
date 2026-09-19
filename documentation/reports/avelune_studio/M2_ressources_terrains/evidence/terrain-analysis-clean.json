@@ -1,0 +1,36 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/flutter",
+    "analyze",
+    "--no-pub",
+    "lib/features/terrains",
+    "lib/presentation/features/terrains",
+    "lib/presentation/features/map_workspace/map_canvas_stroke.dart",
+    "lib/presentation/features/map_workspace/map_workspace_canvas.dart",
+    "test/terrain_creation_test.dart",
+    "test/terrain_editor_test.dart",
+    "test/terrain_canvas_test.dart",
+    "test/terrain_runtime_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T17:55:16.588790+00:00",
+  "finishedAt": "2026-09-19T17:55:24.885919+00:00",
+  "exitCode": 0,
+  "runnerPid": 82769,
+  "trackedProcesses": {
+    "82769": {
+      "parent": 82732,
+      "uid": 501,
+      "started": "Sat Sep 19 19:55:16 2026",
+      "command": "<defunct>"
+    },
+    "82822": {
+      "parent": 82769,
+      "uid": 501,
+      "started": "Sat Sep 19 19:55:17 2026",
+      "command": "(dart)"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

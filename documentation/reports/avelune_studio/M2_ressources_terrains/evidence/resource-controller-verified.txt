@@ -1,0 +1,13 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/decor_resource_io_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/decor_resource_io_test.dart: PNG selection, collision, variant, repeated placement, undo and disk reopen
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/decor_resource_io_test.dart: PNG selection, collision, variant, repeated placement, undo and disk reopen
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/decor_resource_io_test.dart: PNG selection, collision, variant, repeated placement, undo and disk reopen
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:01 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:01 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: first decor category and definition commit together; variant preserves original
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: invalid grid leaves manifest, source and resource catalogue unpublished
+00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: external manifest edit blocks import without accepting foreign revision
+00:01 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: external map edit stays protected by map CAS after own import
+00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: resource API rejects map mutation and preserves map bytes
+00:01 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:01 +11: All tests passed!

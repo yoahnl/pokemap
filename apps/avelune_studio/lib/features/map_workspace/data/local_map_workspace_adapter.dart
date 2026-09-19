@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
@@ -9,6 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/data/map_document_retention.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
 final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
   LocalMapWorkspaceAdapter({
@@ -21,6 +23,45 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
   final AtomicMapDocumentPersistence _persistence;
   final _projects = <String, _ProjectDocument>{};
   final _loadedPaths = <(String, String), String>{};
+  Future<void> _writes = Future.value();
+
+  Future<T> withResourceMutation<T>(Future<T> Function() operation) {
+    final result = _writes.then((_) => operation());
+    _writes = result.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    return result;
+  }
+
+  Future<({ProjectManifest manifest, String revision})> resourceBaseline(
+    ProjectSession session,
+  ) async {
+    final project = _project(session);
+    await _requireRoot(session);
+    await _requireProjectRevision(session, project);
+    return (manifest: project.manifest, revision: project.revision);
+  }
+
+  Future<void> acceptResourceMutation(
+    ProjectSession session,
+    ResourceMutationReceipt receipt,
+  ) async {
+    final project = _project(session);
+    if (project.revision != receipt.beforeRevision ||
+        project.manifest != receipt.before ||
+        jsonEncode(project.manifest.maps) !=
+            jsonEncode(receipt.manifest.maps)) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Le reçu ne correspond pas au catalogue ouvert.',
+      );
+    }
+    final next = _ProjectDocument(
+      project.root,
+      receipt.manifest,
+      receipt.revision,
+    );
+    await _requireProjectRevision(session, next);
+    _projects[session.sessionId] = next;
+  }
 
   @override
   Future<ProjectManifest> loadProject(ProjectSession session) async {
@@ -101,6 +142,12 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
 
   @override
   Future<String> saveMap(
+    ProjectSession session,
+    MapWorkspaceDocument base,
+    MapData current,
+  ) => withResourceMutation(() => _saveMap(session, base, current));
+
+  Future<String> _saveMap(
     ProjectSession session,
     MapWorkspaceDocument base,
     MapData current,

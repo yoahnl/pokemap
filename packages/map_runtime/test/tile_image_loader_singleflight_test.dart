@@ -38,6 +38,28 @@ Future<RuntimeTilesetImage> _fakeRuntimeTilesetImage(ui.Color color) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+      'detached image stays alive for its owner and same path loads a new generation',
+      () async {
+    final first = await _fakeRuntimeTilesetImage(const ui.Color(0xFFFF0000));
+    final second = await _fakeRuntimeTilesetImage(const ui.Color(0xFF0000FF));
+    var loads = 0;
+    final cache = RuntimeTilesetImageSingleFlightCache(
+        loader: (paths, {transparentColorByTilesetId = const {}}) async {
+      return {paths.keys.single: loads++ == 0 ? first : second};
+    });
+    await cache.loadById({'a': '/tmp/a.png'});
+    cache.evictImage(first, dispose: false);
+    expect(first.debugDisposed, isFalse);
+    final updated = await cache.loadById({'a': '/tmp/a.png'});
+    expect(updated['a'], same(second));
+    expect(loads, 2);
+    cache.dispose();
+    expect(first.debugDisposed, isFalse);
+    expect(second.debugDisposed, isTrue);
+    first.dispose();
+  });
+
   test('overlapping callers share normalized paths and preserve batch load',
       () async {
     final batchCompleter = Completer<Map<String, RuntimeTilesetImage>>();

@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/atlas_selection_view_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/decor_collision_mask_test.dart: six cells remain visible and compact; last cell can toggle
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/atlas_selection_view_test.dart: first layout fits and centres source while selection updates retain user zoom
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/decor_collision_mask_test.dart: narrow tall mask fits every row within 200 pixels
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/decor_collision_mask_test.dart: narrow tall mask fits every row within 200 pixels
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/decor_collision_mask_test.dart: narrow tall mask fits every row within 200 pixels
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/decor_collision_mask_test.dart: narrow tall mask fits every row within 200 pixels
+00:00 +6: All tests passed!

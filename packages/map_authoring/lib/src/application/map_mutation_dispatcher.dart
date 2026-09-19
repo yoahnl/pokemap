@@ -18,6 +18,7 @@ import '../domains/assets/tileset_actions.dart';
 import '../domains/assets/tileset_library_actions.dart';
 import '../domains/maps/map_library_actions.dart';
 import '../domains/assets/tiled_tileset_import_actions.dart';
+import '../domains/assets/tileset_image_import_actions.dart';
 import '../domains/assets/tiled_image_collection_packer.dart';
 import '../domains/assets/visual_organization_actions.dart';
 import '../domains/gameplay/pokemon_catalog_actions.dart';
@@ -287,6 +288,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: tiledTilesets.build,
+        ),
+      for (final descriptor in TilesetImageImportActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: TilesetImageImportActions(artifactStore: artifacts).build,
         ),
       for (final descriptor in TiledMapImportActions.descriptors)
         MapMutationActionRegistration(

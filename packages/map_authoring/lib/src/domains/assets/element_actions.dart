@@ -4,6 +4,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'tileset_actions.dart';
+import 'visual_organization_actions.dart';
 
 const int _elementBatchUpsertLimit = 512;
 
@@ -30,12 +31,28 @@ final class ElementActions {
     final parameters = VisualLibraryParameters(context.request.parameters);
     switch (context.request.actionId) {
       case 'element.upsert':
-        parameters.allow(const {'element'});
+        parameters.allow(const {'element', 'category'});
         final element = ProjectElementEntry.fromJson(
           Map<String, dynamic>.from(parameters.object('element')),
         );
+        var manifest = context.snapshot.manifest;
+        if (context.request.parameters['category'] != null) {
+          final category = ProjectElementCategory.fromJson(
+            Map<String, dynamic>.from(parameters.object('category')),
+          );
+          if (category.id != element.categoryId ||
+              manifest.elementCategories
+                  .any((entry) => entry.id == category.id)) {
+            throw const FormatException(
+                'Only the missing element category may be created.');
+          }
+          manifest = const VisualOrganizationActions().upsertElementCategory(
+            manifest,
+            category: category,
+          );
+        }
         final next = upsert(
-          context.snapshot.manifest,
+          manifest,
           element: element,
           atlases: readTilesetAtlases(context.snapshot.manifest),
         );

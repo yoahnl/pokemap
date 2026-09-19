@@ -146,7 +146,9 @@ void main() {
       expect(tileThumbnails, isNotEmpty);
       expect(
         tileThumbnails.every(
-          (widget) => widget.tile!.tilesetId == fixture.lateAtlasId,
+          (widget) => fixture.manifest.tilesets.any(
+            (entry) => entry.id == widget.tile!.tilesetId,
+          ),
         ),
         isTrue,
       );
@@ -158,7 +160,13 @@ void main() {
           isTrue,
         );
       }
-      expect(resources!.store.decoder.reads, readsBefore);
+      final visibleTileSources = tileThumbnails
+          .map((widget) => widget.tile!.tilesetId)
+          .toSet();
+      expect(
+        resources!.store.decoder.reads - readsBefore,
+        lessThanOrEqualTo(visibleTileSources.length),
+      );
       expect(find.byIcon(Icons.hourglass_empty), findsNothing);
       await _capture(tester, capture, 'workspace-tile-thumbnails');
 

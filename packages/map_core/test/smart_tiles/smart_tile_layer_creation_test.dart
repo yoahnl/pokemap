@@ -2,6 +2,56 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'authoritative document creation keeps the full catalog and dirty map',
+    () {
+      const map = MapData(
+        id: 'target',
+        name: 'Unsaved name',
+        size: GridSize(width: 2, height: 2),
+      );
+      final manifest = _manifestWithMaterials(
+        maps: const [
+          ProjectMapEntry(
+            id: 'target',
+            name: 'Saved name',
+            relativePath: 'maps/target.json',
+          ),
+          ProjectMapEntry(
+            id: 'other',
+            name: 'Other map',
+            relativePath: 'maps/other.json',
+          ),
+        ],
+      );
+      final preset = _preset(topology: SmartTileTopology.cardinal4);
+      final result = planNativeSmartTileLayerCreationForMap(
+        map: map,
+        manifest: manifest,
+        preset: preset,
+        layerId: 'terrain',
+        layerName: 'Grass',
+      );
+      expect(result, isA<SmartTileLayerCreationSuccess>());
+      final success = result as SmartTileLayerCreationSuccess;
+      expect(success.map.name, 'Unsaved name');
+      expect(success.manifest.maps, manifest.maps);
+      expect(success.map.layers.single, isA<SmartTileLayer>());
+      expect(map.layers, isEmpty);
+      final missing = planNativeSmartTileLayerCreationForMap(
+        map: map.copyWith(id: 'absent'),
+        manifest: manifest,
+        preset: preset,
+        layerId: 'terrain',
+        layerName: 'Grass',
+      );
+      expect(
+        (missing as SmartTileLayerCreationFailure).code,
+        'smart_tile_target_map_missing',
+      );
+    },
+  );
+
   group('planNativeSmartTileLayerCreation', () {
     test('rejects a manifest map omitted from the project snapshot', () {
       const target = MapData(

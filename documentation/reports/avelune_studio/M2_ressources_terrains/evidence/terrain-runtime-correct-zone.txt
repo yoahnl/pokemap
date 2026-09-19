@@ -1,0 +1,54 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart
+00:00 +0: new imported and published terrain renders its pixels in real runtime and walks
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_UutThB/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_UutThB/project.json
+[runtime_loader] project manifest read ok bytes=43142
+[runtime_loader] project manifest validated maps=2 tilesets=2 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_UutThB/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_UutThB/maps/jardin.json
+[runtime_loader] map file read ok bytes=22682
+[runtime_loader] map validated id=jardin size=24x16 layers=4 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier,source_1789840360813070_1798589599
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_UutThB/assets/atelier.png
+[runtime_loader] bundle tileset path id=source_1789840360813070_1798589599 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_UutThB/assets/.pokemap-store/9417e071d7b249ab91d1e45db390e4a3b5b332ee420f1ae0f5acd110df673697.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_UutThB tilesets=2
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=2
+[runtime_game] tileset cache resolve ok result=2
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_UutThB/project.json tilesets=2
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=2 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789840362614178_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a value greater than <100>
+  Actual: <0>
+   Which: is not a value greater than <100>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart:153:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart line 153
+The test description was:
+  new imported and published terrain renders its pixels in real runtime and walks
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -1: new imported and published terrain renders its pixels in real runtime and walks [E]
+  Test failed. See exception logs above.
+  The test description was: new imported and published terrain renders its pixels in real runtime and walks
+
+00:02 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks

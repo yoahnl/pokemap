@@ -1,8 +1,9 @@
-# Avelune Studio — Intégration M1
+# Avelune Studio — Ressources et terrains M2
 
 Studio ouvre un projet PokeMap, affiche ses cartes et leurs ressources, permet
 d’éditer les décors préparés et des tuiles simples, puis d’enregistrer et de tester
-la carte dans le runtime existant. L’ancien éditeur reste disponible séparément.
+la carte dans le runtime existant. M2 ajoute l’import PNG, la préparation de décors
+et de terrains automatiques. L’ancien éditeur reste disponible séparément.
 
 ## Lancer l’exemple
 
@@ -52,6 +53,32 @@ Raccourcis affichés dans les infobulles : ⌘/Ctrl+Z, ⌘/Ctrl+Maj+Z,
 ⌘/Ctrl+S, ⌘/Ctrl+↑/↓ et Suppr/Retour arrière. Ils ne modifient pas la carte
 pendant une saisie de texte.
 
+## Des ressources à la carte
+
+- **Ressources** ou **Gérer les ressources** ouvre la bibliothèque : décors,
+  terrains, images et tuiles, recherche, catégories existantes, grille ou liste.
+  **Utiliser sur la carte** retrouve la carte active ou propose une carte.
+  Les documents, historiques, vues et brouillons restent en mémoire pendant
+  cette navigation. Le compteur d’usages porte explicitement sur les cartes ouvertes.
+- **Importer une image** choisit un PNG, montre sa prévisualisation, son nom et
+  sa grille. L’import copie réellement la source dans le projet via staging et
+  transaction authoring avec journal de reprise. Annuler ne publie aucune ressource.
+  La préparation accepte jusqu’à 64 Mio encodés et 64 Mio décodés ; les atlas déjà
+  présents disposent du budget de lecture plus large décrit ci-dessous.
+- **Créer un décor** sélectionne exactement un rectangle de cellules, propose
+  une miniature, un nom et un masque de collision modifiable. **Enregistrer et
+  utiliser** publie la définition puis sélectionne le pinceau. Modifier une
+  définition partagée affecte ses instances ; **Créer une variante** conserve
+  l’original. L’occlusion demeure indépendante du masque de collision.
+- **Créer un terrain automatique** prépare le modèle natif à quatre voisins et
+  seize raccords : choisir une règle puis une case source. Le terrain d’essai
+  utilise le résolveur existant ; cliquer un résultat retrouve la règle concernée.
+  Le brouillon peut être enregistré et repris, puis **Publier et peindre** permet
+  le trait, la gomme et l’annulation sur la carte, sans gérer de calques à la main.
+- **Enregistrer et tester** utilise les mêmes données publiées dans le runtime.
+  Les mutations propres au Studio avancent la révision après validation du reçu ;
+  une modification extérieure reste un conflit et ne détruit pas le travail local.
+
 ## Limites explicites
 
 Le Studio prévisualise les animations à leur première frame. Les bordures sont
@@ -60,15 +87,26 @@ charge normalement. La sélection des décors suit leur empreinte en cellules,
 pas l’alpha exact de l’image. L’ordre fixe est limité aux contextes compatibles :
 il ne remplace pas la profondeur dynamique du personnage.
 
-La peinture ne remplace pas Smart Tile Studio ou la bibliothèque de ressources.
-Les autres familles de données restent conservées ; leurs studios spécialisés,
-la sélection multiple, l’import et la 3D ne font pas partie de M1.
+La création de terrains couvre le modèle cardinal à seize morceaux. Les presets
+avancés compatibles restent utilisables, mais leur édition spécialisée n’est pas
+encore disponible. Les catégories se filtrent sans éditeur de catégories dédié.
+La conversion en décor exige une grille régulière identique à celle du projet,
+sans marge, espacement ou décalage ; les autres sources gardent leur parcours de
+tuiles, avec un motif explicite quand la conversion n’est pas disponible.
+Les sources anciennes sans métadonnées de découpe conservent leurs tuiles déjà
+référencées, mais le nouveau sélecteur ne peut pas en exposer toute la planche.
+Les autres studios spécialisés, la sélection multiple et la 3D restent hors lot.
 Les métadonnées sont indexées à l'ouverture. Les images sont demandées pour la
 carte active, le pinceau puis les miniatures visibles ; aucun plafond de 128 atlas.
 Le cache conserve au plus 256 Mio décodés, avec éviction des images non utilisées.
-Un décodage à la fois, limité à 64 Mio encodés et 64 Mio décodés par image,
-borne les allocations temporaires. Les consommateurs retiennent leurs images
-jusqu'à leur retrait ; changer de carte recharge une image évincée à la demande.
+Un seul décodage à la fois ; l’admission estime quatre fois les octets RGBA et
+deux fois les octets encodés, plus les images résidentes ou encore retenues,
+dans un budget de 512 Mio. Ce budget estimé n’est pas une mesure du RSS système.
+Le grand atlas HGSS de 4096 × 5280 pixels a été décodé et rendu sur une copie isolée.
+Les images ne sont pas décodées partiellement : le découpage runtime vient après
+le décodage. Les consommateurs retiennent leur génération jusqu’à leur retrait ;
+les reçus de mutation invalident uniquement les chemins concernés, y compris
+un remplacement au même chemin. Une limite déterministe désactive le réessai.
 
 La barre d'état compte uniquement les incidents des ressources demandées.
 **Détails** ouvre une liste filtrable par carte active ; le réessai cible les échecs.
@@ -102,6 +140,9 @@ lib/
       domain/                 Contrat et document de carte
       application/            Documents éditables, commandes et contrôleur
       data/                   Chargement et sauvegarde des cartes
+    resources/                Port pur et transactions authoring locales
+    decors/application/       Brouillons, variantes et masques
+    terrains/                 Règles natives, brouillons et gestes de peinture
   platform/
     files/                    Sélecteur de dossier natif
     rendering/                Adaptateurs de ressources et de rendu
@@ -148,7 +189,10 @@ flutter build macos --debug --no-pub
 ```
 
 Les preuves et les réserves de recette sont détaillées dans le
-[rapport UX et ressources](../../documentation/reports/avelune_studio/M1_ux_ressources/README.md).
+[rapport M2](../../documentation/reports/avelune_studio/M2_ressources_terrains/README.md).
+Les captures M2 proviennent de widgets Flutter exécutés hors écran avec les vrais
+adaptateurs et fichiers. Le pilote natif s’est rattaché à une ancienne fenêtre :
+le dialogue système d’import n’est donc pas certifié par ce parcours automatisé.
 Le runner existant `tool/run_check.py` conserve sorties, codes et descendants de
-tests ; son répertoire historique par défaut reste AS-ARC-002. La mission M1
+tests ; son répertoire historique par défaut reste AS-ARC-002. La mission M2
 redirige ce chemin en mémoire vers son propre dossier de preuves.

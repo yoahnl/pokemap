@@ -1,0 +1,5 @@
+2026-09-19 — configured mcp__pokemap__pokemap_describe({})
+Result: worker.exited: The canonical Authoring worker exited unexpectedly (code 78).
+ok: false; retryable: false; details.exitCode: 78.
+No project opened or modified through this unavailable configured server.
+Independent packaged stdio MCP + canonical worker test: resource-mcp-live-targeted.txt/json.

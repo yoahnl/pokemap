@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_resource_catalog_update_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_large_atlas_test.dart: isolated Train building atlas renders a real decor without loading its 329 atlas catalogue
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_large_atlas_test.dart: isolated Train building atlas renders a real decor without loading its 329 atlas catalogue
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_large_atlas_test.dart: isolated Train building atlas renders a real decor without loading its 329 atlas catalogue
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_large_atlas_test.dart: isolated Train building atlas renders a real decor without loading its 329 atlas catalogue
+{"projectCopy":"/Users/karim/Documents/Codex/2026-09-19/nous-terminons-la-validation-native-d/work/train-copy","catalogueAtlases":329,"element":"hgss-building-001","atlas":"hgss-buildings-assembled","width":4096,"height":5280,"reads":1,"decodes":1,"residentBytes":86507520,"estimatedPeakAccountedBytes":347528926,"maximumWorkingBytes":536870912}
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_resource_catalog_update_test.dart: 4096 by 5280 atlas uses existing chunks with bounded whole-decode reservation
+00:01 +5: All tests passed!

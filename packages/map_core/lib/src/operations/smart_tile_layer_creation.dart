@@ -91,6 +91,41 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreation({
     );
   }
 
+  return planNativeSmartTileLayerCreationForMap(
+    map: target,
+    manifest: manifest,
+    preset: preset,
+    layerId: layerId,
+    layerName: layerName,
+    insertIndex: insertIndex,
+  );
+}
+
+SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
+  required MapData map,
+  required ProjectManifest manifest,
+  required ProjectSmartTilePreset preset,
+  required String layerId,
+  required String layerName,
+  int? insertIndex,
+}) {
+  if (!manifest.maps.any((entry) => entry.id == map.id)) {
+    return SmartTileLayerCreationFailure(
+      code: 'smart_tile_target_map_missing',
+      message: 'Target map "${map.id}" does not exist.',
+    );
+  }
+  try {
+    ProjectValidator.validate(manifest);
+    MapValidator.validate(map, projectDialogueContext: manifest);
+  } on ValidationException catch (error) {
+    return SmartTileLayerCreationFailure(
+      code: error.code ?? 'smart_tile_project_map_invalid',
+      message: error.message,
+    );
+  }
+  final target = map;
+
   final normalizedLayerId = layerId.trim();
   final normalizedLayerName = layerName.trim();
   if (normalizedLayerId.isEmpty || normalizedLayerName.isEmpty) {

@@ -22,6 +22,7 @@ class StudioMapVisual extends StatefulWidget {
 class _StudioMapVisualState extends State<StudioMapVisual> {
   late RuntimeAuthoringMapRenderer renderer;
   final Object _owner = Object();
+  int _catalogVersion = -1;
 
   @override
   void initState() {
@@ -31,6 +32,26 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
       widget.resources.mapResourceIds(widget.map),
     );
     renderer = widget.resources.renderer(widget.map)..update(0);
+    _catalogVersion = widget.resources.catalogVersion;
+    widget.resources.addListener(_changed);
+  }
+
+  void _changed() {
+    if (!mounted) return;
+    if (_catalogVersion != widget.resources.catalogVersion) {
+      _catalogVersion = widget.resources.catalogVersion;
+      setState(
+        () => renderer = widget.resources.renderer(widget.map)..update(0),
+      );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.resources.retain(
+          _owner,
+          widget.resources.mapResourceIds(widget.map),
+        );
+      }
+    });
   }
 
   @override
@@ -39,6 +60,8 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
     if (!identical(oldWidget.map, widget.map) ||
         !identical(oldWidget.resources, widget.resources)) {
       oldWidget.resources.release(_owner);
+      oldWidget.resources.removeListener(_changed);
+      widget.resources.addListener(_changed);
       widget.resources.retain(
         _owner,
         widget.resources.mapResourceIds(widget.map),
@@ -49,6 +72,7 @@ class _StudioMapVisualState extends State<StudioMapVisual> {
 
   @override
   void dispose() {
+    widget.resources.removeListener(_changed);
     widget.resources.release(_owner);
     super.dispose();
   }

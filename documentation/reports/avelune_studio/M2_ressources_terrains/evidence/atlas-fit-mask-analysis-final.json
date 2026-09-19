@@ -1,0 +1,31 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart",
+    "analyze",
+    "lib/presentation/features/resources/atlas_selection_view.dart",
+    "lib/presentation/features/resources/decor_collision_mask.dart",
+    "test/presentation/atlas_selection_view_test.dart",
+    "test/presentation/decor_collision_mask_test.dart"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "startedAt": "2026-09-19T18:06:22.168227+00:00",
+  "finishedAt": "2026-09-19T18:06:25.354175+00:00",
+  "exitCode": 0,
+  "runnerPid": 93139,
+  "trackedProcesses": {
+    "93139": {
+      "parent": 93129,
+      "uid": 501,
+      "started": "Sat Sep 19 20:06:22 2026",
+      "command": "<defunct>"
+    },
+    "93141": {
+      "parent": 93139,
+      "uid": 501,
+      "started": "Sat Sep 19 20:06:22 2026",
+      "command": "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk"
+    }
+  },
+  "cleanup": [],
+  "remainingOwnedProcesses": {}
+}

@@ -1,0 +1,17 @@
+2026-09-19 — M2 native attempt, one reattachment.
+Applied desktop-test preflight: no Marionette dev dependencies or entrypoint in Studio.
+No instrumentation or permission change added. Used native CUA observation fallback.
+Fresh flutter run: runner PID 98538, parent 98529, started Sat Sep 19 20:11:40 2026.
+New app PID 99206, parent 98538, started Sat Sep 19 20:12:01 2026.
+VM Service: http://127.0.0.1:58217/Z1npgiXw7uk=/
+CUA getApp(exact Debug/Avelune Studio.app path) returned old M1 interface:
+Le train de 17h42; Modifications non enregistrées; 113 décors; Décors/Tuiles;
+no M2 Ressources navigation. Preexisting app PID 13487 started 18:45:04.
+One cua_repl reset then reattachment to exact path returned the same old interface.
+No click, typing, save, close or mutation performed in the old window.
+Stopped only verified own flutter runner PID 98538 with SIGTERM after verifying
+parent, start time and exact command. Application finished; runner exit 0;
+remainingOwnedProcesses {}. The preexisting app was not terminated.
+M2 screenshots are executed offscreen widget renders, not native window captures.
+Native system picker remains unverified; injected picker feeds a real PNG to
+the tested production import dialog and canonical authoring transaction.

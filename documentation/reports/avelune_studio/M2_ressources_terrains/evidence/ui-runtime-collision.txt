@@ -1,0 +1,27 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart
+00:00 +0: real import decor terrain save reload and runtime journey
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_GfSnDZ/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_GfSnDZ/project.json
+[runtime_loader] project manifest read ok bytes=45317
+[runtime_loader] project manifest validated maps=2 tilesets=2 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_GfSnDZ/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_GfSnDZ/maps/jardin.json
+[runtime_loader] map file read ok bytes=23836
+[runtime_loader] map validated id=jardin size=24x16 layers=4 entities=1 placedElements=6 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier,source_1789841866421077_100787977
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_GfSnDZ/assets/atelier.png
+[runtime_loader] bundle tileset path id=source_1789841866421077_100787977 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_GfSnDZ/assets/.pokemap-store/f91c321c17f7885af843048f4a658173bf6ac812121b45bbba4429eedc1bd68b.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_GfSnDZ tilesets=2
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=2
+[runtime_game] tileset cache resolve ok result=2
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_GfSnDZ/project.json tilesets=2
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=2 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789841875094165_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:14 +1: large resource library remains usable at narrow enlarged text
+00:15 +2: All tests passed!

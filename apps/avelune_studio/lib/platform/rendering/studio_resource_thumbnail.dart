@@ -29,6 +29,7 @@ class _StudioResourceThumbnailState extends State<StudioResourceThumbnail> {
   Map<String, RuntimeTilesetImage?> _observed = {};
   List<_ThumbnailSlice> _slices = [];
   bool _failed = false;
+  int _catalogVersion = -1;
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _StudioResourceThumbnailState extends State<StudioResourceThumbnail> {
   }
 
   void _project() {
+    _catalogVersion = widget.resources.catalogVersion;
     _observed = {for (final id in _ids) id: widget.resources.images[id]};
     _slices = _resolveSlices(widget.resources, widget.element, widget.tile);
     _failed = widget.resources.hasFailure(_ids);
@@ -53,11 +55,16 @@ class _StudioResourceThumbnailState extends State<StudioResourceThumbnail> {
 
   void _changed() {
     if (!mounted) return;
-    final changed = _ids.any(
-      (id) => !identical(_observed[id], widget.resources.images[id]),
-    );
+    final changed =
+        _catalogVersion != widget.resources.catalogVersion ||
+        _ids.any(
+          (id) => !identical(_observed[id], widget.resources.images[id]),
+        );
     if (changed) {
       setState(_project);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.resources.retain(_owner, _ids);
+      });
     } else if (_failed != widget.resources.hasFailure(_ids)) {
       setState(() => _failed = widget.resources.hasFailure(_ids));
     }

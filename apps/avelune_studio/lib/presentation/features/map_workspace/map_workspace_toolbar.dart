@@ -181,10 +181,16 @@ class MapWorkspaceToolbar extends StatelessWidget {
                           icon: Icons.brush_outlined,
                           selected:
                               view?.tool == StudioMapTool.paint ||
-                              view?.tool == StudioMapTool.place,
-                          onPressed: view?.tile != null || view?.brush != null
+                              view?.tool == StudioMapTool.place ||
+                              view?.tool == StudioMapTool.terrain,
+                          onPressed:
+                              view?.tile != null ||
+                                  view?.brush != null ||
+                                  view?.terrain != null
                               ? () => tool(
-                                  view?.brush != null
+                                  view?.terrain != null
+                                      ? StudioMapTool.terrain
+                                      : view?.brush != null
                                       ? StudioMapTool.place
                                       : StudioMapTool.paint,
                                 )

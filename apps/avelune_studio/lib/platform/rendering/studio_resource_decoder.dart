@@ -10,9 +10,10 @@ import 'package:path/path.dart' as p;
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
 
 final class StudioResourceFailure implements Exception {
-  const StudioResourceFailure(this.cause, this.detail);
+  const StudioResourceFailure(this.cause, this.detail, {this.retryable = true});
   final WorkspaceResourceCause cause;
   final String detail;
+  final bool retryable;
 }
 
 typedef StudioImageDecoder =
@@ -31,7 +32,7 @@ final class StudioResourceDecoder {
 
   final String projectRoot;
   final int maximumDecodeBytes;
-  final void Function(int) reserve;
+  final void Function(int, int) reserve;
   final StudioImageDecoder decode;
   int reads = 0;
   int decodes = 0;
@@ -65,13 +66,15 @@ final class StudioResourceDecoder {
     };
     if (cause != null) throw StudioResourceFailure(cause, relativePath);
     if (probe.identity!.byteLength > maximumDecodeBytes) {
-      throw const StudioResourceFailure(
+      throw StudioResourceFailure(
         WorkspaceResourceCause.memoryPressure,
-        'Fichier encodé trop volumineux',
+        'Source encodée : ${probe.identity!.byteLength} octets ; limite : $maximumDecodeBytes octets',
+        retryable: false,
       );
     }
     late Uint8List bytes;
     try {
+      reserve(0, probe.identity!.byteLength * 2);
       reads++;
       bytes = Uint8List.fromList(
         await reader.readBytes(
@@ -100,13 +103,14 @@ final class StudioResourceDecoder {
         buffer.dispose();
       }
       if (imageBytes > maximumDecodeBytes) {
-        throw const StudioResourceFailure(
+        throw StudioResourceFailure(
           WorkspaceResourceCause.memoryPressure,
-          'Image décodée trop volumineuse',
+          'Image RGBA : $imageBytes octets ; cache : $maximumDecodeBytes octets',
+          retryable: false,
         );
       }
-      reserve(imageBytes);
-      final transientBytes = bytes.length * 2 + imageBytes * 3;
+      final transientBytes = bytes.length * 2 + imageBytes * 4;
+      reserve(imageBytes, transientBytes);
       if (transientBytes > peakTransientBytes) {
         peakTransientBytes = transientBytes;
       }

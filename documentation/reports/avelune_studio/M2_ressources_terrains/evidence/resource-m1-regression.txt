@@ -1,0 +1,18 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: read is unchanged and save reload preserves untouched data
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart: clean playtest recheck rejects changed manifest before map read and preserves saved work
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/m1_manifest_revision_test.dart: clean playtest recheck rejects changed manifest before map read and preserves saved work
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: external byte revision conflict never overwrites the newer file
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: external byte revision conflict never overwrites the newer file
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: failure at afterTempFlushed preserves last good map and retry works
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: failure at afterJournalPrepared preserves last good map and retry works
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: failure at beforeSecondCompareAndSwap preserves last good map and retry works
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: future unknown map fields are refused instead of lost on save
+00:00 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: future nested fields and unsupported schema are refused
+00:00 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: map id mismatch is refused
+00:00 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: map symlink cannot redirect load or save
+00:00 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: undeclared or traversal entries cannot be loaded
+00:00 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: a stale baseline cannot overwrite a previous successful save
+00:00 +16: All tests passed!

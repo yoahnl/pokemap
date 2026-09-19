@@ -22,7 +22,7 @@ class StudioButton extends StatelessWidget {
             children: [
               Icon(icon, size: 16),
               const SizedBox(width: 8),
-              Text(label),
+              Flexible(child: Text(label)),
             ],
           );
     return secondary

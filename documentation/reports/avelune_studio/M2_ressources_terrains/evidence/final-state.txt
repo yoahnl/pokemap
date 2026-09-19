@@ -1,0 +1,175 @@
+M2 final verification — 2026-09-19
+$ git branch --show-current
+main
+
+exitCode: 0
+$ git rev-parse HEAD
+3e9352b1f259fffcd834dd94dfba67021b338b7b
+
+exitCode: 0
+$ git diff --cached --name-only
+(empty)
+exitCode: 0
+$ git diff --check
+(empty)
+exitCode: 0
+No Git write operations, no Notion writes, no original-project writes performed.
+studio-release-check exitCode=0 remainingOwnedProcesses={}
+studio-analyze-final-check exitCode=0 remainingOwnedProcesses={}
+macos-final-check exitCode=0 remainingOwnedProcesses={}
+ui-captures-verified exitCode=0 remainingOwnedProcesses={}
+ui-runtime-collision exitCode=0 remainingOwnedProcesses={}
+native-run exitCode=0 remainingOwnedProcesses={}
+Markdown hygiene: 1 new Markdown file, canonical location; POKEMAP_MARKDOWN_MAX_NEW=1 explicitly allowed by M2 report deliverable.
+Test harnesses reaped only by recorded process ownership. Native session stopped; preexisting M1 app untouched.
+$ git status --short --untracked-files=all
+ M apps/avelune_studio/README.md
+ M apps/avelune_studio/lib/app/di/providers.dart
+ M apps/avelune_studio/lib/app/studio_bootstrap.dart
+ M apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart
+ M apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_adapter.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_image_store.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_map_resources.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_map_visual_widgets.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_resource_decoder.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_resource_index.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_resource_thumbnail.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_canvas.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_panels.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_toolbar.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_view_state.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_visuals.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_resource_diagnostic.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/buttons/studio_button.dart
+ M apps/avelune_studio/lib/presentation/shell/studio_workspace_host.dart
+ M apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart
+ M packages/map_authoring/lib/src/application/map_mutation_dispatcher.dart
+ M packages/map_authoring/lib/src/domains/assets/element_actions.dart
+ M packages/map_core/lib/src/operations/smart_tile_layer_creation.dart
+ M packages/map_core/test/smart_tiles/smart_tile_layer_creation_test.dart
+ M packages/map_runtime/lib/map_runtime_authoring.dart
+ M packages/map_runtime/lib/src/infrastructure/tile_image_loader.dart
+ M packages/map_runtime/test/tile_image_loader_singleflight_test.dart
+?? apps/avelune_studio/lib/app/di/resource_providers.dart
+?? apps/avelune_studio/lib/features/decors/application/decor_draft.dart
+?? apps/avelune_studio/lib/features/decors/application/decor_source_support.dart
+?? apps/avelune_studio/lib/features/resources/data/local_resource_adapter.dart
+?? apps/avelune_studio/lib/features/resources/data/resource_no_change.dart
+?? apps/avelune_studio/lib/features/resources/domain/resource_port.dart
+?? apps/avelune_studio/lib/features/terrains/application/terrain_brush.dart
+?? apps/avelune_studio/lib/features/terrains/application/terrain_draft_controller.dart
+?? apps/avelune_studio/lib/features/terrains/domain/terrain_connections.dart
+?? apps/avelune_studio/lib/platform/files/native_resource_image_picker.dart
+?? apps/avelune_studio/lib/platform/rendering/studio_atlas_preview.dart
+?? apps/avelune_studio/lib/platform/rendering/studio_resource_catalog.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_canvas_stroke.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart
+?? apps/avelune_studio/lib/presentation/features/resources/atlas_selection_view.dart
+?? apps/avelune_studio/lib/presentation/features/resources/decor_collision_mask.dart
+?? apps/avelune_studio/lib/presentation/features/resources/decor_editor_screen.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_brush_selection.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_catalog.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_image_import.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_navigation.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_preview.dart
+?? apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart
+?? apps/avelune_studio/lib/presentation/features/resources/tile_selection_dialog.dart
+?? apps/avelune_studio/lib/presentation/features/terrains/terrain_editor_screen.dart
+?? apps/avelune_studio/lib/presentation/features/terrains/terrain_scratch_view.dart
+?? apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_resource_card.dart
+?? apps/avelune_studio/test/application/decor_draft_test.dart
+?? apps/avelune_studio/test/infrastructure/studio_large_atlas_test.dart
+?? apps/avelune_studio/test/infrastructure/studio_resource_catalog_update_test.dart
+?? apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart
+?? apps/avelune_studio/test/presentation/atlas_selection_view_test.dart
+?? apps/avelune_studio/test/presentation/decor_collision_mask_test.dart
+?? apps/avelune_studio/test/presentation/m2_end_to_end_test.dart
+?? apps/avelune_studio/test/presentation/resource_image_import_test.dart
+?? apps/avelune_studio/test/resource_io/decor_resource_io_test.dart
+?? apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart
+?? apps/avelune_studio/test/resource_io/resource_fixture.dart
+?? apps/avelune_studio/test/resource_io/resource_navigation_save_test.dart
+?? apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart
+?? apps/avelune_studio/test/support/m2_ui_fixture.dart
+?? apps/avelune_studio/test/terrain_canvas_test.dart
+?? apps/avelune_studio/test/terrain_creation_test.dart
+?? apps/avelune_studio/test/terrain_editor_test.dart
+?? apps/avelune_studio/test/terrain_runtime_test.dart
+?? documentation/reports/avelune_studio/M2_ressources_terrains/README.md
+?? documentation/reports/avelune_studio/M2_ressources_terrains/captures/01-bibliotheque.png
+?? documentation/reports/avelune_studio/M2_ressources_terrains/captures/02-preparation-decor.png
+?? documentation/reports/avelune_studio/M2_ressources_terrains/captures/03-carte-nouveau-decor.png
+?? documentation/reports/avelune_studio/M2_ressources_terrains/captures/04-empilement.png
+?? documentation/reports/avelune_studio/M2_ressources_terrains/captures/05-terrain-et-essai.png
+?? documentation/reports/avelune_studio/M2_ressources_terrains/captures/06-catalogue-volumineux.png
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/atlas-fit-mask-analysis-final.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/atlas-fit-mask-analysis-final.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/atlas-fit-mask-final.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/atlas-fit-mask-final.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/cache-analysis-final.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/cache-analysis-final.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/cache-final.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/cache-final.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/cache-runtime-tests.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/cache-runtime-tests.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/cache-updates-v2.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/cache-updates-v2.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/configured-mcp.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/file-inventory.tsv
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/final-state.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/initial-state.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/macos-final-check.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/macos-final-check.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/native-observation.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/native-run.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/native-run.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-canonical-analysis.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-canonical-analysis.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-canonical-regression.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-canonical-regression.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-controller-verified.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-controller-verified.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-draft-close-regression.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-draft-close-regression.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-jsonl-recovery.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-jsonl-recovery.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-m1-regression.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-m1-regression.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-mcp-build.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-mcp-build.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-mcp-check.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-mcp-check.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-mcp-live-targeted.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/resource-mcp-live-targeted.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/studio-analyze-final-check.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/studio-analyze-final-check.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/studio-final-check.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/studio-final-check.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/studio-release-check.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/studio-release-check.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/studio-suite-verified.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/studio-suite-verified.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-all-verified.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-all-verified.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-analysis-clean.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-analysis-clean.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-brush-resources.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-brush-resources.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-core-creation.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-core-creation.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-runtime-correct-zone.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-runtime-correct-zone.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-runtime-order.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/terrain-runtime-order.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/ui-captures-verified.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/ui-captures-verified.txt
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/ui-runtime-collision.json
+?? documentation/reports/avelune_studio/M2_ressources_terrains/evidence/ui-runtime-collision.txt
+?? packages/map_authoring/lib/src/domains/assets/tileset_image_import_actions.dart
+?? packages/map_authoring/test/domains/assets/tileset_image_import_test.dart
+?? tools/pokemap_mcp/test/studio_resource_import.test.ts
+Status counts: {' M': 29, '??': 120}

@@ -16,6 +16,7 @@ final class WorkspaceResourceDiagnostic {
     required this.cause,
     this.detail,
     this.status = WorkspaceResourceStatus.failed,
+    this.retryable = true,
   });
 
   final String resourceId;
@@ -23,7 +24,8 @@ final class WorkspaceResourceDiagnostic {
   final WorkspaceResourceCause cause;
   final String? detail;
   final WorkspaceResourceStatus status;
-  bool get canRetry => status == WorkspaceResourceStatus.failed;
+  final bool retryable;
+  bool get canRetry => retryable && status == WorkspaceResourceStatus.failed;
   String get message => switch (cause) {
     WorkspaceResourceCause.missing => 'Fichier absent',
     WorkspaceResourceCause.accessDenied => 'Accès refusé',

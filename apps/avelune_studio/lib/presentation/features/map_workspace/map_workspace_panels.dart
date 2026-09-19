@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_sidebar.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'map_workspace_view_state.dart';
+import 'map_workspace_visuals.dart';
 
 class MapWorkspacePalette extends StatefulWidget {
   const MapWorkspacePalette({
@@ -16,6 +16,8 @@ class MapWorkspacePalette extends StatefulWidget {
     required this.view,
     required this.onChanged,
     required this.search,
+    this.onResources,
+    this.onTileset,
   });
   final ProjectManifest project;
   final EditableMapDocument document;
@@ -23,68 +25,68 @@ class MapWorkspacePalette extends StatefulWidget {
   final MapWorkspaceViewState view;
   final VoidCallback onChanged;
   final TextEditingController search;
+  final VoidCallback? onResources;
+  final ValueChanged<ProjectTilesetEntry>? onTileset;
   @override
   State<MapWorkspacePalette> createState() => _MapWorkspacePaletteState();
 }
 
 class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
+  String get kind => widget.view.paletteTab;
+  set kind(String value) => widget.view.paletteTab = value;
   ProjectManifest? _project;
   MapData? _map;
   String? _query;
-  Map<String, String> _names = {};
-  List<ProjectElementEntry> _elements = [];
-  List<TileLayerPaletteEntry> _availableTiles = [];
-  List<TileLayerPaletteEntry> _tiles = [];
+  List<ProjectElementEntry> elements = [];
+  List<ProjectSmartTilePreset> terrains = [];
+  List<ProjectTilesetEntry> sources = [];
+  List<TileLayerPaletteEntry> tiles = [];
+  Map<String, String> names = {};
   @override
   void initState() {
     super.initState();
-    _refreshLists();
+    _refresh();
   }
 
   @override
-  void didUpdateWidget(MapWorkspacePalette oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _refreshLists();
+  void didUpdateWidget(MapWorkspacePalette old) {
+    super.didUpdateWidget(old);
+    _refresh();
   }
 
-  void _refreshLists() {
-    final projectChanged = !identical(_project, widget.project);
-    final mapChanged = !identical(_map, widget.document.current);
+  void _refresh() {
+    final project = widget.project;
+    final map = widget.document.current;
     final query = widget.search.text.toLowerCase();
-    final queryChanged = query != _query;
-    if (projectChanged) {
-      _names = {
-        for (final entry in widget.project.tilesets) entry.id: entry.name,
-      };
+    if (identical(project, _project) &&
+        identical(map, _map) &&
+        query == _query) {
+      return;
     }
-    if (projectChanged || queryChanged) {
-      _elements = widget.project.elements
-          .where((entry) => entry.name.toLowerCase().contains(query))
-          .toList();
-    }
-    if (mapChanged) {
-      _availableTiles = widget.document.current.layers
-          .whereType<TileLayer>()
-          .expand((layer) => layer.palette)
-          .toSet()
-          .toList();
-    }
-    if (projectChanged || mapChanged || queryChanged) {
-      _tiles = _availableTiles
-          .where(
-            (tile) =>
-                (_names[tile.tilesetId] ?? '').toLowerCase().contains(query),
-          )
-          .toList();
-    }
-    _project = widget.project;
-    _map = widget.document.current;
+    bool matches(String name) => name.toLowerCase().contains(query);
+    elements = project.elements
+        .where((e) => matches('${e.name} ${e.tags.join(' ')}'))
+        .toList();
+    terrains = project.smartTileCatalog.presets
+        .where((e) => matches(e.name))
+        .toList();
+    sources = project.tilesets.where((e) => matches(e.name)).toList();
+    final ids = sources.map((e) => e.id).toSet();
+    tiles = map.layers
+        .whereType<TileLayer>()
+        .expand((l) => l.palette)
+        .toSet()
+        .where((tile) => ids.contains(tile.tilesetId))
+        .toList();
+    names = {for (final source in project.tilesets) source.id: source.name};
+    _project = project;
+    _map = map;
     _query = query;
   }
 
   @override
   Widget build(BuildContext context) {
-    final showTiles = widget.view.paletteTiles;
+    final view = widget.view;
     return StudioSidebar(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,92 +95,119 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
           const SizedBox(height: 10),
           TextField(
             controller: widget.search,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Rechercher un décor',
-              hintText: 'Nom de ressource',
-              prefixIcon: const Icon(Icons.search, size: 17),
+              hintText: 'Nom ou tag',
+              prefixIcon: Icon(Icons.search, size: 17),
             ),
-            onChanged: (_) => setState(_refreshLists),
+            onChanged: (_) => setState(_refresh),
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
             children: [
-              Expanded(
-                child: StudioButton(
-                  label: 'Décors',
-                  secondary: showTiles,
-                  onPressed: () =>
-                      setState(() => widget.view.paletteTiles = false),
+              for (final value in ['Décors', 'Terrains', 'Tuiles'])
+                StudioButton(
+                  label: value,
+                  secondary: kind != value,
+                  onPressed: () => setState(() {
+                    kind = value;
+                    view.paletteTiles = value == 'Tuiles';
+                  }),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: StudioButton(
-                  label: 'Tuiles',
-                  secondary: !showTiles,
-                  onPressed: () =>
-                      setState(() => widget.view.paletteTiles = true),
-                ),
-              ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            showTiles
-                ? 'Tuiles de la carte · ${_tiles.length}'
-                : '${_elements.length} décors',
-            style: Theme.of(context).textTheme.bodySmall,
+          const SizedBox(height: 8),
+          StudioButton(
+            label: 'Gérer les ressources',
+            secondary: true,
+            onPressed: widget.onResources,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Expanded(
-            child: (showTiles ? _tiles.isEmpty : _elements.isEmpty)
-                ? const Center(child: Text('Aucune ressource correspondante.'))
-                : ListView.builder(
-                    key: ValueKey(showTiles ? 'tile-palette' : 'decor-palette'),
-                    scrollCacheExtent: const ScrollCacheExtent.pixels(0),
-                    itemCount: showTiles ? _tiles.length : _elements.length,
-                    itemBuilder: (context, index) {
-                      if (showTiles) {
-                        final tile = _tiles[index];
-                        return StudioChoice(
-                          label:
-                              '${_names[tile.tilesetId] ?? 'Ressource'} · tuile ${tile.localTileId + 1}',
-                          leading: widget.visuals.tileThumbnail(tile, size: 40),
-                          selected:
-                              widget.view.tool == StudioMapTool.paint &&
-                              widget.view.tile == tile,
-                          onTap: () {
-                            widget.view.tile = tile;
-                            widget.view.brush = null;
-                            widget.view.tool = StudioMapTool.paint;
-                            widget.onChanged();
-                          },
-                        );
-                      }
-                      final element = _elements[index];
-                      return StudioChoice(
-                        label: element.name,
-                        leading: widget.visuals.thumbnail(element, size: 40),
-                        selected:
-                            widget.view.tool == StudioMapTool.place &&
-                            widget.view.brush?.id == element.id,
-                        onTap: () {
-                          widget.view.brush = element;
-                          widget.view.tile = null;
-                          widget.view.tool = StudioMapTool.place;
-                          widget.onChanged();
-                        },
-                      );
+            child: ListView.builder(
+              key: ValueKey(
+                kind == 'Tuiles'
+                    ? 'tile-palette'
+                    : kind == 'Terrains'
+                    ? 'terrain-palette'
+                    : 'decor-palette',
+              ),
+              scrollCacheExtent: const ScrollCacheExtent.pixels(0),
+              itemCount: kind == 'Décors'
+                  ? elements.length
+                  : kind == 'Terrains'
+                  ? terrains.length
+                  : sources.length + tiles.length,
+              itemBuilder: (context, i) {
+                if (kind == 'Décors') {
+                  final e = elements[i];
+                  return StudioChoice(
+                    label: e.name,
+                    leading: widget.visuals.thumbnail(e, size: 48),
+                    selected:
+                        view.tool == StudioMapTool.place &&
+                        view.brush?.id == e.id,
+                    onTap: () {
+                      view.brush = e;
+                      view.tile = null;
+                      view.terrain = null;
+                      view.tool = StudioMapTool.place;
+                      widget.onChanged();
                     },
-                  ),
+                  );
+                }
+                if (kind == 'Terrains') {
+                  final t = terrains[i];
+                  return StudioChoice(
+                    label: t.name,
+                    leading: const Icon(Icons.terrain_outlined),
+                    selected: view.terrain?.id == t.id,
+                    onTap: () {
+                      view.terrain = t;
+                      view.brush = null;
+                      view.tile = null;
+                      view.tool = StudioMapTool.terrain;
+                      widget.onChanged();
+                    },
+                  );
+                }
+                if (i < sources.length) {
+                  final t = sources[i];
+                  return StudioChoice(
+                    label: t.name,
+                    subtitle: 'Choisir une tuile du projet',
+                    leading: widget.visuals.tileThumbnail(
+                      TileLayerPaletteEntry(tilesetId: t.id, localTileId: 0),
+                      size: 48,
+                    ),
+                    onTap: () => widget.onTileset?.call(t),
+                  );
+                }
+                final tile = tiles[i - sources.length];
+                final name = names[tile.tilesetId] ?? 'Ressource';
+                return StudioChoice(
+                  label: '$name · tuile ${tile.localTileId + 1}',
+                  leading: widget.visuals.tileThumbnail(tile, size: 40),
+                  selected: view.tile == tile,
+                  onTap: () {
+                    view.tile = tile;
+                    view.brush = null;
+                    view.terrain = null;
+                    view.tool = StudioMapTool.paint;
+                    widget.onChanged();
+                  },
+                );
+              },
+            ),
           ),
           const SizedBox(height: 6),
           Text(
-            widget.view.tool == StudioMapTool.paint
-                ? 'Tuile ${(widget.view.tile?.localTileId ?? 0) + 1} · support automatique'
-                : widget.view.tool == StudioMapTool.place
-                ? '${widget.view.brush?.name ?? 'Décor'} · support automatique'
-                : 'Clic pour sélectionner · Échap pour terminer',
+            view.terrain != null
+                ? '${view.terrain!.name} · raccords automatiques'
+                : view.brush?.name ??
+                      'Clic pour sélectionner · Échap pour terminer',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall,

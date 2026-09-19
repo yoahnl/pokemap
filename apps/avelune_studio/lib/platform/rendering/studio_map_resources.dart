@@ -1,13 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
-import 'package:map_authoring/map_authoring.dart'
-    show AssetCatalog, assetCatalogStorageKey;
-import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
@@ -17,14 +14,17 @@ import 'studio_map_visual_widgets.dart';
 import 'studio_resource_decoder.dart';
 import 'studio_resource_index.dart';
 import 'studio_resource_thumbnail.dart';
+import 'studio_resource_catalog.dart';
+import 'studio_atlas_preview.dart';
 
-final class StudioMapResources implements MapWorkspaceVisuals {
+final class StudioMapResources
+    implements MapWorkspaceVisuals, ResourceWorkspaceVisuals {
   StudioMapResources._(this.projectRoot, this.manifest)
     : _index = StudioResourceIndex(manifest);
 
   final String projectRoot;
-  final ProjectManifest manifest;
-  final StudioResourceIndex _index;
+  ProjectManifest manifest;
+  StudioResourceIndex _index;
   final Map<String, String> paths = {};
   Map<String, ProjectTilesetEntry> get tilesets => _index.tilesets;
   Map<String, ProjectElementEntry> get elements => _index.elements;
@@ -33,6 +33,11 @@ final class StudioMapResources implements MapWorkspaceVisuals {
   final Object _activeOwner = Object();
   final Object _brushOwner = Object();
   Set<String> _brushIds = {};
+  MapData? _activeMap;
+  ProjectElementEntry? _brushElement;
+  TileLayerPaletteEntry? _brushTile;
+  ProjectSmartTilePreset? _terrainPreset;
+  int catalogVersion = 0;
   late final StudioImageStore store;
   bool _disposed = false;
   bool _notificationPending = false;
@@ -49,28 +54,14 @@ final class StudioMapResources implements MapWorkspaceVisuals {
     StudioImageDecoder decode = decodeRuntimeTilesetImage,
   }) async {
     final result = StudioMapResources._(session.directoryPath, manifest);
-    const reader = LocalProjectFileReader();
-    AssetCatalog? catalog;
     try {
-      final probe = await reader.probeResource(
-        projectRoot: session.directoryPath,
-        relativePath: assetCatalogStorageKey,
+      result.paths.addAll(
+        await resolveStudioResourcePaths(
+          session.directoryPath,
+          manifest,
+          result._index.supported,
+        ),
       );
-      if (probe.status == ProjectResourceProbeStatus.exists) {
-        catalog = AssetCatalog.fromJson(
-          jsonDecode(
-                utf8.decode(
-                  await reader.readBytes(
-                    projectRoot: session.directoryPath,
-                    relativePath: assetCatalogStorageKey,
-                  ),
-                ),
-              )
-              as Map<String, dynamic>,
-        );
-      } else if (probe.status != ProjectResourceProbeStatus.missing) {
-        throw StateError('Catalogue: ${probe.status.name}');
-      }
     } on Object catch (error) {
       result._failed(
         'catalogue',
@@ -80,14 +71,6 @@ final class StudioMapResources implements MapWorkspaceVisuals {
         ),
       );
     }
-    result.paths.addAll(
-      resolveTilesetAbsolutePaths(
-        manifest: manifest,
-        projectRoot: session.directoryPath,
-        tilesetIds: result._index.supported,
-        assetCatalog: catalog,
-      ),
-    );
     result.store = StudioImageStore(
       projectRoot: result.projectRoot,
       maximumBytes: maximumBytes,
@@ -100,6 +83,58 @@ final class StudioMapResources implements MapWorkspaceVisuals {
     return result;
   }
 
+  @override
+  Future<void> updateCatalog(
+    ProjectManifest updated, {
+    Set<String> changedRelativePaths = const {},
+  }) async {
+    if (_disposed) return;
+    final next = StudioResourceIndex(updated);
+    final resolved = await resolveStudioResourcePaths(
+      projectRoot,
+      updated,
+      next.supported,
+    );
+    await store.settled;
+    if (_disposed) return;
+    final changed = changedRelativePaths
+        .map((path) => p.normalize(p.join(projectRoot, path)))
+        .toSet();
+    final invalid = {
+      for (final id in {...paths.keys, ...resolved.keys})
+        if (paths[id] != resolved[id] ||
+            _index.colors[id] != next.colors[id] ||
+            changed.contains(paths[id]) ||
+            changed.contains(resolved[id]))
+          id,
+    };
+    manifest = updated;
+    _index = next;
+    paths
+      ..clear()
+      ..addAll(resolved);
+    store.colors
+      ..clear()
+      ..addAll(next.colors);
+    store.invalidate(invalid);
+    catalogVersion++;
+    if (_activeMap != null) setActiveMap(_activeMap!);
+    final terrain = _terrainPreset;
+    setBrush(elements[_brushElement?.id], _brushTile);
+    if (terrain != null) {
+      setTerrainBrush(
+        updated.smartTileCatalog.presets
+            .where((item) => item.id == terrain.id)
+            .firstOrNull,
+      );
+    }
+    _notify();
+  }
+
+  @override
+  Widget atlasPreview(String tilesetId) =>
+      StudioAtlasPreview(resources: this, tilesetId: tilesetId);
+
   Set<String> elementResourceIds(ProjectElementEntry element) =>
       _index.forElement(element);
   Set<String> tileResourceIds(TileLayerPaletteEntry tile) =>
@@ -110,6 +145,7 @@ final class StudioMapResources implements MapWorkspaceVisuals {
   @override
   void setActiveMap(MapData map) {
     if (_disposed) return;
+    _activeMap = map;
     activeResourceIds = mapResourceIds(map);
     store.priority = {...activeResourceIds, ..._brushIds};
     store.retain(_activeOwner, activeResourceIds);
@@ -119,11 +155,25 @@ final class StudioMapResources implements MapWorkspaceVisuals {
   @override
   void setBrush(ProjectElementEntry? element, TileLayerPaletteEntry? tile) {
     if (_disposed) return;
+    _brushElement = element;
+    _brushTile = tile;
+    _terrainPreset = null;
     _brushIds = element != null
         ? elementResourceIds(element)
         : tile != null
         ? tileResourceIds(tile)
         : {};
+    store.priority = {...activeResourceIds, ..._brushIds};
+    store.retain(_brushOwner, _brushIds);
+  }
+
+  @override
+  void setTerrainBrush(ProjectSmartTilePreset? preset) {
+    if (_disposed) return;
+    _terrainPreset = preset;
+    _brushElement = null;
+    _brushTile = null;
+    _brushIds = preset == null ? {} : _index.forTerrain(preset);
     store.priority = {...activeResourceIds, ..._brushIds};
     store.retain(_brushOwner, _brushIds);
   }
@@ -134,7 +184,9 @@ final class StudioMapResources implements MapWorkspaceVisuals {
   @override
   Future<void> retryResources(Iterable<String> resourceIds) async {
     if (_disposed) return;
-    final ids = resourceIds.toSet();
+    final ids = resourceIds
+        .where((id) => _diagnostics[id]?.canRetry ?? false)
+        .toSet();
     for (final id in ids) {
       final old = _diagnostics[id];
       if (old == null) continue;
@@ -164,6 +216,7 @@ final class StudioMapResources implements MapWorkspaceVisuals {
         name: _index.names[id] ?? id,
         cause: failure.cause,
         detail: failure.detail,
+        retryable: failure.retryable,
       );
     }
   }

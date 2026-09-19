@@ -25,6 +25,7 @@ class MapWorkspaceController {
   void removeListener(void Function() listener) => _listeners.remove(listener);
 
   Future<void> initialize() async {
+    if (project != null) return;
     try {
       final manifest = await port.loadProject(session);
       if (_disposed) return;
@@ -91,6 +92,18 @@ class MapWorkspaceController {
       if (!await save(document)) return false;
     }
     return !_disposed && !dirty && !saving;
+  }
+
+  void acceptResources(ProjectManifest before, ProjectManifest updated) {
+    if (_disposed) return;
+    if (project != before) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Le catalogue a changé pendant cette opération.',
+      );
+    }
+    project = updated;
+    notify();
   }
 
   void notify() {

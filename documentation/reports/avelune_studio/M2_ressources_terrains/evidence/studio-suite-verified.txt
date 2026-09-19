@@ -1,0 +1,294 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_editor_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_editor_test.dart: source assignment, scratch correction and publication activate the saved preset
+00:01 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_editor_test.dart: small editor at enlarged text keeps all sections scrollable
+00:02 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: detecte I/O derriere un import relatif et un export
+00:02 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: detecte I/O derriere un barrel package public
+00:02 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: inspecte aussi les branches conditionnelles des exports
+00:02 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: termine sur un cycle et accepte les SDK purs
+00:02 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/dart_dependency_graph_test.dart: un package inconnu echoue au lieu de masquer une dependance
+00:02 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:02 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:02 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:02 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:02 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:02 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:03 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:03 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:03 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:03 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+00:03 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/decor_resource_io_test.dart: PNG selection, collision, variant, repeated placement, undo and disk reopen
+00:03 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:03 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:03 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:03 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/terrain_resource_io_test.dart: draft, publish, paint, erase, save and fresh reopen use canonical resources
+00:04 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_canvas_test.dart: canvas previews interpolated terrain, commits one history, erases neighbors and cancels
+00:05 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_canvas_test.dart: canvas previews interpolated terrain, commits one history, erases neighbors and cancels
+00:05 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_canvas_test.dart: canvas previews interpolated terrain, commits one history, erases neighbors and cancels
+00:05 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_canvas_test.dart: canvas previews interpolated terrain, commits one history, erases neighbors and cancels
+00:05 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: external map edit stays protected by map CAS after own import
+00:05 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: resource API rejects map mutation and preserves map bytes
+00:05 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +57: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +58: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +59: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +60: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +61: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +62: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +63: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +64: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +65: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +66: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +67: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +68: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +69: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +70: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +71: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:05 +72: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart: unchanged definition can be used without a mutation or lost conflict guard
+00:06 +73: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: late A is released without replacing or closing ready B
+00:06 +74: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: late A failure leaves ready B unchanged
+00:06 +75: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: close during a read releases its late success and stays idle
+00:06 +76: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: close during a read ignores its late failure
+00:06 +77: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: dispose rejects late success without notifying detached views
+00:06 +78: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: opening B clears A immediately and failure never restores A
+00:06 +79: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/application/project_session_races_test.dart: a superseded request never starts reading after previous release
+00:06 +80: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:06 +81: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:06 +82: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:06 +83: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:06 +84: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +85: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +86: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +87: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +88: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +89: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +90: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +91: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +92: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +93: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +94: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +95: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +96: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +97: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +97: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_large_atlas_test.dart: isolated Train building atlas renders a real decor without loading its 329 atlas catalogue
+  Skip: AVELUNE_PROJECT_COPY non fourni
+00:07 +97 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +98 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +99 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:07 +100 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +101 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +102 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +103 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +104 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +105 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +106 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +107 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +108 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +109 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +110 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +111 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +112 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +113 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +114 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +115 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Lw1io0/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Lw1io0/project.json
+[runtime_loader] project manifest read ok bytes=43142
+[runtime_loader] project manifest validated maps=2 tilesets=2 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Lw1io0/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Lw1io0/maps/jardin.json
+[runtime_loader] map file read ok bytes=22682
+[runtime_loader] map validated id=jardin size=24x16 layers=4 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier,source_1789841412931559_3244295069
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Lw1io0/assets/atelier.png
+[runtime_loader] bundle tileset path id=source_1789841412931559_3244295069 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Lw1io0/assets/.pokemap-store/9417e071d7b249ab91d1e45db390e4a3b5b332ee420f1ae0f5acd110df673697.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Lw1io0 tilesets=2
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=2
+00:08 +116 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +117 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +118 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:08 +119 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+[runtime_game] tileset cache resolve ok result=2
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_Lw1io0/project.json tilesets=2
+[runtime_game] world build start map=jardin
+00:08 +120 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=2 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+00:09 +121 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+[runtime_game] onLoad completed activeMapId=jardin
+00:09 +122 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+[event_v2] mapEnter activation=mapact_1789841414976307_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:09 +123 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:09 +124 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:09 +125 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:09 +126 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:09 +127 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:09 +128 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+00:09 +129 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: revision conflict refuses runtime before file bundle load
+00:09 +130 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: revision conflict refuses runtime before file bundle load
+00:09 +131 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: revision conflict refuses runtime before file bundle load
+00:09 +132 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_resource_catalog_update_test.dart: same-path pixels and aliases refresh while previous painters retain the old image
+00:09 +133 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+00:09 +134 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+00:10 +135 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+00:10 +136 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+00:10 +137 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_camvIu/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_camvIu/project.json
+[runtime_loader] project manifest read ok bytes=8480
+00:10 +138 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_camvIu/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_camvIu/maps/jardin.json
+[runtime_loader] map file read ok bytes=17182
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_camvIu/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_camvIu tilesets=1
+00:10 +139 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_camvIu/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789841416563288_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:10 +140 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/project_path_submission_test.dart: submits trailing space exactly without invoking the picker
+00:11 +141 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/atlas_selection_view_test.dart: first layout fits and centres source while selection updates retain user zoom
+00:11 +142 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/atlas_selection_view_test.dart: first layout fits and centres source while selection updates retain user zoom
+00:11 +143 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:11 +144 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:11 +145 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:11 +146 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:11 +147 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:11 +148 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:11 +149 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +150 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +151 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +152 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +153 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +154 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +155 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +156 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +157 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +158 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +159 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +160 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:12 +161 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:13 +162 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:13 +163 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:13 +164 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:13 +165 ~1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:13 +165 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:14 +166 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:14 +167 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:14 +168 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:14 +169 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:14 +170 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:14 +171 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:14 +172 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:14 +173 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:15 +174 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:15 +175 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:16 +176 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:16 +177 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:16 +178 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:16 +179 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:17 +180 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:17 +181 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:17 +182 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:21 +182 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: null
+  Actual: FlutterError:<A RenderFlex overflowed by 63 pixels on the right.>
+
+When the exception was thrown, this was the stack:
+#4      pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart:187:3)
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart:123:5)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart line 187
+The test description was:
+  real import decor terrain save reload and runtime journey
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:21 +182 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:21 +182 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey [E]
+  Test failed. See exception logs above.
+  The test description was: real import decor terrain save reload and runtime journey
+
+00:22 +182 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: large resource library remains usable at narrow enlarged text
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: null
+  Actual: FlutterError:<A RenderFlex overflowed by 11 pixels on the right.>
+
+When the exception was thrown, this was the stack:
+#4      pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart:187:3)
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart:198:5)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart line 187
+The test description was:
+  large resource library remains usable at narrow enlarged text
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:22 +182 ~2 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:22 +182 ~2 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: large resource library remains usable at narrow enlarged text [E]
+  Test failed. See exception logs above.
+  The test description was: large resource library remains usable at narrow enlarged text
+
+00:35 +183 ~2 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: large resource library remains usable at narrow enlarged text
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
