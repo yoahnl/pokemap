@@ -1,0 +1,54 @@
+{
+  "command": [
+    "flutter",
+    "devices",
+    "--machine"
+  ],
+  "runnerPid": 68594,
+  "owned": {
+    "68644": [
+      68594,
+      "501",
+      "Sun Sep 20 20:40:17 2026",
+      "(xcodebuild)"
+    ],
+    "68648": [
+      68594,
+      "501",
+      "Sun Sep 20 20:40:17 2026",
+      "/Applications/Xcode.app/Contents/Developer/usr/bin/xcdevice list --timeout 5"
+    ],
+    "68649": [
+      68594,
+      "501",
+      "Sun Sep 20 20:40:17 2026",
+      "(simctl)"
+    ],
+    "68821": [
+      68594,
+      "501",
+      "Sun Sep 20 20:40:24 2026",
+      "/Library/Developer/PrivateFrameworks/CoreDevice.framework/Versions/A/Resources/bin/devicectl --version"
+    ],
+    "68844": [
+      68594,
+      "501",
+      "Sun Sep 20 20:40:24 2026",
+      "/Library/Developer/PrivateFrameworks/CoreDevice.framework/Versions/A/Resources/bin/devicectl list devices --timeout 5 --json-output /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.3rCA6c/core_devices.YIWHt0/core_device_list.json"
+    ],
+    "68846": [
+      68844,
+      "501",
+      "Sun Sep 20 20:40:24 2026",
+      "(PlistBuddy)"
+    ],
+    "68853": [
+      68594,
+      "501",
+      "Sun Sep 20 20:40:24 2026",
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --version"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -24,6 +25,7 @@ class WorkspaceActions {
     required this.narrative,
     this.scenes,
     this.events,
+    this.dialogues,
     required this.runtimeBuilder,
   });
   final MapWorkspaceController controller;
@@ -34,23 +36,27 @@ class WorkspaceActions {
   final NarrativeWorkspaceController? Function() narrative;
   final SceneWorkspaceController? Function()? scenes;
   final EventWorkspaceController? Function()? events;
+  final DialogueWorkspaceController? Function()? dialogues;
   final StudioRuntimeBuilder runtimeBuilder;
   bool testing = false;
   bool closing = false;
   bool get busy =>
       testing ||
       closing ||
+      dialogues?.call()?.busy == true ||
       events?.call()?.busy == true ||
       scenes?.call()?.busy == true ||
       resources()?.busy == true ||
       narrative()?.busy == true;
 
   Future<bool> allowClose() async {
+    if (!_flushDialogueEdit()) return false;
     if (!await _flushEventEdits()) return false;
     if (controller.saving || busy) return false;
     if (!controller.dirty &&
         resources()?.dirty != true &&
         narrative()?.dirty != true &&
+        dialogues?.call()?.dirty != true &&
         events?.call()?.dirty != true &&
         scenes?.call()?.dirty != true) {
       return true;
@@ -61,6 +67,9 @@ class WorkspaceActions {
       final choice = await confirmStudioClose(context());
       if (!mounted() || choice == null || choice == 'cancel') return false;
       if (choice == 'save') {
+        if (dialogues?.call() case final dialogueController?) {
+          if (!await dialogueController.saveAll()) return false;
+        }
         if (scenes?.call() case final sceneController?) {
           if (!await sceneController.saveAll()) return false;
         }
@@ -81,6 +90,13 @@ class WorkspaceActions {
   }
 
   Future<void> test() async {
+    if (!_flushDialogueEdit()) return;
+    if (dialogues?.call()?.dirty == true) {
+      dialogues!.call()!.error =
+          'Enregistrez les dialogues avant de tester le jeu.';
+      changed();
+      return;
+    }
     if (!await _flushEventEdits()) return;
     if (events?.call()?.dirty == true) {
       events!.call()!.error = 'Enregistrez les événements avant de tester.';
@@ -163,5 +179,12 @@ class WorkspaceActions {
       }
       return false;
     }
+  }
+
+  bool _flushDialogueEdit() {
+    final owner = dialogues?.call(), previous = dialogues?.call()?.error;
+    FocusManager.instance.primaryFocus?.unfocus();
+    FocusManager.instance.applyFocusChangesIfNeeded();
+    return owner?.error == null || owner?.error == previous;
   }
 }

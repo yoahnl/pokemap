@@ -1,0 +1,19 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_visual_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_visual_test.dart: UI09 early real widget capture and compact layout
+00:06 +1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart
+00:06 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: switching inspector tab commits focused text before disposal
+00:09 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: focused text saves exact source and history remains usable
+00:12 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: preview plays both explicit branches without publication
+00:15 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history at 0.55
+00:17 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history at 0.9
+00:20 +6: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_navigation_test.dart
+00:20 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_navigation_test.dart: scene opens exact dialogue and returns without losing dirty graph or text
+00:26 +7: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart
+00:27 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:33 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+00:37 +9: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart
+00:38 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+00:42 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: invalid suite name on save stays visible without publishing
+00:43 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+00:45 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+00:47 +13: All tests passed!

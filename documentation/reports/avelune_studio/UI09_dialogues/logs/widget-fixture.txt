@@ -1,0 +1,10 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui09_dialogue_fixture_test.dart
+00:00 +0: UI09 fixture opens editable canonical conversation, portrait and dirty consumer
+00:00 +0 -1: UI09 fixture opens editable canonical conversation, portrait and dirty consumer [E]
+  Impossible de lire ce dialogue : Le projet doit être ouvert avant de charger une carte.
+  package:avelune_studio/features/dialogues/data/local_dialogue_adapter.dart 102:11  LocalDialogueAdapter.load.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui09_dialogue_fixture_test.dart: UI09 fixture opens editable canonical conversation, portrait and dirty consumer

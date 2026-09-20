@@ -95,7 +95,20 @@ final class DialogueAuthoringCompiler {
       if (literal.startsWith(r'\"') || literal.startsWith(r'-> \"')) continue;
       for (final match in commandPattern.allMatches(lines[index])) {
         final command = match.group(1) ?? '';
-        if (!const {'jump', 'outcome', 'portrait', 'speaker'}.contains(command)) {
+        if (command == 'outcome' &&
+            !(lines[index].startsWith(' ') || lines[index].startsWith('\t'))) {
+          diagnostics.add(
+            DialogueAuthoringDiagnostic(
+              code: 'dialogue.outcome_outside_choice',
+              severity: NarrativeAuthoringDiagnosticSeverity.error,
+              message:
+                  'A public dialogue outcome must belong to a choice branch.',
+              line: index + 1,
+            ),
+          );
+        }
+        if (!const {'jump', 'outcome', 'portrait', 'speaker'}
+            .contains(command)) {
           diagnostics.add(
             DialogueAuthoringDiagnostic(
               code: 'yarn.command_unknown',

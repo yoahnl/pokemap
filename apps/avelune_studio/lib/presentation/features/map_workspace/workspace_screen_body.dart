@@ -98,6 +98,12 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                       onEditElement: (element) => _openResources(element, true),
                       resourceContent: workspaceSecondaryContent(
                         space: _space,
+                        dialogues: _dialogues,
+                        dialogueViews: _dialogueViews,
+                        dialogueOrigin: _dialogueOrigin,
+                        onDialogues: _openDialogues,
+                        onSceneDialogue: _openSceneDialogue,
+                        onDialogueBack: () => _show(_dialogueOrigin),
                         events: _events,
                         eventView: _eventView,
                         eventMaps: _eventMaps,

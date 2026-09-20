@@ -22,6 +22,8 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
   }
 
   void _goHome({bool search = false}) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    FocusManager.instance.applyFocusChangesIfNeeded();
     _navigationRequest++;
     _narrative?.cancelOpening();
     search ? widget.home?.searchHome() : widget.home?.showHome();

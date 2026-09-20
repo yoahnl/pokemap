@@ -1,0 +1,73 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_visual_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_visual_test.dart: UI09 early real widget capture and compact layout
+00:05 +1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart
+00:06 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: switching inspector tab commits focused text before disposal
+00:09 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: focused text saves exact source and history remains usable
+00:12 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: preview plays both explicit branches without publication
+00:16 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history at 0.55
+00:19 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history at 0.9
+00:22 +6: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_navigation_test.dart
+00:22 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_navigation_test.dart: scene opens exact dialogue and returns without losing dirty graph or text
+00:28 +7: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart
+00:28 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:35 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+00:39 +9: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart
+00:39 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+00:44 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: invalid suite name on save stays visible without publishing
+00:46 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+00:48 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+00:50 +13: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart
+00:51 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:57 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+
+Warning: A call to tap() with finder "Found 1 widget with key [<'dialogue-row-de_QWNjdWVpbA==_2_b0'>]: [
+  InkWell-[<'dialogue-row-de_QWNjdWVpbA==_2_b0'>],
+]" derived an Offset (Offset(691.9, 573.9)) that would not hit test on the specified widget.
+Maybe the widget is actually off-screen, or another widget is obscuring it, or the widget cannot receive pointer events.
+The finder corresponds to this RenderBox: RenderSemanticsAnnotations#0bcd3
+The hit test result at that offset is: HitTestResult(_RenderInkFeatures#3505b@Offset(249.9, 3.9), RenderCustomPaint#44d45@Offset(249.9, 3.9), RenderPhysicalShape#0ff47@Offset(249.9, 3.9), RenderConstrainedBox#07b8a@Offset(249.9, 3.9), RenderFlex#2c7ae@Offset(249.9, 368.9), RenderFlex#81371@Offset(495.9, 368.9), RenderPadding#eff77@Offset(507.9, 376.9), RenderFlex#34143@Offset(507.9, 508.9), _RenderLayoutBuilder#33218@Offset(507.9, 508.9), RenderSemanticsAnnotations#05323@Offset(507.9, 508.9), RenderFlex#e8d9b@Offset(691.9, 508.9), RenderFlex#1dd2a@Offset(691.9, 573.9), _RenderInkFeatures#9c253@Offset(691.9, 573.9), RenderPhysicalModel#bd0d0@Offset(691.9, 573.9), _RenderLayoutBuilder#69aa8@Offset(691.9, 573.9), RenderRepaintBoundary#aed85@Offset(691.9, 573.9), RenderCustomMultiChildLayoutBox#e3617@Offset(691.9, 573.9), _RenderInkFeatures#f488a@Offset(691.9, 573.9), RenderPhysicalModel#123ef@Offset(691.9, 573.9), RenderSemanticsAnnotations#47134@Offset(691.9, 573.9), RenderRepaintBoundary#0ebb7@Offset(691.9, 573.9), RenderIgnorePointer#0af90@Offset(691.9, 573.9), RenderAnimatedOpacity#26838@Offset(691.9, 573.9), RenderAnimatedOpacity#ee060@Offset(691.9, 573.9), _RenderColoredBox#31f50@Offset(691.9, 573.9), RenderAnimatedOpacity#b6762@Offset(691.9, 573.9), RenderIgnorePointer#305dd@Offset(691.9, 573.9), RenderAnimatedOpacity#9a1ce@Offset(691.9, 573.9), RenderRepaintBoundary#a010c@Offset(691.9, 573.9), RenderSemanticsAnnotations#2667f@Offset(691.9, 573.9), RenderOffstage#bfda8@Offset(691.9, 573.9), RenderSemanticsAnnotations#ef361@Offset(691.9, 573.9), _RenderTheater#24b07@Offset(691.9, 573.9), RenderAbsorbPointer#25a71@Offset(691.9, 573.9), RenderPointerListener#305f8@Offset(691.9, 573.9), RenderSemanticsAnnotations#12d8f@Offset(691.9, 573.9), RenderSemanticsAnnotations#be5bf@Offset(691.9, 573.9), RenderSemanticsAnnotations#427d7@Offset(691.9, 573.9), RenderSemanticsAnnotations#b51e5@Offset(691.9, 573.9), RenderTapRegionSurface#659d9@Offset(691.9, 573.9), RenderSemanticsAnnotations#dcd0c@Offset(691.9, 573.9), RenderSemanticsAnnotations#3637a@Offset(691.9, 573.9), HitTestEntry<HitTestTarget>#9ce50(_ReusableRenderView#954f1), HitTestEntry<HitTestTarget>#d1f50(<AutomatedTestWidgetsFlutterBinding>))
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2165:25)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.tap (package:flutter_test/src/controller.dart:1080:7)
+#3      tap (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart:36:16)
+<asynchronous suspension>
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart:49:9)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+#7      StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+To silence this warning, pass "warnIfMissed: false" to "tap()".
+To make this warning fatal, set WidgetController.hitTestWarningShouldBeFatal to true.
+
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
+#2      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2389:32)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart:53:22)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  responsive 1280x800 edits text and response then saves
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:01 +14 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves [E]
+  Test failed. See exception logs above.
+  The test description was: responsive 1280x800 edits text and response then saves
+  
+01:01 +14 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+01:05 +15 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves

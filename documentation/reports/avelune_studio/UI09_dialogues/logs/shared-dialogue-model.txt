@@ -1,0 +1,5 @@
+00:00 +0: loading test/dialogue/dialogue_document_ui09_test.dart
+00:00 +0: strict compiler rejects outcome outside choice instead of claiming ignored success
+00:00 +1: same shared codec preserves headers source literals ordered answers and public IDs
+00:00 +2: snapshot mutation rejected and reconciliation stable independently of parsing randomness
+00:00 +3: All tests passed!

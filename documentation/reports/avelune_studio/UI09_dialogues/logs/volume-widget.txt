@@ -1,0 +1,4 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart
+00:00 +0: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+UI09 volume: 40 suites, 200 lines, 50 links; 8 gestures; 1 source read; 0 additional compilations; 9 page builds (initial + 8 selection updates).
+00:03 +1: All tests passed!

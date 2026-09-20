@@ -1,0 +1,79 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart
+00:00 +0: focused text saves exact source and history remains usable
+00:04 +1: preview plays both explicit branches without publication
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: ['depart']
+  Actual: []
+   Which: at location [0] is [] which shorter than expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart:87:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart line 87
+The test description was:
+  preview plays both explicit branches without publication
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:07 +1 -1: preview plays both explicit branches without publication [E]
+  Test failed. See exception logs above.
+  The test description was: preview plays both explicit branches without publication
+  
+00:07 +1 -1: wire drag cancellation and real reconnection preserve history
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: contains '<<jump Depart>>'
+  Actual: 'title: Accueil\n'
+            '---\n'
+            '<<portrait guide neutral>>\n'
+            'Chef: Bonjour ! Souhaitez-vous préparer votre départ ?\n'
+            '-> Je pars maintenant\n'
+            '-> Je préfère attendre\n'
+            '  <<jump Attente>>\n'
+            '===\n'
+            'title: Depart\n'
+            '---\n'
+            '<<portrait guide neutral>>\n'
+            'Chef: Votre train vous attend sur le quai.\n'
+            '<<outcome depart>>\n'
+            '===\n'
+            'title: Attente\n'
+            '---\n'
+            '<<portrait guide neutral>>\n'
+            'Chef: Prenez votre temps dans la salle d’attente.\n'
+            '<<outcome attente>>\n'
+            '===\n'
+            ''
+   Which: does not contain '<<jump Depart>>'
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart:126:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart line 126
+The test description was:
+  wire drag cancellation and real reconnection preserve history
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:09 +1 -2: wire drag cancellation and real reconnection preserve history [E]
+  Test failed. See exception logs above.
+  The test description was: wire drag cancellation and real reconnection preserve history
+  
+00:09 +1 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: preview plays both explicit branches without publication
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history

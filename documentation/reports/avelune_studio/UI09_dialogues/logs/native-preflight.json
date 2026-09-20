@@ -1,0 +1,11 @@
+{
+  "status": "blocked",
+  "macOSDeviceAvailable": true,
+  "marionetteToolsAvailable": true,
+  "marionetteFlutterDevDependency": false,
+  "marionetteMcpDevDependency": false,
+  "dedicatedDebugEntrypoint": false,
+  "reason": "Native skill preflight requires both Marionette dev dependencies and a dedicated debug entrypoint. Existing checkout has neither. No dependencies installed, no native test session launched.",
+  "devicesEvidence": "native-devices.txt",
+  "productionEntrypointInspected": "apps/avelune_studio/lib/main.dart"
+}

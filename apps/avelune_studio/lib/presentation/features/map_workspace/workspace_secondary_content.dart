@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
+import '../dialogues/dialogue_workspace_page.dart';
+import '../dialogues/dialogue_view_state.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../events/event_workspace_page.dart';
@@ -26,10 +29,17 @@ enum WorkspaceSpace {
   scene,
   progression,
   events,
+  dialogue,
 }
 
 Widget? workspaceSecondaryContent({
   required WorkspaceSpace space,
+  required DialogueWorkspaceController? dialogues,
+  required DialogueViewStore dialogueViews,
+  required WorkspaceSpace dialogueOrigin,
+  required VoidCallback onDialogues,
+  required VoidCallback onDialogueBack,
+  required Future<void> Function(SceneYarnDialoguePayload) onSceneDialogue,
   required EventWorkspaceController? events,
   required EventViewState eventView,
   required EventMapLoader eventMaps,
@@ -60,6 +70,16 @@ Widget? workspaceSecondaryContent({
   required VoidCallback onTest,
   required PickResourceImage? imagePicker,
 }) {
+  if (space == WorkspaceSpace.dialogue && dialogues != null) {
+    return DialogueWorkspacePage(
+      controller: dialogues,
+      views: dialogueViews,
+      onBack: onDialogueBack,
+      backLabel: dialogueOrigin == WorkspaceSpace.scene
+          ? 'la scène'
+          : 'Histoire',
+    );
+  }
   if (space == WorkspaceSpace.events && events != null && visuals != null) {
     return EventWorkspacePage(
       controller: events,
@@ -83,6 +103,8 @@ Widget? workspaceSecondaryContent({
   }
   if (space == WorkspaceSpace.scene && scenes != null) {
     return SceneBuilderPage(
+      dialogues: dialogues,
+      onDialogue: dialogues == null ? null : onSceneDialogue,
       controller: scenes,
       views: sceneViews,
       narrative: narrative,
@@ -112,6 +134,7 @@ Widget? workspaceSecondaryContent({
   }
   if (space == WorkspaceSpace.story && narrative != null) {
     return NarrativeStoryPane(
+      onDialogues: dialogues == null ? null : onDialogues,
       controller: narrative,
       viewState: storyViewState,
       onOpen: onOpenInteraction,

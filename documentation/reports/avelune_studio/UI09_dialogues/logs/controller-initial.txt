@@ -1,0 +1,23 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart
+00:00 +0: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:00 +1: deep immutable snapshot and semantic history preserve branch content, rejects unsafe replacement
+00:01 +2: canonical preview stops jump loops and refuses missing scene entry
+00:01 +3: literal command-looking multiline text remains text through strict compiler and codec
+00:01 +3 -1: literal command-looking multiline text remains text through strict compiler and codec [E]
+  Expected: '  <<jump Piège>>\n'
+              '-> Rien : été, "oui" !  '
+    Actual: 'été, "oui" !  '
+     Which: is different.
+            Expected:   <<jump P ...
+              Actual: été, "oui" ...
+                      ^
+             Differ at offset 0
+  
+  package:matcher                                         expect
+  package:flutter_test/src/widget_tester.dart 473:18      expect
+  test/dialogues/dialogue_controller_ui09_test.dart 77:5  main.<fn>
+  
+00:01 +3 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: literal command-looking multiline text remains text through strict compiler and codec

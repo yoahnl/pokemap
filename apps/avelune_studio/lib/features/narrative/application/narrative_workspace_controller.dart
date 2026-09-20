@@ -44,6 +44,8 @@ class NarrativeWorkspaceController {
   bool get opening => _opener.loading;
   String? Function(String sceneId)? sceneAccessProblem;
   String? Function(String eventId)? eventAccessProblem;
+  String? Function(String dialogueId)? dialogueAccessProblem;
+  void Function(Set<String> ids)? dialoguesPublished;
   bool _disposed = false;
   String? error;
   String? publicationError;

@@ -14,6 +14,7 @@ import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
 import 'dialogue_authoring_service.dart';
 import 'dialogue_source_store.dart';
+import 'dialogue_source_guards.dart';
 import 'narrative_authoring_exception.dart';
 
 final class DialogueActions {
@@ -27,7 +28,8 @@ final class DialogueActions {
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     _descriptor('dialogue.create', 'Create a compiled Yarn dialogue'),
-    _descriptor('dialogue.update', 'Update dialogue metadata and outcomes'),
+    _descriptor('dialogue.update',
+        'Update dialogue metadata, outcomes and optional Yarn source atomically'),
     _descriptor('dialogue.source_update', 'Update and compile Yarn source'),
     _descriptor(
       'dialogue.delete',
@@ -64,7 +66,7 @@ final class DialogueActions {
           manifestAfter: entry.toJson(),
         );
       case 'dialogue.update':
-        parameters.allow(const {'entry', 'outcomeReplacements'});
+        parameters.allow(const {'entry', 'outcomeReplacements', 'source'});
         final entry = parameters.dialogueEntry('entry');
         final projected = update(
           context.snapshot.manifest,
@@ -72,6 +74,28 @@ final class DialogueActions {
           outcomeReplacements: parameters.stringMap('outcomeReplacements'),
         );
         final before = _requireDialogue(context.snapshot.manifest, entry.id);
+        if (context.request.parameters.containsKey('source')) {
+          final source = parameters.text('source');
+          final compiled = compiler.compile(entry: entry, source: source);
+          _requirePublishable(compiled);
+          validateDialogueSceneStarts(
+            project: projected,
+            dialogueId: entry.id,
+            compiled: compiled,
+          );
+          return _manifestAndSourceDraft(
+            context.snapshot,
+            projected,
+            operation: context.request.actionId,
+            entry: entry,
+            sourceBefore: context.snapshot.resourceBytes(
+              dialogueSourceResourceIdentity(entry.id),
+            ),
+            sourceAfter: utf8.encode(source),
+            manifestBefore: before.toJson(),
+            manifestAfter: entry.toJson(),
+          );
+        }
         return _manifestDraft(
           context.snapshot,
           projected,
@@ -89,6 +113,11 @@ final class DialogueActions {
         final source = parameters.text('source');
         final result = compiler.compile(entry: entry, source: source);
         _requirePublishable(result);
+        validateDialogueSceneStarts(
+          project: context.snapshot.manifest,
+          dialogueId: entry.id,
+          compiled: result,
+        );
         final identity = dialogueSourceResourceIdentity(entry.id);
         final before = context.snapshot.resourceBytes(identity);
         final after = utf8.encode(source);
@@ -347,36 +376,50 @@ AuthoringMutationDraft _manifestAndSourceDraft(
   final sourcePath = sourceAfter == null
       ? snapshot.resourceStorageKeys[dialogueSourceResourceIdentity(entry.id)]!
       : entry.relativePath;
+  if (snapshot.manifest == projected && _sameBytes(sourceBefore, sourceAfter)) {
+    return AuthoringMutationDraft(
+      changeSet: AuthoringChangeSet.noChanges(),
+      preview: {'operation': operation, 'dialogueId': entry.id},
+    );
+  }
   return AuthoringMutationDraft(
     changeSet: AuthoringChangeSet(
       changes: [
-        _projectChange(snapshot, projected, project),
-        AuthoringResourceChange(
-          resource: source,
-          storageKey: sourcePath,
-          beforeBytes: sourceBefore,
-          afterBytes: sourceAfter,
-        ),
+        if (snapshot.manifest != projected)
+          _projectChange(snapshot, projected, project),
+        if (!_sameBytes(sourceBefore, sourceAfter))
+          AuthoringResourceChange(
+            resource: source,
+            storageKey: sourcePath,
+            beforeBytes: sourceBefore,
+            afterBytes: sourceAfter,
+          ),
       ],
       diff: AuthoringDiff([
-        AuthoringDiffEntry(
-          operation: operation.endsWith('.delete')
-              ? AuthoringDiffOperation.remove
-              : AuthoringDiffOperation.add,
-          resource: project,
-          path: '/dialogues/${entry.id}',
-          before: manifestBefore,
-          after: manifestAfter,
-        ),
-        AuthoringDiffEntry(
-          operation: operation.endsWith('.delete')
-              ? AuthoringDiffOperation.remove
-              : AuthoringDiffOperation.add,
-          resource: source,
-          path: '/',
-          before: sourceBefore == null ? null : _sourceSummary(sourceBefore),
-          after: sourceAfter == null ? null : _sourceSummary(sourceAfter),
-        ),
+        if (snapshot.manifest != projected)
+          AuthoringDiffEntry(
+            operation: operation.endsWith('.delete')
+                ? AuthoringDiffOperation.remove
+                : manifestBefore == null
+                    ? AuthoringDiffOperation.add
+                    : AuthoringDiffOperation.replace,
+            resource: project,
+            path: '/dialogues/${entry.id}',
+            before: manifestBefore,
+            after: manifestAfter,
+          ),
+        if (!_sameBytes(sourceBefore, sourceAfter))
+          AuthoringDiffEntry(
+            operation: operation.endsWith('.delete')
+                ? AuthoringDiffOperation.remove
+                : sourceBefore == null
+                    ? AuthoringDiffOperation.add
+                    : AuthoringDiffOperation.replace,
+            resource: source,
+            path: '/',
+            before: sourceBefore == null ? null : _sourceSummary(sourceBefore),
+            after: sourceAfter == null ? null : _sourceSummary(sourceAfter),
+          ),
       ]),
     ),
     preview: {
@@ -395,6 +438,12 @@ AuthoringMutationDraft _sourceOnlyDraft(
   required List<int> after,
   required Map<String, Object?> preview,
 }) {
+  if (_sameBytes(before, after)) {
+    return AuthoringMutationDraft(
+      changeSet: AuthoringChangeSet.noChanges(),
+      preview: preview,
+    );
+  }
   final identity = dialogueSourceResourceIdentity(entry.id);
   final resource = AuthoringResourceRef(
     kind: 'dialogue',
@@ -404,25 +453,36 @@ AuthoringMutationDraft _sourceOnlyDraft(
   return AuthoringMutationDraft(
     changeSet: AuthoringChangeSet(
       changes: [
-        AuthoringResourceChange(
-          resource: resource,
-          storageKey: snapshot.resourceStorageKeys[identity]!,
-          beforeBytes: before,
-          afterBytes: after,
-        ),
+        if (!_sameBytes(before, after))
+          AuthoringResourceChange(
+            resource: resource,
+            storageKey: snapshot.resourceStorageKeys[identity]!,
+            beforeBytes: before,
+            afterBytes: after,
+          ),
       ],
       diff: AuthoringDiff([
-        AuthoringDiffEntry(
-          operation: AuthoringDiffOperation.replace,
-          resource: resource,
-          path: '/',
-          before: _sourceSummary(before),
-          after: _sourceSummary(after),
-        ),
+        if (!_sameBytes(before, after))
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: resource,
+            path: '/',
+            before: _sourceSummary(before),
+            after: _sourceSummary(after),
+          ),
       ]),
     ),
     preview: preview,
   );
+}
+
+bool _sameBytes(List<int>? left, List<int>? right) {
+  if (left == null || right == null) return left == right;
+  if (left.length != right.length) return false;
+  for (var i = 0; i < left.length; i++) {
+    if (left[i] != right[i]) return false;
+  }
+  return true;
 }
 
 AuthoringMutationDraft _legacyMigrationDraft(

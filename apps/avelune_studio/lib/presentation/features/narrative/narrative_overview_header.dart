@@ -12,6 +12,7 @@ class NarrativeOverviewHeader extends StatelessWidget {
     required this.onCreated,
     this.compactDetail = false,
     this.onScenes,
+    this.onDialogues,
     this.onEvents,
     this.onProgression,
   });
@@ -19,7 +20,7 @@ class NarrativeOverviewHeader extends StatelessWidget {
   final String summary;
   final VoidCallback onCreated;
   final bool compactDetail;
-  final VoidCallback? onScenes, onProgression, onEvents;
+  final VoidCallback? onScenes, onProgression, onEvents, onDialogues;
 
   @override
   Widget build(BuildContext context) => compactDetail
@@ -37,6 +38,8 @@ class NarrativeOverviewHeader extends StatelessWidget {
               icon: const Icon(Icons.more_horiz),
               onSelected: (action) {
                 switch (action) {
+                  case 'dialogues':
+                    onDialogues?.call();
                   case 'events':
                     onEvents?.call();
                   case 'progression':
@@ -52,6 +55,11 @@ class NarrativeOverviewHeader extends StatelessWidget {
                 }
               },
               itemBuilder: (_) => [
+                if (onDialogues != null)
+                  const PopupMenuItem(
+                    value: 'dialogues',
+                    child: Text('Dialogues'),
+                  ),
                 if (onEvents != null)
                   const PopupMenuItem(
                     value: 'events',
@@ -92,6 +100,13 @@ class NarrativeOverviewHeader extends StatelessWidget {
               actions: compactDetail
                   ? const []
                   : [
+                      if (onDialogues != null)
+                        StudioButton(
+                          label: 'Dialogues',
+                          icon: Icons.forum_outlined,
+                          secondary: true,
+                          onPressed: onDialogues,
+                        ),
                       if (onEvents != null)
                         StudioButton(
                           label: 'Événements',

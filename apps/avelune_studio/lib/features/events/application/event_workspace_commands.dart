@@ -93,6 +93,7 @@ extension EventWorkspaceCommands on EventWorkspaceController {
       eventId: id,
       name: name,
     ),
+    disable: false,
   );
   bool setSource(String id, NarrativeEventSourceRef? source) => _edit(id, (c) {
     if (source == null) {

@@ -35,7 +35,7 @@ void main() {
   );
 
   test(
-    'editing activated record disables only local snapshot and history restores enabled',
+    'renaming activated record preserves activation and history restores name',
     () async {
       const id = Ui06SceneFixture.eventId;
       final before = controller.record(id)!;
@@ -45,7 +45,7 @@ void main() {
         isTrue,
         reason: controller.error,
       );
-      expect(controller.record(id)!.enabledOrNull, isFalse);
+      expect(controller.record(id)!.enabledOrNull, isTrue);
       expect((await fixture.readFresh()).eventRegistry!.records.single, before);
       controller.restore(redo: false);
       expect(controller.record(id), before);

@@ -1,0 +1,15 @@
+00:00 +0: loading test/domains/narrative/dialogue_atomic_update_test.dart
+00:00 +0: test/domains/narrative/dialogue_atomic_update_test.dart: JSONL transports an atomic dialogue update without a map
+00:00 +1: test/domains/narrative/dialogue_atomic_update_test.dart: JSONL transports an atomic dialogue update without a map
+00:00 +2: test/domains/narrative/dialogue_atomic_update_test.dart: JSONL transports an atomic dialogue update without a map
+00:00 +3: test/domains/narrative/dialogue_atomic_update_test.dart: JSONL transports an atomic dialogue update without a map
+00:00 +4: test/domains/narrative/dialogue_atomic_update_test.dart: JSONL transports an atomic dialogue update without a map
+00:00 +5: test/domains/narrative/dialogue_atomic_update_test.dart: JSONL transports an atomic dialogue update without a map
+00:00 +6: test/domains/narrative/dialogue_atomic_update_test.dart: JSONL transports an atomic dialogue update without a map
+00:00 +7: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +8: test/domains/narrative/narrative_document_publication_test.dart: JSONL discovers coherent dialogue/map publication and reopens it
+00:00 +9: test/domains/narrative/dialogue_atomic_update_test.dart: dialogue.update publishes entry and source in one plan and undo restores both
+00:00 +10: test/domains/narrative/dialogue_atomic_update_test.dart: metadata rename with identical source writes only manifest
+00:00 +11: test/domains/narrative/dialogue_atomic_update_test.dart: unchanged atomic and source-only requests are genuine no-ops
+00:01 +12: test/domains/narrative/dialogue_atomic_update_test.dart: delete remains confirmation protected at the canonical API
+00:01 +13: All tests passed!

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:avelune_studio/features/dialogues/domain/dialogue_port.dart';
 import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
@@ -61,30 +62,32 @@ class Ui08WorkspaceHarness {
     );
   }
 
-  Widget app({double textScale = 1}) => RepaintBoundary(
-    key: captureKey,
-    child: MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: studioTheme(),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale)),
-        child: child!,
-      ),
-      home: MapWorkspaceScreen(
-        controller: maps,
-        loadVisuals: (_, _) async => visuals,
-        narrativePort: narrative,
-        scenePort: ports,
-        storyPort: ports,
-        eventPort: events,
-        runtimeBuilder: (_, _, _) => const SizedBox(),
-        onClose: () async {},
-        registerExitGuard: (_) {},
-      ),
-    ),
-  );
+  Widget app({double textScale = 1, DialoguePort? dialoguePort}) =>
+      RepaintBoundary(
+        key: captureKey,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: studioTheme(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
+          home: MapWorkspaceScreen(
+            controller: maps,
+            loadVisuals: (_, _) async => visuals,
+            narrativePort: narrative,
+            scenePort: ports,
+            storyPort: ports,
+            eventPort: events,
+            dialoguePort: dialoguePort,
+            runtimeBuilder: (_, _, _) => const SizedBox(),
+            onClose: () async {},
+            registerExitGuard: (_) {},
+          ),
+        ),
+      );
   Future<Map<String, List<int>>> mapBytes() async => {
     for (final entry in maps.project!.maps)
       entry.relativePath: await File(

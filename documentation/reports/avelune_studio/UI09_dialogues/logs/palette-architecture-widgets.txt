@@ -1,0 +1,21 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: theme et widgets partages independants des features et de la DI
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation centralisee et barrel DI limite aux exports
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+00:01 +7: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart
+00:02 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: normal text and primary action text retain readable contrast
+00:02 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: a narrow top bar keeps multiple large-text actions usable
+00:02 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: primary button blocks repeated actions while loading
+00:02 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: secondary button blocks repeated actions while loading
+00:02 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: quiet button blocks repeated actions while loading
+00:02 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: destructive button blocks repeated actions while loading
+00:02 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: clearing a search resets the query and notifies its consumer
+00:03 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: tabs select by pointer and keyboard without losing the choice
+00:03 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: a narrow panel wraps its title and actions at large text size
+00:03 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: shell and resource cards stay usable at width 480.0
+00:03 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_design_system_test.dart: shell and resource cards stay usable at width 1024.0
+00:03 +18: All tests passed!

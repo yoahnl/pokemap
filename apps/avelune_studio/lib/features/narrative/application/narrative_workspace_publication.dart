@@ -138,6 +138,13 @@ extension NarrativeWorkspacePublication on NarrativeWorkspaceController {
             .firstOrNull;
         entry.key.baseCatalog = receipt.manifest;
       }
+      for (final id
+          in snapshots.values.map((s) => s.dialogue.entry.id).toSet()) {
+        invalidateCleanDialogueSessions(id, except: snapshots.keys.toSet());
+      }
+      dialoguesPublished?.call(
+        snapshots.values.map((s) => s.dialogue.entry.id).toSet(),
+      );
       pendingFacts.removeWhere((id, v) => identical(factSnapshot[id], v));
       pendingStories.removeWhere((id, v) => identical(storySnapshot[id], v));
       await acceptVisuals(receipt.manifest, receipt.changedPaths.toSet());

@@ -1,0 +1,25 @@
+{
+  "command": [
+    "flutter",
+    "analyze",
+    "--no-pub",
+    "test/dialogues_ui09_responsive_test.dart"
+  ],
+  "runnerPid": 24585,
+  "owned": {
+    "24623": [
+      24585,
+      "501",
+      "Sun Sep 20 21:26:25 2026",
+      "(git)"
+    ],
+    "24634": [
+      24585,
+      "501",
+      "Sun Sep 20 21:26:25 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart language-server --dart-sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk --disable-server-feature-completion --disable-server-feature-search"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

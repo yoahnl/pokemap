@@ -9,12 +9,55 @@ extension NarrativeSessionCoexistence on NarrativeWorkspaceController {
         : null;
   }
 
+  String? dialogueInteractionAccessProblem(String id) {
+    final owners = sessions.values.where(
+      (s) =>
+          s.current.dialogue.entry.id == id &&
+          (s.dirty ||
+              _publishingInteractions.contains(s.current.interaction.id)),
+    );
+    return owners.isEmpty
+        ? null
+        : 'Ce dialogue est partagé avec une interaction simplifiée modifiée. Enregistrez-la ou abandonnez explicitement son brouillon.';
+  }
+
+  String? sharedDialogueAccessProblem(String id, String eventId) {
+    return sessions.values.any(
+          (s) =>
+              s.current.dialogue.entry.id == id &&
+              s.current.interaction.id != eventId &&
+              (s.dirty ||
+                  _publishingInteractions.contains(s.current.interaction.id)),
+        )
+        ? 'Ce dialogue possède déjà une interaction simplifiée modifiée. Reprenez cette interaction avant de continuer.'
+        : null;
+  }
+
+  void invalidateCleanDialogueSessions(
+    String id, {
+    Set<InteractionEditSession> except = const {},
+  }) {
+    final removed = sessions.values
+        .where(
+          (s) =>
+              !s.dirty &&
+              s.current.dialogue.entry.id == id &&
+              !except.contains(s),
+        )
+        .toSet();
+    sessions.removeWhere((_, s) => removed.contains(s));
+    if (removed.contains(active)) active = null;
+    if (except.isEmpty) _sourceRevisions.remove(id);
+  }
+
   String? interactionBaseProblem(InteractionEditSession edit) {
     final eventId = edit.current.interaction.id;
     final stored = project.eventRegistry?.records
         .where((record) => record.id == eventId)
         .firstOrNull;
-    return eventAccessProblem?.call(eventId) ??
+    return dialogueAccessProblem?.call(edit.current.dialogue.entry.id) ??
+        sharedDialogueAccessProblem(edit.current.dialogue.entry.id, eventId) ??
+        eventAccessProblem?.call(eventId) ??
         (edit.eventBaseKnown && stored != edit.baseEvent
             ? 'L’événement a changé ou a disparu. Votre brouillon simplifié est conservé ; abandonnez-le explicitement pour recharger la version actuelle.'
             : null);

@@ -1,0 +1,79 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart
+00:00 +0: switching inspector tab commits focused text before disposal
+══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 4.0 pixels on the bottom.
+
+The relevant error-causing widget was:
+  Column
+  Column:file:///Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/dialogues/dialogue_graph_node.dart:137:22
+
+The overflowing RenderFlex has an orientation of Axis.vertical.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#dfa28 relayoutBoundary=up1 OVERFLOWING:
+  creator: Column ← Expanded ← Row ← Padding ← Container ← Listener ← RawGestureDetector ←
+    GestureDetector ← Semantics ← DefaultSelectionStyle ← Builder ← MouseRegion ← ⋯
+  parentData: offset=Offset(0.0, 0.0); flex=1; fit=FlexFit.tight (can use size)
+  constraints: BoxConstraints(w=204.0, 0.0<=h<=44.0)
+  size: Size(204.0, 44.0)
+  direction: vertical
+  mainAxisAlignment: center
+  mainAxisSize: max
+  crossAxisAlignment: start
+  textDirection: ltr
+  verticalDirection: down
+  spacing: 0.0
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 4.0 pixels on the bottom.
+
+The relevant error-causing widget was:
+  Column
+  Column:file:///Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/dialogues/dialogue_graph_node.dart:137:22
+
+The overflowing RenderFlex has an orientation of Axis.vertical.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#20a05 relayoutBoundary=up1 OVERFLOWING:
+  creator: Column ← Expanded ← Row ← Padding ← Container ← Listener ← RawGestureDetector ←
+    GestureDetector ← Semantics ← DefaultSelectionStyle ← Builder ← MouseRegion ← ⋯
+  parentData: offset=Offset(0.0, 0.0); flex=1; fit=FlexFit.tight (can use size)
+  constraints: BoxConstraints(w=204.0, 0.0<=h<=44.0)
+  size: Size(204.0, 44.0)
+  direction: vertical
+  mainAxisAlignment: center
+  mainAxisSize: max
+  crossAxisAlignment: start
+  textDirection: ltr
+  verticalDirection: down
+  spacing: 0.0
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:06 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart [E]
+  Bad state: Cannot close sink while adding stream.
+  package:stream_channel/src/guarantee_channel.dart 180:7      _GuaranteeSink.close
+  package:flutter_tools/src/test/flutter_platform.dart 765:43  FlutterPlatform._startTest
+  
+One or more uncaught errors occurred shutting down:
+  Bad state: Cannot add event while adding stream.
+01:06 +0 -1: switching inspector tab commits focused text before disposal - did not complete [E]
+01:06 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: switching inspector tab commits focused text before disposal (did not complete)

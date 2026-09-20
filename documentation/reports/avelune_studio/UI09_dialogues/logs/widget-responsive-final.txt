@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart
+00:00 +0: responsive 1440x900 edits text and response then saves
+00:06 +1: responsive 1280x800 edits text and response then saves
+00:10 +2: responsive 1024x640 edits text and response then saves
+00:14 +3: All tests passed!

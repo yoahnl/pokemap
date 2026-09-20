@@ -12,6 +12,8 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import 'package:avelune_studio/features/map_workspace/data/map_document_retention.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
+part 'local_map_workspace_catalog.dart';
+
 final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
   LocalMapWorkspaceAdapter({
     ProjectFileReader? reader,
@@ -32,10 +34,14 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
   }
 
   Future<({ProjectManifest manifest, String revision})> resourceBaseline(
-    ProjectSession session,
-  ) async {
-    final project = _project(session);
+    ProjectSession session, {
+    bool refreshCatalog = false,
+  }) async {
+    var project = _project(session);
     await _requireRoot(session);
+    if (refreshCatalog) {
+      project = await _refreshCatalog(session, project);
+    }
     await _requireProjectRevision(session, project);
     return (manifest: project.manifest, revision: project.revision);
   }

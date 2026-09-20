@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import '../features/dialogues/data/local_dialogue_adapter.dart';
 import '../features/events/data/local_event_adapter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'di/home_providers.dart';
@@ -74,6 +75,14 @@ class StudioBootstrap extends StatelessWidget {
       ),
       eventPortProvider.overrideWith(
         (ref, session) => LocalEventAdapter(
+          session: session,
+          mapAdapter:
+              ref.watch(mapWorkspacePortProvider(session))
+                  as LocalMapWorkspaceAdapter,
+        ),
+      ),
+      dialoguePortProvider.overrideWith(
+        (ref, session) => LocalDialogueAdapter(
           session: session,
           mapAdapter:
               ref.watch(mapWorkspacePortProvider(session))

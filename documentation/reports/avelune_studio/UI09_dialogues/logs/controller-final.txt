@@ -1,0 +1,69 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:01 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:01 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:01 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:02 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:02 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:02 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:02 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:02 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:02 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:03 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:03 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:03 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:03 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:03 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:03 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:03 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:03 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:03 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: missing and unsupported sources never materialize an editable blank recovery
+00:03 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:04 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:05 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:05 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:05 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:05 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:05 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:05 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:06 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:06 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:06 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:06 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:06 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:06 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:06 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:06 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:06 +57: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:06 +58: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:06 +59: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart: UI08 priority publication refreshes clean simplified record with scene unchanged
+00:06 +60: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart: UI08 priority publication refreshes clean simplified record with scene unchanged
+00:07 +61: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:07 +62: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:07 +63: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:08 +64: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:08 +65: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: dialogue metadata baseline is protected when source bytes stay identical
+00:08 +66: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: dialogue metadata baseline is protected when source bytes stay identical
+00:08 +67: All tests passed!

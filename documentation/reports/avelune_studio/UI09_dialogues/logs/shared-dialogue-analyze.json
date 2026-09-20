@@ -1,0 +1,20 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/src/dialogue",
+    "lib/map_authoring_dialogue.dart",
+    "test/dialogue"
+  ],
+  "runnerPid": 1149,
+  "owned": {
+    "1153": [
+      1149,
+      "501",
+      "Sun Sep 20 21:08:18 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

@@ -1,0 +1,16 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_rename_ui09_test.dart
+00:00 +0: UI09 metadata rename preserves activation=true through history and publication
+00:00 +0 -1: UI09 metadata rename preserves activation=true through history and publication [E]
+  Expected: <true>
+    Actual: <false>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test/events/event_rename_ui09_test.dart 26:9        main.<fn>
+  
+00:00 +0 -1: UI09 metadata rename preserves activation=false through history and publication
+00:01 +1 -1: UI09 unchanged name is a true no-op and behavior edits still deactivate
+00:01 +2 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_rename_ui09_test.dart: UI09 metadata rename preserves activation=true through history and publication

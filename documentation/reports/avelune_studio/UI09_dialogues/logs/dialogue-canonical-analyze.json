@@ -1,0 +1,21 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/src/domains/narrative/dialogue_actions.dart",
+    "lib/src/domains/narrative/dialogue_source_guards.dart",
+    "lib/src/domains/narrative/narrative_document_actions.dart",
+    "test/domains/narrative/dialogue_atomic_update_test.dart"
+  ],
+  "runnerPid": 88601,
+  "owned": {
+    "88603": [
+      88601,
+      "501",
+      "Sun Sep 20 20:59:27 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

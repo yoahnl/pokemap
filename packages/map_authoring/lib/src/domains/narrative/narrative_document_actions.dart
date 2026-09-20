@@ -9,6 +9,7 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import '../maps/map_lifecycle_adapter.dart';
 import 'dialogue_authoring_service.dart';
+import 'dialogue_source_guards.dart';
 import 'dialogue_source_store.dart';
 import 'event_actions.dart';
 import 'narrative_action_support.dart';
@@ -162,6 +163,11 @@ class NarrativeDocumentActions {
       if (!result.canPublish) {
         throw StateError('Le dialogue ne peut pas être compilé.');
       }
+      validateDialogueSceneStarts(
+        project: project,
+        dialogueId: dialogue.id,
+        compiled: result,
+      );
       add('dialogueSource', dialogue.id, identity, dialogue.relativePath,
           utf8.encode(text));
     }

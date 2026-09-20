@@ -1,4 +1,8 @@
 import 'dart:async';
+import '../../../features/dialogues/domain/dialogue_port.dart';
+import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
+import '../../../features/scenes/application/scene_dialogue_results.dart';
+import '../dialogues/dialogue_view_state.dart';
 import '../../../features/events/domain/event_port.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../events/event_view_state.dart';
@@ -41,6 +45,7 @@ part 'workspace_story_binding.dart';
 part 'workspace_progression_binding.dart';
 part 'workspace_screen_body.dart';
 part 'workspace_event_binding.dart';
+part 'workspace_dialogue_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -56,6 +61,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.scenePort,
     this.storyPort,
     this.eventPort,
+    this.dialoguePort,
     this.home,
   });
   final MapWorkspaceController controller;
@@ -65,6 +71,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final ScenePort? scenePort;
   final StoryPort? storyPort;
   final EventPort? eventPort;
+  final DialoguePort? dialoguePort;
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -87,6 +94,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   SceneWorkspaceController? _scenes;
   StoryWorkspaceController? _stories;
   EventWorkspaceController? _events;
+  DialogueWorkspaceController? _dialogues;
+  final _dialogueViews = DialogueViewStore();
+  WorkspaceSpace _dialogueOrigin = WorkspaceSpace.story;
   final _eventView = EventViewState();
   late final _eventMaps = EventMapLoader(_controller);
   WorkspaceSpace _eventOrigin = WorkspaceSpace.story;
@@ -126,6 +136,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       narrative: () => _narrative,
       scenes: () => _scenes,
       events: () => _events,
+      dialogues: () => _dialogues,
       runtimeBuilder: widget.runtimeBuilder,
     );
     widget.registerExitGuard(_actions.allowClose);
@@ -148,6 +159,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       _initializeScenes();
       _initializeStories();
       _initializeEvents();
+      _initializeDialogues();
       _changed();
     } catch (_) {
       if (mounted) {
@@ -178,6 +190,10 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _show(WorkspaceSpace space) {
+    if (_space == WorkspaceSpace.dialogue) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      FocusManager.instance.applyFocusChangesIfNeeded();
+    }
     if (space != WorkspaceSpace.map) _eventMapReturn = false;
     if (_space == WorkspaceSpace.events) {
       FocusManager.instance.primaryFocus?.unfocus();
@@ -230,6 +246,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     _scenes?.dispose();
     _stories?.dispose();
     _events?.dispose();
+    _dialogues?.dispose();
+    _dialogueViews.dispose();
     _eventView.dispose();
     _progressionViews.dispose();
     _sceneViews.dispose();

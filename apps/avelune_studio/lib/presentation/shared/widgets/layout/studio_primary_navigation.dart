@@ -22,7 +22,10 @@ class StudioPrimaryNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final selectedDestination =
-        active == 'scene' || active == 'progression' || active == 'events'
+        active == 'scene' ||
+            active == 'progression' ||
+            active == 'events' ||
+            active == 'dialogue'
         ? 'story'
         : active;
     final items = [

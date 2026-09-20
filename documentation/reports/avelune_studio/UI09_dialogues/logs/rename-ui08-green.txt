@@ -1,0 +1,10 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_rename_ui09_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_rename_ui09_test.dart: UI09 metadata rename preserves activation=true through history and publication
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: draft creation save reopens without inventing scene or changing registry mode
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_rename_ui09_test.dart: UI09 metadata rename preserves activation=false through history and publication
+00:01 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_rename_ui09_test.dart: UI09 metadata rename preserves activation=false through history and publication
+00:01 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: duplicate is distinct draft and deletion uses canonical confirmation
+00:01 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: duplicate is distinct draft and deletion uses canonical confirmation
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: nested expression retained, incompatible reset rejected atomically
+00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: canonical simulation handles disabled configured and consumed states without writes
+00:02 +8: All tests passed!

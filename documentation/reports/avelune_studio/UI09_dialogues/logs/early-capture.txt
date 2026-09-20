@@ -1,0 +1,4 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_visual_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_visual_test.dart: UI09 early real widget capture and compact layout
+00:01 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_visual_test.dart: UI09 early real widget capture and compact layout
+00:04 +2: All tests passed!

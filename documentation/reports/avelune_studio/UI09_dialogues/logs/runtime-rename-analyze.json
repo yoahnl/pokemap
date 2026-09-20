@@ -1,0 +1,30 @@
+{
+  "command": [
+    "flutter",
+    "analyze",
+    "--no-pub",
+    "lib/features/events/application/event_workspace_commands.dart",
+    "test/events/event_rename_ui09_test.dart",
+    "test/events_runtime_ui09_dialogue_test.dart",
+    "test/support/ui09_runtime_fixture.dart",
+    "test/support/ui09_dialogue_fixture.dart",
+    "test/support/ui09_dialogue_harness.dart",
+    "test/events_ui09_dialogue_fixture_test.dart",
+    "test/dialogues_ui09_visual_test.dart",
+    "test/dialogues_ui09_interaction_test.dart",
+    "test/dialogues_ui09_navigation_test.dart",
+    "test/dialogues_ui09_nested_navigation_test.dart",
+    "test/dialogues_ui09_safety_test.dart"
+  ],
+  "runnerPid": 7773,
+  "owned": {
+    "7837": [
+      7773,
+      "501",
+      "Sun Sep 20 21:13:38 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart language-server --dart-sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk --disable-server-feature-completion --disable-server-feature-search"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

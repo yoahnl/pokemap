@@ -1,0 +1,13 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:01 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:01 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:01 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: publication snapshot stays dirty for later edits and new source can be resaved
+00:01 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: publication snapshot stays dirty for later edits and new source can be resaved
+00:01 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:02 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:02 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:02 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: literal command-looking multiline text remains text through strict compiler and codec
+00:02 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: literal command-looking multiline text remains text through strict compiler and codec
+00:02 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: two clean simplified consumers cannot republish a stale shared source
+00:02 +11: All tests passed!

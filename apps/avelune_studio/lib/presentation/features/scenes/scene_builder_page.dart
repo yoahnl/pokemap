@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
@@ -29,6 +30,8 @@ class SceneBuilderPage extends StatefulWidget {
     required this.onBack,
     this.narrative,
     this.onTest,
+    this.dialogues,
+    this.onDialogue,
     this.onBackLabel = 'Histoire',
   });
   final SceneWorkspaceController controller;
@@ -37,6 +40,8 @@ class SceneBuilderPage extends StatefulWidget {
   final VoidCallback onBack;
   final String onBackLabel;
   final VoidCallback? onTest;
+  final DialogueWorkspaceController? dialogues;
+  final Future<void> Function(SceneYarnDialoguePayload)? onDialogue;
   @override
   State<SceneBuilderPage> createState() => _SceneBuilderPageState();
 }
@@ -58,6 +63,7 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
 
   @override
   Widget build(BuildContext context) {
+    documents.dialogues = widget.dialogues;
     final session = widget.controller.active;
     final state = view;
     if (session != null) state!.invalidate(session.current);
@@ -87,12 +93,18 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
                 changed: refresh,
                 onDelete: delete,
                 onDuplicate: duplicate,
-                onDocument: (node) => documents.open(
-                  context,
-                  node,
-                  widget.controller.project,
-                  widget.narrative,
-                ),
+                onDocument: (node) =>
+                    node.payload is SceneYarnDialoguePayload &&
+                        widget.onDialogue != null
+                    ? widget.onDialogue!(
+                        node.payload as SceneYarnDialoguePayload,
+                      )
+                    : documents.open(
+                        context,
+                        node,
+                        widget.controller.project,
+                        widget.narrative,
+                      ),
               );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

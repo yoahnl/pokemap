@@ -1,0 +1,18 @@
+{
+  "command": [
+    "flutter",
+    "analyze",
+    "--no-pub"
+  ],
+  "runnerPid": 22326,
+  "owned": {
+    "22377": [
+      22326,
+      "501",
+      "Sun Sep 20 21:24:41 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart language-server --dart-sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk --disable-server-feature-completion --disable-server-feature-search"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

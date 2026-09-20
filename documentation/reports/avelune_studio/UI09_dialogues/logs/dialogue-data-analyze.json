@@ -1,0 +1,24 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/features/dialogues/data",
+    "lib/features/dialogues/domain/dialogue_port.dart",
+    "lib/features/map_workspace/data/local_map_workspace_adapter.dart",
+    "test/dialogues/dialogue_adapter_ui09_test.dart",
+    "test/dialogues/dialogue_publication_guards_ui09_test.dart",
+    "test/dialogues/dialogue_portrait_ui09_test.dart",
+    "test/support/dialogue_adapter_fixture.dart"
+  ],
+  "runnerPid": 88566,
+  "owned": {
+    "88568": [
+      88566,
+      "501",
+      "Sun Sep 20 20:59:26 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

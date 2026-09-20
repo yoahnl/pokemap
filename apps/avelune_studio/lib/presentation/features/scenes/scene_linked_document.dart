@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/application/dialogue_draft_codec.dart';
@@ -9,6 +10,7 @@ import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notic
 part 'scene_linked_cinematic.dart';
 
 class SceneLinkedDocuments {
+  DialogueWorkspaceController? dialogues;
   final _dialogues = <Object, Future<NarrativeDialogueSource>>{};
   final _compiled = <String, RuntimeDialogueDocument>{};
 
@@ -52,6 +54,16 @@ class SceneLinkedDocuments {
     bool detailed = false,
     ValueChanged<String>? onStartChanged,
   }) {
+    final shared = dialogues?.session(payload.dialogueId);
+    if (shared != null) {
+      return _source(
+        NarrativeDialogueSource(entry: shared.entry, source: shared.source),
+        payload.yarnNodeName,
+        shared.dirty,
+        detailed: detailed,
+        onStartChanged: onStartChanged,
+      );
+    }
     final local = narrative?.sessions.values
         .where(
           (session) => session.current.dialogue.entry.id == payload.dialogueId,

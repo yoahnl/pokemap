@@ -31,6 +31,13 @@ extension NarrativeInteractionLoading on NarrativeInteractionOpener {
           relativePath: 'dialogues/$id.yarn',
           defaultStartNode: 'Start',
         );
+    final dialogueProblem =
+        controller.dialogueAccessProblem?.call(entry.id) ??
+        controller.dialogueInteractionAccessProblem(entry.id);
+    if (dialogueProblem != null) {
+      controller.error = dialogueProblem;
+      return false;
+    }
     final original = existing == null
         ? null
         : await controller.port.readDialogue(existing);
@@ -46,6 +53,11 @@ extension NarrativeInteractionLoading on NarrativeInteractionOpener {
           .firstOrNull,
       eventBaseKnown: true,
       accessProblem: () =>
+          controller.dialogueAccessProblem?.call(entry.id) ??
+          controller.sharedDialogueAccessProblem(
+            entry.id,
+            interaction?.id ?? id,
+          ) ??
           controller.eventAccessProblem?.call(interaction?.id ?? id),
       baseScene: project.scenes
           .where((scene) => scene.id == (interaction?.sceneId ?? 'scene_$id'))
