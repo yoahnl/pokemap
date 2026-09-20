@@ -6,7 +6,7 @@ import '../../../features/terrains/application/terrain_draft_controller.dart';
 typedef TerrainFrameBuilder =
     Widget Function(SmartTileFrameRef frame, double size);
 
-class TerrainScratchView extends StatelessWidget {
+class TerrainScratchView extends StatefulWidget {
   const TerrainScratchView({
     super.key,
     required this.controller,
@@ -20,6 +20,14 @@ class TerrainScratchView extends StatelessWidget {
   final String tool;
 
   @override
+  State<TerrainScratchView> createState() => _TerrainScratchViewState();
+}
+
+class _TerrainScratchViewState extends State<TerrainScratchView> {
+  GridPos? _previous;
+  TerrainDraftController get controller => widget.controller;
+
+  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return LayoutBuilder(
@@ -27,16 +35,24 @@ class TerrainScratchView extends StatelessWidget {
         final width = constraints.maxWidth.clamp(170.0, 408.0);
         final cell = width / TerrainDraftController.scratchSize;
         void act(Offset position) {
-          final point = GridPos(x: position.dx ~/ cell, y: position.dy ~/ cell);
+          final point = GridPos(
+            x: (position.dx / cell).floor(),
+            y: (position.dy / cell).floor(),
+          );
           if (point.x < 0 || point.y < 0 || point.x >= 17 || point.y >= 17) {
             return;
           }
-          if (tool == 'Corriger') {
+          if (widget.tool == 'Examiner') {
             controller.inspect(point);
           } else {
-            controller.paint(point, erase: tool == 'Gommer');
+            controller.paintLine(
+              _previous ?? point,
+              point,
+              erase: widget.tool == 'Gommer',
+            );
           }
-          onChanged();
+          _previous = point;
+          widget.onChanged();
         }
 
         return Align(
@@ -47,7 +63,12 @@ class TerrainScratchView extends StatelessWidget {
             child: Listener(
               key: const ValueKey('terrain-scratch'),
               behavior: HitTestBehavior.opaque,
-              onPointerDown: (event) => act(event.localPosition),
+              onPointerDown: (event) {
+                _previous = null;
+                act(event.localPosition);
+              },
+              onPointerUp: (_) => _previous = null,
+              onPointerCancel: (_) => _previous = null,
               onPointerMove: (event) {
                 if (event.buttons != 0) act(event.localPosition);
               },
@@ -77,7 +98,7 @@ class TerrainScratchView extends StatelessWidget {
                         ),
                       ),
                       child: source is SmartTileFrameSource
-                          ? frameBuilder(source.frame, cell)
+                          ? widget.frameBuilder(source.frame, cell)
                           : missing
                           ? Icon(
                               Icons.close,

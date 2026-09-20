@@ -1,0 +1,62 @@
+AS-UI-004 — verification finale, 2026-09-20
+Source checkout: /Users/karim/Project/pokemonProject
+Base Git: 81ebef54ed2165f95648649bca7872654289d3c4
+Git writes: none
+Notion writes: none
+Fixtures: temporary directories only
+
+WORKDIR apps/avelune_studio
+COMMAND dart format --output=none --set-exit-if-changed [36 fichiers du perimetre]
+Formatted 36 files (0 changed) in 0.14 seconds.
+
+COMMAND flutter analyze --no-pub
+Analyzing avelune_studio...
+No issues found! (ran in 6.0s)
+
+COMMAND flutter test --no-pub --reporter expanded --concurrency=4
+01:02 +294 ~2: All tests passed!
+Ignored: studio_large_atlas_test / train_workspace_capture_test require an explicit external project copy.
+Harness receipt: exitCode=0, ownedChildren=78, reaped=[]
+Fresh final-state run; includes M2 runtime, M3, UI01/UI02/UI03 and UI04.
+
+COMMAND AVELUNE_CAPTURE_DIR=[ce dossier] flutter test --no-pub --reporter expanded test/presentation/ui04_terrain_journey_test.dart
+00:13 +1: All tests passed!
+Harness receipt: exitCode=0, ownedChildren=2, reaped=[]
+Five unretouched Flutter render captures; sixteen distinct, permuted 24-pixel test tiles.
+
+COMMAND flutter build macos --no-pub
+Building macOS application...
+Xcode 27 no longer requires macOS binaries to support the x86_64 architecture.
+✓ Built build/macos/Build/Products/Release/Avelune Studio.app (114.9MB)
+
+WORKDIR packages/map_authoring
+COMMAND dart test --reporter expanded test/domains/maps/smart_tile_draft_actions_test.dart test/tooling/jsonl_smart_tile_native_flow_test.dart
+00:18 +21: All tests passed!
+Harness receipt: exitCode=0, ownedChildren=2, reaped=[]
+
+WORKDIR tools/pokemap_mcp
+COMMAND npm run check
+tsc -p tsconfig.json --noEmit
+exitCode=0
+COMMAND npm test
+npm run build && node --import tsx --test --test-concurrency=1 test/**/*.test.ts
+tests 82
+pass 82
+fail 0
+cancelled 0
+skipped 0
+todo 0
+duration_ms 479316.352375
+
+CONNECTED MCP TOOL pokemap_describe
+worker.exited: The canonical Authoring worker exited unexpectedly (code 78).
+The connected server's catalog remains unverified; packaged MCP tests above are separate evidence.
+
+WORKDIR repository root
+COMMAND git diff --check
+exitCode=0
+COMMAND POKEMAP_MARKDOWN_MAX_NEW=1 bash tools/scripts/check_markdown_hygiene.sh
+Markdown hygiene: 1 new Markdown file(s), all in canonical locations.
+
+Intermediate failure retained in the report: the stress layout test exceeded its 20-second IO budget during concurrent checks. Isolated replay passed, then final full suites passed without relaxing the timeout.
+Visual review: whole page + source/rules/trial + compact trial + return-to-map inspected. Native manual and user artistic acceptance remain open.

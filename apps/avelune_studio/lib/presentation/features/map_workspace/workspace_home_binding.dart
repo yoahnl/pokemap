@@ -25,15 +25,7 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.resources);
   }
 
-  String get _activeDestination =>
-      _space == WorkspaceSpace.map &&
-          _charactersContext &&
-          _view?.paletteTab == 'Personnages'
-      ? 'characters'
-      : _space.name;
-
   void _openMap() {
-    _charactersContext = false;
     _show(WorkspaceSpace.map);
   }
 
@@ -67,10 +59,11 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
         _resources?.showLibrary();
         _show(WorkspaceSpace.resources);
       case 'characters':
-        _view?.paletteTab = 'Personnages';
+        _view?.prepareCharacterPlacement();
+        _view?.revealPalette = true;
         _palette = true;
         _openMap();
-        _charactersContext = true;
+        _toolChanged();
       case 'story':
         if (_narrative != null) _show(WorkspaceSpace.story);
       case 'test':

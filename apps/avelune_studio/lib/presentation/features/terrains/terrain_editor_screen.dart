@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-
 import '../../../features/terrains/application/terrain_draft_controller.dart';
-import '../../../features/terrains/domain/terrain_connections.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../resources/atlas_selection_view.dart';
-import 'terrain_scratch_view.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
+import '../../shared/widgets/inputs/studio_palette_tabs.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
-import '../../shared/widgets/layout/studio_panel.dart';
+import 'terrain_rules_panel.dart';
+import 'terrain_scratch_view.dart';
+import 'terrain_source_panel.dart';
+import 'terrain_trial_panel.dart';
 
 class TerrainEditorScreen extends StatefulWidget {
   const TerrainEditorScreen({
@@ -18,6 +19,7 @@ class TerrainEditorScreen extends StatefulWidget {
     required this.onMutate,
     required this.onUse,
     required this.onClose,
+    this.canPaint = true,
   });
   final TerrainDraftController controller;
   final Widget image;
@@ -25,20 +27,34 @@ class TerrainEditorScreen extends StatefulWidget {
   final MutateTerrainResource onMutate;
   final ValueChanged<ProjectSmartTilePreset> onUse;
   final VoidCallback onClose;
-
+  final bool canPaint;
   @override
   State<TerrainEditorScreen> createState() => _TerrainEditorScreenState();
 }
 
 class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
-  late final _name = TextEditingController(text: widget.controller.draft.name);
-  String _tool = 'Corriger';
+  late final _name = TextEditingController(text: model.draft.name);
+  final _transform = TransformationController();
+  String _tool = 'Examiner';
+  String _page = 'Préparer';
+  bool _advance = false, _missingOnly = false;
   TerrainDraftController get model => widget.controller;
 
   @override
   void dispose() {
     _name.dispose();
+    _transform.dispose();
     super.dispose();
+  }
+
+  void _refresh() {
+    if (_name.text != model.draft.name) {
+      _name.value = TextEditingValue(
+        text: model.draft.name,
+        selection: TextSelection.collapsed(offset: model.draft.name.length),
+      );
+    }
+    setState(() {});
   }
 
   Future<void> _save(bool publish) async {
@@ -48,242 +64,140 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
     if (!mounted) return;
     setState(() {});
     if (success && publish) {
-      widget.onUse(
-        model.manifest.smartTileCatalog.presets.firstWhere(
-          (preset) => preset.id == model.draft.targetPresetId,
-        ),
-      );
+      final preset = model.manifest.smartTileCatalog.presets
+          .where((preset) => preset.id == model.draft.targetPresetId)
+          .firstOrNull;
+      if (preset != null) widget.onUse(preset);
     }
+  }
+
+  void _assign(TilesetSourceRect rect) {
+    final wasMissing = model.frameFor(model.selectedRule) == null;
+    model.assign(rect.x, rect.y);
+    if (_advance && wasMissing) model.selectNextMissing();
+    setState(() {});
   }
 
   @override
-  Widget build(BuildContext context) {
-    final atlas = model.atlas;
-    final source = model.manifest.tilesets
-        .firstWhere((t) => t.id == atlas.tilesetId)
-        .source;
-    if (source is! ProjectRegularAtlasTilesetSource) {
-      return Center(
-        child: Text('Cette source n’est pas encore éditable dans Studio.'),
-      );
-    }
-    final frame = model.frameFor(model.selectedRule);
-    final selection = TilesetSourceRect(
-      x: frame?.column ?? 0,
-      y: frame?.row ?? 0,
-      width: 1,
-      height: 1,
-    );
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: colors.surfaceContainerLowest,
-      child: Column(
-        children: [
-          StudioPageHeader(
-            title: 'Terrain automatique',
-            description: model.dirty
-                ? 'Brouillon modifié'
-                : 'Brouillon enregistré',
-            actions: [
-              StudioButton(
-                label: 'Retour aux ressources',
-                secondary: true,
-                onPressed: model.busy ? null : widget.onClose,
-              ),
-              StudioButton(
-                label: 'Enregistrer le brouillon',
-                secondary: true,
-                onPressed: model.busy ? null : () => _save(false),
-              ),
-              StudioButton(
-                label: 'Publier et peindre',
-                onPressed: model.busy || !model.complete
-                    ? null
-                    : () => _save(true),
-              ),
-            ],
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      StudioPageHeader(
+        title: model.draft.name,
+        description:
+            'Terrain automatique · ${model.statusLabel} · ${model.assignedCount} / 16 raccords associés',
+        alignActionsToEnd: true,
+        actions: [
+          StudioButton(
+            label: 'Ressources › Terrains',
+            icon: Icons.arrow_back,
+            secondary: true,
+            onPressed: model.busy ? null : widget.onClose,
           ),
-          if (model.error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(model.error!, style: TextStyle(color: colors.error)),
-            ),
-          if (model.busy) const LinearProgressIndicator(),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final sourcePanel = StudioPanel(
-                  title: 'Image et raccords',
-                  children: [
-                    TextField(
-                      controller: _name,
-                      enabled: !model.busy,
-                      decoration: const InputDecoration(
-                        labelText: 'Nom du terrain',
-                      ),
-                      onChanged: (value) => setState(() => model.rename(value)),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Raccords sur 4 côtés · 16 morceaux',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Choisissez un raccord puis sa case dans l’image. Les croix signalent un morceau manquant.',
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      height: 290,
-                      child: AbsorbPointer(
-                        absorbing: model.busy,
-                        child: AtlasSelectionView(
-                          source: source,
-                          selected: selection,
-                          image: widget.image,
-                          singleCell: true,
-                          onSelected: (rect) =>
-                              setState(() => model.assign(rect.x, rect.y)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _rules(),
-                  ],
-                );
-                final scratchPanel = StudioPanel(
-                  children: [
-                    Text(
-                      'Terrain d’essai',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Cliquez un raccord pour retrouver sa règle. Dessinez pour vérifier les voisins.',
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        for (final tool in ['Corriger', 'Peindre', 'Gommer'])
-                          StudioButton(
-                            label: tool,
-                            secondary: _tool != tool,
-                            onPressed: model.busy
-                                ? null
-                                : () => setState(() => _tool = tool),
-                          ),
-                        StudioButton(
-                          label: 'Exemple complet',
-                          secondary: true,
-                          onPressed: model.busy
-                              ? null
-                              : () => setState(model.example),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    AbsorbPointer(
-                      absorbing: model.busy,
-                      child: TerrainScratchView(
-                        controller: model,
-                        frameBuilder: widget.frameBuilder,
-                        tool: _tool,
-                        onChanged: () => setState(() {}),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Raccord sélectionné : ${terrainConnectionNames[model.selectedRule]}',
-                    ),
-                    Text(
-                      '${model.draft.rules.where((rule) => rule.candidates.isNotEmpty).length} / 16 morceaux associés',
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Les modèles avancés existants restent utilisables sur la carte ; leur préparation n’est pas encore disponible ici.',
-                    ),
-                  ],
-                );
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(12),
-                  child: constraints.maxWidth < 850
-                      ? Column(
-                          children: [
-                            sourcePanel,
-                            const SizedBox(height: 24),
-                            scratchPanel,
-                          ],
-                        )
-                      : Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(flex: 6, child: sourcePanel),
-                            const SizedBox(width: 20),
-                            Expanded(flex: 5, child: scratchPanel),
-                          ],
-                        ),
-                );
-              },
-            ),
+          StudioButton(
+            label: 'Enregistrer le brouillon',
+            icon: Icons.save_outlined,
+            secondary: true,
+            onPressed: model.busy ? null : () => _save(false),
+          ),
+          StudioButton(
+            label: widget.canPaint
+                ? 'Publier et peindre'
+                : 'Publier dans Ressources',
+            icon: Icons.brush_outlined,
+            onPressed: model.busy || !model.complete ? null : () => _save(true),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _rules() => GridView.builder(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    itemCount: 16,
-    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-      maxCrossAxisExtent: 165,
-      mainAxisExtent: 74,
-      crossAxisSpacing: 6,
-      mainAxisSpacing: 6,
-    ),
-    itemBuilder: (context, index) {
-      final colors = Theme.of(context).colorScheme;
-      final frame = model.frameFor(index);
-      return Material(
-        color: index == model.selectedRule
-            ? colors.primaryContainer
-            : colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(5),
-        child: InkWell(
-          key: ValueKey('terrain-rule-$index'),
-          onTap: model.busy
-              ? null
-              : () => setState(() => model.selectedRule = index),
-          child: Padding(
-            padding: const EdgeInsets.all(6),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: frame == null
-                      ? Icon(
-                          Icons.add_photo_alternate_outlined,
-                          color: colors.onSurfaceVariant,
-                        )
-                      : widget.frameBuilder(frame, 32),
+      if (model.error != null)
+        StudioNotice(model.error!, isError: true, maxLines: 2),
+      if (model.busy) const LinearProgressIndicator(),
+      Expanded(
+        child: AbsorbPointer(
+          absorbing: model.busy,
+          child: LayoutBuilder(
+            builder: (context, bounds) {
+              final compact =
+                  bounds.maxWidth < 1000 ||
+                  MediaQuery.textScalerOf(context).scale(14) > 20;
+              final source = TerrainSourcePanel(
+                model: model,
+                name: _name,
+                image: widget.image,
+                transform: _transform,
+                onChanged: () => setState(() {}),
+                onAssign: _assign,
+              );
+              final rules = TerrainRulesPanel(
+                model: model,
+                frameBuilder: widget.frameBuilder,
+                onChanged: _refresh,
+                advance: _advance,
+                onAdvance: (value) => setState(() => _advance = value),
+                missingOnly: _missingOnly,
+                onMissingOnly: (value) => setState(() => _missingOnly = value),
+              );
+              final trial = TerrainTrialPanel(
+                model: model,
+                tool: _tool,
+                onTool: (value) => setState(() => _tool = value),
+                frameBuilder: widget.frameBuilder,
+                onChanged: () {
+                  if (_tool == 'Examiner') _missingOnly = false;
+                  setState(() {});
+                },
+              );
+              final preparation = Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _scrollShortPanel(source)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _scrollShortPanel(rules)),
+                ],
+              );
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (compact) ...[
+                      StudioPaletteTabs(
+                        items: const ['Préparer', 'Essayer'],
+                        selected: _page,
+                        onChanged: (value) => setState(() => _page = value),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    Expanded(
+                      child: compact
+                          ? _page == 'Préparer'
+                                ? preparation
+                                : trial
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(child: preparation),
+                                const SizedBox(width: 14),
+                                SizedBox(
+                                  width: (bounds.maxWidth * .3).clamp(320, 420),
+                                  child: trial,
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    terrainConnectionNames[index],
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
-      );
-    },
+      ),
+    ],
+  );
+
+  Widget _scrollShortPanel(Widget child) => LayoutBuilder(
+    builder: (context, bounds) => bounds.maxHeight < 540
+        ? SingleChildScrollView(child: SizedBox(height: 700, child: child))
+        : child,
   );
 }

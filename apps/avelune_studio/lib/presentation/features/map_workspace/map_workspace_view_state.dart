@@ -24,6 +24,7 @@ class MapWorkspaceViewState {
   double characterScrollOffset = 0;
   bool grid = true;
   bool paletteTiles = false;
+  bool revealPalette = false;
   String paletteTab = 'Décors';
   final paletteScrollOffsets = <String, double>{};
   String? paletteAtlasId;
@@ -31,6 +32,14 @@ class MapWorkspaceViewState {
   final fittedPaletteAtlases = <String>{};
   bool positioned = false;
   VoidCallback? recenter;
+
+  void prepareCharacterPlacement() {
+    paletteTab = 'Personnages';
+    brush = null;
+    tile = null;
+    terrain = null;
+    tool = character == null ? StudioMapTool.select : StudioMapTool.character;
+  }
 
   void dispose() {
     transform.dispose();

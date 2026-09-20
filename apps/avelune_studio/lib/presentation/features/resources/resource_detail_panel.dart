@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/decors/application/decor_source_support.dart';
+import '../../../features/terrains/domain/terrain_draft_compatibility.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
@@ -21,6 +22,7 @@ class ResourceDetailPanel extends StatelessWidget {
     this.openUsage = 0,
     this.targetMapName,
     this.canUse = true,
+    this.canEditTerrain = false,
   });
   final ResourceItem? item;
   final int openUsage;
@@ -31,6 +33,7 @@ class ResourceDetailPanel extends StatelessWidget {
   final ValueChanged<ResourceItem> onTerrain;
   final String? targetMapName;
   final bool canUse;
+  final bool canEditTerrain;
 
   @override
   Widget build(BuildContext context) {
@@ -206,6 +209,16 @@ class ResourceDetailPanel extends StatelessWidget {
   }
 
   List<Widget> _preparation(ResourceItem entry) => [
+    if (entry.terrain != null)
+      if (canEditTerrain)
+        StudioButton(
+          label: 'Modifier les raccords',
+          icon: Icons.edit_outlined,
+          secondary: true,
+          onPressed: () => onTerrain(entry),
+        )
+      else
+        const Text(advancedTerrainPreparationMessage),
     if (entry.element != null)
       StudioButton(
         label: 'Modifier le décor',
@@ -225,11 +238,13 @@ class ResourceDetailPanel extends StatelessWidget {
       StudioButton(
         label: 'Créer un terrain automatique',
         secondary: true,
-        onPressed: tileset.source is ProjectRegularAtlasTilesetSource
+        onPressed: terrainSourceCompatibilityProblem(tileset) == null
             ? () => onTerrain(entry)
             : null,
       ),
       if (decorConversionProblem(tileset, project) case final String message)
+        Padding(padding: const EdgeInsets.only(top: 8), child: Text(message)),
+      if (terrainSourceCompatibilityProblem(tileset) case final String message)
         Padding(padding: const EdgeInsets.only(top: 8), child: Text(message)),
     ],
   ];

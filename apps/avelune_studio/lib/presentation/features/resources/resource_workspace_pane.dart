@@ -5,7 +5,6 @@ import 'package:avelune_studio/presentation/features/terrains/terrain_editor_scr
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 import 'resource_navigation.dart';
-import 'resource_catalog.dart';
 import 'resource_library_screen.dart';
 import 'resource_image_import.dart';
 import 'decor_editor_screen.dart';
@@ -73,22 +72,14 @@ class ResourceWorkspacePane extends StatelessWidget {
           size: size,
         ),
         onMutate: n.mutate,
-        onUse: (preset) => n.onUse(
-          ResourceItem(
-            id: preset.id,
-            name: preset.name,
-            kind: ResourceKind.terrains,
-            terrain: preset,
-          ),
-        ),
+        canPaint: project.maps.isNotEmpty,
+        onUse: n.completeTerrainPublication,
         onClose: n.showLibrary,
       );
     } else {
       content = Column(
         children: [
-          if (n.decors.isNotEmpty ||
-              n.terrains.isNotEmpty ||
-              project.smartTileCatalog.drafts.isNotEmpty)
+          if (n.decor != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Wrap(
@@ -103,23 +94,6 @@ class ResourceWorkspacePane extends StatelessWidget {
                         n.openPage(ResourcePage.decor);
                       },
                     ),
-                  if (n.terrain != null)
-                    StudioButton(
-                      label: 'Reprendre le terrain',
-                      secondary: true,
-                      onPressed: () {
-                        n.openPage(ResourcePage.terrain);
-                      },
-                    ),
-                  for (final draft in project.smartTileCatalog.drafts)
-                    if (draft.guideId == 'avelune-cardinal4-v1' &&
-                        draft.topology == SmartTileTopology.cardinal4 &&
-                        draft.rules.length == 16)
-                      StudioButton(
-                        label: 'Brouillon : ${draft.name}',
-                        secondary: true,
-                        onPressed: () => n.resumeTerrain(draft),
-                      ),
                 ],
               ),
             ),
@@ -136,6 +110,9 @@ class ResourceWorkspacePane extends StatelessWidget {
               onUse: n.onUse,
               onEdit: n.edit,
               onTerrain: n.prepareTerrain,
+              terrainDrafts: n.pendingTerrainDrafts,
+              onResumeTerrain: n.resumeTerrain,
+              canEditTerrain: n.canEditTerrain,
               onImport: () => import(context),
               onBack: onBack,
             ),

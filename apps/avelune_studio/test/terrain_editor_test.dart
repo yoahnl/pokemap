@@ -49,11 +49,14 @@ void main() {
         ),
       );
       await tester.tap(find.byKey(const ValueKey('terrain-rule-3')));
-      await tester.pump();
-      final source = tester.getTopLeft(
+      await tester.pumpAndSettle();
+      final source = tester.getRect(
         find.byKey(const ValueKey('atlas-selection')),
       );
-      await tester.tapAt(source + const Offset(8, 10));
+      await tester.tapAt(
+        source.topLeft +
+            Offset(11 * source.width / 78, 16 * source.height / 110),
+      );
       await tester.pump();
       expect(model.frameFor(3)!.column, 0);
       expect(model.frameFor(3)!.row, 0);
@@ -115,7 +118,7 @@ void main() {
     );
     await tester.pump();
     expect(tester.takeException(), isNull);
-    await tester.ensureVisible(find.text('Terrain d’essai'));
+    await tester.tap(find.text('Essayer'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('Terrain d’essai'), findsOneWidget);

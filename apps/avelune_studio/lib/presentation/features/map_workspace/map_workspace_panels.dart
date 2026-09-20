@@ -228,7 +228,9 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
           Expanded(child: catalog()),
           const SizedBox(height: 6),
           Text(
-            view.terrain != null
+            kind == 'Personnages' && view.character == null
+                ? 'Choisissez un personnage à placer.'
+                : view.terrain != null
                 ? '${view.terrain!.name} · raccords automatiques'
                 : view.character?.name ??
                       view.brush?.name ??

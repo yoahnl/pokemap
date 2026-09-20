@@ -77,10 +77,7 @@ class MapCreationTools extends StatelessWidget {
                 icon: Icons.person_add_alt,
                 selected: view.tool == StudioMapTool.character,
                 onPressed: () {
-                  view.paletteTab = 'Personnages';
-                  if (view.character != null) {
-                    view.tool = StudioMapTool.character;
-                  }
+                  view.prepareCharacterPlacement();
                   onChanged();
                 },
               ),

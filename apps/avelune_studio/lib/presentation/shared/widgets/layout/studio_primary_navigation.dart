@@ -25,7 +25,6 @@ class StudioPrimaryNavigation extends StatelessWidget {
       ('Accueil', Icons.home_outlined, 'home'),
       ('Carte', Icons.map_outlined, 'map'),
       ('Ressources', Icons.grid_view_outlined, 'resources'),
-      ('Personnages', Icons.people_outline, 'characters'),
       ('Histoire', Icons.menu_book_outlined, 'story'),
       ('Test du jeu', Icons.play_circle_outline, 'test'),
     ];

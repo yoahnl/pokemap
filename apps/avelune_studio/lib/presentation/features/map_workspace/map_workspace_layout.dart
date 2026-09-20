@@ -38,7 +38,6 @@ class MapWorkspaceLayout extends StatelessWidget {
     required this.onEditElement,
     required this.homeSearch,
     this.onSearch,
-    this.onCharacters,
     this.resourceContent,
     this.onStory,
     this.onEditInteraction,
@@ -67,7 +66,6 @@ class MapWorkspaceLayout extends StatelessWidget {
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final TextEditingController homeSearch;
   final ValueChanged<String>? onSearch;
-  final VoidCallback? onCharacters;
   final Widget? resourceContent;
   final VoidCallback? onStory;
   final ValueChanged<MapEntity>? onEditInteraction;
@@ -129,6 +127,12 @@ class MapWorkspaceLayout extends StatelessWidget {
         );
       }
 
+      void openPalette() => showWorkspaceCompactPanel(
+        context,
+        title: 'Palette',
+        builder: (context, refresh, close) => paletteContent(refresh, close),
+      );
+
       Widget inspectorContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
         return MapSelectionInspector(
@@ -157,6 +161,16 @@ class MapWorkspaceLayout extends StatelessWidget {
         );
       }
 
+      if (ready && activeSpace == 'map' && view!.revealPalette) {
+        view!.revealPalette = false;
+        if (compactPalette) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            openPalette();
+          });
+        }
+      }
+
       return StudioApplicationFrame(
         projectName: controller.session.name,
         search: homeSearch,
@@ -172,8 +186,6 @@ class MapWorkspaceLayout extends StatelessWidget {
               onMap();
             case 'resources':
               onResources();
-            case 'characters':
-              onCharacters?.call();
             case 'story':
               onStory?.call();
             case 'test':
@@ -189,14 +201,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                 onChanged: onToolChanged,
                 paletteVisible: showPalette,
                 inspectorVisible: showInspector && !compactInspector,
-                onPalette: compactPalette && ready
-                    ? () => showWorkspaceCompactPanel(
-                        context,
-                        title: 'Palette',
-                        builder: (context, refresh, close) =>
-                            paletteContent(refresh, close),
-                      )
-                    : onPalette,
+                onPalette: compactPalette && ready ? openPalette : onPalette,
                 onInspector: compactInspector && ready
                     ? () => showWorkspaceCompactPanel(
                         context,

@@ -11,6 +11,7 @@ import 'resource_catalog_view.dart';
 import 'resource_category_filter.dart';
 import 'resource_detail_panel.dart';
 import 'resource_preview.dart';
+import 'resource_terrain_draft_list.dart';
 
 class ResourceLibraryScreen extends StatefulWidget {
   const ResourceLibraryScreen({
@@ -26,6 +27,9 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.openMaps = const [],
     this.targetMapName,
     this.canUse = true,
+    this.terrainDrafts = const [],
+    this.onResumeTerrain,
+    this.canEditTerrain,
   });
   final ProjectManifest project;
   final List<MapData> openMaps;
@@ -38,6 +42,9 @@ class ResourceLibraryScreen extends StatefulWidget {
   final VoidCallback onBack;
   final String? targetMapName;
   final bool canUse;
+  final List<ProjectSmartTileAuthoringDraft> terrainDrafts;
+  final ValueChanged<ProjectSmartTileAuthoringDraft>? onResumeTerrain;
+  final bool Function(ResourceItem)? canEditTerrain;
   @override
   State<ResourceLibraryScreen> createState() => _ResourceLibraryScreenState();
 }
@@ -100,6 +107,8 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
               ),
         targetMapName: widget.targetMapName,
         canUse: widget.canUse && widget.project.maps.isNotEmpty,
+        canEditTerrain:
+            item != null && (widget.canEditTerrain?.call(item) ?? false),
         onUse: (item) {
           close?.call();
           widget.onUse(item);
@@ -213,6 +222,13 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
                     : null,
               ),
             ),
+            if (state.kind == ResourceKind.terrains &&
+                widget.terrainDrafts.isNotEmpty &&
+                widget.onResumeTerrain != null)
+              ResourceTerrainDraftList(
+                drafts: widget.terrainDrafts,
+                onResume: widget.onResumeTerrain!,
+              ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),

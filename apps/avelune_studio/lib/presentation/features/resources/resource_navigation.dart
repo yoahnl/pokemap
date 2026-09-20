@@ -5,6 +5,7 @@ import 'package:avelune_studio/features/decors/application/decor_draft.dart';
 import 'package:avelune_studio/features/decors/application/decor_source_support.dart';
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_connections.dart';
+import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
@@ -30,7 +31,40 @@ class ResourceNavigation extends ChangeNotifier {
   TerrainDraftController? terrain;
   bool busy = false;
   String? error;
+  var _terrainSequence = 0;
   bool get dirty => decors.isNotEmpty || terrains.values.any((t) => t.dirty);
+
+  List<ProjectSmartTileAuthoringDraft> get terrainDrafts {
+    final project = workspace.project!;
+    final drafts = {
+      for (final draft in project.smartTileCatalog.drafts) draft.id: draft,
+      for (final model in terrains.values) model.draft.id: model.draft,
+    };
+    return drafts.values
+        .where(
+          (draft) => terrainDraftCompatibilityProblem(project, draft) == null,
+        )
+        .toList();
+  }
+
+  List<ProjectSmartTileAuthoringDraft> get pendingTerrainDrafts => terrainDrafts
+      .where(
+        (draft) =>
+            !workspace.project!.smartTileCatalog.presets.any(
+              (preset) => preset.id == draft.targetPresetId,
+            ) ||
+            terrains[draft.id]?.dirty == true,
+      )
+      .toList();
+
+  bool canEditTerrain(ResourceItem item) =>
+      item.terrain != null &&
+      editableTerrainDraft(
+            workspace.project!,
+            item.terrain!,
+            localDrafts: terrains.values.map((model) => model.draft),
+          ) !=
+          null;
 
   void openPage(ResourcePage next) {
     page = next;
@@ -165,22 +199,52 @@ class ResourceNavigation extends ChangeNotifier {
   }
 
   void prepareTerrain(ResourceItem item) {
-    final tileset = item.tileset!;
-    final id = 'terrain-${DateTime.now().microsecondsSinceEpoch}';
-    terrain = terrains.putIfAbsent(
-      item.id,
-      () => TerrainDraftController(
-        manifest: workspace.project!,
-        atlas: terrainAtlas(tileset, 'atlas-$id'),
-        id: id,
-        name: tileset.name,
-      ),
+    if (item.terrain != null) {
+      final draft = editableTerrainDraft(
+        workspace.project!,
+        item.terrain!,
+        localDrafts: terrains.values.map((model) => model.draft),
+      );
+      if (draft != null) {
+        resumeTerrain(draft);
+      } else {
+        error = advancedTerrainPreparationMessage;
+        showLibrary(item);
+      }
+      return;
+    }
+    final tileset = item.tileset;
+    if (tileset == null) return;
+    final problem = terrainSourceCompatibilityProblem(tileset);
+    if (problem != null) {
+      error = problem;
+      showLibrary(item);
+      return;
+    }
+    final id =
+        'terrain-${DateTime.now().microsecondsSinceEpoch}-${++_terrainSequence}';
+    terrain = TerrainDraftController(
+      manifest: workspace.project!,
+      atlas: terrainAtlas(tileset, 'atlas-$id'),
+      id: id,
+      name: tileset.name,
     );
+    terrains[terrain!.draft.id] = terrain!;
+    error = null;
     page = ResourcePage.terrain;
     notifyListeners();
   }
 
   void resumeTerrain(ProjectSmartTileAuthoringDraft draft) {
+    final problem = terrainDraftCompatibilityProblem(
+      workspace.project!,
+      terrains[draft.id]?.draft ?? draft,
+    );
+    if (problem != null) {
+      error = problem;
+      showLibrary();
+      return;
+    }
     terrain = terrains.putIfAbsent(
       draft.id,
       () => TerrainDraftController.resume(
@@ -188,8 +252,25 @@ class ResourceNavigation extends ChangeNotifier {
         draft: draft,
       ),
     );
+    error = null;
     page = ResourcePage.terrain;
     notifyListeners();
+  }
+
+  void completeTerrainPublication(ProjectSmartTilePreset preset) {
+    final item = ResourceItem(
+      id: preset.id,
+      name: preset.name,
+      kind: ResourceKind.terrains,
+      terrain: preset,
+      category: preset.categoryId,
+      tags: preset.tags,
+    );
+    if (workspace.project!.maps.isEmpty) {
+      showLibrary(item);
+    } else {
+      onUse(item);
+    }
   }
 
   Future<void> saveDecor(ProjectElementEntry element) async {

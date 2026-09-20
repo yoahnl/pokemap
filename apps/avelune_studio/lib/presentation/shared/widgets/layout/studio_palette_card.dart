@@ -7,11 +7,13 @@ class StudioPaletteCard extends StatelessWidget {
     required this.preview,
     required this.selected,
     required this.onTap,
+    this.maxNameLines = 1,
   });
   final String name;
   final Widget preview;
   final bool selected;
   final VoidCallback onTap;
+  final int maxNameLines;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +43,7 @@ class StudioPaletteCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     name,
-                    maxLines: 1,
+                    maxLines: maxNameLines,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),

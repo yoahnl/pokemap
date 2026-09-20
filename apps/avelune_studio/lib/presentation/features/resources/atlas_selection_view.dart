@@ -14,6 +14,8 @@ class AtlasSelectionView extends StatefulWidget {
     this.initiallyFitted = false,
     this.onFitted,
     this.compact = false,
+    this.showSelection = true,
+    this.alignTop = false,
   });
   final ProjectRegularAtlasTilesetSource source;
   final TilesetSourceRect selected;
@@ -24,6 +26,8 @@ class AtlasSelectionView extends StatefulWidget {
   final bool initiallyFitted;
   final VoidCallback? onFitted;
   final bool compact;
+  final bool showSelection;
+  final bool alignTop;
   @override
   State<AtlasSelectionView> createState() => _AtlasSelectionViewState();
 }
@@ -32,6 +36,7 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
   late final transform =
       widget.transformationController ?? TransformationController();
   GridPos? start;
+  GridPos? lastCell;
   bool pan = false;
   late bool fitted = widget.initiallyFitted;
   Size viewport = Size.zero;
@@ -50,7 +55,7 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
     transform.value = Matrix4.identity()
       ..translateByDouble(
         (viewport.width - source.pixelWidth * scale) / 2,
-        widget.compact
+        widget.compact || widget.alignTop
             ? 12
             : (viewport.height - source.pixelHeight * scale) / 2,
         0,
@@ -101,10 +106,15 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
 
   void select(Offset point, {bool begin = false}) {
     final current = cell(point);
-    if (begin) start = current;
+    if (begin) {
+      start = current;
+      lastCell = null;
+    }
     if (current == null) return;
     final origin = start;
     if (origin == null) return;
+    if (widget.singleCell && current == lastCell) return;
+    lastCell = current;
     widget.onSelected(
       TilesetSourceRect(
         x: widget.singleCell ? current.x : math.min(origin.x, current.x),
@@ -205,6 +215,7 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
                                   s,
                                   widget.selected,
                                   Theme.of(context).colorScheme.primary,
+                                  widget.showSelection,
                                 ),
                               ),
                             ),
@@ -224,10 +235,11 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
 }
 
 class _AtlasGrid extends CustomPainter {
-  _AtlasGrid(this.source, this.selection, this.color);
+  _AtlasGrid(this.source, this.selection, this.color, this.showSelection);
   final ProjectRegularAtlasTilesetSource source;
   final TilesetSourceRect selection;
   final Color color;
+  final bool showSelection;
   @override
   void paint(Canvas canvas, Size size) {
     final s = source;
@@ -261,6 +273,7 @@ class _AtlasGrid extends CustomPainter {
         ..lineTo(right, start + s.tileHeight);
     }
     canvas.drawPath(grid, stroke);
+    if (!showSelection) return;
     final r = selection;
     canvas.drawRect(
       Rect.fromLTWH(
@@ -278,5 +291,8 @@ class _AtlasGrid extends CustomPainter {
 
   @override
   bool shouldRepaint(_AtlasGrid old) =>
-      old.selection != selection || old.source != source || old.color != color;
+      old.selection != selection ||
+      old.source != source ||
+      old.color != color ||
+      old.showSelection != showSelection;
 }

@@ -62,7 +62,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   MapWorkspaceVisuals? _visuals;
   String? _resourceError;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _interactionNotice;
-  bool _charactersContext = false;
   int _gestureGeneration = 0;
   late final WorkspaceActions _actions;
   MapWorkspaceController get _controller => widget.controller;
@@ -192,6 +191,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       view: () => _view,
     );
     if (!mounted || !used) return;
+    if (item.terrain != null) _search.clear();
     _openMap();
     _toolChanged();
   }
@@ -235,9 +235,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
               child: MapWorkspaceLayout(
                 homeSearch: widget.home?.search ?? _homeSearch,
                 onSearch: (_) => widget.home?.searchHome(),
-                onCharacters: () => _navigateFromHome('characters', null),
                 onHome: widget.home?.showHome,
-                activeSpace: _activeDestination,
+                activeSpace: _space.name,
                 controller: _controller,
                 view: _view,
                 visuals: _visuals,

@@ -40,7 +40,7 @@ class StudioHomeTools extends StatelessWidget {
         accents.featureAccent,
       ),
       (
-        'Personnages',
+        'Placer un personnage',
         'Donnez vie à\nvos rencontres',
         Icons.person_outline,
         'characters',

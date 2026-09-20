@@ -1,5 +1,60 @@
 import 'package:map_core/map_core_domain.dart';
 
+ProjectSmartTileAuthoringDraft createTerrainDraft(
+  ProjectSmartTileAtlas atlas,
+  String id,
+  String name,
+) => ProjectSmartTileAuthoringDraft(
+  id: 'draft-$id',
+  targetPresetId: id,
+  name: name,
+  usage: SmartTileUsage.path,
+  lastStage: SmartTileAuthoringStage.connections,
+  guideId: 'avelune-cardinal4-v1',
+  topology: SmartTileTopology.cardinal4,
+  templateHint: SmartTileTemplateHint.edge16,
+  coveragePolicy: SmartTileCoveragePolicy.sparse,
+  sourceTilesetIds: [atlas.tilesetId],
+  atlases: [atlas],
+  primaryAtlasId: atlas.id,
+  materials: [
+    ProjectSmartTileMaterial(
+      id: 'material-$id',
+      name: name,
+      connectionGroupId: 'connection-$id',
+    ),
+  ],
+  defaultMaterialId: 'material-$id',
+  allowedMaterialIds: ['material-$id'],
+  rules: List.generate(
+    16,
+    (mask) => terrainConnectionRule(mask, null, 'material-$id'),
+  ),
+);
+
+ProjectSmartTilePreset terrainDraftPreset(
+  ProjectSmartTileAuthoringDraft draft,
+) => ProjectSmartTilePreset(
+  id: draft.targetPresetId,
+  name: draft.name,
+  categoryId: draft.categoryId,
+  usage: draft.usage,
+  topology: draft.topology,
+  templateHint: draft.templateHint,
+  boundaryPolicy: draft.boundaryPolicy,
+  status: SmartTilePresetStatus.published,
+  coveragePolicy: draft.coveragePolicy,
+  coverageProfile: draft.coverageProfile,
+  transformPolicy: draft.transformPolicy,
+  defaultMaterialId: draft.defaultMaterialId!,
+  allowedMaterialIds: draft.allowedMaterialIds,
+  rules: draft.rules,
+  tags: draft.tags,
+  sortOrder: draft.sortOrder,
+  seedSalt: draft.seedSalt,
+  fallbackRuleId: draft.fallbackRuleId,
+);
+
 const terrainConnectionNames = [
   'Îlot isolé',
   'Extrémité vers le haut',
