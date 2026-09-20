@@ -8,13 +8,22 @@ import 'narrative_interaction.dart';
 import 'narrative_interaction_opener.dart';
 import 'narrative_source_location.dart';
 
+part 'narrative_workspace_publication.dart';
+
+part 'narrative_session_coexistence.dart';
+
 class NarrativeWorkspaceController {
+  Future<bool> save({EditableMapDocument? document}) =>
+      _save(document: document);
+
   NarrativeWorkspaceController(
     this.workspace,
     this.port,
     this.changed,
     this.acceptVisuals,
-  );
+  ) {
+    workspace.addListener(reconcileCleanInteractionSessions);
+  }
   final MapWorkspaceController workspace;
   final NarrativePort port;
   final void Function() changed;
@@ -30,9 +39,12 @@ class NarrativeWorkspaceController {
   late final _opener = NarrativeInteractionOpener(this);
   InteractionEditSession? active;
   bool saving = false;
+  final _publishingInteractions = <String>{};
   bool get busy => saving || _opener.loading || storyDraftsBusy?.call() == true;
   bool get opening => _opener.loading;
   String? Function(String sceneId)? sceneAccessProblem;
+  String? Function(String eventId)? eventAccessProblem;
+  bool _disposed = false;
   String? error;
   String? publicationError;
   String search = '';
@@ -109,7 +121,11 @@ class NarrativeWorkspaceController {
   Future<NarrativeSourceLocation?> locateInteraction(String id) =>
       _opener.locate(id);
   void cancelOpening() => _opener.cancel();
-  void dispose() => _opener.dispose();
+  void dispose() {
+    _disposed = true;
+    workspace.removeListener(reconcileCleanInteractionSessions);
+    _opener.dispose();
+  }
 
   void invalidateCleanSceneSessions(String sceneId) {
     final removed = sessions.values
@@ -152,106 +168,4 @@ class NarrativeWorkspaceController {
         s.dirty &&
         s.current.interaction.source.toJson()['entityId'] == entityId,
   );
-  Future<bool> save({EditableMapDocument? document}) async {
-    if (busy) return false;
-    if (saveStoryDrafts != null && !await saveStoryDrafts!()) {
-      error = publicationError ?? 'Les histoires n’ont pas été enregistrées.';
-      changed();
-      return false;
-    }
-    final target = document ?? active?.document ?? workspace.active;
-    if (target == null) {
-      if (saveStoryDrafts != null && !dirty) return true;
-      error = 'Ouvrez une carte pour enregistrer cette histoire.';
-      changed();
-      return false;
-    }
-    if (target.saving) return false;
-    final edits = sessions.values
-        .where((s) => s.document == target && s.dirty)
-        .toList();
-    final snapshots = {for (final edit in edits) edit: edit.current};
-    for (final edit in edits) {
-      final sceneId = edit.current.interaction.sceneId;
-      final stored = project.scenes
-          .where((scene) => scene.id == sceneId)
-          .firstOrNull;
-      final problem =
-          sceneAccessProblem?.call(sceneId) ??
-          (edit.sceneBaseKnown && stored != edit.baseScene
-              ? 'La scène liée a changé. Votre brouillon d’interaction est conservé ; ouvrez la scène actuelle avant de poursuivre.'
-              : null);
-      if (problem != null) {
-        error = publicationError = problem;
-        changed();
-        return false;
-      }
-    }
-    final factSnapshot = saveStoryDrafts == null
-        ? Map.of(pendingFacts)
-        : <String, NarrativeFactDefinition>{};
-    final storySnapshot = saveStoryDrafts == null
-        ? Map.of(pendingStories)
-        : <String, StorylineAsset>{};
-    if (edits.isEmpty && factSnapshot.isEmpty && storySnapshot.isEmpty) {
-      return workspace.save(target);
-    }
-    saving = true;
-    error = null;
-    target.saving = true;
-    changed();
-    try {
-      final projections = snapshots.values
-          .map((s) => s.interaction.project())
-          .toList();
-      final receipt = await port.publish(
-        NarrativePublication(
-          base: target.base,
-          current: target.current,
-          dialogues: snapshots.values.map((s) {
-            final source = const DialogueDraftCodec().encode(s.dialogue);
-            return NarrativeDialogueSource(
-              entry: source.entry,
-              source: source.source,
-              revision: _sourceRevisions[source.entry.id] ?? source.revision,
-            );
-          }).toList(),
-          scenes: projections.map((p) => p.scene).toList(),
-          cinematics: projections.expand((p) => p.cinematics).toList(),
-          events: projections.map((p) => p.event).toList(),
-          facts: factSnapshot.values.toList(),
-          storylines: storySnapshot.values.toList(),
-        ),
-      );
-      workspace.acceptResources(receipt.beforeManifest, receipt.manifest);
-      target.acceptSave(receipt.savedMap, receipt.revision);
-      _sourceRevisions.addAll(receipt.sourceRevisions);
-      for (final entry in snapshots.entries) {
-        entry.key.acceptSave(entry.value);
-        entry.key.baseScene = receipt.manifest.scenes
-            .where((scene) => scene.id == entry.value.interaction.sceneId)
-            .firstOrNull;
-      }
-      pendingFacts.removeWhere((id, v) => identical(factSnapshot[id], v));
-      pendingStories.removeWhere((id, v) => identical(storySnapshot[id], v));
-      await acceptVisuals(receipt.manifest, receipt.changedPaths.toSet());
-      publicationError = null;
-      return true;
-    } catch (e) {
-      publicationError = error = e.toString();
-      return false;
-    } finally {
-      saving = false;
-      target.saving = false;
-      changed();
-    }
-  }
-
-  Future<bool> saveAll() async {
-    if (workspace.documents.isEmpty) return save();
-    for (final document in workspace.documents.values.toList()) {
-      if (!await save(document: document)) return false;
-    }
-    return !dirty;
-  }
 }

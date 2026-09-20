@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../feedback/studio_badge.dart';
 
 class StudioChoice extends StatefulWidget {
   const StudioChoice({
@@ -8,12 +9,14 @@ class StudioChoice extends StatefulWidget {
     this.selected = false,
     this.leading,
     this.subtitle,
+    this.tone,
   });
   final String label;
   final VoidCallback? onTap;
   final bool selected;
   final Widget? leading;
   final String? subtitle;
+  final StudioTone? tone;
   @override
   State<StudioChoice> createState() => _StudioChoiceState();
 }
@@ -25,21 +28,29 @@ class _StudioChoiceState extends State<StudioChoice> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final accent = widget.tone?.color(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Semantics(
         selected: widget.selected,
         button: true,
         child: Material(
-          color: widget.selected ? colors.primaryContainer : colors.surface,
+          color: accent == null
+              ? widget.selected
+                    ? colors.primaryContainer
+                    : colors.surface
+              : Color.alphaBlend(
+                  accent.withValues(alpha: widget.selected ? .2 : .07),
+                  colors.surface,
+                ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(5),
             side: BorderSide(
               color: _focused
                   ? colors.onSurface
                   : widget.selected
-                  ? colors.primary
-                  : colors.outlineVariant,
+                  ? accent ?? colors.primary
+                  : accent?.withValues(alpha: .3) ?? colors.outlineVariant,
               width: _focused ? 2 : 1,
             ),
           ),

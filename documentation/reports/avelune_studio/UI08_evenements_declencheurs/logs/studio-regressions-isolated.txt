@@ -1,0 +1,13 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: canonical gestures have one history entry and invalid gestures do nothing
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: composed failed command has no partial mutation
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: same scene shares session, homonyms get distinct identity, map stays dirty
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: receipt only cleans captured snapshot and never newer edits
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: late save after disposal cannot replace workspace or clean draft
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: dirty simplified interaction blocks only its graph and remains recoverable
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: graph blocks stale simplified publication and preserves both drafts
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: targeted discard preserves other drafts and reopens session catalogue
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: stale simplified base is refused even after graph session is released
+00:00 +9: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart
+00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:25 +10: All tests passed!

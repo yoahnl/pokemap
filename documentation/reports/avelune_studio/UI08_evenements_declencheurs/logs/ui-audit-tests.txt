@@ -1,0 +1,12 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_map_context_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_map_context_test.dart: changing source kind cannot reselect the old entity overlay
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart: simulation reruns against a removed source without stale success
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart: simulation reruns against a removed source without stale success
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart: simulation reruns against a removed source without stale success
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart: simulation reruns against a removed source without stale success
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart: simulation reruns against a removed source without stale success
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart: simulation names the competing event instead of selecting target
+00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart: grouped conditions remain ANY and NOT when removing a sibling
+00:01 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart: invalid numeric simulation never reports a stale success
+00:02 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart: consumed simulation input is isolated and withdraws selection
+00:02 +10: All tests passed!

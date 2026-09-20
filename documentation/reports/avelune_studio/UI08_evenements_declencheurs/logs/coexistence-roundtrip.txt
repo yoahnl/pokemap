@@ -1,0 +1,32 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart
+00:00 +0: UI08 priority publication refreshes clean simplified record with scene unchanged
+00:01 +0 -1: UI08 priority publication refreshes clean simplified record with scene unchanged [E]
+  Expected: [
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000001, name: Proposition du chef de gare),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000002, name: Voyageuse · avant le départ),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000003, name: Aider la voyageuse),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000004, name: Le chef attend votre retour),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000005, name: Autoriser le départ),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000006, name: Remerciements du chef),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000007, name: Accueil quai)
+            ]
+    Actual: [
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000002, name: Voyageuse · avant le départ),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000003, name: Aider la voyageuse),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000004, name: Le chef attend votre retour),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000005, name: Autoriser le départ),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000006, name: Remerciements du chef),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000007, name: Accueil quai),
+              SceneAsset:SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000001, name: Proposition du chef de gare)
+            ]
+     Which: at location [0] is SceneAsset:<SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000002, name: Voyageuse · avant le départ)> instead of SceneAsset:<SceneAsset(id: scene_evt_019abcde-9000-7000-8000-000000000001, name: Proposition du chef de gare)>
+  
+  package:matcher                                                 expect
+  package:flutter_test/src/widget_tester.dart 473:18              expect
+  test/narrative/interaction_event_roundtrip_ui08_test.dart 75:7  main.<fn>
+  
+00:01 +0 -1: UI08 dirty record blocks simplified changes until explicit discard
+00:02 +1 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart: UI08 priority publication refreshes clean simplified record with scene unchanged

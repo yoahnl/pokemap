@@ -17,6 +17,10 @@ class InteractionEditSession {
     this.readOnlySource,
     this.baseScene,
     this.sceneBaseKnown = false,
+    this.baseEvent,
+    this.eventBaseKnown = false,
+    this.baseCatalog,
+    this.accessProblem,
   }) : current = InteractionEditState(dialogue, interaction) {
     saved = current;
   }
@@ -24,6 +28,11 @@ class InteractionEditSession {
   final String? readOnlySource;
   SceneAsset? baseScene;
   final bool sceneBaseKnown;
+  NarrativeEventRecord? baseEvent;
+  final bool eventBaseKnown;
+  ProjectManifest? baseCatalog;
+  final String? Function()? accessProblem;
+  String? error;
   InteractionEditState current;
   late InteractionEditState saved;
   final List<InteractionEditState> _undo = [];
@@ -31,13 +40,14 @@ class InteractionEditSession {
   bool get dirty => !identical(current, saved);
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
-  bool get editable => readOnlySource == null;
+  bool get editable => readOnlySource == null && accessProblem?.call() == null;
   int branchIndex = 0;
 
   void change({
     DialogueDraft? dialogue,
     NarrativeInteractionDraft? interaction,
   }) {
+    error = accessProblem?.call();
     if (!editable) return;
     _undo.add(current);
     _redo.clear();
@@ -48,6 +58,8 @@ class InteractionEditSession {
   }
 
   void restore({required bool redo}) {
+    error = accessProblem?.call();
+    if (!editable) return;
     final source = redo ? _redo : _undo;
     if (source.isEmpty) return;
     (redo ? _undo : _redo).add(current);

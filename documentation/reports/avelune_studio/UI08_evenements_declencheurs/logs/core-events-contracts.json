@@ -1,0 +1,30 @@
+{
+  "command": [
+    "dart",
+    "test",
+    "--reporter",
+    "expanded",
+    "test/narrative_event_source_ref_test.dart",
+    "test/narrative_event_source_authoring_v2_test.dart",
+    "test/narrative_event_dispatch_authority_test.dart",
+    "test/narrative_event_configuration_authoring_test.dart",
+    "test/narrative_event_publication_test.dart"
+  ],
+  "runnerPid": 58956,
+  "owned": {
+    "58965": [
+      58956,
+      "501",
+      "Sun Sep 20 18:47:06 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/Cellar/dart/3.12.1/libexec --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dart_test.kernel.8jBKFo/output.dill --packages=/Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    ],
+    "59003": [
+      58956,
+      "501",
+      "Sun Sep 20 18:47:08 2026",
+      "<defunct>"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

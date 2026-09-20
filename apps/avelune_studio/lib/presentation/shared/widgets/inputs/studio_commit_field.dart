@@ -7,10 +7,12 @@ class StudioCommitField extends StatefulWidget {
     required this.value,
     required this.onCommit,
     this.maxLines = 1,
+    this.alwaysCommit = false,
   });
   final String label, value;
   final ValueChanged<String> onCommit;
   final int maxLines;
+  final bool alwaysCommit;
   @override
   State<StudioCommitField> createState() => _StudioCommitFieldState();
 }
@@ -23,7 +25,9 @@ class _StudioCommitFieldState extends State<StudioCommitField> {
   }
 
   void _commit() {
-    if (_text.text != widget.value) widget.onCommit(_text.text);
+    if (widget.alwaysCommit || _text.text != widget.value) {
+      widget.onCommit(_text.text);
+    }
   }
 
   @override

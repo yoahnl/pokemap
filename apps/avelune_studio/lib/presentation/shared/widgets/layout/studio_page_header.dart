@@ -7,11 +7,13 @@ class StudioPageHeader extends StatelessWidget {
     this.description,
     this.actions = const [],
     this.alignActionsToEnd = false,
+    this.prominent = false,
   });
   final String title;
   final String? description;
   final List<Widget> actions;
   final bool alignActionsToEnd;
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -22,7 +24,7 @@ class StudioPageHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            Text(title, style: prominent ? Theme.of(context).textTheme.headlineMedium : Theme.of(context).textTheme.titleLarge),
             if (description != null) ...[
               const SizedBox(height: 4),
               Text(description!, style: Theme.of(context).textTheme.bodySmall),

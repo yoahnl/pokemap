@@ -1,0 +1,139 @@
+{
+  "command": [
+    "env",
+    "POKEMAP_MARKDOWN_MAX_NEW=1",
+    "bash",
+    "tools/scripts/check_markdown_hygiene.sh"
+  ],
+  "runnerPid": 5485,
+  "owned": {
+    "5501": [
+      5485,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "bash tools/scripts/check_markdown_hygiene.sh"
+    ],
+    "5502": [
+      5501,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "/Applications/Xcode.app/Contents/Developer/usr/bin/git -C /Users/karim/Project/pokemonProject ls-files --others --exclude-standard"
+    ],
+    "5607": [
+      5485,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "(bash)"
+    ],
+    "5609": [
+      5607,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "(tr)"
+    ],
+    "5710": [
+      5485,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "(bash)"
+    ],
+    "5711": [
+      5710,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "(perl)"
+    ],
+    "5712": [
+      5710,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "(awk)"
+    ],
+    "5827": [
+      5485,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "(bash)"
+    ],
+    "5829": [
+      5827,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "(tr)"
+    ],
+    "5916": [
+      5485,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "(bash)"
+    ],
+    "5946": [
+      5485,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "bash tools/scripts/check_markdown_hygiene.sh"
+    ],
+    "5947": [
+      5946,
+      "501",
+      "Sun Sep 20 19:30:05 2026",
+      "/Applications/Xcode.app/Contents/Developer/usr/bin/git -C /Users/karim/Project/pokemonProject ls-files --others --ignored --exclude-standard -- :(icase,glob)**/*.md :(icase,glob)**/*.mdx :(icase,glob)**/*.markdown"
+    ],
+    "5963": [
+      5485,
+      "501",
+      "Sun Sep 20 19:30:06 2026",
+      "bash tools/scripts/check_markdown_hygiene.sh"
+    ],
+    "6090": [
+      5963,
+      "501",
+      "Sun Sep 20 19:30:07 2026",
+      "(bash)"
+    ],
+    "6092": [
+      6090,
+      "501",
+      "Sun Sep 20 19:30:07 2026",
+      "(bash)"
+    ],
+    "6341": [
+      5963,
+      "501",
+      "Sun Sep 20 19:30:07 2026",
+      "(bash)"
+    ],
+    "6381": [
+      5485,
+      "501",
+      "Sun Sep 20 19:30:07 2026",
+      "bash tools/scripts/check_markdown_hygiene.sh"
+    ],
+    "6474": [
+      6381,
+      "501",
+      "Sun Sep 20 19:30:07 2026",
+      "(bash)"
+    ],
+    "6608": [
+      6381,
+      "501",
+      "Sun Sep 20 19:30:07 2026",
+      "(bash)"
+    ],
+    "6762": [
+      6381,
+      "501",
+      "Sun Sep 20 19:30:07 2026",
+      "(bash)"
+    ],
+    "6764": [
+      6762,
+      "501",
+      "Sun Sep 20 19:30:07 2026",
+      "(tr)"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

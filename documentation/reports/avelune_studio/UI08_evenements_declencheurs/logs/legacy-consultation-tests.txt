@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_legacy_consultation_test.dart
+00:00 +0: canonical historical projections preserve pages, scenario and registry
+00:00 +1: historical library opens read-only detail without modern selection
+00:01 +2: partial historical inventory is explicit and search includes scenario
+00:01 +3: All tests passed!

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "test/ui08_event_runtime_journey_test.dart",
+    "test/support/ui08_event_runtime_fixture.dart"
+  ],
+  "runnerPid": 60135,
+  "owned": {
+    "60137": [
+      60135,
+      "501",
+      "Sun Sep 20 18:48:09 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

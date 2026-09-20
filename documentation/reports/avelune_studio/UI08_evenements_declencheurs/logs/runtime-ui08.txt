@@ -1,0 +1,464 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_map_enter_hMvI9y/project.json mapId=ui08_station
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_map_enter_hMvI9y/project.json
+[runtime_loader] project manifest read ok bytes=5956
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+[runtime_game] tileset image load start map=dialogue_outcome_scene_map
+[runtime_game] tileset cache skipped: no tilesets
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration routes event and custom trigger fronts through Event V2
+[runtime_game] tileset image load start map=trigger_enter_positive_map
+[runtime_game] tileset cache skipped: no tilesets
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+[runtime_game] onLoad start map=dialogue_outcome_scene_map projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dialogue_outcome_scene_4IlqXa/project.json tilesets=0
+[runtime_game] world build start map=dialogue_outcome_scene_map
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration routes event and custom trigger fronts through Event V2
+[runtime_game] onLoad start map=trigger_enter_positive_map projectFilePath=/tmp/v2_21_trigger_enter_trigger_enter_positive_map/project.json tilesets=0
+[runtime_game] world build start map=trigger_enter_positive_map
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+[runtime] Map loaded: dialogue_outcome_scene_map, spawn at (1, 1)
+[runtime_game] tileset image load ok count=0 map=dialogue_outcome_scene_map
+[runtime_game] mount root map start map=dialogue_outcome_scene_map
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration routes event and custom trigger fronts through Event V2
+[runtime] Map loaded: trigger_enter_positive_map, spawn at (0, 1)
+[runtime_game] tileset image load ok count=0 map=trigger_enter_positive_map
+[runtime_game] mount root map start map=trigger_enter_positive_map
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+[runtime_game] mount root map ok map=dialogue_outcome_scene_map
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration routes event and custom trigger fronts through Event V2
+[runtime_game] mount root map ok map=trigger_enter_positive_map
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=ui08_station relativePath=maps/station.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_map_enter_hMvI9y/maps/station.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_map_enter_hMvI9y/maps/station.json
+[runtime_loader] map file read ok bytes=1033
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+[runtime_game] onLoad completed activeMapId=dialogue_outcome_scene_map
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[runtime_loader] map validated id=ui08_station size=4x4 layers=1 entities=2 placedElements=0 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=ui08_station projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_map_enter_hMvI9y tilesets=0
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration routes event and custom trigger fronts through Event V2
+[runtime_game] onLoad completed activeMapId=trigger_enter_positive_map
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+[event_v2] mapEnter activation=mapact_1789922878885668_1 map=dialogue_outcome_scene_map reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[runtime_game] tileset image load start map=ui08_station
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=ui08_station projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_map_enter_hMvI9y/project.json tilesets=0
+[runtime_game] world build start map=ui08_station
+[runtime] Map loaded: ui08_station, spawn at (1, 1)
+[runtime_game] tileset image load ok count=0 map=ui08_station
+[runtime_game] mount root map start map=ui08_station
+[runtime_game] mount root map ok map=ui08_station
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+[dialogue] interaction entity=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879077
+[dialogue] resolved dialogueId=dialogue_outcome_scene_dialogue
+[dialogue] resolved file=dialogues/dialogue_outcome_scene.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879077 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dialogue_outcome_scene_4IlqXa/dialogues/dialogue_outcome_scene.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879077 elapsedMs=9
+[scenario_lock] cleared source=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879077 reason=dialogueOpened serial=1
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration routes event and custom trigger fronts through Event V2
+[event_v2] mapEnter activation=mapact_1789922878887683_1 map=trigger_enter_positive_map reason=initialBoot result=MapEnterProductionDispatchNoFallback
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+[dialogue] opened node=Start choice count=2
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[runtime_game] onLoad completed activeMapId=ui08_station
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a real Yarn choice outcome to its declared Scene port
+[dialogue] choice confirmed index=0 text="Accepter"
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879077 status=completed port=accepted
+[dialogue] finished
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a dialogue without an outcome through completed
+[runtime_game] tileset image load start map=dialogue_outcome_scene_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=dialogue_outcome_scene_map projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dialogue_outcome_scene_9CHNd1/project.json tilesets=0
+[runtime_game] world build start map=dialogue_outcome_scene_map
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration retains a queued trigger occurrence while a checkpoint owns the gate
+[runtime_game] tileset image load start map=trigger_enter_checkpoint_map
+[runtime_game] tileset cache skipped: no tilesets
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a dialogue without an outcome through completed
+[runtime] Map loaded: dialogue_outcome_scene_map, spawn at (1, 1)
+[runtime_game] tileset image load ok count=0 map=dialogue_outcome_scene_map
+[runtime_game] mount root map start map=dialogue_outcome_scene_map
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration retains a queued trigger occurrence while a checkpoint owns the gate
+[runtime_game] onLoad start map=trigger_enter_checkpoint_map projectFilePath=/tmp/v2_21_trigger_enter_trigger_enter_checkpoint_map/project.json tilesets=0
+[runtime_game] world build start map=trigger_enter_checkpoint_map
+[runtime] Map loaded: trigger_enter_checkpoint_map, spawn at (0, 1)
+[runtime_game] tileset image load ok count=0 map=trigger_enter_checkpoint_map
+[runtime_game] mount root map start map=trigger_enter_checkpoint_map
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a dialogue without an outcome through completed
+[runtime_game] mount root map ok map=dialogue_outcome_scene_map
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration retains a queued trigger occurrence while a checkpoint owns the gate
+[runtime_game] mount root map ok map=trigger_enter_checkpoint_map
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a dialogue without an outcome through completed
+[runtime_game] onLoad completed activeMapId=dialogue_outcome_scene_map
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration retains a queued trigger occurrence while a checkpoint owns the gate
+[runtime_game] onLoad completed activeMapId=trigger_enter_checkpoint_map
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a dialogue without an outcome through completed
+[event_v2] mapEnter activation=mapact_1789922879164407_1 map=dialogue_outcome_scene_map reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+[dialogue] interaction entity=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879174
+[dialogue] resolved dialogueId=dialogue_outcome_scene_dialogue
+[dialogue] resolved file=dialogues/dialogue_outcome_scene.yarn
+[dialogue] requested startNode=Start
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration retains a queued trigger occurrence while a checkpoint owns the gate
+[event_v2] mapEnter activation=mapact_1789922879165104_1 map=trigger_enter_checkpoint_map reason=initialBoot result=MapEnterProductionDispatchNoFallback
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port routes a dialogue without an outcome through completed
+[scenario_lock] accepted source=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879174 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dialogue_outcome_scene_9CHNd1/dialogues/dialogue_outcome_scene.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879174 elapsedMs=2
+[scenario_lock] cleared source=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879174 reason=dialogueOpened serial=1
+[dialogue] opened node=Start text="Guide: Continuons."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879174 status=completed port=completed
+[dialogue] finished
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port rejects an unknown Yarn outcome before Scene routing
+[runtime_game] tileset image load start map=dialogue_outcome_scene_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=dialogue_outcome_scene_map projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dialogue_outcome_scene_XPPYIr/project.json tilesets=0
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port rejects an unknown Yarn outcome before Scene routing
+[runtime_game] world build start map=dialogue_outcome_scene_map
+[runtime] Map loaded: dialogue_outcome_scene_map, spawn at (1, 1)
+[runtime_game] tileset image load ok count=0 map=dialogue_outcome_scene_map
+[runtime_game] mount root map start map=dialogue_outcome_scene_map
+[runtime_game] mount root map ok map=dialogue_outcome_scene_map
+[runtime_game] onLoad completed activeMapId=dialogue_outcome_scene_map
+[event_v2] mapEnter activation=mapact_1789922879187175_1 map=dialogue_outcome_scene_map reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration pending warp blocks save and waits for an active checkpoint to finish
+[runtime_game] tileset image load start map=pending_warp_checkpoint_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=pending_warp_checkpoint_map projectFilePath=/tmp/v2_21_trigger_enter_pending_warp_checkpoint_map/project.json tilesets=0
+[runtime_game] world build start map=pending_warp_checkpoint_map
+[runtime] Map loaded: pending_warp_checkpoint_map, spawn at (0, 1)
+[runtime_game] tileset image load ok count=0 map=pending_warp_checkpoint_map
+[runtime_game] mount root map start map=pending_warp_checkpoint_map
+[runtime_game] mount root map ok map=pending_warp_checkpoint_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad completed activeMapId=pending_warp_checkpoint_map
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port rejects an unknown Yarn outcome before Scene routing
+[dialogue] interaction entity=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879197
+[dialogue] resolved dialogueId=dialogue_outcome_scene_dialogue
+[dialogue] resolved file=dialogues/dialogue_outcome_scene.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879197 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dialogue_outcome_scene_XPPYIr/dialogues/dialogue_outcome_scene.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879197 elapsedMs=1
+[scenario_lock] cleared source=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879197 reason=dialogueOpened serial=1
+[dialogue] opened node=Start choice count=1
+[dialogue] choice confirmed index=0 text="Inconnu"
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:event_dialogue_outcome_scene:execution_dialogue_outcome_scene:dialogue_outcome_scene_dialogue:1789922879197 status=completed port=unexpected
+[dialogue] finished
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration pending warp blocks save and waits for an active checkpoint to finish
+[event_v2] mapEnter activation=mapact_1789922879195473_1 map=pending_warp_checkpoint_map reason=initialBoot result=MapEnterProductionDispatchNoFallback
+[warp] Triggered warp checkpoint_warp mode=onEnter -> map=pending_warp_checkpoint_map pos=(3, 1)
+[save] ignored: transient runtime work is not checkpoint-safe flow=overworld loadActivationWork=false activationDispatches= spatialDispatches=0 rootPublications=0 outboxDrain=false activity=idle checkpoint=false pendingWarp=true pendingConnection=false pendingConnectionAnimation=false pendingBattle=false pendingPlacedBehavior=false pendingPlacedWarpTraversal=false pendingTriggerEntries=0 triggerQueueDraining=false
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[dialogue] interaction entity=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a6de-7001-8000-a434398b4d7f:ui08_greeting:1789922879207
+[dialogue] resolved dialogueId=ui08_greeting
+[dialogue] resolved file=dialogues/greeting.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a6de-7001-8000-a434398b4d7f:ui08_greeting:1789922879207 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_map_enter_hMvI9y/dialogues/greeting.yarn
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[runtime_game] tileset image load start map=dialogue_outcome_scene_map
+[runtime_game] tileset cache skipped: no tilesets
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a6de-7001-8000-a434398b4d7f:ui08_greeting:1789922879207 elapsedMs=10
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[runtime_game] onLoad start map=dialogue_outcome_scene_map projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dialogue_outcome_event_v2_0I2D8y/project.json tilesets=0
+[runtime_game] world build start map=dialogue_outcome_scene_map
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[scenario_lock] cleared source=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a6de-7001-8000-a434398b4d7f:ui08_greeting:1789922879207 reason=dialogueOpened serial=1
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[runtime] Map loaded: dialogue_outcome_scene_map, spawn at (1, 1)
+[runtime_game] tileset image load ok count=0 map=dialogue_outcome_scene_map
+[runtime_game] mount root map start map=dialogue_outcome_scene_map
+[runtime_game] mount root map ok map=dialogue_outcome_scene_map
+[runtime_game] onLoad completed activeMapId=dialogue_outcome_scene_map
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[dialogue] opened node=Start text="Chef: Bienvenue en gare UI08."
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration pending warp blocks save and waits for an active checkpoint to finish
+[warp] start transition warp=checkpoint_warp map=pending_warp_checkpoint_map -> pending_warp_checkpoint_map target=(3, 1)
+[perf][warp] loadBundle=0ms
+[warp] target map loaded id=pending_warp_checkpoint_map
+[warp] fade out durationMs=170
+[perf][warp] worldInitial=0ms
+[warp] loading target map visuals id=pending_warp_checkpoint_map
+[runtime_game] tileset cache skipped: no tilesets
+[perf][warp] loadTilesets=0ms
+[perf][warp] loadBorderAssets=0ms
+[perf][warp] revalidateBorderBeforeSwap=0ms
+[perf][warp] mountMap=0ms
+[warp] player placed at map=pending_warp_checkpoint_map pos=(3, 1)
+[perf][warp] configureCamera=0ms
+[perf][warp] preloadConnectionsKickoff=0ms
+[perf][warp] prewarmWarpsKickoff=0ms
+[perf][warp] prewarmBattleKickoff=0ms
+[perf][warp] pruneLoadedMaps=0ms
+[perf][warp] refreshWorldNpcPresence=0ms
+[warp] fade in durationMs=170
+[runtime_game] tileset cache skipped: no tilesets
+[perf][warp] total=25ms
+[warp] transition completed
+[warp] gameplay unlocked map=pending_warp_checkpoint_map pos=(3, 1)
+[event_v2] mapEnter activation=mapact_1789922879221576_2 map=pending_warp_checkpoint_map reason=warp result=MapEnterProductionDispatchNoFallback
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a6de-7001-8000-a434398b4d7f:ui08_greeting:1789922879207 status=completed port=completed
+[dialogue] finished
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration does not emit triggerEnter for a system trigger kind
+[runtime_game] tileset image load start map=trigger_enter_system_excluded_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=trigger_enter_system_excluded_map projectFilePath=/tmp/v2_21_trigger_enter_trigger_enter_system_excluded_map/project.json tilesets=0
+[runtime_game] world build start map=trigger_enter_system_excluded_map
+[runtime] Map loaded: trigger_enter_system_excluded_map, spawn at (0, 1)
+[runtime_game] tileset image load ok count=0 map=trigger_enter_system_excluded_map
+[runtime_game] mount root map start map=trigger_enter_system_excluded_map
+[runtime_game] mount root map ok map=trigger_enter_system_excluded_map
+[runtime_game] onLoad completed activeMapId=trigger_enter_system_excluded_map
+[event_v2] mapEnter activation=mapact_1789922879266676_1 map=trigger_enter_system_excluded_map reason=initialBoot result=MapEnterProductionDispatchNoFallback
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[event_v2] mapEnter activation=mapact_1789922879223536_1 map=dialogue_outcome_scene_map reason=initialBoot result=MapEnterProductionDispatchNoFallback
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration spawn inside is silent and exit then re-entry rearms the trigger
+[runtime_game] tileset image load start map=trigger_enter_rearm_map
+[runtime_game] tileset cache skipped: no tilesets
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 mapEnter activation plays the Scene and emits its real outcome
+[event_v2] mapEnter activation=mapact_1789922879041740_1 map=ui08_station reason=initialBoot result=MapEnterProductionDispatchV2Handled
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration spawn inside is silent and exit then re-entry rearms the trigger
+[runtime_game] onLoad start map=trigger_enter_rearm_map projectFilePath=/tmp/v2_21_trigger_enter_trigger_enter_rearm_map/project.json tilesets=0
+[runtime_game] world build start map=trigger_enter_rearm_map
+[runtime] Map loaded: trigger_enter_rearm_map, spawn at (0, 1)
+[runtime_game] tileset image load ok count=0 map=trigger_enter_rearm_map
+[runtime_game] mount root map start map=trigger_enter_rearm_map
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[dialogue] interaction entity=event-v2:evt_019abcde-6200-7000-8000-000000000001:evx_01a0bfb7-a742-7002-8000-a4720736d6a4:dialogue_outcome_scene_dialogue:1789922879299
+[dialogue] resolved dialogueId=dialogue_outcome_scene_dialogue
+[dialogue] resolved file=dialogues/dialogue_outcome_scene.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-6200-7000-8000-000000000001:evx_01a0bfb7-a742-7002-8000-a4720736d6a4:dialogue_outcome_scene_dialogue:1789922879299 phase=dialogueLoading serial=1
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration spawn inside is silent and exit then re-entry rearms the trigger
+[runtime_game] mount root map ok map=trigger_enter_rearm_map
+[runtime_game] onLoad completed activeMapId=trigger_enter_rearm_map
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[dialogue] parsed 1 node(s) from /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dialogue_outcome_event_v2_0I2D8y/dialogues/dialogue_outcome_scene.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-6200-7000-8000-000000000001:evx_01a0bfb7-a742-7002-8000-a4720736d6a4:dialogue_outcome_scene_dialogue:1789922879299 elapsedMs=4
+[scenario_lock] cleared source=event-v2:evt_019abcde-6200-7000-8000-000000000001:evx_01a0bfb7-a742-7002-8000-a4720736d6a4:dialogue_outcome_scene_dialogue:1789922879299 reason=dialogueOpened serial=1
+[dialogue] opened node=Start choice count=2
+[dialogue] choice confirmed index=0 text="Accepter"
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-6200-7000-8000-000000000001:evx_01a0bfb7-a742-7002-8000-a4720736d6a4:dialogue_outcome_scene_dialogue:1789922879299 status=completed port=accepted
+[dialogue] finished
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration spawn inside is silent and exit then re-entry rearms the trigger
+[event_v2] mapEnter activation=mapact_1789922879295123_1 map=trigger_enter_rearm_map reason=initialBoot result=MapEnterProductionDispatchNoFallback
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 oneShot: real interaction, Yarn, qualified outcome, consumption and second passage
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_LfX9xm/project.json mapId=ui08_station
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_LfX9xm/project.json
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[event_v2] outcome noMatch producer=scene:dialogue_outcome_scene outcome=route.accepted legacyFallbackAllowed=false
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 oneShot: real interaction, Yarn, qualified outcome, consumption and second passage
+[runtime_loader] project manifest read ok bytes=5995
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=ui08_station relativePath=maps/station.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_LfX9xm/maps/station.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_LfX9xm/maps/station.json
+[runtime_loader] map file read ok bytes=1033
+[runtime_loader] map validated id=ui08_station size=4x4 layers=1 entities=2 placedElements=0 warps=0 triggers=0
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[step_studio_trace] runtime_save_requested map=dialogue_outcome_scene_map completedStepIds=[] completedCutsceneIds=[]
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 oneShot: real interaction, Yarn, qualified outcome, consumption and second passage
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=ui08_station projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_LfX9xm tilesets=0
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[runtime_game] tileset cache skipped: no tilesets
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 oneShot: real interaction, Yarn, qualified outcome, consumption and second passage
+[runtime_game] tileset image load start map=ui08_station
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=ui08_station projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_LfX9xm/project.json tilesets=0
+[runtime_game] world build start map=ui08_station
+[runtime] Map loaded: ui08_station, spawn at (1, 1)
+[runtime_game] tileset image load ok count=0 map=ui08_station
+[runtime_game] mount root map start map=ui08_station
+[runtime_game] mount root map ok map=ui08_station
+[runtime_game] onLoad completed activeMapId=ui08_station
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_dialogue_outcome_scene_integration_test.dart: PlayableMapGame Yarn outcome to direct Scene port persists a consumed one-shot Event and does not replay its Yarn branch
+[event_v2] mapEnter activation=mapact_1789922879323680_2 map=dialogue_outcome_scene_map reason=saveRestore result=MapEnterProductionDispatchNoFallback
+[load] game loaded from saveId=dialogue-outcome-scene-save
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 oneShot: real interaction, Yarn, qualified outcome, consumption and second passage
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration overlapping entries remain FIFO while the first Scene has dialogue
+[runtime_game] tileset image load start map=trigger_enter_overlap_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=trigger_enter_overlap_map projectFilePath=/tmp/v2_21_trigger_enter_trigger_enter_overlap_map/project.json tilesets=0
+[runtime_game] world build start map=trigger_enter_overlap_map
+[runtime] Map loaded: trigger_enter_overlap_map, spawn at (0, 1)
+[runtime_game] tileset image load ok count=0 map=trigger_enter_overlap_map
+[runtime_game] mount root map start map=trigger_enter_overlap_map
+[runtime_game] mount root map ok map=trigger_enter_overlap_map
+[runtime_game] onLoad completed activeMapId=trigger_enter_overlap_map
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 oneShot: real interaction, Yarn, qualified outcome, consumption and second passage
+[event_v2] mapEnter activation=mapact_1789922879325873_1 map=ui08_station reason=initialBoot result=MapEnterProductionDispatchNoFallback
+[dialogue] interaction entity=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a774-7002-8000-a490ee0c9b36:ui08_greeting:1789922879349
+[dialogue] resolved dialogueId=ui08_greeting
+[dialogue] resolved file=dialogues/greeting.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a774-7002-8000-a490ee0c9b36:ui08_greeting:1789922879349 phase=dialogueLoading serial=1
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration overlapping entries remain FIFO while the first Scene has dialogue
+[event_v2] mapEnter activation=mapact_1789922879336449_1 map=trigger_enter_overlap_map reason=initialBoot result=MapEnterProductionDispatchNoFallback
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 oneShot: real interaction, Yarn, qualified outcome, consumption and second passage
+[dialogue] parsed 1 node(s) from /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_LfX9xm/dialogues/greeting.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a774-7002-8000-a490ee0c9b36:ui08_greeting:1789922879349 elapsedMs=5
+[scenario_lock] cleared source=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a774-7002-8000-a490ee0c9b36:ui08_greeting:1789922879349 reason=dialogueOpened serial=1
+[dialogue] opened node=Start text="Chef: Bienvenue en gare UI08."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a774-7002-8000-a490ee0c9b36:ui08_greeting:1789922879349 status=completed port=completed
+[dialogue] finished
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration overlapping entries remain FIFO while the first Scene has dialogue
+[dialogue] interaction entity=event-v2:evt_019abcde-3000-7000-8000-000000000004:evx_01a0bfb7-a77a-7002-8000-a494a359755c:dialogue_trigger_fifo:1789922879356
+[dialogue] resolved dialogueId=dialogue_trigger_fifo
+[dialogue] resolved file=dialogues/dialogue_trigger_fifo.yarn
+[dialogue] no startNode, runtime engine will decide entry point
+[scenario_lock] accepted source=event-v2:evt_019abcde-3000-7000-8000-000000000004:evx_01a0bfb7-a77a-7002-8000-a494a359755c:dialogue_trigger_fifo:1789922879356 phase=dialogueLoading serial=1
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-3000-7000-8000-000000000004:evx_01a0bfb7-a77a-7002-8000-a494a359755c:dialogue_trigger_fifo:1789922879356 elapsedMs=1
+[scenario_lock] cleared source=event-v2:evt_019abcde-3000-7000-8000-000000000004:evx_01a0bfb7-a77a-7002-8000-a494a359755c:dialogue_trigger_fifo:1789922879356 reason=dialogueOpened serial=1
+[dialogue] opened node=Start text="Entrée détectée."
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration overlapping entries remain FIFO while the first Scene has dialogue
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 reusable: real interaction, Yarn, qualified outcome, consumption and second passage
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_M38Vbh/project.json mapId=ui08_station
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_M38Vbh/project.json
+[runtime_loader] project manifest read ok bytes=5996
+[runtime_loader] project manifest validated maps=1 tilesets=0 scenarios=0
+[runtime_loader] bundle map resolved mapId=ui08_station relativePath=maps/station.json mapPath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_M38Vbh/maps/station.json
+[runtime_loader] map file lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_M38Vbh/maps/station.json
+[runtime_loader] map file read ok bytes=1033
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration overlapping entries remain FIFO while the first Scene has dialogue
+[dialogue] dialogue closed
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 reusable: real interaction, Yarn, qualified outcome, consumption and second passage
+[runtime_loader] map validated id=ui08_station size=4x4 layers=1 entities=2 placedElements=0 warps=0 triggers=0
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration overlapping entries remain FIFO while the first Scene has dialogue
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-3000-7000-8000-000000000004:evx_01a0bfb7-a77a-7002-8000-a494a359755c:dialogue_trigger_fifo:1789922879356 status=completed port=completed
+[dialogue] finished
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 reusable: real interaction, Yarn, qualified outcome, consumption and second passage
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=ui08_station projectRoot=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_M38Vbh tilesets=0
+[runtime_game] tileset image load start map=ui08_station
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=ui08_station projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_M38Vbh/project.json tilesets=0
+[runtime_game] world build start map=ui08_station
+[runtime] Map loaded: ui08_station, spawn at (1, 1)
+[runtime_game] tileset image load ok count=0 map=ui08_station
+[runtime_game] mount root map start map=ui08_station
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 reusable: real interaction, Yarn, qualified outcome, consumption and second passage
+[runtime_game] mount root map ok map=ui08_station
+[runtime_game] onLoad completed activeMapId=ui08_station
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration holds an on-enter warp until the trigger occurrence is committed
+[runtime_game] tileset image load start map=trigger_enter_warp_interlock_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=trigger_enter_warp_interlock_map projectFilePath=/tmp/v2_21_trigger_enter_trigger_enter_warp_interlock_map/project.json tilesets=0
+[runtime_game] world build start map=trigger_enter_warp_interlock_map
+[runtime] Map loaded: trigger_enter_warp_interlock_map, spawn at (0, 1)
+[runtime_game] tileset image load ok count=0 map=trigger_enter_warp_interlock_map
+[runtime_game] mount root map start map=trigger_enter_warp_interlock_map
+[runtime_game] mount root map ok map=trigger_enter_warp_interlock_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad completed activeMapId=trigger_enter_warp_interlock_map
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 reusable: real interaction, Yarn, qualified outcome, consumption and second passage
+[event_v2] mapEnter activation=mapact_1789922879392738_1 map=ui08_station reason=initialBoot result=MapEnterProductionDispatchNoFallback
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration holds an on-enter warp until the trigger occurrence is committed
+[event_v2] mapEnter activation=mapact_1789922879397738_1 map=trigger_enter_warp_interlock_map reason=initialBoot result=MapEnterProductionDispatchNoFallback
+[warp] Triggered warp warp_after_trigger mode=onEnter -> map=trigger_enter_warp_interlock_map pos=(3, 1)
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 reusable: real interaction, Yarn, qualified outcome, consumption and second passage
+[dialogue] interaction entity=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7ac-7002-8000-a4b38a2f39ee:ui08_greeting:1789922879405
+[dialogue] resolved dialogueId=ui08_greeting
+[dialogue] resolved file=dialogues/greeting.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7ac-7002-8000-a4b38a2f39ee:ui08_greeting:1789922879405 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_M38Vbh/dialogues/greeting.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7ac-7002-8000-a4b38a2f39ee:ui08_greeting:1789922879405 elapsedMs=2
+[scenario_lock] cleared source=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7ac-7002-8000-a4b38a2f39ee:ui08_greeting:1789922879405 reason=dialogueOpened serial=1
+[dialogue] opened node=Start text="Chef: Bienvenue en gare UI08."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7ac-7002-8000-a4b38a2f39ee:ui08_greeting:1789922879405 status=completed port=completed
+[dialogue] finished
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration holds an on-enter warp until the trigger occurrence is committed
+[warp] start transition warp=warp_after_trigger map=trigger_enter_warp_interlock_map -> trigger_enter_warp_interlock_map target=(3, 1)
+[perf][warp] loadBundle=0ms
+[warp] target map loaded id=trigger_enter_warp_interlock_map
+[warp] fade out durationMs=170
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 reusable: real interaction, Yarn, qualified outcome, consumption and second passage
+[dialogue] interaction entity=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7b7-7007-8000-a4ba5691748e:ui08_greeting:1789922879415
+[dialogue] resolved dialogueId=ui08_greeting
+[dialogue] resolved file=dialogues/greeting.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7b7-7007-8000-a4ba5691748e:ui08_greeting:1789922879415 phase=dialogueLoading serial=2
+[dialogue] parsed 1 node(s) from /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/ui08_runtime_M38Vbh/dialogues/greeting.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7b7-7007-8000-a4ba5691748e:ui08_greeting:1789922879415 elapsedMs=1
+[scenario_lock] cleared source=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7b7-7007-8000-a4ba5691748e:ui08_greeting:1789922879415 reason=dialogueOpened serial=2
+[dialogue] opened node=Start text="Chef: Bienvenue en gare UI08."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-8000-7000-8000-000000000001:evx_01a0bfb7-a7b7-7007-8000-a4ba5691748e:ui08_greeting:1789922879415 status=completed port=completed
+[dialogue] finished
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration holds an on-enter warp until the trigger occurrence is committed
+[perf][warp] worldInitial=0ms
+[warp] loading target map visuals id=trigger_enter_warp_interlock_map
+[runtime_game] tileset cache skipped: no tilesets
+[perf][warp] loadTilesets=0ms
+[perf][warp] loadBorderAssets=0ms
+[perf][warp] revalidateBorderBeforeSwap=0ms
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 reusable: real interaction, Yarn, qualified outcome, consumption and second passage
+[event_v2] outcome noMatch producer=scene:ui08_station_meeting outcome=meeting.completed legacyFallbackAllowed=false
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration holds an on-enter warp until the trigger occurrence is committed
+[perf][warp] mountMap=2ms
+[warp] player placed at map=trigger_enter_warp_interlock_map pos=(3, 1)
+[perf][warp] configureCamera=0ms
+[perf][warp] preloadConnectionsKickoff=0ms
+[perf][warp] prewarmWarpsKickoff=0ms
+[perf][warp] prewarmBattleKickoff=0ms
+[perf][warp] pruneLoadedMaps=0ms
+[perf][warp] refreshWorldNpcPresence=0ms
+[warp] fade in durationMs=170
+[runtime_game] tileset cache skipped: no tilesets
+00:00 +13: /Users/karim/Project/pokemonProject/packages/map_runtime/test/ui08_event_runtime_journey_test.dart: UI08 reusable: real interaction, Yarn, qualified outcome, consumption and second passage
+00:00 +14: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration validated claimed-ineligible entry never invokes legacy fallback
+[runtime_game] tileset image load start map=trigger_enter_claimed_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=trigger_enter_claimed_map projectFilePath=/tmp/v2_21_trigger_enter_trigger_enter_claimed_map/project.json tilesets=0
+[runtime_game] world build start map=trigger_enter_claimed_map
+[runtime] Map loaded: trigger_enter_claimed_map, spawn at (0, 1)
+[runtime_game] tileset image load ok count=0 map=trigger_enter_claimed_map
+[runtime_game] mount root map start map=trigger_enter_claimed_map
+[runtime_game] mount root map ok map=trigger_enter_claimed_map
+[runtime_game] onLoad completed activeMapId=trigger_enter_claimed_map
+[event_v2] mapEnter activation=mapact_1789922879443853_1 map=trigger_enter_claimed_map reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+00:00 +15: /Users/karim/Project/pokemonProject/packages/map_runtime/test/playable_map_game_trigger_enter_v2_integration_test.dart: NS-EVENT-V2-21 PlayableMapGame triggerEnter integration trigger outcome retry stays pending and releases the detached queue
+[runtime_game] tileset image load start map=trigger_enter_retry_map
+[runtime_game] tileset cache skipped: no tilesets
+[runtime_game] onLoad start map=trigger_enter_retry_map projectFilePath=/tmp/v2_21_trigger_enter_trigger_enter_retry_map/project.json tilesets=0
+[runtime_game] world build start map=trigger_enter_retry_map
+[runtime] Map loaded: trigger_enter_retry_map, spawn at (0, 1)
+[runtime_game] tileset image load ok count=0 map=trigger_enter_retry_map
+[runtime_game] mount root map start map=trigger_enter_retry_map
+[runtime_game] mount root map ok map=trigger_enter_retry_map
+[runtime_game] onLoad completed activeMapId=trigger_enter_retry_map
+[event_v2] mapEnter activation=mapact_1789922879468635_1 map=trigger_enter_retry_map reason=initialBoot result=MapEnterProductionDispatchNoFallback
+[event_v2] detached triggerEnter.queue left retry pending delivery=outd_01a0bfb7-a7f5-7004-8000-a4e0a800ed69 failure=Bad state: retryable trigger outcome infrastructure failure
+#0      PlayableMapGame._drainLiveNarrativeOutcomeOutbox.<anonymous closure> (package:map_runtime/src/presentation/flame/playable_map_game.dart:1406:13)
+<asynchronous suspension>
+
+[step_studio_trace] runtime_save_requested map=trigger_enter_retry_map completedStepIds=[] completedCutsceneIds=[]
+00:00 +16: All tests passed!

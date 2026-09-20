@@ -85,6 +85,44 @@ class NarrativeInteractionPane extends StatelessWidget {
               secondary: true,
               onPressed: controller.busy ? null : onTest,
             ),
+            if (edit.dirty)
+              StudioButton(
+                label: 'Abandonner ce brouillon',
+                secondary: true,
+                onPressed: controller.busy
+                    ? null
+                    : () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogContext) => AlertDialog(
+                            title: const Text(
+                              'Abandonner les modifications de cette interaction ?',
+                            ),
+                            content: const Text(
+                              'Seul ce brouillon simplifié sera fermé. La carte, les scènes et les autres brouillons seront conservés.',
+                            ),
+                            actions: [
+                              StudioButton(
+                                label: 'Conserver',
+                                secondary: true,
+                                onPressed: () =>
+                                    Navigator.pop(dialogContext, false),
+                              ),
+                              StudioButton(
+                                label: 'Abandonner',
+                                onPressed: () =>
+                                    Navigator.pop(dialogContext, true),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true &&
+                            context.mounted &&
+                            controller.discardInteraction(interaction.id)) {
+                          onBack();
+                        }
+                      },
+              ),
           ],
         ),
         Expanded(

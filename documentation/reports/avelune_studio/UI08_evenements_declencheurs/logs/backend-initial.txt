@@ -1,0 +1,7 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart
+00:00 +0: draft creation save reopens without inventing scene or changing registry mode
+00:01 +1: editing activated record disables only local snapshot and history restores enabled
+00:01 +2: duplicate is distinct draft and deletion uses canonical confirmation
+00:02 +3: nested expression retained, incompatible reset rejected atomically
+00:02 +4: canonical simulation handles disabled configured and consumed states without writes
+00:02 +5: All tests passed!

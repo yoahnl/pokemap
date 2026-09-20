@@ -1,0 +1,21 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/presentation/features/events/event_library.dart",
+    "lib/presentation/features/events/event_legacy_catalog.dart",
+    "lib/presentation/features/events/event_legacy_detail.dart",
+    "test/events_ui08_legacy_consultation_test.dart"
+  ],
+  "runnerPid": 92939,
+  "owned": {
+    "92941": [
+      92939,
+      "501",
+      "Sun Sep 20 19:20:18 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

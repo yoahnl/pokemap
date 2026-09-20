@@ -1,0 +1,21 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_coexistence_ui08_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_coexistence_ui08_test.dart: record-only publication invalidates a clean simplified session and reloads new priority
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_reconciliation_ui07_test.dart: clean graph reconciles simplified publication and saves from new base
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_reconciliation_ui07_test.dart: clean graph reconciles simplified publication and saves from new base
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_reconciliation_ui07_test.dart: clean graph reconciles simplified publication and saves from new base
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_reconciliation_ui07_test.dart: clean graph reconciles simplified publication and saves from new base
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_reconciliation_ui07_test.dart: clean graph reconciles simplified publication and saves from new base
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: only latest dialogue opening becomes an edit session
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: only latest dialogue opening becomes an edit session
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: only latest dialogue opening becomes an edit session
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: only latest dialogue opening becomes an edit session
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: superseded map load cannot switch map or read its dialogue
+00:00 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: closing workspace during read cannot publish late state
+00:00 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: catalogue replacement invalidates an outstanding read
+00:00 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: explicit cancellation prevents late errors and sessions
+00:00 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: localizing uses dirty source and preserves history without writes
+00:00 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: missing source produces local diagnosis and no fictitious session
+00:00 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: resuming local draft retains edits and restores original map
+00:00 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: whitespace-only steps cannot create empty stories
+00:00 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart: zone localization resolves its current rectangle without editing
+00:00 +19: All tests passed!

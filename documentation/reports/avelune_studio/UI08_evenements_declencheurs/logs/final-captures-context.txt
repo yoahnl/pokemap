@@ -1,0 +1,14 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_map_context_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_map_context_test.dart: resizing keeps the same map point centered at the same zoom
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_map_context_test.dart: changing source kind cannot reselect the old entity overlay
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_map_context_test.dart: context does not outline an entity homonym on another map
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_map_context_test.dart: source picking follows the transformed target and is read only
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_map_context_test.dart: map source cannot be chosen when catalog marks it unavailable
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_map_context_test.dart: zoom controls respect viewport bounds and Escape cancels pick
+00:00 +6: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart: UI08 complete source conditions scene publication simulation and returns
+00:14 +7: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart
+00:14 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+00:21 +8: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_sources_test.dart
+00:22 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_sources_test.dart: UI08 four real sources preserve exact targets and Escape cancels without writes
+00:30 +9: All tests passed!

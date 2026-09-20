@@ -26,6 +26,14 @@ void main() {
   setUp(() async {
     maps = MapWorkspaceController(workspaceSession, WorkspaceMemoryPort());
     await maps.initialize();
+    maps.project = maps.project!.copyWith(
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.legacyOnly,
+        records: [advanced],
+        legacyClaims: [],
+      ),
+    );
     port = _Port(maps);
     narrative = NarrativeWorkspaceController(
       maps,

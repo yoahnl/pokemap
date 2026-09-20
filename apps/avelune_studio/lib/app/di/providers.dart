@@ -4,3 +4,4 @@ export 'resource_providers.dart';
 export 'narrative_providers.dart';
 export 'scene_providers.dart';
 export 'story_providers.dart';
+export 'event_providers.dart';

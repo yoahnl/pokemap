@@ -1,0 +1,15 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui06_scene_playtest_guard_test.dart: scene changed while the following real map save waits cannot launch an old scene
+00:01 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui06_scene_playtest_guard_test.dart: scene changed while the following real map save waits cannot launch an old scene
+00:01 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui06_scene_playtest_guard_test.dart: scene changed while the following real map save waits cannot launch an old scene
+00:01 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: pending event input is flushed and dirty record blocks launch before disk reads
+00:02 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui07_story_playtest_guard_test.dart: runtime rejects fact changed during subsequent map publication
+00:02 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: published disabled event refuses runtime launch
+00:02 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui07_story_playtest_guard_test.dart: runtime rejects delete changed during subsequent map publication
+00:03 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: published draft refuses runtime launch
+00:03 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: launch refuses selection changing during asynchronous read
+00:03 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: launch refuses record changing during asynchronous read
+00:03 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: launch refuses map changing during asynchronous read
+00:03 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: launch refuses project changing during asynchronous read
+00:03 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: flush failure blocks close and both playtest routes without rejected UI futures
+00:04 +13: All tests passed!

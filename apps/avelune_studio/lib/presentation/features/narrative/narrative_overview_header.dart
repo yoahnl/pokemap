@@ -12,13 +12,14 @@ class NarrativeOverviewHeader extends StatelessWidget {
     required this.onCreated,
     this.compactDetail = false,
     this.onScenes,
+    this.onEvents,
     this.onProgression,
   });
   final NarrativeWorkspaceController controller;
   final String summary;
   final VoidCallback onCreated;
   final bool compactDetail;
-  final VoidCallback? onScenes, onProgression;
+  final VoidCallback? onScenes, onProgression, onEvents;
 
   @override
   Widget build(BuildContext context) => compactDetail
@@ -36,6 +37,8 @@ class NarrativeOverviewHeader extends StatelessWidget {
               icon: const Icon(Icons.more_horiz),
               onSelected: (action) {
                 switch (action) {
+                  case 'events':
+                    onEvents?.call();
                   case 'progression':
                     onProgression?.call();
                   case 'scenes':
@@ -49,6 +52,11 @@ class NarrativeOverviewHeader extends StatelessWidget {
                 }
               },
               itemBuilder: (_) => [
+                if (onEvents != null)
+                  const PopupMenuItem(
+                    value: 'events',
+                    child: Text('Événements et déclencheurs'),
+                  ),
                 if (onProgression != null)
                   const PopupMenuItem(
                     value: 'progression',
@@ -84,6 +92,13 @@ class NarrativeOverviewHeader extends StatelessWidget {
               actions: compactDetail
                   ? const []
                   : [
+                      if (onEvents != null)
+                        StudioButton(
+                          label: 'Événements',
+                          icon: Icons.bolt_outlined,
+                          secondary: true,
+                          onPressed: onEvents,
+                        ),
                       if (onProgression != null)
                         StudioButton(
                           label: 'Histoires et progression',

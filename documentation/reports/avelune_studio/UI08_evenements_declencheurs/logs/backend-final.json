@@ -1,0 +1,65 @@
+{
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub",
+    "--reporter",
+    "expanded",
+    "test/events",
+    "test/stories/story_publication_ui07_test.dart",
+    "test/scenes/scene_publication_ui06_test.dart"
+  ],
+  "runnerPid": 73192,
+  "owned": {
+    "73263": [
+      73192,
+      "501",
+      "Sun Sep 20 19:01:42 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root /opt/homebrew/share/flutter/bin/cache/artifacts/engine/common/flutter_patched_sdk/ --incremental --no-print-incremental-dependencies --target=flutter --experimental-emit-debug-metadata -DFLUTTER_BUILD_NAME=0.1.0 -DFLUTTER_BUILD_NUMBER=1 -DFLUTTER_VERSION=3.48.0-0.4.pre -DFLUTTER_CHANNEL=beta -DFLUTTER_GIT_URL=https://github.com/flutter/flutter.git -DFLUTTER_FRAMEWORK_REVISION=e3005e3402 -DFLUTTER_ENGINE_REVISION=e2149387c6 -DFLUTTER_DART_VERSION=3.14.0 (build 3.14.0-95.2.beta) --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.PsSz2b/flutter_test_compiler.M0u2n0/output.dill --packages /Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json -Ddart.vm.profile=false -Ddart.vm.product=false --enable-asserts --track-creation-locations --initialize-from-dill /Users/karim/Project/pokemonProject/apps/avelune_studio/build/test_cache/build/96bdb3d9eefa773c53f47e8dfdfce411.cache.dill.track.dill --verbosity=error --enable-experiment=alternative-invalidation-strategy"
+    ],
+    "73296": [
+      73192,
+      "501",
+      "Sun Sep 20 19:01:43 2026",
+      "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.PsSz2b/flutter_test_listener.ilzxKe/listener.dart.dill"
+    ],
+    "73298": [
+      73192,
+      "501",
+      "Sun Sep 20 19:01:44 2026",
+      "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.PsSz2b/flutter_test_listener.bV8YlQ/listener.dart.dill"
+    ],
+    "73299": [
+      73192,
+      "501",
+      "Sun Sep 20 19:01:44 2026",
+      "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.PsSz2b/flutter_test_listener.GqlRXV/listener.dart.dill"
+    ],
+    "73301": [
+      73192,
+      "501",
+      "Sun Sep 20 19:01:44 2026",
+      "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.PsSz2b/flutter_test_listener.33xumH/listener.dart.dill"
+    ],
+    "73303": [
+      73192,
+      "501",
+      "Sun Sep 20 19:01:44 2026",
+      "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.PsSz2b/flutter_test_listener.V8nEZo/listener.dart.dill"
+    ],
+    "73338": [
+      73192,
+      "501",
+      "Sun Sep 20 19:01:46 2026",
+      "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.PsSz2b/flutter_test_listener.DK2XYW/listener.dart.dill"
+    ],
+    "73343": [
+      73192,
+      "501",
+      "Sun Sep 20 19:01:47 2026",
+      "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.PsSz2b/flutter_test_listener.ufKVHK/listener.dart.dill"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

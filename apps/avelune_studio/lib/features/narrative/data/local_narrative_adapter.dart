@@ -10,6 +10,7 @@ import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/narrative_port.dart';
+import 'narrative_publication_baselines.dart';
 
 class LocalNarrativeAdapter implements NarrativePort {
   const LocalNarrativeAdapter({
@@ -51,6 +52,7 @@ class LocalNarrativeAdapter implements NarrativePort {
         throw const NarrativeFailure('La carte de publication a changé.');
       }
       final baseline = await mapAdapter.resourceBaseline(session);
+      validateNarrativePublicationBases(publication, baseline.manifest);
       const reader = LocalProjectFileReader();
       final policy = await WorkspacePolicy.create(
         allowedRootPaths: [session.directoryPath],

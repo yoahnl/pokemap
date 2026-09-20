@@ -21,6 +21,7 @@ class LocalNarrativeCatalogTransaction {
   Future<ResourceMutationReceipt> run({
     required String actionId,
     required Map<String, Object?> Function(ProjectManifest) parameters,
+    void Function(ProjectManifest, List<MapData>)? validate,
   }) => mapAdapter.withResourceMutation(() async {
     final baseline = await mapAdapter.resourceBaseline(session);
     final fields = parameters(baseline.manifest);
@@ -50,6 +51,7 @@ class LocalNarrativeCatalogTransaction {
       );
       attached = true;
       final snapshot = await snapshots.load(opened.projectHandle);
+      validate?.call(snapshot.manifest, snapshot.maps);
       if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
           baseline.revision) {
         throw const NarrativeCatalogFailure(
@@ -86,7 +88,8 @@ class LocalNarrativeCatalogTransaction {
         jsonDecode(utf8.decode(projectBytes)) as Map<String, dynamic>,
       );
       if (changes.isNotEmpty) {
-        final confirmation = actionId == 'storyline.delete'
+        final confirmation =
+            (actionId == 'storyline.delete' || actionId == 'event_v2.delete')
             ? await api.confirmMutation(
                 opened.projectHandle,
                 planId: planned.planId,

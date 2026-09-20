@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/events/application/event_workspace_controller.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
@@ -22,6 +23,7 @@ class WorkspaceActions {
     required this.resources,
     required this.narrative,
     this.scenes,
+    this.events,
     required this.runtimeBuilder,
   });
   final MapWorkspaceController controller;
@@ -31,21 +33,25 @@ class WorkspaceActions {
   final ResourceNavigation? Function() resources;
   final NarrativeWorkspaceController? Function() narrative;
   final SceneWorkspaceController? Function()? scenes;
+  final EventWorkspaceController? Function()? events;
   final StudioRuntimeBuilder runtimeBuilder;
   bool testing = false;
   bool closing = false;
   bool get busy =>
       testing ||
       closing ||
+      events?.call()?.busy == true ||
       scenes?.call()?.busy == true ||
       resources()?.busy == true ||
       narrative()?.busy == true;
 
   Future<bool> allowClose() async {
+    if (!await _flushEventEdits()) return false;
     if (controller.saving || busy) return false;
     if (!controller.dirty &&
         resources()?.dirty != true &&
         narrative()?.dirty != true &&
+        events?.call()?.dirty != true &&
         scenes?.call()?.dirty != true) {
       return true;
     }
@@ -62,6 +68,9 @@ class WorkspaceActions {
           return false;
         }
         if (narrative() != null && !await narrative()!.saveAll()) return false;
+        if (events?.call() case final eventController?) {
+          if (!await eventController.saveAll()) return false;
+        }
         return await controller.saveAll();
       }
       return choice == 'discard';
@@ -72,6 +81,12 @@ class WorkspaceActions {
   }
 
   Future<void> test() async {
+    if (!await _flushEventEdits()) return;
+    if (events?.call()?.dirty == true) {
+      events!.call()!.error = 'Enregistrez les événements avant de tester.';
+      changed();
+      return;
+    }
     final document = controller.active;
     if (document == null || busy || controller.loading) return;
     final entry = controller.project!.maps.firstWhere(
@@ -103,6 +118,11 @@ class WorkspaceActions {
         return;
       }
       final narrativeController = narrative();
+      if (events?.call()?.dirty == true) {
+        events!.call()!.error =
+            'Les événements ont changé pendant la préparation. Enregistrez-les avant de tester.';
+        return;
+      }
       if (narrativeController != null &&
           (narrativeController.pendingStories.isNotEmpty ||
               narrativeController.pendingStoryDeletions.isNotEmpty ||
@@ -123,6 +143,25 @@ class WorkspaceActions {
     } finally {
       testing = false;
       changed();
+    }
+  }
+
+  Future<bool> _flushEventEdits() async {
+    final owner = events?.call();
+    try {
+      await owner?.flushEdits?.call();
+      return mounted() &&
+          !controller.isDisposed &&
+          identical(owner, events?.call());
+    } catch (failure) {
+      if (mounted() && !controller.isDisposed) {
+        final message =
+            'L’édition d’événement en cours ne peut pas être validée : $failure';
+        owner?.error = message;
+        controller.error = message;
+        changed();
+      }
+      return false;
     }
   }
 }

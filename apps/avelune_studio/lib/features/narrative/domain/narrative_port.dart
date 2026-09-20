@@ -23,6 +23,12 @@ class NarrativePublication {
     this.facts = const [],
     this.storylines = const [],
     this.events = const [],
+    this.expectedEvents = const {},
+    this.expectedScenes = const {},
+    this.expectedCinematics = const {},
+    this.expectedDialogues = const {},
+    this.expectedFacts = const {},
+    this.expectedStorylines = const {},
   });
   final MapWorkspaceDocument base;
   final MapData current;
@@ -32,6 +38,12 @@ class NarrativePublication {
   final List<NarrativeFactDefinition> facts;
   final List<StorylineAsset> storylines;
   final List<NarrativeEventRecord> events;
+  final Map<String, NarrativeEventRecord?> expectedEvents;
+  final Map<String, SceneAsset?> expectedScenes;
+  final Map<String, CinematicAsset?> expectedCinematics;
+  final Map<String, ProjectDialogueEntry?> expectedDialogues;
+  final Map<String, NarrativeFactDefinition?> expectedFacts;
+  final Map<String, StorylineAsset?> expectedStorylines;
 }
 
 class NarrativePublicationReceipt {

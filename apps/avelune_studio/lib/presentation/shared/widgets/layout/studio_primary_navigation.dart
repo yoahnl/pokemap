@@ -21,7 +21,8 @@ class StudioPrimaryNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final selectedDestination = active == 'scene' || active == 'progression'
+    final selectedDestination =
+        active == 'scene' || active == 'progression' || active == 'events'
         ? 'story'
         : active;
     final items = [

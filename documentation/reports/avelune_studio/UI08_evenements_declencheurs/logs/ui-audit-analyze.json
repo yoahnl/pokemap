@@ -1,0 +1,21 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/presentation/features/events/event_context_map.dart",
+    "lib/presentation/features/events/event_simulation_dialog.dart",
+    "test/events_ui08_map_context_test.dart",
+    "test/events_ui08_conditions_simulation_test.dart"
+  ],
+  "runnerPid": 79701,
+  "owned": {
+    "79703": [
+      79701,
+      "501",
+      "Sun Sep 20 19:08:01 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

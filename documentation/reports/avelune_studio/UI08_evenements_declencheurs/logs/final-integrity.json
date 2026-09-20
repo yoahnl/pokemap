@@ -1,0 +1,18 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import subprocess,pathlib; print(\"Branch:\",subprocess.check_output([\"git\",\"branch\",\"--show-current\"],text=True).strip()); print(\"HEAD:\",subprocess.check_output([\"git\",\"rev-parse\",\"HEAD\"],text=True).strip()); subprocess.run([\"git\",\"diff\",\"--check\"],check=True); names=subprocess.check_output([\"git\",\"ls-files\",\"--modified\",\"--others\",\"--exclude-standard\"],text=True).splitlines(); sizes=[(p,len(pathlib.Path(p).read_text().splitlines())) for p in names if p.endswith(\".dart\")]; assert all(n<=300 for p,n in sizes),sizes; print(\"Dart files checked:\",len(sizes),\"maximum lines:\",max(n for p,n in sizes)); print(\"Status:\"); subprocess.run([\"git\",\"status\",\"--short\",\"--untracked-files=all\"],check=True)"
+  ],
+  "runnerPid": 10703,
+  "owned": {
+    "10708": [
+      10703,
+      "501",
+      "Sun Sep 20 19:33:29 2026",
+      "(git)"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

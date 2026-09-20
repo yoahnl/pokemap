@@ -1,0 +1,14 @@
+{
+  "tool": "mcp__pokemap__pokemap_describe",
+  "arguments": {},
+  "result": {
+    "ok": false,
+    "error": {
+      "code": "worker.exited",
+      "message": "The canonical Authoring worker exited unexpectedly (code 78).",
+      "retryable": false,
+      "details": { "exitCode": 78 }
+    }
+  },
+  "qualification": "Live configured connector unavailable; packaged transport tests are separate evidence."
+}

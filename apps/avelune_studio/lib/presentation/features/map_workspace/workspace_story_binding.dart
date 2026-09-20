@@ -13,6 +13,12 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   void _saveWorkspaceDocument() {
+    if (_space == WorkspaceSpace.events) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      FocusManager.instance.applyFocusChangesIfNeeded();
+      unawaited(_events?.saveAll());
+      return;
+    }
     if (_space == WorkspaceSpace.progression) {
       FocusManager.instance.primaryFocus?.unfocus();
       FocusManager.instance.applyFocusChangesIfNeeded();
@@ -41,14 +47,25 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
     final scenes = _scenes;
     if (scenes == null) return 'L’éditeur de scène est indisponible.';
     if (!scenes.open(sceneId)) return scenes.error;
-    _sceneOrigin = _space == WorkspaceSpace.progression
-        ? WorkspaceSpace.progression
-        : WorkspaceSpace.story;
+    _sceneOrigin = switch (_space) {
+      WorkspaceSpace.progression => WorkspaceSpace.progression,
+      WorkspaceSpace.events => WorkspaceSpace.events,
+      _ => WorkspaceSpace.story,
+    };
     _show(WorkspaceSpace.scene);
     return null;
   }
 
   Future<void> _editInteraction(MapEntity entity) async {
+    if (_events != null && _controller.active != null) {
+      await _openEventSource(
+        NarrativeEventSourceRef.entityInteract(
+          _controller.active!.current.id,
+          entity.id,
+        ),
+      );
+      return;
+    }
     final document = _controller.active;
     final narrative = _narrative;
     if (narrative == null || document == null) return;
@@ -83,6 +100,10 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   Future<String?> _openStoryInteraction(String id) async {
+    if (_events?.record(id) != null) {
+      _openEvents(id);
+      return null;
+    }
     final narrative = _narrative;
     if (narrative == null) return 'Le projet narratif est indisponible.';
     final request = ++_navigationRequest;

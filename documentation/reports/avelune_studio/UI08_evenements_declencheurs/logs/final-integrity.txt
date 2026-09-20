@@ -1,0 +1,166 @@
+ M apps/avelune_studio/lib/app/di/providers.dart
+ M apps/avelune_studio/lib/app/studio_bootstrap.dart
+ M apps/avelune_studio/lib/features/narrative/application/interaction_edit_session.dart
+ M apps/avelune_studio/lib/features/narrative/application/narrative_interaction_opener.dart
+ M apps/avelune_studio/lib/features/narrative/application/narrative_workspace_controller.dart
+ M apps/avelune_studio/lib/features/narrative/data/local_narrative_adapter.dart
+ M apps/avelune_studio/lib/features/narrative/data/local_narrative_catalog_transaction.dart
+ M apps/avelune_studio/lib/features/narrative/domain/narrative_port.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_actions.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_secondary_content.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_story_binding.dart
+ M apps/avelune_studio/lib/presentation/features/narrative/narrative_interaction_pane.dart
+ M apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_header.dart
+ M apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_commit_field.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_page_header.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_primary_navigation.dart
+ M apps/avelune_studio/lib/presentation/shell/studio_workspace_host.dart
+ M apps/avelune_studio/test/narrative/narrative_error_scope_test.dart
+?? apps/avelune_studio/lib/app/di/event_providers.dart
+?? apps/avelune_studio/lib/features/events/application/event_publication_order.dart
+?? apps/avelune_studio/lib/features/events/application/event_workspace_catalog.dart
+?? apps/avelune_studio/lib/features/events/application/event_workspace_commands.dart
+?? apps/avelune_studio/lib/features/events/application/event_workspace_controller.dart
+?? apps/avelune_studio/lib/features/events/application/event_workspace_publication.dart
+?? apps/avelune_studio/lib/features/events/data/local_event_adapter.dart
+?? apps/avelune_studio/lib/features/events/domain/event_port.dart
+?? apps/avelune_studio/lib/features/events/domain/event_record_view.dart
+?? apps/avelune_studio/lib/features/narrative/application/narrative_interaction_loading.dart
+?? apps/avelune_studio/lib/features/narrative/application/narrative_session_coexistence.dart
+?? apps/avelune_studio/lib/features/narrative/application/narrative_workspace_publication.dart
+?? apps/avelune_studio/lib/features/narrative/data/narrative_publication_baselines.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_condition_dialog.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_condition_labels.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_conditions.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_context_map.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_labels.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_legacy_catalog.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_legacy_detail.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_library.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_map_loader.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_options_panel.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_outcome_picker.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_page_content.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_playtest.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_registry_dialog.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_scene_effects.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_scene_panel.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_simulation_dialog.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_source_identity.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_summary.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_trigger_panel.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_view_state.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_workspace_layout.dart
+?? apps/avelune_studio/lib/presentation/features/events/event_workspace_page.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/workspace_event_binding.dart
+?? apps/avelune_studio/test/events/event_catalog_ui08_test.dart
+?? apps/avelune_studio/test/events/event_flush_ui08_test.dart
+?? apps/avelune_studio/test/events/event_publication_ui08_test.dart
+?? apps/avelune_studio/test/events/event_recovery_ui08_test.dart
+?? apps/avelune_studio/test/events/event_sources_ui08_test.dart
+?? apps/avelune_studio/test/events/event_workspace_ui08_test.dart
+?? apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart
+?? apps/avelune_studio/test/events_ui08_legacy_consultation_test.dart
+?? apps/avelune_studio/test/events_ui08_map_context_test.dart
+?? apps/avelune_studio/test/events_ui08_source_loading_test.dart
+?? apps/avelune_studio/test/narrative/interaction_event_coexistence_ui08_test.dart
+?? apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart
+?? apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart
+?? apps/avelune_studio/test/presentation/ui08_event_focus_test.dart
+?? apps/avelune_studio/test/presentation/ui08_event_journey_test.dart
+?? apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart
+?? apps/avelune_studio/test/presentation/ui08_event_sources_test.dart
+?? apps/avelune_studio/test/support/delayed_event_port.dart
+?? apps/avelune_studio/test/support/event_backend_fixture.dart
+?? apps/avelune_studio/test/support/event_playtest_harness.dart
+?? apps/avelune_studio/test/support/ui08_event_fixture.dart
+?? apps/avelune_studio/test/support/ui08_journey_driver.dart
+?? apps/avelune_studio/test/support/ui08_workspace_harness.dart
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/README.md
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/captures/01-evenements-composition.png
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/captures/02-choix-source-carte.png
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/captures/03-conditions-lisibles.png
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/captures/04-retour-scene-brouillons.png
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/captures/05-evenement-configure.png
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/captures/06-simulation-canonique.png
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/captures/07-compact-texte150.png
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/authoring-modern-events.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/authoring-modern-events.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/backend-final.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/backend-final.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/backend-flush.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/backend-flush.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/backend-initial.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/backend-initial.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/backend-publication.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/backend-publication.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-analyze.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-analyze.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-publication-tests.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-publication-tests.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-regressions.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-regressions.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-roundtrip.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-roundtrip.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-tests.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/coexistence-tests.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/core-events-contracts.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/core-events-contracts.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/event-playtest.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/event-playtest.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/final-captures-context.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/final-captures-context.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/final-integrity.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/legacy-consultation-analyze.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/legacy-consultation-analyze.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/legacy-consultation-tests.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/legacy-consultation-tests.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/markdown-hygiene.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/markdown-hygiene.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/mcp-build.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/mcp-build.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/mcp-check.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/mcp-check.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/mcp-event-v2.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/mcp-event-v2.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/mcp-live-describe.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/native-devices.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/native-devices.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/native-preflight.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/runtime-ui08-analyze.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/runtime-ui08-analyze.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/runtime-ui08.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/runtime-ui08.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/source-loading.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/source-loading.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-analyze.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-analyze.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-build-macos.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-build-macos.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-regressions-isolated.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-regressions-isolated.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-suite-final.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-suite-final.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-suite.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/studio-suite.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui-audit-analyze.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui-audit-analyze.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui-audit-tests.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui-audit-tests.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui08-focus.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui08-focus.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui08-journey.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui08-journey.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui08-widget-analyze.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui08-widget-analyze.txt
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui08-widget-paths.json
+?? documentation/reports/avelune_studio/UI08_evenements_declencheurs/logs/ui08-widget-paths.txt
+?? packages/map_runtime/test/support/ui08_event_runtime_fixture.dart
+?? packages/map_runtime/test/ui08_event_runtime_journey_test.dart
+Branch: main
+HEAD: 142873528400790ab59c3fdba5ab4d5e3cd65aa3
+Dart files checked: 83 maximum lines: 298
+Status:

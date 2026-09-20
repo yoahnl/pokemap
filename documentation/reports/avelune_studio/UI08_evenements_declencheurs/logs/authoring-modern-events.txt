@@ -1,0 +1,13 @@
+00:00 +0: loading test/domains/narrative/modern_narrative_authoring_test.dart
+00:00 +0: modern narrative authoring publication gate uses canonical Scene and runtime diagnostics
+00:00 +1: modern narrative authoring Scene deletion is blocked by the canonical dependency index
+00:00 +2: modern narrative authoring Event V2 publication rejects an incomplete draft canonically
+00:00 +3: modern narrative authoring Event V2 registry mode is activated through the canonical action
+00:00 +4: modern narrative authoring an incomplete v2Only migration can recover dualRead
+00:00 +5: modern narrative authoring v2Only recovery refuses legacy-owned migration state
+00:00 +6: modern narrative authoring Event V2 only mode refuses owned migration state
+00:00 +7: modern narrative authoring Fact type changes require a dependency-safe canonical preview
+00:00 +8: modern narrative authoring canonical dispatcher and reads expose modern narrative resources
+00:00 +9: modern narrative authoring semantic Scene action sets a bounded character animation command
+00:00 +10: modern narrative authoring semantic Scene action sets a typed pause menu visibility command
+00:00 +11: All tests passed!

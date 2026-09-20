@@ -10,6 +10,8 @@ import 'narrative_interaction_reader.dart';
 import 'narrative_source_location.dart';
 import 'narrative_workspace_controller.dart';
 
+part 'narrative_interaction_loading.dart';
+
 class NarrativeInteractionOpener {
   NarrativeInteractionOpener(this.controller);
   final NarrativeWorkspaceController controller;
@@ -80,23 +82,56 @@ class NarrativeInteractionOpener {
     return document;
   }
 
-  Future<bool> openSession(InteractionEditSession session) =>
-      _run((project, valid) async {
-        if (!_canOpenSession(session, project)) return false;
-        final document = await _activate(
-          project,
-          session.document.current.id,
-          valid,
-        );
-        if (!valid() || document != session.document) return false;
-        controller.active = session;
-        return true;
-      });
+  Future<bool> openSession(InteractionEditSession session) {
+    controller.reconcileCleanInteractionSessions();
+    if (!identical(
+      controller.sessions[session.current.interaction.id],
+      session,
+    )) {
+      final record = controller.project.eventRegistry?.records
+          .where((record) => record.id == session.current.interaction.id)
+          .firstOrNull;
+      if (record != null) return openRecord(record);
+      final scene = controller.project.scenes
+          .where((s) => s.id == session.current.interaction.sceneId)
+          .firstOrNull;
+      controller.error = session.sceneBaseKnown && scene != session.baseScene
+          ? 'La scène liée a changé. Rouvrez sa version actuelle ; cette interaction n’est plus disponible.'
+          : 'Cette interaction est introuvable.';
+      controller.changed();
+      return Future.value(false);
+    }
+    return _run((project, valid) async {
+      if (!_canOpenSession(session, project)) return false;
+      final document = await _activate(
+        project,
+        session.document.current.id,
+        valid,
+      );
+      if (!valid() || document != session.document) return false;
+      controller.active = session;
+      return true;
+    });
+  }
 
   Future<bool> openRecord(NarrativeEventRecord record) => _run((
     project,
     valid,
   ) async {
+    controller.reconcileCleanInteractionSessions();
+    final latest = project.eventRegistry?.records
+        .where((candidate) => candidate.id == record.id)
+        .firstOrNull;
+    if (latest == null) {
+      controller.error = 'Cet événement est introuvable.';
+      return false;
+    }
+    record = latest;
+    final eventProblem = controller.eventAccessProblem?.call(record.id);
+    if (eventProblem != null) {
+      controller.error = eventProblem;
+      return false;
+    }
     final sceneId = record.definitionOrNull?.sceneId ?? 'scene_${record.id}';
     if (!_canOpenScene(sceneId)) return false;
     final local = controller.sessions[record.id];
@@ -155,64 +190,6 @@ class NarrativeInteractionOpener {
     ),
   );
 
-  Future<bool> _load(
-    EditableMapDocument document,
-    NarrativeEventSourceRef source,
-    String name,
-    ProjectManifest project,
-    bool Function() valid, {
-    ProjectDialogueEntry? existing,
-    NarrativeInteractionDraft? interaction,
-  }) async {
-    if (interaction != null && !_canOpenScene(interaction.sceneId)) {
-      return false;
-    }
-    final id = _eventIds.generate(
-      existingRecords: project.eventRegistry?.records ?? [],
-    );
-    final entry =
-        existing ??
-        ProjectDialogueEntry(
-          id: 'dialogue_$id',
-          name: name,
-          relativePath: 'dialogues/$id.yarn',
-          defaultStartNode: 'Start',
-        );
-    final original = existing == null
-        ? null
-        : await controller.port.readDialogue(existing);
-    if (!valid() || controller.workspace.active != document) return false;
-    final decoded = original == null
-        ? null
-        : const DialogueDraftCodec().decode(original);
-    final rank = nextNarrativeRank(project, controller.sessions.values, source);
-    final edit = InteractionEditSession(
-      baseScene: project.scenes
-          .where((scene) => scene.id == (interaction?.sceneId ?? 'scene_$id'))
-          .firstOrNull,
-      sceneBaseKnown: true,
-      document: document,
-      dialogue: decoded ?? DialogueDraft.blank(entry),
-      interaction:
-          interaction ??
-          NarrativeInteractionDraft(
-            id: id,
-            name: name,
-            mapId: document.current.id,
-            source: source,
-            dialogueId: entry.id,
-            order: rank.order,
-            priority: rank.priority,
-          ),
-      readOnlySource: original != null && decoded == null
-          ? original.source
-          : null,
-    );
-    controller.sessions[edit.current.interaction.id] = edit;
-    controller.active = edit;
-    return true;
-  }
-
   bool _canOpenScene(String id) {
     final problem = controller.sceneAccessProblem?.call(id);
     if (problem == null) return true;
@@ -224,6 +201,11 @@ class NarrativeInteractionOpener {
     InteractionEditSession session,
     ProjectManifest project,
   ) {
+    final eventProblem = controller.interactionBaseProblem(session);
+    if (eventProblem != null) {
+      controller.error = eventProblem;
+      return false;
+    }
     final id = session.current.interaction.sceneId;
     if (!_canOpenScene(id)) return false;
     final stored = project.scenes.where((scene) => scene.id == id).firstOrNull;

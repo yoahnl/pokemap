@@ -1,0 +1,54 @@
+{
+  "command": [
+    "flutter",
+    "devices",
+    "--machine"
+  ],
+  "runnerPid": 84160,
+  "owned": {
+    "84202": [
+      84160,
+      "501",
+      "Sun Sep 20 19:12:44 2026",
+      "(simctl)"
+    ],
+    "84212": [
+      84160,
+      "501",
+      "Sun Sep 20 19:12:45 2026",
+      "/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -version"
+    ],
+    "84215": [
+      84160,
+      "501",
+      "Sun Sep 20 19:12:45 2026",
+      "/Applications/Xcode.app/Contents/Developer/usr/bin/xcdevice list --timeout 5"
+    ],
+    "84216": [
+      84160,
+      "501",
+      "Sun Sep 20 19:12:45 2026",
+      "/Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/bin/simctl list devices booted iOS --json"
+    ],
+    "84391": [
+      84160,
+      "501",
+      "Sun Sep 20 19:12:52 2026",
+      "/Library/Developer/PrivateFrameworks/CoreDevice.framework/Versions/A/Resources/bin/devicectl --version"
+    ],
+    "84394": [
+      84160,
+      "501",
+      "Sun Sep 20 19:12:52 2026",
+      "/Library/Developer/PrivateFrameworks/CoreDevice.framework/Versions/A/Resources/bin/devicectl list devices --timeout 5 --json-output /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.8sejAh/core_devices.cPCREc/core_device_list.json"
+    ],
+    "84402": [
+      84160,
+      "501",
+      "Sun Sep 20 19:12:52 2026",
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --version"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

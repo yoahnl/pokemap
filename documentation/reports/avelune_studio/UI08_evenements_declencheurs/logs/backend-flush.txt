@@ -1,0 +1,6 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_flush_ui08_test.dart
+00:00 +0: registry mode flushes pending text and refuses dirty record without writing
+00:00 +1: saveAll awaits focused edit before capturing publication snapshot
+00:00 +2: close while flushing never publishes pending text
+00:01 +3: failed focused edit flush reports error without publishing other drafts
+00:01 +4: All tests passed!

@@ -1,0 +1,15 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_sources_ui08_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: draft creation save reopens without inventing scene or changing registry mode
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_publication_ui08_test.dart: external event-only edit conflicts without losing scene or draft; reload is targeted
+00:01 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_sources_ui08_test.dart: four canonical sources publish exact identity and leave existing maps and scenes alone
+00:01 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_sources_ui08_test.dart: four canonical sources publish exact identity and leave existing maps and scenes alone
+00:01 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_publication_ui08_test.dart: edit during write retains newer draft and second save publishes it
+00:01 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: duplicate is distinct draft and deletion uses canonical confirmation
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: duplicate is distinct draft and deletion uses canonical confirmation
+00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_publication_ui08_test.dart: close during write never installs an obsolete receipt
+00:01 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_sources_ui08_test.dart: unavailable outcome does not replace source and full key is retained
+00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: nested expression retained, incompatible reset rejected atomically
+00:02 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_publication_ui08_test.dart: unrelated fact publication survives targeted event save
+00:02 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: canonical simulation handles disabled configured and consumed states without writes
+00:02 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_publication_ui08_test.dart: registry mode change is explicit and refuses active author drafts
+00:02 +13: All tests passed!

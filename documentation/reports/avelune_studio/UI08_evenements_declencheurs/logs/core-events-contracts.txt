@@ -1,0 +1,78 @@
+00:00 +0: loading test/narrative_event_source_ref_test.dart
+00:00 +0: test/narrative_event_source_ref_test.dart: NarrativeEventSourceRef keeps the V1 source kind order and exposes the exact V0 variants
+00:00 +1: test/narrative_event_source_ref_test.dart: NarrativeEventSourceRef rejects empty or non-trimmed identities instead of normalizing
+00:00 +2: test/narrative_event_source_ref_test.dart: NarrativeEventSourceRef keeps identities case-sensitive
+00:00 +3: test/narrative_event_source_ref_test.dart: NarrativeEventSourceRef uses structural equality and hash codes as map keys
+00:00 +4: test/narrative_event_source_ref_test.dart: NarrativeEventSourceRef qualifies equal outcome ids by producer kind and producer id
+00:00 +5: test/narrative_event_source_ref_test.dart: canonical JSON encodes every source variant with exact fields and order
+00:00 +6: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring revalidates an unchanged source before returning no-op
+00:00 +7: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring revalidates an unchanged source before returning no-op
+00:00 +8: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring revalidates an unchanged source before returning no-op
+00:00 +9: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring revalidates an unchanged source before returning no-op
+00:00 +10: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring revalidates an unchanged source before returning no-op
+00:00 +11: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring rejects a non-canonical projected source through the typed result
+00:00 +12: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring selects and replaces every source kind while preserving properties
+00:00 +13: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring supports explicit cross-kind replacement and exact outcome identity
+00:00 +14: test/narrative_event_dispatch_authority_test.dart: preparation blocks invalid and unsupported registry results
+00:00 +15: test/narrative_event_dispatch_authority_test.dart: preparation blocks invalid and unsupported registry results
+00:00 +16: test/narrative_event_dispatch_authority_test.dart: preparation blocks invalid and unsupported registry results
+00:00 +17: test/narrative_event_dispatch_authority_test.dart: preparation blocks invalid and unsupported registry results
+00:00 +18: test/narrative_event_dispatch_authority_test.dart: preparation blocks invalid and unsupported registry results
+00:00 +19: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring blocks select replace and remove on an incomplete catalog
+00:00 +20: test/narrative_event_dispatch_authority_test.dart: preparation dualRead requires a runtime-ready index
+00:00 +21: test/narrative_event_dispatch_authority_test.dart: preparation dualRead requires a runtime-ready index
+00:00 +22: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring removes configured disabled source by explicit structural unpublish
+00:00 +23: test/narrative_event_dispatch_authority_test.dart: preparation Event V2 requires a matching non-blocked project catalog
+00:00 +24: test/narrative_event_dispatch_authority_test.dart: preparation Event V2 requires a matching non-blocked project catalog
+00:00 +25: test/narrative_event_dispatch_authority_test.dart: preparation Event V2 requires a matching non-blocked project catalog
+00:00 +26: test/narrative_event_dispatch_authority_test.dart: preparation Event V2 requires a matching non-blocked project catalog
+00:00 +27: test/narrative_event_dispatch_authority_test.dart: preparation Event V2 requires a matching non-blocked project catalog
+00:00 +28: test/narrative_event_source_authoring_v2_test.dart: E2 source authoring keeps claimed sources pinned in dualRead and allows exact repair
+00:00 +29: test/narrative_event_dispatch_authority_test.dart: preparation exact source ordering conflicts fail before dispatch planning
+00:00 +30: test/narrative_event_dispatch_authority_test.dart: preparation global claim conflicts block dualRead preparation
+00:00 +31: test/narrative_event_dispatch_authority_test.dart: preparation local tombstone remains ready and blocks only its source
+00:00 +32: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +33: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +34: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +35: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +36: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +37: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +38: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +39: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +40: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +41: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +42: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring accepts exact conditions and preserves author order and duplicates
+00:00 +43: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +44: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +45: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +46: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +47: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +48: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +49: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +50: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +51: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +52: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +53: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +54: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +55: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +56: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +57: test/narrative_event_publication_test.dart: E3 publication publishes a complete draft as configured disabled
+00:00 +58: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring sets behavior priority order and metadata-only enabled name
+00:00 +59: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring sets behavior priority order and metadata-only enabled name
+00:00 +60: test/narrative_event_publication_test.dart: E3 publication rejects invalid source Scene Fact and Event dependency
+00:00 +61: test/narrative_event_publication_test.dart: E3 publication rejects invalid source Scene Fact and Event dependency
+00:00 +62: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring validates names and exact JCS integer boundaries before mutation
+00:00 +63: test/narrative_event_publication_test.dart: E3 publication rejects a projected dependency cycle and blocking catalog errors
+00:00 +64: test/narrative_event_publication_test.dart: E3 publication rejects a projected dependency cycle and blocking catalog errors
+00:00 +65: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring revalidates unchanged conditions and Scene before returning no-op
+00:00 +66: test/narrative_event_publication_test.dart: E3 publication never combines publication with activation or filesystem effects
+00:00 +67: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring allows exact condition and Scene repair while blocking other errors
+00:00 +68: test/narrative_event_publication_test.dart: E3 publication unpublish then publish preserves the complete definition
+00:00 +69: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs a canonical transitive dependency cascade
+00:00 +70: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detaches a dependency while preserving its independent blocker
+00:00 +71: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring breaks a canonical dependency cycle
+00:00 +72: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring repairs independent canonical cycles one at a time
+00:00 +73: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring rejects a non-normalized Scene identity before construction
+00:00 +74: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring rejects non-canonical stored integers instead of returning no-op
+00:00 +75: test/narrative_event_configuration_authoring_test.dart: E3 configuration authoring detects a 10000 Event cycle without recursive traversal
+00:00 +76: All tests passed!

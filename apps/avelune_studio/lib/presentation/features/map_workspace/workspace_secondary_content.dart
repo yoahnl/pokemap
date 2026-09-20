@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../features/events/application/event_workspace_controller.dart';
+import 'package:map_core/map_core_domain.dart';
+import '../events/event_workspace_page.dart';
+import '../events/event_view_state.dart';
+import '../events/event_map_loader.dart';
 import '../../../features/stories/application/story_workspace_controller.dart';
 import '../stories/story_progression_page.dart';
 import '../stories/story_progression_view_store.dart';
@@ -13,10 +18,26 @@ import '../resources/resource_image_import.dart';
 import '../resources/resource_workspace_pane.dart';
 import 'map_workspace_visuals.dart';
 
-enum WorkspaceSpace { map, resources, story, interaction, scene, progression }
+enum WorkspaceSpace {
+  map,
+  resources,
+  story,
+  interaction,
+  scene,
+  progression,
+  events,
+}
 
 Widget? workspaceSecondaryContent({
   required WorkspaceSpace space,
+  required EventWorkspaceController? events,
+  required EventViewState eventView,
+  required EventMapLoader eventMaps,
+  required VoidCallback onEvents,
+  required VoidCallback onReturnEvents,
+  required VoidCallback onEventBack,
+  required Future<String?> Function(NarrativeEventSourceRef) onEventLocate,
+  required Future<void> Function() onEventTest,
   required NarrativeWorkspaceController? narrative,
   required SceneWorkspaceController? scenes,
   required SceneBuilderViewStore sceneViews,
@@ -39,6 +60,19 @@ Widget? workspaceSecondaryContent({
   required VoidCallback onTest,
   required PickResourceImage? imagePicker,
 }) {
+  if (space == WorkspaceSpace.events && events != null && visuals != null) {
+    return EventWorkspacePage(
+      controller: events,
+      view: eventView,
+      loader: eventMaps,
+      visuals: visuals,
+      scenes: scenes,
+      onBack: onEventBack,
+      onScene: onOpenScene,
+      onLocate: onEventLocate,
+      onTest: onEventTest,
+    );
+  }
   if (space == WorkspaceSpace.progression && stories != null) {
     return StoryProgressionPage(
       controller: stories,
@@ -52,10 +86,14 @@ Widget? workspaceSecondaryContent({
       controller: scenes,
       views: sceneViews,
       narrative: narrative,
-      onBack: sceneOrigin == WorkspaceSpace.progression
+      onBack: sceneOrigin == WorkspaceSpace.events
+          ? onReturnEvents
+          : sceneOrigin == WorkspaceSpace.progression
           ? onReturnProgression
           : onStory,
-      onBackLabel: sceneOrigin == WorkspaceSpace.progression
+      onBackLabel: sceneOrigin == WorkspaceSpace.events
+          ? 'Événements'
+          : sceneOrigin == WorkspaceSpace.progression
           ? 'Histoires et progression'
           : 'Histoire',
       onTest: onTest,
@@ -80,6 +118,7 @@ Widget? workspaceSecondaryContent({
       onLocate: onLocateInteraction,
       onCreateInteraction: onCreateInteraction,
       onScenes: scenes == null ? null : onScenes,
+      onEvents: events == null ? null : onEvents,
       onProgression: stories == null ? null : onProgression,
       onOpenScene: scenes == null ? null : onOpenScene,
     );

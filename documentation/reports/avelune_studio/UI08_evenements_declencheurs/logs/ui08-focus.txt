@@ -1,0 +1,26 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart
+lib/presentation/features/events/event_scene_effects.dart:35:23: Error: The getter 'label' isn't defined for the type 'SceneConsequence?'.
+ - 'SceneConsequence' is from 'package:map_core/src/models/scene_consequence.dart' ('../../packages/map_core/lib/src/models/scene_consequence.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'label'.
+          consequence.label ?? 'Action de scène · ${node.title}',
+                      ^^^^^
+lib/presentation/features/events/event_scene_effects.dart:42:38: Error: A value of type 'List<dynamic>' can't be returned from a function with return type 'List<String>'.
+ - 'List' is from 'dart:core'.
+  }.where((text) => text.isNotEmpty).toList();
+                                     ^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: lib/presentation/features/events/event_scene_effects.dart:35:23: Error: The getter 'label' isn't defined for the type 'SceneConsequence?'.
+   - 'SceneConsequence' is from 'package:map_core/src/models/scene_consequence.dart' ('../../packages/map_core/lib/src/models/scene_consequence.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'label'.
+            consequence.label ?? 'Action de scène · ${node.title}',
+                        ^^^^^
+  lib/presentation/features/events/event_scene_effects.dart:42:38: Error: A value of type 'List<dynamic>' can't be returned from a function with return type 'List<String>'.
+   - 'List' is from 'dart:core'.
+    }.where((text) => text.isNotEmpty).toList();
+                                       ^
+  .
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart

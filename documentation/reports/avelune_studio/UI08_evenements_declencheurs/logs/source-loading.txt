@@ -1,0 +1,4 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_source_loading_test.dart
+00:00 +0: switch A to delayed B removes all stale clickable targets until B loads
+00:02 +1: source identity does not show homonymous A while B is loading
+00:02 +2: All tests passed!

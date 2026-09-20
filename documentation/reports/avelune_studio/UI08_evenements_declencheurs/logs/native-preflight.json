@@ -1,0 +1,12 @@
+{
+  "skill": "/Users/karim/.codex/skills/test-flutter-desktop/SKILL.md",
+  "package": "apps/avelune_studio",
+  "marionetteToolsAvailable": true,
+  "deviceInventory": "native-devices.txt",
+  "marionetteFlutterDevDependency": false,
+  "marionetteMcpDevDependency": false,
+  "dedicatedMarionetteEntrypoint": false,
+  "productionEntrypoint": "lib/main.dart",
+  "result": "blocked",
+  "reason": "The required Marionette dev dependencies and dedicated instrumented entrypoint are absent. No dependency, SDK or production entrypoint was modified. No native interaction was claimed."
+}

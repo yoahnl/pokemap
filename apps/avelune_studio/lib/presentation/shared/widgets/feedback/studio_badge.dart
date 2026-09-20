@@ -3,6 +3,21 @@ import '../../../theme/studio_tokens.dart';
 
 enum StudioTone { neutral, info, success, warning, danger, feature }
 
+extension StudioToneColor on StudioTone {
+  Color color(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final studio = StudioColors.of(context);
+    return switch (this) {
+      StudioTone.neutral => colors.onSurfaceVariant,
+      StudioTone.info => studio.canvasSelection,
+      StudioTone.success => studio.success,
+      StudioTone.warning => studio.warning,
+      StudioTone.danger => colors.error,
+      StudioTone.feature => studio.featureAccent,
+    };
+  }
+}
+
 class StudioBadge extends StatelessWidget {
   const StudioBadge(
     this.label, {
@@ -17,15 +32,7 @@ class StudioBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final studio = StudioColors.of(context);
-    final color = switch (tone) {
-      StudioTone.neutral => colors.onSurfaceVariant,
-      StudioTone.info => studio.canvasSelection,
-      StudioTone.success => studio.success,
-      StudioTone.warning => studio.warning,
-      StudioTone.danger => colors.error,
-      StudioTone.feature => studio.featureAccent,
-    };
+    final color = tone.color(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
