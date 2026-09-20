@@ -102,6 +102,15 @@ class WorkspaceActions {
         sceneController.active?.error = message;
         return;
       }
+      final narrativeController = narrative();
+      if (narrativeController != null &&
+          (narrativeController.pendingStories.isNotEmpty ||
+              narrativeController.pendingStoryDeletions.isNotEmpty ||
+              narrativeController.pendingFacts.isNotEmpty)) {
+        narrativeController.publicationError =
+            'Les histoires ou états ont encore changé. Enregistrez-les avant de tester.';
+        return;
+      }
       await Navigator.of(context()).push<void>(
         MaterialPageRoute(
           builder: (routeContext) => runtimeBuilder(

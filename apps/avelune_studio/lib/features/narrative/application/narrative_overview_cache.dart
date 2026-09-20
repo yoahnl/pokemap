@@ -15,6 +15,7 @@ class NarrativeOverviewCache {
         entry.key,
         entry.value,
       ],
+      ...controller.pendingStoryDeletions,
       for (final entry in controller.pendingFacts.entries) ...[
         entry.key,
         entry.value,

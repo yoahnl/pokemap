@@ -59,7 +59,12 @@ class SceneLinkedDocuments {
         .firstOrNull;
     if (local != null) {
       return _source(
-        const DialogueDraftCodec().encode(local.current.dialogue),
+        local.readOnlySource != null
+            ? NarrativeDialogueSource(
+                entry: local.current.dialogue.entry,
+                source: local.readOnlySource!,
+              )
+            : const DialogueDraftCodec().encode(local.current.dialogue),
         payload.yarnNodeName,
         local.dirty,
         detailed: detailed,
@@ -75,7 +80,7 @@ class SceneLinkedDocuments {
         isError: true,
       );
     }
-    final key = (narrative.workspace.session.sessionId, project, entry);
+    final key = (narrative.workspace, project, entry);
     return FutureBuilder<NarrativeDialogueSource>(
       key: ValueKey(key),
       future: _dialogues.putIfAbsent(

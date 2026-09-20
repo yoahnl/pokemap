@@ -13,6 +13,12 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   void _saveWorkspaceDocument() {
+    if (_space == WorkspaceSpace.progression) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      FocusManager.instance.applyFocusChangesIfNeeded();
+      unawaited(_stories?.saveAll());
+      return;
+    }
     if (_space == WorkspaceSpace.scene) {
       unawaited(_scenes?.save());
       return;
@@ -26,6 +32,7 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   void _openScenes() {
+    _sceneOrigin = WorkspaceSpace.story;
     if (_scenes?.active == null) _sceneViews.sceneLibrary = true;
     _show(WorkspaceSpace.scene);
   }
@@ -34,6 +41,9 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
     final scenes = _scenes;
     if (scenes == null) return 'L’éditeur de scène est indisponible.';
     if (!scenes.open(sceneId)) return scenes.error;
+    _sceneOrigin = _space == WorkspaceSpace.progression
+        ? WorkspaceSpace.progression
+        : WorkspaceSpace.story;
     _show(WorkspaceSpace.scene);
     return null;
   }

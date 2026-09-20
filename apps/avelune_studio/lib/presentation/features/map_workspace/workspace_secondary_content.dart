@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../features/stories/application/story_workspace_controller.dart';
+import '../stories/story_progression_page.dart';
+import '../stories/story_progression_view_store.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
 import '../../../presentation/features/scenes/scene_builder_page.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
@@ -10,13 +13,18 @@ import '../resources/resource_image_import.dart';
 import '../resources/resource_workspace_pane.dart';
 import 'map_workspace_visuals.dart';
 
-enum WorkspaceSpace { map, resources, story, interaction, scene }
+enum WorkspaceSpace { map, resources, story, interaction, scene, progression }
 
 Widget? workspaceSecondaryContent({
   required WorkspaceSpace space,
   required NarrativeWorkspaceController? narrative,
   required SceneWorkspaceController? scenes,
   required SceneBuilderViewStore sceneViews,
+  required StoryWorkspaceController? stories,
+  required StoryProgressionViewStore progressionViews,
+  required WorkspaceSpace sceneOrigin,
+  required VoidCallback onProgression,
+  required VoidCallback onReturnProgression,
   required VoidCallback onScenes,
   required Future<String?> Function(String) onOpenScene,
   required ResourceNavigation? resources,
@@ -31,12 +39,25 @@ Widget? workspaceSecondaryContent({
   required VoidCallback onTest,
   required PickResourceImage? imagePicker,
 }) {
+  if (space == WorkspaceSpace.progression && stories != null) {
+    return StoryProgressionPage(
+      controller: stories,
+      views: progressionViews,
+      onBack: onStory,
+      onOpenScene: onOpenScene,
+    );
+  }
   if (space == WorkspaceSpace.scene && scenes != null) {
     return SceneBuilderPage(
       controller: scenes,
       views: sceneViews,
       narrative: narrative,
-      onBack: onStory,
+      onBack: sceneOrigin == WorkspaceSpace.progression
+          ? onReturnProgression
+          : onStory,
+      onBackLabel: sceneOrigin == WorkspaceSpace.progression
+          ? 'Histoires et progression'
+          : 'Histoire',
       onTest: onTest,
     );
   }
@@ -59,6 +80,7 @@ Widget? workspaceSecondaryContent({
       onLocate: onLocateInteraction,
       onCreateInteraction: onCreateInteraction,
       onScenes: scenes == null ? null : onScenes,
+      onProgression: stories == null ? null : onProgression,
       onOpenScene: scenes == null ? null : onOpenScene,
     );
   }

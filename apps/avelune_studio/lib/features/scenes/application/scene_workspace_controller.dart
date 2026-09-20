@@ -12,6 +12,7 @@ class SceneWorkspaceController {
     required this.changed,
   }) {
     narrative?.sceneAccessProblem = _sceneAccessProblem;
+    workspace.addListener(_catalogChanged);
   }
   final MapWorkspaceController workspace;
   final ScenePort port;
@@ -28,6 +29,29 @@ class SceneWorkspaceController {
     for (final scene in project.scenes) scene.id: scene,
     for (final session in sessions.values) session.current.id: session.current,
   }.values.toList();
+
+  void _catalogChanged() {
+    if (_reconcileCleanSessions()) changed();
+  }
+
+  bool _reconcileCleanSessions() {
+    if (_disposed || workspace.isDisposed) return false;
+    final persisted = {for (final scene in project.scenes) scene.id: scene};
+    var reconciled = false;
+    for (final entry in sessions.entries.toList()) {
+      final session = entry.value;
+      if (session.dirty || session.saving) continue;
+      final latest = persisted[entry.key];
+      if (latest == null) {
+        sessions.remove(entry.key);
+        if (identical(active, session)) active = null;
+        reconciled = true;
+      } else if (session.reconcileClean(latest)) {
+        reconciled = true;
+      }
+    }
+    return reconciled;
+  }
 
   String? _sceneAccessProblem(String id) => sessions[id]?.dirty == true
       ? 'Cette scène a un brouillon graphique. Revenez à la scène pour l’enregistrer ou abandonner explicitement ses modifications.'
@@ -51,6 +75,7 @@ class SceneWorkspaceController {
 
   bool open(String id) {
     if (_disposed || workspace.isDisposed) return false;
+    _reconcileCleanSessions();
     error = _interactionProblem(id);
     if (error != null) {
       changed();
@@ -154,6 +179,7 @@ class SceneWorkspaceController {
 
   void dispose() {
     _disposed = true;
+    workspace.removeListener(_catalogChanged);
     if (narrative?.sceneAccessProblem == _sceneAccessProblem) {
       narrative?.sceneAccessProblem = null;
     }

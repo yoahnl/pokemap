@@ -1,15 +1,12 @@
-import 'dart:async';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/scenes/application/scene_workspace_controller.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core_domain.dart';
 import '../support/ui06_scene_fixture.dart';
+import '../support/delayed_map_save_port.dart';
 
 void main() {
   testWidgets(
@@ -18,7 +15,7 @@ void main() {
       final fixture = (await tester.runAsync(Ui06SceneFixture.create))!;
       addTearDown(fixture.dispose);
       final delayed = (await tester.runAsync(
-        () async => _DelayedMapPort(fixture.maps),
+        () async => DelayedMapSavePort(fixture.maps),
       ))!;
       final maps = MapWorkspaceController(fixture.session, delayed);
       addTearDown(maps.dispose);
@@ -104,34 +101,4 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
-}
-
-class _DelayedMapPort implements MapWorkspacePort {
-  _DelayedMapPort(this.delegate);
-  final MapWorkspacePort delegate;
-  final entered = Completer<void>();
-  final release = Completer<void>();
-  final finished = Completer<void>();
-  @override
-  Future<ProjectManifest> loadProject(ProjectSession session) =>
-      delegate.loadProject(session);
-  @override
-  Future<MapWorkspaceDocument> loadMap(
-    ProjectSession session,
-    ProjectMapEntry entry,
-  ) => delegate.loadMap(session, entry);
-  @override
-  Future<String> saveMap(
-    ProjectSession session,
-    MapWorkspaceDocument base,
-    MapData current,
-  ) async {
-    entered.complete();
-    await release.future;
-    try {
-      return await delegate.saveMap(session, base, current);
-    } finally {
-      finished.complete();
-    }
-  }
 }

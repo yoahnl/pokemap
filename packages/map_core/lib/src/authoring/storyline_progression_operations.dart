@@ -22,6 +22,7 @@ final class StorylineProgressionConnectRequest {
     this.storylineId,
     this.sceneLinkId,
     this.outcomeLinkId,
+    this.outcomeId,
     this.effectType,
     this.targetStepId,
     this.relationshipId,
@@ -39,6 +40,7 @@ final class StorylineProgressionConnectRequest {
     required String storylineId,
     required String sceneLinkId,
     required String outcomeLinkId,
+    String? outcomeId,
     required StorylineEffectType effectType,
     required String targetStepId,
   }) {
@@ -47,6 +49,7 @@ final class StorylineProgressionConnectRequest {
       storylineId: storylineId,
       sceneLinkId: sceneLinkId,
       outcomeLinkId: outcomeLinkId,
+      outcomeId: outcomeId,
       effectType: effectType,
       targetStepId: targetStepId,
     );
@@ -90,6 +93,7 @@ final class StorylineProgressionConnectRequest {
   final String? storylineId;
   final String? sceneLinkId;
   final String? outcomeLinkId;
+  final String? outcomeId;
   final StorylineEffectType? effectType;
   final String? targetStepId;
   final String? relationshipId;
@@ -179,8 +183,11 @@ StorylineProgressionMutationResult _connectOutcomeEffect(
 ) {
   final storyline = _storyline(project, request.storylineId!);
   if (storyline == null) {
-    return _rejected(project,
-        code: 'storylineNotFound', message: 'Storyline introuvable.');
+    return _rejected(
+      project,
+      code: 'storylineNotFound',
+      message: 'Storyline introuvable.',
+    );
   }
   final target = _step(storyline, request.targetStepId!);
   if (target == null) {
@@ -199,20 +206,39 @@ StorylineProgressionMutationResult _connectOutcomeEffect(
     );
   }
   final link = _sceneLink(storyline, request.sceneLinkId!);
-  final outcome =
-      link == null ? null : _outcomeLink(link, request.outcomeLinkId!);
-  if (link == null || outcome == null) {
+  final outcome = link == null
+      ? null
+      : _outcomeLink(link, request.outcomeLinkId!);
+  final declaredId = request.outcomeId;
+  final scenario = project.scenarios
+      .where((candidate) => candidate.id == link?.sceneRef?.targetId)
+      .firstOrNull;
+  final canCreate =
+      link != null &&
+      outcome == null &&
+      request.outcomeLinkId!.trim().isNotEmpty &&
+      declaredId != null &&
+      scenario != null &&
+      scenario.declaredOutcomes.contains(declaredId) &&
+      !link.outcomeLinks.any((candidate) => candidate.outcomeId == declaredId);
+  if (link == null ||
+      (outcome == null && !canCreate) ||
+      (outcome != null &&
+          declaredId != null &&
+          outcome.outcomeId != declaredId)) {
     return _rejected(
       project,
       code: 'outcomeSourceNotFound',
-      message: 'Le résultat source est introuvable.',
+      message: 'Le résultat source est introuvable ou déjà associé.',
     );
   }
-  final duplicate = outcome.effects.any(
-    (effect) =>
-        effect.type == request.effectType &&
-        effect.targetId == request.targetStepId,
-  );
+  final duplicate =
+      outcome?.effects.any(
+        (effect) =>
+            effect.type == request.effectType &&
+            effect.targetId == request.targetStepId,
+      ) ??
+      false;
   if (duplicate) {
     return _rejected(
       project,
@@ -236,8 +262,19 @@ StorylineProgressionMutationResult _connectOutcomeEffect(
   final replacement = _copySceneLink(
     link,
     outcomeLinks: [
+      if (outcome == null)
+        StorylineSceneOutcomeLink(
+          id: request.outcomeLinkId!,
+          outcomeId: declaredId!,
+          effects: [
+            StorylineEffect(
+              type: request.effectType!,
+              targetId: request.targetStepId!,
+            ),
+          ],
+        ),
       for (final candidate in link.outcomeLinks)
-        if (candidate.id == outcome.id)
+        if (candidate.id == outcome?.id)
           _copyOutcomeLink(
             candidate,
             effects: [

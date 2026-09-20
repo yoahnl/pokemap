@@ -1,6 +1,5 @@
 import 'package:map_core/map_core.dart';
 
-import '../../../application/services/narrative_template_catalog.dart';
 import 'scene_action_builder.dart';
 
 const _sceneActionBuilderPath =

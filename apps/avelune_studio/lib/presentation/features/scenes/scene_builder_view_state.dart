@@ -23,6 +23,15 @@ class SceneBuilderViewState {
   SceneDryRunPreviewResult? preview;
   String? previewError;
   void invalidate(SceneAsset scene) {
+    if (nodeId != null && !scene.graph.nodes.any((node) => node.id == nodeId)) {
+      nodeId = null;
+    }
+    if (edgeId != null && !scene.graph.edges.any((edge) => edge.id == edgeId)) {
+      edgeId = null;
+    }
+    choices.removeWhere(
+      (id, _) => !scene.graph.nodes.any((node) => node.id == id),
+    );
     if (previewDocument != null && previewDocument != scene) {
       preview = null;
       previewDocument = null;

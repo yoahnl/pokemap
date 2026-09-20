@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/narrative/application/dialogue_draft_codec.dart';
@@ -38,10 +39,20 @@ class Ui06SceneFixture {
   static Future<Ui06SceneFixture> create({
     bool withCinematic = false,
     bool passObtained = false,
+    List<ScenarioAsset> scenarios = const [],
   }) async {
     final temporary = await Directory.systemTemp.createTemp('avelune_ui06_');
     final directory = Directory(await temporary.resolveSymbolicLinks());
     await writeExampleProject(directory);
+    if (scenarios.isNotEmpty) {
+      final file = File('${directory.path}/project.json');
+      final seeded = ProjectManifest.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+      );
+      await file.writeAsString(
+        jsonEncode(seeded.copyWith(scenarios: scenarios).toJson()),
+      );
+    }
     final session = ProjectSession(
       sessionId: directory.path,
       name: 'Rencontre en gare',

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'di/home_providers.dart';
 import '../features/scenes/data/local_scene_adapter.dart';
+import '../features/stories/data/local_story_adapter.dart';
 import '../platform/files/studio_preferences.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
@@ -56,6 +57,14 @@ class StudioBootstrap extends StatelessWidget {
       workspaceVisualsLoaderProvider.overrideWithValue(StudioMapResources.load),
       scenePortProvider.overrideWith(
         (ref, session) => LocalSceneAdapter(
+          session: session,
+          mapAdapter:
+              ref.watch(mapWorkspacePortProvider(session))
+                  as LocalMapWorkspaceAdapter,
+        ),
+      ),
+      storyPortProvider.overrideWith(
+        (ref, session) => LocalStoryAdapter(
           session: session,
           mapAdapter:
               ref.watch(mapWorkspacePortProvider(session))

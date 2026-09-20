@@ -29,11 +29,13 @@ class SceneBuilderPage extends StatefulWidget {
     required this.onBack,
     this.narrative,
     this.onTest,
+    this.onBackLabel = 'Histoire',
   });
   final SceneWorkspaceController controller;
   final SceneBuilderViewStore views;
   final NarrativeWorkspaceController? narrative;
   final VoidCallback onBack;
+  final String onBackLabel;
   final VoidCallback? onTest;
   @override
   State<SceneBuilderPage> createState() => _SceneBuilderPageState();

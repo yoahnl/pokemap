@@ -95,7 +95,7 @@ extension _SceneBuilderHeader on _SceneBuilderPageState {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Row(
         children: [
-          TextButton(onPressed: widget.onBack, child: const Text('Histoire')),
+          TextButton(onPressed: widget.onBack, child: Text(widget.onBackLabel)),
           const Icon(Icons.chevron_right, size: 16),
           TextButton(
             onPressed: () {

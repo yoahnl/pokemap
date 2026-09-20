@@ -6,9 +6,11 @@ class StudioCommitField extends StatefulWidget {
     required this.label,
     required this.value,
     required this.onCommit,
+    this.maxLines = 1,
   });
   final String label, value;
   final ValueChanged<String> onCommit;
+  final int maxLines;
   @override
   State<StudioCommitField> createState() => _StudioCommitFieldState();
 }
@@ -44,6 +46,7 @@ class _StudioCommitFieldState extends State<StudioCommitField> {
   Widget build(BuildContext context) => TextField(
     controller: _text,
     focusNode: _focus,
+    maxLines: widget.maxLines,
     decoration: InputDecoration(labelText: widget.label),
     onSubmitted: (_) => _commit(),
   );

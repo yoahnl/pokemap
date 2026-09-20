@@ -57,6 +57,7 @@ NarrativeOverview buildNarrativeOverview(
     dirtyCount:
         controller.pendingFacts.length +
         controller.pendingStories.length +
+        controller.pendingStoryDeletions.length +
         sessions.values.where((s) => s.dirty).length,
   );
 }

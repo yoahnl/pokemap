@@ -20,13 +20,14 @@ class NarrativeStoryPane extends StatefulWidget {
     required this.onLocate,
     required this.onCreateInteraction,
     this.onScenes,
+    this.onProgression,
     this.onOpenScene,
   });
   final NarrativeWorkspaceController controller;
   final NarrativeOverviewViewState viewState;
   final Future<String?> Function(String) onOpen, onLocate;
   final VoidCallback onCreateInteraction;
-  final VoidCallback? onScenes;
+  final VoidCallback? onScenes, onProgression;
   final Future<String?> Function(String)? onOpenScene;
 
   @override
@@ -102,6 +103,7 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
                     '${widget.controller.project.name} · ${overview.stories.length} histoire(s) · ${overview.interactions.length} interaction(s) · ${overview.dirtyCount} brouillon(s) narratif(s)',
                 onCreated: refresh,
                 onScenes: widget.onScenes,
+                onProgression: widget.onProgression,
               ),
               if (widget.controller.publicationError case final error?)
                 Padding(

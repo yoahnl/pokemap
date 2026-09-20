@@ -68,6 +68,19 @@ class SceneEditSession {
     savedRevision = projectRevision;
   }
 
+  bool reconcileClean(SceneAsset published) {
+    if (dirty || saving || published.id != current.id || published == current) {
+      return false;
+    }
+    current = base = published;
+    _undo.clear();
+    _redo.clear();
+    savedRevision = null;
+    error = null;
+    revision++;
+    return true;
+  }
+
   bool rename(String name) => mutate((scene) {
     if (name.trim().isEmpty) throw ArgumentError('Le nom est requis.');
     return SceneAsset.fromJson({...scene.toJson(), 'name': name.trim()});

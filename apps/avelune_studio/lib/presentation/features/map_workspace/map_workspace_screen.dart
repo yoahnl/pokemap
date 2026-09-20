@@ -1,4 +1,7 @@
 import 'dart:async';
+import '../../../features/stories/domain/story_port.dart';
+import '../../../features/stories/application/story_workspace_controller.dart';
+import '../stories/story_progression_view_store.dart';
 import '../../../features/scenes/domain/scene_port.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
 import '../../../presentation/features/scenes/scene_builder_page.dart';
@@ -27,6 +30,8 @@ export 'workspace_actions.dart' show StudioRuntimeBuilder;
 
 part 'workspace_home_binding.dart';
 part 'workspace_story_binding.dart';
+part 'workspace_progression_binding.dart';
+part 'workspace_screen_body.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -40,6 +45,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.imagePicker,
     this.narrativePort,
     this.scenePort,
+    this.storyPort,
     this.home,
   });
   final MapWorkspaceController controller;
@@ -47,6 +53,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final ResourcePort? resourcePort;
   final NarrativePort? narrativePort;
   final ScenePort? scenePort;
+  final StoryPort? storyPort;
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -67,6 +74,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   ResourceNavigation? _resources;
   NarrativeWorkspaceController? _narrative;
   SceneWorkspaceController? _scenes;
+  StoryWorkspaceController? _stories;
+  final _progressionViews = StoryProgressionViewStore();
+  WorkspaceSpace _sceneOrigin = WorkspaceSpace.story;
   final _sceneViews = SceneBuilderViewStore();
   bool? _inspector;
   MapData? _preparedMap;
@@ -119,6 +129,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       _resources = loaded.resources;
       _narrative = loaded.narrative;
       _initializeScenes();
+      _initializeStories();
       _changed();
     } catch (_) {
       if (mounted) {
@@ -149,6 +160,14 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _show(WorkspaceSpace space) {
+    if (_space == WorkspaceSpace.progression) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      FocusManager.instance.applyFocusChangesIfNeeded();
+      if (space == WorkspaceSpace.story) {
+        _storyViewState.storyId = _stories?.activeId;
+        _storyViewState.stepId = null;
+      }
+    }
     _navigationRequest++;
     _interactionNotice?.close();
     _narrative?.cancelOpening();
@@ -186,6 +205,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     _resources?.dispose();
     _narrative?.dispose();
     _scenes?.dispose();
+    _stories?.dispose();
+    _progressionViews.dispose();
     _sceneViews.dispose();
     _storyViewState.dispose();
     _search.dispose();
@@ -197,101 +218,5 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final document = _controller.active;
-    final error =
-        workspaceNarrativeError(
-          _narrative,
-          narrativePage: _space == WorkspaceSpace.interaction,
-        ) ??
-        _controller.error ??
-        document?.error ??
-        _resourceError;
-    return CallbackShortcuts(
-      bindings: workspaceShortcuts(
-        _controller,
-        _view,
-        _keyboard,
-        onSave: _saveWorkspaceDocument,
-      ),
-      child: Focus(
-        autofocus: true,
-        child: Scaffold(
-          body: AbsorbPointer(
-            key: const ValueKey('workspace-preparing'),
-            absorbing:
-                _actions.testing ||
-                _actions.closing ||
-                _resources?.busy == true ||
-                _narrative?.saving == true,
-            child: SafeArea(
-              child: MapWorkspaceLayout(
-                homeSearch: widget.home?.search ?? _homeSearch,
-                onSearch: (_) => _goHome(search: true),
-                onHome: widget.home == null ? null : _goHome,
-                activeSpace: _space.name,
-                controller: _controller,
-                view: _view,
-                visuals: _visuals,
-                search: _search,
-                error: error,
-                palette: _palette,
-                inspector: _inspector,
-                generation: _gestureGeneration,
-                onPalette: () => setState(() => _palette = !_palette),
-                onInspector: () =>
-                    setState(() => _inspector = !(_inspector ?? true)),
-                onChanged: _changed,
-                onToolChanged: _toolChanged,
-                onActivate: (entry) {
-                  _interactionNotice?.close();
-                  _narrative?.cancelOpening();
-                  _gestureGeneration++;
-                  unawaited(_controller.activate(entry));
-                },
-                onSave: document == null || document.saving
-                    ? null
-                    : () =>
-                          _narrative?.save(document: document) ??
-                          _controller.save(document),
-                onTest: document == null || _actions.testing || document.saving
-                    ? null
-                    : _actions.test,
-                onClose: _close,
-                onResources: _openResources,
-                onMap: _openMap,
-                onStory: _narrative == null
-                    ? null
-                    : () => _show(WorkspaceSpace.story),
-                onEditInteraction: _editInteraction,
-                onZoneDrawn: _narrative == null ? null : _zone,
-                deletionBlocked: _narrative?.blocksDeletion,
-                onOpenElement: (element) => _openResources(element),
-                onEditElement: (element) => _openResources(element, true),
-                resourceContent: workspaceSecondaryContent(
-                  space: _space,
-                  narrative: _narrative,
-                  scenes: _scenes,
-                  sceneViews: _sceneViews,
-                  onScenes: _openScenes,
-                  onOpenScene: _openScene,
-                  resources: _resources,
-                  visuals: _visuals,
-                  onMap: _openMap,
-                  storyViewState: _storyViewState,
-                  interactionOrigin: _interactionOrigin,
-                  onStory: () => _show(WorkspaceSpace.story),
-                  onOpenInteraction: _openStoryInteraction,
-                  onLocateInteraction: _locateStoryInteraction,
-                  onCreateInteraction: _createStoryInteraction,
-                  onTest: _actions.test,
-                  imagePicker: widget.imagePicker,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _buildWorkspace(context);
 }

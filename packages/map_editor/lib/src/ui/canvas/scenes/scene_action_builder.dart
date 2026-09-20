@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
-import '../../../application/services/narrative_template_catalog.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_action_inspector.dart';

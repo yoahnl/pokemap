@@ -22,12 +22,15 @@ class NarrativeWorkspaceController {
   final sessions = <String, InteractionEditSession>{};
   final pendingFacts = <String, NarrativeFactDefinition>{};
   final pendingStories = <String, StorylineAsset>{};
+  final pendingStoryDeletions = <String>{};
+  Future<bool> Function()? saveStoryDrafts;
+  bool Function()? storyDraftsBusy;
   final _sourceRevisions = <String, String>{};
   int _sequence = 0;
   late final _opener = NarrativeInteractionOpener(this);
   InteractionEditSession? active;
   bool saving = false;
-  bool get busy => saving || _opener.loading;
+  bool get busy => saving || _opener.loading || storyDraftsBusy?.call() == true;
   bool get opening => _opener.loading;
   String? Function(String sceneId)? sceneAccessProblem;
   String? error;
@@ -36,6 +39,7 @@ class NarrativeWorkspaceController {
   bool get dirty =>
       pendingFacts.isNotEmpty ||
       pendingStories.isNotEmpty ||
+      pendingStoryDeletions.isNotEmpty ||
       sessions.values.any((s) => s.dirty);
   ProjectManifest get project => workspace.project!;
   List<NarrativeFactDefinition> get facts => {
@@ -45,7 +49,7 @@ class NarrativeWorkspaceController {
   List<StorylineAsset> get stories => {
     ...{for (final s in project.storylines) s.id: s},
     ...pendingStories,
-  }.values.toList();
+  }.values.where((s) => !pendingStoryDeletions.contains(s.id)).toList();
   String identity(String prefix) =>
       '${prefix}_${DateTime.now().microsecondsSinceEpoch}_${_sequence++}';
   Future<void> openNpc(
@@ -120,10 +124,10 @@ class NarrativeWorkspaceController {
 
   void addFact(String label) {
     if (label.trim().isEmpty) return;
-    final fact = NarrativeFactDefinition(
-      id: identity('etat'),
+    final fact = addNarrativeFact(
+      project.copyWith(facts: facts),
       label: label.trim(),
-    );
+    ).createdFact;
     pendingFacts[fact.id] = fact;
     changed();
   }
@@ -150,8 +154,14 @@ class NarrativeWorkspaceController {
   );
   Future<bool> save({EditableMapDocument? document}) async {
     if (busy) return false;
+    if (saveStoryDrafts != null && !await saveStoryDrafts!()) {
+      error = publicationError ?? 'Les histoires n’ont pas été enregistrées.';
+      changed();
+      return false;
+    }
     final target = document ?? active?.document ?? workspace.active;
     if (target == null) {
+      if (saveStoryDrafts != null && !dirty) return true;
       error = 'Ouvrez une carte pour enregistrer cette histoire.';
       changed();
       return false;
@@ -177,8 +187,12 @@ class NarrativeWorkspaceController {
         return false;
       }
     }
-    final factSnapshot = Map.of(pendingFacts),
-        storySnapshot = Map.of(pendingStories);
+    final factSnapshot = saveStoryDrafts == null
+        ? Map.of(pendingFacts)
+        : <String, NarrativeFactDefinition>{};
+    final storySnapshot = saveStoryDrafts == null
+        ? Map.of(pendingStories)
+        : <String, StorylineAsset>{};
     if (edits.isEmpty && factSnapshot.isEmpty && storySnapshot.isEmpty) {
       return workspace.save(target);
     }
@@ -234,6 +248,7 @@ class NarrativeWorkspaceController {
   }
 
   Future<bool> saveAll() async {
+    if (workspace.documents.isEmpty) return save();
     for (final document in workspace.documents.values.toList()) {
       if (!await save(document: document)) return false;
     }
