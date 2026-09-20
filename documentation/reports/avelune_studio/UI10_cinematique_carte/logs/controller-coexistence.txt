@@ -1,0 +1,54 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart
+test/cinematics/cinematic_coexistence_ui10_test.dart:40:42: Error: The getter 'definition' isn't defined for the type 'NarrativeEventRecord'.
+ - 'NarrativeEventRecord' is from 'package:map_core/src/models/narrative_event_definition.dart' ('../../packages/map_core/lib/src/models/narrative_event_definition.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'definition'.
+            .firstWhere((s) => s.id == r.definition.sceneId)
+                                         ^^^^^^^^^^
+test/cinematics/cinematic_coexistence_ui10_test.dart:75:42: Error: The getter 'definition' isn't defined for the type 'NarrativeEventRecord'.
+ - 'NarrativeEventRecord' is from 'package:map_core/src/models/narrative_event_definition.dart' ('../../packages/map_core/lib/src/models/narrative_event_definition.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'definition'.
+            .firstWhere((s) => s.id == r.definition.sceneId)
+                                         ^^^^^^^^^^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: test/cinematics/cinematic_coexistence_ui10_test.dart:40:42: Error: The getter 'definition' isn't defined for the type 'NarrativeEventRecord'.
+   - 'NarrativeEventRecord' is from 'package:map_core/src/models/narrative_event_definition.dart' ('../../packages/map_core/lib/src/models/narrative_event_definition.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'definition'.
+              .firstWhere((s) => s.id == r.definition.sceneId)
+                                           ^^^^^^^^^^
+  test/cinematics/cinematic_coexistence_ui10_test.dart:75:42: Error: The getter 'definition' isn't defined for the type 'NarrativeEventRecord'.
+   - 'NarrativeEventRecord' is from 'package:map_core/src/models/narrative_event_definition.dart' ('../../packages/map_core/lib/src/models/narrative_event_definition.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'definition'.
+              .firstWhere((s) => s.id == r.definition.sceneId)
+                                           ^^^^^^^^^^
+  .
+00:00 +0 -2: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1021:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/future_impl.dart 961:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 990:13               Future._propagateToListeners
+  dart:async/future_impl.dart 874:9                Future._propagateToListeners
+  dart:async/future_impl.dart 732:5                Future._completeWithValue
+  dart:async/future_impl.dart 816:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone.dart 474:14                      Zone.runGuarded
+  dart:async/zone.dart 604:18                      Zone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+00:00 +0 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: lazy library, draft create, canonical steps, undo save independent reread
+00:00 +1 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: late opening response cannot select older document
+00:00 +2 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: editing during awaited publication keeps later draft and source conflicts preserve it
+00:00 +3 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: preview transport evaluates canonical frames without semantic edits or workspace rebuilds
+00:00 +4 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: spatial destination is one history edit; paths survive binding and duplication
+00:00 +5 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: invalid durations and unrelated clipboard bindings do not mutate history
+00:01 +6 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:02 +7 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: working source resolves publication, explicit discard, homonyms and project boundary
+00:03 +8 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: incompatible modified versions produce explicit conflict and readonly source remains exact
+00:03 +9 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart

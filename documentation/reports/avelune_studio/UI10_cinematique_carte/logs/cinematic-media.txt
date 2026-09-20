@@ -1,0 +1,11 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: explicit playback executes canonical audio once; seek is silent and pause restores
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: stop during a pending media start restores the late owned channel
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: replacement and disposal clean previous asynchronous media without late notifications
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: canonical intermediate movement, backwards scrub and stop never modify author asset
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: canonical intermediate movement, backwards scrub and stop never modify author asset
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: eighty sequential actions keep one plan for ticks, pause and scrub
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_platform_media_ui10_test.dart: runtime adapter resolves a real local media and releases its driver on restore
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_platform_media_ui10_test.dart: outside symlink and missing media fail before starting any driver
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_platform_media_ui10_test.dart: unavailable FX host rejects its capability instead of silently accepting
+00:00 +9: All tests passed!

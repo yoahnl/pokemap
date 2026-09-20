@@ -1,0 +1,16 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/pixel_perfect_overworld_camera_test.dart
+00:00 +0: PixelPerfectOverworldCameraController resolves the captured Retina geometry to scale 2 and zoom 0.5
+00:00 +1: PixelPerfectOverworldCameraController rounds a physical scale of 1.49 down to 1
+00:00 +2: PixelPerfectOverworldCameraController rounds a physical scale of 1.50 up to 2
+00:00 +3: PixelPerfectOverworldCameraController falls back to DPR 1 for 0.0
+00:00 +4: PixelPerfectOverworldCameraController falls back to DPR 1 for -1.0
+00:00 +5: PixelPerfectOverworldCameraController falls back to DPR 1 for Infinity
+00:00 +6: PixelPerfectOverworldCameraController falls back to DPR 1 for NaN
+00:00 +7: PixelPerfectOverworldCameraController defers projection while the viewport is empty
+00:00 +8: PixelPerfectOverworldCameraController keeps a repeated projection stable
+00:00 +9: PixelPerfectOverworldCameraController recalculates projection after a viewport size change
+00:00 +10: PixelPerfectOverworldCameraController recalculates projection only after a DPR change
+00:00 +11: PixelPerfectOverworldCameraController aligns an even physical viewport origin to whole pixels
+00:00 +12: PixelPerfectOverworldCameraController aligns an odd physical viewport origin to whole pixels
+00:00 +13: PixelPerfectOverworldCameraController preserves physical alignment for negative positions
+00:00 +14: All tests passed!

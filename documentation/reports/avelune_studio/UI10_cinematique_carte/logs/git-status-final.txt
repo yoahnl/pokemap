@@ -1,0 +1,344 @@
+Initial: main, HEAD 6e67f71605e2aad98671889be5078e0cef511a6a, clean.
+Final: same branch and HEAD; no Git write performed.
+Command: git status --short --untracked-files=all
+ M apps/avelune_studio/lib/app/di/providers.dart
+ M apps/avelune_studio/lib/app/studio_bootstrap.dart
+ M apps/avelune_studio/lib/features/narrative/application/narrative_interaction_loading.dart
+ M apps/avelune_studio/lib/features/narrative/application/narrative_session_coexistence.dart
+ M apps/avelune_studio/lib/features/narrative/application/narrative_workspace_controller.dart
+ M apps/avelune_studio/lib/features/narrative/application/narrative_workspace_publication.dart
+ M apps/avelune_studio/lib/features/narrative/data/local_narrative_catalog_transaction.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_character_thumbnail.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_map_resources.dart
+ M apps/avelune_studio/lib/platform/rendering/studio_map_visual_widgets.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_actions.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_home_binding.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_secondary_content.dart
+ M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_story_binding.dart
+ M apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_header.dart
+ M apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane.dart
+ M apps/avelune_studio/lib/presentation/features/scenes/scene_builder_commands.dart
+ M apps/avelune_studio/lib/presentation/features/scenes/scene_builder_page.dart
+ M apps/avelune_studio/lib/presentation/features/scenes/scene_linked_document.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/inputs/studio_commit_field.dart
+ M apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_primary_navigation.dart
+ M apps/avelune_studio/lib/presentation/shell/studio_workspace_host.dart
+ M apps/avelune_studio/test/support/ui08_workspace_harness.dart
+ M packages/map_authoring/lib/src/domains/narrative/cinematic_actions.dart
+ M packages/map_core/lib/map_core_domain.dart
+ M packages/map_editor/lib/src/ui/canvas/cinematics/preview/cinematic_media_preview_controller.dart
+ M packages/map_runtime/lib/src/application/authoring_preview/runtime_authoring_character_renderer.dart
+ M packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+ M tools/pokemap_mcp/test/mutation_server.test.ts
+?? apps/avelune_studio/lib/app/di/cinematic_providers.dart
+?? apps/avelune_studio/lib/features/cinematics/application/cinematic_edit_session.dart
+?? apps/avelune_studio/lib/features/cinematics/application/cinematic_preview_media_session.dart
+?? apps/avelune_studio/lib/features/cinematics/application/cinematic_preview_transport.dart
+?? apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_actions.dart
+?? apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_animation.dart
+?? apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart
+?? apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart
+?? apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart
+?? apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_timeline.dart
+?? apps/avelune_studio/lib/features/cinematics/data/local_cinematic_adapter.dart
+?? apps/avelune_studio/lib/features/cinematics/domain/cinematic_port.dart
+?? apps/avelune_studio/lib/features/dialogues/application/dialogue_working_source.dart
+?? apps/avelune_studio/lib/features/narrative/application/narrative_cinematic_coexistence.dart
+?? apps/avelune_studio/lib/platform/rendering/studio_cinematic_media.dart
+?? apps/avelune_studio/lib/platform/rendering/studio_map_resource_recovery.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_action_palette.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_document_toolbar.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_actors.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_animation.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_camera.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_commands.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_step.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_labels.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_library.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_library_thumbnail.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_model.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_overlay.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_scene.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_commands.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_header.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_map.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_timeline.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_point_handle.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_preview_status.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_editor.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_gestures.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_painter.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_transport_bar.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_transport_listenable.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_view_state.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart
+?? apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_visuals.dart
+?? apps/avelune_studio/lib/presentation/features/map_workspace/workspace_cinematic_binding.dart
+?? apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_map_overlay_frame.dart
+?? apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_timeline_clip.dart
+?? apps/avelune_studio/test/cinematics/cinematic_adapter_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_animation_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_library_thumbnail_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_platform_media_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_published_guard_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/cinematic_timeline_gestures_ui10_test.dart
+?? apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart
+?? apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart
+?? apps/avelune_studio/test/cinematics_ui10_renderer_test.dart
+?? apps/avelune_studio/test/cinematics_ui10_responsive_test.dart
+?? apps/avelune_studio/test/cinematics_ui10_runtime_test.dart
+?? apps/avelune_studio/test/cinematics_ui10_spatial_test.dart
+?? apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart
+?? apps/avelune_studio/test/cinematics_ui10_widget_test.dart
+?? apps/avelune_studio/test/support/cinematic_adapter_fixture.dart
+?? apps/avelune_studio/test/support/ui10_cinematic_fixture.dart
+?? apps/avelune_studio/test/support/ui10_fixture_visuals.dart
+?? apps/avelune_studio/test/support/ui10_widget_port.dart
+?? apps/avelune_studio/test/support/ui10_workspace_harness.dart
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/README.md
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/runtime-01-start.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/runtime-02-movement.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/runtime-03-camera.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/runtime-04-fade.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/runtime-05-scene-continued.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-01-early-composition.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-01-final-selected-move.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-02-destination-16.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-02-destination-32.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-03-duration-drag.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-04-order-drag.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-inspector-camera.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-native-play-attempt-before-fix.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-native-preview-error-before-fix.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-native-selected-move.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-preview-camera.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-preview-fade.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-preview-movement.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-preview-stopped.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-responsive-1024.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-responsive-1280.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-responsive-1440.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-return-events.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/captures/ui10-return-stories.png
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/animation-and-duplicate.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/animation-and-duplicate.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/application-analyze.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/application-analyze.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/application-current.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/application-current.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/application-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/application-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/authoring-parity.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/authoring-parity.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-architecture-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-architecture-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-architecture-pure.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-architecture-pure.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-architecture.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-architecture.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-final-analyze.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-final-analyze.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-media-analyze.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/backend-media-analyze.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/c1-green.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/c1-green.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/c1-red.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/c1-red.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-adapter-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-adapter-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-adapter.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-adapter.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-authoring-analyze.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-authoring-analyze.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-canonical.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-canonical.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-independent.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-independent.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-inspector.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-inspector.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-media-dispose-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-media-dispose-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-media.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/cinematic-media.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/controller-coexistence-green.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/controller-coexistence-green.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/controller-coexistence.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/controller-coexistence.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/controller-first.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/controller-first.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/controller-spatial-green.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/controller-spatial-green.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/core-media-analyze.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/core-media-analyze.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/core-media-camera-analyze.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/core-media-camera-analyze.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/desktop-layout-isolated-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/desktop-layout-isolated-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-clip-fixed.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-clip-fixed.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-clip.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-clip.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-diagnostic.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-diagnostic.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-layout-actual.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-layout-actual.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-layout.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-layout.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-paint.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-paint.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-painters.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-painters.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-phases.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-phases.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-port.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-port.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-progress.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-progress.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-runtime-green.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-runtime-green.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-second.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-second.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-warmed.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget-warmed.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/early-widget.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/editor-media-camera-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/editor-media-camera-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/editor-media-camera-verified.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/editor-media-camera-verified.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/editor-media-reuse.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/editor-media-reuse.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/git-status-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/inspector-actors-green.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/inspector-actors-green.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/inspector-and-published-guard.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/inspector-and-published-guard.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/inspector-corrections.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/inspector-corrections.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/live-describe.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/macos-build.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/macos-build.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-atomic-placement.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-atomic-placement.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-build.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-build.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-check.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-check.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-cinematic-library.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-cinematic-library.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-live-describe.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-test.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/mcp-test.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/media-camera-before.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/media-camera-before.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/media-camera-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/media-camera-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/media-camera-red.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/media-camera-red.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/media-camera-verified.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/media-camera-verified.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-authoring-after.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-authoring-before.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-build-delivered.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-build-delivered.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-build-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-build-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-final-receipt.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-playing-ax.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-postfix-launch-sample.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-preflight.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/native-preview-error-before-fix.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/navigation-responsive-timeline.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/navigation-responsive-timeline.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/navigation-timeline-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/navigation-timeline-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/play-button-diagnostic.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/play-button-diagnostic.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/pmcp085.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/pmcp085.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/preview-transport.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/preview-transport.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/responsive-ahem-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/responsive-ahem-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/responsive-boundary.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/responsive-boundary.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/root-analyze-first.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/root-analyze-first.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/root-analyze-second.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/root-analyze-second.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/root-analyze-third.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/root-analyze-third.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/root-hygiene.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-cancellation-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-cancellation-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-first.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-first.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-fixture-diagnostic.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-fixture-diagnostic.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-renderer-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-renderer-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-second.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-second.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-third.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/runtime-third.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/scene-coexistence-regression.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/scene-coexistence-regression.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-first.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-first.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-gestures-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-gestures-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-gestures-first.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-gestures-first.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-gestures-second.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-gestures-second.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-gestures-third.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-gestures-third.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-responsive.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-responsive.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-second.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/spatial-second.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-analyze-final-before-native-play-fix.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-analyze-final-before-native-play-fix.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-analyze-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-analyze-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-before-corrections.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-before-final-harness.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-final-before-native-play-fix.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-final-before-native-play-fix.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-input-stability-before-native-play-fix.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-input-stability.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-interrupted-before-harness-freeze.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/studio-tests-interrupted-before-harness-freeze.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/thumbnail-stale-before.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/thumbnail-stale-before.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/thumbnail-stale-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/thumbnail-stale-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/thumbnail-stale-red.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/thumbnail-stale-red.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/timeline-gestures-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/timeline-gestures-final.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/timeline-gestures-first.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/timeline-gestures-first.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/timeline-gestures-second.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/timeline-gestures-second.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/timeline-responsive.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/timeline-responsive.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/ui10-play-fixed-targeted.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/ui10-play-fixed-targeted.txt
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/ui10-targeted-final.json
+?? documentation/reports/avelune_studio/UI10_cinematique_carte/logs/ui10-targeted-final.txt
+?? packages/map_authoring/lib/src/domains/narrative/cinematic_library_placement.dart
+?? packages/map_authoring/test/domains/narrative/cinematic_atomic_placement_test.dart
+?? packages/map_core/lib/src/runtime/cinematic_media_preview_controller.dart

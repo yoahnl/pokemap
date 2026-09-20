@@ -1,0 +1,7 @@
+Analyzing cinematic_actor_display_preview_model.dart, cinematic_preview_playback_plan.dart, cinematic_actor_geometry.dart, cinematic_route_sampling.dart, cinematic_timeline_time_layout_read_model.dart, cinematic_actor_geometry_parity_test.dart, cinematic_actor_display_preview_model_test.dart, cinematic_timeline_time_layout_read_model_test.dart, cinematic_preview_playback_plan_test.dart...
+
+   info - test/cinematic_actor_display_preview_model_test.dart:865:11 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/cinematic_actor_display_preview_model_test.dart:868:11 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+   info - test/cinematic_preview_playback_plan_test.dart:1547:5 - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?'. - use_null_aware_elements
+
+3 issues found.

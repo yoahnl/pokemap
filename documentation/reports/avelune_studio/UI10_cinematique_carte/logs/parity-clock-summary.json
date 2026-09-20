@@ -1,0 +1,13 @@
+{
+  "parity-clock": {
+    "sampleCount": 235,
+    "sumFrameDtMs": 3760.0,
+    "wallElapsedMs": 5980
+  },
+  "parity-wall-clock": {
+    "sampleCount": 146,
+    "sumFrameDtMs": 3766.842,
+    "wallElapsedMs": 3714
+  },
+  "interpretation": "Fixed virtual16ms pump plus real waits/rendering inflates wallclock. Wall-synchronous pumping shows about3.75s logical and wall time. This is not nativevideo attribution; native6.4s cause remains unproven. Flame GameLoop dt is not clamped and runtime forwards full dt."
+}

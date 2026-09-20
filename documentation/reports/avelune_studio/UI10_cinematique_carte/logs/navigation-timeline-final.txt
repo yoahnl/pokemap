@@ -1,0 +1,9 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested events → scene → cinematic → dialogue returns to dirty owners
+00:08 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_nested_navigation_test.dart: UI10 nested stories → scene → cinematic → dialogue returns to dirty owners
+00:14 +2: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart
+00:15 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo
+00:20 +3: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui10_native_prepare_temporary_test.dart
+00:21 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui10_native_prepare_temporary_test.dart: prepare isolated UI10 native fixture
+UI10_NATIVE_PROJECT=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_zOxvRn
+00:22 +4: All tests passed!

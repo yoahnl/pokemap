@@ -1,7 +1,7 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
+import 'package:map_core/map_core_domain.dart';
 
 /// Owns the playable overworld camera projection in physical-pixel space.
 ///
@@ -95,16 +95,15 @@ final class PixelPerfectOverworldCameraController {
       return;
     }
 
-    final physicalCenter = viewport * (dpr / 2);
-    final worldToPhysical = zoom * dpr;
-    final physicalWorldOrigin =
-        physicalCenter - worldPosition * worldToPhysical;
-    final snappedPhysicalOrigin = Vector2(
-      physicalWorldOrigin.x.roundToDouble(),
-      physicalWorldOrigin.y.roundToDouble(),
+    final snapped = snapPixelPerfectCameraPosition(
+      centerX: worldPosition.x,
+      centerY: worldPosition.y,
+      viewportWidth: viewport.x,
+      viewportHeight: viewport.y,
+      zoom: zoom,
+      devicePixelRatio: dpr,
     );
-    _camera.viewfinder.position =
-        (physicalCenter - snappedPhysicalOrigin) / worldToPhysical;
+    _camera.viewfinder.position = Vector2(snapped.centerX, snapped.centerY);
   }
 
   Vector2 get position => _camera.viewfinder.position.clone();
@@ -120,15 +119,16 @@ final class PixelPerfectOverworldCameraController {
       _devicePixelRatio = _readDevicePixelRatio();
     }
     final dpr = _devicePixelRatio!;
-    final idealZoom = math.min(
-      viewport.x / requested.x,
-      viewport.y / requested.y,
+    final zoom = resolvePixelPerfectCameraZoom(
+      viewportWidth: viewport.x,
+      viewportHeight: viewport.y,
+      visibleWidth: requested.x,
+      visibleHeight: requested.y,
+      displayScale: _displayScale,
+      devicePixelRatio: dpr,
     );
-    final idealPhysicalScale = _displayScale * idealZoom * dpr;
-    final physicalScale = math.max(1, idealPhysicalScale.round());
-    final zoom = physicalScale / (_displayScale * dpr);
 
-    _physicalPixelsPerSourcePixel = physicalScale;
+    _physicalPixelsPerSourcePixel = (zoom * _displayScale * dpr).round();
     _resolvedZoom = zoom;
     _camera.viewfinder
       ..visibleGameSize = null

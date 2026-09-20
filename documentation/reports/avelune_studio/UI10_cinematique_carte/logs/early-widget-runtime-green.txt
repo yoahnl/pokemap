@@ -1,0 +1,172 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart
+lib/presentation/features/cinematics/cinematic_inspector.dart:18:6: Error: Error when reading 'lib/presentation/features/cinematics/cinematic_inspector_commands.dart': No such file or directory
+part 'cinematic_inspector_commands.dart';
+     ^
+lib/presentation/features/cinematics/cinematic_inspector.dart:19:6: Error: Error when reading 'lib/presentation/features/cinematics/cinematic_inspector_camera.dart': No such file or directory
+part 'cinematic_inspector_camera.dart';
+     ^
+lib/presentation/features/cinematics/cinematic_inspector.dart:18:6: Error: Can't use 'lib/presentation/features/cinematics/cinematic_inspector_commands.dart' as a part, because it has no 'part of' declaration.
+part 'cinematic_inspector_commands.dart';
+     ^
+lib/presentation/features/cinematics/cinematic_inspector.dart:19:6: Error: Can't use 'lib/presentation/features/cinematics/cinematic_inspector_camera.dart' as a part, because it has no 'part of' declaration.
+part 'cinematic_inspector_camera.dart';
+     ^
+lib/presentation/features/cinematics/cinematic_inspector_step.dart:44:10: Error: The method '_cameraFields' isn't defined for the type 'CinematicInspector'.
+ - 'CinematicInspector' is from 'package:avelune_studio/presentation/features/cinematics/cinematic_inspector.dart' ('lib/presentation/features/cinematics/cinematic_inspector.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_cameraFields'.
+      ..._cameraFields(asset, step),
+         ^^^^^^^^^^^^^
+lib/presentation/features/cinematics/cinematic_inspector_step.dart:45:50: Error: The method '_commandFields' isn't defined for the type 'CinematicInspector'.
+ - 'CinematicInspector' is from 'package:avelune_studio/presentation/features/cinematics/cinematic_inspector.dart' ('lib/presentation/features/cinematics/cinematic_inspector.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_commandFields'.
+    if (isCinematicTimelineCommandStep(step)) ..._commandFields(asset, step),
+                                                 ^^^^^^^^^^^^^^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: lib/presentation/features/cinematics/cinematic_inspector.dart:18:6: Error: Error when reading 'lib/presentation/features/cinematics/cinematic_inspector_commands.dart': No such file or directory
+  part 'cinematic_inspector_commands.dart';
+       ^
+  lib/presentation/features/cinematics/cinematic_inspector.dart:19:6: Error: Error when reading 'lib/presentation/features/cinematics/cinematic_inspector_camera.dart': No such file or directory
+  part 'cinematic_inspector_camera.dart';
+       ^
+  lib/presentation/features/cinematics/cinematic_inspector.dart:18:6: Error: Can't use 'lib/presentation/features/cinematics/cinematic_inspector_commands.dart' as a part, because it has no 'part of' declaration.
+  part 'cinematic_inspector_commands.dart';
+       ^
+  lib/presentation/features/cinematics/cinematic_inspector.dart:19:6: Error: Can't use 'lib/presentation/features/cinematics/cinematic_inspector_camera.dart' as a part, because it has no 'part of' declaration.
+  part 'cinematic_inspector_camera.dart';
+       ^
+  lib/presentation/features/cinematics/cinematic_inspector_step.dart:44:10: Error: The method '_cameraFields' isn't defined for the type 'CinematicInspector'.
+   - 'CinematicInspector' is from 'package:avelune_studio/presentation/features/cinematics/cinematic_inspector.dart' ('lib/presentation/features/cinematics/cinematic_inspector.dart').
+  Try correcting the name to the name of an existing method, or defining a method named '_cameraFields'.
+        ..._cameraFields(asset, step),
+           ^^^^^^^^^^^^^
+  lib/presentation/features/cinematics/cinematic_inspector_step.dart:45:50: Error: The method '_commandFields' isn't defined for the type 'CinematicInspector'.
+   - 'CinematicInspector' is from 'package:avelune_studio/presentation/features/cinematics/cinematic_inspector.dart' ('lib/presentation/features/cinematics/cinematic_inspector.dart').
+  Try correcting the name to the name of an existing method, or defining a method named '_commandFields'.
+      if (isCinematicTimelineCommandStep(step)) ..._commandFields(asset, step),
+                                                   ^^^^^^^^^^^^^^
+  .
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1021:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/future_impl.dart 961:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 990:13               Future._propagateToListeners
+  dart:async/future_impl.dart 874:9                Future._propagateToListeners
+  dart:async/future_impl.dart 732:5                Future._completeWithValue
+  dart:async/future_impl.dart 816:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone.dart 474:14                      Zone.runGuarded
+  dart:async/zone.dart 604:18                      Zone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/project.json
+[runtime_loader] project manifest read ok bytes=33043
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/maps/jardin.json
+[runtime_loader] map file read ok bytes=18711
+[runtime_loader] map validated id=jardin size=24x16 layers=2 entities=3 placedElements=6 warps=0 triggers=1
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA tilesets=4
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=4
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/project.json tilesets=4
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=4 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/project.json
+[runtime_loader] project manifest read ok bytes=33043
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/maps/clairiere.json
+[runtime_loader] map file read ok bytes=16729
+[runtime_loader] map validated id=clairiere size=24x16 layers=2 entities=1 placedElements=6 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_U6HXqA tilesets=4
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1789936324081457_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchV2Handled
+00:03 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/project.json
+[runtime_loader] project manifest read ok bytes=33043
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/maps/jardin.json
+[runtime_loader] map file read ok bytes=18711
+[runtime_loader] map validated id=jardin size=24x16 layers=2 entities=3 placedElements=6 warps=0 triggers=1
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy tilesets=4
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=4
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/project.json tilesets=4
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=4 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/project.json
+[runtime_loader] project manifest read ok bytes=33043
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/maps/clairiere.json
+[runtime_loader] map file read ok bytes=16729
+[runtime_loader] map validated id=clairiere size=24x16 layers=2 entities=1 placedElements=6 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_RO72jy tilesets=4
+[event_v2] mapEnter activation=mapact_1789936325999379_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchFailed
+[event_v2] mapEnter failure=Instance of 'NarrativeEventExecutionFailure'
+00:05 +2 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart
+00:05 +2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 canonical actor renderer selects walk frames at absolute time and rewinds exactly
+00:07 +3 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart

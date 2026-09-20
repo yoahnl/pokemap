@@ -36,7 +36,7 @@ void main() {
 
       final plan = buildCinematicPreviewPlaybackPlan(cinematic: cinematic);
 
-      expect(plan.totalDurationMs, 1700);
+      expect(plan.totalDurationMs, 1400);
       expect(
         plan.timelineItems.map((item) => (
               item.stepId,
@@ -54,17 +54,17 @@ void main() {
             0,
             CinematicTimelineStepKind.actorFace,
             0,
-            300,
-            cinematicTimelineFallbackVisualDurationMs,
-            CinematicTimelineVisualDurationSource.fallback,
+            0,
+            0,
+            CinematicTimelineVisualDurationSource.instantaneous,
             true,
           ),
           (
             'wait',
             1,
             CinematicTimelineStepKind.wait,
-            300,
-            700,
+            0,
+            400,
             400,
             CinematicTimelineVisualDurationSource.explicit,
             true,
@@ -73,8 +73,8 @@ void main() {
             'move_direct',
             2,
             CinematicTimelineStepKind.actorMove,
-            700,
-            1700,
+            400,
+            1400,
             1000,
             CinematicTimelineVisualDurationSource.explicit,
             true,
@@ -83,11 +83,11 @@ void main() {
       );
 
       expect(plan.frameAt(-20).clampedTimeMs, 0);
-      expect(plan.frameAt(-20).activeStepIds, ['face_down']);
+      expect(plan.frameAt(-20).activeStepIds, ['wait']);
       expect(plan.frameAt(300).activeStepIds, ['wait']);
-      expect(plan.frameAt(1699).activeStepIds, ['move_direct']);
-      expect(plan.frameAt(1700).activeStepIds, isEmpty);
-      expect(plan.frameAt(2200).clampedTimeMs, 1700);
+      expect(plan.frameAt(1399).activeStepIds, ['move_direct']);
+      expect(plan.frameAt(1400).activeStepIds, isEmpty);
+      expect(plan.frameAt(2200).clampedTimeMs, 1400);
 
       final first = plan.frameAt(1100);
       final second = plan.frameAt(1100);
@@ -175,7 +175,7 @@ void main() {
       );
 
       final facingDuringFace = plan.frameAt(10).actorPoseById('actor_lysa')!;
-      final facingDuringWait = plan.frameAt(450).actorPoseById('actor_lysa')!;
+      final facingDuringWait = plan.frameAt(250).actorPoseById('actor_lysa')!;
 
       expect(facingDuringFace.facing, CinematicActorPreviewDirection.south);
       expect(facingDuringWait.facing, CinematicActorPreviewDirection.south);
@@ -190,7 +190,7 @@ void main() {
         cinematic: _directMoveCinematic(),
       );
 
-      final halfway = plan.frameAt(1200).actorPoseById('actor_lysa')!;
+      final halfway = plan.frameAt(900).actorPoseById('actor_lysa')!;
       final finalPose = plan.frameAt(1700).actorPoseById('actor_lysa')!;
 
       expect(halfway.x, closeTo(5, 0.001));
@@ -225,7 +225,7 @@ void main() {
               .cinematicPreviewPlaybackMoveDestinationMissing,
         ),
       );
-      final pose = plan.frameAt(1200).actorPoseById('actor_lysa')!;
+      final pose = plan.frameAt(900).actorPoseById('actor_lysa')!;
       expect(pose.x, 0);
       expect(pose.y, 0);
     });
@@ -449,11 +449,11 @@ void main() {
         frame.cameraPose.diagnostics.map((diagnostic) => diagnostic.code),
         contains(
           CinematicPreviewPlaybackDiagnosticCode
-              .cinematicPreviewPlaybackCameraUnsupported,
+              .cinematicPreviewPlaybackCameraTargetStageMapMissing,
         ),
       );
       expect(plan.capabilities.supportsCamera, isTrue);
-      expect(plan.capabilities.hasUnsupportedSteps, isTrue);
+      expect(plan.capabilities.hasUnsupportedSteps, isFalse);
     });
 
     test(
@@ -482,7 +482,7 @@ void main() {
       final frame = plan.frameAt(250);
       final geometry = frame.cameraPose.geometry;
 
-      expect(frame.cameraPose.isSupported, isFalse);
+      expect(frame.cameraPose.isSupported, isTrue);
       expect(geometry.isAvailable, isTrue);
       expect(geometry.targetKind, CinematicCameraTargetKind.sceneCenter);
       expect(geometry.targetLabel, 'Centre de la scène');
@@ -491,10 +491,10 @@ void main() {
       expect(geometry.zoomPreset, CinematicCameraZoomPreset.medium);
       expect(
         frame.cameraPose.diagnostics.map((diagnostic) => diagnostic.code),
-        contains(
+        isNot(contains(
           CinematicPreviewPlaybackDiagnosticCode
               .cinematicPreviewPlaybackCameraUnsupported,
-        ),
+        )),
       );
     });
 
@@ -1092,7 +1092,7 @@ void main() {
       expect(plan.playbackCues.map((cue) => cue.stepId),
           isNot(contains('marker')));
       expect(plan.executableDurationMs, 1400);
-      expect(plan.totalDurationMs, 1700);
+      expect(plan.totalDurationMs, 1400);
       expect(plan.capabilities.hasUnsupportedSteps, isFalse);
       expect(plan.capabilities.supportsDialogue, isTrue);
       expect(plan.capabilities.supportsShake, isTrue);

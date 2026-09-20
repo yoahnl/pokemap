@@ -32,6 +32,7 @@ class SceneBuilderPage extends StatefulWidget {
     this.onTest,
     this.dialogues,
     this.onDialogue,
+    this.onCinematic,
     this.onBackLabel = 'Histoire',
   });
   final SceneWorkspaceController controller;
@@ -42,6 +43,7 @@ class SceneBuilderPage extends StatefulWidget {
   final VoidCallback? onTest;
   final DialogueWorkspaceController? dialogues;
   final Future<void> Function(SceneYarnDialoguePayload)? onDialogue;
+  final Future<void> Function(SceneCinematicPayload)? onCinematic;
   @override
   State<SceneBuilderPage> createState() => _SceneBuilderPageState();
 }
@@ -93,18 +95,7 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
                 changed: refresh,
                 onDelete: delete,
                 onDuplicate: duplicate,
-                onDocument: (node) =>
-                    node.payload is SceneYarnDialoguePayload &&
-                        widget.onDialogue != null
-                    ? widget.onDialogue!(
-                        node.payload as SceneYarnDialoguePayload,
-                      )
-                    : documents.open(
-                        context,
-                        node,
-                        widget.controller.project,
-                        widget.narrative,
-                      ),
+                onDocument: openDocument,
               );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

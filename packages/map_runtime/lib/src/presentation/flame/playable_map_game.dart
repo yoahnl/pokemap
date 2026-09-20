@@ -3843,6 +3843,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void onRemove() {
     _isRemoved = true;
+    _cinematicRuntimeController.cancel(
+      message: 'Cinematic playback was cancelled when the runtime closed.',
+    );
     _publishOverworldInteractions();
     if (!_onLoadInProgress) {
       _tilesetImageCache.dispose();

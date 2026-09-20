@@ -1,0 +1,272 @@
+00:00 +0: loading test/cinematic_viewport_state_parity_test.dart
+00:00 +0 -1: loading test/cinematic_preview_playback_plan_test.dart [E]
+  Failed to load "test/cinematic_preview_playback_plan_test.dart":
+  test/cinematic_preview_playback_plan_test.dart:461:12: Error: Can't find '}' to match '{'.
+          () {
+             ^
+  test/cinematic_preview_playback_plan_test.dart:1328:4: Error: Expected a declaration, but got ')'.
+    });
+     ^
+  test/cinematic_preview_playback_plan_test.dart:1328:5: Error: Unexpected token ';'.
+    });
+      ^
+  test/cinematic_preview_playback_plan_test.dart:1330:8: Error: Expected an identifier, but got ''an unavailable authored map blocks the preview plan''.
+  Try inserting an identifier before ''an unavailable authored map blocks the preview plan''.
+    test('an unavailable authored map blocks the preview plan', () {
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  test/cinematic_preview_playback_plan_test.dart:1330:63: Error: Expected an identifier, but got '('.
+  Try inserting an identifier before '('.
+    test('an unavailable authored map blocks the preview plan', () {
+                                                                ^
+  test/cinematic_preview_playback_plan_test.dart:1330:66: Error: Expected ')' before this.
+    test('an unavailable authored map blocks the preview plan', () {
+                                                                   ^
+  test/cinematic_preview_playback_plan_test.dart:1349:5: Error: Expected a function body or '=>'.
+  Try adding {}.
+    });
+      ^
+  test/cinematic_preview_playback_plan_test.dart:1350:1: Error: Expected a declaration, but got '}'.
+  }
+  ^
+  test/cinematic_preview_playback_plan_test.dart:6:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('empty cinematic produces an empty plan and timeline diagnostic', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:34:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('derives timeline items and clamps frame time deterministically', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:97:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('uses actor display preview position before stageContext placement',
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:144:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('reports missing initial pose without fake zero fallback', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:172:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('actorFace changes facing and wait preserves the pose', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:188:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('direct actorMove interpolates linearly and reaches destination', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:208:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('direct actorMove missing destination produces diagnostic', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:233:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('manual actorMove interpolates through waypoints by distance', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:252:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('manual actorMove reports missing path and missing waypoint', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:285:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('manual actorMove with all zero-length segments stays deterministic',
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:313:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-123 camera block produces active playback state', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:346:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-123 camera playback state exposes clamped progress', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:380:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-123 unsupported camera mode produces diagnostic without crashing',
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:419:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-131 camera focus remains symbolic until geometry exists', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:480:7: Error: Expected an identifier, but got '}'.
+  Try inserting an identifier before '}'.
+        );
+        ^
+  test/cinematic_preview_playback_plan_test.dart:479:11: Error: Expected ';' after this.
+          )),
+            ^
+  test/cinematic_preview_playback_plan_test.dart:459:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test(
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:482:21: Error: Undefined name 'plan'.
+        final frame = plan.frameAt(250);
+                      ^^^^
+  test/cinematic_preview_playback_plan_test.dart:501:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test(
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:533:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-133 camera focus actor resolves geometry from active actor pose',
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:578:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-133 camera focus actor consumes actorMove playback pose', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:609:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test(
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:646:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-133 camera focus stage point resolves geometry from stage point',
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:681:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-133 camera focus stage point reports unknown stage point', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:716:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test(
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:757:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-133 reset and hold do not expose target geometry', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:793:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-133 invalid camera metadata remains diagnostic and non-crashing',
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:832:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-123 missing camera mode stays diagnosed and does not mutate asset',
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:863:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-123 consecutive camera steps choose deterministic active state',
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:908:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('fade returns fade state alongside camera playback state', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:959:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('unsupported steps produce no-code diagnostics', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:998:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('NSC-67 schedules every advanced cue and never executes marker', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:1111:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-127 actorEmote exposes active emote playback state', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:1162:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-127 actorEmote exposes unsupported diagnostics locally', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+  test/cinematic_preview_playback_plan_test.dart:1270:9: Error: Too many positional arguments: 0 allowed, but 2 found.
+  Try removing the extra positional arguments.
+      test('V1-127 active emotes stay deterministic in mixed timelines', () {
+          ^
+  test/cinematic_preview_playback_plan_test.dart:1330:3: Context: Found this candidate, but the arguments don't match.
+    test('an unavailable authored map blocks the preview plan', () {
+    ^^^^
+00:00 +0 -1: test/cinematic_viewport_state_parity_test.dart: fade-out remains opaque after its block until the next fade-in
+00:00 +1 -1: test/cinematic_viewport_state_parity_test.dart: projection keeps camera endpoints, resets and scrubs deterministically
+00:00 +2 -1: test/cinematic_viewport_state_parity_test.dart: projection shares shake envelope and preserves fade during following wait
+00:00 +3 -1: test/cinematic_viewport_state_parity_test.dart: pixel projection quantizes zoom and snaps origins on physical pixels
+00:00 +4 -1: Some tests failed.
+
+Failing tests:
+  test/cinematic_preview_playback_plan_test.dart: loading test/cinematic_preview_playback_plan_test.dart

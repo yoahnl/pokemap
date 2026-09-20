@@ -8,6 +8,8 @@ import '../models/cinematic_emote_catalog.dart';
 import '../models/cinematic_media_asset.dart';
 import '../models/project_manifest.dart';
 import '../runtime/cinematic_playback_preflight.dart';
+import '../runtime/cinematic_visual_math.dart';
+import '../runtime/cinematic_route_sampling.dart';
 import '../runtime/cinematic_character_custom_animation_contract.dart';
 import '../runtime/character_custom_animation_runtime_contract.dart';
 import 'cinematic_actor_display_preview_model.dart';
@@ -941,6 +943,21 @@ final class CinematicPreviewPlaybackPlan {
 
   CinematicPreviewPlaybackFrame frameAt(int timeMs) =>
       evaluateCinematicPreviewPlaybackFrame(this, timeMs: timeMs);
+
+  CinematicCameraPlaybackPose cameraPoseForStep(String stepId) {
+    final item = timelineItems.firstWhere((item) => item.stepId == stepId &&
+        item.kind == CinematicTimelineStepKind.camera);
+    final frame = frameAt(item.startMs);
+    return _cameraPoseFor(
+      item: item,
+      mode: _cameraModes[stepId],
+      focusBinding: _cameraFocusBindings[stepId],
+      actorPosesById: {for (final pose in frame.actorPoses) pose.actorId: pose},
+      stagePointsById: _stagePointsById,
+      stageBounds: _stageBounds,
+      clampedTimeMs: item.startMs,
+    );
+  }
 }
 
 CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
@@ -1131,10 +1148,12 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
             if (focusBinding != null) {
               cameraFocusBindings[step.id] = focusBinding;
             }
-            itemDiagnostics.addAll(_cameraFocusStaticDiagnostics(step));
-            itemDiagnostics.add(_cameraUnsupportedDiagnostic(step));
-            supported = false;
-            hasUnsupportedSteps = true;
+            final focusIssues = _cameraFocusStaticDiagnostics(step);
+            itemDiagnostics.addAll(focusIssues);
+            if (focusIssues.isNotEmpty) {
+              supported = false;
+              hasUnsupportedSteps = true;
+            }
           }
         }
       case CinematicTimelineStepKind.wait:
@@ -1318,7 +1337,7 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
         );
         posesByActorId[movePlan.actorId] = next;
       case CinematicTimelineStepKind.fade:
-        if (item.containsTime(clampedTimeMs)) {
+        if (clampedTimeMs >= item.startMs) {
           final mode = plan._fadeModes[item.stepId];
           if (mode != null) {
             fadeState = _fadeStateFor(
@@ -1329,7 +1348,7 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
           }
         }
       case CinematicTimelineStepKind.camera:
-        if (item.containsTime(clampedTimeMs)) {
+        if (clampedTimeMs >= item.startMs) {
           cameraPose = _cameraPoseFor(
             item: item,
             mode: plan._cameraModes[item.stepId],
@@ -1729,8 +1748,10 @@ CinematicFadePlaybackState _fadeStateFor({
 }) {
   final localProgress = _timelineItemProgress(item, clampedTimeMs);
   final opacity = switch (mode) {
-    CinematicFadePlaybackMode.fadeIn => 1.0 - localProgress,
-    CinematicFadePlaybackMode.fadeOut => localProgress,
+    CinematicFadePlaybackMode.fadeIn =>
+      cinematicFadeOpacity(fadeOut: false, progress: localProgress),
+    CinematicFadePlaybackMode.fadeOut =>
+      cinematicFadeOpacity(fadeOut: true, progress: localProgress),
     CinematicFadePlaybackMode.unknown => 0.0,
   };
   return CinematicFadePlaybackState(
@@ -1758,8 +1779,9 @@ CinematicCameraPlaybackPose _cameraPoseFor({
     stageBounds: stageBounds,
   );
   return CinematicCameraPlaybackPose(
-    isActive: true,
-    isSupported: mode != null && item.supported,
+    isActive: item.containsTime(clampedTimeMs),
+    isSupported: mode != null && item.supported &&
+        (mode != CinematicTimelineCameraMode.focus || geometry.isAvailable),
     activeStepId: item.stepId,
     mode: mode,
     progress: _timelineItemProgress(item, clampedTimeMs),
@@ -2171,8 +2193,7 @@ bool _stepSupportedForPlayback(CinematicTimelineStep step) {
     CinematicTimelineStepKind.actorEmote ||
     CinematicTimelineStepKind.actorAnimation =>
       true,
-    CinematicTimelineStepKind.camera => _cameraModeOf(step) != null &&
-        _cameraModeOf(step) != CinematicTimelineCameraMode.focus,
+    CinematicTimelineStepKind.camera => _cameraModeOf(step) != null,
     CinematicTimelineStepKind.dialogueLine ||
     CinematicTimelineStepKind.sound ||
     CinematicTimelineStepKind.music ||
@@ -2413,57 +2434,18 @@ _RouteInterpolation _pointAlongRoute(
   List<CinematicPreviewPlaybackPoint> points,
   double progress,
 ) {
-  if (points.length <= 1) {
-    return _RouteInterpolation(point: points.first, facing: null);
-  }
-
-  final positiveSegments = <_RouteSegment>[];
-  for (var i = 0; i < points.length - 1; i++) {
-    final start = points[i];
-    final end = points[i + 1];
-    final length = _distance(start, end);
-    if (length > 0) {
-      positiveSegments.add(
-        _RouteSegment(start: start, end: end, length: length),
-      );
-    }
-  }
-
-  if (positiveSegments.isEmpty) {
-    return _RouteInterpolation(point: points.first, facing: null);
-  }
-
-  final totalLength = positiveSegments.fold<double>(
-    0,
-    (sum, segment) => sum + segment.length,
+  final sample = sampleCinematicRoute([
+    for (final point in points) (x: point.x, y: point.y),
+  ], progress);
+  final end = sample.segment < 0 ? points.last : points[sample.segment + 1];
+  return _RouteInterpolation(
+    point: CinematicPreviewPlaybackPoint(x: sample.x, y: sample.y,
+      source: end.source, sourceId: end.sourceId),
+    facing: sample.segment < 0 ? null : _directionFromDelta(
+      end.x - points[sample.segment].x,
+      end.y - points[sample.segment].y,
+    ),
   );
-  final targetLength = totalLength * progress.clamp(0.0, 1.0);
-  var walked = 0.0;
-  for (final segment in positiveSegments) {
-    final endOfSegment = walked + segment.length;
-    if (targetLength <= endOfSegment || segment == positiveSegments.last) {
-      final segmentProgress = ((targetLength - walked) / segment.length).clamp(
-        0.0,
-        1.0,
-      );
-      final x = _lerp(segment.start.x, segment.end.x, segmentProgress);
-      final y = _lerp(segment.start.y, segment.end.y, segmentProgress);
-      return _RouteInterpolation(
-        point: CinematicPreviewPlaybackPoint(
-          x: x,
-          y: y,
-          source: segment.end.source,
-          sourceId: segment.end.sourceId,
-        ),
-        facing: _directionFromDelta(
-          segment.end.x - segment.start.x,
-          segment.end.y - segment.start.y,
-        ),
-      );
-    }
-    walked = endOfSegment;
-  }
-  return _RouteInterpolation(point: positiveSegments.last.end, facing: null);
 }
 
 double _distance(
@@ -2472,8 +2454,6 @@ double _distance(
 ) {
   return math.sqrt(math.pow(b.x - a.x, 2) + math.pow(b.y - a.y, 2));
 }
-
-double _lerp(double start, double end, double t) => start + (end - start) * t;
 
 bool _listEquals<T>(List<T> a, List<T> b) {
   if (identical(a, b)) {
@@ -2522,19 +2502,6 @@ final class _ActorEmotePlaybackPlan {
   final String? emoteId;
   final String? emoteLabel;
   final bool isSupported;
-}
-
-@immutable
-final class _RouteSegment {
-  const _RouteSegment({
-    required this.start,
-    required this.end,
-    required this.length,
-  });
-
-  final CinematicPreviewPlaybackPoint start;
-  final CinematicPreviewPlaybackPoint end;
-  final double length;
 }
 
 @immutable

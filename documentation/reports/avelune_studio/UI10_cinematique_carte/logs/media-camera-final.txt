@@ -1,0 +1,26 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: camera preview advances with media configured and audio=false
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: camera preview advances with media configured and audio=true
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: camera coexistence does not suppress missing media diagnostics
+00:00 +2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: camera coexistence does not suppress missing media diagnostics [E]
+  Expected: contains 'ambience'
+    Actual: 'Lecture des médias interrompue : Bad state: step_music: Step "step_music" references an unavailable media asset. Ce bloc n’est pas encore prévisualisé.'
+     Which: does not contain 'ambience'
+  
+  package:matcher                                              expect
+  package:flutter_test/src/widget_tester.dart 473:18           expect
+  test/cinematics/cinematic_preview_media_ui10_test.dart 47:7  main.<fn>
+  
+00:00 +2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: explicit playback executes canonical audio once; seek is silent and pause restores
+00:00 +3 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: stop during a pending media start restores the late owned channel
+00:00 +4 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: replacement and disposal clean previous asynchronous media without late notifications
+00:00 +5 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: media failure pauses visual playback and exposes an honest diagnostic
+00:05 +6 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_platform_media_ui10_test.dart: runtime adapter resolves a real local media and releases its driver on restore
+00:05 +7 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_platform_media_ui10_test.dart: outside symlink and missing media fail before starting any driver
+00:05 +8 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_platform_media_ui10_test.dart: unavailable FX host rejects its capability instead of silently accepting
+00:05 +9 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: canonical intermediate movement, backwards scrub and stop never modify author asset
+00:05 +10 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: eighty sequential actions keep one plan for ticks, pause and scrub
+00:05 +11 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: camera coexistence does not suppress missing media diagnostics

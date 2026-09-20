@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:map_core/map_core.dart';
@@ -29,6 +28,11 @@ abstract interface class FlameCinematicRuntimeActorHandle {
   void setFocusPoint(Vector2 focusPoint);
 
   void setFacing(EntityFacing facing);
+}
+
+abstract interface class FlameCinematicMotionActorHandle
+    implements FlameCinematicRuntimeActorHandle {
+  void setMotion(EntityFacing facing, CharacterAnimationState state);
 }
 
 abstract interface class FlameCinematicCharacterAnimationActorHandle
@@ -100,6 +104,8 @@ final class FlameCinematicRuntimePlaybackSink
   final ProjectManifest? project;
 
   _CinematicRuntimeVisualSnapshot? _snapshot;
+  Vector2? _playbackCameraPosition;
+  Vector2? _playbackVisibleGameSize;
   Map<String, FlameCinematicRuntimeActorHandle> _actors = const {};
   _FlameCinematicStepState? _stepState;
   bool _dialogueLineSignalled = false;
@@ -167,6 +173,16 @@ final class FlameCinematicRuntimePlaybackSink
               SceneCinematicRuntimeAwaitableErrorCode.invalidTargetReference,
           message: 'Cinematic movement target "${binding.targetId}" is not '
               'available on the active Flame map.',
+        );
+      }
+    }
+
+    for (final placement in asset.stageContext?.initialPlacements ?? const <CinematicActorInitialPlacement>[]) {
+      if (placement.kind != CinematicActorInitialPlacementKind.unset &&
+          _initialPlacement(asset, placement) == null) {
+        return CinematicRuntimeSinkPreflightResult.rejected(
+          errorCode: SceneCinematicRuntimeAwaitableErrorCode.invalidTargetReference,
+          message: 'Initial placement for "${placement.actorId}" is unavailable.',
         );
       }
     }
@@ -255,11 +271,10 @@ final class FlameCinematicRuntimePlaybackSink
         _applyActorMoveState(state, progress);
       case _FadeStepState():
         host.setCinematicFadeOpacity(
-          state.fadeOut ? progress : 1 - progress,
+          cinematicFadeOpacity(fadeOut: state.fadeOut, progress: progress),
         );
       case _ShakeStepState():
-        final envelope = math.sin(progress * math.pi);
-        final offset = math.sin(progress * math.pi * 3) * 6 * envelope;
+        final offset = cinematicShakeOffset(progress);
         host.cameraPosition = state.basePosition + Vector2(offset, 0);
       case _PassiveStepState():
       case _ImmediateStepState():
@@ -419,6 +434,8 @@ final class FlameCinematicRuntimePlaybackSink
     attempt(() => host.setCinematicInputLocked(false));
 
     _snapshot = null;
+    _playbackCameraPosition = null;
+    _playbackVisibleGameSize = null;
     _actors = const {};
     _stepState = null;
     _characterAnimationController = null;
@@ -556,6 +573,26 @@ final class FlameCinematicRuntimePlaybackSink
       cameraVisibleGameSize: host.cameraVisibleGameSize?.clone(),
       actors: Map<String, _ActorVisualSnapshot>.unmodifiable(actorSnapshots),
     );
+    for (final placement in asset.stageContext?.initialPlacements ?? const <CinematicActorInitialPlacement>[]) {
+      final position = _initialPlacement(asset, placement);
+      if (position == null) continue;
+      final actor = _requireActor(placement.actorId);
+      actor.setFocusPoint(position);
+      for (final binding in asset.stageContext!.actorBindings) {
+        if (binding.actorId == placement.actorId && binding.kind == CinematicActorBindingKind.player) {
+          actor.setFacing(EntityFacing.south);
+        }
+      }
+    }
+    for (final binding in asset.stageContext?.actorBindings ?? const <CinematicActorBinding>[]) {
+      if (binding.kind != CinematicActorBindingKind.player) continue;
+      final placed = asset.stageContext!.initialPlacements.any((placement) =>
+          placement.actorId == binding.actorId &&
+          placement.kind != CinematicActorInitialPlacementKind.unset);
+      if (placed) host.cameraPosition = _requireActor(binding.actorId).focusPoint.clone();
+    }
+    _playbackCameraPosition = host.cameraPosition.clone();
+    _playbackVisibleGameSize = host.cameraVisibleGameSize?.clone();
     final port = mediaPlaybackPort;
     _mediaCheckpointFuture = port?.captureCheckpoint();
     host.setCinematicInputLocked(true);
@@ -707,14 +744,14 @@ final class FlameCinematicRuntimePlaybackSink
         break;
       case CinematicTimelineCameraMode.reset:
         final snapshot = _snapshot!;
-        targetPosition = snapshot.cameraPosition.clone();
-        targetSize = snapshot.cameraVisibleGameSize?.clone();
+        targetPosition = (_playbackCameraPosition ?? snapshot.cameraPosition).clone();
+        targetSize = _playbackVisibleGameSize?.clone();
       case CinematicTimelineCameraMode.focus:
         final focus = cinematicTimelineCameraFocusBindingOf(context.step)!;
         targetPosition = _resolveCameraFocus(context.asset, focus)!.clone();
-        final baseSize = _snapshot!.cameraVisibleGameSize ?? fromSize;
+        final baseSize = _playbackVisibleGameSize ?? fromSize;
         if (baseSize != null) {
-          targetSize = baseSize * _zoomFactor(focus.zoomPreset);
+          targetSize = baseSize * cinematicCameraZoomFactor(focus.zoomPreset);
         }
     }
     final state = _CameraStepState(
@@ -727,35 +764,61 @@ final class FlameCinematicRuntimePlaybackSink
     if (context.step.durationMs == null) _applyCameraState(state, 1);
   }
 
+  Vector2? _initialPlacement(CinematicAsset asset, CinematicActorInitialPlacement placement) {
+    return switch (placement.kind) {
+      CinematicActorInitialPlacementKind.stagePoint => _stagePointById(asset, placement.stagePointId),
+      CinematicActorInitialPlacementKind.fromMovementTarget => placement.targetId == null ? null : _resolveMovementTarget(asset, placement.targetId!),
+      CinematicActorInitialPlacementKind.fromMapEntity => _resolveActorById(asset, placement.actorId)?.focusPoint.clone(),
+      CinematicActorInitialPlacementKind.unset => null,
+    };
+  }
+
   void _beginActorMoveStep(CinematicRuntimeStepContext context) {
     final actor = _requireActor(context.step.actorId);
     final route = _movementRoute(context.asset, context.step)!;
     final points = <Vector2>[actor.focusPoint.clone(), ...route];
-    _stepState = _ActorMoveStepState(actor: actor, points: points);
+    _stepState = _ActorMoveStepState(actor: actor, points: points,
+      motion: cinematicTimelineActorMovementModeOf(context.step) == CinematicTimelineActorMovementMode.run ? CharacterAnimationState.run : CharacterAnimationState.walk);
+    _applyActorMoveState(_stepState! as _ActorMoveStepState, 0);
+    if (actor is FlameCinematicCharacterAnimationActorHandle) {
+      actor.restoreBase(actor.facing);
+      _applyActorMoveState(_stepState! as _ActorMoveStepState, 0);
+    }
   }
 
   void _applyCameraState(_CameraStepState state, double progress) {
-    host.cameraPosition =
-        _lerp(state.fromPosition, state.targetPosition, progress);
+    host.cameraPosition = Vector2(
+      cinematicVisualLerp(state.fromPosition.x, state.targetPosition.x, progress),
+      cinematicVisualLerp(state.fromPosition.y, state.targetPosition.y, progress),
+    );
     final fromSize = state.fromSize;
     final targetSize = state.targetSize;
     if (fromSize != null && targetSize != null) {
-      host.cameraVisibleGameSize = _lerp(fromSize, targetSize, progress);
+      host.cameraVisibleGameSize = Vector2(
+        cinematicVisualLerp(fromSize.x, targetSize.x, progress),
+        cinematicVisualLerp(fromSize.y, targetSize.y, progress),
+      );
     } else if (progress >= 1) {
       host.cameraVisibleGameSize = targetSize?.clone();
     }
   }
 
   void _applyActorMoveState(_ActorMoveStepState state, double progress) {
-    final points = state.points;
-    if (points.length < 2) return;
-    final scaled = progress.clamp(0.0, 1.0) * (points.length - 1);
-    final segment = math.min(points.length - 2, scaled.floor());
-    final localProgress = scaled - segment;
-    final from = points[segment];
-    final to = points[segment + 1];
-    state.actor.setFacing(_facingBetween(from, to, state.actor.facing));
-    state.actor.setFocusPoint(_lerp(from, to, localProgress));
+    final width = (project?.settings.tileWidth ?? 1) * (project?.settings.displayScale ?? 1);
+    final height = (project?.settings.tileHeight ?? 1) * (project?.settings.displayScale ?? 1);
+    final sample = sampleCinematicRoute([
+      for (final point in state.points) (x: point.x, y: point.y),
+    ], progress, coordinateWidth: width.toDouble(), coordinateHeight: height.toDouble());
+    final actor = state.actor;
+    final facing = sample.segment < 0 ? actor.facing : _facingBetween(
+      Vector2(state.points[sample.segment].x / width, state.points[sample.segment].y / height),
+      Vector2(state.points[sample.segment + 1].x / width, state.points[sample.segment + 1].y / height), actor.facing);
+    if (actor is FlameCinematicMotionActorHandle) {
+      actor.setMotion(facing, progress >= 1 ? CharacterAnimationState.idle : state.motion);
+    } else {
+      actor.setFacing(facing);
+    }
+    actor.setFocusPoint(Vector2(sample.x, sample.y));
   }
 
   FlameCinematicRuntimeActorHandle? _resolveActor(
@@ -886,14 +949,6 @@ double _progressOf(CinematicRuntimeStepContext context) {
 bool _hasPositiveDuration(CinematicTimelineStep step) =>
     (step.durationMs ?? 0) > 0;
 
-double _zoomFactor(CinematicCameraZoomPreset preset) {
-  return switch (preset) {
-    CinematicCameraZoomPreset.wide => 1,
-    CinematicCameraZoomPreset.medium => 0.8,
-    CinematicCameraZoomPreset.close => 0.6,
-  };
-}
-
 EntityFacing _entityFacingOf(CinematicTimelineStep step) {
   return switch (cinematicTimelineActorFacingDirectionOf(step)!) {
     CinematicTimelineActorFacingDirection.up => EntityFacing.north,
@@ -915,14 +970,6 @@ EntityFacing _facingBetween(
   }
   if (dy != 0) return dy > 0 ? EntityFacing.south : EntityFacing.north;
   return fallback;
-}
-
-Vector2 _lerp(Vector2 from, Vector2 to, double progress) {
-  final t = progress.clamp(0.0, 1.0);
-  return Vector2(
-    from.x + (to.x - from.x) * t,
-    from.y + (to.y - from.y) * t,
-  );
 }
 
 SceneCinematicRuntimeAwaitableErrorCode _runtimeErrorCodeFor(
@@ -1000,10 +1047,11 @@ final class _CameraStepState extends _FlameCinematicStepState {
 }
 
 final class _ActorMoveStepState extends _FlameCinematicStepState {
-  const _ActorMoveStepState({required this.actor, required this.points});
+  const _ActorMoveStepState({required this.actor, required this.points, required this.motion});
 
   final FlameCinematicRuntimeActorHandle actor;
   final List<Vector2> points;
+  final CharacterAnimationState motion;
 }
 
 final class _ActorEmoteStepState extends _FlameCinematicStepState {

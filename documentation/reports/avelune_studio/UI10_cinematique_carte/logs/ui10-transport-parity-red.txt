@@ -1,0 +1,90 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 103.0.0 (108.0.0 available)
+  analyzer 13.3.0 (14.4.0 available)
+  archive 4.0.9 (4.3.0 available)
+  code_assets 2.0.0 (2.1.0 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 11.0.3 (13.1.0 available)
+  flutter_riverpod 3.4.2 (3.4.3 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  package_config 2.2.0 (3.0.0 available)
+  platform 3.1.6 (3.2.0 available)
+  riverpod 3.4.2 (3.4.3 available)
+  synchronized 3.4.1+2 (3.4.2 available)
+  test 1.31.1 (1.32.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  test_core 0.6.18 (0.6.20 available)
+  vector_math 2.4.2 (2.4.3 available)
+  win32 5.15.0 (6.4.0 available)
+Got dependencies!
+17 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart
+test/cinematics/cinematic_preview_transport_ui10_test.dart:62:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+ - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+      expect(transport.previewActive, isFalse);
+                       ^^^^^^^^^^^^^
+test/cinematics/cinematic_preview_transport_ui10_test.dart:68:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+ - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+      expect(transport.previewActive, isTrue);
+                       ^^^^^^^^^^^^^
+test/cinematics/cinematic_preview_transport_ui10_test.dart:72:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+ - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+      expect(transport.previewActive, isFalse);
+                       ^^^^^^^^^^^^^
+test/cinematics/cinematic_preview_transport_ui10_test.dart:76:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+ - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+      expect(transport.previewActive, isTrue);
+                       ^^^^^^^^^^^^^
+test/cinematics/cinematic_preview_transport_ui10_test.dart:79:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+ - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+      expect(transport.previewActive, isFalse);
+                       ^^^^^^^^^^^^^
+test/cinematics/cinematic_preview_transport_ui10_test.dart:81:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+ - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+      expect(transport.previewActive, isTrue);
+                       ^^^^^^^^^^^^^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: test/cinematics/cinematic_preview_transport_ui10_test.dart:62:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+   - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+        expect(transport.previewActive, isFalse);
+                         ^^^^^^^^^^^^^
+  test/cinematics/cinematic_preview_transport_ui10_test.dart:68:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+   - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+        expect(transport.previewActive, isTrue);
+                         ^^^^^^^^^^^^^
+  test/cinematics/cinematic_preview_transport_ui10_test.dart:72:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+   - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+        expect(transport.previewActive, isFalse);
+                         ^^^^^^^^^^^^^
+  test/cinematics/cinematic_preview_transport_ui10_test.dart:76:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+   - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+        expect(transport.previewActive, isTrue);
+                         ^^^^^^^^^^^^^
+  test/cinematics/cinematic_preview_transport_ui10_test.dart:79:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+   - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+        expect(transport.previewActive, isFalse);
+                         ^^^^^^^^^^^^^
+  test/cinematics/cinematic_preview_transport_ui10_test.dart:81:24: Error: The getter 'previewActive' isn't defined for the type 'CinematicPreviewTransport'.
+   - 'CinematicPreviewTransport' is from 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart' ('lib/features/cinematics/application/cinematic_preview_transport.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'previewActive'.
+        expect(transport.previewActive, isTrue);
+                         ^^^^^^^^^^^^^
+  .
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart

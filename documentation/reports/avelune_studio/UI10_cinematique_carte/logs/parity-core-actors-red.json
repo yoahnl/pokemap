@@ -1,0 +1,19 @@
+{
+  "command": [
+    "dart",
+    "test",
+    "test/cinematic_actor_display_preview_model_test.dart",
+    "test/cinematic_timeline_time_layout_read_model_test.dart"
+  ],
+  "runnerPid": 84502,
+  "owned": {
+    "84506": [
+      84502,
+      "501",
+      "Sun Sep 20 23:55:40 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/Cellar/dart/3.12.1/libexec --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dart_test.kernel.jcbjZV/output.dill --packages=/Users/karim/Project/pokemonProject/packages/map_core/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 1
+}

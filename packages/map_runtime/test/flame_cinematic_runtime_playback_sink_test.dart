@@ -4,6 +4,108 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test(
+      'authored initial placement is temporary and cancellation restores actor',
+      () async {
+    final host = _FakeHost();
+    final base = _visualAsset(steps: [_actorMoveStep()]);
+    final context = base.stageContext!;
+    final asset = CinematicAsset.fromJson({
+      ...base.toJson(),
+      'stageContext': {
+        ...context.toJson(),
+        'stagePoints': [
+          ...context.stagePoints.map((p) => p.toJson()),
+          {'id': 'start', 'label': 'Start', 'x': 8, 'y': 9}
+        ],
+        'initialPlacements': [
+          {'actorId': 'hero', 'kind': 'stagePoint', 'stagePointId': 'start'}
+        ],
+      }
+    });
+    final before = asset.toJson();
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(asset);
+    expect(host.actors['hero']!.focusPoint, Vector2(8, 9));
+    controller.cancel();
+    await completion;
+    expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+    expect(host.actors['hero']!.facing, EntityFacing.north);
+    expect(asset.toJson(), before);
+  });
+  test('move plays walking animation then returns to idle', () async {
+    final host = _FakeHost();
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(_visualAsset(steps: [
+      _actorMoveStep(),
+      CinematicTimelineStep(
+          id: 'hold', kind: CinematicTimelineStepKind.wait, durationMs: 10)
+    ]));
+    controller.update(const Duration(milliseconds: 50));
+    expect(host.actors['hero']!.motion, CharacterAnimationState.walk);
+    expect(host.actors['hero']!.facing, EntityFacing.east);
+    controller.update(const Duration(milliseconds: 50));
+    expect(host.actors['hero']!.motion, CharacterAnimationState.idle);
+    controller.cancel();
+    await completion;
+    expect(host.actors['hero']!.motion, CharacterAnimationState.idle);
+  });
+  test('each cinematic move starts a fresh animation phase', () async {
+    final host = _FakeHost();
+    final first = _actorMoveStep();
+    final second =
+        CinematicTimelineStep.fromJson({...first.toJson(), 'id': 'second'});
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(_visualAsset(steps: [first, second]));
+    expect(host.actors['hero']!.restoreCount, 1);
+    controller.update(const Duration(milliseconds: 100));
+    expect(host.actors['hero']!.restoreCount, 2);
+    controller.cancel();
+    await completion;
+  });
+  test('manual route uses distance rather than equal time per segment',
+      () async {
+    final host = _FakeHost();
+    final base = _visualAsset(steps: [_actorMoveStep()]);
+    final step = base.timeline.steps.single;
+    final asset = CinematicAsset.fromJson({
+      ...base.toJson(),
+      'stageContext': {
+        ...base.stageContext!.toJson(),
+        'stagePoints': [
+          {'id': 'lighthouse_point', 'label': 'End', 'x': 30, 'y': 20},
+          {'id': 'near', 'label': 'Near', 'x': 21, 'y': 20}
+        ],
+        'manualPaths': [
+          {
+            'id': 'route',
+            'label': 'Route',
+            'ownerActorMoveStepId': step.id,
+            'waypointStagePointIds': ['near']
+          }
+        ],
+      },
+      'timeline': {
+        'steps': [
+          {
+            ...step.toJson(),
+            'metadata': {...step.metadata, 'actor.pathMode': 'manual'}
+          }
+        ]
+      },
+    });
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(asset);
+    controller.update(const Duration(milliseconds: 50));
+    expect(host.actors['hero']!.focusPoint, Vector2(25, 20));
+    controller.cancel();
+    await completion;
+  });
+
   group('FlameCinematicRuntimePlaybackSink', () {
     test('preflight rejects an unavailable actor without runtime mutation', () {
       final host = _FakeHost()..actors.remove('npc');
@@ -288,7 +390,10 @@ final class _FakeHost implements FlameCinematicRuntimeHost {
   }
 }
 
-final class _FakeActor implements FlameCinematicCharacterAnimationActorHandle {
+final class _FakeActor
+    implements
+        FlameCinematicCharacterAnimationActorHandle,
+        FlameCinematicMotionActorHandle {
   _FakeActor(this.focusPoint, this.facing);
 
   @override
@@ -305,6 +410,14 @@ final class _FakeActor implements FlameCinematicCharacterAnimationActorHandle {
 
   @override
   String get actorId => 'fake';
+
+  CharacterAnimationState motion = CharacterAnimationState.idle;
+
+  @override
+  void setMotion(EntityFacing facing, CharacterAnimationState state) {
+    this.facing = facing;
+    motion = state;
+  }
 
   @override
   ProjectCharacterEntry get character => _characterAnimationCharacter();
@@ -327,6 +440,7 @@ final class _FakeActor implements FlameCinematicCharacterAnimationActorHandle {
   @override
   void setFacing(EntityFacing facing) {
     this.facing = facing;
+    motion = CharacterAnimationState.idle;
   }
 
   @override

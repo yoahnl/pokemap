@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart
+00:00 +0: lazy library, draft create, canonical steps, undo save independent reread
+00:00 +1: late opening response cannot select older document
+00:00 +2: editing during awaited publication keeps later draft and source conflicts preserve it
+00:00 +3: preview transport evaluates canonical frames without semantic edits or workspace rebuilds
+00:00 +4: spatial destination is one history edit; paths survive binding and duplication
+00:00 +5: invalid durations and unrelated clipboard bindings do not mutate history
+00:00 +6: All tests passed!

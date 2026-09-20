@@ -1,0 +1,266 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: {
+            'id': 'station_departure_pause',
+            'title': 'Rencontre au jardin',
+            'mapId': 'jardin',
+            'tags': [],
+            'requiredActors': [
+              {'actorId': 'hero', 'label': 'Voyageur'},
+              {'actorId': 'chief', 'label': 'Guide du jardin'}
+            ],
+            'movementTargets': [{'targetId': 'destination', 'label': 'Auprès du guide'}],
+            'stageContext': {
+              'backdropMode': 'projectMap',
+              'actorBindings': [
+                {'actorId': 'hero', 'kind': 'player'},
+                {'actorId': 'chief', 'kind': 'mapEntity', 'mapEntityId': 'chief'}
+              ],
+              'actorAppearanceBindings': [],
+              'initialPlacements': [
+                {'actorId': 'hero', 'kind': 'stagePoint', 'stagePointId': 'start'},
+                {'actorId': 'chief', 'kind': 'fromMapEntity'}
+              ],
+              'movementTargetBindings': [{'targetId': 'destination', 'kind': 'stagePoint',
+'sourceId': 'arrival'}],
+              'stagePoints': [
+                {'id': 'start', 'label': 'Départ', 'x': 8.0, 'y': 9.0},
+                {'id': 'arrival', 'label': 'Auprès du guide', 'x': 13.0, 'y': 9.0}
+              ],
+              'manualPaths': []
+            },
+            'timeline': {
+              'steps': [
+                {
+                  'id': 'opening',
+                  'kind': 'wait',
+                  'durationMs': 400,
+                  'metadata': {
+                    'authoring.block': 'wait',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0'
+                  }
+                },
+                {
+                  'id': 'walk',
+                  'kind': 'actorMove',
+                  'label': 'Déplacement Voyageur',
+                  'durationMs': 1700,
+                  'actorId': 'hero',
+                  'targetId': 'destination',
+                  'metadata': {
+                    'actor.movementMode': 'walk',
+                    'actor.pathMode': 'direct',
+                    'authoring.block': 'actorMove',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0'
+                  }
+                },
+                {
+                  'id': 'face',
+                  'kind': 'actorFace',
+                  'actorId': 'hero',
+                  'metadata': {
+                    'actor.direction': 'up',
+                    'authoring.block': 'actorFace',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0'
+                  }
+                },
+                {
+                  'id': 'camera',
+                  'kind': 'camera',
+                  'durationMs': 700,
+                  'metadata': {
+                    'authoring.block': 'camera',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0',
+                    'camera.mode': 'focus',
+                    'camera.targetKind': 'stagePoint',
+                    'camera.targetStagePointId': 'arrival',
+                    'camera.zoomPreset': 'close'
+                  }
+                },
+                {
+                  'id': 'fade',
+                  'kind': 'fade',
+                  'durationMs': 600,
+                  'metadata': {
+                    'authoring.block': 'fade',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0',
+                    'fade.mode': 'fadeOut'
+                  }
+                },
+                {
+                  'id': 'ending',
+                  'kind': 'wait',
+                  'durationMs': 250,
+                  'metadata': {
+                    'authoring.block': 'wait',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0'
+                  }
+                }
+              ]
+            },
+            'metadata': {}
+          }
+  Actual: {
+            'id': 'station_departure_pause',
+            'title': 'Rencontre au jardin',
+            'mapId': 'jardin',
+            'tags': [],
+            'requiredActors': [
+              {'actorId': 'hero', 'label': 'Voyageur'},
+              {'actorId': 'chief', 'label': 'Guide du jardin'}
+            ],
+            'movementTargets': [{'targetId': 'destination', 'label': 'Auprès du guide'}],
+            'stageContext': {
+              'backdropMode': 'projectMap',
+              'actorBindings': [
+                {'actorId': 'hero', 'kind': 'player'},
+                {'actorId': 'chief', 'kind': 'mapEntity', 'mapEntityId': 'chief'}
+              ],
+              'actorAppearanceBindings': [],
+              'initialPlacements': [
+                {'actorId': 'hero', 'kind': 'stagePoint', 'stagePointId': 'start'},
+                {'actorId': 'chief', 'kind': 'fromMapEntity'}
+              ],
+              'movementTargetBindings': [{'targetId': 'destination', 'kind': 'stagePoint',
+'sourceId': 'arrival'}],
+              'stagePoints': [
+                {'id': 'start', 'label': 'Départ', 'x': 8.0, 'y': 9.0},
+                {'id': 'arrival', 'label': 'Auprès du guide', 'x': 13.0, 'y': 9.0}
+              ],
+              'manualPaths': []
+            },
+            'timeline': {
+              'steps': [
+                {
+                  'id': 'opening',
+                  'kind': 'wait',
+                  'durationMs': 400,
+                  'metadata': {
+                    'authoring.block': 'wait',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0'
+                  }
+                },
+                {
+                  'id': 'walk',
+                  'kind': 'actorMove',
+                  'label': 'Déplacement Voyageur',
+                  'durationMs': 2200,
+                  'actorId': 'hero',
+                  'targetId': 'destination',
+                  'metadata': {
+                    'actor.movementMode': 'walk',
+                    'actor.pathMode': 'direct',
+                    'authoring.block': 'actorMove',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0'
+                  }
+                },
+                {
+                  'id': 'face',
+                  'kind': 'actorFace',
+                  'actorId': 'hero',
+                  'metadata': {
+                    'actor.direction': 'up',
+                    'authoring.block': 'actorFace',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0'
+                  }
+                },
+                {
+                  'id': 'camera',
+                  'kind': 'camera',
+                  'durationMs': 700,
+                  'metadata': {
+                    'authoring.block': 'camera',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0',
+                    'camera.mode': 'focus',
+                    'camera.targetKind': 'stagePoint',
+                    'camera.targetStagePointId': 'arrival',
+                    'camera.zoomPreset': 'close'
+                  }
+                },
+                {
+                  'id': 'fade',
+                  'kind': 'fade',
+                  'durationMs': 600,
+                  'metadata': {
+                    'authoring.block': 'fade',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0',
+                    'fade.mode': 'fadeOut'
+                  }
+                },
+                {
+                  'id': 'ending',
+                  'kind': 'wait',
+                  'durationMs': 250,
+                  'metadata': {
+                    'authoring.block': 'wait',
+                    'authoring.kind': 'basicBlock',
+                    'authoring.source': 'cinematic-builder-v0'
+                  }
+                }
+              ]
+            },
+            'metadata': {}
+          }
+   Which: at location ['timeline']['steps'][1]['durationMs'] is <2200> instead of <1700>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart:81:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart line 81
+The test description was:
+  UI10 timeline drag reorders and duration handle commits once with undo redo
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:06 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo [E]
+  Test failed. See exception logs above.
+  The test description was: UI10 timeline drag reorders and duration handle commits once with undo redo
+  
+00:06 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart
+test/cinematics_ui10_responsive_test.dart:49:41: Error: The getter 'label' isn't defined for the type 'CinematicAsset'.
+ - 'CinematicAsset' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'label'.
+        expect(controller.active!.asset.label, title);
+                                        ^^^^^
+test/cinematics_ui10_responsive_test.dart:55:21: Error: The getter 'label' isn't defined for the type 'CinematicAsset'.
+ - 'CinematicAsset' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'label'.
+          ))!.asset.label,
+                    ^^^^^
+00:06 +0 -2: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: test/cinematics_ui10_responsive_test.dart:49:41: Error: The getter 'label' isn't defined for the type 'CinematicAsset'.
+   - 'CinematicAsset' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'label'.
+          expect(controller.active!.asset.label, title);
+                                          ^^^^^
+  test/cinematics_ui10_responsive_test.dart:55:21: Error: The getter 'label' isn't defined for the type 'CinematicAsset'.
+   - 'CinematicAsset' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'label'.
+            ))!.asset.label,
+                      ^^^^^
+  .
+00:06 +0 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo

@@ -1,0 +1,33 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_library_thumbnail_ui10_test.dart
+00:00 +0: thumbnail forgets A while B waits and after null or missing map
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: no matching candidates
+  Actual: _KeyWidgetFinder:<Found 1 widget with key [<'rendered-map-a'>]: [
+            SizedBox.expand-[<'rendered-map-a'>](renderObject: RenderConstrainedBox#77d8e),
+          ]>
+   Which: means one was found but none were expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_library_thumbnail_ui10_test.dart:42:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_library_thumbnail_ui10_test.dart line 42
+The test description was:
+  thumbnail forgets A while B waits and after null or missing map
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:00 +0 -1: thumbnail forgets A while B waits and after null or missing map [E]
+  Test failed. See exception logs above.
+  The test description was: thumbnail forgets A while B waits and after null or missing map
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_library_thumbnail_ui10_test.dart: thumbnail forgets A while B waits and after null or missing map

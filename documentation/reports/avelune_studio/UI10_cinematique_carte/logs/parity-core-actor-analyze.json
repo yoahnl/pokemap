@@ -1,0 +1,26 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/src/read_models/cinematic_actor_display_preview_model.dart",
+    "lib/src/read_models/cinematic_preview_playback_plan.dart",
+    "lib/src/runtime/cinematic_actor_geometry.dart",
+    "lib/src/runtime/cinematic_route_sampling.dart",
+    "lib/src/read_models/cinematic_timeline_time_layout_read_model.dart",
+    "test/cinematic_actor_geometry_parity_test.dart",
+    "test/cinematic_actor_display_preview_model_test.dart",
+    "test/cinematic_timeline_time_layout_read_model_test.dart",
+    "test/cinematic_preview_playback_plan_test.dart"
+  ],
+  "runnerPid": 97873,
+  "owned": {
+    "97878": [
+      97873,
+      "501",
+      "Mon Sep 21 00:06:36 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

@@ -1,0 +1,8 @@
+{
+  "project.json": "e69689ff518896022870d043f3dd695e15754bca3ed7ee868a3f002ec17a32ed",
+  "maps/jardin.json": "a2fdefaecbabcfc4ec4739279cdc18dcb93f47a121ed0307a48979be38ace170",
+  "maps/clairiere.json": "2fce935b5541fb14af5e95b0b45809595ee022ba3d92e266ab7ca3549c2d8157",
+  "dialogues/station_welcome.yarn": "489f167ddd2585a3731821b552d3f3194904799e9c60b342fde2bcfde986442a",
+  "dialogues/station_refusal.yarn": "3415b258b9ae46c4a525614a334d60eb7327e52486cc7e98c4a8e542ea122e27",
+  "dialogues/station_agreement.yarn": "ee2961dc40a22424bd0af902a2e058b9f86c0086ceb8412d7ec50652495f792b"
+}

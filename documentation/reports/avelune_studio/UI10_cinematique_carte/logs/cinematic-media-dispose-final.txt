@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: explicit playback executes canonical audio once; seek is silent and pause restores
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: stop during a pending media start restores the late owned channel
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: replacement and disposal clean previous asynchronous media without late notifications
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: media failure pauses visual playback and exposes an honest diagnostic
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: canonical intermediate movement, backwards scrub and stop never modify author asset
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: eighty sequential actions keep one plan for ticks, pause and scrub
+00:00 +6: All tests passed!

@@ -1,0 +1,21 @@
+{
+  "command": [
+    "dart",
+    "test",
+    "test/domains/narrative/cinematic_atomic_placement_test.dart",
+    "test/domains/narrative/cinematic_authoring_gate_test.dart",
+    "test/domains/narrative/cinematic_library_authoring_test.dart",
+    "test/tooling/jsonl_cinematic_library_flow_test.dart"
+  ],
+  "runnerPid": 71919,
+  "owned": {
+    "71941": [
+      71919,
+      "501",
+      "Sun Sep 20 22:21:07 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/Cellar/dart/3.12.1/libexec --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dart_test.kernel.5qSLEL/output.dill --packages=/Users/karim/Project/pokemonProject/packages/map_authoring/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

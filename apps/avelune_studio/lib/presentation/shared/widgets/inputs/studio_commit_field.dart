@@ -23,10 +23,18 @@ class _StudioCommitFieldState extends State<StudioCommitField> {
   late final _text = TextEditingController(text: widget.value);
   late final _focus = FocusNode()..addListener(_onFocus);
   void _onFocus() {
-    if (!_focus.hasFocus) _commit();
+    if (_focus.hasFocus) {
+      _committedSinceEdit = false;
+    } else {
+      _commit();
+    }
   }
 
+  bool _committedSinceEdit = false;
+
   void _commit() {
+    if (_committedSinceEdit) return;
+    _committedSinceEdit = true;
     if (widget.alwaysCommit || _text.text != widget.value) {
       if (widget.tryCommit case final commit?) {
         if (!commit(_text.text)) _text.text = widget.value;
@@ -58,6 +66,7 @@ class _StudioCommitFieldState extends State<StudioCommitField> {
     focusNode: _focus,
     maxLines: widget.maxLines,
     decoration: InputDecoration(labelText: widget.label),
+    onChanged: (_) => _committedSinceEdit = false,
     onSubmitted: (_) => _commit(),
   );
 }

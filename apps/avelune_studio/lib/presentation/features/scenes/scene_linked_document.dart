@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
-import 'package:avelune_studio/features/narrative/application/dialogue_draft_codec.dart';
+import '../../../features/dialogues/application/dialogue_working_source.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
@@ -54,34 +54,24 @@ class SceneLinkedDocuments {
     bool detailed = false,
     ValueChanged<String>? onStartChanged,
   }) {
-    final shared = dialogues?.session(payload.dialogueId);
-    if (shared != null) {
-      return _source(
-        NarrativeDialogueSource(entry: shared.entry, source: shared.source),
-        payload.yarnNodeName,
-        shared.dirty,
-        detailed: detailed,
-        onStartChanged: onStartChanged,
+    if (narrative != null) {
+      final working = resolveDialogueWorkingSource(
+        narrative: narrative,
+        dialogueId: payload.dialogueId,
+        dialogues: dialogues,
       );
-    }
-    final local = narrative?.sessions.values
-        .where(
-          (session) => session.current.dialogue.entry.id == payload.dialogueId,
-        )
-        .firstOrNull;
-    if (local != null) {
-      return _source(
-        local.readOnlySource != null
-            ? NarrativeDialogueSource(
-                entry: local.current.dialogue.entry,
-                source: local.readOnlySource!,
-              )
-            : const DialogueDraftCodec().encode(local.current.dialogue),
-        payload.yarnNodeName,
-        local.dirty,
-        detailed: detailed,
-        onStartChanged: onStartChanged,
-      );
+      if (working.problem case final problem?) {
+        return StudioNotice(problem, isError: true);
+      }
+      if (working.source case final source?) {
+        return _source(
+          source,
+          payload.yarnNodeName,
+          working.dirty,
+          detailed: detailed,
+          onStartChanged: onStartChanged,
+        );
+      }
     }
     final entry = project.dialogues
         .where((entry) => entry.id == payload.dialogueId)

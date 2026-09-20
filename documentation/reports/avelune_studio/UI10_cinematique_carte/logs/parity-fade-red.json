@@ -1,0 +1,11 @@
+{
+  "command": [
+    "dart",
+    "test",
+    "test/cinematic_viewport_state_parity_test.dart"
+  ],
+  "runnerPid": 81057,
+  "owned": {},
+  "reaped": [],
+  "exitCode": 1
+}

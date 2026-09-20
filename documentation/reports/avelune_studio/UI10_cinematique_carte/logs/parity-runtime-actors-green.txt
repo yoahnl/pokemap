@@ -1,0 +1,22 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/cinematic_runtime_playback_controller_test.dart: CinematicRuntimePlaybackController implements the existing awaitable cinematic player port
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: authored initial placement is temporary and cancellation restores actor
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: authored initial placement is temporary and cancellation restores actor
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: authored initial placement is temporary and cancellation restores actor
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: authored initial placement is temporary and cancellation restores actor
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: authored initial placement is temporary and cancellation restores actor
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: authored initial placement is temporary and cancellation restores actor
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: authored initial placement is temporary and cancellation restores actor
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/cinematic_runtime_playback_controller_test.dart: CinematicRuntimePlaybackController sink preflight rejection stays mutation free and typed
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: move plays walking animation then returns to idle
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_runtime/test/cinematic_runtime_playback_controller_test.dart: CinematicRuntimePlaybackController cancellation completes once and restores atomically
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: each cinematic move starts a fresh animation phase
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_runtime/test/cinematic_runtime_playback_controller_test.dart: CinematicRuntimePlaybackController sink errors restore once and return a typed failure
+00:00 +13: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: manual route uses distance rather than equal time per segment
+00:00 +14: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: FlameCinematicRuntimePlaybackSink preflight rejects an unavailable actor without runtime mutation
+00:00 +15: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: FlameCinematicRuntimePlaybackSink preflight rejects an incomplete map actor binding without throwing
+00:00 +16: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: FlameCinematicRuntimePlaybackSink renders the eight V1 beats and restores the runtime atomically
+00:00 +17: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: FlameCinematicRuntimePlaybackSink cancellation restores camera actors overlays and input once
+00:00 +18: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: FlameCinematicRuntimePlaybackSink restoration keeps unlocking input when overlay cleanup throws
+00:00 +19: /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: FlameCinematicRuntimePlaybackSink awaits custom character animation and restores Base
+00:00 +20: All tests passed!

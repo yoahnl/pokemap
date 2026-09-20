@@ -1,0 +1,31 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
+00:05 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:09 +2: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart
+test/cinematics_ui10_responsive_test.dart:49:41: Error: The getter 'name' isn't defined for the type 'CinematicAsset'.
+ - 'CinematicAsset' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'name'.
+        expect(controller.active!.asset.name, title);
+                                        ^^^^
+test/cinematics_ui10_responsive_test.dart:55:21: Error: The getter 'name' isn't defined for the type 'CinematicAsset'.
+ - 'CinematicAsset' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'name'.
+          ))!.asset.name,
+                    ^^^^
+00:09 +2 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: test/cinematics_ui10_responsive_test.dart:49:41: Error: The getter 'name' isn't defined for the type 'CinematicAsset'.
+   - 'CinematicAsset' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'name'.
+          expect(controller.active!.asset.name, title);
+                                          ^^^^
+  test/cinematics_ui10_responsive_test.dart:55:21: Error: The getter 'name' isn't defined for the type 'CinematicAsset'.
+   - 'CinematicAsset' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'name'.
+            ))!.asset.name,
+                      ^^^^
+  .
+00:09 +2 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart

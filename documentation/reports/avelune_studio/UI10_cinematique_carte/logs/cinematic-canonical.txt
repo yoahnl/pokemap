@@ -1,0 +1,23 @@
+00:00 +0: loading test/domains/narrative/cinematic_atomic_placement_test.dart
+00:00 +0: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +1: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +2: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +3: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +4: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +5: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +6: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +7: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +8: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +9: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +10: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +11: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +12: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +13: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +14: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +15: test/domains/narrative/cinematic_atomic_placement_test.dart: draft and world placement publish atomically (direct)
+00:00 +16: test/tooling/jsonl_cinematic_library_flow_test.dart: cinematic library keeps direct and JSONL transactions equivalent
+00:00 +17: test/tooling/jsonl_cinematic_library_flow_test.dart: cinematic library keeps direct and JSONL transactions equivalent
+00:00 +18: test/tooling/jsonl_cinematic_library_flow_test.dart: cinematic library keeps direct and JSONL transactions equivalent
+00:00 +19: test/tooling/jsonl_cinematic_library_flow_test.dart: cinematic library keeps direct and JSONL transactions equivalent
+00:00 +20: test/tooling/jsonl_cinematic_library_flow_test.dart: JSONL executes every cinematic library catalog action
+00:01 +21: All tests passed!

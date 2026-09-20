@@ -22,8 +22,12 @@ class LocalNarrativeCatalogTransaction {
     required String actionId,
     required Map<String, Object?> Function(ProjectManifest) parameters,
     void Function(ProjectManifest, List<MapData>)? validate,
+    bool refreshCatalog = false,
   }) => mapAdapter.withResourceMutation(() async {
-    final baseline = await mapAdapter.resourceBaseline(session);
+    final baseline = await mapAdapter.resourceBaseline(
+      session,
+      refreshCatalog: refreshCatalog,
+    );
     final fields = parameters(baseline.manifest);
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
@@ -89,7 +93,12 @@ class LocalNarrativeCatalogTransaction {
       );
       if (changes.isNotEmpty) {
         final confirmation =
-            (actionId == 'storyline.delete' || actionId == 'event_v2.delete')
+            const {
+              'storyline.delete',
+              'event_v2.delete',
+              'cinematic.delete',
+              'cinematicLibraryAsset.delete',
+            }.contains(actionId)
             ? await api.confirmMutation(
                 opened.projectHandle,
                 planId: planned.planId,

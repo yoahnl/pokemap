@@ -1,6 +1,23 @@
 part of 'scene_builder_page.dart';
 
 extension _SceneBuilderCommands on _SceneBuilderPageState {
+  Future<void> openDocument(SceneNode node) {
+    if (node.payload case SceneYarnDialoguePayload payload
+        when widget.onDialogue != null) {
+      return widget.onDialogue!(payload);
+    }
+    if (node.payload case SceneCinematicPayload payload
+        when widget.onCinematic != null) {
+      return widget.onCinematic!(payload);
+    }
+    return documents.open(
+      context,
+      node,
+      widget.controller.project,
+      widget.narrative,
+    );
+  }
+
   Future<void> discardDraft() async {
     final session = widget.controller.active;
     if (session == null || session.saving) return;

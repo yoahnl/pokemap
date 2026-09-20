@@ -12,18 +12,30 @@ import 'studio_resource_thumbnail.dart';
 import 'studio_resource_catalog.dart';
 import 'studio_atlas_preview.dart';
 import 'studio_character_thumbnail.dart';
+import 'studio_cinematic_media.dart';
 import 'studio_resource_notifications.dart';
 import '../../presentation/features/characters/character_workspace_visuals.dart';
+import '../../presentation/features/cinematics/cinematic_workspace_visuals.dart';
+
+part 'studio_map_resource_recovery.dart';
 
 final class StudioMapResources
     implements
         MapWorkspaceVisuals,
         ResourceWorkspaceVisuals,
-        CharacterWorkspaceVisuals {
+        CharacterWorkspaceVisuals,
+        CinematicWorkspaceVisuals,
+        CinematicMediaWorkspaceVisuals {
   StudioMapResources._(this.projectRoot, this.manifest)
     : _index = StudioResourceIndex(manifest);
 
   final String projectRoot;
+  @override
+  CinematicMediaPlaybackPort createCinematicMedia(ProjectManifest project) =>
+      StudioCinematicMedia(
+        projectRoot: projectRoot,
+        assets: project.cinematicMediaAssets,
+      );
   ProjectManifest manifest;
   StudioResourceIndex _index;
   final Map<String, String> paths = {};
@@ -215,46 +227,27 @@ final class StudioMapResources
   void release(Object owner) => store.release(owner);
 
   @override
-  Future<void> retryResources(Iterable<String> resourceIds) async {
-    if (_disposed) return;
-    final ids = resourceIds
-        .where((id) => _diagnostics[id]?.canRetry ?? false)
-        .toSet();
-    for (final id in ids) {
-      final old = _diagnostics[id];
-      if (old == null) continue;
-      _diagnostics[id] = WorkspaceResourceDiagnostic(
-        resourceId: id,
-        name: old.name,
-        cause: old.cause,
-        detail: old.detail,
-        status: WorkspaceResourceStatus.retrying,
-      );
-    }
-    _notify();
-    await Future.wait(
-      ids.map(
-        (id) => store.request(id, retry: true, retainUntilComplete: true),
-      ),
-    );
-  }
+  Widget cinematicActor(
+    ProjectCharacterEntry character, {
+    double size = 48,
+    EntityFacing facing = EntityFacing.south,
+    CharacterAnimationState animationState = CharacterAnimationState.idle,
+    int elapsedMs = 0,
+    CharacterCustomAnimationClip? customAnimation,
+  }) => StudioCharacterThumbnail(
+    resources: this,
+    character: character,
+    size: size,
+    facing: facing,
+    animationState: animationState,
+    elapsedMs: elapsedMs,
+    customAnimation: customAnimation,
+  );
 
-  void _failed(String id, StudioResourceFailure? failure) {
-    if (_disposed) return;
-    if (failure == null) {
-      _diagnostics.remove(id);
-    } else {
-      _diagnostics[id] = WorkspaceResourceDiagnostic(
-        resourceId: id,
-        name: _index.names[id] ?? id,
-        cause: failure.cause,
-        detail: failure.detail,
-        retryable: failure.retryable,
-      );
-    }
-  }
+  @override
+  Future<void> retryResources(Iterable<String> resourceIds) =>
+      _retryResources(resourceIds);
 
-  void _notify() => _changes.emitLater();
   RuntimeAuthoringMapRenderer renderer(MapData map) {
     if (_disposed) throw StateError('Ressources fermées');
     return createStudioMapRenderer(map, this);

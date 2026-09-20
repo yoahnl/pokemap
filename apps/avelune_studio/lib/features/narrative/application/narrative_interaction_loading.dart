@@ -46,13 +46,15 @@ extension NarrativeInteractionLoading on NarrativeInteractionOpener {
         ? null
         : const DialogueDraftCodec().decode(original);
     final rank = nextNarrativeRank(project, controller.sessions.values, source);
-    final edit = InteractionEditSession(
+    late final InteractionEditSession edit;
+    edit = InteractionEditSession(
       baseCatalog: project,
       baseEvent: project.eventRegistry?.records
           .where((record) => record.id == (interaction?.id ?? id))
           .firstOrNull,
       eventBaseKnown: true,
       accessProblem: () =>
+          controller.cinematicInteractionProblem(edit) ??
           controller.dialogueAccessProblem?.call(entry.id) ??
           controller.sharedDialogueAccessProblem(
             entry.id,

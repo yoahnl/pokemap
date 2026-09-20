@@ -55,7 +55,8 @@ extension NarrativeSessionCoexistence on NarrativeWorkspaceController {
     final stored = project.eventRegistry?.records
         .where((record) => record.id == eventId)
         .firstOrNull;
-    return dialogueAccessProblem?.call(edit.current.dialogue.entry.id) ??
+    return cinematicInteractionProblem(edit) ??
+        dialogueAccessProblem?.call(edit.current.dialogue.entry.id) ??
         sharedDialogueAccessProblem(edit.current.dialogue.entry.id, eventId) ??
         eventAccessProblem?.call(eventId) ??
         (edit.eventBaseKnown && stored != edit.baseEvent

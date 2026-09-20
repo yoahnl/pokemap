@@ -1,0 +1,1401 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: explicit playback executes canonical audio once; seek is silent and pause restores
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: stop during a pending media start restores the late owned channel
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: replacement and disposal clean previous asynchronous media without late notifications
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: media failure pauses visual playback and exposes an honest diagnostic
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:00 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:01 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:01 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart: cinematic save preserves concurrent import, every map and linked sources
+00:01 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: focused duration commits canonical value and invalid duration is rejected
+00:01 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: focused duration commits canonical value and invalid duration is rejected
+00:01 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: focused duration commits canonical value and invalid duration is rejected
+00:01 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: focused duration commits canonical value and invalid duration is rejected
+00:01 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: invalid command number and title remain blocked until corrected
+00:01 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: tab transition retains focused title then shows preview diagnostics
+00:01 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: camera target and zoom update canonical focus while actor choices preserve identity
+00:02 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:02 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:02 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:02 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:02 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:02 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:03 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:03 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:03 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:03 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:03 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: lazy library, draft create, canonical steps, undo save independent reread
+00:03 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:03 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:03 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:03 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:03 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:03 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:03 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:04 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:04 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:04 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:06 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:07 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:07 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:07 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:07 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:07 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:07 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:07 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:09 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:09 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:10 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:11 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:12 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:13 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:13 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:13 +57: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:13 +58: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:13 +59: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:13 +60: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:14 +61: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:14 +62: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:14 +63: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:14 +64: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1440x900 edits text and response then saves
+00:14 +65: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_real_project_test.dart: opens disposable on-disk project and captures the real active home
+00:14 +66: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_real_project_test.dart: opens disposable on-disk project and captures the real active home
+00:15 +67: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_adapter_ui09_test.dart: create rename duplicate and delete are targeted and map independent
+00:15 +68: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:15 +69: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:15 +70: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:15 +71: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:15 +72: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:16 +73: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:16 +74: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:16 +75: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:16 +76: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:16 +77: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +78: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +79: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +80: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +81: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +82: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +83: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +84: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +85: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +86: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +87: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +88: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +89: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:17 +90: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:18 +91: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:18 +92: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1280x800 edits text and response then saves
+00:19 +93: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:19 +94: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:19 +95: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:19 +96: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:19 +97: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:19 +98: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:19 +99: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:20 +100: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:20 +101: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:20 +102: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +103: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +104: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +105: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +106: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +107: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +108: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +109: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +109 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +109 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: graph blocks stale simplified publication and preserves both drafts [E]
+  Invalid argument (id): must match the Event V2 ID format: "linked"
+  package:map_core/src/models/narrative_event_definition.dart 1366:5                                _validateEventIdArgument
+  package:map_core/src/models/narrative_event_definition.dart 560:14                                new NarrativeEventDefinition
+  package:avelune_studio/features/narrative/application/narrative_interaction.dart 59:9             NarrativeInteractionDraft.project
+  package:avelune_studio/features/narrative/application/narrative_cinematic_coexistence.dart 5:30   NarrativeCinematicCoexistence.interactionCinematicIds
+  package:avelune_studio/features/narrative/application/narrative_cinematic_coexistence.dart 22:22  NarrativeCinematicCoexistence.cinematicInteractionProblem
+  package:avelune_studio/features/narrative/application/narrative_session_coexistence.dart 58:12    NarrativeSessionCoexistence.interactionBaseProblem
+  package:avelune_studio/features/narrative/application/narrative_workspace_publication.dart 31:13  NarrativeWorkspacePublication._save
+  package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart 18:7    NarrativeWorkspaceController.save
+  test/scenes/scene_session_ui06_test.dart 188:30                                                   main.<fn>
+  
+00:21 +110 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +110 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +110 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: stale simplified base is refused even after graph session is released [E]
+  Invalid argument (id): must match the Event V2 ID format: "linked"
+  package:map_core/src/models/narrative_event_definition.dart 1366:5                                _validateEventIdArgument
+  package:map_core/src/models/narrative_event_definition.dart 560:14                                new NarrativeEventDefinition
+  package:avelune_studio/features/narrative/application/narrative_interaction.dart 59:9             NarrativeInteractionDraft.project
+  package:avelune_studio/features/narrative/application/narrative_cinematic_coexistence.dart 5:30   NarrativeCinematicCoexistence.interactionCinematicIds
+  package:avelune_studio/features/narrative/application/narrative_cinematic_coexistence.dart 22:22  NarrativeCinematicCoexistence.cinematicInteractionProblem
+  package:avelune_studio/features/narrative/application/narrative_session_coexistence.dart 58:12    NarrativeSessionCoexistence.interactionBaseProblem
+  package:avelune_studio/features/narrative/application/narrative_workspace_publication.dart 31:13  NarrativeWorkspacePublication._save
+  package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart 18:7    NarrativeWorkspaceController.save
+  test/scenes/scene_session_ui06_test.dart 244:30                                                   main.<fn>
+  
+00:21 +111 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +112 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +113 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +114 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +115 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +116 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:21 +117 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:23 +118 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:23 +119 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_responsive_test.dart: responsive 1024x640 edits text and response then saves
+00:23 +120 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:24 +120 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_runtime_test.dart: real runtime plays Yarn and refusal
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/project.json
+[runtime_loader] project manifest read ok bytes=16666
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/maps/jardin.json
+[runtime_loader] map file read ok bytes=17182
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN tilesets=1
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/project.json
+[runtime_loader] project manifest read ok bytes=16666
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/maps/clairiere.json
+[runtime_loader] map file read ok bytes=17187
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN tilesets=1
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_welcome:1789938175906
+[dialogue] resolved dialogueId=station_welcome
+[dialogue] resolved file=dialogues/station_welcome.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_welcome:1789938175906 phase=dialogueLoading serial=1
+00:24 +121 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:24 +122 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:24 +122 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_runtime_test.dart: real runtime plays Yarn and refusal
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/dialogues/station_welcome.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_welcome:1789938175906 elapsedMs=62
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_welcome:1789938175906 reason=dialogueOpened serial=1
+[dialogue] opened node=Start text="Bienvenue en gare. Avez-vous votre laissez-passer ?"
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_welcome:1789938175906 status=completed port=completed
+[dialogue] finished
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_refusal:1789938175984
+[dialogue] resolved dialogueId=station_refusal
+[dialogue] resolved file=dialogues/station_refusal.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_refusal:1789938175984 phase=dialogueLoading serial=2
+00:24 +123 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:24 +124 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:24 +124 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_runtime_test.dart: real runtime plays Yarn and refusal
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_78SCYN/dialogues/station_refusal.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_refusal:1789938175984 elapsedMs=43
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_refusal:1789938175984 reason=dialogueOpened serial=2
+[dialogue] opened node=Start text="Il vous faut un laissez-passer."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-0f9d-7001-8000-e56e9078008e:station_refusal:1789938175984 status=completed port=completed
+[dialogue] finished
+[event_v2] outcome noMatch producer=scene:scene_station_meeting outcome=attente legacyFallbackAllowed=false
+[event_v2] mapEnter activation=mapact_1789938175650690_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchV2Handled
+[step_studio_trace] runtime_save_requested map=jardin completedStepIds=[] completedCutsceneIds=[]
+00:24 +125 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:25 +126 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:25 +126 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_runtime_test.dart: real runtime plays Yarn and cinematic agreement
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/project.json
+[runtime_loader] project manifest read ok bytes=17278
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/maps/jardin.json
+[runtime_loader] map file read ok bytes=17182
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN tilesets=1
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/project.json
+[runtime_loader] project manifest read ok bytes=17278
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/maps/clairiere.json
+[runtime_loader] map file read ok bytes=17187
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN tilesets=1
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_welcome:1789938177232
+[dialogue] resolved dialogueId=station_welcome
+[dialogue] resolved file=dialogues/station_welcome.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_welcome:1789938177232 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/dialogues/station_welcome.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_welcome:1789938177232 elapsedMs=49
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_welcome:1789938177232 reason=dialogueOpened serial=1
+[dialogue] opened node=Start text="Bienvenue en gare. Avez-vous votre laissez-passer ?"
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_welcome:1789938177232 status=completed port=completed
+[dialogue] finished
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_agreement:1789938177287
+[dialogue] resolved dialogueId=station_agreement
+[dialogue] resolved file=dialogues/station_agreement.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_agreement:1789938177287 phase=dialogueLoading serial=2
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_VaAeqN/dialogues/station_agreement.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_agreement:1789938177287 elapsedMs=44
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_agreement:1789938177287 reason=dialogueOpened serial=2
+[dialogue] opened node=Start text="Vous pouvez embarquer."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-14d0-7001-8000-e8a52ae5b3d1:station_agreement:1789938177287 status=completed port=completed
+[dialogue] finished
+[event_v2] outcome noMatch producer=scene:scene_station_meeting outcome=embarquement legacyFallbackAllowed=false
+[event_v2] mapEnter activation=mapact_1789938177096187_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchV2Handled
+[step_studio_trace] runtime_save_requested map=jardin completedStepIds=[] completedCutsceneIds=[]
+00:26 +127 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:26 +128 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:26 +129 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:26 +130 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:26 +131 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:26 +132 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:26 +133 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+UI09 volume: 40 suites, 200 lines, 50 links; 8 gestures; 1 source read; 0 additional compilations; 9 page builds (initial + 8 selection updates).
+00:26 +134 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_volume_test.dart: UI09 40 suites 200 lines 50 links navigation does not reread or compile
+00:26 +135 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: focused text saves exact source and history remains usable
+00:26 +136 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: preview plays both explicit branches without publication
+00:29 +137 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: preview plays both explicit branches without publication
+00:29 +138 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: preview plays both explicit branches without publication
+00:29 +139 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: preview plays both explicit branches without publication
+00:30 +140 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: preview plays both explicit branches without publication
+00:30 +141 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
+00:30 +142 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
+00:33 +143 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
+00:33 +144 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
+00:34 +145 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 16 pixel cells after actual zoom pan and publication
+00:34 +146 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_volume_test.dart: 200 canonical nodes retain document identity during eight viewport updates
+00:34 +147 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_volume_test.dart: 200 canonical nodes retain document identity during eight viewport updates
+00:34 +148 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_volume_test.dart: 200 canonical nodes retain document identity during eight viewport updates
+00:34 +149 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_volume_test.dart: 200 canonical nodes retain document identity during eight viewport updates
+00:34 +150 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_volume_test.dart: 200 canonical nodes retain document identity during eight viewport updates
+00:34 +151 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_volume_test.dart: 200 canonical nodes retain document identity during eight viewport updates
+00:34 +152 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_volume_test.dart: 200 canonical nodes retain document identity during eight viewport updates
+UI06 volume: nodes=200 edges=265 viewportUpdates=8 documentMutations=0 firstFrameUs=1233021 gesturesUs=1680916; no I/O adapter instantiated
+00:34 +153 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history at 0.9
+00:35 +154 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history at 0.9
+00:35 +155 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history at 0.9
+00:35 +156 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history at 0.9
+00:35 +157 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_interaction_test.dart: wire drag cancellation and real reconnection preserve history at 0.9
+00:36 +158 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
+00:36 +159 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
+00:36 +160 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
+00:36 +161 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: null
+  Actual: FlutterError:<A RenderFlex overflowed by 29 pixels on the bottom.>
+
+When the exception was thrown, this was the stack:
+#4      pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart:189:3)
+<asynchronous suspension>
+#5      Ui10WorkspaceHarness.open (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/ui10_workspace_harness.dart:54:5)
+<asynchronous suspension>
+#6      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart:32:9)
+<asynchronous suspension>
+#7      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#8      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart line 189
+The test description was:
+  UI10 1280.0x800.0 inspector edit keyboard save and reopen
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:36 +161 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:36 +161 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen [E]
+  Test failed. See exception logs above.
+  The test description was: UI10 1280.0x800.0 inspector edit keyboard save and reopen
+  
+00:36 +162 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:37 +163 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:37 +164 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:37 +165 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:37 +166 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:37 +167 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:37 +168 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:37 +169 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:38 +170 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:38 +171 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:38 +172 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:38 +173 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:38 +174 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:38 +175 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_spatial_test.dart: UI10 destination uses 32 pixel cells after actual zoom pan and publication
+00:38 +176 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen
+00:39 +177 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.first (dart:core/iterable.dart:663:7)
+#1      _FirstFinderMixin.filter (package:flutter_test/src/finders.dart:1383:28)
+#3      _AncestorFinderMixin.allCandidates (package:flutter_test/src/finders.dart:1857:49)
+#4      FinderBase.evaluate (package:flutter_test/src/finders.dart:1030:76)
+#5      WidgetController.widgetList (package:flutter_test/src/controller.dart:848:19)
+#6      WidgetController._maybeViewOf (package:flutter_test/src/controller.dart:795:34)
+#7      WidgetController.tap (package:flutter_test/src/controller.dart:1078:31)
+#8      Ui10WorkspaceHarness.open (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/ui10_workspace_harness.dart:55:18)
+<asynchronous suspension>
+#9      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart:32:9)
+<asynchronous suspension>
+#10     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#11     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 2 frames from dart:async-patch and package:stack_trace)
+
+The test description was:
+  UI10 1024.0x640.0 inspector edit keyboard save and reopen
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:39 +177 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:39 +177 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen [E]
+  Test failed. See exception logs above.
+  The test description was: UI10 1024.0x640.0 inspector edit keyboard save and reopen
+  
+00:39 +178 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +179 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +180 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +181 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +182 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +183 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +184 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +185 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +186 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +187 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +188 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +189 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +190 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +191 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +192 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +193 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:40 +194 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:41 +195 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart: UI08 priority publication refreshes clean simplified record with scene unchanged
+00:41 +196 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart: UI08 priority publication refreshes clean simplified record with scene unchanged
+00:41 +197 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: scene baseline is protected even when record stays identical
+00:41 +198 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart: UI08 dirty record blocks simplified changes until explicit discard
+00:41 +199 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart: UI08 dirty record blocks simplified changes until explicit discard
+00:41 +200 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_source_loading_test.dart: switch A to delayed B removes all stale clickable targets until B loads
+00:42 +201 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_source_loading_test.dart: switch A to delayed B removes all stale clickable targets until B loads
+00:42 +202 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_source_loading_test.dart: switch A to delayed B removes all stale clickable targets until B loads
+00:42 +203 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_ui08_source_loading_test.dart: switch A to delayed B removes all stale clickable targets until B loads
+00:42 +204 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui07_story_graph_volume_test.dart: 200 steps and 100 semantic links retain projection during viewport gestures
+00:42 +205 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui07_story_graph_volume_test.dart: 200 steps and 100 semantic links retain projection during viewport gestures
+00:43 +205 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_runtime_ui09_dialogue_test.dart: UI09 published conversation choice 0 drives its real Scene branch
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/project.json
+[runtime_loader] project manifest read ok bytes=14470
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/maps/jardin.json
+[runtime_loader] map file read ok bytes=17182
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98 tilesets=1
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/project.json
+[runtime_loader] project manifest read ok bytes=14470
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/maps/clairiere.json
+[runtime_loader] map file read ok bytes=17187
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98 tilesets=1
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5914-7001-8000-12d5edf50ad5:ui09_guichet:1789938194715
+[dialogue] resolved dialogueId=ui09_guichet
+[dialogue] resolved file=dialogues/ui09_guichet.yarn
+[dialogue] requested startNode=Accueil
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5914-7001-8000-12d5edf50ad5:ui09_guichet:1789938194715 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_N3iU98/dialogues/ui09_guichet.yarn
+[dialogue] starting at node "Accueil"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5914-7001-8000-12d5edf50ad5:ui09_guichet:1789938194715 elapsedMs=3
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5914-7001-8000-12d5edf50ad5:ui09_guichet:1789938194715 reason=dialogueOpened serial=1
+[dialogue] opened node=Accueil text="Chef: Bonjour ! Souhaitez-vous préparer votre départ ?"
+[dialogue] choice opened count=2 selected=0
+[dialogue] choice confirmed index=0 text="Je pars maintenant"
+[dialogue] line text="Chef: Votre train vous attend sur le quai."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5914-7001-8000-12d5edf50ad5:ui09_guichet:1789938194715 status=completed port=depart
+[dialogue] finished
+[event_v2] mapEnter activation=mapact_1789938194624335_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchV2Handled
+00:43 +206 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui07_story_graph_volume_test.dart: 200 steps and 100 semantic links retain projection during viewport gestures
+00:43 +206 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events_runtime_ui09_dialogue_test.dart: UI09 published conversation choice 1 drives its real Scene branch
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/project.json
+[runtime_loader] project manifest read ok bytes=14470
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/maps/jardin.json
+[runtime_loader] map file read ok bytes=17182
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio tilesets=1
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/project.json
+[runtime_loader] project manifest read ok bytes=14470
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/maps/clairiere.json
+[runtime_loader] map file read ok bytes=17187
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio tilesets=1
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5ad0-7001-8000-13e8562c19d1:ui09_guichet:1789938195152
+[dialogue] resolved dialogueId=ui09_guichet
+[dialogue] resolved file=dialogues/ui09_guichet.yarn
+[dialogue] requested startNode=Accueil
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5ad0-7001-8000-13e8562c19d1:ui09_guichet:1789938195152 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_JF6Tio/dialogues/ui09_guichet.yarn
+[dialogue] starting at node "Accueil"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5ad0-7001-8000-13e8562c19d1:ui09_guichet:1789938195152 elapsedMs=1
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5ad0-7001-8000-13e8562c19d1:ui09_guichet:1789938195152 reason=dialogueOpened serial=1
+[dialogue] opened node=Accueil text="Chef: Bonjour ! Souhaitez-vous préparer votre départ ?"
+[dialogue] choice opened count=2 selected=0
+[dialogue] choice confirmed index=1 text="Je préfère attendre"
+[dialogue] line text="Chef: Prenez votre temps dans la salle d’attente."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000106:evx_01a0c0a1-5ad0-7001-8000-13e8562c19d1:ui09_guichet:1789938195152 status=completed port=attente
+[dialogue] finished
+[event_v2] mapEnter activation=mapact_1789938195139199_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchV2Handled
+00:43 +207 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui07_story_graph_volume_test.dart: 200 steps and 100 semantic links retain projection during viewport gestures
+UI07 volume stories=10 chapters=20 steps=200 semanticLinks=100 gestures=8 viewportUpdates=12 projectionRebuilt=false documentMutations=0 firstFrameUs=859256 gesturesUs=925895; no I/O adapter instantiated
+00:44 +208 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json
+[runtime_loader] project manifest read ok bytes=34071
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/maps/jardin.json
+[runtime_loader] map file read ok bytes=19146
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=3 placedElements=3 warps=0 triggers=1
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS tilesets=1
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json
+[runtime_loader] project manifest read ok bytes=34071
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/maps/clairiere.json
+00:45 +209 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
+00:45 +210 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
+[runtime_loader] map file read ok bytes=17187
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+00:45 +211 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
+00:45 +212 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS tilesets=1
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1789938196172078_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000002:evx_01a0c0a1-601d-7004-8000-172f023c2911:before:1789938196516
+[dialogue] resolved dialogueId=before
+[dialogue] resolved file=dialogues/before.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000002:evx_01a0c0a1-601d-7004-8000-172f023c2911:before:1789938196516 phase=dialogueLoading serial=1
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/dialogues/before.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000002:evx_01a0c0a1-601d-7004-8000-172f023c2911:before:1789938196516 elapsedMs=48
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000002:evx_01a0c0a1-601d-7004-8000-172f023c2911:before:1789938196516 reason=dialogueOpened serial=1
+[dialogue] opened node=Start text="Je patiente avant le départ."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000002:evx_01a0c0a1-601d-7004-8000-172f023c2911:before:1789938196516 status=completed port=completed
+[dialogue] finished
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-6097-7007-8000-177a68ac276e:offer:1789938196631
+[dialogue] resolved dialogueId=offer
+[dialogue] resolved file=dialogues/offer.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-6097-7007-8000-177a68ac276e:offer:1789938196631 phase=dialogueLoading serial=2
+[dialogue] parsed 3 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/dialogues/offer.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-6097-7007-8000-177a68ac276e:offer:1789938196631 elapsedMs=42
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-6097-7007-8000-177a68ac276e:offer:1789938196631 reason=dialogueOpened serial=2
+[dialogue] opened node=Start text="Voulez-vous aider au départ ?"
+[dialogue] choice opened count=2 selected=0
+[dialogue] choice moved selected=1
+[dialogue] choice confirmed index=1 text="Pas maintenant"
+[dialogue] jump to=Refuse
+[dialogue] line text="Revenez quand vous voulez."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-6097-7007-8000-177a68ac276e:offer:1789938196631 status=completed port=refused
+[dialogue] finished
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-60eb-700a-8000-17ae52e01585:offer:1789938196716
+[dialogue] resolved dialogueId=offer
+[dialogue] resolved file=dialogues/offer.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-60eb-700a-8000-17ae52e01585:offer:1789938196716 phase=dialogueLoading serial=3
+[dialogue] parsed 3 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/dialogues/offer.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-60eb-700a-8000-17ae52e01585:offer:1789938196716 elapsedMs=5
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-60eb-700a-8000-17ae52e01585:offer:1789938196716 reason=dialogueOpened serial=3
+[dialogue] opened node=Start text="Voulez-vous aider au départ ?"
+[dialogue] choice opened count=2 selected=0
+[dialogue] choice confirmed index=0 text="Je vous aide"
+[dialogue] jump to=Accept
+[dialogue] line text="Très bien, retrouvez la voyageuse."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000001:evx_01a0c0a1-60eb-700a-8000-17ae52e01585:offer:1789938196716 status=completed port=accepted
+[dialogue] finished
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000003:evx_01a0c0a1-6142-700d-8000-17e417ba70af:traveller:1789938196803
+[dialogue] resolved dialogueId=traveller
+[dialogue] resolved file=dialogues/traveller.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000003:evx_01a0c0a1-6142-700d-8000-17e417ba70af:traveller:1789938196803 phase=dialogueLoading serial=4
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/dialogues/traveller.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000003:evx_01a0c0a1-6142-700d-8000-17e417ba70af:traveller:1789938196803 elapsedMs=41
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000003:evx_01a0c0a1-6142-700d-8000-17e417ba70af:traveller:1789938196803 reason=dialogueOpened serial=4
+[dialogue] opened node=Start text="Merci, ma place est prête !"
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000003:evx_01a0c0a1-6142-700d-8000-17e417ba70af:traveller:1789938196803 status=completed port=completed
+[dialogue] finished
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000005:evx_01a0c0a1-61aa-7010-8000-18245e43e09a:finish:1789938196906
+[dialogue] resolved dialogueId=finish
+[dialogue] resolved file=dialogues/finish.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000005:evx_01a0c0a1-61aa-7010-8000-18245e43e09a:finish:1789938196906 phase=dialogueLoading serial=5
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/dialogues/finish.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000005:evx_01a0c0a1-61aa-7010-8000-18245e43e09a:finish:1789938196906 elapsedMs=40
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000005:evx_01a0c0a1-61aa-7010-8000-18245e43e09a:finish:1789938196906 reason=dialogueOpened serial=5
+[dialogue] opened node=Start text="Tout est prêt, départ autorisé !"
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000005:evx_01a0c0a1-61aa-7010-8000-18245e43e09a:finish:1789938196906 status=completed port=completed
+[dialogue] finished
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000006:evx_01a0c0a1-61f0-7013-8000-184fa16f2703:conclusion:1789938196977
+[dialogue] resolved dialogueId=conclusion
+[dialogue] resolved file=dialogues/conclusion.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000006:evx_01a0c0a1-61f0-7013-8000-184fa16f2703:conclusion:1789938196977 phase=dialogueLoading serial=6
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/dialogues/conclusion.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000006:evx_01a0c0a1-61f0-7013-8000-184fa16f2703:conclusion:1789938196977 elapsedMs=56
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000006:evx_01a0c0a1-61f0-7013-8000-184fa16f2703:conclusion:1789938196977 reason=dialogueOpened serial=6
+[dialogue] opened node=Start text="Merci encore pour votre aide."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000006:evx_01a0c0a1-61f0-7013-8000-184fa16f2703:conclusion:1789938196977 status=completed port=completed
+[dialogue] finished
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[dialogue] interaction entity=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0c0a1-6255-7016-8000-188e0d5229db:zone:1789938197078
+[dialogue] resolved dialogueId=zone
+[dialogue] resolved file=dialogues/zone.yarn
+[dialogue] requested startNode=Start
+[scenario_lock] accepted source=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0c0a1-6255-7016-8000-188e0d5229db:zone:1789938197078 phase=dialogueLoading serial=7
+[dialogue] parsed 1 node(s) from /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/dialogues/zone.yarn
+[dialogue] starting at node "Start"
+[scene_runtime] dialogue content loaded request=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0c0a1-6255-7016-8000-188e0d5229db:zone:1789938197078 elapsedMs=51
+[scenario_lock] cleared source=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0c0a1-6255-7016-8000-188e0d5229db:zone:1789938197078 reason=dialogueOpened serial=7
+[dialogue] opened node=Start text="Bienvenue sur le quai."
+[dialogue] dialogue closed
+[scene_runtime] dialogue completed request=event-v2:evt_019abcde-9000-7000-8000-000000000007:evx_01a0c0a1-6255-7016-8000-188e0d5229db:zone:1789938197078 status=completed port=completed
+[dialogue] finished
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] runtime_save_requested map=jardin completedStepIds=[prepare, help, finish] completedCutsceneIds=[]
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1789938197181473_2 map=jardin reason=saveRestore result=MapEnterProductionDispatchLegacyFallback
+[load] game loaded from saveId=default
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json
+[runtime_loader] project manifest read ok bytes=34071
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/maps/jardin.json
+[runtime_loader] map file read ok bytes=19146
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=3 placedElements=3 warps=0 triggers=1
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS tilesets=1
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/project.json
+[runtime_loader] project manifest read ok bytes=34071
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/maps/clairiere.json
+[runtime_loader] map file read ok bytes=17187
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m3_story_6qr9dS tilesets=1
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1789938197636144_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+[step_studio_trace] runtime_save_requested map=jardin completedStepIds=[] completedCutsceneIds=[]
+00:46 +213 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:46 +214 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:47 +215 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:47 +216 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:47 +217 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:47 +218 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:47 +219 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:47 +220 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:47 +221 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:48 +222 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:48 +223 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:48 +224 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:48 +225 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:48 +226 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:48 +227 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:48 +228 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:48 +229 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +230 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +231 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +232 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +233 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +234 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +235 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +236 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +237 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +238 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +239 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:49 +240 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:50 +241 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:50 +242 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:50 +243 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:50 +244 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:50 +245 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:50 +246 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:50 +247 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:51 +248 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:51 +249 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project
+00:51 +250 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:52 +251 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:52 +252 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +253 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +254 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +255 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +256 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +257 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +258 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +259 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +260 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +261 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:53 +262 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:54 +263 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:54 +264 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:54 +265 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:54 +266 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:54 +267 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:55 +268 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:56 +269 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:56 +270 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:56 +271 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:56 +272 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:56 +273 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:56 +274 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:56 +275 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:56 +276 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:57 +277 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:57 +278 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:57 +279 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:57 +280 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:57 +281 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested events → scene → dialogue returns to exact owner
+00:58 +282 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +283 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +284 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +285 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +286 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +287 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +288 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +289 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +290 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +291 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +292 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +293 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +294 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +295 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +296 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +297 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +298 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +299 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +300 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +301 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +302 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +303 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:58 +304 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +305 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +306 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +307 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +308 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +309 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +310 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +311 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +312 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +313 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +314 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +315 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +316 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +317 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +318 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +319 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +320 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +321 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +322 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +323 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +324 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+00:59 +325 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+01:00 +326 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+01:00 +327 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+01:00 +328 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_renderer_test.dart: UI10 real map paints inside a new RepaintBoundary with unbounded recording clip
+01:00 +329 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +330 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +331 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +332 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +333 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +334 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +335 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +336 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +337 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +338 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +339 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +340 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +341 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:00 +342 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:01 +343 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:02 +344 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart: nested stories → scene → dialogue returns to exact owner
+01:02 +344 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_0Cafg2/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_0Cafg2/project.json
+01:03 +345 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+[runtime_loader] project manifest read ok bytes=43142
+[runtime_loader] project manifest validated maps=2 tilesets=2 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_0Cafg2/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_0Cafg2/maps/jardin.json
+[runtime_loader] map file read ok bytes=22682
+[runtime_loader] map validated id=jardin size=24x16 layers=4 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier,source_1789938212363798_3187295420
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_0Cafg2/assets/atelier.png
+[runtime_loader] bundle tileset path id=source_1789938212363798_3187295420 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_0Cafg2/assets/.pokemap-store/9417e071d7b249ab91d1e45db390e4a3b5b332ee420f1ae0f5acd110df673697.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_0Cafg2 tilesets=2
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=2
+[runtime_game] tileset cache resolve ok result=2
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_terrain_runtime_0Cafg2/project.json tilesets=2
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=2 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789938214673998_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+01:03 +346 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+01:03 +347 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+01:03 +348 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+01:03 +349 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+01:03 +350 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+01:03 +351 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+01:03 +352 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+01:03 +353 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+01:03 +354 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/project.json
+[runtime_loader] project manifest read ok bytes=33949
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/maps/jardin.json
+[runtime_loader] map file read ok bytes=18711
+[runtime_loader] map validated id=jardin size=24x16 layers=2 entities=3 placedElements=6 warps=0 triggers=1
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx tilesets=4
+01:04 +355 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=4
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/project.json tilesets=4
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=4 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/project.json
+[runtime_loader] project manifest read ok bytes=33949
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/maps/clairiere.json
+[runtime_loader] map file read ok bytes=16729
+[runtime_loader] map validated id=clairiere size=24x16 layers=2 entities=1 placedElements=6 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_nfQ1Bx tilesets=4
+01:05 +356 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1789938216109350_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchV2Handled
+01:05 +357 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+01:05 +358 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+01:06 +359 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+01:07 +360 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+01:07 +360 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/project.json
+[runtime_loader] project manifest read ok bytes=33949
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/maps/jardin.json
+[runtime_loader] map file read ok bytes=18711
+[runtime_loader] map validated id=jardin size=24x16 layers=2 entities=3 placedElements=6 warps=0 triggers=1
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU tilesets=4
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=4
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/project.json tilesets=4
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=4 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/project.json
+01:07 +361 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+01:07 +361 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption
+[runtime_loader] project manifest read ok bytes=33949
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/maps/clairiere.json
+01:07 +362 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+01:07 +362 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 leaving real runtime cancels cinematic without continuation or event consumption
+[runtime_loader] map file read ok bytes=16729
+[runtime_loader] map validated id=clairiere size=24x16 layers=2 entities=1 placedElements=6 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_x1s5IU tilesets=4
+[event_v2] mapEnter activation=mapact_1789938218864560_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchFailed
+[event_v2] mapEnter failure=Instance of 'NarrativeEventExecutionFailure'
+01:07 +363 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+01:08 +364 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+01:08 +365 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: CmdS and CtrlS publish text while inspector keeps keyboard focus
+01:08 +366 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_publication_ui08_test.dart: external event-only edit conflicts without losing scene or draft; reload is targeted
+01:08 +367 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_publication_ui08_test.dart: external event-only edit conflicts without losing scene or draft; reload is targeted
+01:08 +368 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_publication_ui08_test.dart: external event-only edit conflicts without losing scene or draft; reload is targeted
+01:09 +369 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: invalid suite name on save stays visible without publishing
+01:09 +370 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: invalid suite name on save stays visible without publishing
+01:09 +371 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: invalid suite name on save stays visible without publishing
+01:09 +372 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: draft creation save reopens without inventing scene or changing registry mode
+01:10 +373 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: draft creation save reopens without inventing scene or changing registry mode
+01:10 +374 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: draft creation save reopens without inventing scene or changing registry mode
+01:10 +375 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_workspace_ui08_test.dart: draft creation save reopens without inventing scene or changing registry mode
+01:10 +376 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:10 +377 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:10 +378 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:10 +379 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:10 +380 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:11 +381 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:11 +382 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:11 +383 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:11 +384 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:11 +385 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:11 +386 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:11 +387 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:11 +388 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:11 +389 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:12 +390 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: undo commits pending focused edit then restores exactly once
+01:12 +391 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/characters/character_canvas_test.dart: selection distinguishes covered character and decor without moving either
+01:12 +392 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:13 +393 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:13 +394 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +395 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +396 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +397 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +398 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +399 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +400 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +401 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +402 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +403 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +404 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +405 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +406 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +407 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +408 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +409 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +410 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +411 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +412 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +413 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +414 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:14 +415 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:15 +416 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues_ui09_safety_test.dart: wire replacement confirms and semantic edit cancels pending wire
+01:15 +417 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_resource_thumbnail_test.dart: sparse collection thumbnail loads only its actual page
+01:15 +418 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: declared traversal is rejected before reading another file
+01:15 +419 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: a declared parent symlink cannot escape the project
+01:15 +420 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_read_safety_test.dart: loading never promotes or cleans interrupted write artifacts
+01:15 +421 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_large_atlas_test.dart: isolated Train building atlas renders a real decor without loading its 329 atlas catalogue
+  Skip: AVELUNE_PROJECT_COPY non fourni
+01:16 +421 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: example is two real maps with atlas, decor and character
+01:16 +422 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: loads once and paints real atlas without reading files again
+01:16 +423 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: budget refuses image before decoding and preserves authored references
+01:16 +424 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: missing resource is local failure and keeps project usable
+01:16 +425 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_map_resources_test.dart: resource symlink cannot escape project root
+01:16 +426 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/project_path_identity_test.dart: real neighboring projects never substitute the trimmed target
+01:16 +427 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: read is unchanged and save reload preserves untouched data
+01:16 +428 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: read is unchanged and save reload preserves untouched data
+01:16 +429 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: read is unchanged and save reload preserves untouched data
+01:16 +430 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: read is unchanged and save reload preserves untouched data
+01:16 +431 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: read is unchanged and save reload preserves untouched data
+01:16 +432 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: read is unchanged and save reload preserves untouched data
+01:16 +433 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/map_workspace_io_test.dart: read is unchanged and save reload preserves untouched data
+01:17 +434 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +435 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +436 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +437 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +438 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +439 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +440 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +441 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +442 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +443 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +444 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +445 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_terrain_brush_resources_test.dart: terrain brush loads only its shared resolver dependencies before any map stroke
+01:17 +446 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: revision conflict refuses runtime before file bundle load
+01:17 +447 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: revision conflict refuses runtime before file bundle load
+01:17 +448 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: revision conflict refuses runtime before file bundle load
+01:17 +449 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_resource_catalog_update_test.dart: same-path pixels and aliases refresh while previous painters retain the old image
+01:17 +450 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+01:17 +451 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+01:17 +452 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+01:17 +453 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+01:17 +454 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_nmxrcz/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_nmxrcz/project.json
+[runtime_loader] project manifest read ok bytes=8480
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_nmxrcz/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_nmxrcz/maps/jardin.json
+[runtime_loader] map file read ok bytes=17182
+01:18 +455 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_nmxrcz/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_nmxrcz tilesets=1
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_nmxrcz/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789938229752747_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+01:18 +456 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+01:18 +457 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo
+01:22 +458 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo
+01:24 +459 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo
+01:25 +459 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui06_scene_construction_test.dart: build both branches through palette, properties and wires then publish and reopen
+UI06 construction: 8 blocs et 7 fils construits, publication
+UI06 construction: publication terminée, relecture indépendante
+01:25 +460 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo
+01:26 +461 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo
+01:26 +462 ~1 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: not ['opening', 'walk', 'face', 'camera', 'fade', 'ending']
+  Actual: ['opening', 'walk', 'face', 'camera', 'fade', 'ending']
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart:66:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart line 66
+The test description was:
+  UI10 timeline drag reorders and duration handle commits once with undo redo
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:27 +462 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:27 +462 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo [E]
+  Test failed. See exception logs above.
+  The test description was: UI10 timeline drag reorders and duration handle commits once with undo redo
+  
+01:27 +463 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:27 +464 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:27 +465 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:27 +466 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:27 +467 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:28 +468 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:28 +469 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:28 +470 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:28 +471 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:28 +472 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:28 +473 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:29 +474 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:29 +475 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_focus_test.dart: UI08 focused name commits original owner on selection save and undo
+01:29 +476 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:32 +477 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:33 +478 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:33 +479 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:33 +480 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:35 +481 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:35 +482 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:35 +483 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:35 +484 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:36 +485 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:36 +486 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:36 +487 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:36 +488 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:36 +489 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:36 +490 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:38 +491 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:39 +492 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:40 +493 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:40 +494 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:42 +495 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart: UI04 source rules trial publication and map preserve the current session
+01:42 +496 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui03_resource_journey_test.dart: UI03 real previews selection search return and compact detail
+01:44 +497 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui03_resource_journey_test.dart: UI03 real previews selection search return and compact detail
+01:44 +498 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:45 +499 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:46 +500 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:46 +501 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:46 +502 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:46 +503 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:47 +504 ~1 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:47 +504 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:47 +505 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:47 +506 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +507 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +508 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +509 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +510 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +511 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +512 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +513 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +514 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +515 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:48 +516 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +517 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +518 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +519 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +520 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +521 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +522 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +523 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +524 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +525 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +526 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +527 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +528 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:49 +529 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:50 +530 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui02_map_journey_test.dart: UI02 real map, overlap, shared home and responsive viewport
+01:50 +531 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:50 +532 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:51 +533 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:51 +534 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:51 +535 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:51 +536 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:52 +537 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:52 +538 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:52 +539 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:52 +540 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:53 +541 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:53 +542 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:53 +543 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:55 +544 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:56 +545 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:57 +546 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:59 +547 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+01:59 +548 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:00 +549 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:01 +550 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:01 +551 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:02 +552 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:02 +553 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:04 +554 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:04 +555 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:05 +556 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:06 +557 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:06 +558 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:07 +558 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_IgEztx/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_IgEztx/project.json
+[runtime_loader] project manifest read ok bytes=45398
+[runtime_loader] project manifest validated maps=2 tilesets=2 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_IgEztx/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_IgEztx/maps/jardin.json
+[runtime_loader] map file read ok bytes=23842
+02:07 +559 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:07 +559 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+[runtime_loader] map validated id=jardin size=24x16 layers=4 entities=1 placedElements=6 warps=0 triggers=0
+02:07 +560 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+02:07 +560 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+[runtime_loader] bundle tilesets collected ids=atelier,source_1789938269184394_3075229175
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_IgEztx/assets/atelier.png
+[runtime_loader] bundle tileset path id=source_1789938269184394_3075229175 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_IgEztx/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_IgEztx tilesets=2
+02:07 +561 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=2
+[runtime_game] tileset cache resolve ok result=2
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_IgEztx/project.json tilesets=2
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=2 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789938279068274_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+02:08 +562 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+02:08 +563 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+02:10 +564 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+02:10 +565 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+02:10 +566 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+02:10 +567 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+02:10 +568 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+02:10 +569 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+02:10 +570 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+02:10 +571 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+02:10 +572 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+02:11 +573 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+02:11 +574 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+02:11 +575 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+02:12 +576 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+02:15 +577 ~2 -5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_sources_test.dart: UI08 four real sources preserve exact targets and Escape cancels without writes
+02:16 +578 ~2 -5: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1024.0x640.0 inspector edit keyboard save and reopen
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_responsive_test.dart: UI10 1280.0x800.0 inspector edit keyboard save and reopen
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart: UI10 timeline drag reorders and duration handle commits once with undo redo
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: graph blocks stale simplified publication and preserves both drafts
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/scene_session_ui06_test.dart: stale simplified base is refused even after graph session is released

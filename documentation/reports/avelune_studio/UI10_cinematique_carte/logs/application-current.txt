@@ -1,0 +1,100 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_animation_ui10_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: canonical intermediate movement, backwards scrub and stop never modify author asset
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: eighty sequential actions keep one plan for ticks, pause and scrub
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: lazy library, draft create, canonical steps, undo save independent reread
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: lazy library, draft create, canonical steps, undo save independent reread
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart: lazy library, draft create, canonical steps, undo save independent reread
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: full and simplified dirty ownership is reciprocal; publication invalidates only clean owners
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: full and simplified dirty ownership is reciprocal; publication invalidates only clean owners
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: full and simplified dirty ownership is reciprocal; publication invalidates only clean owners
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: full and simplified dirty ownership is reciprocal; publication invalidates only clean owners
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: full and simplified dirty ownership is reciprocal; publication invalidates only clean owners
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: full and simplified dirty ownership is reciprocal; publication invalidates only clean owners
+00:00 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: full and simplified dirty ownership is reciprocal; publication invalidates only clean owners
+00:01 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m3_workspace_actions_test.dart: failed narrative publication blocks runtime and saving close without losing either map
+00:01 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m3_workspace_actions_test.dart: failed narrative publication blocks runtime and saving close without losing either map
+00:01 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m3_workspace_actions_test.dart: failed narrative publication blocks runtime and saving close without losing either map
+00:01 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m3_workspace_actions_test.dart: failed narrative publication blocks runtime and saving close without losing either map
+00:01 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_coexistence_ui10_test.dart: changed cinematic base refuses stale simplified publication even when scene is unchanged
+00:01 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:01 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:02 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: C1 dirty simplified dialogue wins over old clean full snapshot without publication
+00:02 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_adapter_ui09_test.dart: create rename duplicate and delete are targeted and map independent
+00:03 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:03 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:03 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:03 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:03 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:03 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:03 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use
+00:03 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: lazy library, reply choices shared targets outcomes save reopen and deterministic identities
+00:03 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: incompatible modified versions produce explicit conflict and readonly source remains exact
+00:04 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart: incompatible modified versions produce explicit conflict and readonly source remains exact
+00:04 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: publication snapshot stays dirty for later edits and new source can be resaved
+00:04 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: publication snapshot stays dirty for later edits and new source can be resaved
+00:04 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: simplified source-only publication invalidates clean full cached source
+00:04 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: literal command-looking multiline text remains text through strict compiler and codec
+00:04 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart: literal command-looking multiline text remains text through strict compiler and codec
+00:04 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: two clean simplified consumers cannot republish a stale shared source
+00:04 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: two clean simplified consumers cannot republish a stale shared source
+00:04 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: two clean simplified consumers cannot republish a stale shared source
+00:04 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: two clean simplified consumers cannot republish a stale shared source
+00:04 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: two clean simplified consumers cannot republish a stale shared source
+00:04 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: two clean simplified consumers cannot republish a stale shared source
+00:04 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: two clean simplified consumers cannot republish a stale shared source
+00:04 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart: two clean simplified consumers cannot republish a stale shared source
+00:05 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_publication_guards_ui09_test.dart: interruption between manifest and source recovers the coherent pair
+00:05 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: opaque source preamble is preserved and cannot be normalized away
+00:05 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_publication_guards_ui09_test.dart: strict compilation rejects unsupported commands without touching either file
+00:05 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: late delete protects A against edits and never deselects B
+00:05 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: late delete protects A against edits and never deselects B
+00:05 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: late delete protects A against edits and never deselects B
+00:05 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: late delete protects A against edits and never deselects B
+00:05 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: late delete protects A against edits and never deselects B
+00:05 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart: catalog deletion invalidates a clean full document without opening a namesake
+00:06 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart: speaker without portrait survives canonical compiler and visual reopening
+00:06 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart: literal text preserves quotes accents newlines and reserved commands
+00:06 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart: advanced source even bearing visual tag remains read only
+00:06 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart: missing choice destination blocks publication
+00:06 +57: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_history_guard_test.dart: undo never removes the source of a published story and keeps history intact
+00:06 +58: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:06 +59: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:06 +60: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:06 +61: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:06 +62: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:06 +63: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:06 +64: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:06 +65: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:06 +66: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: advanced record never opens previous interaction
+00:07 +67: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: story selection is read only and explicit action opens linked draft
+00:07 +68: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:07 +69: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:07 +70: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:07 +71: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:07 +72: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:07 +73: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:07 +74: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +75: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +76: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +77: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +78: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +79: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +80: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +81: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +82: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +83: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +84: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +85: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +86: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +87: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:08 +88: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: stale record-only write rejected inside mutation queue with unchanged scene
+00:09 +89: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:09 +90: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:09 +91: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: long stories only mount visible step rows
+00:09 +92: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_publication_ui08_test.dart: independent event remains publishable after another record changed
+00:09 +93: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/interaction_event_roundtrip_ui08_test.dart: UI08 dirty record blocks simplified changes until explicit discard
+00:10 +94: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:10 +95: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:10 +96: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: 1000 interactions mount only visible rows without extra source reads
+00:11 +97: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart: new source variant ranks above existing conditional and fallback drafts
+00:11 +98: All tests passed!

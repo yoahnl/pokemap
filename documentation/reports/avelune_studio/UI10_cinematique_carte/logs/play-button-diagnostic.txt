@@ -1,0 +1,31 @@
+00:00 +0: loading /tmp/ui10_native_play_diagnostic_test.dart
+00:00 +0: UI10 full Studio frame early composition with isolated real project
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: true
+  Actual: <false>
+actual preview button starts transport
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///tmp/ui10_native_play_diagnostic_test.dart:33:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///tmp/ui10_native_play_diagnostic_test.dart line 33
+The test description was:
+  UI10 full Studio frame early composition with isolated real project
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:05 +0 -1: UI10 full Studio frame early composition with isolated real project [E]
+  Test failed. See exception logs above.
+  The test description was: UI10 full Studio frame early composition with isolated real project
+  
+00:05 +0 -1: Some tests failed.
+
+Failing tests:
+  /tmp/ui10_native_play_diagnostic_test.dart: UI10 full Studio frame early composition with isolated real project

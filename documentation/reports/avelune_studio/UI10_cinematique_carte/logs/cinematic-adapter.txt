@@ -1,0 +1,10 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_adapter_ui10_test.dart
+00:00 +0: draft publication creates asset and library atomically without a map
+00:00 +1: unclassified existing assets stay readable and are not reclassified by save
+00:00 +2: new library entry refuses version six without migration or write
+00:00 +3: same asset conflict preserves disk and the caller draft
+00:00 +4: independent manifest edits and another cinematic survive targeted save
+00:00 +5: classification conflict is detected before archive or delete
+00:00 +6: interrupted promotion recovers both document and classification
+00:00 +7: homonymous identities load separately and mismatched publication refuses
+00:00 +8: All tests passed!

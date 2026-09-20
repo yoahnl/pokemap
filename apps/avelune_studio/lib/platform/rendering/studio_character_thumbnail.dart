@@ -10,11 +10,17 @@ class StudioCharacterThumbnail extends StatefulWidget {
     required this.character,
     required this.size,
     required this.facing,
+    this.animationState = CharacterAnimationState.idle,
+    this.elapsedMs = 0,
+    this.customAnimation,
   });
   final StudioMapResources resources;
   final ProjectCharacterEntry character;
   final double size;
   final EntityFacing facing;
+  final CharacterAnimationState animationState;
+  final int elapsedMs;
+  final CharacterCustomAnimationClip? customAnimation;
   @override
   State<StudioCharacterThumbnail> createState() =>
       _StudioCharacterThumbnailState();
@@ -59,6 +65,9 @@ class _StudioCharacterThumbnailState extends State<StudioCharacterThumbnail> {
           settings: widget.resources.manifest.settings,
           images: widget.resources.images,
           facing: widget.facing,
+          animationState: widget.animationState,
+          elapsedMs: widget.elapsedMs,
+          customAnimation: widget.customAnimation,
         );
         return renderer.hasVisual
             ? CustomPaint(painter: _CharacterPainter(renderer))

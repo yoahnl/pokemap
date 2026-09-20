@@ -1,0 +1,19 @@
+{
+  "sampleMs": 1950,
+  "viewport": [
+    960,
+    640
+  ],
+  "devicePixelRatio": 1,
+  "differentPixels": 4551,
+  "totalPixels": 614400,
+  "differenceBounds": [
+    422,
+    236,
+    825,
+    405
+  ],
+  "scope": "Raw actual rendered images, no resizing/editing. Contact shadows exist only in runtime; visual review sees aligned terrain and hero pose after cinematic visual focus fix. Not a universal pixel-parity claim.",
+  "differingPixels": 4551,
+  "runtimeBrighterInAnyChannel": 0
+}

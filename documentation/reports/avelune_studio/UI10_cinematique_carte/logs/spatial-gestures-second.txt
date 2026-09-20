@@ -1,0 +1,51 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart
+00:00 +0: map clicks and point drag respect pan zoom resize at 16 px
+UI10 paint cinematic_map_overlay.dart 0 Size(384.0, 256.0)
+UI10 paint end cinematic_map_overlay.dart
+UI10 paint cinematic_map_overlay.dart 0 Size(384.0, 256.0)
+UI10 paint end cinematic_map_overlay.dart
+UI10 paint cinematic_map_overlay.dart 0 Size(384.0, 256.0)
+UI10 paint end cinematic_map_overlay.dart
+UI10 paint cinematic_map_overlay.dart 0 Size(384.0, 256.0)
+UI10 paint end cinematic_map_overlay.dart
+UI10 paint cinematic_map_overlay.dart 0 Size(384.0, 256.0)
+UI10 paint end cinematic_map_overlay.dart
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: Offset:<Offset(6.0, 4.0)>
+  Actual: Offset:<Offset(7.0, 5.0)>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart:42:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart line 42
+The test description was:
+  map clicks and point drag respect pan zoom resize at 16 px
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:03 +0 -1: map clicks and point drag respect pan zoom resize at 16 px [E]
+  Test failed. See exception logs above.
+  The test description was: map clicks and point drag respect pan zoom resize at 16 px
+  
+00:03 +0 -1: map clicks and point drag respect pan zoom resize at 32 px
+UI10 paint cinematic_map_overlay.dart 0 Size(768.0, 512.0)
+UI10 paint end cinematic_map_overlay.dart
+UI10 paint cinematic_map_overlay.dart 0 Size(768.0, 512.0)
+UI10 paint end cinematic_map_overlay.dart
+UI10 paint cinematic_map_overlay.dart 0 Size(768.0, 512.0)
+UI10 paint end cinematic_map_overlay.dart
+UI10 paint cinematic_map_overlay.dart 0 Size(768.0, 512.0)
+UI10 paint end cinematic_map_overlay.dart
+UI10 paint cinematic_map_overlay.dart 0 Size(768.0, 512.0)
+UI10 paint end cinematic_map_overlay.dart
+00:06 +1 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px

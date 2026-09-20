@@ -1,0 +1,55 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart
+00:00 +0: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following ValidationException was thrown while running async test code:
+Placed element instance tree_21_3 footprint 5x8 exceeds map bounds from origin (21, 3)
+
+When the exception was thrown, this was the stack:
+#0      MapValidator._validatePlacedElement (package:map_core/src/validation/validators.dart:4162:9)
+#1      MapValidator.validate (package:map_core/src/validation/validators.dart:2683:7)
+#2      seedUi10Visuals (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/ui10_fixture_visuals.dart:174:18)
+<asynchronous suspension>
+#3      createUi10Fixture (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/ui10_cinematic_fixture.dart:18:5)
+<asynchronous suspension>
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart:19:24)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 2 frames from dart:async and package:stack_trace)
+
+The exception was caught asynchronously.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following _TypeError was thrown running a test:
+Null check operator used on a null value
+
+When the exception was thrown, this was the stack:
+#0      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart:21:9)
+<asynchronous suspension>
+#1      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#2      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following message was thrown:
+Multiple exceptions (2) were detected during the running of the current test, and at least one was
+unexpected.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +0 -1: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes [E]
+  Test failed. See exception logs above.
+  The test description was: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes
+  
+00:01 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_runtime_test.dart: UI10 real Flame cinematic animates before Scene continuation and restores authoring bytes

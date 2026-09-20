@@ -145,6 +145,14 @@ extension NarrativeWorkspacePublication on NarrativeWorkspaceController {
       dialoguesPublished?.call(
         snapshots.values.map((s) => s.dialogue.entry.id).toSet(),
       );
+      final cinematicIds = snapshots.values
+          .expand((s) => s.interaction.project().cinematics)
+          .map((c) => c.id)
+          .toSet();
+      for (final id in cinematicIds) {
+        invalidateCleanCinematicSessions(id, except: snapshots.keys.toSet());
+      }
+      cinematicsPublished?.call(cinematicIds);
       pendingFacts.removeWhere((id, v) => identical(factSnapshot[id], v));
       pendingStories.removeWhere((id, v) => identical(storySnapshot[id], v));
       await acceptVisuals(receipt.manifest, receipt.changedPaths.toSet());

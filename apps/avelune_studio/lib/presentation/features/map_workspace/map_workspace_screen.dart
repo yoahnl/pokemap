@@ -1,4 +1,7 @@
 import 'dart:async';
+import '../../../features/cinematics/domain/cinematic_port.dart';
+import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
+import '../cinematics/cinematic_view_state.dart';
 import '../../../features/dialogues/domain/dialogue_port.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../../features/scenes/application/scene_dialogue_results.dart';
@@ -46,6 +49,7 @@ part 'workspace_progression_binding.dart';
 part 'workspace_screen_body.dart';
 part 'workspace_event_binding.dart';
 part 'workspace_dialogue_binding.dart';
+part 'workspace_cinematic_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -62,6 +66,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.storyPort,
     this.eventPort,
     this.dialoguePort,
+    this.cinematicPort,
     this.home,
   });
   final MapWorkspaceController controller;
@@ -72,6 +77,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final StoryPort? storyPort;
   final EventPort? eventPort;
   final DialoguePort? dialoguePort;
+  final CinematicPort? cinematicPort;
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -95,6 +101,10 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   StoryWorkspaceController? _stories;
   EventWorkspaceController? _events;
   DialogueWorkspaceController? _dialogues;
+  CinematicWorkspaceController? _cinematics;
+  final _cinematicViews = CinematicViewStore();
+  WorkspaceSpace _cinematicOrigin = WorkspaceSpace.story;
+  bool _cinematicMapReturn = false;
   final _dialogueViews = DialogueViewStore();
   WorkspaceSpace _dialogueOrigin = WorkspaceSpace.story;
   final _eventView = EventViewState();
@@ -137,6 +147,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       scenes: () => _scenes,
       events: () => _events,
       dialogues: () => _dialogues,
+      cinematics: () => _cinematics,
+      publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,
     );
     widget.registerExitGuard(_actions.allowClose);
@@ -160,6 +172,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       _initializeStories();
       _initializeEvents();
       _initializeDialogues();
+      _initializeCinematics();
       _changed();
     } catch (_) {
       if (mounted) {
@@ -190,6 +203,12 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _show(WorkspaceSpace space) {
+    if (_space == WorkspaceSpace.cinematic) {
+      _cinematics?.transport.pause();
+      FocusManager.instance.primaryFocus?.unfocus();
+      FocusManager.instance.applyFocusChangesIfNeeded();
+    }
+    if (space != WorkspaceSpace.map) _cinematicMapReturn = false;
     if (_space == WorkspaceSpace.dialogue) {
       FocusManager.instance.primaryFocus?.unfocus();
       FocusManager.instance.applyFocusChangesIfNeeded();
@@ -247,6 +266,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     _stories?.dispose();
     _events?.dispose();
     _dialogues?.dispose();
+    _cinematics?.dispose();
+    _cinematicViews.dispose();
     _dialogueViews.dispose();
     _eventView.dispose();
     _progressionViews.dispose();

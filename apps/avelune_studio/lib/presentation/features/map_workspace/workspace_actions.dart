@@ -1,3 +1,4 @@
+import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import 'package:flutter/material.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
@@ -26,6 +27,8 @@ class WorkspaceActions {
     this.scenes,
     this.events,
     this.dialogues,
+    this.cinematics,
+    this.publishedCinematicContext,
     required this.runtimeBuilder,
   });
   final MapWorkspaceController controller;
@@ -37,6 +40,8 @@ class WorkspaceActions {
   final SceneWorkspaceController? Function()? scenes;
   final EventWorkspaceController? Function()? events;
   final DialogueWorkspaceController? Function()? dialogues;
+  final CinematicWorkspaceController? Function()? cinematics;
+  final bool Function()? publishedCinematicContext;
   final StudioRuntimeBuilder runtimeBuilder;
   bool testing = false;
   bool closing = false;
@@ -44,6 +49,7 @@ class WorkspaceActions {
       testing ||
       closing ||
       dialogues?.call()?.busy == true ||
+      cinematics?.call()?.busy == true ||
       events?.call()?.busy == true ||
       scenes?.call()?.busy == true ||
       resources()?.busy == true ||
@@ -57,6 +63,7 @@ class WorkspaceActions {
         resources()?.dirty != true &&
         narrative()?.dirty != true &&
         dialogues?.call()?.dirty != true &&
+        cinematics?.call()?.dirty != true &&
         events?.call()?.dirty != true &&
         scenes?.call()?.dirty != true) {
       return true;
@@ -67,6 +74,9 @@ class WorkspaceActions {
       final choice = await confirmStudioClose(context());
       if (!mounted() || choice == null || choice == 'cancel') return false;
       if (choice == 'save') {
+        if (cinematics?.call() case final owner?) {
+          if (!await owner.saveAll()) return false;
+        }
         if (dialogues?.call() case final dialogueController?) {
           if (!await dialogueController.saveAll()) return false;
         }
@@ -90,6 +100,12 @@ class WorkspaceActions {
   }
 
   Future<void> test() async {
+    if (cinematics?.call()?.dirty == true) {
+      cinematics!.call()!.error =
+          'Enregistrez les cinématiques avant de tester le jeu.';
+      changed();
+      return;
+    }
     if (!_flushDialogueEdit()) return;
     if (dialogues?.call()?.dirty == true) {
       dialogues!.call()!.error =
@@ -102,6 +118,24 @@ class WorkspaceActions {
       events!.call()!.error = 'Enregistrez les événements avant de tester.';
       changed();
       return;
+    }
+    if (publishedCinematicContext?.call() == true) {
+      final owner = cinematics?.call();
+      final mapId = owner?.active?.asset.mapId;
+      if (mapId == null || controller.active?.current.id != mapId) {
+        owner?.error =
+            'Rejoignez la carte de la cinématique avec Voir sur la carte avant de lancer sa version publiée.';
+        changed();
+        return;
+      }
+      if (controller.dirty ||
+          scenes?.call()?.dirty == true ||
+          narrative()?.dirty == true) {
+        owner?.error =
+            'Des cartes, scènes ou interactions ont un brouillon. Enregistrez-les dans leur éditeur avant ce test ; aucun brouillon n’a été publié.';
+        changed();
+        return;
+      }
     }
     final document = controller.active;
     if (document == null || busy || controller.loading) return;
@@ -147,6 +181,11 @@ class WorkspaceActions {
             'Les histoires ou états ont encore changé. Enregistrez-les avant de tester.';
         return;
       }
+      if (cinematics?.call()?.dirty == true) {
+        cinematics!.call()!.error =
+            'La cinématique a changé pendant la préparation. Enregistrez-la avant de tester.';
+        return;
+      }
       await Navigator.of(context()).push<void>(
         MaterialPageRoute(
           builder: (routeContext) => runtimeBuilder(
@@ -183,8 +222,13 @@ class WorkspaceActions {
 
   bool _flushDialogueEdit() {
     final owner = dialogues?.call(), previous = dialogues?.call()?.error;
+    final cinema = cinematics?.call(),
+        previousCinema = cinematics?.call()?.error;
+    cinema?.transport.pause();
+    if (cinema?.flushEdits?.call() == false) return false;
     FocusManager.instance.primaryFocus?.unfocus();
     FocusManager.instance.applyFocusChangesIfNeeded();
-    return owner?.error == null || owner?.error == previous;
+    return (owner?.error == null || owner?.error == previous) &&
+        (cinema?.error == null || cinema?.error == previousCinema);
   }
 }

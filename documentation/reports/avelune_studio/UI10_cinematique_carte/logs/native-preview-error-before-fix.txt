@@ -1,0 +1,108 @@
+Window: "Avelune Studio", App: Avelune Studio.
+0 standard window Avelune Studio, Secondary Actions: Raise
+	1 container Avelune Studio
+		2 container (settable) Avelune · Atelier des cartes
+Projet chargé
+Cinématique sur carte
+Mettez vos acteurs en scène. Réglez leurs déplacements et le rythme.
+Cinématiques
+Rencontre au jardin
+Aucun incident sur les ressources demandées
+			3 image (settable) Avelune Studio
+			4 text field (settable)
+			5 container (settable)
+				6 text (settable) Accueil
+				7 text (settable) Carte
+				8 text (settable) Ressources
+				9 text (settable) Histoire
+				10 text (settable) Test du jeu
+			11 button (settable) Fermer le projet
+			12 text field (settable)
+			13 button (settable) Dossier
+Toutes les cinématiques
+			14 button (settable) Voir les archives
+			15 button (settable) Rencontre au jardin
+Jardin des essais
+station_departure_pause · 6 actions
+			16 button (settable) Nouvelle cinématique
+			17 button (settable)
+			18 button (settable)
+			19 button (settable)
+			20 button (settable)
+			21 button (settable)
+			22 button (settable)
+			23 container (settable)
+				24 button (settable)
+				25 button (settable)
+				26 button (settable)
+				27 button (settable)
+				28 button (settable)
+				29 text (settable)
+				30 text (settable)
+			31 button (settable)
+			32 container (settable) Timeline
+0.40 s / 3.45 s
+Ordre séquentiel · durées d’aperçu estimées
+				33 button (settable)
+				34 button (settable)
+				35 button (settable)
+				36 button (settable)
+				37 button (settable)
+				38 container (settable)
+					39 text (settable) Caméra
+					40 text (settable) Acteur: Voyageur
+					41 text (settable) Acteur: Guide du jardin
+					42 text (settable) Dialogue
+					43 text (settable) FX
+					44 text (settable) Audio
+					45 text (settable) Transitions
+					46 text (settable) Temps / Global
+					47 text (settable) Autres
+					48 text (settable)
+					49 text (settable) Déplacer la caméra · 0.70 s
+					50 text (settable)
+					51 text (settable) Déplacer un acteur · 1.20 s
+					52 text (settable)
+					53 text (settable) Orienter un acteur · variable
+					54 text (settable) Fondu écran · 0.60 s
+					55 text (settable)
+					56 text (settable) Attendre · 0.40 s
+					57 text (settable)
+					58 text (settable) Attendre · 0.25 s
+					59 text (settable)
+			60 button (settable) Prévisualiser
+			61 button (settable) Propriétés
+			62 button (settable) Séquence
+			63 button (settable) Enregistrer
+			64 button (settable) Acteurs
+			65 button (settable) Aperçu
+			66 container (settable)
+				67 text (settable) Aperçu isolé
+				68 text (settable) Lecture des médias interrompue : Bad state: Cinematic preview plan contains unsupported steps.
+				69 text (settable) 0.40 s · Déplacer un acteur
+				70 text (settable) Les dialogues et médias ont une durée d’aperçu indicative. La lecture réelle attend leurs contrats propres.
+				71 text (settable) Caméra non prévisualisée dans cette version.
+				72 button (settable) Revenir au début
+				73 text (settable) Palette d’actions
+				74 button (settable) Attendre
+				75 button (settable) Déplacer la caméra
+				76 button (settable) Déplacer un acteur
+				77 button (settable) Orienter un acteur
+				78 button (settable) Afficher une émotion
+				79 button (settable) Jouer une animation
+				80 button (settable) Ouvrir un dialogue
+				81 button (settable) Jouer un son
+				82 button (settable) Musique
+				83 button (settable) Fondu écran
+				84 button (settable) Secouer la caméra
+				85 button (settable) Effet visuel
+				86 button (settable) Repère éditorial
+	87 text Avelune Studio
+88 menu bar
+	89 Avelune Studio
+	90 Edit
+	91 View
+	92 Window
+	93 Help
+
+The focused UI element is 1 container Avelune Studio

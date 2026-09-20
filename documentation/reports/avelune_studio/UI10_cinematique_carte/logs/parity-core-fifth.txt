@@ -1,0 +1,39 @@
+00:00 +0: loading test/cinematic_viewport_state_parity_test.dart
+00:00 +0: test/cinematic_viewport_state_parity_test.dart: fade-out remains opaque after its block until the next fade-in
+00:00 +1: test/cinematic_viewport_state_parity_test.dart: projection keeps camera endpoints, resets and scrubs deterministically
+00:00 +2: test/cinematic_viewport_state_parity_test.dart: projection shares shake envelope and preserves fade during following wait
+00:00 +3: test/cinematic_viewport_state_parity_test.dart: pixel projection quantizes zoom and snaps origins on physical pixels
+00:00 +4: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan empty cinematic produces an empty plan and timeline diagnostic
+00:00 +5: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan derives timeline items and clamps frame time deterministically
+00:00 +6: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan uses actor display preview position before stageContext placement
+00:00 +7: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan reports missing initial pose without fake zero fallback
+00:00 +8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan actorFace changes facing and wait preserves the pose
+00:00 +9: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan direct actorMove interpolates linearly and reaches destination
+00:00 +10: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan direct actorMove missing destination produces diagnostic
+00:00 +11: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan manual actorMove interpolates through waypoints by distance
+00:00 +12: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan manual actorMove reports missing path and missing waypoint
+00:00 +13: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan manual actorMove with all zero-length segments stays deterministic
+00:00 +14: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 camera block produces active playback state
+00:00 +15: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 camera playback state exposes clamped progress
+00:00 +16: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 unsupported camera mode produces diagnostic without crashing
+00:00 +17: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-131 camera focus remains symbolic until geometry exists
+00:00 +18: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus scene center exposes geometry when stage bounds are available
+00:00 +19: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus scene center reports unavailable geometry when bounds are missing
+00:00 +20: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus actor resolves geometry from active actor pose
+00:00 +21: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus actor consumes actorMove playback pose
+00:00 +22: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus actor reports missing pose for unavailable actor position
+00:00 +23: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus stage point resolves geometry from stage point
+00:00 +24: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus stage point reports unknown stage point
+00:00 +25: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus stage point reports out of map when bounds are available
+00:00 +26: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 reset and hold do not expose target geometry
+00:00 +27: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 invalid camera metadata remains diagnostic and non-crashing
+00:00 +28: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 missing camera mode stays diagnosed and does not mutate asset
+00:00 +29: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 consecutive camera steps choose deterministic active state
+00:00 +30: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan fade returns fade state alongside camera playback state
+00:00 +31: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan unsupported steps produce no-code diagnostics
+00:00 +32: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan NSC-67 schedules every advanced cue and never executes marker
+00:00 +33: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-127 actorEmote exposes active emote playback state
+00:00 +34: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-127 actorEmote exposes unsupported diagnostics locally
+00:00 +35: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-127 active emotes stay deterministic in mixed timelines
+00:00 +36: test/cinematic_preview_playback_plan_test.dart: an unavailable authored map blocks the preview plan
+00:00 +37: All tests passed!

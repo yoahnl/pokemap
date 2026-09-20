@@ -10,6 +10,9 @@ final class RuntimeAuthoringCharacterRenderer {
     required ProjectSettings settings,
     required Map<String, RuntimeTilesetImage> images,
     EntityFacing facing = EntityFacing.south,
+    CharacterAnimationState animationState = CharacterAnimationState.idle,
+    int elapsedMs = 0,
+    CharacterCustomAnimationClip? customAnimation,
   }) : _actor = OverworldActorComponent(
           character: character,
           tileImages: images,
@@ -18,11 +21,23 @@ final class RuntimeAuthoringCharacterRenderer {
           cellWidth: (settings.tileWidth * settings.displayScale).toDouble(),
           cellHeight: (settings.tileHeight * settings.displayScale).toDouble(),
           facing: facing,
-        );
+          animState: animationState,
+        ) {
+    if (customAnimation != null) {
+      if (_actor.canPlayCustomAnimation(customAnimation)) {
+        _actor.playCustomAnimation(customAnimation);
+      } else {
+        _customVisualUnavailable = true;
+      }
+    }
+    if (elapsedMs > 0) _actor.update(elapsedMs / 1000);
+  }
 
   final OverworldActorComponent _actor;
+  bool _customVisualUnavailable = false;
 
   bool get hasVisual {
+    if (_customVisualUnavailable) return false;
     final source = _actor.debugAnimationSource;
     return source != null &&
         (_actor.tileImages[source.imageId]

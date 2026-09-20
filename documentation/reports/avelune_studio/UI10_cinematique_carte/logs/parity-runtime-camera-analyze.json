@@ -1,0 +1,26 @@
+{
+  "command": [
+    "flutter",
+    "analyze",
+    "--no-pub",
+    "lib/src/presentation/flame/pixel_perfect_overworld_camera.dart",
+    "lib/src/presentation/flame/flame_cinematic_runtime_playback_sink.dart"
+  ],
+  "runnerPid": 96892,
+  "owned": {
+    "96942": [
+      96892,
+      "501",
+      "Mon Sep 21 00:05:53 2026",
+      "(sysctl)"
+    ],
+    "96970": [
+      96892,
+      "501",
+      "Mon Sep 21 00:05:53 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart language-server --dart-sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk --disable-server-feature-completion --disable-server-feature-search"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

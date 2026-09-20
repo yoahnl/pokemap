@@ -1,3 +1,6 @@
+import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
+import '../cinematics/cinematic_workspace_page.dart';
+import '../cinematics/cinematic_view_state.dart';
 import 'package:flutter/material.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../dialogues/dialogue_workspace_page.dart';
@@ -30,10 +33,19 @@ enum WorkspaceSpace {
   progression,
   events,
   dialogue,
+  cinematic,
 }
 
 Widget? workspaceSecondaryContent({
   required WorkspaceSpace space,
+  required CinematicWorkspaceController? cinematics,
+  required CinematicViewStore cinematicViews,
+  required WorkspaceSpace cinematicOrigin,
+  required VoidCallback onCinematics,
+  required VoidCallback onCinematicBack,
+  required Future<void> Function(SceneCinematicPayload) onSceneCinematic,
+  required Future<void> Function(String) onCinematicDialogue,
+  required Future<String?> Function(String) onCinematicLocate,
   required DialogueWorkspaceController? dialogues,
   required DialogueViewStore dialogueViews,
   required WorkspaceSpace dialogueOrigin,
@@ -70,6 +82,23 @@ Widget? workspaceSecondaryContent({
   required VoidCallback onTest,
   required PickResourceImage? imagePicker,
 }) {
+  if (space == WorkspaceSpace.cinematic &&
+      cinematics != null &&
+      visuals != null) {
+    return CinematicWorkspacePage(
+      controller: cinematics,
+      dialogues: dialogues,
+      views: cinematicViews,
+      loader: eventMaps,
+      visuals: visuals,
+      onBack: onCinematicBack,
+      backLabel: cinematicOrigin == WorkspaceSpace.scene
+          ? 'la scène'
+          : 'Histoire',
+      onDialogue: onCinematicDialogue,
+      onLocate: onCinematicLocate,
+    );
+  }
   if (space == WorkspaceSpace.dialogue && dialogues != null) {
     return DialogueWorkspacePage(
       controller: dialogues,
@@ -77,6 +106,8 @@ Widget? workspaceSecondaryContent({
       onBack: onDialogueBack,
       backLabel: dialogueOrigin == WorkspaceSpace.scene
           ? 'la scène'
+          : dialogueOrigin == WorkspaceSpace.cinematic
+          ? 'la cinématique'
           : 'Histoire',
     );
   }
@@ -104,6 +135,7 @@ Widget? workspaceSecondaryContent({
   if (space == WorkspaceSpace.scene && scenes != null) {
     return SceneBuilderPage(
       dialogues: dialogues,
+      onCinematic: cinematics == null ? null : onSceneCinematic,
       onDialogue: dialogues == null ? null : onSceneDialogue,
       controller: scenes,
       views: sceneViews,
@@ -135,6 +167,7 @@ Widget? workspaceSecondaryContent({
   if (space == WorkspaceSpace.story && narrative != null) {
     return NarrativeStoryPane(
       onDialogues: dialogues == null ? null : onDialogues,
+      onCinematics: cinematics == null ? null : onCinematics,
       controller: narrative,
       viewState: storyViewState,
       onOpen: onOpenInteraction,

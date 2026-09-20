@@ -92,8 +92,8 @@ void main() {
         expect(player.bindingStatus, CinematicActorDisplayBindingStatus.player);
         expect(player.position.status,
             CinematicActorPreviewPositionStatus.resolved);
-        expect(player.position.x, 2);
-        expect(player.position.y, 3);
+        expect(player.position.x, 2.5);
+        expect(player.position.y, 3.5);
         expect(
           player.appearance.status,
           CinematicActorPreviewAppearanceStatus.spriteReady,
@@ -103,7 +103,7 @@ void main() {
         final guard = model.actorById('guard')!;
         expect(
             guard.bindingStatus, CinematicActorDisplayBindingStatus.mapEntity);
-        expect(guard.position.x, 6);
+        expect(guard.position.x, 6.5);
         expect(guard.position.y, 4);
         expect(guard.appearance.characterId, 'guard_character');
         expect(guard.direction, CinematicActorPreviewDirection.east);
@@ -203,7 +203,7 @@ void main() {
 
       final position = model.actorById('guard')!.position;
       expect(position.status, CinematicActorPreviewPositionStatus.resolved);
-      expect(position.x, 6);
+      expect(position.x, 6.5);
       expect(position.y, 4);
       expect(position.sourceId, 'entity_guard');
     });
@@ -458,8 +458,8 @@ void main() {
 
       final position = model.actorById('actor')!.position;
       expect(position.status, CinematicActorPreviewPositionStatus.resolved);
-      expect(position.x, 2);
-      expect(position.y, 3);
+      expect(position.x, 2.5);
+      expect(position.y, 3.5);
     });
 
     test(
@@ -584,7 +584,7 @@ void main() {
       );
     });
 
-    test('uses actorFace as static direction hint without playback', () {
+    test('does not use a future actorFace as initial facing', () {
       final model = _singleActorModel(
         actorId: 'actor',
         binding: CinematicActorBinding(
@@ -608,9 +608,9 @@ void main() {
       );
 
       final actor = model.actorById('actor')!;
-      expect(actor.direction, CinematicActorPreviewDirection.west);
+      expect(actor.direction, CinematicActorPreviewDirection.south);
       expect(actor.directionSource,
-          CinematicActorPreviewDirectionSource.actorFace);
+          CinematicActorPreviewDirectionSource.fallback);
     });
 
     test('ignores actorMove for initial position', () {
@@ -644,7 +644,7 @@ void main() {
       );
 
       final position = model.actorById('actor')!.position;
-      expect(position.x, 6);
+      expect(position.x, 6.5);
       expect(position.y, 4);
     });
 

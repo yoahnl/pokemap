@@ -1,0 +1,20 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart
+test/cinematics/cinematic_preview_media_ui10_test.dart:171:7: Error: No named parameter with the name 'insertIndex'.
+      insertIndex: 1,
+      ^^^^^^^^^^^
+../../packages/map_core/lib/src/authoring/cinematic_command_authoring_operations.dart:41:33: Context: Found this candidate, but the arguments don't match.
+CinematicCommandAuthoringResult addCinematicTimelineCommandStep(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: test/cinematics/cinematic_preview_media_ui10_test.dart:171:7: Error: No named parameter with the name 'insertIndex'.
+        insertIndex: 1,
+        ^^^^^^^^^^^
+  ../../packages/map_core/lib/src/authoring/cinematic_command_authoring_operations.dart:41:33: Context: Found this candidate, but the arguments don't match.
+  CinematicCommandAuthoringResult addCinematicTimelineCommandStep(
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  .
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_media_ui10_test.dart

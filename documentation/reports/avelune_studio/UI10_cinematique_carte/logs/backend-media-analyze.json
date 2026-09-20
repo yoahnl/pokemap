@@ -1,0 +1,21 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/features/cinematics",
+    "lib/platform/rendering/studio_cinematic_media.dart",
+    "lib/platform/rendering/studio_map_resources.dart",
+    "lib/presentation/features/cinematics/cinematic_inspector.dart"
+  ],
+  "runnerPid": 3356,
+  "owned": {
+    "3358": [
+      3356,
+      "501",
+      "Sun Sep 20 22:44:44 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

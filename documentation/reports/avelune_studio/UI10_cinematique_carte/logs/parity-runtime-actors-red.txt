@@ -1,0 +1,30 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart
+00:00 +0: authored initial placement is temporary and cancellation restores actor
+00:00 +0 -1: authored initial placement is temporary and cancellation restores actor [E]
+  Expected: Vector2:<[8.0,9.0]>
+    Actual: Vector2:<[20.0,20.0]>
+  
+  package:matcher                                            expect
+  package:flutter_test/src/widget_tester.dart 473:18         expect
+  test/flame_cinematic_runtime_playback_sink_test.dart 19:5  main.<fn>
+  
+00:00 +0 -1: manual route uses distance rather than equal time per segment
+00:00 +0 -2: manual route uses distance rather than equal time per segment [E]
+  Expected: Vector2:<[25.0,20.0]>
+    Actual: Vector2:<[21.0,20.0]>
+  
+  package:matcher                                            expect
+  package:flutter_test/src/widget_tester.dart 473:18         expect
+  test/flame_cinematic_runtime_playback_sink_test.dart 40:5  main.<fn>
+  
+00:00 +0 -2: FlameCinematicRuntimePlaybackSink preflight rejects an unavailable actor without runtime mutation
+00:00 +1 -2: FlameCinematicRuntimePlaybackSink preflight rejects an incomplete map actor binding without throwing
+00:00 +2 -2: FlameCinematicRuntimePlaybackSink renders the eight V1 beats and restores the runtime atomically
+00:00 +3 -2: FlameCinematicRuntimePlaybackSink cancellation restores camera actors overlays and input once
+00:00 +4 -2: FlameCinematicRuntimePlaybackSink restoration keeps unlocking input when overlay cleanup throws
+00:00 +5 -2: FlameCinematicRuntimePlaybackSink awaits custom character animation and restores Base
+00:00 +6 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: authored initial placement is temporary and cancellation restores actor
+  /Users/karim/Project/pokemonProject/packages/map_runtime/test/flame_cinematic_runtime_playback_sink_test.dart: manual route uses distance rather than equal time per segment

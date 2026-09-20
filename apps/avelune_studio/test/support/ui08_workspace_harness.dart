@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:avelune_studio/features/cinematics/domain/cinematic_port.dart';
 import 'package:avelune_studio/features/dialogues/domain/dialogue_port.dart';
 import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
@@ -35,9 +36,12 @@ class Ui08WorkspaceHarness {
   final Ui08EventPort events;
   final Ui07WorkspacePorts ports;
   final captureKey = GlobalKey();
-  static Future<Ui08WorkspaceHarness> create(WidgetTester tester) async {
+  static Future<Ui08WorkspaceHarness> create(
+    WidgetTester tester, {
+    Ui07StoryFixture? fixture,
+  }) async {
     await loadDesktopCaptureFonts();
-    final source = await createUi08Fixture();
+    final source = fixture ?? await createUi08Fixture();
     final mapPort = Ui08MapPort(source.maps, tester);
     final maps = WidgetMapController(source.session, mapPort, tester);
     await maps.initialize();
@@ -62,32 +66,36 @@ class Ui08WorkspaceHarness {
     );
   }
 
-  Widget app({double textScale = 1, DialoguePort? dialoguePort}) =>
-      RepaintBoundary(
-        key: captureKey,
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: studioTheme(),
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(textScale)),
-            child: child!,
-          ),
-          home: MapWorkspaceScreen(
-            controller: maps,
-            loadVisuals: (_, _) async => visuals,
-            narrativePort: narrative,
-            scenePort: ports,
-            storyPort: ports,
-            eventPort: events,
-            dialoguePort: dialoguePort,
-            runtimeBuilder: (_, _, _) => const SizedBox(),
-            onClose: () async {},
-            registerExitGuard: (_) {},
-          ),
-        ),
-      );
+  Widget app({
+    double textScale = 1,
+    DialoguePort? dialoguePort,
+    CinematicPort? cinematicPort,
+  }) => RepaintBoundary(
+    key: captureKey,
+    child: MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: studioTheme(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
+      home: MapWorkspaceScreen(
+        controller: maps,
+        loadVisuals: (_, _) async => visuals,
+        narrativePort: narrative,
+        scenePort: ports,
+        storyPort: ports,
+        eventPort: events,
+        dialoguePort: dialoguePort,
+        cinematicPort: cinematicPort,
+        runtimeBuilder: (_, _, _) => const SizedBox(),
+        onClose: () async {},
+        registerExitGuard: (_) {},
+      ),
+    ),
+  );
   Future<Map<String, List<int>>> mapBytes() async => {
     for (final entry in maps.project!.maps)
       entry.relativePath: await File(

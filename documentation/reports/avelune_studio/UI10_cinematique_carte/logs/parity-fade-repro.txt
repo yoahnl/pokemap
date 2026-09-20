@@ -1,0 +1,16 @@
+00:00 +0: loading test/cinematic_viewport_state_parity_test.dart
+00:00 +0: fade-out remains opaque after its block until the next fade-in
+00:00 +0 -1: fade-out remains opaque after its block until the next fade-in [E]
+  Expected: <1>
+    Actual: <null>
+  
+  package:matcher                                     expect
+  test/cinematic_viewport_state_parity_test.dart 8:5  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  test/cinematic_viewport_state_parity_test.dart: fade-out remains opaque after its block until the next fade-in
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

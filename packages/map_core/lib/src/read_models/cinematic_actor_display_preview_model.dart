@@ -7,6 +7,7 @@ import '../models/map_event_definition.dart';
 import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
 import 'cinematic_stage_map_source_catalog.dart';
+import '../runtime/cinematic_actor_geometry.dart';
 
 enum CinematicActorDisplayPreviewStatus {
   ready,
@@ -139,8 +140,8 @@ final class CinematicActorPreviewPosition {
 
   final CinematicActorPreviewPositionStatus status;
   final CinematicActorPreviewPositionSourceKind sourceKind;
-  final int? x;
-  final int? y;
+  final num? x;
+  final num? y;
   final String? sourceId;
   final String? sourceLabel;
 
@@ -354,7 +355,7 @@ CinematicActorDisplayPreviewModel buildCinematicActorDisplayPreviewModel({
       binding: binding,
       mapData: canUseMapData ? mapData : null,
     );
-    final position = _resolvePosition(
+    final rawPosition = _resolvePosition(
       actorId: actorId,
       binding: binding,
       bindingEntity: bindingEntity,
@@ -365,6 +366,7 @@ CinematicActorDisplayPreviewModel buildCinematicActorDisplayPreviewModel({
       mapData: canUseMapData ? mapData : null,
       diagnostics: actorDiagnostics,
     );
+    final position = _focusPosition(rawPosition, mapData, project);
     final directionResolution = _resolveDirection(
       cinematic: cinematic,
       actorId: actorId,
@@ -997,26 +999,30 @@ CinematicActorPreviewPosition _positionForEvent({
   );
 }
 
+CinematicActorPreviewPosition _focusPosition(
+  CinematicActorPreviewPosition position,
+  MapData? map,
+  ProjectManifest project,
+) {
+  if (position.sourceKind != CinematicActorPreviewPositionSourceKind.mapEntity || !position.isResolved || map == null) return position;
+  for (final entity in map.entities) {
+    if (entity.id != position.sourceId) continue;
+    final focus = cinematicEntityFocusPoint(entity: entity, project: project);
+    return CinematicActorPreviewPosition(
+      status: position.status, sourceKind: position.sourceKind,
+      x: focus.x, y: focus.y, sourceId: position.sourceId,
+      sourceLabel: position.sourceLabel,
+    );
+  }
+  return position;
+}
+
 _DirectionResolution _resolveDirection({
   required CinematicAsset cinematic,
   required String actorId,
   required MapEntity? bindingEntity,
   required List<CinematicActorDisplayPreviewDiagnostic> diagnostics,
 }) {
-  for (final step in cinematic.timeline.steps) {
-    if (step.kind != CinematicTimelineStepKind.actorFace ||
-        step.actorId?.trim() != actorId) {
-      continue;
-    }
-    final direction = _directionFromActorFaceMetadata(step.metadata);
-    if (direction != null) {
-      return _DirectionResolution(
-        direction: direction,
-        source: CinematicActorPreviewDirectionSource.actorFace,
-      );
-    }
-  }
-
   final facing = bindingEntity?.npc?.facing;
   if (facing != null) {
     return _DirectionResolution(
@@ -1360,18 +1366,6 @@ bool _pointInBounds({
   required MapData mapData,
 }) {
   return x >= 0 && y >= 0 && x < mapData.size.width && y < mapData.size.height;
-}
-
-CinematicActorPreviewDirection? _directionFromActorFaceMetadata(
-  Map<String, String> metadata,
-) {
-  return switch (metadata['actor.direction']) {
-    'up' => CinematicActorPreviewDirection.north,
-    'down' => CinematicActorPreviewDirection.south,
-    'left' => CinematicActorPreviewDirection.west,
-    'right' => CinematicActorPreviewDirection.east,
-    _ => null,
-  };
 }
 
 CinematicActorPreviewDirection _directionFromEntityFacing(

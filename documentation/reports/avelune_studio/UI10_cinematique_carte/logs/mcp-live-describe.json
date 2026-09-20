@@ -1,0 +1,11 @@
+{
+  "tool": "mcp__pokemap__pokemap_describe",
+  "ok": false,
+  "error": {
+    "code": "worker.exited",
+    "message": "The canonical Authoring worker exited unexpectedly (code 78).",
+    "details": {
+      "exitCode": 78
+    }
+  }
+}

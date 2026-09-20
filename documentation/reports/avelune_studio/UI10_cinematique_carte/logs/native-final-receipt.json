@@ -1,0 +1,26 @@
+{
+  "date": "2026-09-20T23:30:05.596243",
+  "nativeFinalBuild": "native-build-delivered.txt exit 0",
+  "nativePostFixPid": 56931,
+  "nativePostFixPlaybackVerified": false,
+  "blocker": "CUA getApp(full path), getScreenshot time out -10005 after final relaunch, including JS reset; Finder AX still works. Native sample main thread idle in normal AppKit event loop. No inference of application deadlock.",
+  "preFixEvidence": [
+    "ui10-native-selected-move.png",
+    "ui10-native-play-attempt-before-fix.png",
+    "ui10-native-preview-error-before-fix.png"
+  ],
+  "preFixNativeFinding": "Play blocked by media validation rejecting camera command; fixed with scoped media filtering.",
+  "correctedPlayEvidence": "ui10-play-fixed-targeted.txt: 4 tests passed. Actual UI button starts transport, 700 ms real wait advances time, stop resets 0.",
+  "postFixWidgetCaptures": [
+    "ui10-preview-movement.png",
+    "ui10-preview-camera.png",
+    "ui10-preview-fade.png",
+    "ui10-preview-stopped.png",
+    "ui10-inspector-camera.png"
+  ],
+  "temporaryProject": "/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_zOxvRn",
+  "authoringFileCount": 6,
+  "authoringHashesUnchanged": true,
+  "hashProofScope": "Native selection and failed pre-fix Play plus relaunch only. Post-fix native Play not reached; separate real-runtime and widget tests prove authored bytes/state unchanged.",
+  "ownedNativeShutdown": "SIGTERM sent to exact PID launched by this test after matching complete executable command; no blanket process termination."
+}

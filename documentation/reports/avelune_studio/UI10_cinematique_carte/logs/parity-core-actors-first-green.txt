@@ -1,0 +1,135 @@
+00:00 +0: loading test/cinematic_actor_display_preview_model_test.dart
+00:00 +0: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel builds actor display preview model for cinematic actors without rendering them
+00:00 +0 -1: test/cinematic_timeline_time_layout_read_model_test.dart: actor facing changes consume no cinematic playback time
+00:00 +0 -1: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel builds actor display preview model for cinematic actors without rendering them [E]
+  Expected: <2>
+    Actual: <2.5>
+  
+  package:matcher                                            expect
+  test/cinematic_actor_display_preview_model_test.dart 95:9  main.<fn>.<fn>
+  
+00:00 +1 -1: test/cinematic_timeline_time_layout_read_model_test.dart: actor facing changes consume no cinematic playback time
+00:00 +2 -1: test/cinematic_timeline_time_layout_read_model_test.dart: actor facing changes consume no cinematic playback time
+00:00 +3 -1: test/cinematic_timeline_time_layout_read_model_test.dart: actor facing changes consume no cinematic playback time
+00:00 +3 -2: test/cinematic_timeline_time_layout_read_model_test.dart: actor facing changes consume no cinematic playback time
+00:00 +3 -2: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel resolves map entity actor position from map data entity [E]
+  Expected: <6>
+    Actual: <6.5>
+  
+  package:matcher                                             expect
+  test/cinematic_actor_display_preview_model_test.dart 206:7  main.<fn>.<fn>
+  
+00:00 +4 -2: test/cinematic_timeline_time_layout_read_model_test.dart: actor facing changes consume no cinematic playback time
+00:00 +5 -2: test/cinematic_timeline_time_layout_read_model_test.dart: actor facing changes consume no cinematic playback time
+00:00 +6 -2: test/cinematic_timeline_time_layout_read_model_test.dart: actor facing changes consume no cinematic playback time
+00:00 +7 -2: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel reports unknown character reference
+00:00 +8 -2: test/cinematic_timeline_time_layout_read_model_test.dart: keeps an explicit stable order for every visual block
+00:00 +9 -2: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel reports character missing tileset
+00:00 +10 -2: test/cinematic_timeline_time_layout_read_model_test.dart: buildCinematicTimelineTimeLayoutReadModel derives block timing from linear order with fallback durations
+00:00 +11 -2: test/cinematic_timeline_time_layout_read_model_test.dart: buildCinematicTimelineTimeLayoutReadModel derives block timing from linear order with fallback durations
+00:00 +12 -2: test/cinematic_timeline_time_layout_read_model_test.dart: buildCinematicTimelineTimeLayoutReadModel derives block timing from linear order with fallback durations
+00:00 +13 -2: test/cinematic_timeline_time_layout_read_model_test.dart: buildCinematicTimelineTimeLayoutReadModel derives block timing from linear order with fallback durations
+00:00 +13 -3: test/cinematic_timeline_time_layout_read_model_test.dart: buildCinematicTimelineTimeLayoutReadModel derives block timing from linear order with fallback durations
+00:00 +13 -3: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel resolves from movement target bound to map entity [E]
+  Expected: <2>
+    Actual: <2.5>
+  
+  package:matcher                                             expect
+  test/cinematic_actor_display_preview_model_test.dart 461:7  main.<fn>.<fn>
+  
+00:00 +13 -4: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel resolves from movement target bound to map event when position exists
+00:00 +14 -4: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel does not resolve abstract movement target to fake coordinates
+00:00 +15 -4: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel does not treat target_center as map coordinates
+00:00 +16 -4: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel does not invent center map fallback for missing placement
+00:00 +17 -4: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel reports out of bounds position
+00:00 +18 -4: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel does not use a future actorFace as initial facing
+00:00 +19 -4: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel ignores actorMove for initial position
+00:00 +19 -5: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel ignores actorMove for initial position [E]
+  Expected: <6>
+    Actual: <6.5>
+  
+  package:matcher                                             expect
+  test/cinematic_actor_display_preview_model_test.dart 647:7  main.<fn>.<fn>
+  
+00:00 +19 -5: test/cinematic_timeline_time_layout_read_model_test.dart: buildCinematicTimelineTimeLayoutReadModel derives block timing from linear order with fallback durations [E]
+  Expected: <2900>
+    Actual: <2600>
+  
+  package:matcher                                                expect
+  test/cinematic_timeline_time_layout_read_model_test.dart 53:7  main.<fn>.<fn>
+  
+00:00 +19 -5: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel reports orphan actor binding
+00:00 +20 -5: test/cinematic_timeline_time_layout_read_model_test.dart: buildCinematicTimelineTimeLayoutReadModel handles empty timelines deterministically
+00:00 +21 -5: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel reports orphan actor appearance binding
+00:00 +22 -5: test/cinematic_timeline_time_layout_read_model_test.dart: buildCinematicTimelineTimeLayoutReadModel uses coarse ticks for long timelines
+00:00 +23 -5: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel reports orphan initial placement
+00:00 +24 -5: test/cinematic_timeline_time_layout_read_model_test.dart: buildCinematicTimelineTimeLayoutReadModel keeps unknown actor blocks on derived actor lanes
+00:00 +25 -5: test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel keeps model pure without Flutter Flame runtime imports
+00:00 +26 -5: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan empty cinematic produces an empty plan and timeline diagnostic
+00:00 +27 -5: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan empty cinematic produces an empty plan and timeline diagnostic
+00:00 +28 -5: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan empty cinematic produces an empty plan and timeline diagnostic
+00:00 +29 -5: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan derives timeline items and clamps frame time deterministically
+00:00 +29 -6: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan derives timeline items and clamps frame time deterministically [E]
+  Expected: <1700>
+    Actual: <1400>
+  
+  package:matcher                                      expect
+  test/cinematic_preview_playback_plan_test.dart 39:7  main.<fn>.<fn>
+  
+00:00 +29 -6: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan uses actor display preview position before stageContext placement
+00:00 +30 -6: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan reports missing initial pose without fake zero fallback
+00:00 +31 -6: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan actorFace changes facing and wait preserves the pose
+00:00 +31 -7: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan actorFace changes facing and wait preserves the pose [E]
+  Expected: CinematicActorPreviewDirection:<CinematicActorPreviewDirection.south>
+    Actual: CinematicActorPreviewDirection:<CinematicActorPreviewDirection.east>
+  
+  package:matcher                                       expect
+  test/cinematic_preview_playback_plan_test.dart 181:7  main.<fn>.<fn>
+  
+00:00 +31 -7: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan direct actorMove interpolates linearly and reaches destination
+00:00 +31 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan direct actorMove interpolates linearly and reaches destination [E]
+  Expected: a numeric value within <0.001> of <5>
+    Actual: <8.0>
+     Which:  differs by <3.0>
+  
+  package:matcher                                       expect
+  test/cinematic_preview_playback_plan_test.dart 196:7  main.<fn>.<fn>
+  
+00:00 +31 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan direct actorMove missing destination produces diagnostic
+00:00 +32 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan manual actorMove interpolates through waypoints by distance
+00:00 +33 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan manual actorMove reports missing path and missing waypoint
+00:00 +34 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan manual actorMove with all zero-length segments stays deterministic
+00:00 +35 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 camera block produces active playback state
+00:00 +36 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 camera playback state exposes clamped progress
+00:00 +37 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 unsupported camera mode produces diagnostic without crashing
+00:00 +38 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-131 camera focus remains symbolic until geometry exists
+00:00 +39 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus scene center exposes geometry when stage bounds are available
+00:00 +40 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus scene center reports unavailable geometry when bounds are missing
+00:00 +41 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus actor resolves geometry from active actor pose
+00:00 +42 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus actor consumes actorMove playback pose
+00:00 +43 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus actor reports missing pose for unavailable actor position
+00:00 +44 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus stage point resolves geometry from stage point
+00:00 +45 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus stage point reports unknown stage point
+00:00 +46 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 camera focus stage point reports out of map when bounds are available
+00:00 +47 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 reset and hold do not expose target geometry
+00:00 +48 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-133 invalid camera metadata remains diagnostic and non-crashing
+00:00 +49 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 missing camera mode stays diagnosed and does not mutate asset
+00:00 +50 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-123 consecutive camera steps choose deterministic active state
+00:00 +51 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan fade returns fade state alongside camera playback state
+00:00 +52 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan unsupported steps produce no-code diagnostics
+00:00 +53 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan NSC-67 schedules every advanced cue and never executes marker
+00:00 +54 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-127 actorEmote exposes active emote playback state
+00:00 +55 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-127 actorEmote exposes unsupported diagnostics locally
+00:00 +56 -8: test/cinematic_preview_playback_plan_test.dart: buildCinematicPreviewPlaybackPlan V1-127 active emotes stay deterministic in mixed timelines
+00:00 +57 -8: test/cinematic_preview_playback_plan_test.dart: an unavailable authored map blocks the preview plan
+00:00 +58 -8: Some tests failed.
+
+Failing tests:
+  test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel builds actor display preview model for cinematic actors without rendering them
+  test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel ignores actorMove for initial position
+  test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel resolves from movement target bound to map entity
+  test/cinematic_actor_display_preview_model_test.dart: CinematicActorDisplayPreviewModel resolves map entity actor position from map data entity
+  ... and 4 more
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

@@ -1,0 +1,4 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart
+00:00 +0: canonical intermediate movement, backwards scrub and stop never modify author asset
+00:00 +1: eighty sequential actions keep one plan for ticks, pause and scrub
+00:00 +2: All tests passed!

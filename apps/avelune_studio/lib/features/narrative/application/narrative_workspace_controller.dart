@@ -5,12 +5,14 @@ import '../domain/narrative_port.dart';
 import 'dialogue_draft_codec.dart';
 import 'interaction_edit_session.dart';
 import 'narrative_interaction.dart';
+import 'narrative_sequence_projection.dart';
 import 'narrative_interaction_opener.dart';
 import 'narrative_source_location.dart';
 
 part 'narrative_workspace_publication.dart';
 
 part 'narrative_session_coexistence.dart';
+part 'narrative_cinematic_coexistence.dart';
 
 class NarrativeWorkspaceController {
   Future<bool> save({EditableMapDocument? document}) =>
@@ -46,6 +48,8 @@ class NarrativeWorkspaceController {
   String? Function(String eventId)? eventAccessProblem;
   String? Function(String dialogueId)? dialogueAccessProblem;
   void Function(Set<String> ids)? dialoguesPublished;
+  String? Function(String id)? cinematicAccessProblem;
+  void Function(Set<String> ids)? cinematicsPublished;
   bool _disposed = false;
   String? error;
   String? publicationError;

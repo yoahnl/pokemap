@@ -1,0 +1,12 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_runtime/test/player_component_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player_component_test.dart: PlayerComponent visual convention player actor offset is not applied twice
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player_component_test.dart: PlayerComponent visual convention walk and run preserve their established durations and velocities
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_runtime/test/player_component_test.dart: PlayerComponent visual convention cardinal step has stable frame deltas
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_runtime/test/overworld_actor_custom_animation_test.dart: Flame actor plays custom pixels then restores Base
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_runtime/test/overworld_actor_custom_animation_test.dart: Flame actor plays custom pixels then restores Base
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_runtime/test/overworld_actor_custom_animation_test.dart: Flame actor plays custom pixels then restores Base
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_runtime/test/overworld_actor_custom_animation_test.dart: Flame actor plays custom pixels then restores Base
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_runtime/test/overworld_actor_custom_animation_test.dart: Flame actor plays custom pixels then restores Base
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_runtime/test/overworld_actor_custom_animation_test.dart: Flame actor plays custom pixels then restores Base
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_runtime/test/overworld_actor_custom_animation_test.dart: custom source must be loaded and every frame must be in bounds
+00:00 +10: All tests passed!

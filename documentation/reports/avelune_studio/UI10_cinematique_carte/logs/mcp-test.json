@@ -1,0 +1,677 @@
+{
+  "command": [
+    "npm",
+    "test"
+  ],
+  "runnerPid": 73547,
+  "owned": {
+    "73567": [
+      73547,
+      "501",
+      "Sun Sep 20 22:22:40 2026",
+      "sh -c npm run build && node --import tsx --test --test-concurrency=1 test/**/*.test.ts"
+    ],
+    "73568": [
+      73567,
+      "501",
+      "Sun Sep 20 22:22:40 2026",
+      "npm run build   "
+    ],
+    "73624": [
+      73568,
+      "501",
+      "Sun Sep 20 22:22:40 2026",
+      "node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/node_modules/.bin/tsc -p tsconfig.json"
+    ],
+    "73660": [
+      73567,
+      "501",
+      "Sun Sep 20 22:22:41 2026",
+      "node --import tsx --test --test-concurrency=1 test/**/*.test.ts"
+    ],
+    "73663": [
+      73660,
+      "501",
+      "Sun Sep 20 22:22:41 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/border_catalog_server.test.ts"
+    ],
+    "73681": [
+      73663,
+      "501",
+      "Sun Sep 20 22:22:41 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-border-rcm26T --timeout-ms 30000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "74284": [
+      73660,
+      "501",
+      "Sun Sep 20 22:22:51 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/checkout_catalog_verifier.test.ts"
+    ],
+    "74288": [
+      74284,
+      "501",
+      "Sun Sep 20 22:22:51 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/index.js --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_personalization_v3"
+    ],
+    "74302": [
+      74288,
+      "501",
+      "Sun Sep 20 22:22:52 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_personalization_v3 --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "74487": [
+      73660,
+      "501",
+      "Sun Sep 20 22:22:58 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/conformance_security.test.ts"
+    ],
+    "74501": [
+      74487,
+      "501",
+      "Sun Sep 20 22:22:59 2026",
+      "dart run bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pmcp085-mcp-golden-MFRxlX --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "74655": [
+      73660,
+      "501",
+      "Sun Sep 20 22:23:05 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/game_export_server.test.ts"
+    ],
+    "74659": [
+      73660,
+      "501",
+      "Sun Sep 20 22:23:06 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/item_authoring.test.ts"
+    ],
+    "74672": [
+      74659,
+      "501",
+      "Sun Sep 20 22:23:06 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-items-j3D8vG --timeout-ms 30000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "74780": [
+      73660,
+      "501",
+      "Sun Sep 20 22:23:13 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/live_item_smoke.test.ts"
+    ],
+    "74816": [
+      74780,
+      "501",
+      "Sun Sep 20 22:23:14 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/index.js --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-live-items-jlNCK3/golden_item_system"
+    ],
+    "74829": [
+      74816,
+      "501",
+      "Sun Sep 20 22:23:14 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-live-items-jlNCK3/golden_item_system --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "74949": [
+      73660,
+      "501",
+      "Sun Sep 20 22:23:21 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/live_menu_contracts.test.ts"
+    ],
+    "74974": [
+      74949,
+      "501",
+      "Sun Sep 20 22:23:21 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/index.js --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-live-menu-QJF74T/project"
+    ],
+    "74988": [
+      74974,
+      "501",
+      "Sun Sep 20 22:23:21 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-live-menu-QJF74T/project --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "75248": [
+      73660,
+      "501",
+      "Sun Sep 20 22:23:29 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/mutation_server.test.ts"
+    ],
+    "75277": [
+      75248,
+      "501",
+      "Sun Sep 20 22:23:29 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-bmFN3l --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "75428": [
+      75248,
+      "501",
+      "Sun Sep 20 22:23:36 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-ejMPN3 --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "75552": [
+      75248,
+      "501",
+      "Sun Sep 20 22:23:43 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-EbAuVx --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "75766": [
+      75248,
+      "501",
+      "Sun Sep 20 22:23:52 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-HQMYqs --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "75910": [
+      75248,
+      "501",
+      "Sun Sep 20 22:23:59 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-cYMQCm --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "76283": [
+      75248,
+      "501",
+      "Sun Sep 20 22:24:08 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-xNXAkd --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "76607": [
+      75248,
+      "501",
+      "Sun Sep 20 22:24:20 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-2acGma --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "76794": [
+      75248,
+      "501",
+      "Sun Sep 20 22:24:27 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-6XFbw7 --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "77004": [
+      75248,
+      "501",
+      "Sun Sep 20 22:24:34 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-nSrXzc --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "77086": [
+      75248,
+      "501",
+      "Sun Sep 20 22:24:41 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-Fx6oUh --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "77258": [
+      75248,
+      "501",
+      "Sun Sep 20 22:24:47 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-4NeImi --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "77459": [
+      75248,
+      "501",
+      "Sun Sep 20 22:24:54 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-GD7fx9 --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "77600": [
+      75248,
+      "501",
+      "Sun Sep 20 22:25:00 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-b3UEti --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "77727": [
+      75248,
+      "501",
+      "Sun Sep 20 22:25:07 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-ae1KRV --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "77869": [
+      75248,
+      "501",
+      "Sun Sep 20 22:25:14 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-gVCAtJ --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "78024": [
+      75248,
+      "501",
+      "Sun Sep 20 22:25:21 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-LB6ezs --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "78155": [
+      75248,
+      "501",
+      "Sun Sep 20 22:25:27 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-Mngmgd --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "78492": [
+      75248,
+      "501",
+      "Sun Sep 20 22:25:36 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-vSxMhh --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "78694": [
+      75248,
+      "501",
+      "Sun Sep 20 22:25:44 2026",
+      "dart run bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-NyPIGS --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "78840": [
+      75248,
+      "501",
+      "Sun Sep 20 22:25:51 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-6d3yLb --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "79008": [
+      75248,
+      "501",
+      "Sun Sep 20 22:25:58 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-nviLcX --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "79155": [
+      75248,
+      "501",
+      "Sun Sep 20 22:26:04 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-UnaxYI --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "79348": [
+      75248,
+      "501",
+      "Sun Sep 20 22:26:11 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-vMkN7j --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "79487": [
+      75248,
+      "501",
+      "Sun Sep 20 22:26:19 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-81rKX1 --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "79651": [
+      75248,
+      "501",
+      "Sun Sep 20 22:26:25 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-7g47Cn --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "79809": [
+      75248,
+      "501",
+      "Sun Sep 20 22:26:32 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-SwvLRn --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "79928": [
+      75248,
+      "501",
+      "Sun Sep 20 22:26:38 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-cqitFA --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "80045": [
+      75248,
+      "501",
+      "Sun Sep 20 22:26:45 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-I2hZKh --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "80232": [
+      75248,
+      "501",
+      "Sun Sep 20 22:26:52 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-qgfFvO --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "80358": [
+      75248,
+      "501",
+      "Sun Sep 20 22:27:00 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-fLJ8RK --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "80520": [
+      75248,
+      "501",
+      "Sun Sep 20 22:27:07 2026",
+      "dart run bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-Zc5rKU --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "80630": [
+      75248,
+      "501",
+      "Sun Sep 20 22:27:13 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-kqz8Dp --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "80874": [
+      75248,
+      "501",
+      "Sun Sep 20 22:27:21 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-FzcMU5 --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "81042": [
+      73660,
+      "501",
+      "Sun Sep 20 22:27:28 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/playtest_player_state.test.ts"
+    ],
+    "81072": [
+      81042,
+      "501",
+      "Sun Sep 20 22:27:28 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-player-state-l4YsXr/project --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "81311": [
+      73660,
+      "501",
+      "Sun Sep 20 22:27:35 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/playtest_projection.test.ts"
+    ],
+    "81323": [
+      81311,
+      "501",
+      "Sun Sep 20 22:27:35 2026",
+      "dart run bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-playtest-canonical-o4KRZv/projects/source --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "81424": [
+      81311,
+      "501",
+      "Sun Sep 20 22:27:42 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-playtest-canonical-o4KRZv/runtime-host/build/pokemap-eval/input/5e8c9902207afaeb7120430c/project --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "81572": [
+      73660,
+      "501",
+      "Sun Sep 20 22:27:49 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/pokemon_authoring.test.ts"
+    ],
+    "81588": [
+      81572,
+      "501",
+      "Sun Sep 20 22:27:49 2026",
+      "dart run bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-pokemon-chpPTA --artifact-root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-pokemon-chpPTA --timeout-ms 30000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "81730": [
+      73660,
+      "501",
+      "Sun Sep 20 22:27:56 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/protocol_compatibility.test.ts"
+    ],
+    "81733": [
+      81730,
+      "501",
+      "Sun Sep 20 22:27:57 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node dist/src/index.js --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice"
+    ],
+    "81739": [
+      81730,
+      "501",
+      "Sun Sep 20 22:27:57 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node dist/src/index.js --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice"
+    ],
+    "81751": [
+      81739,
+      "501",
+      "Sun Sep 20 22:27:57 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "81947": [
+      81730,
+      "501",
+      "Sun Sep 20 22:28:05 2026",
+      "(node)"
+    ],
+    "81949": [
+      73660,
+      "501",
+      "Sun Sep 20 22:28:05 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/rail_journey_server.test.ts"
+    ],
+    "81962": [
+      81949,
+      "501",
+      "Sun Sep 20 22:28:05 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-rail-journey-tOOPn6 --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "82068": [
+      73660,
+      "501",
+      "Sun Sep 20 22:28:12 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/read_only_server.test.ts"
+    ],
+    "82081": [
+      82068,
+      "501",
+      "Sun Sep 20 22:28:13 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "82267": [
+      82068,
+      "501",
+      "Sun Sep 20 22:28:20 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_personalization_v3 --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "82468": [
+      82068,
+      "501",
+      "Sun Sep 20 22:28:27 2026",
+      "dart run bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "82804": [
+      82068,
+      "501",
+      "Sun Sep 20 22:28:34 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "83009": [
+      82068,
+      "501",
+      "Sun Sep 20 22:28:42 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "83105": [
+      73660,
+      "501",
+      "Sun Sep 20 22:28:49 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/regional_map_server.test.ts"
+    ],
+    "83126": [
+      83105,
+      "501",
+      "Sun Sep 20 22:28:49 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/index.js --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-regional-map-r5FlKz/project"
+    ],
+    "83138": [
+      83126,
+      "501",
+      "Sun Sep 20 22:28:49 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-regional-map-r5FlKz/project --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "83277": [
+      73660,
+      "501",
+      "Sun Sep 20 22:28:56 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/runtime_server.test.ts"
+    ],
+    "83291": [
+      83277,
+      "501",
+      "Sun Sep 20 22:28:56 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "83461": [
+      83277,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --packages=/opt/homebrew/share/flutter/packages/flutter_tools/.dart_tool/package_config.json /opt/homebrew/share/flutter/bin/cache/flutter_tools.snapshot test tool/pokemap_render_worker_test.dart --reporter=compact --dart-define=POKEMAP_RENDER_REQUEST_PATH=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-render-edZG6Z/request.json --dart-define=POKEMAP_RENDER_RESPONSE_PATH=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-render-edZG6Z/response.json"
+    ],
+    "83481": [
+      83461,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "(bash)"
+    ],
+    "83483": [
+      83481,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "(bash)"
+    ],
+    "83493": [
+      83483,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "(mv)"
+    ],
+    "83506": [
+      83461,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/package_config.json /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/objective_c/7ad245dadc/hook.dill --config=/Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/objective_c/7ad245dadc/input.json"
+    ],
+    "83509": [
+      83506,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/include/dart_api_dl.c -fpic -gline-tables-only -I src -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o"
+    ],
+    "83510": [
+      83506,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/objective_c.c -fpic -gline-tables-only -I src -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o"
+    ],
+    "83511": [
+      83506,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/input_stream_adapter.m -fpic -gline-tables-only -I src -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o"
+    ],
+    "83512": [
+      83506,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/objective_c.m -fpic -gline-tables-only -I src -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o"
+    ],
+    "83513": [
+      83506,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/observer.m -fpic -gline-tables-only -I src -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o"
+    ],
+    "83514": [
+      83506,
+      "501",
+      "Sun Sep 20 22:29:03 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/ns_number.m -fpic -gline-tables-only -I src -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o"
+    ],
+    "83516": [
+      83506,
+      "501",
+      "Sun Sep 20 22:29:04 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/protocol.m -fpic -gline-tables-only -I src -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o"
+    ],
+    "83535": [
+      83506,
+      "501",
+      "Sun Sep 20 22:29:04 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/objective_c_bindings_generated.m -fpic -gline-tables-only -I src -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o"
+    ],
+    "83538": [
+      83514,
+      "501",
+      "Sun Sep 20 22:29:04 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -cc1 -triple arm64-apple-macosx13.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name ns_number.m -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=27.0 -fdepfile-entry=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/SDKSettings.json -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=lldb -fdebug-compilation-dir=/Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0 -target-linker-version 1166.2 -fcoverage-compilation-dir=/Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0 -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -I src -internal-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/usr/local/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/usr/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/SubFrameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/Library/Frameworks -Wno-elaborated-enum-base -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fobjc-runtime=macosx-13.0.0 -fobjc-arc -fobjc-exceptions -fexceptions -fmax-type-align=16 -fcommon -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o -x objective-c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/ns_number.m"
+    ],
+    "83540": [
+      83511,
+      "501",
+      "Sun Sep 20 22:29:04 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -cc1 -triple arm64-apple-macosx13.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name input_stream_adapter.m -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=27.0 -fdepfile-entry=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/SDKSettings.json -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=lldb -fdebug-compilation-dir=/Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0 -target-linker-version 1166.2 -fcoverage-compilation-dir=/Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0 -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -I src -internal-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/usr/local/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/usr/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/SubFrameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/Library/Frameworks -Wno-elaborated-enum-base -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fobjc-runtime=macosx-13.0.0 -fobjc-arc -fobjc-exceptions -fexceptions -fmax-type-align=16 -fcommon -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o -x objective-c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/input_stream_adapter.m"
+    ],
+    "83541": [
+      83512,
+      "501",
+      "Sun Sep 20 22:29:04 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -cc1 -triple arm64-apple-macosx13.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name objective_c.m -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=27.0 -fdepfile-entry=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/SDKSettings.json -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=lldb -fdebug-compilation-dir=/Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0 -target-linker-version 1166.2 -fcoverage-compilation-dir=/Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0 -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -I src -internal-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/usr/local/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/usr/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/SubFrameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/Library/Frameworks -Wno-elaborated-enum-base -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fobjc-runtime=macosx-13.0.0 -fobjc-arc -fobjc-exceptions -fexceptions -fmax-type-align=16 -fcommon -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o -x objective-c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/objective_c.m"
+    ],
+    "83543": [
+      83535,
+      "501",
+      "Sun Sep 20 22:29:04 2026",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -cc1 -triple arm64-apple-macosx13.0.0 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name objective_c_bindings_generated.m -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=27.0 -fdepfile-entry=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/SDKSettings.json -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debug-info-kind=line-tables-only -dwarf-version=4 -debugger-tuning=lldb -fdebug-compilation-dir=/Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0 -target-linker-version 1166.2 -fcoverage-compilation-dir=/Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0 -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -I src -internal-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/usr/local/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/usr/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/SubFrameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/Library/Frameworks -Wno-elaborated-enum-base -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fobjc-runtime=macosx-13.0.0 -fobjc-arc -fobjc-exceptions -fexceptions -fmax-type-align=16 -fcommon -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o -x objective-c /Users/karim/.pub-cache/hosted/pub.dev/objective_c-9.6.0/src/objective_c_bindings_generated.m"
+    ],
+    "83564": [
+      83461,
+      "501",
+      "Sun Sep 20 22:29:05 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root /opt/homebrew/share/flutter/bin/cache/artifacts/engine/common/flutter_patched_sdk/ --incremental --no-print-incremental-dependencies --target=flutter --experimental-emit-debug-metadata -DPOKEMAP_RENDER_REQUEST_PATH=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-render-edZG6Z/request.json -DPOKEMAP_RENDER_RESPONSE_PATH=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-render-edZG6Z/response.json -DFLUTTER_BUILD_NAME=0.1.0 -DFLUTTER_VERSION=3.48.0-0.4.pre -DFLUTTER_CHANNEL=beta -DFLUTTER_GIT_URL=https://github.com/flutter/flutter.git -DFLUTTER_FRAMEWORK_REVISION=e3005e3402 -DFLUTTER_ENGINE_REVISION=e2149387c6 -DFLUTTER_DART_VERSION=3.14.0 (build 3.14.0-95.2.beta) --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.4Yw0BU/flutter_test_compiler.lZGJTz/output.dill --packages /Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/package_config.json -Ddart.vm.profile=false -Ddart.vm.product=false --enable-asserts --track-creation-locations --initialize-from-dill /Users/karim/Project/pokemonProject/packages/map_runtime/build/test_cache/build/7c3dc697031931b25a6783a9c8cda6c0.cache.dill.track.dill --verbosity=error --enable-experiment=alternative-invalidation-strategy"
+    ],
+    "83698": [
+      83461,
+      "501",
+      "Sun Sep 20 22:29:13 2026",
+      "/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/packages/map_runtime/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/packages/map_runtime/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.4Yw0BU/flutter_test_listener.7NP1QZ/listener.dart.dill"
+    ],
+    "83716": [
+      83277,
+      "501",
+      "Sun Sep 20 22:29:14 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "83864": [
+      83277,
+      "501",
+      "Sun Sep 20 22:29:21 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "84016": [
+      83277,
+      "501",
+      "Sun Sep 20 22:29:27 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "84190": [
+      83277,
+      "501",
+      "Sun Sep 20 22:29:33 2026",
+      "dart run bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "84299": [
+      83277,
+      "501",
+      "Sun Sep 20 22:29:40 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_fangame_slice --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "84393": [
+      73660,
+      "501",
+      "Sun Sep 20 22:29:46 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/studio_narrative_publication.test.ts"
+    ],
+    "84414": [
+      84393,
+      "501",
+      "Sun Sep 20 22:29:47 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/index.js --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-narrative-mcp-XmyGdd/project"
+    ],
+    "84426": [
+      84414,
+      "501",
+      "Sun Sep 20 22:29:47 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-narrative-mcp-XmyGdd/project --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "84779": [
+      84393,
+      "501",
+      "Sun Sep 20 22:29:55 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/index.js --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-story-mcp-GemBEz/project"
+    ],
+    "84793": [
+      84779,
+      "501",
+      "Sun Sep 20 22:29:55 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-story-mcp-GemBEz/project --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ],
+    "84987": [
+      73660,
+      "501",
+      "Sun Sep 20 22:30:03 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=1 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/studio_resource_import.test.ts"
+    ],
+    "84993": [
+      84987,
+      "501",
+      "Sun Sep 20 22:30:03 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/index.js --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-resource-mcp-yZIveQ/project"
+    ],
+    "85006": [
+      84993,
+      "501",
+      "Sun Sep 20 22:30:03 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-resource-mcp-yZIveQ/project --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

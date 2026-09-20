@@ -21,6 +21,7 @@ class NarrativeStoryPane extends StatefulWidget {
     required this.onCreateInteraction,
     this.onScenes,
     this.onDialogues,
+    this.onCinematics,
     this.onEvents,
     this.onProgression,
     this.onOpenScene,
@@ -29,7 +30,11 @@ class NarrativeStoryPane extends StatefulWidget {
   final NarrativeOverviewViewState viewState;
   final Future<String?> Function(String) onOpen, onLocate;
   final VoidCallback onCreateInteraction;
-  final VoidCallback? onScenes, onProgression, onEvents, onDialogues;
+  final VoidCallback? onScenes,
+      onProgression,
+      onEvents,
+      onDialogues,
+      onCinematics;
   final Future<String?> Function(String)? onOpenScene;
 
   @override
@@ -106,6 +111,7 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
                 onCreated: refresh,
                 onScenes: widget.onScenes,
                 onDialogues: widget.onDialogues,
+                onCinematics: widget.onCinematics,
                 onEvents: widget.onEvents,
                 onProgression: widget.onProgression,
               ),

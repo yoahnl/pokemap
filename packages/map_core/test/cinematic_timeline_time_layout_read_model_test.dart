@@ -2,21 +2,86 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('actor facing changes consume no cinematic playback time', () {
+    final asset = CinematicAsset(
+      id: 'instant',
+      title: 'Instant',
+      timeline: CinematicTimeline(
+        steps: [
+          CinematicTimelineStep(
+            id: 'wait',
+            kind: CinematicTimelineStepKind.wait,
+            durationMs: 400,
+          ),
+          CinematicTimelineStep(
+            id: 'face',
+            kind: CinematicTimelineStepKind.actorFace,
+            actorId: 'hero',
+          ),
+          CinematicTimelineStep(
+            id: 'end',
+            kind: CinematicTimelineStepKind.wait,
+            durationMs: 250,
+          ),
+        ],
+      ),
+    );
+    final plan = buildCinematicPreviewPlaybackPlan(cinematic: asset);
+    expect(plan.totalDurationMs, 650);
+    expect(plan.timelineItems[1].startMs, 400);
+    expect(plan.timelineItems[1].endMs, 400);
+    expect(plan.timelineItems[2].startMs, 400);
+  });
+
+  test(
+    'instant cameras and editorial markers do not delay the next action',
+    () {
+      final asset = CinematicAsset(
+        id: 'camera',
+        title: 'Camera',
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'reset',
+              kind: CinematicTimelineStepKind.camera,
+              metadata: {'camera.mode': 'reset'},
+            ),
+            CinematicTimelineStep(
+              id: 'mark',
+              kind: CinematicTimelineStepKind.marker,
+            ),
+            CinematicTimelineStep(
+              id: 'hold',
+              kind: CinematicTimelineStepKind.wait,
+              durationMs: 100,
+            ),
+          ],
+        ),
+      );
+      final timing = buildCinematicTimelineTimeLayoutReadModel(asset);
+      expect(timing.totalDurationMs, 100);
+      expect(timing.blocks.map((b) => b.startMs), [0, 0, 0]);
+      expect(timing.blocks.map((b) => b.endMs), [0, 0, 100]);
+      expect(timing.blocks.map((b) => b.stepId), ['reset', 'mark', 'hold']);
+    },
+  );
   test('keeps an explicit stable order for every visual block', () {
     final model = buildCinematicTimelineTimeLayoutReadModel(
       CinematicAsset(
         id: 'stable',
         title: 'Stable',
-        timeline: CinematicTimeline(steps: [
-          CinematicTimelineStep(
-            id: 'marker_a',
-            kind: CinematicTimelineStepKind.marker,
-          ),
-          CinematicTimelineStep(
-            id: 'marker_b',
-            kind: CinematicTimelineStepKind.marker,
-          ),
-        ]),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'marker_a',
+              kind: CinematicTimelineStepKind.marker,
+            ),
+            CinematicTimelineStep(
+              id: 'marker_b',
+              kind: CinematicTimelineStepKind.marker,
+            ),
+          ],
+        ),
       ),
     );
 
@@ -30,32 +95,39 @@ void main() {
       final before = cinematic.toJson();
 
       final readModel = buildCinematicTimelineTimeLayoutReadModel(cinematic);
-      final secondReadModel =
-          buildCinematicTimelineTimeLayoutReadModel(cinematic);
+      final secondReadModel = buildCinematicTimelineTimeLayoutReadModel(
+        cinematic,
+      );
 
       expect(cinematic.toJson(), before);
       expect(readModel.stepCount, 5);
       expect(readModel.laneCount, 8);
-      expect(readModel.totalDurationMs, 2900);
-      expect(
-        readModel.ticks.map((tick) => tick.label),
-        ['0 ms', '500 ms', '1 s', '1.5 s', '2 s', '2.5 s', '2.9 s'],
-      );
+      expect(readModel.totalDurationMs, 2300);
+      expect(readModel.ticks.map((tick) => tick.label), [
+        '0 ms',
+        '500 ms',
+        '1 s',
+        '1.5 s',
+        '2 s',
+        '2.3 s',
+      ]);
       expect(
         secondReadModel.blocks.map((block) => block.stepId),
         readModel.blocks.map((block) => block.stepId),
       );
 
       expect(
-        readModel.blocks.map((block) => (
-              block.stepId,
-              block.stepIndex,
-              block.startMs,
-              block.endMs,
-              block.visualDurationMs,
-              block.durationSource,
-              block.laneId,
-            )),
+        readModel.blocks.map(
+          (block) => (
+            block.stepId,
+            block.stepIndex,
+            block.startMs,
+            block.endMs,
+            block.visualDurationMs,
+            block.durationSource,
+            block.laneId,
+          ),
+        ),
         [
           (
             'step_camera',
@@ -70,16 +142,16 @@ void main() {
             'step_face',
             1,
             500,
-            800,
-            cinematicTimelineFallbackVisualDurationMs,
-            CinematicTimelineVisualDurationSource.fallback,
+            500,
+            0,
+            CinematicTimelineVisualDurationSource.instantaneous,
             'actor:actor_professor',
           ),
           (
             'step_wait',
             2,
+            500,
             800,
-            1100,
             cinematicTimelineFallbackVisualDurationMs,
             CinematicTimelineVisualDurationSource.fallback,
             'time-global',
@@ -87,8 +159,8 @@ void main() {
           (
             'step_move',
             3,
-            1100,
-            2600,
+            800,
+            2300,
             1500,
             CinematicTimelineVisualDurationSource.explicit,
             'actor:actor_professor',
@@ -96,10 +168,10 @@ void main() {
           (
             'step_marker',
             4,
-            2600,
-            2900,
-            cinematicTimelineFallbackVisualDurationMs,
-            CinematicTimelineVisualDurationSource.fallback,
+            2300,
+            2300,
+            0,
+            CinematicTimelineVisualDurationSource.instantaneous,
             'time-global',
           ),
         ],
@@ -126,8 +198,9 @@ void main() {
       );
 
       final readModel = buildCinematicTimelineTimeLayoutReadModel(cinematic);
-      final secondReadModel =
-          buildCinematicTimelineTimeLayoutReadModel(cinematic);
+      final secondReadModel = buildCinematicTimelineTimeLayoutReadModel(
+        cinematic,
+      );
 
       expect(readModel.stepCount, 0);
       expect(readModel.totalDurationMs, 0);
@@ -156,10 +229,13 @@ void main() {
       );
 
       expect(readModel.totalDurationMs, 32000);
-      expect(
-        readModel.ticks.map((tick) => tick.label),
-        ['0 ms', '10 s', '20 s', '30 s', '32 s'],
-      );
+      expect(readModel.ticks.map((tick) => tick.label), [
+        '0 ms',
+        '10 s',
+        '20 s',
+        '30 s',
+        '32 s',
+      ]);
       expect(readModel.ticks.where((tick) => tick.isMajor), hasLength(5));
     });
 

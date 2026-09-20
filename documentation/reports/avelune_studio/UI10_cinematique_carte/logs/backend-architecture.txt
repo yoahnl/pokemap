@@ -1,0 +1,26 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_media_preview_ui10_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_media_preview_ui10_test.dart": Does not exist.
+00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +0 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif [E]
+  Expected: empty
+    Actual: MappedIterable<DartDependency, String>:[
+              'file:///Users/karim/Project/pokemonProject/apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart -> package:flutter/foundation.dart',
+              'file:///Users/karim/Project/pokemonProject/apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart -> file:///Users/karim/Project/pokemonProject/apps/avelune_studio/lib/features/cinematics/application/cinematic_preview_transport.dart -> package:flutter/foundation.dart'
+            ]
+  
+  package:matcher                                           expect
+  package:flutter_test/src/widget_tester.dart 473:18        expect
+  test/architecture/architecture_boundaries_test.dart 62:5  main.<fn>
+  
+00:00 +0 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +1 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: theme et widgets partages independants des features et de la DI
+00:00 +2 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation centralisee et barrel DI limite aux exports
+00:00 +3 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:00 +4 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +5 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+00:01 +6 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_media_preview_ui10_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_media_preview_ui10_test.dart

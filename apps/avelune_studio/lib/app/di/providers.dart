@@ -6,3 +6,4 @@ export 'scene_providers.dart';
 export 'story_providers.dart';
 export 'event_providers.dart';
 export 'dialogue_providers.dart';
+export 'cinematic_providers.dart';

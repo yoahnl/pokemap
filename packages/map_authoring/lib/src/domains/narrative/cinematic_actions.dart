@@ -5,6 +5,7 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
+import 'cinematic_library_placement.dart';
 
 final class CinematicAuthoringInspection {
   CinematicAuthoringInspection({
@@ -96,7 +97,7 @@ final class CinematicActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'cinematic.upsert',
-      'Create or update a cinematic and its stage timeline',
+      'Create or update a cinematic; optional libraryPlacement {folderId, index} atomically places its world entry (project v7)',
       resourceKinds: const ['project', 'cinematic'],
     ),
     narrativeActionDescriptor(
@@ -135,12 +136,22 @@ final class CinematicActions {
     late final String cinematicId;
     switch (context.request.actionId) {
       case 'cinematic.upsert':
-        rejectUnknownNarrativeParameters(parameters, const {'cinematic'});
+        rejectUnknownNarrativeParameters(parameters, const {
+          'cinematic',
+          'libraryPlacement',
+        });
         final cinematic = _decodeCinematic(
           narrativeObjectParameter(parameters, 'cinematic'),
         );
         cinematicId = cinematic.id;
-        projected = upsert(context.snapshot.manifest, cinematic: cinematic);
+        final updated = upsert(context.snapshot.manifest, cinematic: cinematic);
+        projected = parameters.containsKey('libraryPlacement')
+            ? placePublishedCinematic(
+                updated,
+                cinematicId,
+                narrativeObjectParameter(parameters, 'libraryPlacement'),
+              )
+            : updated;
       case 'cinematic.delete':
         rejectUnknownNarrativeParameters(parameters, const {'cinematicId'});
         cinematicId = narrativeStringParameter(parameters, 'cinematicId');

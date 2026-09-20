@@ -1,0 +1,40 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart
+test/cinematics/cinematic_actor_animation_ui10_test.dart:18:24: Error: The method 'copyWith' isn't defined for the type 'CinematicTimelineStep'.
+ - 'CinematicTimelineStep' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'copyWith'.
+                  step.copyWith(
+                       ^^^^^^^^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_actor_animation_ui10_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_actor_animation_ui10_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_actor_animation_ui10_test.dart: test/cinematics/cinematic_actor_animation_ui10_test.dart:18:24: Error: The method 'copyWith' isn't defined for the type 'CinematicTimelineStep'.
+   - 'CinematicTimelineStep' is from 'package:map_core/src/models/cinematic_asset.dart' ('../../packages/map_core/lib/src/models/cinematic_asset.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'copyWith'.
+                    step.copyWith(
+                         ^^^^^^^^
+  .
+00:00 +0 -2: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1021:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/future_impl.dart 961:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 990:13               Future._propagateToListeners
+  dart:async/future_impl.dart 874:9                Future._propagateToListeners
+  dart:async/future_impl.dart 732:5                Future._completeWithValue
+  dart:async/future_impl.dart 816:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone.dart 474:14                      Zone.runGuarded
+  dart:async/zone.dart 604:18                      Zone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+00:00 +0 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart: canonical intermediate movement, backwards scrub and stop never modify author asset
+00:00 +1 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view
+00:00 +2 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: scrub applies camera and fade while stop restores the work view
+00:02 +3 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 16 px
+00:04 +4 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart: map clicks and point drag respect pan zoom resize at 32 px
+00:07 +5 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_actor_animation_ui10_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_actor_animation_ui10_test.dart
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart

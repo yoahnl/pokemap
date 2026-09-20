@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "worker.exited: The canonical Authoring worker exited unexpectedly (code 78)."
+    }
+  ],
+  "structuredContent": {
+    "ok": false,
+    "data": {},
+    "artifacts": [],
+    "error": {
+      "code": "worker.exited",
+      "message": "The canonical Authoring worker exited unexpectedly (code 78).",
+      "retryable": false,
+      "remediation": [],
+      "details": {
+        "exitCode": 78
+      }
+    }
+  },
+  "isError": true
+}

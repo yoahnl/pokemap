@@ -1,0 +1,131 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart
+00:00 +0: UI10 full Studio frame early composition with isolated real project
+══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following StateError was thrown building LayoutBuilder:
+Bad state: No element
+
+The relevant error-causing widget was:
+  LayoutBuilder
+  LayoutBuilder:file:///Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_editor.dart:118:16
+
+When the exception was thrown, this was the stack:
+#0      _Array.first (dart:core-patch/array.dart:52:5)
+#1      _CinematicTimelineEditorState.build.<anonymous closure> (package:avelune_studio/presentation/features/cinematics/cinematic_timeline_editor.dart:178:57)
+#2      _LayoutBuilderElement._rebuildWithConstraints.updateChildCallback (package:flutter/src/widgets/layout_builder.dart:232:74)
+#3      BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3118:19)
+#4      _LayoutBuilderElement._rebuildWithConstraints (package:flutter/src/widgets/layout_builder.dart:270:12)
+#5      RenderAbstractLayoutBuilderMixin.layoutCallback (package:flutter/src/widgets/layout_builder.dart:333:38)
+#6      RenderObjectWithLayoutCallbackMixin.runLayoutCallback.<anonymous closure> (package:flutter/src/rendering/object.dart:4312:33)
+#7      RenderObject.invokeLayoutCallback.<anonymous closure> (package:flutter/src/rendering/object.dart:3041:17)
+#8      PipelineOwner._enableMutationsToDirtySubtrees (package:flutter/src/rendering/object.dart:1223:15)
+#9      RenderObject.invokeLayoutCallback (package:flutter/src/rendering/object.dart:3040:14)
+#10     RenderObjectWithLayoutCallbackMixin.runLayoutCallback (package:flutter/src/rendering/object.dart:4312:5)
+#11     _RenderLayoutBuilder.performLayout (package:flutter/src/widgets/layout_builder.dart:447:5)
+#12     RenderObject.layout (package:flutter/src/rendering/object.dart:2922:7)
+#13     RenderProxyBoxMixin.performLayout (package:flutter/src/rendering/proxy_box.dart:116:18)
+#14     RenderObject.layout (package:flutter/src/rendering/object.dart:2922:7)
+#15     RenderProxyBoxMixin.performLayout (package:flutter/src/rendering/proxy_box.dart:116:18)
+#16     RenderCustomPaint.performLayout (package:flutter/src/rendering/custom_paint.dart:574:11)
+#17     RenderObject.layout (package:flutter/src/rendering/object.dart:2922:7)
+#18     RenderProxyBoxMixin.performLayout (package:flutter/src/rendering/proxy_box.dart:116:18)
+#19     _RenderCustomClip.performLayout (package:flutter/src/rendering/proxy_box.dart:1547:11)
+#20     RenderObject.layout (package:flutter/src/rendering/object.dart:2922:7)
+#21     RenderProxyBoxMixin.performLayout (package:flutter/src/rendering/proxy_box.dart:116:18)
+#22     RenderObject.layout (package:flutter/src/rendering/object.dart:2922:7)
+#23     RenderProxyBoxMixin.performLayout (package:flutter/src/rendering/proxy_box.dart:116:18)
+#24     RenderObject.layout (package:flutter/src/rendering/object.dart:2922:7)
+#25     ChildLayoutHelper.layoutChild (package:flutter/src/rendering/layout_helper.dart:62:11)
+#26     RenderFlex._computeSizes (package:flutter/src/rendering/flex.dart:1275:26)
+#27     RenderFlex.performLayout (package:flutter/src/rendering/flex.dart:1329:32)
+#28     RenderObject.layout (package:flutter/src/rendering/object.dart:2922:7)
+#29     ChildLayoutHelper.layoutChild (package:flutter/src/rendering/layout_helper.dart:62:11)
+#30     RenderFlex._computeSizes (package:flutter/src/rendering/flex.dart:1275:26)
+#31     RenderFlex.performLayout (package:flutter/src/rendering/flex.dart:1329:32)
+#32     RenderObject._layoutWithoutResize (package:flutter/src/rendering/object.dart:2770:7)
+#33     PipelineOwner.flushLayout (package:flutter/src/rendering/object.dart:1174:18)
+#34     PipelineOwner.flushLayout (package:flutter/src/rendering/object.dart:1187:15)
+#35     AutomatedTestWidgetsFlutterBinding.drawFrame (package:flutter_test/src/binding.dart:2459:27)
+#36     RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:558:5)
+#37     SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
+#38     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
+#39     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:2286:9)
+#41     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#42     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:2275:27)
+#43     WidgetTester.pump.<anonymous closure> (package:flutter_test/src/widget_tester.dart:652:53)
+#45     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#46     WidgetTester.pump (package:flutter_test/src/widget_tester.dart:652:27)
+#47     pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart:187:18)
+<asynchronous suspension>
+#48     Ui10WorkspaceHarness.open (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/ui10_workspace_harness.dart:54:5)
+<asynchronous suspension>
+#49     main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart:19:7)
+<asynchronous suspension>
+#50     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#51     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 3 frames from dart:async and package:stack_trace)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following StateError was thrown building LayoutBuilder:
+Bad state: No element
+
+The relevant error-causing widget was:
+  LayoutBuilder
+  LayoutBuilder:file:///Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_editor.dart:118:16
+
+When the exception was thrown, this was the stack:
+#0      _Array.first (dart:core-patch/array.dart:52:5)
+#1      _CinematicTimelineEditorState.build.<anonymous closure> (package:avelune_studio/presentation/features/cinematics/cinematic_timeline_editor.dart:178:57)
+#2      _LayoutBuilderElement._rebuildWithConstraints.updateChildCallback (package:flutter/src/widgets/layout_builder.dart:232:74)
+#3      BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3118:19)
+#4      _LayoutBuilderElement._rebuildWithConstraints (package:flutter/src/widgets/layout_builder.dart:270:12)
+#5      RenderAbstractLayoutBuilderMixin.layoutCallback (package:flutter/src/widgets/layout_builder.dart:333:38)
+#6      RenderObjectWithLayoutCallbackMixin.runLayoutCallback.<anonymous closure> (package:flutter/src/rendering/object.dart:4312:33)
+#7      RenderObject.invokeLayoutCallback.<anonymous closure> (package:flutter/src/rendering/object.dart:3041:17)
+#8      PipelineOwner._enableMutationsToDirtySubtrees (package:flutter/src/rendering/object.dart:1223:15)
+#9      RenderObject.invokeLayoutCallback (package:flutter/src/rendering/object.dart:3040:14)
+#10     RenderObjectWithLayoutCallbackMixin.runLayoutCallback (package:flutter/src/rendering/object.dart:4312:5)
+#11     _RenderLayoutBuilder.performLayout (package:flutter/src/widgets/layout_builder.dart:447:5)
+#12     RenderObject._layoutWithoutResize (package:flutter/src/rendering/object.dart:2770:7)
+#13     PipelineOwner.flushLayout (package:flutter/src/rendering/object.dart:1174:18)
+#14     PipelineOwner.flushLayout (package:flutter/src/rendering/object.dart:1187:15)
+#15     AutomatedTestWidgetsFlutterBinding.drawFrame (package:flutter_test/src/binding.dart:2459:27)
+#16     RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:558:5)
+#17     SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
+#18     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
+#19     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:2286:9)
+#21     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#22     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:2275:27)
+#23     WidgetTester.pump.<anonymous closure> (package:flutter_test/src/widget_tester.dart:652:53)
+#25     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#26     WidgetTester.pump (package:flutter_test/src/widget_tester.dart:652:27)
+#27     pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m2_ui_fixture.dart:187:18)
+<asynchronous suspension>
+#28     Ui10WorkspaceHarness.open (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/ui10_workspace_harness.dart:54:5)
+<asynchronous suspension>
+#29     main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart:19:7)
+<asynchronous suspension>
+#30     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#31     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 3 frames from dart:async and package:stack_trace)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:13 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart [E]
+  Bad state: Cannot close sink while adding stream.
+  package:stream_channel/src/guarantee_channel.dart 180:7      _GuaranteeSink.close
+  package:flutter_tools/src/test/flutter_platform.dart 765:43  FlutterPlatform._startTest
+  
+One or more uncaught errors occurred shutting down:
+  Bad state: Cannot add event while adding stream.
+01:13 +0 -1: UI10 full Studio frame early composition with isolated real project - did not complete [E]
+01:13 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: UI10 full Studio frame early composition with isolated real project (did not complete)
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart

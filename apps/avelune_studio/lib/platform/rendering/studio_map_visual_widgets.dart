@@ -162,8 +162,10 @@ class _MapPainter extends CustomPainter {
   final RuntimeAuthoringMapRenderer renderer;
 
   @override
-  void paint(Canvas canvas, Size size) =>
-      renderer.paint(canvas, viewport: canvas.getLocalClipBounds());
+  void paint(Canvas canvas, Size size) => renderer.paint(
+    canvas,
+    viewport: (Offset.zero & size).intersect(canvas.getLocalClipBounds()),
+  );
 
   @override
   bool shouldRepaint(_MapPainter oldDelegate) =>

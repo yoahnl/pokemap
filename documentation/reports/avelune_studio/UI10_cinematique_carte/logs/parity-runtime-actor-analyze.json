@@ -1,0 +1,21 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/src/presentation/flame/flame_cinematic_runtime_playback_sink.dart",
+    "lib/src/presentation/flame/player_component.dart",
+    "lib/src/presentation/flame/playable_map_game_support.dart",
+    "test/flame_cinematic_runtime_playback_sink_test.dart"
+  ],
+  "runnerPid": 4581,
+  "owned": {
+    "4601": [
+      4581,
+      "501",
+      "Mon Sep 21 00:10:56 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

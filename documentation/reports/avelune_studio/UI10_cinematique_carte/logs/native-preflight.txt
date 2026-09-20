@@ -1,0 +1,5 @@
+Fresh UI10 preflight: flutter devices --machine exit 0, macOS darwin-arm64 device available.
+Marionette connector tools available.
+rg marionette|integration_test|flutter_driver apps/avelune_studio/pubspec.yaml apps/avelune_studio/lib returned no matches.
+Blocked: Studio does not have Marionette Flutter dependency or instrumented entrypoint.
+No native stack installed, no dependency change, no native app launched. Widget screenshots and Flame GameWidget tests are offscreen proof only.

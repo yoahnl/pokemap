@@ -1,0 +1,5 @@
+Analyzing cinematics, studio_cinematic_media.dart, studio_map_resources.dart, cinematic_inspector.dart...
+
+   info - lib/features/cinematics/application/cinematic_workspace_spatial.dart:244:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+1 issue found.

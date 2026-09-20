@@ -338,7 +338,7 @@ final class _PlayableMapCinematicRuntimeHost
 }
 
 final class _PlayableMapPlayerCinematicActorHandle
-    implements FlameCinematicCharacterAnimationActorHandle {
+    implements FlameCinematicCharacterAnimationActorHandle, FlameCinematicMotionActorHandle {
   const _PlayableMapPlayerCinematicActorHandle(this._player);
 
   final PlayerComponent _player;
@@ -365,17 +365,17 @@ final class _PlayableMapPlayerCinematicActorHandle
   void restoreBase(EntityFacing facing) => _player.restoreBaseAnimation(facing);
 
   @override
-  Vector2 get focusPoint => _player.focusPoint;
+  Vector2 get focusPoint => _player.cinematicVisualFocusPoint;
 
   @override
-  Vector2 get visualSize => _player.size.clone();
+  Vector2 get visualSize => _player.cinematicVisualSize;
 
   @override
   EntityFacing get facing => _player.cinematicFacing;
 
   @override
   void setFocusPoint(Vector2 focusPoint) {
-    final delta = focusPoint - _player.focusPoint;
+    final delta = focusPoint - _player.cinematicVisualFocusPoint;
     _player.position += delta;
   }
 
@@ -383,10 +383,15 @@ final class _PlayableMapPlayerCinematicActorHandle
   void setFacing(EntityFacing facing) {
     _player.setCinematicFacing(facing);
   }
+
+  @override
+  void setMotion(EntityFacing facing, CharacterAnimationState state) {
+    _player.setCinematicMotion(facing, state);
+  }
 }
 
 final class _PlayableMapNpcCinematicActorHandle
-    implements FlameCinematicCharacterAnimationActorHandle {
+    implements FlameCinematicCharacterAnimationActorHandle, FlameCinematicMotionActorHandle {
   const _PlayableMapNpcCinematicActorHandle(this.actorId, this._actor);
 
   @override
@@ -425,6 +430,11 @@ final class _PlayableMapNpcCinematicActorHandle
   @override
   void setFacing(EntityFacing facing) {
     _actor.setMotion(facing, CharacterAnimationState.idle);
+  }
+
+  @override
+  void setMotion(EntityFacing facing, CharacterAnimationState state) {
+    _actor.setMotion(facing, state);
   }
 }
 

@@ -31,6 +31,19 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
             child: SafeArea(
               child: Column(
                 children: [
+                  if (_cinematicMapReturn && _space == WorkspaceSpace.map)
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: StudioButton(
+                        label: 'Retour à la cinématique',
+                        secondary: true,
+                        icon: Icons.arrow_back,
+                        onPressed: () {
+                          _cinematicMapReturn = false;
+                          _show(WorkspaceSpace.cinematic);
+                        },
+                      ),
+                    ),
                   if (_eventMapReturn && _space == WorkspaceSpace.map)
                     Padding(
                       padding: const EdgeInsets.all(8),
@@ -98,6 +111,14 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                       onEditElement: (element) => _openResources(element, true),
                       resourceContent: workspaceSecondaryContent(
                         space: _space,
+                        cinematics: _cinematics,
+                        cinematicViews: _cinematicViews,
+                        cinematicOrigin: _cinematicOrigin,
+                        onCinematics: _openCinematics,
+                        onCinematicBack: () => _show(_cinematicOrigin),
+                        onSceneCinematic: _openSceneCinematic,
+                        onCinematicDialogue: _openCinematicDialogue,
+                        onCinematicLocate: _locateCinematic,
                         dialogues: _dialogues,
                         dialogueViews: _dialogueViews,
                         dialogueOrigin: _dialogueOrigin,

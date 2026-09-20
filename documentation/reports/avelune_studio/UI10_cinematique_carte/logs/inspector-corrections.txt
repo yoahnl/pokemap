@@ -1,0 +1,7 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart
+00:00 +0: focused duration commits canonical value and invalid duration is rejected
+00:01 +1: invalid command number and title remain blocked until corrected
+00:01 +2: tab transition retains focused title then shows preview diagnostics
+00:01 +3: camera target and zoom update canonical focus while actor choices preserve identity
+00:01 +4: guided initial placement is nonblocking and map entity role remains explicitly unbound
+00:02 +5: All tests passed!

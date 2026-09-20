@@ -2289,6 +2289,33 @@ test("MCP executes and rereads every cinematic library catalog action", async ()
       (entries.items as JsonRecord[]).map((entry) => entry.cinematicId),
       ["world-b"],
     );
+    const draft = {
+      id: "ui10-draft",
+      title: "UI10 atomic draft",
+      timeline: {
+        steps: [{ id: "ui10-wait", kind: "wait", durationMs: 1700 }],
+      },
+    };
+    await apply("cinematic.upsert", {
+      cinematic: draft,
+      libraryPlacement: { folderId: "chapter", index: 1 },
+    });
+    const published = JSON.parse(
+      await readFile(join(fixture.root, "project.json"), "utf8"),
+    ) as JsonRecord;
+    const asset = (published.cinematics as JsonRecord[]).find(
+      (value) => value.id === draft.id,
+    );
+    assert.equal(record(asset).title, draft.title);
+    assert.equal(
+      record((record(record(asset).timeline).steps as JsonRecord[])[0]).durationMs,
+      1700,
+    );
+    const placement = (
+      record(published.cinematicLibraryCatalog).entries as JsonRecord[]
+    ).find((value) => value.cinematicId === draft.id);
+    assert.equal(record(placement).family, "world");
+    assert.equal(record(placement).folderId, "chapter");
   } finally {
     await fixture.client.close();
     await fixture.server.close();

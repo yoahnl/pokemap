@@ -25,7 +25,8 @@ class StudioPrimaryNavigation extends StatelessWidget {
         active == 'scene' ||
             active == 'progression' ||
             active == 'events' ||
-            active == 'dialogue'
+            active == 'dialogue' ||
+            active == 'cinematic'
         ? 'story'
         : active;
     final items = [

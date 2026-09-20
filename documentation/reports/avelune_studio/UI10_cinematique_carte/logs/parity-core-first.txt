@@ -1,0 +1,60 @@
+00:00 +0: loading test/cinematic_viewport_state_parity_test.dart
+00:00 +0 -1: loading test/cinematic_viewport_state_parity_test.dart [E]
+  Failed to load "test/cinematic_viewport_state_parity_test.dart":
+  lib/src/read_models/cinematic_viewport_projection.dart:51:24: Error: The getter 'CinematicTimelineCameraMode' isn't defined for the type 'CinematicViewportProjection'.
+   - 'CinematicViewportProjection' is from 'package:map_core/src/read_models/cinematic_viewport_projection.dart' ('lib/src/read_models/cinematic_viewport_projection.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'CinematicTimelineCameraMode'.
+        if (pose.mode == CinematicTimelineCameraMode.reset) {
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/read_models/cinematic_viewport_projection.dart:53:31: Error: The getter 'CinematicTimelineCameraMode' isn't defined for the type 'CinematicViewportProjection'.
+   - 'CinematicViewportProjection' is from 'package:map_core/src/read_models/cinematic_viewport_projection.dart' ('lib/src/read_models/cinematic_viewport_projection.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'CinematicTimelineCameraMode'.
+        } else if (pose.mode == CinematicTimelineCameraMode.focus) {
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/runtime/cinematic_visual_math.dart:5:34: Error: Type 'CinematicCameraZoomPreset' not found.
+  double cinematicCameraZoomFactor(CinematicCameraZoomPreset preset) =>
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/runtime/cinematic_visual_math.dart:5:34: Error: 'CinematicCameraZoomPreset' isn't a type.
+  double cinematicCameraZoomFactor(CinematicCameraZoomPreset preset) =>
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/runtime/cinematic_visual_math.dart:7:7: Error: Undefined name 'CinematicCameraZoomPreset'.
+        CinematicCameraZoomPreset.wide => 1,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/runtime/cinematic_visual_math.dart:8:7: Error: Undefined name 'CinematicCameraZoomPreset'.
+        CinematicCameraZoomPreset.medium => .8,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/runtime/cinematic_visual_math.dart:9:7: Error: Undefined name 'CinematicCameraZoomPreset'.
+        CinematicCameraZoomPreset.close => .6,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+00:00 +0 -2: loading test/cinematic_preview_playback_plan_test.dart [E]
+  Failed to load "test/cinematic_preview_playback_plan_test.dart":
+  lib/src/runtime/cinematic_visual_math.dart:5:34: Error: Type 'CinematicCameraZoomPreset' not found.
+  double cinematicCameraZoomFactor(CinematicCameraZoomPreset preset) =>
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/runtime/cinematic_visual_math.dart:5:34: Error: 'CinematicCameraZoomPreset' isn't a type.
+  double cinematicCameraZoomFactor(CinematicCameraZoomPreset preset) =>
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/runtime/cinematic_visual_math.dart:7:7: Error: Undefined name 'CinematicCameraZoomPreset'.
+        CinematicCameraZoomPreset.wide => 1,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/runtime/cinematic_visual_math.dart:8:7: Error: Undefined name 'CinematicCameraZoomPreset'.
+        CinematicCameraZoomPreset.medium => .8,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/runtime/cinematic_visual_math.dart:9:7: Error: Undefined name 'CinematicCameraZoomPreset'.
+        CinematicCameraZoomPreset.close => .6,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/read_models/cinematic_viewport_projection.dart:51:24: Error: The getter 'CinematicTimelineCameraMode' isn't defined for the type 'CinematicViewportProjection'.
+   - 'CinematicViewportProjection' is from 'package:map_core/src/read_models/cinematic_viewport_projection.dart' ('lib/src/read_models/cinematic_viewport_projection.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'CinematicTimelineCameraMode'.
+        if (pose.mode == CinematicTimelineCameraMode.reset) {
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  lib/src/read_models/cinematic_viewport_projection.dart:53:31: Error: The getter 'CinematicTimelineCameraMode' isn't defined for the type 'CinematicViewportProjection'.
+   - 'CinematicViewportProjection' is from 'package:map_core/src/read_models/cinematic_viewport_projection.dart' ('lib/src/read_models/cinematic_viewport_projection.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'CinematicTimelineCameraMode'.
+        } else if (pose.mode == CinematicTimelineCameraMode.focus) {
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+00:00 +0 -2: Some tests failed.
+
+Failing tests:
+  test/cinematic_preview_playback_plan_test.dart: loading test/cinematic_preview_playback_plan_test.dart
+  test/cinematic_viewport_state_parity_test.dart: loading test/cinematic_viewport_state_parity_test.dart

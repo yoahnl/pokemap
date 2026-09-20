@@ -1,0 +1,10 @@
+Analyzing avelune_studio...                                     
+
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/presentation/features/cinematics/cinematic_timeline_gestures.dart:24:9 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/presentation/features/cinematics/cinematic_timeline_gestures.dart:31:9 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/presentation/features/cinematics/cinematic_timeline_gestures.dart:49:15 • invalid_use_of_protected_member
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/presentation/features/cinematics/cinematic_timeline_gestures.dart:57:9 • invalid_use_of_protected_member
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • test/cinematics/cinematic_preview_transport_ui10_test.dart:95:36 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • test/cinematics/cinematic_preview_transport_ui10_test.dart:96:35 • curly_braces_in_flow_control_structures
+
+6 issues found. (ran in 6.3s)

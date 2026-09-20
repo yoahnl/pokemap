@@ -5,10 +5,7 @@ import 'cinematic_timeline_lane_read_model.dart';
 
 const cinematicTimelineFallbackVisualDurationMs = 300;
 
-enum CinematicTimelineVisualDurationSource {
-  explicit,
-  fallback,
-}
+enum CinematicTimelineVisualDurationSource { explicit, fallback, instantaneous }
 
 @immutable
 final class CinematicTimelineTimeLayoutReadModel {
@@ -18,9 +15,9 @@ final class CinematicTimelineTimeLayoutReadModel {
     required List<CinematicTimelineTimeTick> ticks,
     required this.totalDurationMs,
     required this.stepCount,
-  })  : lanes = List<CinematicTimelineTimeLane>.unmodifiable(lanes),
-        blocks = List<CinematicTimelineTimeBlock>.unmodifiable(blocks),
-        ticks = List<CinematicTimelineTimeTick>.unmodifiable(ticks);
+  }) : lanes = List<CinematicTimelineTimeLane>.unmodifiable(lanes),
+       blocks = List<CinematicTimelineTimeBlock>.unmodifiable(blocks),
+       ticks = List<CinematicTimelineTimeTick>.unmodifiable(ticks);
 
   final List<CinematicTimelineTimeLane> lanes;
   final List<CinematicTimelineTimeBlock> blocks;
@@ -119,8 +116,9 @@ final class CinematicTimelineTimeTick {
 }
 
 CinematicTimelineTimeLayoutReadModel buildCinematicTimelineTimeLayoutReadModel(
-    CinematicAsset cinematic,
-    {Map<String, CinematicTimelineTrackState> trackStates = const {}}) {
+  CinematicAsset cinematic, {
+  Map<String, CinematicTimelineTrackState> trackStates = const {},
+}) {
   final laneReadModel = buildCinematicTimelineLaneReadModel(
     cinematic,
     trackStates: trackStates,
@@ -130,8 +128,12 @@ CinematicTimelineTimeLayoutReadModel buildCinematicTimelineTimeLayoutReadModel(
   var currentMs = 0;
   for (final entry in cinematic.timeline.steps.asMap().entries) {
     final step = entry.value;
-    final visualDurationMs = _visualDurationMs(step.durationMs);
-    final durationSource = _durationSource(step.durationMs);
+    final visualDurationMs = _isInstantaneous(step)
+        ? 0
+        : _visualDurationMs(step.durationMs);
+    final durationSource = _isInstantaneous(step)
+        ? CinematicTimelineVisualDurationSource.instantaneous
+        : _durationSource(step.durationMs);
     final startMs = currentMs;
     final endMs = startMs + visualDurationMs;
     timings[step.id] = _StepTiming(
@@ -178,9 +180,8 @@ CinematicTimelineTimeLayoutReadModel buildCinematicTimelineTimeLayoutReadModel(
       ),
   ];
 
-  final blocks = [
-    for (final lane in timeLanes) ...lane.blocks,
-  ]..sort((a, b) => a.stepIndex.compareTo(b.stepIndex));
+  final blocks = [for (final lane in timeLanes) ...lane.blocks]
+    ..sort((a, b) => a.stepIndex.compareTo(b.stepIndex));
 
   return CinematicTimelineTimeLayoutReadModel(
     lanes: timeLanes,
@@ -190,6 +191,11 @@ CinematicTimelineTimeLayoutReadModel buildCinematicTimelineTimeLayoutReadModel(
     stepCount: cinematic.timeline.steps.length,
   );
 }
+
+bool _isInstantaneous(CinematicTimelineStep step) =>
+    step.kind == CinematicTimelineStepKind.actorFace ||
+    step.kind == CinematicTimelineStepKind.marker ||
+    (step.kind == CinematicTimelineStepKind.camera && step.durationMs == null);
 
 int _visualDurationMs(int? durationMs) {
   if (durationMs != null && durationMs > 0) {

@@ -1,0 +1,17 @@
+{
+  "command": [
+    "dart",
+    "analyze"
+  ],
+  "runnerPid": 42561,
+  "owned": {
+    "42563": [
+      42561,
+      "501",
+      "Sun Sep 20 23:15:54 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

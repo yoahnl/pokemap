@@ -1,0 +1,8 @@
+Analyzing application, application, application, scene_linked_document.dart, cinematics, cinematic_animation_ui10_test.dart...
+
+   info - lib/presentation/features/cinematics/cinematic_library_thumbnail.dart:54:13 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/presentation/features/cinematics/cinematic_page_map.dart:123:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/presentation/features/cinematics/cinematic_page_map.dart:127:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/presentation/features/cinematics/cinematic_point_handle.dart:71:13 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+4 issues found.

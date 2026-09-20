@@ -1,0 +1,193 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_widget_test.dart
+00:00 +0: UI10 full Studio frame early composition with isolated real project
+UI10 fixture ready
+UI10 app pumped
+UI10 opening
+UI10 history ready
+UI10 library ready
+UI10 port start
+UI10 library tapped
+UI10 pump 0 pending
+UI10 port done
+UI10 pump 0 io
+UI10 pump 0 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 1 pending
+UI10 pump 1 io
+UI10 pump 1 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 2 pending
+UI10 pump 2 io
+UI10 pump 2 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 3 pending
+UI10 pump 3 io
+UI10 pump 3 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 4 pending
+UI10 pump 4 io
+UI10 pump 4 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 5 pending
+UI10 pump 5 io
+UI10 pump 5 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 6 pending
+UI10 pump 6 io
+UI10 pump 6 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 7 pending
+UI10 pump 7 io
+UI10 pump 7 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 8 pending
+UI10 pump 8 io
+UI10 pump 8 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 9 pending
+UI10 pump 9 io
+UI10 pump 9 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 10 pending
+UI10 pump 10 io
+UI10 pump 10 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 11 pending
+UI10 pump 11 io
+UI10 pump 11 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 12 pending
+UI10 pump 12 io
+UI10 pump 12 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 13 pending
+UI10 pump 13 io
+UI10 pump 13 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 14 pending
+UI10 pump 14 io
+UI10 pump 14 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 15 pending
+UI10 pump 15 io
+UI10 pump 15 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 16 pending
+UI10 pump 16 io
+UI10 pump 16 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 17 pending
+UI10 pump 17 io
+UI10 pump 17 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 18 pending
+UI10 pump 18 io
+UI10 pump 18 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 19 pending
+UI10 pump 19 io
+UI10 pump 19 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 20 pending
+UI10 pump 20 io
+UI10 pump 20 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 21 pending
+UI10 pump 21 io
+UI10 pump 21 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 22 pending
+UI10 pump 22 io
+UI10 pump 22 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 23 pending
+UI10 pump 23 io
+UI10 pump 23 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 24 pending
+UI10 pump 24 io
+UI10 pump 24 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 25 pending
+UI10 pump 25 io
+UI10 pump 25 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 26 pending
+UI10 pump 26 io
+UI10 pump 26 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 27 pending
+UI10 pump 27 io
+UI10 pump 27 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 28 pending
+UI10 pump 28 io
+UI10 pump 28 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 pump 29 pending
+UI10 pump 29 io
+UI10 pump 29 render
+UI10 build done
+UI10 layout done
+UI10 paint done
+UI10 map pumped
+UI10 opened
+00:04 +1: All tests passed!

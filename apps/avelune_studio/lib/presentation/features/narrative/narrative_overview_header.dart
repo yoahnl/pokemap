@@ -13,6 +13,7 @@ class NarrativeOverviewHeader extends StatelessWidget {
     this.compactDetail = false,
     this.onScenes,
     this.onDialogues,
+    this.onCinematics,
     this.onEvents,
     this.onProgression,
   });
@@ -20,7 +21,11 @@ class NarrativeOverviewHeader extends StatelessWidget {
   final String summary;
   final VoidCallback onCreated;
   final bool compactDetail;
-  final VoidCallback? onScenes, onProgression, onEvents, onDialogues;
+  final VoidCallback? onScenes,
+      onProgression,
+      onEvents,
+      onDialogues,
+      onCinematics;
 
   @override
   Widget build(BuildContext context) => compactDetail
@@ -38,6 +43,8 @@ class NarrativeOverviewHeader extends StatelessWidget {
               icon: const Icon(Icons.more_horiz),
               onSelected: (action) {
                 switch (action) {
+                  case 'cinematics':
+                    onCinematics?.call();
                   case 'dialogues':
                     onDialogues?.call();
                   case 'events':
@@ -55,6 +62,11 @@ class NarrativeOverviewHeader extends StatelessWidget {
                 }
               },
               itemBuilder: (_) => [
+                if (onCinematics != null)
+                  const PopupMenuItem(
+                    value: 'cinematics',
+                    child: Text('Cinématiques sur carte'),
+                  ),
                 if (onDialogues != null)
                   const PopupMenuItem(
                     value: 'dialogues',
@@ -100,6 +112,13 @@ class NarrativeOverviewHeader extends StatelessWidget {
               actions: compactDetail
                   ? const []
                   : [
+                      if (onCinematics != null)
+                        StudioButton(
+                          label: 'Cinématiques sur carte',
+                          icon: Icons.movie_outlined,
+                          secondary: true,
+                          onPressed: onCinematics,
+                        ),
                       if (onDialogues != null)
                         StudioButton(
                           label: 'Dialogues',

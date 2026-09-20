@@ -1,0 +1,5 @@
+Analyzing cinematic_visual_math.dart, pixel_perfect_camera_projection.dart, cinematic_viewport_projection.dart, cinematic_preview_playback_plan.dart, cinematic_viewport_state_parity_test.dart...
+
+warning - lib/src/read_models/cinematic_preview_playback_plan.dart:2443:8 - The declaration '_lerp' isn't referenced. Try removing the declaration of '_lerp'. - unused_element
+
+1 issue found.

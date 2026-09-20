@@ -1,0 +1,22 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/src/runtime/cinematic_visual_math.dart",
+    "lib/src/runtime/pixel_perfect_camera_projection.dart",
+    "lib/src/read_models/cinematic_viewport_projection.dart",
+    "lib/src/read_models/cinematic_preview_playback_plan.dart",
+    "test/cinematic_viewport_state_parity_test.dart"
+  ],
+  "runnerPid": 92547,
+  "owned": {
+    "92550": [
+      92547,
+      "501",
+      "Mon Sep 21 00:02:46 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

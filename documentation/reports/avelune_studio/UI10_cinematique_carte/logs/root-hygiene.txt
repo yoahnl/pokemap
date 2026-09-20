@@ -1,0 +1,10 @@
+Command: POKEMAP_MARKDOWN_MAX_NEW=1 bash tools/scripts/check_markdown_hygiene.sh
+Exit: 0
+Markdown hygiene: 1 new Markdown file(s), all in canonical locations.
+
+Command: git diff --check
+Exit: 0
+Output: empty
+
+Changed/new Studio Dart source files over 300 lines: none.
+Temporary UI10/MAP RENDER debug print statements in changed/new Dart files: none.

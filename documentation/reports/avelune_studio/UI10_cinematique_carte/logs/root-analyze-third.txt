@@ -1,0 +1,23 @@
+Analyzing avelune_studio...                                     
+
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/cinematics/application/cinematic_workspace_spatial.dart:244:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/platform/rendering/studio_cinematic_media.dart:40:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/presentation/features/cinematics/cinematic_point_handle.dart:67:11 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • test/cinematics/cinematic_preview_transport_ui10_test.dart:95:36 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • test/cinematics/cinematic_preview_transport_ui10_test.dart:96:35 • curly_braces_in_flow_control_structures
+   info • The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive • test/cinematics_ui10_spatial_test.dart:3:8 • unnecessary_import
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/cinematics_ui10_widget_test.dart:17:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/cinematics_ui10_widget_test.dart:19:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/cinematics_ui10_widget_test.dart:21:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/cinematics_ui10_widget_test.dart:23:7 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/support/ui10_widget_port.dart:13:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/support/ui10_widget_port.dart:17:9 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/support/ui10_workspace_harness.dart:52:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/support/ui10_workspace_harness.dart:55:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/support/ui10_workspace_harness.dart:59:5 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/support/ui10_workspace_harness.dart:60:27 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/support/ui10_workspace_harness.dart:60:92 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/support/ui10_workspace_harness.dart:60:202 • avoid_print
+   info • Don't invoke 'print' in production code. Try using a logging framework • test/support/ui10_workspace_harness.dart:61:5 • avoid_print
+
+19 issues found. (ran in 7.1s)

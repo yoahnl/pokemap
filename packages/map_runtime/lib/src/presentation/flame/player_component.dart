@@ -129,11 +129,20 @@ class PlayerComponent extends PositionComponent {
       EntityFacing.values.byName(_state.facing.name);
 
   void setCinematicFacing(EntityFacing facing) {
-    _state = _state.copyWith(
-      facing: Direction.values.byName(facing.name),
-    );
-    _actor?.setMotion(facing, CharacterAnimationState.idle);
+    setCinematicMotion(facing, CharacterAnimationState.idle);
   }
+
+  void setCinematicMotion(EntityFacing facing, CharacterAnimationState motion) {
+    _state = _state.copyWith(facing: Direction.values.byName(facing.name));
+    _actor?.setMotion(facing, motion);
+  }
+
+  Vector2 get cinematicVisualFocusPoint {
+    final actor = _actor;
+    return actor == null ? focusPoint : position + actor.position + actor.size / 2;
+  }
+
+  Vector2 get cinematicVisualSize => _actor?.size.clone() ?? size.clone();
 
   /// Centre du sprite (caméra / focus).
   Vector2 get focusPoint => Vector2(
