@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'workspace_actions.dart';
 import 'workspace_session_loader.dart';
 import '../narrative/narrative_navigation.dart';
+import '../narrative/narrative_overview_view_state.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_shortcuts.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
@@ -22,6 +23,7 @@ import '../../shell/studio_home_navigation.dart';
 export 'workspace_actions.dart' show StudioRuntimeBuilder;
 
 part 'workspace_home_binding.dart';
+part 'workspace_story_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -55,6 +57,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _homeSearch = TextEditingController();
   bool _palette = true;
   WorkspaceSpace _space = WorkspaceSpace.map;
+  WorkspaceSpace _interactionOrigin = WorkspaceSpace.map;
+  final _storyViewState = NarrativeOverviewViewState();
   ResourceNavigation? _resources;
   NarrativeWorkspaceController? _narrative;
   bool? _inspector;
@@ -63,6 +67,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   String? _resourceError;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _interactionNotice;
   int _gestureGeneration = 0;
+  int _navigationRequest = 0;
   late final WorkspaceActions _actions;
   MapWorkspaceController get _controller => widget.controller;
   MapWorkspaceViewState? get _view {
@@ -135,7 +140,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _show(WorkspaceSpace space) {
+    _navigationRequest++;
     _interactionNotice?.close();
+    _narrative?.cancelOpening();
     if (mounted) setState(() => _space = space);
   }
 
@@ -168,32 +175,14 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     }
     _resources?.removeListener(_changed);
     _resources?.dispose();
+    _narrative?.dispose();
+    _storyViewState.dispose();
     _search.dispose();
     _homeSearch.dispose();
     for (final view in _views.values) {
       view.dispose();
     }
     super.dispose();
-  }
-
-  Future<void> _zone(MapRect area) async {
-    if (_narrative == null) return;
-    await openNarrativeZone(_narrative!, area);
-    if (mounted) _show(WorkspaceSpace.interaction);
-  }
-
-  Future<void> _useResource(ResourceItem item) async {
-    final used = await useResourceOnMap(
-      context: context,
-      workspace: _controller,
-      item: item,
-      visuals: _visuals!,
-      view: () => _view,
-    );
-    if (!mounted || !used) return;
-    if (item.terrain != null) _search.clear();
-    _openMap();
-    _toolChanged();
   }
 
   @override
@@ -230,12 +219,12 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                 _actions.testing ||
                 _actions.closing ||
                 _resources?.busy == true ||
-                _narrative?.busy == true,
+                _narrative?.saving == true,
             child: SafeArea(
               child: MapWorkspaceLayout(
                 homeSearch: widget.home?.search ?? _homeSearch,
-                onSearch: (_) => widget.home?.searchHome(),
-                onHome: widget.home?.showHome,
+                onSearch: (_) => _goHome(search: true),
+                onHome: widget.home == null ? null : _goHome,
                 activeSpace: _space.name,
                 controller: _controller,
                 view: _view,
@@ -252,6 +241,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                 onToolChanged: _toolChanged,
                 onActivate: (entry) {
                   _interactionNotice?.close();
+                  _narrative?.cancelOpening();
                   _gestureGeneration++;
                   unawaited(_controller.activate(entry));
                 },
@@ -280,7 +270,12 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                   resources: _resources,
                   visuals: _visuals,
                   onMap: _openMap,
-                  onInteraction: () => _show(WorkspaceSpace.interaction),
+                  storyViewState: _storyViewState,
+                  interactionOrigin: _interactionOrigin,
+                  onStory: () => _show(WorkspaceSpace.story),
+                  onOpenInteraction: _openStoryInteraction,
+                  onLocateInteraction: _locateStoryInteraction,
+                  onCreateInteraction: _createStoryInteraction,
                   onTest: _actions.test,
                   imagePicker: widget.imagePicker,
                 ),

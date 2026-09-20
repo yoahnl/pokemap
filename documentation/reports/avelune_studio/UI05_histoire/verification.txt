@@ -1,0 +1,80 @@
+AS-UI-005 — vérifications du 20 septembre 2026
+Extraits des sorties réelles, pas une certification native interactive.
+
+Depuis apps/avelune_studio :
+
+git ls-files -m -o --exclude-standard -- '*.dart' | xargs dart format --output=none --set-exit-if-changed
+Formatted 33 files (0 changed) in 0.10 seconds.
+exit 0
+
+flutter test --no-pub --reporter expanded test/presentation/ui05_story_journey_test.dart test/presentation/ui05_story_creation_test.dart test/narrative/narrative_story_navigation_test.dart test/narrative/narrative_navigation_ui05_test.dart test/narrative/narrative_source_location_ui05_test.dart test/narrative_overview_test.dart test/narrative_overview_links_test.dart test/narrative_overview_availability_test.dart
+00:08 +29: All tests passed!
+exit 0
+Captures activées uniquement pour cette commande par AVELUNE_CAPTURE_DIR pointant vers ce dossier.
+Runner PID 65530 ; 9 descendants suivis ; reaped=[] ; exitCode=0.
+
+flutter test --no-pub --reporter expanded
+01:01 +319 ~2: All tests passed!
+exit 0
+Runner PID 65895 ; 85 descendants suivis ; reaped=[] ; exitCode=0.
+Captures désactivées pour la suite complète.
+Deux tests ignorés faute de AVELUNE_PROJECT_COPY :
+- test/infrastructure/studio_large_atlas_test.dart
+- test/presentation/train_workspace_capture_test.dart
+Le scénario runtime M3 et les parcours M1/M2/UI02/UI03/UI04 sont inclus dans cette suite.
+
+flutter analyze --no-pub
+Analyzing avelune_studio...
+No issues found! (ran in 5.5s)
+exit 0
+
+flutter build macos --debug --no-pub
+Building macOS application...
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+exit 0
+
+Depuis packages/map_authoring :
+
+dart test --reporter expanded test/domains/narrative/narrative_document_publication_test.dart test/domains/narrative/storyline_scenario_authoring_test.dart
+00:00 +4: All tests passed!
+exit 0
+Inclut publication JSONL puis réouverture canonique.
+
+Depuis tools/pokemap_mcp :
+
+npm run check
+tsc -p tsconfig.json --noEmit
+exit 0
+
+npm test
+(reconstruit le serveur via npm run build)
+ℹ tests 82
+ℹ suites 0
+ℹ pass 82
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 417883.672459
+exit 0
+
+MCP connecté : pokemap_describe({})
+worker.exited: The canonical Authoring worker exited unexpectedly (code 78).
+ok=false ; retryable=false ; connected parity non certifiée.
+
+Depuis la racine :
+
+POKEMAP_MARKDOWN_MAX_NEW=1 bash tools/scripts/check_markdown_hygiene.sh
+Markdown hygiene: 1 new Markdown file(s), all in canonical locations.
+exit 0
+Le pack demande explicitement une note unique dans ce dossier.
+
+git diff --check
+Aucune sortie ; exit 0.
+
+Git initial : propre ; HEAD 8ee866c8e603bf673e3f9ab2097a06da66c08483.
+Git final : 11 fichiers suivis modifiés, 22 nouveaux Dart, cette note README,
+ce journal et 5 captures non suivis. Aucun fichier indexé, commit ou push.
+Inventaire complet et zones : README.md.
+
+Lancement : cd apps/avelune_studio && flutter run -d macos

@@ -146,7 +146,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('Histoire').first);
       await tester.pump();
-      await tester.tap(find.text('Créer une petite histoire'));
+      await tester.tap(find.text('Créer une histoire'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, 'La visite du quai');
       await tester.pump();
@@ -163,7 +163,7 @@ void main() {
         story.controller.stories.any((s) => s.title == 'La visite du quai'),
         isTrue,
       );
-      await tester.tap(find.text('Enregistrer l’histoire'));
+      await tester.tap(find.text('Enregistrer les modifications'));
       await pumpIo(tester, frames: 50);
       expect(story.controller.error, isNull);
       expect(story.controller.dirty, isFalse);

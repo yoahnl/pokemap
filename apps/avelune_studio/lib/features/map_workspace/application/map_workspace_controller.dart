@@ -19,6 +19,7 @@ class MapWorkspaceController {
   String? Function(MapData before, MapData after)? historyGuard;
   var _generation = 0;
   var _disposed = false;
+  bool get isDisposed => _disposed;
 
   bool get dirty => documents.values.any((document) => document.dirty);
   bool get saving => documents.values.any((document) => document.saving);
@@ -41,7 +42,11 @@ class MapWorkspaceController {
     }
   }
 
-  Future<void> activate(ProjectMapEntry entry) async {
+  Future<void> activate(
+    ProjectMapEntry entry, {
+    bool Function()? isCurrent,
+  }) async {
+    if (_disposed || isCurrent?.call() == false) return;
     final generation = ++_generation;
     loading = true;
     error = null;
@@ -53,11 +58,15 @@ class MapWorkspaceController {
             entry.id,
             () => port.loadMap(session, entry).then(EditableMapDocument.new),
           );
-      if (_disposed) return;
+      if (_disposed || isCurrent?.call() == false) return;
       documents[entry.id] = document;
       if (generation == _generation) active = document;
     } catch (failure) {
-      if (!_disposed && generation == _generation) error = _message(failure);
+      if (!_disposed &&
+          generation == _generation &&
+          isCurrent?.call() != false) {
+        error = _message(failure);
+      }
     } finally {
       _loading.remove(entry.id);
       if (!_disposed && generation == _generation) {

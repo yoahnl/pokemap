@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../narrative/narrative_interaction_pane.dart';
 import '../narrative/narrative_story_pane.dart';
+import '../narrative/narrative_overview_view_state.dart';
 import '../resources/resource_navigation.dart';
 import '../resources/resource_image_import.dart';
 import '../resources/resource_workspace_pane.dart';
@@ -15,7 +16,12 @@ Widget? workspaceSecondaryContent({
   required ResourceNavigation? resources,
   required MapWorkspaceVisuals? visuals,
   required VoidCallback onMap,
-  required VoidCallback onInteraction,
+  required NarrativeOverviewViewState storyViewState,
+  required WorkspaceSpace interactionOrigin,
+  required VoidCallback onStory,
+  required Future<String?> Function(String) onOpenInteraction,
+  required Future<String?> Function(String) onLocateInteraction,
+  required VoidCallback onCreateInteraction,
   required VoidCallback onTest,
   required PickResourceImage? imagePicker,
 }) {
@@ -23,12 +29,21 @@ Widget? workspaceSecondaryContent({
     return NarrativeInteractionPane(
       controller: narrative!,
       visuals: visuals!,
-      onBack: onMap,
+      onBack: interactionOrigin == WorkspaceSpace.story ? onStory : onMap,
+      onBackLabel: interactionOrigin == WorkspaceSpace.story
+          ? 'Retour à Histoire'
+          : 'Retour à la carte',
       onTest: onTest,
     );
   }
   if (space == WorkspaceSpace.story && narrative != null) {
-    return NarrativeStoryPane(controller: narrative, onOpen: onInteraction);
+    return NarrativeStoryPane(
+      controller: narrative,
+      viewState: storyViewState,
+      onOpen: onOpenInteraction,
+      onLocate: onLocateInteraction,
+      onCreateInteraction: onCreateInteraction,
+    );
   }
   if (space == WorkspaceSpace.resources && resources != null) {
     return ResourceWorkspacePane(

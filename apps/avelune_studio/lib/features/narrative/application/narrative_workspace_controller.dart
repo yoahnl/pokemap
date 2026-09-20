@@ -1,13 +1,12 @@
 import 'package:map_core/map_core_domain.dart';
 import '../../map_workspace/application/map_workspace_controller.dart';
 import '../../map_workspace/application/editable_map_document.dart';
-import '../domain/dialogue_draft.dart';
 import '../domain/narrative_port.dart';
 import 'dialogue_draft_codec.dart';
 import 'interaction_edit_session.dart';
 import 'narrative_interaction.dart';
-import 'narrative_editing.dart';
-import 'narrative_interaction_reader.dart';
+import 'narrative_interaction_opener.dart';
+import 'narrative_source_location.dart';
 
 class NarrativeWorkspaceController {
   NarrativeWorkspaceController(
@@ -25,9 +24,11 @@ class NarrativeWorkspaceController {
   final pendingStories = <String, StorylineAsset>{};
   final _sourceRevisions = <String, String>{};
   int _sequence = 0;
-  final _eventIds = NarrativeEventIdGenerator();
+  late final _opener = NarrativeInteractionOpener(this);
   InteractionEditSession? active;
-  bool busy = false;
+  bool saving = false;
+  bool get busy => saving || _opener.loading;
+  bool get opening => _opener.loading;
   String? error;
   String? publicationError;
   String search = '';
@@ -59,8 +60,7 @@ class NarrativeWorkspaceController {
         .where((s) => s.current.interaction.source == source)
         .firstOrNull;
     if (!create && local != null) {
-      active = local;
-      changed();
+      await openSession(local);
       return;
     }
     if (!create) {
@@ -88,111 +88,23 @@ class NarrativeWorkspaceController {
     ProjectDialogueEntry? existing,
     NarrativeInteractionDraft? interaction,
   }) async {
-    if (busy) return;
-    busy = true;
-    active = null;
-    error = null;
-    changed();
-    try {
-      final id = _eventIds.generate(
-        existingRecords: project.eventRegistry?.records ?? [],
-      );
-      final entry =
-          existing ??
-          ProjectDialogueEntry(
-            id: 'dialogue_$id',
-            name: name,
-            relativePath: 'dialogues/$id.yarn',
-            defaultStartNode: 'Start',
-          );
-      final original = existing == null
-          ? null
-          : await port.readDialogue(existing);
-      final decoded = original == null
-          ? null
-          : const DialogueDraftCodec().decode(original);
-      final dialogue = decoded ?? DialogueDraft.blank(entry);
-      final edit = InteractionEditSession(
-        document: document,
-        dialogue: dialogue,
-        interaction:
-            interaction ??
-            NarrativeInteractionDraft(
-              id: id,
-              name: name,
-              mapId: document.current.id,
-              source: source,
-              dialogueId: entry.id,
-              order: nextNarrativeRank(project, sessions.values, source).order,
-              priority: nextNarrativeRank(
-                project,
-                sessions.values,
-                source,
-              ).priority,
-            ),
-        readOnlySource: original != null && decoded == null
-            ? original.source
-            : null,
-      );
-      sessions[edit.current.interaction.id] = edit;
-      active = edit;
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      busy = false;
-      changed();
-    }
-  }
-
-  Future<bool> openRecord(NarrativeEventRecord record) async {
-    if (busy) return false;
-    active = null;
-    error = null;
-    final local = sessions[record.id];
-    if (local != null) return openSession(local);
-    final draft = readStudioInteraction(record, project);
-    if (draft == null) {
-      error =
-          'Cette interaction avancée reste conservée, mais son édition visuelle n’est pas disponible.';
-      changed();
-      return false;
-    }
-    final map = project.maps.where((m) => m.id == draft.mapId).firstOrNull;
-    final dialogue = project.dialogues
-        .where((d) => d.id == draft.dialogueId)
-        .firstOrNull;
-    if (map == null || dialogue == null) {
-      error = 'La carte ou le dialogue lié est manquant.';
-      changed();
-      return false;
-    }
-    await workspace.activate(map);
-    final document = workspace.active;
-    if (document == null || document.current.id != map.id) return false;
-    await openSource(
+    await _opener.openSource(
       document,
-      draft.source,
-      draft.name,
-      existing: dialogue,
-      interaction: draft,
+      source,
+      name,
+      existing: existing,
+      interaction: interaction,
     );
-    return active?.current.interaction.id == record.id;
   }
 
-  Future<bool> openSession(InteractionEditSession session) async {
-    if (busy) return false;
-    active = null;
-    error = null;
-    final map = project.maps
-        .where((m) => m.id == session.document.current.id)
-        .firstOrNull;
-    if (map == null) return false;
-    await workspace.activate(map);
-    if (workspace.active != session.document) return false;
-    active = session;
-    changed();
-    return true;
-  }
+  Future<bool> openRecord(NarrativeEventRecord record) =>
+      _opener.openRecord(record);
+  Future<bool> openSession(InteractionEditSession session) =>
+      _opener.openSession(session);
+  Future<NarrativeSourceLocation?> locateInteraction(String id) =>
+      _opener.locate(id);
+  void cancelOpening() => _opener.cancel();
+  void dispose() => _opener.dispose();
 
   void addFact(String label) {
     if (label.trim().isEmpty) return;
@@ -205,14 +117,15 @@ class NarrativeWorkspaceController {
   }
 
   void addStory(String title, List<String> labels) {
-    if (title.trim().isEmpty || labels.isEmpty) return;
+    final steps = labels
+        .map((label) => label.trim())
+        .where((label) => label.isNotEmpty)
+        .toList();
+    if (title.trim().isEmpty || steps.isEmpty) return;
     final story = createStudioStoryline(
       id: identity('histoire'),
       title: title.trim(),
-      steps: {
-        for (final label in labels.where((v) => v.trim().isNotEmpty))
-          identity('etape'): label.trim(),
-      },
+      steps: {for (final label in steps) identity('etape'): label},
     );
     pendingStories[story.id] = story;
     changed();
@@ -241,7 +154,7 @@ class NarrativeWorkspaceController {
     if (edits.isEmpty && factSnapshot.isEmpty && storySnapshot.isEmpty) {
       return workspace.save(target);
     }
-    busy = true;
+    saving = true;
     error = null;
     target.saving = true;
     changed();
@@ -283,7 +196,7 @@ class NarrativeWorkspaceController {
       publicationError = error = e.toString();
       return false;
     } finally {
-      busy = false;
+      saving = false;
       target.saving = false;
       changed();
     }

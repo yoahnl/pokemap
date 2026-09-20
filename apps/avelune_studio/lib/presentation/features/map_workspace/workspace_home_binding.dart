@@ -1,28 +1,30 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
-  Future<void> _editInteraction(MapEntity entity) async {
-    final document = _controller.active;
-    if (_narrative == null || document == null) return;
-    await _narrative!.openNpc(document, entity);
-    if (!mounted ||
-        _controller.active != document ||
-        _space != WorkspaceSpace.map) {
-      return;
-    }
-    if (_narrative!.active != null) {
-      _show(WorkspaceSpace.interaction);
-    } else if (_narrative!.error case final error?) {
-      _interactionNotice = ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error)));
-    }
+  Future<void> _useResource(ResourceItem item) async {
+    final used = await useResourceOnMap(
+      context: context,
+      workspace: _controller,
+      item: item,
+      visuals: _visuals!,
+      view: () => _view,
+    );
+    if (!mounted || !used) return;
+    if (item.terrain != null) _search.clear();
+    _openMap();
+    _toolChanged();
   }
 
   void _openResources([ProjectElementEntry? element, bool edit = false]) {
     if (_resources == null) return;
     _resources!.openElement(element, edit: edit);
     _show(WorkspaceSpace.resources);
+  }
+
+  void _goHome({bool search = false}) {
+    _navigationRequest++;
+    _narrative?.cancelOpening();
+    search ? widget.home?.searchHome() : widget.home?.showHome();
   }
 
   void _openMap() {
@@ -45,6 +47,8 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
   }
 
   void _navigateFromHome(String destination, String? mapId) {
+    _navigationRequest++;
+    _narrative?.cancelOpening();
     if (mapId != null) {
       final entries = _controller.project?.maps.where((e) => e.id == mapId);
       if (entries != null && entries.isNotEmpty) {

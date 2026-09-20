@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -20,6 +21,7 @@ class MapWorkspaceViewState {
   ProjectSmartTilePreset? terrain;
   ProjectCharacterEntry? character;
   String? selectedEntityId;
+  String? selectedTriggerId;
   String characterQuery = '';
   double characterScrollOffset = 0;
   bool grid = true;
@@ -32,6 +34,37 @@ class MapWorkspaceViewState {
   final fittedPaletteAtlases = <String>{};
   bool positioned = false;
   VoidCallback? recenter;
+  void Function(GridPos)? centerOn;
+
+  void fitViewport(Size viewport, Size content) {
+    final scale = math.min(
+      1.0,
+      math.min(
+        viewport.width / content.width,
+        viewport.height / content.height,
+      ),
+    );
+    transform.value = Matrix4.identity()
+      ..translateByDouble(
+        (viewport.width - content.width * scale) / 2,
+        (viewport.height - content.height * scale) / 2,
+        0,
+        1,
+      )
+      ..scaleByDouble(scale, scale, 1, 1);
+  }
+
+  void centerCell(GridPos cell, Size viewport, Size tile) {
+    final scale = transform.value.getMaxScaleOnAxis();
+    transform.value = Matrix4.identity()
+      ..translateByDouble(
+        viewport.width / 2 - (cell.x + .5) * tile.width * scale,
+        viewport.height / 2 - (cell.y + .5) * tile.height * scale,
+        0,
+        1,
+      )
+      ..scaleByDouble(scale, scale, 1, 1);
+  }
 
   void prepareCharacterPlacement() {
     paletteTab = 'Personnages';

@@ -1,216 +1,204 @@
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core_domain.dart';
-import '../../../features/narrative/application/narrative_interaction.dart';
-import '../../../features/narrative/application/narrative_interaction_reader.dart';
+import 'package:flutter/services.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../../shared/widgets/inputs/studio_draft_field.dart';
-import 'narrative_name_dialog.dart';
-import '../../shared/widgets/inputs/studio_choice.dart';
-import '../../shared/widgets/layout/studio_section.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
+import '../../shared/widgets/inputs/studio_search_field.dart';
+import '../../shared/widgets/inputs/studio_tabs.dart';
+import 'narrative_overview_content.dart';
+import 'narrative_overview_detail.dart';
+import 'narrative_overview_header.dart';
+import 'narrative_overview_navigation.dart';
+import 'narrative_overview_view_state.dart';
 
-typedef _Interaction = ({String id, String name, NarrativeEventRecord? record});
-
-class NarrativeStoryPane extends StatelessWidget {
+class NarrativeStoryPane extends StatefulWidget {
   const NarrativeStoryPane({
     super.key,
     required this.controller,
+    required this.viewState,
     required this.onOpen,
+    required this.onLocate,
+    required this.onCreateInteraction,
   });
   final NarrativeWorkspaceController controller;
-  final VoidCallback onOpen;
+  final NarrativeOverviewViewState viewState;
+  final Future<String?> Function(String) onOpen, onLocate;
+  final VoidCallback onCreateInteraction;
+
+  @override
+  State<NarrativeStoryPane> createState() => _NarrativeStoryPaneState();
+}
+
+class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
+  var _navigationRequest = 0;
+  NarrativeOverviewViewState get state => widget.viewState;
+  void refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
-    final query = controller.search.toLowerCase();
-    final records = controller.project.eventRegistry?.records ?? [];
-    final interactions = <_Interaction>[
-      for (final record in records)
-        (
-          id: record.id,
-          name:
-              controller.sessions[record.id]?.current.interaction.name ??
-              record.definitionOrNull?.name ??
-              'Interaction avancée',
-          record: record,
-        ),
-      for (final edit in controller.sessions.values)
-        if (!records.any((r) => r.id == edit.current.interaction.id))
-          (
-            id: edit.current.interaction.id,
-            name: '${edit.current.interaction.name} · brouillon',
-            record: null,
-          ),
-    ];
-    final links = <String, List<_Interaction>>{};
-    for (final item in interactions) {
-      final draft =
-          controller.sessions[item.id]?.current.interaction ??
-          (item.record == null
-              ? null
-              : readStudioInteraction(item.record!, controller.project));
-      if (draft == null) continue;
-      final stepIds = {
-        for (final step in [
-          ...draft.steps,
-          ...draft.branches.values.expand((s) => s),
-        ])
-          if (step.kind == NarrativeSequenceKind.completeStep) step.targetId,
-      };
-      for (final id in stepIds) {
-        links.putIfAbsent(id, () => []).add(item);
+    final overview = state.cache.read(widget.controller);
+    if (!state.initialized) {
+      state.initialized = true;
+      state.storyId = overview.stories.firstOrNull?.id;
+      if (overview.stories.isEmpty) {
+        state.tab = NarrativeOverviewTab.interactions;
       }
     }
-    final entries = <WidgetBuilder>[
-      (_) => _header(context),
-      if (controller.error case final error?)
-        (_) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(error),
-        ),
-      for (final story in controller.stories)
-        if (story.title.toLowerCase().contains(query) ||
-            story.chapters
-                .expand((c) => c.steps)
-                .any((s) => s.title.toLowerCase().contains(query))) ...[
-          (_) => StudioSection(title: story.title, children: const []),
-          for (final step in story.chapters.expand((c) => c.steps))
-            if (story.title.toLowerCase().contains(query) ||
-                step.title.toLowerCase().contains(query))
-              (_) => StudioChoice(
-                leading: const Icon(Icons.radio_button_unchecked),
-                label: step.title,
-                subtitle:
-                    links[step.id]?.map((i) => i.name).join(' · ') ??
-                    'Aucune interaction liée : ouvrir une conversation pour y ajouter cette étape.',
-                onTap: () => _openStep(
-                  context,
-                  step.title,
-                  links[step.id] ?? interactions,
-                ),
+    final story = overview.stories
+        .where((s) => s.id == state.storyId)
+        .firstOrNull;
+    final query = state.search.text.trim().toLowerCase();
+    final stories = overview.stories
+        .where(
+          (s) =>
+              s.title.toLowerCase().contains(query) ||
+              s.chapters.any(
+                (c) =>
+                    c.title.toLowerCase().contains(query) ||
+                    c.steps.any((s) => s.title.toLowerCase().contains(query)),
               ),
-        ],
-      (_) => const Divider(),
-      for (final item in interactions.where(
-        (i) => i.name.toLowerCase().contains(query),
-      ))
-        (_) => StudioChoice(
-          label: item.name,
-          leading: const Icon(Icons.chat_bubble_outline),
-          onTap: () => _open(context, item),
-        ),
-      if (interactions.isEmpty)
-        (_) => const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Placez un personnage, puis ouvrez sa conversation. Vous pouvez aussi dessiner une zone d’histoire sur la carte.',
-          ),
-        ),
-    ];
-    return ListView.builder(
-      key: const PageStorageKey('narrative-story'),
-      padding: const EdgeInsets.all(24),
-      itemCount: entries.length,
-      itemBuilder: (context, i) => entries[i](context),
-    );
-  }
-
-  Future<void> _open(BuildContext context, _Interaction item) async {
-    final local = controller.sessions[item.id];
-    final opened = local != null
-        ? await controller.openSession(local)
-        : item.record != null && await controller.openRecord(item.record!);
-    if (opened && context.mounted) onOpen();
-  }
-
-  Future<void> _openStep(
-    BuildContext context,
-    String title,
-    List<_Interaction> items,
-  ) async {
-    if (items.length == 1) return _open(context, items.single);
-    final selected = await showDialog<_Interaction>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: SizedBox(
-          width: 420,
-          height: 280,
-          child: items.isEmpty
-              ? const Text(
-                  'Créez une conversation depuis un personnage ou une zone, puis ajoutez « Terminer une étape » à sa séquence.',
+        )
+        .toList();
+    return Focus(
+      onKeyEvent: (_, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape &&
+            state.detailVisible) {
+          setState(() => state.detailVisible = false);
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact =
+              constraints.maxWidth < 1050 ||
+              MediaQuery.textScalerOf(context).scale(14) > 20;
+          final detail = NarrativeOverviewDetail(
+            overview: overview,
+            state: state,
+            story: story,
+            onChanged: refresh,
+            busy: widget.controller.busy,
+            onOpen: (id) => _navigate(widget.onOpen, id),
+            onLocate: (id) => _navigate(widget.onLocate, id),
+          );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              NarrativeOverviewHeader(
+                controller: widget.controller,
+                compactDetail:
+                    compact &&
+                    (state.detailVisible || constraints.maxHeight < 680),
+                summary:
+                    '${widget.controller.project.name} · ${overview.stories.length} histoire(s) · ${overview.interactions.length} interaction(s) · ${overview.dirtyCount} brouillon(s) narratif(s)',
+                onCreated: refresh,
+              ),
+              if (widget.controller.publicationError case final error?)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: StudioNotice(error, isError: true),
+                ),
+              if (compact && state.detailVisible)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: StudioButton(
+                      label: 'Retour à la liste',
+                      secondary: true,
+                      icon: Icons.arrow_back,
+                      onPressed: () =>
+                          setState(() => state.detailVisible = false),
+                    ),
+                  ),
                 )
-              : ListView.builder(
-                  itemCount: items.length,
-                  itemBuilder: (_, i) => ListTile(
-                    title: Text(items[i].name),
-                    onTap: () => Navigator.pop(context, items[i]),
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: StudioSearchField(
+                    controller: state.search,
+                    label: 'Rechercher dans Histoire',
+                    hint:
+                        'Histoires, chapitres, étapes, interactions, cartes et sources connues',
+                    onChanged: (_) => refresh(),
                   ),
                 ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
-          ),
-        ],
-      ),
-    );
-    if (selected != null && context.mounted) await _open(context, selected);
-  }
-
-  Widget _header(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text('Histoire', style: Theme.of(context).textTheme.headlineSmall),
-      const Text(
-        'Définitions du projet. La progression jouée reste propre à chaque partie.',
-      ),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          StudioButton(
-            label: 'Créer une petite histoire',
-            secondary: true,
-            onPressed: () async {
-              final title = await askNarrativeName(
-                context,
-                'Nom de l’histoire',
-              );
-              if (title == null || !context.mounted) return;
-              final steps = await askNarrativeName(
-                context,
-                'Étapes, une par ligne',
-                multiline: true,
-              );
-              if (steps != null) controller.addStory(title, steps.split('\n'));
-            },
-          ),
-          StudioButton(
-            label: 'Créer un état',
-            secondary: true,
-            onPressed: () async {
-              final name = await askNarrativeName(context, 'Nom de l’état');
-              if (name != null) controller.addFact(name);
-            },
-          ),
-          StudioButton(
-            label: 'Enregistrer l’histoire',
-            onPressed: controller.busy ? null : controller.saveAll,
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      StudioDraftField(
-        value: controller.search,
-        label: 'Rechercher une histoire ou une interaction',
-        onChanged: (value) {
-          controller.search = value;
-          controller.changed();
+                if (compact)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: StudioTabs(
+                      items: const {
+                        NarrativeOverviewTab.stories: 'Histoires',
+                        NarrativeOverviewTab.interactions: 'Interactions',
+                        NarrativeOverviewTab.facts: 'États',
+                      },
+                      selected: state.tab,
+                      onChanged: (tab) => setState(() {
+                        state.tab = tab;
+                        state.select();
+                        state.detailVisible = false;
+                      }),
+                    ),
+                  ),
+              ],
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: compact && state.detailVisible
+                      ? detail
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (!compact) ...[
+                              SizedBox(
+                                width: 210,
+                                child: NarrativeOverviewNavigation(
+                                  state: state,
+                                  stories: stories,
+                                  onChanged: refresh,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            Expanded(
+                              child: NarrativeOverviewContent(
+                                overview: overview,
+                                state: state,
+                                story: story,
+                                stories: stories,
+                                compact: compact,
+                                onChanged: refresh,
+                                onCreateInteraction: widget.onCreateInteraction,
+                              ),
+                            ),
+                            if (!compact) ...[
+                              const SizedBox(width: 12),
+                              SizedBox(width: 320, child: detail),
+                            ],
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          );
         },
       ),
-    ],
-  );
+    );
+  }
+
+  Future<void> _navigate(
+    Future<String?> Function(String) action,
+    String id,
+  ) async {
+    final request = ++_navigationRequest;
+    final error = await action(id);
+    if (mounted &&
+        request == _navigationRequest &&
+        state.interactionId == id &&
+        error != null) {
+      setState(() => state.notice = error);
+    }
+  }
 }

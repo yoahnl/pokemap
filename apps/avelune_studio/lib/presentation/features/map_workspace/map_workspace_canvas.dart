@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../theme/studio_tokens.dart';
@@ -79,6 +77,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
         origin: cell,
       );
       if (_characterGesture != null) {
+        widget.view.selectedTriggerId = null;
         widget.onChanged();
         return;
       }
@@ -97,6 +96,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
       widget.onChanged();
     } else if (tool == StudioMapTool.select) {
       widget.view.selectedEntityId = null;
+      widget.view.selectedTriggerId = null;
       final hits = _commands.stack(cell);
       final selected = widget.document.selected;
       _moving = selected != null && hits.any((e) => e.id == selected.id)
@@ -200,25 +200,15 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     final colors = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        void recenter() {
-          final width = map.size.width * _width;
-          final height = map.size.height * _height;
-          final scale = math.min(
-            1.0,
-            math.min(
-              constraints.maxWidth / width,
-              constraints.maxHeight / height,
-            ),
-          );
-          widget.view.transform.value = Matrix4.identity()
-            ..translateByDouble(
-              (constraints.maxWidth - width * scale) / 2,
-              (constraints.maxHeight - height * scale) / 2,
-              0,
-              1,
-            )
-            ..scaleByDouble(scale, scale, 1, 1);
-        }
+        void recenter() => widget.view.fitViewport(
+          constraints.biggest,
+          Size(map.size.width * _width, map.size.height * _height),
+        );
+        widget.view.centerOn = (cell) => widget.view.centerCell(
+          cell,
+          constraints.biggest,
+          Size(_width, _height),
+        );
 
         widget.view.recenter = recenter;
         if (!widget.view.positioned) {
@@ -274,7 +264,14 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                               entityPreview: _characterGesture?.destination,
                               zone: _characterGesture?.zone == true
                                   ? _characterGesture!.rectangle
-                                  : null,
+                                  : map.triggers
+                                        .where(
+                                          (trigger) =>
+                                              trigger.id ==
+                                              widget.view.selectedTriggerId,
+                                        )
+                                        .firstOrNull
+                                        ?.area,
                               preview: _preview,
                               cellWidth: _width,
                               cellHeight: _height,

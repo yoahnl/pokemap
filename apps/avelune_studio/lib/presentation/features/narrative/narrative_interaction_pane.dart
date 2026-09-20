@@ -20,10 +20,12 @@ class NarrativeInteractionPane extends StatelessWidget {
     required this.visuals,
     required this.onBack,
     required this.onTest,
+    this.onBackLabel = 'Retour à la carte',
   });
   final NarrativeWorkspaceController controller;
   final MapWorkspaceVisuals visuals;
   final VoidCallback onBack, onTest;
+  final String onBackLabel;
   @override
   Widget build(BuildContext context) {
     final edit = controller.active!;
@@ -48,7 +50,7 @@ class NarrativeInteractionPane extends StatelessWidget {
           description: 'Conversation, conditions et conséquences',
           actions: [
             StudioButton(
-              label: 'Retour à la carte',
+              label: onBackLabel,
               secondary: true,
               onPressed: onBack,
             ),
