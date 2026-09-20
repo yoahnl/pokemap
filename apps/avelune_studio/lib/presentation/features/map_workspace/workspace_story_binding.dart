@@ -1,6 +1,43 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
+  void _initializeScenes() {
+    if (widget.scenePort case final port?) {
+      _scenes = SceneWorkspaceController(
+        _controller,
+        port,
+        narrative: _narrative,
+        changed: _changed,
+      );
+    }
+  }
+
+  void _saveWorkspaceDocument() {
+    if (_space == WorkspaceSpace.scene) {
+      unawaited(_scenes?.save());
+      return;
+    }
+    final document = _controller.active;
+    if (document != null) {
+      unawaited(
+        _narrative?.save(document: document) ?? _controller.save(document),
+      );
+    }
+  }
+
+  void _openScenes() {
+    if (_scenes?.active == null) _sceneViews.sceneLibrary = true;
+    _show(WorkspaceSpace.scene);
+  }
+
+  Future<String?> _openScene(String sceneId) async {
+    final scenes = _scenes;
+    if (scenes == null) return 'L’éditeur de scène est indisponible.';
+    if (!scenes.open(sceneId)) return scenes.error;
+    _show(WorkspaceSpace.scene);
+    return null;
+  }
+
   Future<void> _editInteraction(MapEntity entity) async {
     final document = _controller.active;
     final narrative = _narrative;

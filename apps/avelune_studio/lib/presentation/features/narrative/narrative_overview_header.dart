@@ -11,11 +11,13 @@ class NarrativeOverviewHeader extends StatelessWidget {
     required this.summary,
     required this.onCreated,
     this.compactDetail = false,
+    this.onScenes,
   });
   final NarrativeWorkspaceController controller;
   final String summary;
   final VoidCallback onCreated;
   final bool compactDetail;
+  final VoidCallback? onScenes;
 
   @override
   Widget build(BuildContext context) => compactDetail
@@ -33,6 +35,8 @@ class NarrativeOverviewHeader extends StatelessWidget {
               icon: const Icon(Icons.more_horiz),
               onSelected: (action) {
                 switch (action) {
+                  case 'scenes':
+                    onScenes?.call();
                   case 'story':
                     _createStory(context);
                   case 'fact':
@@ -41,7 +45,9 @@ class NarrativeOverviewHeader extends StatelessWidget {
                     controller.saveAll();
                 }
               },
-              itemBuilder: (_) => const [
+              itemBuilder: (_) => [
+                if (onScenes != null)
+                  const PopupMenuItem(value: 'scenes', child: Text('Scènes')),
                 PopupMenuItem(
                   value: 'story',
                   child: Text('Créer une histoire'),
@@ -70,6 +76,13 @@ class NarrativeOverviewHeader extends StatelessWidget {
               actions: compactDetail
                   ? const []
                   : [
+                      if (onScenes != null)
+                        StudioButton(
+                          label: 'Scènes',
+                          icon: Icons.account_tree_outlined,
+                          secondary: true,
+                          onPressed: onScenes,
+                        ),
                       StudioButton(
                         label: 'Créer une histoire',
                         icon: Icons.add,

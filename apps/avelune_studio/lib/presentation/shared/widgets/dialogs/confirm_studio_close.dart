@@ -4,7 +4,9 @@ Future<String?> confirmStudioClose(BuildContext context) => showDialog<String>(
   context: context,
   builder: (context) => AlertDialog(
     title: const Text('Conserver vos modifications ?'),
-    content: const Text('Des cartes ont des modifications non enregistrées.'),
+    content: const Text(
+      'Des documents ont des modifications non enregistrées : cartes, scènes ou autres brouillons.',
+    ),
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context, 'cancel'),

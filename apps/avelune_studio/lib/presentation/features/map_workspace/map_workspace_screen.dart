@@ -1,4 +1,7 @@
 import 'dart:async';
+import '../../../features/scenes/domain/scene_port.dart';
+import '../../../features/scenes/application/scene_workspace_controller.dart';
+import '../../../presentation/features/scenes/scene_builder_page.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'workspace_actions.dart';
@@ -36,12 +39,14 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.resourcePort,
     this.imagePicker,
     this.narrativePort,
+    this.scenePort,
     this.home,
   });
   final MapWorkspaceController controller;
   final StudioHomeNavigation? home;
   final ResourcePort? resourcePort;
   final NarrativePort? narrativePort;
+  final ScenePort? scenePort;
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -61,6 +66,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _storyViewState = NarrativeOverviewViewState();
   ResourceNavigation? _resources;
   NarrativeWorkspaceController? _narrative;
+  SceneWorkspaceController? _scenes;
+  final _sceneViews = SceneBuilderViewStore();
   bool? _inspector;
   MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
@@ -91,6 +98,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       },
       resources: () => _resources,
       narrative: () => _narrative,
+      scenes: () => _scenes,
       runtimeBuilder: widget.runtimeBuilder,
     );
     widget.registerExitGuard(_actions.allowClose);
@@ -110,6 +118,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       _visuals = loaded.visuals;
       _resources = loaded.resources;
       _narrative = loaded.narrative;
+      _initializeScenes();
       _changed();
     } catch (_) {
       if (mounted) {
@@ -176,6 +185,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     _resources?.removeListener(_changed);
     _resources?.dispose();
     _narrative?.dispose();
+    _scenes?.dispose();
+    _sceneViews.dispose();
     _storyViewState.dispose();
     _search.dispose();
     _homeSearch.dispose();
@@ -201,14 +212,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
         _controller,
         _view,
         _keyboard,
-        onSave: () {
-          if (document != null) {
-            unawaited(
-              _narrative?.save(document: document) ??
-                  _controller.save(document),
-            );
-          }
-        },
+        onSave: _saveWorkspaceDocument,
       ),
       child: Focus(
         autofocus: true,
@@ -267,6 +271,10 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
                 resourceContent: workspaceSecondaryContent(
                   space: _space,
                   narrative: _narrative,
+                  scenes: _scenes,
+                  sceneViews: _sceneViews,
+                  onScenes: _openScenes,
+                  onOpenScene: _openScene,
                   resources: _resources,
                   visuals: _visuals,
                   onMap: _openMap,

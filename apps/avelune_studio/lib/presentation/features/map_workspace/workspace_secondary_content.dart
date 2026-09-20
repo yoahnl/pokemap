@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../features/scenes/application/scene_workspace_controller.dart';
+import '../../../presentation/features/scenes/scene_builder_page.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../narrative/narrative_interaction_pane.dart';
 import '../narrative/narrative_story_pane.dart';
@@ -8,11 +10,15 @@ import '../resources/resource_image_import.dart';
 import '../resources/resource_workspace_pane.dart';
 import 'map_workspace_visuals.dart';
 
-enum WorkspaceSpace { map, resources, story, interaction }
+enum WorkspaceSpace { map, resources, story, interaction, scene }
 
 Widget? workspaceSecondaryContent({
   required WorkspaceSpace space,
   required NarrativeWorkspaceController? narrative,
+  required SceneWorkspaceController? scenes,
+  required SceneBuilderViewStore sceneViews,
+  required VoidCallback onScenes,
+  required Future<String?> Function(String) onOpenScene,
   required ResourceNavigation? resources,
   required MapWorkspaceVisuals? visuals,
   required VoidCallback onMap,
@@ -25,6 +31,15 @@ Widget? workspaceSecondaryContent({
   required VoidCallback onTest,
   required PickResourceImage? imagePicker,
 }) {
+  if (space == WorkspaceSpace.scene && scenes != null) {
+    return SceneBuilderPage(
+      controller: scenes,
+      views: sceneViews,
+      narrative: narrative,
+      onBack: onStory,
+      onTest: onTest,
+    );
+  }
   if (space == WorkspaceSpace.interaction && narrative?.active != null) {
     return NarrativeInteractionPane(
       controller: narrative!,
@@ -43,6 +58,8 @@ Widget? workspaceSecondaryContent({
       onOpen: onOpenInteraction,
       onLocate: onLocateInteraction,
       onCreateInteraction: onCreateInteraction,
+      onScenes: scenes == null ? null : onScenes,
+      onOpenScene: scenes == null ? null : onOpenScene,
     );
   }
   if (space == WorkspaceSpace.resources && resources != null) {

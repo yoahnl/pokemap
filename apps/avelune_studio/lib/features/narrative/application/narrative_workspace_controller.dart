@@ -29,6 +29,7 @@ class NarrativeWorkspaceController {
   bool saving = false;
   bool get busy => saving || _opener.loading;
   bool get opening => _opener.loading;
+  String? Function(String sceneId)? sceneAccessProblem;
   String? error;
   String? publicationError;
   String search = '';
@@ -106,6 +107,17 @@ class NarrativeWorkspaceController {
   void cancelOpening() => _opener.cancel();
   void dispose() => _opener.dispose();
 
+  void invalidateCleanSceneSessions(String sceneId) {
+    final removed = sessions.values
+        .where(
+          (session) =>
+              !session.dirty && session.current.interaction.sceneId == sceneId,
+        )
+        .toSet();
+    sessions.removeWhere((_, session) => removed.contains(session));
+    if (removed.contains(active)) active = null;
+  }
+
   void addFact(String label) {
     if (label.trim().isEmpty) return;
     final fact = NarrativeFactDefinition(
@@ -149,6 +161,22 @@ class NarrativeWorkspaceController {
         .where((s) => s.document == target && s.dirty)
         .toList();
     final snapshots = {for (final edit in edits) edit: edit.current};
+    for (final edit in edits) {
+      final sceneId = edit.current.interaction.sceneId;
+      final stored = project.scenes
+          .where((scene) => scene.id == sceneId)
+          .firstOrNull;
+      final problem =
+          sceneAccessProblem?.call(sceneId) ??
+          (edit.sceneBaseKnown && stored != edit.baseScene
+              ? 'La scène liée a changé. Votre brouillon d’interaction est conservé ; ouvrez la scène actuelle avant de poursuivre.'
+              : null);
+      if (problem != null) {
+        error = publicationError = problem;
+        changed();
+        return false;
+      }
+    }
     final factSnapshot = Map.of(pendingFacts),
         storySnapshot = Map.of(pendingStories);
     if (edits.isEmpty && factSnapshot.isEmpty && storySnapshot.isEmpty) {
@@ -186,6 +214,9 @@ class NarrativeWorkspaceController {
       _sourceRevisions.addAll(receipt.sourceRevisions);
       for (final entry in snapshots.entries) {
         entry.key.acceptSave(entry.value);
+        entry.key.baseScene = receipt.manifest.scenes
+            .where((scene) => scene.id == entry.value.interaction.sceneId)
+            .firstOrNull;
       }
       pendingFacts.removeWhere((id, v) => identical(factSnapshot[id], v));
       pendingStories.removeWhere((id, v) => identical(storySnapshot[id], v));

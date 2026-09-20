@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/scenes/application/scene_workspace_controller.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
@@ -20,6 +21,7 @@ class WorkspaceActions {
     required this.changed,
     required this.resources,
     required this.narrative,
+    this.scenes,
     required this.runtimeBuilder,
   });
   final MapWorkspaceController controller;
@@ -28,12 +30,14 @@ class WorkspaceActions {
   final VoidCallback changed;
   final ResourceNavigation? Function() resources;
   final NarrativeWorkspaceController? Function() narrative;
+  final SceneWorkspaceController? Function()? scenes;
   final StudioRuntimeBuilder runtimeBuilder;
   bool testing = false;
   bool closing = false;
   bool get busy =>
       testing ||
       closing ||
+      scenes?.call()?.busy == true ||
       resources()?.busy == true ||
       narrative()?.busy == true;
 
@@ -41,7 +45,8 @@ class WorkspaceActions {
     if (controller.saving || busy) return false;
     if (!controller.dirty &&
         resources()?.dirty != true &&
-        narrative()?.dirty != true) {
+        narrative()?.dirty != true &&
+        scenes?.call()?.dirty != true) {
       return true;
     }
     closing = true;
@@ -50,6 +55,9 @@ class WorkspaceActions {
       final choice = await confirmStudioClose(context());
       if (!mounted() || choice == null || choice == 'cancel') return false;
       if (choice == 'save') {
+        if (scenes?.call() case final sceneController?) {
+          if (!await sceneController.saveAll()) return false;
+        }
         if (resources() != null && !await resources()!.saveDrafts()) {
           return false;
         }
@@ -72,6 +80,10 @@ class WorkspaceActions {
     testing = true;
     changed();
     try {
+      final sceneController = scenes?.call();
+      if (sceneController?.dirty == true && !await sceneController!.saveAll()) {
+        return;
+      }
       if (!await (narrative()?.save(document: document) ??
               controller.save(document)) ||
           !mounted()) {
@@ -81,6 +93,13 @@ class WorkspaceActions {
       if (document.dirty) {
         document.error =
             'La carte a encore changé. Enregistrez-la avant de tester.';
+        return;
+      }
+      if (sceneController?.dirty == true) {
+        const message =
+            'Une scène a encore changé. Enregistrez-la avant de tester.';
+        sceneController!.error = message;
+        sceneController.active?.error = message;
         return;
       }
       await Navigator.of(context()).push<void>(

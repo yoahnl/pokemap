@@ -1,0 +1,86 @@
+=== ui06-analyze-final ===
+Analyzing avelune_studio...
+No issues found! (ran in 5.7s)
+
+=== ui06-studio-final ===
+01:14 +361 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+01:15 +362 ~2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: large resource library remains usable at narrow enlarged text
+01:16 +363 ~2: All tests passed!
+UI06 volume: nodes=200 edges=265 viewportUpdates=8 documentMutations=0 firstFrameUs=1486047 gesturesUs=2268229; no I/O adapter instantiated
+runnerPid=23654; exitCode=0; ownedChildren=114; reaped=[]
+
+=== ui06-build-macos-final ===
+Building macOS application...
+✓ Built build/macos/Build/Products/Debug/Avelune Studio.app
+
+=== ui06-authoring-tests ===
+00:00 +10: test/tooling/jsonl_scene_pre_session_flow_test.dart: preSession actions keep direct and JSONL projects equivalent
+00:00 +11: test/tooling/jsonl_scene_pre_session_flow_test.dart: preSession actions keep direct and JSONL projects equivalent
+00:01 +12: All tests passed!
+
+=== ui06-editor-builder ===
+00:00 +13: NarrativeTemplateCatalog refuses a physical source that does not match the Event source
+00:00 +14: NarrativeTemplateCatalog rejects an empty label and a non-boolean conditional value
+00:00 +15: All tests passed!
+runnerPid=5102; exitCode=0; ownedChildren=2; reaped=[]
+
+=== ui06-core-analyze ===
+Analyzing scene_command_payload_builder.dart, scene_command_payload_helpers.dart, map_core_domain.dart...
+
+   info - lib/map_core_domain.dart:1:9 - Library names are not necessary. Remove the library name. - unnecessary_library_name
+
+1 issue found.
+
+=== ui06-editor-analyze ===
+Analyzing narrative_template_catalog.dart...
+No issues found!
+
+=== ui06-mcp-build ===
+> @pokemap/mcp-server@0.1.0 build
+> tsc -p tsconfig.json
+
+
+=== ui06-mcp-focused ===
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8109.328458
+
+=== ui06-mcp-scene ===
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6985.163167
+
+=== ui06-playtest-guard-fixed ===
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui06_scene_playtest_guard_test.dart
+00:00 +0: scene changed while the following real map save waits cannot launch an old scene
+00:01 +1: All tests passed!
+runnerPid=22382; exitCode=0; ownedChildren=3; reaped=[]
+
+=== ui06-captures-delivery ===
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui06_scene_journey_test.dart
+00:00 +0: UI06 real scene page composition and linked document preserve the graph
+00:05 +1: All tests passed!
+runnerPid=26209; exitCode=0; ownedChildren=3; reaped=[]
+
+=== État Git ===
+af133be2ae96d82c914d535e3502305ef078c45a
+main
+Fichiers modifiés suivis: 17
+Fichiers nouveaux non suivis avant ce reçu: 54
+État final incluant ce reçu : 17 fichiers suivis modifiés, 55 nouveaux non suivis, index vide ; branche et HEAD inchangés.
+Index: vide
+
+Commandes complètes et portée : README.md dans ce dossier.
+Les captures sont des rendus Flutter hors écran, sans retouche.
+Les deux exécutions interrompues ui06-focused-third et ui06-playtest-guard ne sont pas comptées comme succès, même si leur wrapper a rendu exitCode=0 lors de SIGINT.
+Hygiène : POKEMAP_MARKDOWN_MAX_NEW=1 bash tools/scripts/check_markdown_hygiene.sh
+Résultat : Markdown hygiene: 1 new Markdown file(s), all in canonical locations.
+git diff --check : exit 0.

@@ -1,6 +1,7 @@
 import '../../map_workspace/application/editable_map_document.dart';
 import '../domain/dialogue_draft.dart';
 import 'narrative_interaction.dart';
+import 'package:map_core/map_core_domain.dart';
 
 class InteractionEditState {
   const InteractionEditState(this.dialogue, this.interaction);
@@ -14,11 +15,15 @@ class InteractionEditSession {
     required DialogueDraft dialogue,
     required NarrativeInteractionDraft interaction,
     this.readOnlySource,
+    this.baseScene,
+    this.sceneBaseKnown = false,
   }) : current = InteractionEditState(dialogue, interaction) {
     saved = current;
   }
   final EditableMapDocument document;
   final String? readOnlySource;
+  SceneAsset? baseScene;
+  final bool sceneBaseKnown;
   InteractionEditState current;
   late InteractionEditState saved;
   final List<InteractionEditState> _undo = [];

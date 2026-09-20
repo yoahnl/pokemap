@@ -82,6 +82,7 @@ class NarrativeInteractionOpener {
 
   Future<bool> openSession(InteractionEditSession session) =>
       _run((project, valid) async {
+        if (!_canOpenSession(session, project)) return false;
         final document = await _activate(
           project,
           session.document.current.id,
@@ -96,8 +97,11 @@ class NarrativeInteractionOpener {
     project,
     valid,
   ) async {
+    final sceneId = record.definitionOrNull?.sceneId ?? 'scene_${record.id}';
+    if (!_canOpenScene(sceneId)) return false;
     final local = controller.sessions[record.id];
     if (local != null) {
+      if (!_canOpenSession(local, project)) return false;
       final document = await _activate(
         project,
         local.document.current.id,
@@ -160,6 +164,9 @@ class NarrativeInteractionOpener {
     ProjectDialogueEntry? existing,
     NarrativeInteractionDraft? interaction,
   }) async {
+    if (interaction != null && !_canOpenScene(interaction.sceneId)) {
+      return false;
+    }
     final id = _eventIds.generate(
       existingRecords: project.eventRegistry?.records ?? [],
     );
@@ -180,6 +187,10 @@ class NarrativeInteractionOpener {
         : const DialogueDraftCodec().decode(original);
     final rank = nextNarrativeRank(project, controller.sessions.values, source);
     final edit = InteractionEditSession(
+      baseScene: project.scenes
+          .where((scene) => scene.id == (interaction?.sceneId ?? 'scene_$id'))
+          .firstOrNull,
+      sceneBaseKnown: true,
       document: document,
       dialogue: decoded ?? DialogueDraft.blank(entry),
       interaction:
@@ -199,6 +210,28 @@ class NarrativeInteractionOpener {
     );
     controller.sessions[edit.current.interaction.id] = edit;
     controller.active = edit;
+    return true;
+  }
+
+  bool _canOpenScene(String id) {
+    final problem = controller.sceneAccessProblem?.call(id);
+    if (problem == null) return true;
+    controller.error = problem;
+    return false;
+  }
+
+  bool _canOpenSession(
+    InteractionEditSession session,
+    ProjectManifest project,
+  ) {
+    final id = session.current.interaction.sceneId;
+    if (!_canOpenScene(id)) return false;
+    final stored = project.scenes.where((scene) => scene.id == id).firstOrNull;
+    if (session.sceneBaseKnown && stored != session.baseScene) {
+      controller.error =
+          'La scène liée a changé. Ouvrez sa version actuelle ; ce brouillon reste conservé.';
+      return false;
+    }
     return true;
   }
 

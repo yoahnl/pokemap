@@ -387,3 +387,5 @@ export 'src/save/save_migration.dart';
 export 'src/save/save_recovery.dart';
 export 'src/serialization/project_item_catalog_codec.dart';
 export 'src/tooling/authoring_capability_inventory.dart';
+
+export 'src/authoring/scene_command_payload_builder.dart';

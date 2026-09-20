@@ -21,6 +21,7 @@ class StudioPrimaryNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final selectedDestination = active == 'scene' ? 'story' : active;
     final items = [
       ('Accueil', Icons.home_outlined, 'home'),
       ('Carte', Icons.map_outlined, 'map'),
@@ -50,7 +51,7 @@ class StudioPrimaryNavigation extends StatelessWidget {
                       child: Tooltip(
                         message: item.$1,
                         child: Material(
-                          color: item.$3 == active
+                          color: item.$3 == selectedDestination
                               ? colors.primaryContainer
                               : colors.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(6),
@@ -76,7 +77,8 @@ class StudioPrimaryNavigation extends StatelessWidget {
                                       child: Text(
                                         item.$1,
                                         style: TextStyle(
-                                          fontWeight: item.$3 == active
+                                          fontWeight:
+                                              item.$3 == selectedDestination
                                               ? FontWeight.w700
                                               : FontWeight.w400,
                                         ),

@@ -2,3 +2,4 @@ export 'map_workspace_providers.dart';
 export 'project_session_providers.dart';
 export 'resource_providers.dart';
 export 'narrative_providers.dart';
+export 'scene_providers.dart';

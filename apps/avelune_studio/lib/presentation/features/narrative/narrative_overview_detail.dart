@@ -17,6 +17,7 @@ class NarrativeOverviewDetail extends StatelessWidget {
     required this.onOpen,
     required this.onLocate,
     required this.busy,
+    this.onOpenScene,
   });
   final NarrativeOverview overview;
   final NarrativeOverviewViewState state;
@@ -24,6 +25,7 @@ class NarrativeOverviewDetail extends StatelessWidget {
   final VoidCallback onChanged;
   final ValueChanged<String> onOpen, onLocate;
   final bool busy;
+  final ValueChanged<String>? onOpenScene;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +107,20 @@ class NarrativeOverviewDetail extends StatelessWidget {
         ),
     ],
     const SizedBox(height: 20),
+    if (onOpenScene != null &&
+        (item.record?.definitionOrNull?.sceneId ??
+                item.record?.draftOrNull?.sceneId) !=
+            null)
+      StudioButton(
+        label: 'Ouvrir la scène',
+        icon: Icons.account_tree_outlined,
+        onPressed: busy
+            ? null
+            : () => onOpenScene!(
+                (item.record?.definitionOrNull?.sceneId ??
+                    item.record!.draftOrNull!.sceneId!),
+              ),
+      ),
     if (!item.advanced)
       StudioButton(
         label: item.session != null
