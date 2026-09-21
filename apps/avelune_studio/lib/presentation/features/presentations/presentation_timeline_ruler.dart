@@ -19,8 +19,13 @@ extension _PresentationTimelineRuler on _PresentationTimelineState {
         key: const ValueKey('presentation-timeline-ruler'),
         behavior: HitTestBehavior.opaque,
         onTapDown: (event) => scrub(event.localPosition.dx),
-        onHorizontalDragStart: (event) => scrub(event.localPosition.dx),
+        onHorizontalDragStart: (event) {
+          widget.transport.setScrubbing(true);
+          scrub(event.localPosition.dx);
+        },
         onHorizontalDragUpdate: (event) => scrub(event.localPosition.dx),
+        onHorizontalDragEnd: (_) => widget.transport.setScrubbing(false),
+        onHorizontalDragCancel: () => widget.transport.setScrubbing(false),
         child: Stack(
           children: [
             for (int i = 0; i <= widget.asset.durationUs ~/ 1000000; i++)

@@ -179,6 +179,44 @@ diagnostic est vérifiée sur sa branche de panne dans
 `presentations_ui11_visuals_test.dart` ; sa branche informative est établie par
 construction, la fixture ne comportant pas de média vidéo.
 
+## Troisième retour : le canevas clignotait pendant le scrub
+
+Signalé par Yoahn avec une capture d'écran vidéo : l'interface « faisait une
+crise d'épilepsie » pendant le défilement de la tête de lecture.
+
+Mesure sur l'enregistrement, en extrayant la luminance moyenne du canevas à dix
+images par seconde : pendant le geste, elle oscillait entre 65 et 5 avec dix
+inversions en 1,4 seconde, soit environ **sept battements par seconde**, puis se
+stabilisait dès le relâchement. Ce n'est pas un panneau qui bouge, c'est un
+stroboscope, et sept hertz tombe dans la bande à laquelle la photosensibilité
+est documentée.
+
+Cause. `PresentationPreviewTransport.seek` incrémente `mediaEpoch`, et
+`_syncMedia` lit tout changement d'epoch comme une discontinuité : il appelle
+`sink.release()` puis republie. Chaque seek détruisait donc le décodeur vidéo et
+le relançait. `resolveVisual` bascule entre le lecteur vivant, lorsque
+`sink.videoFor` répond, et le poster sinon : le sous-arbre alternait entre un
+lecteur en cours d'initialisation, donc noir, et l'image fixe.
+
+Le défaut existait avant, mais restait invisible : seul un clic pouvait déplacer
+la tête de lecture, ce qui produisait un unique battement. Le glissement livré
+au retour précédent en produit sept par seconde, ce qui l'a rendu manifeste.
+
+Correctif : la synchronisation média est coalescée pendant le geste. Le
+transport porte un état `scrubbing`, `_syncMedia` ne publie rien tant qu'il est
+actif, et la sortie du geste déclenche une libération et une reprise uniques à
+l'instant final. C'est aussi ce que demandent la section 13, qui interdit de
+rejouer les sources depuis zéro pendant un scrub, et la section 19, qui interdit
+un décodage à chaque frame de glissement.
+
+Le test `UI11 scrubbing does not churn the media between frames` compare l'epoch
+média appliqué par les visuals à celui du transport. Sans le correctif il relève
+sept applications au lieu d'une pendant un glissement de six échantillons — le
+même chiffre que la mesure vidéo.
+
+`_UnavailableContent` a été extraite vers `presentation_unavailable_content.dart`
+pour rendre au fichier la marge nécessaire sous la limite de trois cents lignes.
+
 ## Composition livrée
 
 Le cadre Avelune, la navigation et l'espace Histoire sont réutilisés tels quels.
@@ -239,7 +277,7 @@ pas : la suite Studio contient déjà les tests ciblés UI11.
 | Périmètre | Commande | Résultat |
 | --- | --- | --- |
 | Tests ciblés UI11 | `flutter test` sur les 12 fichiers UI11 et `test/presentations/` | 41 verts |
-| Suite Studio complète | `flutter test` dans `apps/avelune_studio` | 639 verts, 2 ignorés, 1 échec d'environnement |
+| Suite Studio complète | `flutter test` dans `apps/avelune_studio` | 641 verts, 2 ignorés |
 | Analyse Studio | `flutter analyze` | `No issues found!` |
 | Analyse `map_authoring` | `dart analyze` | `No issues found!` |
 | Analyse `map_player_ui` | `dart analyze` | `No issues found!` |
@@ -260,6 +298,9 @@ publiées ont été mises de côté par copie, l'arbre ramené au commit de base
 le test relancé seul **trois fois de suite — trois échecs**, à une charge
 machine pourtant plus basse que lors des exécutions réussies du matin. Le
 défaut préexiste donc au lot.
+
+Ce test est repassé au vert, dans la suite complète, une fois la machine
+revenue au calme, ce qui confirme l'attribution.
 
 Deux facteurs mesurés sur la machine au moment des essais : `fileproviderd`
 consommait 94 % d'un cœur en continu, saturant le système de fichiers, et

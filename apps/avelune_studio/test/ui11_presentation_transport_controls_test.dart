@@ -59,6 +59,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('UI11 scrubbing does not churn the media between frames', (
+    tester,
+  ) async {
+    final harness = await open(tester);
+    final ruler = find.byKey(const ValueKey('presentation-timeline-ruler'));
+    final transport = tester
+        .widget<PresentationTimeline>(find.byType(PresentationTimeline))
+        .transport;
+    final applied = harness.visuals.appliedMediaEpoch;
+
+    final gesture = await tester.startGesture(
+      tester.getTopLeft(ruler) + const Offset(4, 12),
+    );
+    for (var i = 0; i < 6; i++) {
+      await gesture.moveBy(const Offset(40, 0));
+      await tester.pump();
+    }
+    expect(transport.scrubbing, isTrue);
+    expect(transport.mediaEpoch, greaterThan(applied));
+    expect(
+      harness.visuals.appliedMediaEpoch,
+      applied,
+      reason: 'Releasing and restarting media on every scrub sample strobes',
+    );
+
+    await gesture.up();
+    await harness.settle(tester);
+    expect(transport.scrubbing, isFalse);
+    expect(harness.visuals.appliedMediaEpoch, transport.mediaEpoch);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('UI11 transport answers the keyboard without a focused panel', (
     tester,
   ) async {

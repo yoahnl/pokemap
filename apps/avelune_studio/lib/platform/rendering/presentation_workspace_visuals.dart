@@ -10,6 +10,7 @@ import 'presentation_content_store.dart';
 import 'presentation_scenario_preview.dart';
 import '../../presentation/features/presentations/presentation_scenario_preview.dart';
 import 'presentation_frame_bindings.dart';
+import 'presentation_unavailable_content.dart';
 
 class StudioPresentationVisuals extends ChangeNotifier
     implements PresentationWorkspaceVisuals {
@@ -46,6 +47,7 @@ class StudioPresentationVisuals extends ChangeNotifier
       _error != null || _sink?.diagnostic != null || _contentFailed;
   bool get _contentFailed => _content?.currentDiagnosticIsFailure ?? false;
   int get mediaReads => _content?.reads ?? 0;
+  int get appliedMediaEpoch => _epoch;
 
   Future<void> _initialize() async {
     final stagedIds = imports.map((item) => item.media.id).toSet();
@@ -150,7 +152,7 @@ class StudioPresentationVisuals extends ChangeNotifier
     if (_closed || loading) return;
     final transport = _transport;
     final sink = _sink;
-    if (transport == null || sink == null) return;
+    if (transport == null || sink == null || transport.scrubbing) return;
     if (_epoch != transport.mediaEpoch) {
       _epoch = transport.mediaEpoch;
       final epoch = _epoch;
@@ -203,7 +205,7 @@ class StudioPresentationVisuals extends ChangeNotifier
           ? PresentationFrameOrientation.portrait
           : PresentationFrameOrientation.landscape,
       contentPort: PresentationResponsiveFrameContentPort(
-        delegate: _content ?? const _UnavailableContent(),
+        delegate: _content ?? const PresentationUnavailableContent(),
         bindings: presentationMediaBindings(asset),
       ),
       geometry: geometry,
@@ -276,24 +278,4 @@ class StudioPresentationVisuals extends ChangeNotifier
     unawaited(close());
     super.dispose();
   }
-}
-
-class _UnavailableContent implements PresentationFrameContentPort {
-  const _UnavailableContent();
-  @override
-  PresentationVisualResolution resolveVisual({
-    required PresentationVisualFrameClip clip,
-    required PresentationFrameOrientation orientation,
-  }) => const PresentationVisualUnavailable(
-    reason: PresentationContentUnavailableReason.missing,
-    message: 'Média en cours de chargement',
-  );
-  @override
-  PresentationCaptionResolution resolveCaption({
-    required PresentationCaptionFrameClip clip,
-    required Locale locale,
-  }) => const PresentationCaptionUnavailable(
-    reason: PresentationContentUnavailableReason.missing,
-    message: 'Sous-titres en cours de chargement',
-  );
 }

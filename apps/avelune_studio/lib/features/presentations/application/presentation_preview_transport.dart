@@ -14,6 +14,13 @@ class PresentationPreviewTransport {
   int frameEvaluations = 0;
   int mediaEpoch = 0;
 
+  bool scrubbing = false;
+  void setScrubbing(bool value) {
+    if (_disposed || scrubbing == value) return;
+    scrubbing = value;
+    _notify();
+  }
+
   int get timeUs => _clock.playheadUs;
   int get durationUs => _clock.durationUs;
   bool get playing => _clock.narrativeClockRunning;
