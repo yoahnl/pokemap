@@ -21,6 +21,11 @@ class Ui13ControllableVerificationPort implements VerificationPort {
   /// Runs once before the maps are answered, so a test can publish while the
   /// preparation is in flight.
   Future<void> Function()? beforeMaps;
+
+  /// When true, each runtime proof read waits for its own release, so a test
+  /// can hold one request's last read open while another one finishes.
+  bool holdEvidence = false;
+  final evidenceCalls = <Completer<VerificationRuntimeEvidence>>[];
   final started = <Completer<VerificationAnalysis>>[];
   final cancelled = <int>[];
   Object? readFailure;
@@ -57,7 +62,27 @@ class Ui13ControllableVerificationPort implements VerificationPort {
   @override
   Future<VerificationRuntimeEvidence> readRuntimeEvidence(
     NarrativeRuntimeSmokeProfile profile,
-  ) async => evidence;
+  ) {
+    if (!holdEvidence) return Future.value(evidence);
+    final gate = Completer<VerificationRuntimeEvidence>();
+    evidenceCalls.add(gate);
+    return gate.future;
+  }
+
+  /// Answers the runtime proof read at [index], or makes it fail.
+  void releaseEvidence(
+    int index, {
+    VerificationRuntimeEvidence? value,
+    Object? failure,
+  }) {
+    final gate = evidenceCalls[index];
+    if (gate.isCompleted) return;
+    if (failure != null) {
+      gate.completeError(failure);
+      return;
+    }
+    gate.complete(value ?? evidence);
+  }
 
   @override
   VerificationJob analyse({

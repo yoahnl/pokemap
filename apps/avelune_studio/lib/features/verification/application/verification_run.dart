@@ -35,7 +35,11 @@ extension VerificationRun on VerificationWorkspaceController {
       if (_interrupted(ticket, session) != VerificationStop.none) {
         return _stopped(ticket, session);
       }
-      report = _assemble(ticket, snapshot, analysis, await _evidence(snapshot));
+      final evidence = await _evidence(snapshot);
+      if (_interrupted(ticket, session) != VerificationStop.none) {
+        return _stopped(ticket, session);
+      }
+      report = _assemble(ticket, snapshot, analysis, evidence);
       _keepSelection();
       return true;
     } on Object catch (failure) {

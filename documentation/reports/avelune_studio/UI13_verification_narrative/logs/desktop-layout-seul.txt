@@ -29,36 +29,4 @@ Got dependencies!
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart
 00:00 +0: real stress workspace stays usable across desktop sizes and diagnostics
-══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
-The following TestFailure was thrown running a test:
-Expected: true
-  Actual: <false>
-Les E/S réelles ne terminent pas entre les frames en 20 secondes.
-
-When the exception was thrown, this was the stack:
-#4      _awaitWhilePumping (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart:269:3)
-<asynchronous suspension>
-#5      _settle (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart:239:5)
-<asynchronous suspension>
-#6      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart:184:7)
-<asynchronous suspension>
-#7      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#8      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
-<asynchronous suspension>
-<asynchronous suspension>
-(elided one frame from package:stack_trace)
-
-This was caught by the test expectation on the following line:
-  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart line 269
-The test description was:
-  real stress workspace stays usable across desktop sizes and diagnostics
-════════════════════════════════════════════════════════════════════════════════════════════════════
-00:27 +0 -1: real stress workspace stays usable across desktop sizes and diagnostics [E]
-  Test failed. See exception logs above.
-  The test description was: real stress workspace stays usable across desktop sizes and diagnostics
-  
-00:27 +0 -1: Some tests failed.
-
-Failing tests:
-  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
+00:24 +1: All tests passed!

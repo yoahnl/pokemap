@@ -28,67 +28,72 @@ Got dependencies!
 24 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart
-00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: saving during an analysis leaves no ghost control
-00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: saving during an analysis leaves no ghost control
-00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: saving during an analysis leaves no ghost control
-00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: saving during an analysis leaves no ghost control
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: the real analysis runs outside the interface isolate
+00:01 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: the real analysis runs outside the interface isolate
+00:01 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: saving during an analysis leaves no ghost control
+00:01 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: saving during an analysis leaves no ghost control
 00:01 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: saving during an analysis leaves no ghost control
 00:01 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: the report matches the canonical function on the same input
 00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: the report matches the canonical function on the same input
-00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: the report matches the canonical function on the same input
+00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: an identifier answered by several documents is not guessed
 00:01 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_selection_test.dart: a selection that vanished is explained, not called solved
-00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_selection_test.dart: a selection that vanished is explained, not called solved
-00:01 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_selection_test.dart: a selection that vanished is explained, not called solved
-00:01 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: a revision that moves during the reads is prepared again
-00:01 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: a revision that moves during the reads is prepared again
-00:01 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: a replacing request keeps only its own answer
-00:01 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: every identity carries its kind, scope and parent
-00:01 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a second launch while one runs is ignored, not queued
-00:01 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: a failed preparation still frees the page
-00:01 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: closing the page drops the work and its answer
-00:02 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: a real diagnostic still finds its own document
+00:02 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_selection_test.dart: a selection that vanished is explained, not called solved
+00:02 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_selection_test.dart: a selection that vanished is explained, not called solved
+00:02 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_selection_test.dart: a selection that vanished is explained, not called solved
+00:02 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: a revision that moves during the reads is prepared again
+00:02 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: a replacing request keeps only its own answer
+00:02 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a second launch while one runs is ignored, not queued
+00:02 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: every identity carries its kind, scope and parent
+00:02 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: a failed preparation still frees the page
+00:02 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: closing the page drops the work and its answer
+00:02 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: an incomplete rule draft is listed apart, never analysed
 00:02 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: an incomplete rule draft is listed apart, never analysed
 00:02 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: a refused input check frees the page too
-00:02 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: a failed read leaves no synthetic green report
-00:02 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a change without new documents makes the report stale
-00:02 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: the end of a replaced request does not disturb the new one
-00:02 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: a second launch while one runs starts no second job
-00:02 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a filter never turns a failing report into a valid project
-00:02 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a hidden selection is announced, and keeps its own target
-00:02 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a full consultation writes nothing on disk
-00:02 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a correction made in its editor changes the next report
-00:03 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a report of another project never replaces the current one
-00:03 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: the report carries its own identity and scope
-00:06 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_runtime_test.dart: a receipt of another version is stale, never a success
-00:07 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_working_version_test.dart: a scene renamed in its editor is analysed without saving
-00:07 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_dialogue_source_test.dart: an unopened dialogue is checked from its saved source
-00:07 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_dialogue_source_test.dart: an unopened dialogue is checked from its saved source
-00:07 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:08 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:09 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:09 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
-00:11 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_page_test.dart: the page states that nothing was checked before a launch
-00:12 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_scale_test.dart: UI13 stays usable at 1536
-00:12 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a rule opened from the report comes back to that report
-00:13 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a rule opened from the report comes back to that report
-00:13 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a rule opened from the report comes back to that report
-00:14 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a rule opened from the report comes back to that report
-00:14 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_page_test.dart: an empty filter is the filter’s zero, not the project’s
-00:15 +57: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_scale_test.dart: UI13 stays usable at 1024
-00:15 +58: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a story diagnostic opens its own step and comes back
-00:15 +59: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a story diagnostic opens its own step and comes back
-00:16 +60: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a story diagnostic opens its own step and comes back
-00:17 +61: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: verification, scene, dialogue, scene and back again
-00:20 +62: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a map diagnostic opens its map and offers the way back
-00:22 +63: All tests passed!
+00:03 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: a failed read leaves no synthetic green report
+00:03 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a change without new documents makes the report stale
+00:03 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: the end of a replaced request does not disturb the new one
+00:03 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_executor_test.dart: a second launch while one runs starts no second job
+00:03 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a filter never turns a failing report into a valid project
+00:03 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a hidden selection is announced, and keeps its own target
+00:03 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a full consultation writes nothing on disk
+00:03 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a correction made in its editor changes the next report
+00:04 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a report of another project never replaces the current one
+00:04 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: the report carries its own identity and scope
+00:08 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_late_evidence_test.dart: an abandoned control never replaces the report that followed
+00:09 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_working_version_test.dart: a scene renamed in its editor is analysed without saving
+00:10 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_working_version_test.dart: a scene renamed in its editor is analysed without saving
+00:10 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:10 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:10 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:11 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:12 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:13 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:13 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:14 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:14 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:15 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:15 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_host_recovery_test.dart: saving from an editor during a control frees the page
+00:15 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_page_test.dart: the page states that nothing was checked before a launch
+00:16 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a rule opened from the report comes back to that report
+00:16 +57: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a rule opened from the report comes back to that report
+00:17 +58: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a rule opened from the report comes back to that report
+00:18 +59: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a rule opened from the report comes back to that report
+00:18 +60: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a rule opened from the report comes back to that report
+00:18 +61: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_page_test.dart: an empty filter is the filter’s zero, not the project’s
+00:19 +62: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_scale_test.dart: UI13 stays usable at 1024
+00:19 +63: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a story diagnostic opens its own step and comes back
+00:20 +64: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a story diagnostic opens its own step and comes back
+00:20 +65: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a story diagnostic opens its own step and comes back
+00:21 +66: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: verification, scene, dialogue, scene and back again
+00:24 +67: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_navigation_test.dart: a map diagnostic opens its map and offers the way back
+00:26 +68: All tests passed!

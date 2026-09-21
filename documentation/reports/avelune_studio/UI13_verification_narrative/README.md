@@ -1,8 +1,8 @@
 # AS-UI-013 — Vérification narrative
 
 Réalisation de l'image 09 du kit Narrative Studio, précédée de la validation
-du correctif UI12 de la PR #10, puis finalisée par deux lots de fiabilité
-décrits plus bas (revues sur `9764082e3` puis `dbda4a562`).
+du correctif UI12 de la PR #10, puis finalisée par les lots de fiabilité
+décrits plus bas (revues sur `9764082e3`, `dbda4a562` puis `b6afbb300`).
 
 Base de travail : `main` à `edf0f96c96a8db4475c5f3eb084fc8a88062894c`, la base
 exacte du pack. SDK local Flutter `3.48.0-0.4.pre` ; la CI épingle
@@ -213,6 +213,27 @@ compilateur, sous `analysed/dialogues/<id>.yarn` : changer une seule réplique
 la change. Elle reste distincte de l'empreinte des fichiers bruts du reçu
 runtime. Filtrer, sélectionner ou déplacer le graphe ne relit aucune source.
 
+## Un contrôle abandonné reste abandonné
+
+Revue de `b6afbb300`. `run()` vérifiait la validité de la requête après
+`await job.result`, mais attendait ensuite la lecture de la preuve runtime
+**dans l'expression même** qui affectait `report`, sans revérifier après cette
+dernière attente. Une requête abandonnée dont la preuve se terminait plus tard
+pouvait donc écraser le rapport de celle qui lui avait succédé, et déplacer sa
+sélection.
+
+L'attente de la preuve, la vérification de la requête et l'adoption du rapport
+sont désormais trois pas distincts. Après la lecture, une requête annulée,
+remplacée ou appartenant à un projet fermé repart sans rien adopter, par les
+mêmes `_interrupted()`, `_stopped()` et `_recover()` : aucun nouveau système de
+tâches. Le `finally` protégeait déjà le nettoyage, il protège maintenant aussi
+ce qui le précède.
+
+Les acquis tiennent : une sauvegarde dans le même projet n'est pas un
+changement de projet, un instantané devenu ancien reste consultable comme
+périmé, et la comparaison d'identité du manifeste qui provoquait le blocage
+n'est pas revenue.
+
 ## Honnêteté du verdict
 
 Pas de score, pas de pourcentage, pas de jauge. Les quatre dimensions gardent
@@ -326,7 +347,7 @@ Depuis `apps/avelune_studio`.
 | Périmètre | Commande | Résultat |
 | --- | --- | --- |
 | Continuité UI12 et PR #10, correctif `810c8967` conservé | `flutter test test/ui12_world_*.dart test/ui12_workspace_return_test.dart` | 15 verts (`logs/ui12-pr10-continuite.txt`) |
-| UI13, les treize fichiers ensemble | `flutter test test/ui13_verification_*.dart` | **63 verts** (`logs/ui13-cible.txt`) |
+| UI13, les quatorze fichiers ensemble | `flutter test test/ui13_verification_*.dart` | **68 verts** (`logs/ui13-cible.txt`) |
 | — contrôleur | `test/ui13_verification_controller_test.dart` | 12 |
 | — sélection entre deux contrôles | `test/ui13_verification_selection_test.dart` | 2 |
 | — versions de travail, fraîcheur, empreintes, preuve | `test/ui13_verification_working_version_test.dart` | 5 |
@@ -334,6 +355,7 @@ Depuis `apps/avelune_studio`.
 | — exécuteur, annulation, isolate | `test/ui13_verification_executor_test.dart` | 7 |
 | — récupération après enregistrement | `test/ui13_verification_recovery_test.dart` | 5 |
 | — récupération dans l'hôte réel | `test/ui13_verification_host_recovery_test.dart` | 1 |
+| — preuve runtime tardive et concurrence | `test/ui13_verification_late_evidence_test.dart` | 5 |
 | — sources de dialogue compilées | `test/ui13_verification_dialogue_source_test.dart` | 4 |
 | — versions et conflits de dialogue | `test/ui13_verification_dialogue_version_test.dart` | 3 |
 | — preuves runtime | `test/ui13_verification_runtime_test.dart` | 6 |
@@ -343,7 +365,7 @@ Depuis `apps/avelune_studio`.
 | Régressions dialogue UI09 | `flutter test test/dialogues test/dialogues_ui09_navigation_test.dart` | 31 verts (`logs/dialogues-regression.txt`) |
 | Frontières d'architecture | `flutter test test/architecture/architecture_boundaries_test.dart` | 7 verts (`logs/architecture.txt`) |
 | Analyse Studio | `flutter analyze` | `No issues found!` (`logs/analyse.txt`) |
-| Suite Studio | `flutter test` | **723 verts, 2 ignorés, aucun échec** (`logs/suite-studio-finale.txt`) |
+| Suite Studio | `flutter test` | **727 verts, 2 ignorés, 1 échec de charge** (`logs/suite-studio-finale.txt`) |
 
 Ce que ces tests prouvent, cas par cas : entrée passive sans calcul ni
 écriture ; lancement unique malgré un second clic ; concordance exacte des
@@ -404,15 +426,15 @@ atteint et le retour sont les vrais chemins de l'hôte.
 
 ## Échecs observés
 
-Aucun, sur l'état final. La suite Studio complète est passée d'un bout à
-l'autre, avec des moyennes de charge autour de 75.
+Un seul : **`desktop_workspace_layout_test`**, avec son message habituel
+« Les E/S réelles ne terminent pas entre les frames en 20 secondes », pendant
+une exécution à une moyenne de charge de 313. Rejoué seul juste après, il
+passe en 24 secondes (`logs/desktop-layout-seul.txt`).
 
-Cela lève les deux réserves du lot précédent. **`desktop_workspace_layout_test`**
-avait échoué dans la suite et seul, la nuit du 21 septembre, avec des charges
-comprises entre 374 et 507 ; il passe ici sans intervention et n'a jamais été
-touché par ce lot — la charge machine était bien la variable.
-**`cinematics_ui10_error_recovery_test`**, qui n'avait échoué qu'une fois, n'a
-plus rechuté.
+Ce test n'est touché par aucun lot UI13, et la suite complète est passée deux
+fois sans lui dans cette même session, à des charges de 16 et de 75. Je le
+signale donc comme instable sous forte charge, pas comme un échec de ce
+correctif ni comme un préexistant démontré au commit de base.
 
 ## Journaux et captures
 
