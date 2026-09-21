@@ -1,0 +1,30 @@
+name: avelune_runtime
+description: "Avelune Flutter runtime module for iOS native embedding."
+version: 1.0.0+1
+publish_to: none
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  pokemap_hub:
+    path: ../../pokemap_hub
+  map_distribution:
+    path: ../../../packages/map_distribution
+  map_runtime:
+    path: ../../../packages/map_runtime
+  path: ^1.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  module:
+    androidX: true
+    androidPackage: com.avelune.avelune_runtime
+    iosBundleIdentifier: com.avelune.aveluneRuntime
