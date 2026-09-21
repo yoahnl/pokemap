@@ -18,6 +18,15 @@ Future<void> activate(WidgetTester tester, Finder finder) async {
   await pumpIo(tester, frames: 12);
 }
 
+/// Lets a chain of real writes finish without opening a second [runAsync]
+/// alongside the one the port already holds.
+Future<void> settle(WidgetTester tester) async {
+  for (var i = 0; i < 80; i++) {
+    await tester.pump(const Duration(milliseconds: 16));
+    if (WidgetResourcePort.pending case final pending?) await pending;
+  }
+}
+
 void main() {
   testWidgets('a state and its rule are composed from the page controls', (
     tester,
@@ -116,6 +125,67 @@ void main() {
       const NarrativeValue.boolean(false),
       reason: 'Testing never rewrites the value of the project',
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a rule refuses to outrun the state it reads, and offers it', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1536, 1024);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final h = (await tester.runAsync(() => Ui12PageHarness.create(tester)))!;
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(h.dispose);
+    });
+    await tester.pumpWidget(h.app());
+    unawaited(h.controller.initialize());
+    await pumpIo(tester);
+
+    final factId = h.controller.createFact();
+    h.controller.editFact(
+      NarrativeFactDefinition(
+        id: factId,
+        label: 'Train parti',
+        initialValue: const NarrativeValue.boolean(false),
+      ),
+    );
+    final ruleId = h.controller.createRule(factId: factId);
+    final map = h.controller.maps.firstWhere((map) => map.entities.isNotEmpty);
+    h.controller.editRule(ruleId, (draft) {
+      draft.label = 'Masquer le conducteur';
+      draft.target = WorldRuleTarget(
+        kind: WorldRuleTargetKind.mapEntity,
+        mapId: map.id,
+        entityId: map.entities.first.id,
+        label: map.entities.first.id,
+      );
+      draft.effect = const WorldRuleEffect(
+        kind: WorldRuleEffectKind.entityHidden,
+      );
+    });
+    h.view.view = WorldView.rules;
+    await pumpIo(tester);
+
+    await activate(tester, find.text('Enregistrer').first);
+    expect(find.textContaining('Train parti'), findsWidgets);
+    await activate(tester, find.text('Annuler'));
+    expect(h.controller.project.worldRules, isEmpty);
+    expect(h.controller.isRuleDirty(ruleId), isTrue);
+
+    await activate(tester, find.text('Enregistrer').first);
+    await tester.tap(find.text('Enregistrer l’état puis la règle'));
+    await settle(tester);
+    expect(h.controller.error, isNull);
+    final rule = h.controller.project.worldRules.single;
+    expect(
+      h.controller.project.facts.any((fact) => fact.id == rule.source.sourceId),
+      isTrue,
+      reason: 'the rule keeps the canonical id the state received',
+    );
+    expect(h.controller.pendingRules, isEmpty);
     expect(tester.takeException(), isNull);
   });
 }

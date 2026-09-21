@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
+import '../../../features/world/application/world_workspace_controller.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
@@ -30,6 +31,7 @@ class WorkspaceActions {
     this.dialogues,
     this.cinematics,
     this.presentations,
+    this.world,
     this.publishedCinematicContext,
     required this.runtimeBuilder,
   });
@@ -44,6 +46,7 @@ class WorkspaceActions {
   final DialogueWorkspaceController? Function()? dialogues;
   final CinematicWorkspaceController? Function()? cinematics;
   final PresentationWorkspaceController? Function()? presentations;
+  final WorldWorkspaceController? Function()? world;
   final bool Function()? publishedCinematicContext;
   final StudioRuntimeBuilder runtimeBuilder;
   bool testing = false;
@@ -57,7 +60,8 @@ class WorkspaceActions {
       events?.call()?.busy == true ||
       scenes?.call()?.busy == true ||
       resources()?.busy == true ||
-      narrative()?.busy == true;
+      narrative()?.busy == true ||
+      world?.call()?.saving == true;
 
   Future<bool> allowClose() async {
     if (!_flushDialogueEdit()) return false;
@@ -70,7 +74,8 @@ class WorkspaceActions {
         cinematics?.call()?.dirty != true &&
         presentations?.call()?.dirty != true &&
         events?.call()?.dirty != true &&
-        scenes?.call()?.dirty != true) {
+        scenes?.call()?.dirty != true &&
+        world?.call()?.hasRuleDraft != true) {
       return true;
     }
     closing = true;
@@ -97,6 +102,12 @@ class WorkspaceActions {
         if (narrative() != null && !await narrative()!.saveAll()) return false;
         if (events?.call() case final eventController?) {
           if (!await eventController.saveAll()) return false;
+        }
+        if (world?.call() case final worldController?) {
+          if (!await worldController.saveAll()) {
+            controller.error = worldController.error;
+            return false;
+          }
         }
         return await controller.saveAll();
       }

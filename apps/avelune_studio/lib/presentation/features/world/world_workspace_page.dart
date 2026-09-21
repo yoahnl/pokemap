@@ -77,9 +77,43 @@ class _WorldWorkspacePageState extends State<WorldWorkspacePage> {
   Future<void> _save() async {
     final id = _selectedId;
     if (!flush() || id == null) return;
-    _rules ? await controller.saveRule(id) : await controller.saveFact(id);
+    if (!_rules) {
+      await controller.saveFact(id);
+      refresh();
+      return;
+    }
+    final state = controller.unsavedRuleDependency(id);
+    if (state != null && !await _confirmDependency(state)) return;
+    state == null
+        ? await controller.saveRule(id)
+        : await controller.saveRuleWithDependency(id);
     refresh();
   }
+
+  /// A rule cannot be written before the state it reads: the author is told
+  /// which state holds it back, and offered to publish it in the same gesture.
+  Future<bool> _confirmDependency(NarrativeFactDefinition state) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Enregistrer l’état d’abord ?'),
+          content: Text(
+            'Cette règle lit l’état « ${state.label} », qui n’est pas encore '
+            'enregistré. La règle ne peut pas être écrite avant lui.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Enregistrer l’état puis la règle'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 
   void _create() {
     if (!flush()) return;

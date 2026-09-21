@@ -115,6 +115,52 @@ son état, configuré ou non, actif ou non, masqué ou non.
 | Deux bibliothèques et un éditeur côte à côte | Une bibliothèque par vue | Les usages et le contexte vivent dans le panneau de droite. |
 | Priorité « Normale » / « Haute » | Saisie numérique | Aucune table canonique ne définit ces libellés. |
 
+## Sécurisation des brouillons et des sauvegardes
+
+Trois défauts déduits du code lors de la revue de `2aee3e01`. Chacun a d'abord
+été reproduit sur l'état courant du dépôt par un test qui échoue, puis corrigé.
+
+**Une règle pouvait disparaître à la fermeture.** `pendingRules` ne participait
+à aucune protection globale : `WorkspaceActions.allowClose()` interrogeait les
+cartes, les ressources, les histoires, les scènes, les dialogues, les
+cinématiques, les présentations et les événements, jamais le monde. La
+reproduction est plus sévère que la déduction : avec un état sale en plus de la
+règle, le dialogue s'affichait bien — grâce à l'état — l'auteur choisissait
+« Enregistrer », l'état partait, la règle restait dans son brouillon, et
+l'espace se fermait quand même. Une règle seule ne déclenchait aucune question.
+
+Le contrôleur du monde est désormais fourni à `WorkspaceActions` comme les
+autres. Ses brouillons de règles comptent dans la question posée, la branche
+« Enregistrer » les publie après les états et les événements dont ils
+dépendent, et une publication en cours compte dans `busy`. Pas de second
+gestionnaire : c'est le même garde, donc aussi celui du changement de projet,
+`allowSwitch` pointant sur `allowClose`.
+
+Une règle qui refuse de partir garde l'espace ouvert et dit pourquoi : son
+message rejoint l'erreur de l'espace de travail, visible hors de la page. Une
+règle incomplète n'est jamais ignorée en silence, elle nomme ce qui lui manque
+et fait échouer la fermeture.
+
+**Une modification faite pendant une écriture était perdue.** `saveRule()`
+retirait le brouillon sans condition au retour de la publication. La version
+envoyée est maintenant figée avant l'appel ; au retour, la base enregistrée est
+relue depuis le manifeste publié, et le brouillon vivant n'est effacé que s'il
+lui est identique. S'il a changé pendant l'écriture, il survit — y compris
+lorsque l'identifiant provisoire devient l'identifiant canonique : le
+brouillon, son historique et la sélection suivent ce renommage au lieu d'être
+supprimés avec l'ancienne clé.
+
+**Une règle enregistrée avant son état levait une exception.** La préparation
+canonique `addWorldRule` était appelée hors du `try` : un état encore en
+brouillon faisait remonter un `ArgumentError` jusqu'au bouton. Elle est
+désormais couverte, et la dépendance est nommée plutôt que traduite en erreur
+d'authoring : « L'état « X » n'est pas encore enregistré. » La page propose de
+l'enregistrer d'abord, dans le même geste. Si l'état part et que la règle
+échoue ensuite, le résultat partiel est rapporté comme tel et le brouillon de
+la règle est conservé. La même préparation canonique côté états est passée sous
+gestion d'erreur. Aucun moteur transactionnel n'a été ajouté : ce sont deux
+publications existantes enchaînées et un compte rendu honnête.
+
 ## Tests exacts
 
 Les périmètres ne s'additionnent pas : la suite Studio contient déjà les tests
@@ -123,18 +169,25 @@ ciblés UI12.
 | Périmètre | Commande | Résultat |
 | --- | --- | --- |
 | Parcours états et règles, écriture puis réouverture | `flutter test test/ui12_world_controller_test.dart` | vert |
-| Composition depuis les contrôles de la page | `flutter test test/ui12_world_page_test.dart` | vert |
+| Composition depuis les contrôles de la page | `flutter test test/ui12_world_page_test.dart` | 2 verts |
+| Brouillons de règles, écriture retenue, dépendance d'état | `flutter test test/ui12_world_drafts_test.dart` | 4 verts |
+| Protections de fermeture, hôte réel | `flutter test test/ui12_world_close_test.dart` | 3 verts |
 | Entrée Histoire et retour, hôte réel | `flutter test test/ui12_world_navigation_test.dart` | vert |
 | Quatre tailles, texte à 150 % à 1024 | `flutter test test/ui12_world_responsive_test.dart` | 4 verts |
 | Retour A → P → B → P → A, hôte réel | `flutter test test/ui12_workspace_return_test.dart` | vert |
 | Parité simulateur et runtime | `flutter test test/narrative_world_state_simulation_parity_test.dart` (map_runtime) | 4 verts |
-| Suite Studio | `flutter test` dans `apps/avelune_studio` | 648 verts, 2 ignorés, 1 échec d'environnement |
+| Suite Studio | `flutter test` dans `apps/avelune_studio` | 656 verts, 2 ignorés, 1 échec d'environnement |
+| Frontières d'architecture | `flutter test test/architecture/architecture_boundaries_test.dart` | 7 verts |
 | Analyse Studio | `flutter analyze` | `No issues found!` |
 | Étape CI Editor | workflow distant, run `35592618319` | succès |
 
 Chaque correctif a été vérifié par la négative : le test de retour échoue avec
 l'ouverture générale d'origine, et le test de priorité échoue lorsque la règle
-concurrente passe en priorité inférieure.
+concurrente passe en priorité inférieure. Les trois défauts du lot de
+sécurisation ont été exécutés avant correction sur l'état courant : le
+brouillon revenait vide après le reçu, `saveRule` levait un `ArgumentError`, et
+les deux parcours de fermeture échouaient — l'un en fermant malgré la règle
+restée en brouillon, l'autre sans même poser la question.
 
 ## Limites et échecs préexistants
 
@@ -153,7 +206,9 @@ cette machine, avec le message « Les E/S réelles ne terminent pas entre les
 frames en 20 secondes ». Le défaut avait déjà été attribué à l'environnement
 lors de UI11, par trois reproductions au commit de base ; il repasse au vert
 lorsque la charge retombe. Les exécutions de ce lot se sont faites avec des
-charges allant jusqu'à 180.
+charges allant jusqu'à 180. Lors du lot de sécurisation, le même échec est
+réapparu dans la suite complète puis a été rejoué seul, au vert, avec des
+moyennes de charge de 62, 99 et 109.
 
 Limites de la page, annoncées plutôt que masquées :
 
@@ -170,6 +225,22 @@ Limites de la page, annoncées plutôt que masquées :
 - aucun parcours runtime publié n'a été joué pour observer le changement en
   jeu ; la parité est établie entre le simulateur et le hook de projection, ce
   qui n'est pas la même preuve.
+
+Limites du lot de sécurisation :
+
+- `saveAll()` publie les règles une par une par les actions canoniques
+  existantes. Si la deuxième de trois échoue, la première est déjà écrite : le
+  résultat partiel est rapporté et les brouillons restants sont conservés, mais
+  l'ensemble n'est pas atomique. C'était la consigne, pas un oubli ;
+- une fermeture demandée pendant une publication est refusée sans message,
+  comme pour tous les autres contrôleurs : l'auteur voit seulement l'espace
+  rester ouvert ;
+- les cibles de règles sont validées contre les cartes chargées à l'ouverture
+  de la page. Une entité présente uniquement dans un brouillon de carte reste
+  donc refusée à l'enregistrement de la règle ;
+- dans un test de widgets, deux écritures réelles enchaînées peuvent entrer en
+  collision avec le `runAsync` de `pumpIo`. Le test de page attend sans en
+  ouvrir un second ; le test de fermeture reste sensible au minutage.
 
 La réserve UI07 sur le raccordement des résultats de scènes modernes à la
 progression structurée reste ouverte : la source `storyStepCompletion` lit une

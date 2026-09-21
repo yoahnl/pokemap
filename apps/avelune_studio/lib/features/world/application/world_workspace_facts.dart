@@ -109,9 +109,14 @@ extension WorldWorkspaceFacts on WorldWorkspaceController {
     final drafted = fact(id);
     if (_closed || drafted == null) return false;
     final base = factBase(id);
-    final current = base == null ? _canonical(drafted) : drafted;
+    final NarrativeFactDefinition current;
+    try {
+      current = base == null ? _canonical(drafted) : drafted;
+    } on Object catch (failure) {
+      return _fail(failure);
+    }
     final ticket = ++_generation;
-    loading = true;
+    loading = saving = true;
     error = null;
     changed();
     try {
@@ -130,7 +135,7 @@ extension WorldWorkspaceFacts on WorldWorkspaceController {
       return ticket == _generation ? _fail(failure) : false;
     } finally {
       if (!_closed && ticket == _generation) {
-        loading = false;
+        loading = saving = false;
         changed();
       }
     }
@@ -168,7 +173,7 @@ extension WorldWorkspaceFacts on WorldWorkspaceController {
       return true;
     }
     final ticket = ++_generation;
-    loading = true;
+    loading = saving = true;
     changed();
     try {
       final receipt = await port.deleteFact(base);
@@ -184,7 +189,7 @@ extension WorldWorkspaceFacts on WorldWorkspaceController {
       return ticket == _generation ? _fail(failure) : false;
     } finally {
       if (!_closed && ticket == _generation) {
-        loading = false;
+        loading = saving = false;
         changed();
       }
     }

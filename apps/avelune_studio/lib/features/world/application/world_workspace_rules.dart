@@ -65,8 +65,8 @@ class WorldRuleDraft {
           debugTechnicalLabel: debugTechnicalLabel,
         );
 
-  WorldRuleDraft copy() => WorldRuleDraft(
-    id: id,
+  WorldRuleDraft copy({String? id}) => WorldRuleDraft(
+    id: id ?? this.id,
     label: label,
     description: description,
     enabled: enabled,
@@ -164,62 +164,6 @@ extension WorldWorkspaceRules on WorldWorkspaceController {
         .toList();
   }
 
-  Future<bool> saveRule(String id) async {
-    final draft = ruleDraft(id);
-    if (_closed || draft == null) return false;
-    final current = draft.complete;
-    if (current == null) {
-      return _fail(
-        WorldFailure('Il manque ${draft.missing.join(', ')} à cette règle.'),
-      );
-    }
-    final base = ruleBase(id);
-    // Creation names the rule canonically and refuses any other identity, so
-    // a new rule only receives its final id at publication.
-    final published = base == null
-        ? addWorldRule(
-            project,
-            label: current.label,
-            description: current.description,
-            enabled: current.enabled,
-            source: current.source,
-            target: current.target,
-            effect: current.effect,
-            priority: current.priority,
-            tags: current.tags,
-            debugTechnicalLabel: current.debugTechnicalLabel,
-            maps: maps,
-          ).createdRule
-        : current;
-    final ticket = ++_generation;
-    loading = true;
-    error = null;
-    changed();
-    try {
-      final receipt = await port.publishRule(base: base, current: published);
-      if (_closed || ticket != _generation) return false;
-      if (published.id != id) {
-        pendingRules.remove(id);
-        _ruleBases.remove(id);
-        _ruleHistory.remove(id);
-        if (selectedRuleId == id) selectedRuleId = published.id;
-      }
-      _ruleBases[published.id] = published;
-      pendingRules.remove(published.id);
-      _ruleHistory.remove(published.id);
-      narrative.workspace.acceptResources(receipt.before, receipt.manifest);
-      invalidate();
-      return true;
-    } on Object catch (failure) {
-      return ticket == _generation ? _fail(failure) : false;
-    } finally {
-      if (!_closed && ticket == _generation) {
-        loading = false;
-        changed();
-      }
-    }
-  }
-
   Future<bool> deleteRule(String id) async {
     final base = project.worldRules.where((r) => r.id == id).firstOrNull;
     if (_closed) return false;
@@ -233,7 +177,7 @@ extension WorldWorkspaceRules on WorldWorkspaceController {
       return true;
     }
     final ticket = ++_generation;
-    loading = true;
+    loading = saving = true;
     changed();
     try {
       final receipt = await port.deleteRule(base);
@@ -249,7 +193,7 @@ extension WorldWorkspaceRules on WorldWorkspaceController {
       return ticket == _generation ? _fail(failure) : false;
     } finally {
       if (!_closed && ticket == _generation) {
-        loading = false;
+        loading = saving = false;
         changed();
       }
     }

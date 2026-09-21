@@ -6,6 +6,7 @@ import '../domain/world_port.dart';
 export '../domain/world_port.dart';
 
 part 'world_workspace_facts.dart';
+part 'world_workspace_rule_publication.dart';
 part 'world_workspace_rules.dart';
 part 'world_workspace_simulation.dart';
 
@@ -37,6 +38,7 @@ class WorldWorkspaceController {
   NarrativeWorldStateSimulationReport? report;
   String? selectedFactId, selectedRuleId, error;
   bool loading = false, initialized = false, _closed = false;
+  bool saving = false;
   int _generation = 0;
 
   ProjectManifest get project => narrative.project;
