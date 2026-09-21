@@ -73,6 +73,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   player_ui.RuntimePlayerCoordinatorViewController? _viewController;
   GameSessionController? _sessions;
   PlayableMapGame? _mountedGame;
+  final Completer<void> _mountWait = Completer<void>();
   Locale? _playerLocale;
   RuntimeAudioMixer? _audioMixer;
   ControlProfileRepositoryInterface? _controlProfileStore;
@@ -148,6 +149,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     game.setDialogueFlutterOverlayPreferred(true);
     game.setBattleFlutterCommandOverlayPreferred(true);
     setState(() => _mountedGame = game);
+    await Future.any(<Future<void>>[game.loaded, _mountWait.future]);
+  }
+
+  void _releaseMountWait() {
+    if (!_mountWait.isCompleted) {
+      _mountWait.complete();
+    }
   }
 
   Future<void> _unmountGame(PlayableMapGame game) async {
@@ -409,7 +417,15 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         game.setViewSafeAreaPadding(MediaQuery.viewPaddingOf(context));
         return SizedBox.expand(
           key: _gameplayViewportKey,
-          child: GameWidget(key: ObjectKey(game), game: game, autofocus: false),
+          child: GameWidget(
+            key: ObjectKey(game),
+            game: game,
+            autofocus: false,
+            errorBuilder: (context, error) {
+              _releaseMountWait();
+              throw error;
+            },
+          ),
         );
       },
     );
@@ -425,6 +441,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   @override
   void dispose() {
+    _releaseMountWait();
     WidgetsBinding.instance.removeObserver(this);
     final startupCoordinator = _startupCoordinator;
     _startupCoordinator = null;
