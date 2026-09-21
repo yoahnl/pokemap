@@ -54,7 +54,7 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   void _openScenes() {
-    _sceneOrigin = WorkspaceSpace.story;
+    _sceneOrigin = WorkspaceReturn.story;
     if (_scenes?.active == null) _sceneViews.sceneLibrary = true;
     _show(WorkspaceSpace.scene);
   }
@@ -64,9 +64,11 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
     if (scenes == null) return 'L’éditeur de scène est indisponible.';
     if (!scenes.open(sceneId)) return scenes.error;
     _sceneOrigin = switch (_space) {
-      WorkspaceSpace.progression => WorkspaceSpace.progression,
-      WorkspaceSpace.events => WorkspaceSpace.events,
-      _ => WorkspaceSpace.story,
+      WorkspaceSpace.progression => const WorkspaceReturn(
+        WorkspaceSpace.progression,
+      ),
+      WorkspaceSpace.events => const WorkspaceReturn(WorkspaceSpace.events),
+      _ => WorkspaceReturn.story,
     };
     _show(WorkspaceSpace.scene);
     return null;

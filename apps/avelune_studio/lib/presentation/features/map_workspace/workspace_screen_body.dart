@@ -120,6 +120,9 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               onScenePresentation: _presentations == null
                                   ? null
                                   : _openScenePresentation,
+                              onReturnPresentation: _presentations == null
+                                  ? null
+                                  : _returnToPresentation,
                               onCreatePresentation: _presentations == null
                                   ? null
                                   : _createScenePresentation,

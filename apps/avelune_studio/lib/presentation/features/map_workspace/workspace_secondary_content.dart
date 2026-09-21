@@ -39,6 +39,13 @@ enum WorkspaceSpace {
   presentation,
 }
 
+class WorkspaceReturn {
+  const WorkspaceReturn(this.space, {this.documentId});
+  static const story = WorkspaceReturn(WorkspaceSpace.story);
+  final WorkspaceSpace space;
+  final String? documentId;
+}
+
 Widget? workspaceSecondaryContent({
   required WorkspaceSpace space,
   PresentationWorkspaceController? presentations,
@@ -72,7 +79,8 @@ Widget? workspaceSecondaryContent({
   required SceneBuilderViewStore sceneViews,
   required StoryWorkspaceController? stories,
   required StoryProgressionViewStore progressionViews,
-  required WorkspaceSpace sceneOrigin,
+  required WorkspaceReturn sceneOrigin,
+  Future<void> Function(String?)? onReturnPresentation,
   required VoidCallback onProgression,
   required VoidCallback onReturnProgression,
   required VoidCallback onScenes,
@@ -155,18 +163,19 @@ Widget? workspaceSecondaryContent({
       views: sceneViews,
       narrative: narrative,
       onBack:
-          sceneOrigin == WorkspaceSpace.presentation && onPresentations != null
-          ? onPresentations
-          : sceneOrigin == WorkspaceSpace.events
+          sceneOrigin.space == WorkspaceSpace.presentation &&
+              onReturnPresentation != null
+          ? () => onReturnPresentation(sceneOrigin.documentId)
+          : sceneOrigin.space == WorkspaceSpace.events
           ? onReturnEvents
-          : sceneOrigin == WorkspaceSpace.progression
+          : sceneOrigin.space == WorkspaceSpace.progression
           ? onReturnProgression
           : onStory,
-      onBackLabel: sceneOrigin == WorkspaceSpace.presentation
+      onBackLabel: sceneOrigin.space == WorkspaceSpace.presentation
           ? 'la présentation'
-          : sceneOrigin == WorkspaceSpace.events
+          : sceneOrigin.space == WorkspaceSpace.events
           ? 'Événements'
-          : sceneOrigin == WorkspaceSpace.progression
+          : sceneOrigin.space == WorkspaceSpace.progression
           ? 'Histoires et progression'
           : 'Histoire',
       onTest: onTest,

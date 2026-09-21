@@ -117,7 +117,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _presentationViews = PresentationViewStore();
   PresentationWorkspaceVisuals? _presentationVisuals;
   Object? _presentationVisualKey;
-  WorkspaceSpace _presentationOrigin = WorkspaceSpace.story;
+  WorkspaceReturn _presentationOrigin = WorkspaceReturn.story;
   CinematicWorkspaceController? _cinematics;
   final _cinematicViews = CinematicViewStore();
   WorkspaceSpace _cinematicOrigin = WorkspaceSpace.story;
@@ -129,7 +129,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   WorkspaceSpace _eventOrigin = WorkspaceSpace.story;
   bool _eventMapReturn = false;
   final _progressionViews = StoryProgressionViewStore();
-  WorkspaceSpace _sceneOrigin = WorkspaceSpace.story;
+  WorkspaceReturn _sceneOrigin = WorkspaceReturn.story;
   final _sceneViews = SceneBuilderViewStore();
   bool? _inspector;
   MapData? _preparedMap;
