@@ -6,6 +6,10 @@ options:
   xcodeVersion: "16.0"
   generateEmptyDirectories: true
 
+packages:
+  FlutterNativeIntegration:
+    path: flutter_runtime/build/swift-package/FlutterNativeIntegration
+
 settings:
   base:
     SWIFT_VERSION: "5.9"
@@ -24,12 +28,7 @@ targets:
     resources:
       - path: AveluneiOS/Resources
     dependencies:
-      - framework: flutter_runtime/build/ios/framework/Release/App.xcframework
-        embed: true
-      - framework: flutter_runtime/build/ios/framework/Release/Flutter.xcframework
-        embed: true
-      - framework: flutter_runtime/build/ios/framework/Release/objective_c.xcframework
-        embed: true
+      - package: FlutterNativeIntegration
     settings:
       base:
         INFOPLIST_FILE: AveluneiOS/Resources/Info.plist

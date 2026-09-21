@@ -1,4 +1,5 @@
 import Flutter
+import FlutterPluginRegistrant
 import Foundation
 
 @MainActor
@@ -11,6 +12,7 @@ final class FlutterEngineManager {
         guard engine == nil else { return }
         let engine = FlutterEngine(name: "AveluneRuntime", project: nil)
         engine.run(withEntrypoint: nil, libraryURI: nil)
+        GeneratedPluginRegistrant.register(with: engine)
         self.engine = engine
     }
 

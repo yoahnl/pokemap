@@ -24,7 +24,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  module:
-    androidX: true
-    androidPackage: com.avelune.avelune_runtime
-    iosBundleIdentifier: com.avelune.aveluneRuntime
