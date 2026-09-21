@@ -11,6 +11,8 @@ import '../../../features/narrative/application/narrative_workspace_controller.d
 import '../../shared/widgets/dialogs/confirm_studio_close.dart';
 import '../resources/resource_navigation.dart';
 
+part 'workspace_close_actions.dart';
+
 typedef StudioRuntimeBuilder =
     Widget Function(
       ProjectMapEntry entry,
@@ -32,6 +34,7 @@ class WorkspaceActions {
     this.cinematics,
     this.presentations,
     this.world,
+    this.worldInputsValid,
     this.publishedCinematicContext,
     required this.runtimeBuilder,
   });
@@ -47,6 +50,7 @@ class WorkspaceActions {
   final CinematicWorkspaceController? Function()? cinematics;
   final PresentationWorkspaceController? Function()? presentations;
   final WorldWorkspaceController? Function()? world;
+  final bool Function()? worldInputsValid;
   final bool Function()? publishedCinematicContext;
   final StudioRuntimeBuilder runtimeBuilder;
   bool testing = false;
@@ -63,60 +67,7 @@ class WorkspaceActions {
       narrative()?.busy == true ||
       world?.call()?.saving == true;
 
-  Future<bool> allowClose() async {
-    if (!_flushDialogueEdit()) return false;
-    if (!await _flushEventEdits()) return false;
-    if (controller.saving || busy) return false;
-    if (!controller.dirty &&
-        resources()?.dirty != true &&
-        narrative()?.dirty != true &&
-        dialogues?.call()?.dirty != true &&
-        cinematics?.call()?.dirty != true &&
-        presentations?.call()?.dirty != true &&
-        events?.call()?.dirty != true &&
-        scenes?.call()?.dirty != true &&
-        world?.call()?.hasRuleDraft != true) {
-      return true;
-    }
-    closing = true;
-    changed();
-    try {
-      final choice = await confirmStudioClose(context());
-      if (!mounted() || choice == null || choice == 'cancel') return false;
-      if (choice == 'save') {
-        if (presentations?.call() case final owner?) {
-          if (!await owner.saveAll()) return false;
-        }
-        if (cinematics?.call() case final owner?) {
-          if (!await owner.saveAll()) return false;
-        }
-        if (dialogues?.call() case final dialogueController?) {
-          if (!await dialogueController.saveAll()) return false;
-        }
-        if (scenes?.call() case final sceneController?) {
-          if (!await sceneController.saveAll()) return false;
-        }
-        if (resources() != null && !await resources()!.saveDrafts()) {
-          return false;
-        }
-        if (narrative() != null && !await narrative()!.saveAll()) return false;
-        if (events?.call() case final eventController?) {
-          if (!await eventController.saveAll()) return false;
-        }
-        if (world?.call() case final worldController?) {
-          if (!await worldController.saveAll()) {
-            controller.error = worldController.error;
-            return false;
-          }
-        }
-        return await controller.saveAll();
-      }
-      return choice == 'discard';
-    } finally {
-      closing = false;
-      changed();
-    }
-  }
+  Future<bool> allowClose() => _allowClose();
 
   Future<void> test() async {
     if (presentations?.call()?.flushEdits?.call() == false) return;

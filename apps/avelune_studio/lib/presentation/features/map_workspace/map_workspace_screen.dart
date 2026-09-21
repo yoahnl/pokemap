@@ -177,6 +177,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       cinematics: () => _cinematics,
       presentations: () => _presentations,
       world: () => _world,
+      worldInputsValid: () => _worldView.invalidFields.isEmpty,
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,
     );

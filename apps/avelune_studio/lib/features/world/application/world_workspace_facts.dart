@@ -6,6 +6,27 @@ extension WorldWorkspaceFacts on WorldWorkspaceController {
 
   bool canUndoFact(String id) => _factHistory[id]?.isNotEmpty ?? false;
 
+  List<String> get _newFactDraftIds => [
+    for (final id in narrative.pendingFacts.keys)
+      if (_factBases.containsKey(id) && _factBases[id] == null) id,
+  ];
+
+  Future<bool> saveNewFacts() async {
+    if (_closed || saving) return false;
+    for (final id in _newFactDraftIds) {
+      if (!await saveFact(id)) return false;
+    }
+    if (_newFactDraftIds.isNotEmpty) {
+      return _fail(
+        const WorldFailure(
+          'De nouveaux états ont été créés pendant l’enregistrement. '
+          'Leurs brouillons sont conservés.',
+        ),
+      );
+    }
+    return true;
+  }
+
   String createFact() {
     final id = narrative.identity('fact');
     _factBases[id] = null;
