@@ -21,6 +21,7 @@ class NarrativeStoryPane extends StatefulWidget {
     required this.onCreateInteraction,
     this.onScenes,
     this.onWorld,
+    this.onVerification,
     this.onDialogues,
     this.onCinematics,
     this.onEvents,
@@ -32,6 +33,7 @@ class NarrativeStoryPane extends StatefulWidget {
   final Future<String?> Function(String) onOpen, onLocate;
   final VoidCallback onCreateInteraction;
   final VoidCallback? onWorld;
+  final VoidCallback? onVerification;
   final VoidCallback? onScenes,
       onProgression,
       onEvents,
@@ -113,6 +115,7 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
                 onCreated: refresh,
                 onScenes: widget.onScenes,
                 onWorld: widget.onWorld,
+                onVerification: widget.onVerification,
                 onDialogues: widget.onDialogues,
                 onCinematics: widget.onCinematics,
                 onEvents: widget.onEvents,

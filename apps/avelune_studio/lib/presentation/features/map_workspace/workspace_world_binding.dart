@@ -50,9 +50,11 @@ extension _WorkspaceWorldBinding on _MapWorkspaceScreenState {
       view: _worldView,
       visuals: _visuals,
       onBack: () => unawaited(_returnFromWorld()),
-      backLabel: _worldOrigin.space == WorkspaceSpace.scene
-          ? 'la scène'
-          : 'Histoire',
+      backLabel: switch (_worldOrigin.space) {
+        WorkspaceSpace.scene => 'la scène',
+        WorkspaceSpace.verification => 'la vérification',
+        _ => 'Histoire',
+      },
       onOpenScene: (sceneId) async {
         if (_scenes?.open(sceneId) != true) return;
         _sceneOrigin = WorkspaceReturn(WorkspaceSpace.world);

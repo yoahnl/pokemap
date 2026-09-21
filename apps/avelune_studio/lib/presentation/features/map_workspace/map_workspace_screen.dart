@@ -30,7 +30,10 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'workspace_actions.dart';
 import 'workspace_session_loader.dart';
+import '../../../features/verification/application/verification_workspace_controller.dart';
 import '../../../features/world/application/world_workspace_controller.dart';
+import '../verification/verification_view_state.dart';
+import '../verification/verification_workspace_page.dart';
 import '../world/world_view_state.dart';
 import '../world/world_workspace_page.dart';
 import '../narrative/narrative_navigation.dart';
@@ -63,6 +66,7 @@ part 'workspace_presentation_binding.dart';
 part 'workspace_keyboard_binding.dart';
 part 'workspace_lifecycle_binding.dart';
 part 'workspace_world_binding.dart';
+part 'workspace_verification_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -82,6 +86,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.cinematicPort,
     this.presentationPort,
     this.worldPort,
+    this.verificationPort,
     this.presentationMediaPicker,
     this.home,
   });
@@ -96,6 +101,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final CinematicPort? cinematicPort;
   final PresentationPort? presentationPort;
   final WorldPort? worldPort;
+  final VerificationPort? verificationPort;
   final PickPresentationMedia? presentationMediaPicker;
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
@@ -140,6 +146,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   WorldWorkspaceController? _world;
   final _worldView = WorldViewState();
   WorkspaceReturn _worldOrigin = WorkspaceReturn.story;
+  VerificationWorkspaceController? _verification;
+  final _verificationView = VerificationViewState();
+  WorkspaceReturn _verificationOrigin = WorkspaceReturn.story;
   final _sceneViews = SceneBuilderViewStore();
   bool? _inspector;
   MapData? _preparedMap;
@@ -205,6 +214,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       _initializeCinematics();
       _initializePresentations();
       _initializeWorld();
+      _initializeVerification();
       _changed();
     } catch (_) {
       if (mounted) {

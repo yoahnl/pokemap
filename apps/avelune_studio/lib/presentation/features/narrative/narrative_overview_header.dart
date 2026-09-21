@@ -17,6 +17,7 @@ class NarrativeOverviewHeader extends StatelessWidget {
     this.onEvents,
     this.onProgression,
     this.onWorld,
+    this.onVerification,
   });
   final NarrativeWorkspaceController controller;
   final String summary;
@@ -27,7 +28,8 @@ class NarrativeOverviewHeader extends StatelessWidget {
       onEvents,
       onDialogues,
       onCinematics,
-      onWorld;
+      onWorld,
+      onVerification;
 
   @override
   Widget build(BuildContext context) => compactDetail
@@ -57,6 +59,8 @@ class NarrativeOverviewHeader extends StatelessWidget {
                     onScenes?.call();
                   case 'world':
                     onWorld?.call();
+                  case 'verification':
+                    onVerification?.call();
                   case 'story':
                     _createStory(context);
                   case 'fact':
@@ -92,6 +96,11 @@ class NarrativeOverviewHeader extends StatelessWidget {
                   const PopupMenuItem(
                     value: 'world',
                     child: Text('États et règles du monde'),
+                  ),
+                if (onVerification != null)
+                  const PopupMenuItem(
+                    value: 'verification',
+                    child: Text('Vérification narrative'),
                   ),
                 PopupMenuItem(
                   value: 'story',
@@ -162,6 +171,13 @@ class NarrativeOverviewHeader extends StatelessWidget {
                           icon: Icons.rule_folder_outlined,
                           secondary: true,
                           onPressed: onWorld,
+                        ),
+                      if (onVerification != null)
+                        StudioButton(
+                          label: 'Vérification narrative',
+                          icon: Icons.fact_check_outlined,
+                          secondary: true,
+                          onPressed: onVerification,
                         ),
                       StudioButton(
                         label: 'Créer une histoire',

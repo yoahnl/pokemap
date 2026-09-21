@@ -21,6 +21,8 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
     _presentations?.dispose();
     _world?.dispose();
     _worldView.dispose();
+    _verification?.dispose();
+    _verificationView.dispose();
     _presentationViews.dispose();
     if (_presentationVisuals != null) unawaited(_presentationVisuals!.close());
     _cinematics?.dispose();

@@ -38,6 +38,7 @@ enum WorkspaceSpace {
   cinematic,
   presentation,
   world,
+  verification,
 }
 
 class WorkspaceReturn {
@@ -86,6 +87,7 @@ Widget? workspaceSecondaryContent({
   required VoidCallback onReturnProgression,
   required VoidCallback onScenes,
   VoidCallback? onWorld,
+  VoidCallback? onVerification,
   required Future<String?> Function(String) onOpenScene,
   required ResourceNavigation? resources,
   required MapWorkspaceVisuals? visuals,
@@ -205,6 +207,7 @@ Widget? workspaceSecondaryContent({
       onCreateInteraction: onCreateInteraction,
       onScenes: scenes == null ? null : onScenes,
       onWorld: onWorld,
+      onVerification: onVerification,
       onEvents: events == null ? null : onEvents,
       onProgression: stories == null ? null : onProgression,
       onOpenScene: scenes == null ? null : onOpenScene,

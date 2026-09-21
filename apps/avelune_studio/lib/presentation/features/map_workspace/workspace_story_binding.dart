@@ -68,6 +68,9 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
         WorkspaceSpace.progression,
       ),
       WorkspaceSpace.events => const WorkspaceReturn(WorkspaceSpace.events),
+      WorkspaceSpace.verification => const WorkspaceReturn(
+        WorkspaceSpace.verification,
+      ),
       _ => WorkspaceReturn.story,
     };
     _show(WorkspaceSpace.scene);

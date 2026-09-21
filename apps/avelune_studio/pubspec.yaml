@@ -18,6 +18,8 @@ dependencies:
     path: ../../packages/map_authoring
   map_core:
     path: ../../packages/map_core
+  map_gameplay:
+    path: ../../packages/map_gameplay
   map_runtime:
     path: ../../packages/map_runtime
   map_player_ui:
