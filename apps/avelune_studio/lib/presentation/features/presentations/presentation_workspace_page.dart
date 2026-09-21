@@ -23,6 +23,7 @@ import 'presentation_transport_listenable.dart';
 import 'presentation_media_picker.dart';
 
 part 'presentation_page_commands.dart';
+part 'presentation_page_shortcuts.dart';
 part 'presentation_page_header.dart';
 part 'presentation_page_body.dart';
 part 'presentation_page_library_actions.dart';
@@ -72,6 +73,7 @@ class _PresentationWorkspacePageState extends State<PresentationWorkspacePage> {
       unawaited(widget.visuals.release());
     };
     widget.visuals.bindTransport(transport);
+    HardwareKeyboard.instance.addHandler(handleShortcut);
   }
 
   bool flush() {
@@ -106,6 +108,7 @@ class _PresentationWorkspacePageState extends State<PresentationWorkspacePage> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(handleShortcut);
     controller.flushEdits = null;
     controller.suspendPreview = null;
     transport.dispose();

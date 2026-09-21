@@ -12,6 +12,7 @@ abstract interface class PresentationWorkspaceVisuals implements Listenable {
   });
   Future<void> get settled;
   String? get diagnostic;
+  bool get diagnosticIsFailure;
   bool get loading;
   void bindTransport(PresentationPreviewTransport transport);
   void setOrientation(bool portrait);

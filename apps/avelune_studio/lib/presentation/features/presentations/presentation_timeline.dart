@@ -15,6 +15,7 @@ import 'presentation_clip_labels.dart';
 import 'presentation_transport_listenable.dart';
 
 part 'presentation_timeline_clip.dart';
+part 'presentation_timeline_ruler.dart';
 part 'presentation_timeline_track.dart';
 
 class PresentationTimeline extends StatefulWidget {
@@ -43,6 +44,28 @@ class _PresentationTimelineState extends State<PresentationTimeline> {
   int? dragTrack;
   PresentationTimelineDragKind? kind;
   bool invalid = false;
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(handleEscape);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(handleEscape);
+    super.dispose();
+  }
+
+  bool handleEscape(KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.escape ||
+        origin == null) {
+      return false;
+    }
+    cancel();
+    return true;
+  }
+
   PresentationTimelineEditingController get editing => widget.view.editing;
   double get scale => widget.view.pixelsPerSecond;
   double x(int us) => us / 1000000 * scale;
@@ -76,9 +99,10 @@ class _PresentationTimelineState extends State<PresentationTimeline> {
         : null;
     invalid = target == null || target.kind != source.trackKind;
     if (kind != PresentationTimelineDragKind.move) invalid = false;
-    final selection = kind == PresentationTimelineDragKind.move
-        ? editing.selectedClipIds.map(editing.sourceClip)
-        : [source];
+    final selection = <String>{
+      source.id,
+      if (kind == PresentationTimelineDragKind.move) ...editing.selectedClipIds,
+    }.map(editing.sourceClip);
     for (final clip in selection) {
       final start =
           clip.startUs +
@@ -93,10 +117,18 @@ class _PresentationTimelineState extends State<PresentationTimeline> {
       }
     }
     if (!invalid) editing.updateDrag(deltaUs: us, targetTrackId: target?.id);
-    widget.view.actionError = invalid
-        ? 'Déplacement refusé : limites temporelles ou piste incompatible.'
-        : null;
+    setActionError(
+      invalid
+          ? 'Déplacement refusé : limites temporelles ou piste incompatible.'
+          : null,
+    );
     setState(() {});
+  }
+
+  void setActionError(String? message) {
+    if (widget.view.actionError == message) return;
+    widget.view.actionError = message;
+    widget.changed();
   }
 
   void finish() {
@@ -113,6 +145,8 @@ class _PresentationTimelineState extends State<PresentationTimeline> {
     origin = null;
     dragId = null;
     kind = null;
+    invalid = false;
+    setActionError(null);
     widget.changed();
     setState(() {});
   }
@@ -122,6 +156,8 @@ class _PresentationTimelineState extends State<PresentationTimeline> {
     origin = null;
     dragId = null;
     kind = null;
+    invalid = false;
+    setActionError(null);
     setState(() {});
   }
 
@@ -221,58 +257,11 @@ class _PresentationTimelineState extends State<PresentationTimeline> {
                           ),
                           child: Stack(
                             children: [
-                              Positioned(
-                                left: 0,
-                                top: 0,
-                                right: 0,
-                                height: 26,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTapDown: (event) => widget.transport.seek(
-                                    (event.localPosition.dx / scale * 1000000)
-                                        .round(),
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      for (
-                                        int i = 0;
-                                        i <= widget.asset.durationUs ~/ 1000000;
-                                        i++
-                                      )
-                                        Positioned(
-                                          left: i * scale,
-                                          child: Text(
-                                            '${i}s',
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                              ruler(),
                               for (final track in widget.asset.tracks.indexed)
                                 for (final clip in track.$2.clips)
                                   bar(context, clip, track.$1),
-                              AnimatedBuilder(
-                                animation: PresentationTransportListenable(
-                                  widget.transport,
-                                ),
-                                builder: (context, _) => Positioned(
-                                  left: x(widget.transport.timeUs),
-                                  top: 24,
-                                  bottom: 0,
-                                  child: IgnorePointer(
-                                    child: Container(
-                                      width: 1,
-                                      color: StudioColors.of(
-                                        context,
-                                      ).canvasSelection,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              playhead(),
                             ],
                           ),
                         ),

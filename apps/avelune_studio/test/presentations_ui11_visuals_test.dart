@@ -104,9 +104,11 @@ void main() {
       );
       await tester.runAsync(() => visuals.prepare(_asset(), portrait: false));
       expect(visuals.diagnostic, contains('Source absente'));
+      expect(visuals.diagnosticIsFailure, isTrue);
       final textOnly = _asset(includePicture: false);
       await tester.runAsync(() => visuals.prepare(textOnly, portrait: false));
       expect(visuals.diagnostic, isNull);
+      expect(visuals.diagnosticIsFailure, isFalse);
       await tester.pumpWidget(
         MaterialApp(
           home: visuals.frame(

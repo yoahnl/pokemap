@@ -123,6 +123,62 @@ le nouveau. Capture `ui11-03-busy-create.png`.
 Aucune optimisation de la lecture disque n'a été tentée : elle est hors du
 périmètre de ce lot et demanderait de toucher au chargement du projet.
 
+## Deuxième retour de validation : messages, raccourcis et tête de lecture
+
+Trois reproches de Yoahn à la prise en main, qui ont mis au jour cinq défauts.
+
+**Des bannières d'erreur venues de nulle part.** Deux causes distinctes.
+
+`update()` de la timeline écrivait « Déplacement refusé » dans l'état de vue,
+mais ne faisait un `setState` que sur la timeline : la bannière est rendue par
+le corps de page, qui ne se reconstruisait pas. Le message n'apparaissait donc
+qu'au gré d'un rebuild provoqué par autre chose, et ne disparaissait pas
+davantage. La timeline notifie désormais la page, **au seul changement d'état
+du message** et non à chaque frame de glissement, pour respecter la section 19.
+
+`finish()` et `cancel()` ne remettaient jamais `actionError` à `null` : le
+diagnostic d'un geste survivait au geste. C'est le défaut R2 de UI10 reproduit
+dans la timeline, que la section 16 interdit nommément. Le canevas avait le
+même oubli dans son `cancel()`.
+
+**« Aperçu fixe » affiché comme une panne.** `currentDiagnostic` renvoyait
+indifféremment une vraie erreur de média et l'étiquette « Aperçu fixe », qui
+signale un état parfaitement normal — le sink n'anime qu'une vidéo à la fois et
+la section 10 exige précisément cette étiquette. L'en-tête peignait les deux en
+rouge. La sévérité est maintenant portée par `diagnosticIsFailure` et l'en-tête
+s'y conforme.
+
+**Aucun raccourci clavier.** Les liaisons existantes passaient par
+`CallbackShortcuts`, donc par le focus : après un clic sur un bouton, plus rien
+ne répondait. Même défaut que l'annulation par Échap du canevas. La page
+enregistre désormais un gestionnaire `HardwareKeyboard`, sur le motif du
+`presentation_studio_responsive_canvas.dart` de `map_editor` : Espace pour
+lire et mettre en pause, flèches pour avancer et reculer d'un pas, Début et Fin
+pour les bornes, ainsi que Cmd/Ctrl+S et Cmd/Ctrl+Z. Le gestionnaire se retire
+lorsqu'une saisie de texte a le focus, lorsqu'aucun document n'est ouvert et
+lorsqu'une boîte de dialogue est au premier plan. La timeline reçoit le même
+traitement pour Échap pendant un glissement.
+
+**Tête de lecture immobile.** La règle ne portait qu'un `onTapDown` : on
+pouvait viser un point, jamais faire glisser. Le scrub demandé par la section 13
+n'existait pas. La règle accepte maintenant le glissement, affiche un curseur de
+redimensionnement, et la tête de lecture porte une poignée visible qui traverse
+toute la hauteur au lieu de commencer sous la règle.
+
+**Un déplacement non validé.** En cherchant à reproduire le refus, la validation
+des bornes s'est révélée ne porter que sur `editing.selectedClipIds`. Glisser un
+clip **non sélectionné** — le cas normal juste après ouverture — laissait la
+liste vide : aucune borne vérifiée, aucun refus, aucun message. Le clip glissé
+est désormais toujours inclus dans l'ensemble validé, la sélection s'y ajoutant
+pour un déplacement groupé.
+
+`ui11_presentation_transport_controls_test.dart` couvre les trois parcours :
+glissement puis clic sur la règle, clavier sans panneau focalisé, et refus de
+déplacement qui cesse d'avertir une fois le geste relâché. La sévérité du
+diagnostic est vérifiée sur sa branche de panne dans
+`presentations_ui11_visuals_test.dart` ; sa branche informative est établie par
+construction, la fixture ne comportant pas de média vidéo.
+
 ## Composition livrée
 
 Le cadre Avelune, la navigation et l'espace Histoire sont réutilisés tels quels.
@@ -183,7 +239,7 @@ pas : la suite Studio contient déjà les tests ciblés UI11.
 | Périmètre | Commande | Résultat |
 | --- | --- | --- |
 | Tests ciblés UI11 | `flutter test` sur les 12 fichiers UI11 et `test/presentations/` | 41 verts |
-| Suite Studio complète | `flutter test` dans `apps/avelune_studio` | 637 verts, 2 ignorés |
+| Suite Studio complète | `flutter test` dans `apps/avelune_studio` | 639 verts, 2 ignorés, 1 échec d'environnement |
 | Analyse Studio | `flutter analyze` | `No issues found!` |
 | Analyse `map_authoring` | `dart analyze` | `No issues found!` |
 | Analyse `map_player_ui` | `dart analyze` | `No issues found!` |
@@ -192,11 +248,26 @@ pas : la suite Studio contient déjà les tests ciblés UI11.
 | Transport MCP | `node --import tsx --test test/mutation_server.test.ts` | 34 verts |
 | Build macOS | `flutter build macos --debug` | `Avelune Studio.app` produit |
 
-`test/presentation/desktop_workspace_layout_test.dart` a échoué une fois sur
-une exécution de la suite complète, puis est repassé au vert seul comme en
-suite. C'est un test de charge — deux cents diagnostics et de nombreux atlas —
-sensible au temps de réponse de la machine. Il est signalé ici comme instable
-plutôt que déclaré fiable.
+`test/presentation/desktop_workspace_layout_test.dart` échoue sur cette machine
+pour une cause d'environnement, et non à cause de ce lot. Son message est
+explicite : « Les E/S réelles ne terminent pas entre les frames en 20
+secondes ». Le helper `_awaitWhilePumping` impose un budget de vingt secondes
+d'horloge réelle à un test qui charge deux cents diagnostics et de nombreux
+atlas depuis le disque.
+
+L'attribution a été vérifiée plutôt que supposée : les modifications non
+publiées ont été mises de côté par copie, l'arbre ramené au commit de base, et
+le test relancé seul **trois fois de suite — trois échecs**, à une charge
+machine pourtant plus basse que lors des exécutions réussies du matin. Le
+défaut préexiste donc au lot.
+
+Deux facteurs mesurés sur la machine au moment des essais : `fileproviderd`
+consommait 94 % d'un cœur en continu, saturant le système de fichiers, et
+`/var/folders/.../T/` contenait 533 entrées pour 2,3 Go de fixtures
+temporaires laissées par des exécutions précédentes. Ce dossier n'a pas été
+nettoyé : d'autres sessions peuvent s'en servir, et sa suppression n'appartient
+pas à ce lot. Le budget de vingt secondes n'a pas été relevé non plus — ce
+serait masquer la fragilité du test plutôt que la traiter.
 
 Les deux tests ignorés de la suite Studio sont conditionnés à la variable
 `AVELUNE_PROJECT_COPY` et à un chemin de projet réel. Ils préexistent au lot et
@@ -277,6 +348,7 @@ vrais widgets, sans retouche ni assemblage de maquette.
 | `ui11-05-portrait-{1536,1440,1280,1024}.png` | Vue portrait |
 | `ui11-06-compare-{1536,1440,1280,1024}.png` | Mode Comparer les formats |
 | `ui11-07-library-archived.png` | Bibliothèque, archivage et restauration |
+| `ui11-08-playhead-scrub.png` | Tête de lecture déplacée au glissement, avec sa poignée dans la règle |
 | `ui11-parity-*-500000-{montage,runtime}.png` | Parité montage et runtime au même instant |
 
 La timeline visible dans `ui11-04-landscape-1440.png` montre deux clips actifs

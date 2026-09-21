@@ -35,6 +35,18 @@ class PresentationContentStore implements PresentationFrameContentPort {
     return null;
   }
 
+  bool get currentDiagnosticIsFailure {
+    for (final id in _activeIds) {
+      if (failures.containsKey(id)) return true;
+      if (catalog.find(id)?.kind == ProjectMediaKind.video &&
+          _bytes.containsKey(id) &&
+          sink?.videoFor(id) == null) {
+        return false;
+      }
+    }
+    return false;
+  }
+
   Future<void> prepare(
     PresentationCinematicAsset asset, {
     required bool portrait,

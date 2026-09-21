@@ -74,6 +74,7 @@ class _PresentationCanvasState extends State<PresentationCanvas> {
     dragging = null;
     projection = null;
     pendingPatch = null;
+    widget.view.actionError = null;
   });
   void select(Offset position) {
     if (widget.beforeSelection?.call() == false) return;

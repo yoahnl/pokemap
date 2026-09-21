@@ -41,6 +41,10 @@ class StudioPresentationVisuals extends ChangeNotifier
   @override
   String? get diagnostic =>
       _error ?? _sink?.diagnostic ?? _content?.currentDiagnostic;
+  @override
+  bool get diagnosticIsFailure =>
+      _error != null || _sink?.diagnostic != null || _contentFailed;
+  bool get _contentFailed => _content?.currentDiagnosticIsFailure ?? false;
   int get mediaReads => _content?.reads ?? 0;
 
   Future<void> _initialize() async {

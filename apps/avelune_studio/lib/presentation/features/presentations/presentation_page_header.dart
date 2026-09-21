@@ -133,7 +133,7 @@ extension _PresentationPageHeader on _PresentationWorkspacePageState {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.visuals.diagnostic case final diagnostic?)
-          StudioNotice(diagnostic, isError: true),
+          StudioNotice(diagnostic, isError: widget.visuals.diagnosticIsFailure),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
