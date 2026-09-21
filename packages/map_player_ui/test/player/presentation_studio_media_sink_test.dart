@@ -354,6 +354,42 @@ void main() {
       expect(video.log, ['seek:3000000']);
     });
 
+    test('a paused scrub seeks forward even in steps below the tolerance',
+        () async {
+      final video = _RecordingVideoPlayback();
+      final sink = _videoSink(video);
+      addTearDown(sink.dispose);
+      final asset = _videoAsset();
+
+      sink.synchronize(
+        asset: asset,
+        frame: _videoFrameAt(1500000),
+        orientation: PresentationFrameOrientation.landscape,
+        running: false,
+      );
+      await sink.settled;
+      video.log.clear();
+
+      // A drag samples at screen rate: each step advances far less than the
+      // continuity tolerance, yet every one of them is a deliberate move.
+      for (final timeUs in <int>[1650000, 1800000, 1950000]) {
+        sink.synchronize(
+          asset: asset,
+          frame: _videoFrameAt(timeUs),
+          orientation: PresentationFrameOrientation.landscape,
+          running: false,
+          scrubbing: true,
+        );
+        await sink.settled;
+      }
+
+      expect(
+        video.log.where((entry) => entry.startsWith('seek')),
+        ['seek:650000', 'seek:800000', 'seek:950000'],
+        reason: 'Without this the picture only follows a backward drag',
+      );
+    });
+
     test('a source that will not open is not retried on every frame', () async {
       final driver = _RecordingAudioDriver()
         ..failWith = StateError('AVPlayerItem.Status.failed');

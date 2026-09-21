@@ -124,6 +124,7 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     required PresentationFrame? frame,
     required PresentationFrameOrientation orientation,
     required bool running,
+    bool scrubbing = false,
   }) {
     if (_disposed) return;
     _queued = _StudioMediaRequest(
@@ -131,6 +132,7 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
       frame: frame,
       orientation: orientation,
       running: running,
+      scrubbing: scrubbing,
     );
     _drain();
   }
@@ -183,7 +185,7 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   Future<void> _apply(_StudioMediaRequest request) async {
     await _prepareAliases(request);
     final timeUs = request.frame?.timeUs;
-    final scrubbed = _scrubbed(timeUs);
+    final scrubbed = request.scrubbing || _scrubbed(timeUs);
     _lastFrameTimeUs = timeUs;
 
     if (!request.running) {
@@ -443,10 +445,12 @@ final class _StudioMediaRequest {
     required this.frame,
     required this.orientation,
     required this.running,
+    required this.scrubbing,
   });
 
   final PresentationCinematicAsset asset;
   final PresentationFrame? frame;
   final PresentationFrameOrientation orientation;
   final bool running;
+  final bool scrubbing;
 }

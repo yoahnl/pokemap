@@ -231,6 +231,41 @@ de deux.
 `_UnavailableContent` a été extraite vers `presentation_unavailable_content.dart`
 pour rendre au fichier la marge nécessaire sous la limite de trois cents lignes.
 
+## Quatrième retour : l'image ne suivait que vers l'arrière
+
+Après le correctif précédent, Yoahn a constaté que le scrub « ne fonctionne que
+pour revenir en arrière ».
+
+Mesure sur l'enregistrement, en suivant la colonne de la tête de lecture et le
+contenu du canevas image par image : la tête se déplaçait bien dans les deux
+sens, mais l'écart d'image valait 0,00 à 0,07 sur les vingt échantillons du
+glissement vers l'avant, contre 1,3 à 28 vers l'arrière. L'image était donc
+strictement figée en avançant.
+
+Cause, dans `PresentationStudioMediaSink` :
+
+```dart
+return timeUs < previous || timeUs - previous > continuityToleranceUs;
+```
+
+Reculer satisfait toujours la première condition. Avancer n'est retenu que
+au-delà de la tolérance de continuité, quatre cent millisecondes. Ce seuil
+existe pour ne pas confondre l'écoulement normal du temps pendant une lecture
+avec un saut délibéré, et il est correct pour ce qu'il visait. Mais un
+glissement échantillonne à la fréquence de l'écran : chaque pas n'avançait que
+d'environ cent cinquante millisecondes de contenu, sous le seuil. Aucun
+`seek` n'était donc envoyé au décodeur.
+
+Le sink ne pouvait pas distinguer les deux situations, puisqu'il ne voit que
+des écarts de temps. Le transport, lui, sait désormais qu'un geste est en
+cours : `synchronize` accepte un paramètre `scrubbing`, faux par défaut, et un
+échantillon annoncé comme geste est traité comme un saut quelle que soit son
+amplitude. La tolérance de continuité garde son rôle pour tout le reste.
+
+Le test `a paused scrub seeks forward even in steps below the tolerance` envoie
+trois pas de cent cinquante millisecondes en pause et exige trois `seek`. Sans
+le correctif il n'en relève aucun.
+
 ## Composition livrée
 
 Le cadre Avelune, la navigation et l'espace Histoire sont réutilisés tels quels.

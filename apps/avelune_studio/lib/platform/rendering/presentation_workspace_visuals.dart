@@ -181,6 +181,7 @@ class StudioPresentationVisuals extends ChangeNotifier
           ? PresentationFrameOrientation.portrait
           : PresentationFrameOrientation.landscape,
       running: transport.playing,
+      scrubbing: transport.scrubbing,
     );
   }
 
