@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:avelune_studio/features/world/application/world_workspace_controller.dart';
+
 import 'package:avelune_studio/presentation/features/world/world_view_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -89,7 +91,25 @@ void main() {
     expect(h.controller.error, isNull);
     await activate(tester, find.text('Tester la règle'));
     expect(h.controller.report, isNotNull);
+    expect(find.text('Avant la règle'), findsOneWidget);
     await h.capture(tester, 'ui12-02-regle');
+
+    // The condition holds only once the test value says the train has left.
+    await activate(tester, find.text('Après la règle'));
+    expect(find.textContaining('Présent'), findsOneWidget);
+
+    await activate(tester, find.byType(Switch).last);
+    expect(
+      h.controller.isHypothetical(factId),
+      isTrue,
+      reason: 'The test value is a hypothesis, not the project value',
+    );
+    expect(
+      find.textContaining('Absent'),
+      findsOneWidget,
+      reason: 'The picture and the verdict must agree once the rule applies',
+    );
+    await h.capture(tester, 'ui12-03-apres');
 
     expect(
       h.controller.fact(factId)!.initialValue,

@@ -163,6 +163,8 @@ extension _WorldContextPanel on _WorldWorkspacePageState {
           ),
       ],
       const SizedBox(height: 12),
+      _preview(draft),
+      const SizedBox(height: 12),
       StudioCommitField(
         label: 'Priorité',
         value: '${draft.priority}',

@@ -11,9 +11,12 @@ class WorldViewState {
   WorldView view = WorldView.states;
   bool libraryOpen = true, contextOpen = true;
   String factCategory = '';
+  bool previewAfter = false;
+  final previewTransform = TransformationController();
   String? actionError;
 
   void dispose() {
+    previewTransform.dispose();
     factSearch.dispose();
     ruleSearch.dispose();
   }

@@ -1,4 +1,6 @@
 import 'package:avelune_studio/features/world/application/world_workspace_controller.dart';
+import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/world/world_view_state.dart';
 import 'package:avelune_studio/presentation/features/world/world_workspace_page.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_application_frame.dart';
@@ -13,9 +15,10 @@ import 'ui12_world_harness.dart';
 
 /// The UI12 page inside the Avelune frame, on a real project.
 class Ui12PageHarness {
-  Ui12PageHarness(this.world);
+  Ui12PageHarness(this.world, this.visuals);
 
   final Ui12WorldHarness world;
+  final MapWorkspaceVisuals visuals;
   final view = WorldViewState();
   final search = TextEditingController();
   final captureKey = GlobalKey();
@@ -30,7 +33,11 @@ class Ui12PageHarness {
       wrap: (port) => Ui12WidgetWorldPort(port, tester),
       initialize: false,
     );
-    final harness = Ui12PageHarness(world);
+    final visuals = await StudioMapResources.load(
+      world.session,
+      world.maps.project!,
+    );
+    final harness = Ui12PageHarness(world, visuals);
     world.onChanged = () => harness.changes.value++;
     return harness;
   }
@@ -59,6 +66,7 @@ class Ui12PageHarness {
               controller: controller,
               view: view,
               onBack: () => returned = true,
+              visuals: visuals,
             ),
           ),
         ),

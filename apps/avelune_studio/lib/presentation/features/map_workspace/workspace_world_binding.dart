@@ -48,6 +48,7 @@ extension _WorkspaceWorldBinding on _MapWorkspaceScreenState {
     return WorldWorkspacePage(
       controller: owner,
       view: _worldView,
+      visuals: _visuals,
       onBack: () => unawaited(_returnFromWorld()),
       backLabel: _worldOrigin.space == WorkspaceSpace.scene
           ? 'la scène'

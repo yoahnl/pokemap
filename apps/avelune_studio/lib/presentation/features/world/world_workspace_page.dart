@@ -15,6 +15,7 @@ import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
+import '../map_workspace/map_workspace_visuals.dart';
 import 'world_view_state.dart';
 
 part 'world_library.dart';
@@ -22,6 +23,7 @@ part 'world_fact_editor.dart';
 part 'world_rule_composer.dart';
 part 'world_rule_pickers.dart';
 part 'world_context_panel.dart';
+part 'world_preview.dart';
 
 class WorldWorkspacePage extends StatefulWidget {
   const WorldWorkspacePage({
@@ -32,6 +34,7 @@ class WorldWorkspacePage extends StatefulWidget {
     this.backLabel = 'Histoire',
     this.onOpenScene,
     this.onOpenDialogue,
+    this.visuals,
   });
 
   final WorldWorkspaceController controller;
@@ -40,6 +43,7 @@ class WorldWorkspacePage extends StatefulWidget {
   final String backLabel;
   final Future<void> Function(String sceneId)? onOpenScene;
   final Future<void> Function(String dialogueId)? onOpenDialogue;
+  final MapWorkspaceVisuals? visuals;
 
   @override
   State<WorldWorkspacePage> createState() => _WorldWorkspacePageState();
