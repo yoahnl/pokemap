@@ -1,17 +1,31 @@
 {
-  "fill" : {
-    "automatic-gradient" : "extended-srgb:0.00000,0.53333,1.00000,1.00000"
-  },
+  "fill-specializations" : [
+    {
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.83906,0.65279,0.73168,1.00000",
+          "srgb:0.59283,0.65818,1.00000,1.00000"
+        ]
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.00000,0.04627,0.14360,1.00000",
+          "srgb:0.04419,0.02084,0.25011,1.00000"
+        ]
+      }
+    }
+  ],
   "groups" : [
     {
       "layers" : [
         {
-          "blend-mode" : "normal",
-          "glass" : false,
-          "image-name" : "Avelune_AppIcon_1024.png",
-          "name" : "Avelune_AppIcon_1024",
+          "image-name" : "logo application.png",
+          "name" : "logo application",
           "position" : {
-            "scale" : 1.07,
+            "scale" : 0.95,
             "translation-in-points" : [
               0,
               0
