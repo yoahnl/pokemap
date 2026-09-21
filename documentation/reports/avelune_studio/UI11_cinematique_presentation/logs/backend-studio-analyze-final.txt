@@ -1,0 +1,20 @@
+Analyzing presentation_workspace_controller.dart, presentation_workspace_editing.dart, presentation_workspace_library.dart, presentation_workspace_publication.dart, presentation_workspace_references.dart, presentation_edit_session.dart, data, domain, presentation_adapter_ui11_test.dart, presentation_controller_ui11_test.dart, presentation_atomic_ui11_test.dart, presentation_references_ui11_test.dart...
+
+   info - lib/features/presentations/application/presentation_workspace_editing.dart:26:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/application/presentation_workspace_library.dart:7:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/application/presentation_workspace_publication.dart:9:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/application/presentation_workspace_publication.dart:49:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/application/presentation_workspace_publication.dart:96:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/application/presentation_workspace_publication.dart:109:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/application/presentation_workspace_publication.dart:120:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/application/presentation_workspace_publication.dart:150:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/application/presentation_workspace_publication.dart:161:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/data/local_presentation_adapter.dart:100:13 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/data/local_presentation_adapter.dart:114:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/data/local_presentation_projection.dart:80:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/data/local_presentation_projection.dart:111:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/data/local_presentation_publication.dart:14:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/data/local_presentation_publication.dart:95:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/features/presentations/data/local_presentation_publication.dart:175:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+16 issues found.

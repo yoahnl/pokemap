@@ -20,6 +20,8 @@ dependencies:
     path: ../../packages/map_core
   map_runtime:
     path: ../../packages/map_runtime
+  map_player_ui:
+    path: ../../packages/map_player_ui
   flame: ^1.38.0
   path: ^1.9.1
 

@@ -1,0 +1,3 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart
+00:00 +0: UI10 recovers missing actor through real controls and preserves invalid fields
+00:12 +1: All tests passed!

@@ -179,7 +179,7 @@ class CinematicInspector extends StatelessWidget {
           final id = asset.id, mapId = asset.mapId!;
           final problem = await onLocate(mapId);
           if (controller.active?.asset.id == id && problem != null) {
-            view.error = problem;
+            view.actionError = problem;
             changed();
           }
         },

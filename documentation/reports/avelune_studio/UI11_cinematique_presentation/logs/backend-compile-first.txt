@@ -1,0 +1,10 @@
+Analyzing presentations, presentation_publication_actions.dart, presentation_publication_guards.dart, presentation_publication_snapshot.dart...
+
+  error - apps/avelune_studio/lib/features/presentations/data/local_presentation_adapter.dart:15:7 - Missing concrete implementations of 'PresentationPort.delete', 'PresentationPort.publish', 'PresentationPort.releaseMedia', 'PresentationPort.setArchived', and 1 more. Try implementing the missing methods, or make the class abstract. - non_abstract_class_inherits_abstract_member
+warning - apps/avelune_studio/lib/features/presentations/data/local_presentation_media.dart:5:35 - The method doesn't override an inherited method. Try updating this class to match the superclass, or removing the override annotation. - override_on_non_overriding_member
+warning - apps/avelune_studio/lib/features/presentations/data/local_presentation_media.dart:32:16 - The method doesn't override an inherited method. Try updating this class to match the superclass, or removing the override annotation. - override_on_non_overriding_member
+warning - apps/avelune_studio/lib/features/presentations/data/local_presentation_publication.dart:5:42 - The method doesn't override an inherited method. Try updating this class to match the superclass, or removing the override annotation. - override_on_non_overriding_member
+warning - apps/avelune_studio/lib/features/presentations/data/local_presentation_publication.dart:21:42 - The method doesn't override an inherited method. Try updating this class to match the superclass, or removing the override annotation. - override_on_non_overriding_member
+warning - apps/avelune_studio/lib/features/presentations/data/local_presentation_publication.dart:26:42 - The method doesn't override an inherited method. Try updating this class to match the superclass, or removing the override annotation. - override_on_non_overriding_member
+
+6 issues found.

@@ -1,0 +1,11 @@
+Analyzing map_authoring...
+
+   info - lib/src/domains/narrative/presentation_publication_actions.dart:81:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/narrative/presentation_publication_actions.dart:103:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/narrative/presentation_publication_actions.dart:169:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/narrative/presentation_publication_actions.dart:179:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/narrative/presentation_publication_guards.dart:13:5 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/narrative/presentation_timeline_editing_controller.dart:3:8 - The imported package 'meta' isn't a dependency of the importing package. Try adding a dependency for 'meta' in the 'pubspec.yaml' file. - depend_on_referenced_packages
+   info - test/tooling/jsonl_presentation_publication_ui11_test.dart:61:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+7 issues found.

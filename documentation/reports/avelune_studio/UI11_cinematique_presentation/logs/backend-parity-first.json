@@ -1,0 +1,34 @@
+{
+  "command": [
+    "dart",
+    "test",
+    "test/domains/narrative/presentation_publication_ui11_test.dart",
+    "test/tooling/jsonl_presentation_publication_ui11_test.dart",
+    "test/parity/full_authoring_parity_test.dart",
+    "test/domains/narrative/presentation_cinematic_draft_test.dart",
+    "test/domains/narrative/presentation_cinematic_authoring_test.dart"
+  ],
+  "runnerPid": 88359,
+  "owned": {
+    "88365": [
+      88359,
+      "501",
+      "Mon Sep 21 01:30:52 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/Cellar/dart/3.12.1/libexec --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/dart_test.kernel.M0iSYZ/output.dill --packages=/Users/karim/Project/pokemonProject/packages/map_authoring/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    ],
+    "88414": [
+      88359,
+      "501",
+      "Mon Sep 21 01:30:54 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart tool/pmcp085_conformance.dart --transport-receipts /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pmcp-item-receipts-LwtnmM/receipts.json"
+    ],
+    "88625": [
+      88359,
+      "501",
+      "Mon Sep 21 01:31:02 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart tool/pmcp085_conformance.dart"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

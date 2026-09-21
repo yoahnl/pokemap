@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/project_directory_presentation_media_test.dart
+00:00 +0: supplied catalog avoids media file and defaults to strict sources
+00:00 +1: missing records and blobs are local only when explicitly requested
+00:00 +2: malformed asset catalog is never silently accepted
+00:00 +3: All tests passed!

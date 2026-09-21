@@ -1,0 +1,4 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_visuals_test.dart
+00:00 +0: staged illustration renders through shared canvas without project writes
+00:00 +1: missing unrelated media does not prevent text or stale source recovery
+00:00 +2: All tests passed!

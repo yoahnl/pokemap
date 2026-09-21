@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart: focused duration commits canonical value and invalid duration is rejected
+00:01 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields
+00:02 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields
+00:02 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields
+00:02 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields
+00:02 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart: UI10 recovers missing actor through real controls and preserves invalid fields
+00:11 +6: All tests passed!

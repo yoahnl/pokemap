@@ -109,9 +109,9 @@ class CinematicActorDisplayPreviewOverlay extends StatelessWidget {
     if (override != null) {
       return transform.tileToPreview(override.x, override.y);
     }
-    return transform.tileCenterBottom(
-      tileX: actor.position.x ?? 0,
-      tileY: actor.position.y ?? 0,
+    return transform.tileToPreview(
+      (actor.position.x ?? 0).toDouble(),
+      (actor.position.y ?? 0).toDouble(),
     );
   }
 }
@@ -188,7 +188,7 @@ class _ActorDisplayPlaceholder extends StatelessWidget {
 
     return Positioned(
       left: anchor.dx - width / 2,
-      top: anchor.dy - height,
+      top: anchor.dy + spriteHeightOnScreen / 2 - height,
       width: width,
       height: height,
       child: Semantics(

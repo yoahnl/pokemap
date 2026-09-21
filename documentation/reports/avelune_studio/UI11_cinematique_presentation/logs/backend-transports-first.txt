@@ -1,0 +1,4 @@
+00:00 +0: loading test/domains/narrative/presentation_publication_ui11_test.dart
+00:00 +0: test/domains/narrative/presentation_publication_ui11_test.dart: targeted Presentation publication is canonical and atomic
+00:00 +1: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +2: All tests passed!

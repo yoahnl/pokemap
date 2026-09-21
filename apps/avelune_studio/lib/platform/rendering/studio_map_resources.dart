@@ -17,6 +17,9 @@ import 'studio_resource_notifications.dart';
 import '../../presentation/features/characters/character_workspace_visuals.dart';
 import '../../presentation/features/cinematics/cinematic_workspace_visuals.dart';
 
+import '../../presentation/features/presentations/presentation_workspace_visuals.dart';
+import '../../features/presentations/domain/presentation_port.dart';
+import 'presentation_workspace_visuals.dart';
 part 'studio_map_resource_recovery.dart';
 
 final class StudioMapResources
@@ -25,10 +28,22 @@ final class StudioMapResources
         ResourceWorkspaceVisuals,
         CharacterWorkspaceVisuals,
         CinematicWorkspaceVisuals,
-        CinematicMediaWorkspaceVisuals {
+        CinematicMediaWorkspaceVisuals,
+        PresentationMediaWorkspaceVisuals {
   StudioMapResources._(this.projectRoot, this.manifest)
     : _index = StudioResourceIndex(manifest);
 
+  @override
+  PresentationWorkspaceVisuals createPresentationVisuals({
+    required String revision,
+    required ProjectMediaCatalog catalog,
+    List<PresentationStagedMedia> imports = const [],
+  }) => StudioPresentationVisuals(
+    projectRoot: projectRoot,
+    revision: revision,
+    catalog: catalog,
+    imports: imports,
+  );
   final String projectRoot;
   @override
   CinematicMediaPlaybackPort createCinematicMedia(ProjectManifest project) =>

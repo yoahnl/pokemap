@@ -1,0 +1,34 @@
+{
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "--test-name-pattern",
+    "CIN-033 certifies preSession and Presentation",
+    "test/mutation_server.test.ts"
+  ],
+  "runnerPid": 88405,
+  "owned": {
+    "88408": [
+      88405,
+      "501",
+      "Mon Sep 21 01:30:53 2026",
+      "/opt/homebrew/Cellar/node/26.3.1/bin/node --test-concurrency=0 --heap-prof-interval=524288 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --stack-trace-limit=10 --report-signal=SIGUSR2 --max-http-header-size=16384 --heapsnapshot-near-heap-limit=0 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-name-pattern=CIN-033 certifies preSession and Presentation --test-isolation=process --test-coverage-lines=0 --cpu-prof-interval=1000 --test-coverage-functions=0 --test-timeout=0 --inspect-port=127.0.0.1:9229 --test-coverage-branches=0 --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx --test-name-pattern CIN-033 certifies preSession and Presentation test/mutation_server.test.ts"
+    ],
+    "88411": [
+      88408,
+      "501",
+      "Mon Sep 21 01:30:53 2026",
+      "/Users/karim/Project/pokemonProject/tools/pokemap_mcp/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.28.1 --ping"
+    ],
+    "88421": [
+      88408,
+      "501",
+      "Mon Sep 21 01:30:54 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartvm --resolved_executable_name=/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dart --executable_name=dart bin/pokemap_authoring.dart --root /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/pokemap-mcp-mutation-nUX7cl --timeout-ms 10000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

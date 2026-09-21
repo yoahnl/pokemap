@@ -1,0 +1,18 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "check"
+  ],
+  "runnerPid": 12817,
+  "owned": {
+    "12859": [
+      12817,
+      "501",
+      "Mon Sep 21 01:48:57 2026",
+      "/Users/karim/Project/pokemonProject/tools/pokemap_mcp/node_modules/@typescript/typescript-darwin-arm64/lib/tsc -p tsconfig.json --noEmit"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

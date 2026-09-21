@@ -1,7 +1,41 @@
 part of 'scene_builder_page.dart';
 
 extension _SceneBuilderCommands on _SceneBuilderPageState {
+  List<SceneBlockDragData> get blocks => [
+    for (final kind in SceneNodeKind.values.where(
+      (kind) => kind != SceneNodeKind.start,
+    ))
+      SceneBlockDragData(kind: kind, label: sceneBlockLabel(kind)),
+  ];
+  ProjectManifest get linkedProject => widget.presentationEntries == null
+      ? widget.controller.project
+      : widget.controller.project.copyWith(
+          presentationCinematics: widget.presentationEntries!(),
+        );
+
+  Future<void> createPresentation(SceneNode node) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    FocusManager.instance.applyFocusChangesIfNeeded();
+    final session = widget.controller.active;
+    if (session == null ||
+        session.saving ||
+        session.base == null ||
+        session.current.executionProfile != SceneExecutionProfile.preSession ||
+        !session.current.graph.nodes.any((n) => n.id == node.id)) {
+      return;
+    }
+    await widget.onCreatePresentation?.call(
+      ScenePresentationCreationRequest(
+        baseScene: session.base!,
+        scene: session.current,
+        targetNodeId: node.id,
+      ),
+    );
+  }
+
   Future<void> openDocument(SceneNode node) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    FocusManager.instance.applyFocusChangesIfNeeded();
     if (node.payload case SceneYarnDialoguePayload payload
         when widget.onDialogue != null) {
       return widget.onDialogue!(payload);
@@ -9,6 +43,10 @@ extension _SceneBuilderCommands on _SceneBuilderPageState {
     if (node.payload case SceneCinematicPayload payload
         when widget.onCinematic != null) {
       return widget.onCinematic!(payload);
+    }
+    if (node.payload case ScenePresentationCinematicPayload payload
+        when widget.onPresentation != null) {
+      return widget.onPresentation!(payload);
     }
     return documents.open(
       context,
@@ -84,11 +122,7 @@ extension _SceneBuilderCommands on _SceneBuilderPageState {
           SceneNodeKind.presentationCinematic,
           SceneNodeKind.action,
         }.contains(block.kind)) {
-      payload = await chooseScenePayload(
-        context,
-        block.kind,
-        widget.controller.project,
-      );
+      payload = await chooseScenePayload(context, block.kind, linkedProject);
       if (!mounted || widget.controller.active != session || payload == null) {
         return;
       }

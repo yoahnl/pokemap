@@ -51,8 +51,8 @@ void main() {
         position: const CinematicActorPreviewPosition(
           status: CinematicActorPreviewPositionStatus.resolved,
           sourceKind: CinematicActorPreviewPositionSourceKind.mapEntity,
-          x: 5,
-          y: 10,
+          x: 5.25,
+          y: 10.5,
         ),
         appearance: const CinematicActorPreviewAppearance(
           status: CinematicActorPreviewAppearanceStatus.spriteReady,
@@ -80,6 +80,9 @@ void main() {
       expect(plan.actors, hasLength(1));
       final planActor = plan.actors.first;
       expect(planActor.actorId, 'actor_prof');
+      expect(planActor.position, (x: 5.25, y: 10.5));
+      expect(planActor.depthHint.tileX, 5.25);
+      expect(planActor.depthHint.tileY, 10.5);
       expect(planActor.status, CinematicActorSpriteStatus.spriteReady);
       expect(planActor.placeholderFallback, isFalse);
       expect(planActor.spriteRef, isNotNull);
@@ -88,8 +91,8 @@ void main() {
       expect(planActor.spriteRef!.frameHeightTiles, 2);
       expect(planActor.spriteRef!.sourceTileRect.x, 2);
       expect(planActor.spriteRef!.sourceTileRect.y, 3);
-      expect(planActor.depthHint.visualBottom, 12.0);
-      expect(planActor.depthHint.anchorTileX, 5.5);
+      expect(planActor.depthHint.visualBottom, 11.5);
+      expect(planActor.depthHint.anchorTileX, 5.25);
       expect(plan.hasReadySprites, isTrue);
       expect(plan.hasFallbacks, isFalse);
       expect(plan.hasErrors, isFalse);

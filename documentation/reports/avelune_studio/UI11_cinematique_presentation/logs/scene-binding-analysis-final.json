@@ -1,0 +1,27 @@
+{
+  "command": [
+    "flutter",
+    "analyze",
+    "--no-pub",
+    "lib/presentation/features/scenes",
+    "lib/features/scenes/domain/scene_presentation_creation_request.dart",
+    "test/presentation/ui11_scene_presentation_binding_test.dart"
+  ],
+  "runnerPid": 74369,
+  "owned": {
+    "74406": [
+      74369,
+      "501",
+      "Mon Sep 21 01:18:38 2026",
+      "(git)"
+    ],
+    "74410": [
+      74369,
+      "501",
+      "Mon Sep 21 01:18:39 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart language-server --dart-sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk --disable-server-feature-completion --disable-server-feature-search"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

@@ -1,3 +1,5 @@
+import '../../../features/presentations/application/presentation_workspace_controller.dart';
+import '../../../features/scenes/domain/scene_presentation_creation_request.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../cinematics/cinematic_workspace_page.dart';
 import '../cinematics/cinematic_view_state.dart';
@@ -34,10 +36,15 @@ enum WorkspaceSpace {
   events,
   dialogue,
   cinematic,
+  presentation,
 }
 
 Widget? workspaceSecondaryContent({
   required WorkspaceSpace space,
+  PresentationWorkspaceController? presentations,
+  VoidCallback? onPresentations,
+  Future<void> Function(ScenePresentationCinematicPayload)? onScenePresentation,
+  Future<void> Function(ScenePresentationCreationRequest)? onCreatePresentation,
   required CinematicWorkspaceController? cinematics,
   required CinematicViewStore cinematicViews,
   required WorkspaceSpace cinematicOrigin,
@@ -87,6 +94,7 @@ Widget? workspaceSecondaryContent({
       visuals != null) {
     return CinematicWorkspacePage(
       controller: cinematics,
+      onPresentations: onPresentations,
       dialogues: dialogues,
       views: cinematicViews,
       loader: eventMaps,
@@ -134,18 +142,29 @@ Widget? workspaceSecondaryContent({
   }
   if (space == WorkspaceSpace.scene && scenes != null) {
     return SceneBuilderPage(
+      onPresentation: onScenePresentation,
+      onCreatePresentation: onCreatePresentation,
+      presentationFor: presentations?.assetFor,
+      presentationEntries: presentations == null
+          ? null
+          : () => presentations.entries,
       dialogues: dialogues,
       onCinematic: cinematics == null ? null : onSceneCinematic,
       onDialogue: dialogues == null ? null : onSceneDialogue,
       controller: scenes,
       views: sceneViews,
       narrative: narrative,
-      onBack: sceneOrigin == WorkspaceSpace.events
+      onBack:
+          sceneOrigin == WorkspaceSpace.presentation && onPresentations != null
+          ? onPresentations
+          : sceneOrigin == WorkspaceSpace.events
           ? onReturnEvents
           : sceneOrigin == WorkspaceSpace.progression
           ? onReturnProgression
           : onStory,
-      onBackLabel: sceneOrigin == WorkspaceSpace.events
+      onBackLabel: sceneOrigin == WorkspaceSpace.presentation
+          ? 'la présentation'
+          : sceneOrigin == WorkspaceSpace.events
           ? 'Événements'
           : sceneOrigin == WorkspaceSpace.progression
           ? 'Histoires et progression'

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../features/scenes/domain/scene_presentation_creation_request.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -33,6 +34,10 @@ class SceneBuilderPage extends StatefulWidget {
     this.dialogues,
     this.onDialogue,
     this.onCinematic,
+    this.onPresentation,
+    this.onCreatePresentation,
+    this.presentationFor,
+    this.presentationEntries,
     this.onBackLabel = 'Histoire',
   });
   final SceneWorkspaceController controller;
@@ -44,6 +49,12 @@ class SceneBuilderPage extends StatefulWidget {
   final DialogueWorkspaceController? dialogues;
   final Future<void> Function(SceneYarnDialoguePayload)? onDialogue;
   final Future<void> Function(SceneCinematicPayload)? onCinematic;
+  final Future<void> Function(ScenePresentationCinematicPayload)?
+  onPresentation;
+  final Future<void> Function(ScenePresentationCreationRequest)?
+  onCreatePresentation;
+  final PresentationCinematicAsset? Function(String)? presentationFor;
+  final List<PresentationCinematicAsset> Function()? presentationEntries;
   @override
   State<SceneBuilderPage> createState() => _SceneBuilderPageState();
 }
@@ -53,12 +64,6 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
   SceneBuilderViewState? get view => widget.controller.active == null
       ? null
       : widget.views.forScene(widget.controller.active!.current.id);
-  List<SceneBlockDragData> get blocks => [
-    for (final kind in SceneNodeKind.values.where(
-      (kind) => kind != SceneNodeKind.start,
-    ))
-      SceneBlockDragData(kind: kind, label: sceneBlockLabel(kind)),
-  ];
   void refresh() {
     if (mounted) setState(() {});
   }
@@ -66,6 +71,7 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
   @override
   Widget build(BuildContext context) {
     documents.dialogues = widget.dialogues;
+    documents.presentationFor = widget.presentationFor;
     final session = widget.controller.active;
     final state = view;
     if (session != null) state!.invalidate(session.current);
@@ -87,7 +93,7 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
             ? null
             : SceneInspector(
                 session: session,
-                project: widget.controller.project,
+                project: linkedProject,
                 documents: documents,
                 narrative: widget.narrative,
                 nodeId: state!.nodeId,
@@ -96,6 +102,9 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
                 onDelete: delete,
                 onDuplicate: duplicate,
                 onDocument: openDocument,
+                onCreatePresentation: widget.onCreatePresentation == null
+                    ? null
+                    : createPresentation,
               );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

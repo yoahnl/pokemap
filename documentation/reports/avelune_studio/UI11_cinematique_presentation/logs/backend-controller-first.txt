@@ -1,0 +1,29 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart
+00:00 +0: create no disk write, grouped canonical intent, undo redo save and reopen
+00:00 +0 -1: create no disk write, grouped canonical intent, undo redo save and reopen [E]
+  Expected: <true>
+    Actual: <false>
+  PresentationCinematicAuthoringException(presentation_cinematic.parameters_invalid): The Presentation cinematic parameters do not match the action.
+  
+  package:matcher                                                 expect
+  package:flutter_test/src/widget_tester.dart 473:18              expect
+  test/presentations/presentation_controller_ui11_test.dart 17:5  main.<fn>
+  
+00:00 +0 -1: failed grouped edit rolls back all commands and accepts correction
+00:00 +1 -1: one shared draft, late opening cannot overwrite B
+00:00 +2 -1: editing during save remains dirty and next save does not lose current text
+00:01 +2 -2: editing during save remains dirty and next save does not lose current text [E]
+  Expected: <true>
+    Actual: <false>
+  Publication refusée, brouillon conservé : Bad state: La présentation ou son classement a changé. Le brouillon est conservé.
+  
+  package:matcher                                                 expect
+  package:flutter_test/src/widget_tester.dart 473:18              expect
+  test/presentations/presentation_controller_ui11_test.dart 70:5  main.<fn>
+  
+00:01 +2 -2: unpublished duplicates have unique identities and do not replace original
+00:01 +3 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: create no disk write, grouped canonical intent, undo redo save and reopen
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: editing during save remains dirty and next save does not lose current text

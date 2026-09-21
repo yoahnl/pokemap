@@ -202,7 +202,7 @@ CinematicActorSpritePreviewActor _spriteActor({
     actorId: actorId,
     actorLabel: label,
     bindingKind: CinematicActorBindingKind.cinematicOnly,
-    position: const GridPos(x: 4, y: 5),
+    position: (x: 4, y: 5),
     direction: CinematicActorPreviewDirection.east,
     status: status,
     spriteRef: status == CinematicActorSpriteStatus.spriteReady

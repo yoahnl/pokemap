@@ -1,4 +1,5 @@
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
+import '../../../features/presentations/application/presentation_workspace_controller.dart';
 import 'package:flutter/material.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
@@ -28,6 +29,7 @@ class WorkspaceActions {
     this.events,
     this.dialogues,
     this.cinematics,
+    this.presentations,
     this.publishedCinematicContext,
     required this.runtimeBuilder,
   });
@@ -41,6 +43,7 @@ class WorkspaceActions {
   final EventWorkspaceController? Function()? events;
   final DialogueWorkspaceController? Function()? dialogues;
   final CinematicWorkspaceController? Function()? cinematics;
+  final PresentationWorkspaceController? Function()? presentations;
   final bool Function()? publishedCinematicContext;
   final StudioRuntimeBuilder runtimeBuilder;
   bool testing = false;
@@ -50,6 +53,7 @@ class WorkspaceActions {
       closing ||
       dialogues?.call()?.busy == true ||
       cinematics?.call()?.busy == true ||
+      presentations?.call()?.busy == true ||
       events?.call()?.busy == true ||
       scenes?.call()?.busy == true ||
       resources()?.busy == true ||
@@ -64,6 +68,7 @@ class WorkspaceActions {
         narrative()?.dirty != true &&
         dialogues?.call()?.dirty != true &&
         cinematics?.call()?.dirty != true &&
+        presentations?.call()?.dirty != true &&
         events?.call()?.dirty != true &&
         scenes?.call()?.dirty != true) {
       return true;
@@ -74,6 +79,9 @@ class WorkspaceActions {
       final choice = await confirmStudioClose(context());
       if (!mounted() || choice == null || choice == 'cancel') return false;
       if (choice == 'save') {
+        if (presentations?.call() case final owner?) {
+          if (!await owner.saveAll()) return false;
+        }
         if (cinematics?.call() case final owner?) {
           if (!await owner.saveAll()) return false;
         }
@@ -100,6 +108,13 @@ class WorkspaceActions {
   }
 
   Future<void> test() async {
+    if (presentations?.call()?.flushEdits?.call() == false) return;
+    if (presentations?.call()?.dirty == true) {
+      presentations!.call()!.error =
+          'Enregistrez les présentations avant de tester le jeu.';
+      changed();
+      return;
+    }
     if (cinematics?.call()?.dirty == true) {
       cinematics!.call()!.error =
           'Enregistrez les cinématiques avant de tester le jeu.';
@@ -186,6 +201,11 @@ class WorkspaceActions {
             'La cinématique a changé pendant la préparation. Enregistrez-la avant de tester.';
         return;
       }
+      if (presentations?.call()?.dirty == true) {
+        presentations!.call()!.error =
+            'La présentation a changé pendant la préparation.';
+        return;
+      }
       await Navigator.of(context()).push<void>(
         MaterialPageRoute(
           builder: (routeContext) => runtimeBuilder(
@@ -221,6 +241,7 @@ class WorkspaceActions {
   }
 
   bool _flushDialogueEdit() {
+    if (presentations?.call()?.flushEdits?.call() == false) return false;
     final owner = dialogues?.call(), previous = dialogues?.call()?.error;
     final cinema = cinematics?.call(),
         previousCinema = cinematics?.call()?.error;

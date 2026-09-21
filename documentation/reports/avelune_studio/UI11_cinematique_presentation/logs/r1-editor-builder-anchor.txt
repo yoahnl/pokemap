@@ -1,0 +1,86 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart
+00:00 +0: aligns actor placeholders with the backdrop viewport transform
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _DescendantWidgetFinder:<Found 0 widgets with text "E" descending from widgets with key
+[<'cinematic-builder-actor-display-direction-actor_lysa'>]: []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:1784:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 1784
+The test description was:
+  aligns actor placeholders with the backdrop viewport transform
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:02 +0 -1: aligns actor placeholders with the backdrop viewport transform [E]
+  Test failed. See exception logs above.
+  The test description was: aligns actor placeholders with the backdrop viewport transform
+  
+00:02 +0 -1: keeps actor placeholders aligned after scene framing zoom
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a numeric value within <1> of <285.21875>
+  Actual: <287.21875>
+   Which:  differs by <2.0>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:2283:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 2283
+The test description was:
+  keeps actor placeholders aligned after scene framing zoom
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:04 +0 -2: keeps actor placeholders aligned after scene framing zoom [E]
+  Test failed. See exception logs above.
+  The test description was: keeps actor placeholders aligned after scene framing zoom
+  
+00:04 +0 -2: keeps actor placeholders aligned after scene framing pan
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a numeric value within <1> of <245.21875>
+  Actual: <247.21875>
+   Which:  differs by <2.0>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:2634:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 2634
+The test description was:
+  keeps actor placeholders aligned after scene framing pan
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:05 +0 -3: keeps actor placeholders aligned after scene framing pan [E]
+  Test failed. See exception logs above.
+  The test description was: keeps actor placeholders aligned after scene framing pan
+  
+00:05 +0 -3: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart: aligns actor placeholders with the backdrop viewport transform
+  /Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart: keeps actor placeholders aligned after scene framing pan
+  /Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart: keeps actor placeholders aligned after scene framing zoom

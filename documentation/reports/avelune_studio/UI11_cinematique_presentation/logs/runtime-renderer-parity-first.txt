@@ -1,0 +1,58 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart
+00:00 +0: shared montage equals actual runtime frames portrait=false
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: <0>
+  Actual: <1545570>
+Same asset, viewport 960x640 DPR1 theme/time=0; complete RGBA compared
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart:123:11)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart line 123
+The test description was:
+  shared montage equals actual runtime frames portrait=false
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:03 +0 -1: shared montage equals actual runtime frames portrait=false [E]
+  Test failed. See exception logs above.
+  The test description was: shared montage equals actual runtime frames portrait=false
+  
+00:03 +0 -1: shared montage equals actual runtime frames portrait=true
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: <0>
+  Actual: <687938>
+Same asset, viewport 960x640 DPR1 theme/time=0; complete RGBA compared
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart:123:11)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart line 123
+The test description was:
+  shared montage equals actual runtime frames portrait=true
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:05 +0 -2: shared montage equals actual runtime frames portrait=true [E]
+  Test failed. See exception logs above.
+  The test description was: shared montage equals actual runtime frames portrait=true
+  
+00:05 +0 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=false
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=true

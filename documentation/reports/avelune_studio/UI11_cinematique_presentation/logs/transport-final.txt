@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_transport_test.dart
+00:00 +0: canonical clock preserves pauses, exclusive ends and seek without mutation
+00:00 +1: document replacement and manual scrubs invalidate media epochs
+00:00 +2: step and loop use shared microsecond transport semantics
+00:00 +3: All tests passed!

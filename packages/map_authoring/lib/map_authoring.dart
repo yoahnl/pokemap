@@ -172,3 +172,6 @@ export 'src/workspace/workspace_policy.dart';
 
 export 'src/domains/gameplay/pokemon_media_import_actions.dart';
 export 'src/domains/gameplay/pokemon_sprite_source_catalog.dart';
+
+export 'src/domains/narrative/presentation_publication_actions.dart';
+export 'src/domains/narrative/presentation_publication_snapshot.dart';

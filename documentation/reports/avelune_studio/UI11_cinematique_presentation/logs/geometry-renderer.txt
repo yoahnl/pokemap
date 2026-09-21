@@ -1,0 +1,113 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_geometry_test.dart
+../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected ':' before this.
+      preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                          ^
+../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected an identifier, but got '}'.
+Try inserting an identifier before '}'.
+      preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                          ^
+../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:86: Error: A value of type 'Map<dynamic, dynamic>?' can't be assigned to a variable of type 'bool'.
+ - 'Map' is from 'dart:core'.
+      preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                     ^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_geometry_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_geometry_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_geometry_test.dart: ../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected ':' before this.
+        preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                                             ^
+  ../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected an identifier, but got '}'.
+  Try inserting an identifier before '}'.
+        preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                                             ^
+  ../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:86: Error: A value of type 'Map<dynamic, dynamic>?' can't be assigned to a variable of type 'bool'.
+   - 'Map' is from 'dart:core'.
+        preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                       ^
+  .
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1021:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/future_impl.dart 961:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 990:13               Future._propagateToListeners
+  dart:async/future_impl.dart 874:9                Future._propagateToListeners
+  dart:async/future_impl.dart 732:5                Future._completeWithValue
+  dart:async/future_impl.dart 816:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone.dart 474:14                      Zone.runGuarded
+  dart:async/zone.dart 604:18                      Zone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected ':' before this.
+      preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                          ^
+../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected an identifier, but got '}'.
+Try inserting an identifier before '}'.
+      preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                          ^
+../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:86: Error: A value of type 'Map<dynamic, dynamic>?' can't be assigned to a variable of type 'bool'.
+ - 'Map' is from 'dart:core'.
+      preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                     ^
+00:00 +0 -2: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_renderer_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_renderer_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_renderer_test.dart: ../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected ':' before this.
+        preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                                             ^
+  ../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected an identifier, but got '}'.
+  Try inserting an identifier before '}'.
+        preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                                             ^
+  ../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:86: Error: A value of type 'Map<dynamic, dynamic>?' can't be assigned to a variable of type 'bool'.
+   - 'Map' is from 'dart:core'.
+        preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                       ^
+  .
+00:00 +0 -2: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_geometry_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1021:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/future_impl.dart 961:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 990:13               Future._propagateToListeners
+  dart:async/future_impl.dart 874:9                Future._propagateToListeners
+  dart:async/future_impl.dart 732:5                Future._completeWithValue
+  dart:async/future_impl.dart 816:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone.dart 474:14                      Zone.runGuarded
+  dart:async/zone.dart 604:18                      Zone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected ':' before this.
+      preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                          ^
+../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected an identifier, but got '}'.
+Try inserting an identifier before '}'.
+      preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                          ^
+../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:86: Error: A value of type 'Map<dynamic, dynamic>?' can't be assigned to a variable of type 'bool'.
+ - 'Map' is from 'dart:core'.
+      preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                     ^
+00:00 +0 -3: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_studio_media_sink_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_studio_media_sink_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_studio_media_sink_test.dart: ../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected ':' before this.
+        preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                                             ^
+  ../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:108: Error: Expected an identifier, but got '}'.
+  Try inserting an identifier before '}'.
+        preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                                             ^
+  ../map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart:85:86: Error: A value of type 'Map<dynamic, dynamic>?' can't be assigned to a variable of type 'bool'.
+   - 'Map' is from 'dart:core'.
+        preview: {'cinematicId':asset.id,'linkedSceneId': link is Map ? (link['scene'] as Map?)?['id'] : null});
+                                                                                       ^
+  .
+00:00 +0 -3: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_geometry_test.dart: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_geometry_test.dart
+  /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_renderer_test.dart: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_frame_renderer_test.dart
+  /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_studio_media_sink_test.dart: loading /Users/karim/Project/pokemonProject/packages/map_player_ui/test/player/presentation_studio_media_sink_test.dart

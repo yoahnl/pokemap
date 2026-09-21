@@ -22,6 +22,8 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
   }
 
   void _goHome({bool search = false}) {
+    if (_presentations?.flushEdits?.call() == false) return;
+    _presentations?.suspendPreview?.call();
     _cinematics?.transport.pause();
     FocusManager.instance.primaryFocus?.unfocus();
     FocusManager.instance.applyFocusChangesIfNeeded();

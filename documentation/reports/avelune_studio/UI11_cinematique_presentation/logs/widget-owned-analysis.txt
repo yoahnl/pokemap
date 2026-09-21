@@ -1,0 +1,8 @@
+Analyzing presentation_library.dart, presentation_library_elements.dart, ui11_presentation_widget_test.dart, ui11_presentation_library_test.dart, ui11_presentation_responsive_test.dart, ui11_presentation_field_guard_test.dart, ui11_widget_port.dart, ui11_workspace_harness.dart, ui11_presentation_fixture.dart...
+
+   info - test/support/ui11_presentation_fixture.dart:38:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/support/ui11_presentation_fixture.dart:105:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/support/ui11_widget_port.dart:28:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/support/ui11_workspace_harness.dart:66:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+4 issues found.

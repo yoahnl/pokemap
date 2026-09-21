@@ -35,7 +35,6 @@ import 'builder/cinematic_media_picker.dart';
 import 'builder/cinematic_palette_panel.dart';
 import 'builder/cinematic_stage_panel.dart';
 import 'builder/cinematic_timeline_panel.dart';
-import 'preview/cinematic_media_preview_controller.dart';
 import 'preview/flutter_cinematic_media_preview_adapter.dart';
 
 typedef AddCinematicDraftStepCallback = Future<String?> Function({

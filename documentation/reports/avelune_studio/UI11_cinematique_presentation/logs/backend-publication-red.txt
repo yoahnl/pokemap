@@ -1,0 +1,43 @@
+00:00 +0: loading test/domains/narrative/presentation_publication_ui11_test.dart
+00:00 +0: targeted Presentation publication is canonical and atomic
+00:00 +0 -1: targeted Presentation publication is canonical and atomic [E]
+  Expected: contains 'presentationCinematic.publish'
+    Actual: MappedListIterable<AuthoringActionDescriptor, String>:[
+              'asset.delete',
+              'asset.import',
+              'asset.import_batch',
+              'asset.map_graphics.reset',
+              'asset.move',
+              'asset.raw.replace',
+              'asset.replace',
+              'border.blueprint.delete',
+              'border.blueprint.draft.upsert',
+              'border.blueprint.publish',
+              'border.blueprint.set_deprecated',
+              'border_layer.feature_create',
+              'border_layer.feature_delete',
+              'border_layer.feature_lock',
+              'border_layer.feature_move',
+              'border_layer.feature_reorder',
+              'border_layer.feature_set_blueprint',
+              'border_layer.feature_set_keep_out',
+              'border_layer.feature_set_variation',
+              'border_layer.feature_unlock',
+              'border_layer.feature_update',
+              'border_layer.materialize_apply',
+              'border_layer.region_clear',
+              'border_layer.region_fill',
+              ...
+            ]
+     Which: does not contain 'presentationCinematic.publish'
+  
+  package:matcher                                                      expect
+  test/domains/narrative/presentation_publication_ui11_test.dart 10:5  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  test/domains/narrative/presentation_publication_ui11_test.dart: targeted Presentation publication is canonical and atomic
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

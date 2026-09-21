@@ -1,0 +1,22 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: desktop workflow builds the PokeMap editor on all three platforms
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: desktop workflow builds the PokeMap editor on all three platforms
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: desktop workflow builds the PokeMap editor on all three platforms
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: desktop release keeps credentials out of pull requests
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: stable release validates its tag and build before signing
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: stable publication is atomic and promotes its macOS index last
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: current Windows release is a manual installer without updater keys
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: manual macOS preflight cannot publish a release
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: macOS release jobs inject the Sparkle key before code signing
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: manual publication is guarded while tag publication stays supported
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_editor/test/release/github_distribution_workflow_test.dart: all stable tag publications share one global concurrency lock
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_editing_controller_test.dart: MapHistoryCoordinator stroke invariant rejects an orphan partOfStroke mutation
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_editing_controller_test.dart: MapEditingController applyMutation updates the active map and records undo history
+00:00 +13: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_editing_controller_test.dart: MapEditingController undo and redo restore document state around a mutation
+00:00 +14: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_editing_controller_test.dart: MapEditingController map history never overwrites the independent Tileset Studio source
+00:00 +15: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_editing_controller_test.dart: MapEditingController endStroke clears the transient stroke marker
+00:00 +16: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_editing_controller_test.dart: MapEditingController cancelStroke restores the checkpoint without touching history
+00:00 +17: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_editing_controller_test.dart: MapEditingController cancelStroke restores pre-stroke dirty and placed-element selection
+00:00 +18: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_editing_controller_test.dart: MapEditingController partOfStroke auto-captures a complete rollback checkpoint
+00:00 +19: /Users/karim/Project/pokemonProject/packages/map_editor/test/map_editing_controller_test.dart: MapEditingController a multi-sample stroke creates exactly one undo entry
+00:00 +20: All tests passed!

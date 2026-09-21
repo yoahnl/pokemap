@@ -68,9 +68,11 @@ extension _SceneLinkedCinematic on SceneLinkedDocuments {
       );
     }
     if (payload is ScenePresentationCinematicPayload) {
-      final cinematic = project.presentationCinematics
-          .where((asset) => asset.id == payload.presentationCinematicId)
-          .firstOrNull;
+      final cinematic = presentationFor != null
+          ? presentationFor!(payload.presentationCinematicId)
+          : project.presentationCinematics
+                .where((asset) => asset.id == payload.presentationCinematicId)
+                .firstOrNull;
       if (cinematic == null) {
         return const StudioNotice(
           'Présentation introuvable. Sa référence est conservée.',

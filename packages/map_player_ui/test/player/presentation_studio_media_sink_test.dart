@@ -9,6 +9,54 @@ import 'package:path/path.dart' as p;
 
 void main() {
   group('presentation studio media sink', () {
+    test(
+        'video orientation prepares its own resource and releases the old decoder',
+        () async {
+      final video = _RecordingVideoPlayback();
+      final original = _videoAsset();
+      final json = encodePresentationCinematicAsset(original);
+      final clip = ((json['tracks'] as List).first as Map)['clips'] as List;
+      (clip.first as Map)['portraitResourceId'] = 'portrait-video';
+      final asset = decodePresentationCinematicAsset(json);
+      final sink = PresentationStudioMediaSink(
+        catalog: ProjectMediaCatalog(entries: [
+          ..._videoCatalog().entries,
+          ProjectMediaAsset(
+              id: 'portrait-video',
+              label: 'Portrait',
+              kind: ProjectMediaKind.video,
+              sourceAssetId: 'portrait-asset'),
+        ]),
+        mediaUris: {
+          'intro-video': Uri.file('/project/intro.mp4'),
+          'portrait-video': Uri.file('/project/portrait.mp4')
+        },
+        targetPlatform: PresentationMediaTargetPlatform.macos,
+        videoPlayback: video,
+        audioDriver: _RecordingAudioDriver(),
+      );
+      addTearDown(sink.dispose);
+      final frame = const PresentationCinematicEvaluator()
+          .evaluate(asset, timeUs: 1500000);
+      sink.synchronize(
+          asset: asset,
+          frame: frame,
+          orientation: PresentationFrameOrientation.landscape,
+          running: true);
+      await sink.settled;
+      video.log.clear();
+      sink.synchronize(
+          asset: asset,
+          frame: frame,
+          orientation: PresentationFrameOrientation.portrait,
+          running: true);
+      await sink.settled;
+      expect(video.log,
+          ['dispose', 'prepare:portrait.mp4', 'seek:500000', 'play']);
+      expect(sink.videoFor('intro-video'), isNull);
+      expect(sink.videoFor('portrait-video'), isNotNull);
+    });
+
     test('a running clock starts the frame audio at its evaluated position',
         () async {
       final driver = _RecordingAudioDriver();
@@ -23,7 +71,8 @@ void main() {
       );
       await sink.settled;
 
-      expect(driver.log, ['play:opening-music@1200000:loop=true:type=audio/ogg']);
+      expect(
+          driver.log, ['play:opening-music@1200000:loop=true:type=audio/ogg']);
       expect(sink.diagnostic, isNull);
     });
 
@@ -122,7 +171,8 @@ void main() {
       );
       await sink.settled;
 
-      expect(driver.log, ['stop', 'play:opening-music@3500000:loop=true:type=audio/ogg']);
+      expect(driver.log,
+          ['stop', 'play:opening-music@3500000:loop=true:type=audio/ogg']);
     });
 
     test('scrubbing while paused releases, so the next play starts there',
@@ -164,7 +214,8 @@ void main() {
         running: true,
       );
       await sink.settled;
-      expect(driver.log, ['stop', 'play:opening-music@5000000:loop=true:type=audio/ogg']);
+      expect(driver.log,
+          ['stop', 'play:opening-music@5000000:loop=true:type=audio/ogg']);
     });
 
     test('releasing stops every channel', () async {
@@ -303,8 +354,7 @@ void main() {
       expect(video.log, ['seek:3000000']);
     });
 
-    test('a source that will not open is not retried on every frame',
-        () async {
+    test('a source that will not open is not retried on every frame', () async {
       final driver = _RecordingAudioDriver()
         ..failWith = StateError('AVPlayerItem.Status.failed');
       final sink = _sink(driver);
@@ -332,7 +382,8 @@ void main() {
         () async {
       final store = Directory.systemTemp.createTempSync('pokemap-sink-store');
       addTearDown(() => store.deleteSync(recursive: true));
-      final aliasRoot = Directory.systemTemp.createTempSync('pokemap-sink-alias');
+      final aliasRoot =
+          Directory.systemTemp.createTempSync('pokemap-sink-alias');
       addTearDown(() => aliasRoot.deleteSync(recursive: true));
       final blob = File(p.join(store.path, '${'a' * 64}.blob'))
         ..writeAsBytesSync(<int>[1, 2, 3]);
@@ -402,8 +453,7 @@ void main() {
   });
 }
 
-final class _RecordingVideoPlayback
-    implements PresentationStudioVideoPlayback {
+final class _RecordingVideoPlayback implements PresentationStudioVideoPlayback {
   final List<String> log = <String>[];
   var _handles = 0;
 

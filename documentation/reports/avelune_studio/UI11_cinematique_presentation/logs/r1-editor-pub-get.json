@@ -1,0 +1,30 @@
+{
+  "command": [
+    "flutter",
+    "pub",
+    "get"
+  ],
+  "runnerPid": 62042,
+  "owned": {
+    "62084": [
+      62042,
+      "501",
+      "Mon Sep 21 01:07:00 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart pub --suppress-analytics get --example --directory ."
+    ],
+    "62096": [
+      62042,
+      "501",
+      "Mon Sep 21 01:07:01 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart format /Users/karim/Project/pokemonProject/packages/map_editor/lib/l10n/app_localizations_en.dart /Users/karim/Project/pokemonProject/packages/map_editor/lib/l10n/app_localizations_fr.dart /Users/karim/Project/pokemonProject/packages/map_editor/lib/l10n/app_localizations.dart"
+    ],
+    "62101": [
+      62042,
+      "501",
+      "Mon Sep 21 01:07:01 2026",
+      "/Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -version"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

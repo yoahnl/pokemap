@@ -1,0 +1,5 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_responsive_test.dart
+00:00 +0: UI11 responsive 1440 portrait and compare
+00:07 +1: UI11 responsive 1280 portrait and compare
+00:11 +2: UI11 responsive 1024 portrait and compare
+00:15 +3: All tests passed!

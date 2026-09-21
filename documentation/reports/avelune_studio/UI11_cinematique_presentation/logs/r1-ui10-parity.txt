@@ -1,0 +1,167 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 16x16 reset=false
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/project.json
+[runtime_loader] project manifest read ok bytes=17581
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/maps/jardin.json
+[runtime_loader] map file read ok bytes=17669
+[runtime_loader] map validated id=jardin size=24x16 layers=2 entities=3 placedElements=3 warps=0 triggers=1
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt tilesets=4
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=4
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/project.json tilesets=4
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=4 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/project.json
+[runtime_loader] project manifest read ok bytes=17581
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/maps/clairiere.json
+[runtime_loader] map file read ok bytes=15687
+[runtime_loader] map validated id=clairiere size=24x16 layers=2 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mWbIxt tilesets=4
+00:03 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 16x16 reset=false
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1789945736268261_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchV2Handled
+00:03 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view
+00:05 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x24 reset=false
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/project.json
+[runtime_loader] project manifest read ok bytes=17578
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/maps/jardin.json
+[runtime_loader] map file read ok bytes=18711
+[runtime_loader] map validated id=jardin size=24x16 layers=2 entities=3 placedElements=6 warps=0 triggers=1
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy tilesets=4
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=4
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/project.json tilesets=4
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=4 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/project.json
+[runtime_loader] project manifest read ok bytes=17578
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/maps/clairiere.json
+[runtime_loader] map file read ok bytes=16729
+[runtime_loader] map validated id=clairiere size=24x16 layers=2 entities=1 placedElements=6 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_mu3XCy tilesets=4
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1789945738297866_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchV2Handled
+00:05 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart: preview camera zoom shake fade uses playback transform and Stop restores author view
+00:06 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart: preview matches real Flame actors camera shake fade at 32x32 reset=true
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/project.json
+[runtime_loader] project manifest read ok bytes=17668
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/maps/jardin.json
+[runtime_loader] map file read ok bytes=18711
+[runtime_loader] map validated id=jardin size=24x16 layers=2 entities=3 placedElements=6 warps=0 triggers=1
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh tilesets=4
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=4
+[runtime_game] tileset cache resolve ok result=4
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/project.json tilesets=4
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=4 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/project.json mapId=clairiere
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/project.json
+[runtime_loader] project manifest read ok bytes=17668
+[runtime_loader] project manifest validated maps=2 tilesets=4 scenarios=1
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/maps/clairiere.json
+[runtime_loader] map file read ok bytes=16729
+[runtime_loader] map validated id=clairiere size=24x16 layers=2 entities=1 placedElements=6 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=grass,path,actor,forest
+[runtime_loader] bundle tileset path id=grass path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/assets/ui10_grass.png
+[runtime_loader] bundle tileset path id=path path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/assets/ui10_path.png
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/assets/ui10_actor.png
+[runtime_loader] bundle tileset path id=forest path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh/assets/ui10_forest.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_ui06_eiZPwh tilesets=4
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(13,7) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,9) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1789945739916355_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchV2Handled
+00:07 +5: All tests passed!

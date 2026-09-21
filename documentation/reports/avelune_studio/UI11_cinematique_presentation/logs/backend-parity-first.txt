@@ -1,0 +1,38 @@
+00:00 +0: loading test/domains/narrative/presentation_publication_ui11_test.dart
+00:00 +0: test/domains/narrative/presentation_publication_ui11_test.dart: targeted Presentation publication is canonical and atomic
+00:00 +1: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +2: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +3: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +4: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +5: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +6: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +7: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +8: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +9: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +10: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +11: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +12: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +13: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +14: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +15: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +16: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +17: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +18: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +19: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +20: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +21: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +22: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +23: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +24: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +25: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +26: test/tooling/jsonl_presentation_publication_ui11_test.dart: direct and JSONL publish the same final Presentation and classification
+00:00 +27: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool consumes one revision-bound transport receipt bundle
+00:08 +28: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity PMCP tool refuses an Item transport claim without receipts
+00:14 +29: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity matches runtime and editor consumer inventories automatically
+00:15 +30: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity RailJourney actions have dedicated evidence for every transport
+00:15 +31: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity direct API and JSONL CLI produce the same golden receipt
+00:15 +32: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity presentation.update has direct API and JSONL CLI parity
+00:15 +33: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity presentation preset export has direct API and JSONL CLI parity
+00:15 +34: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity encounter tables have direct API and JSONL CLI parity
+00:15 +35: test/parity/full_authoring_parity_test.dart: PMCP-085 full authoring parity projectPresentationProfile is a first-class query resource
+00:15 +36: All tests passed!

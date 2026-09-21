@@ -13,6 +13,10 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   void _saveWorkspaceDocument() {
+    if (_space == WorkspaceSpace.presentation) {
+      unawaited(_presentations?.save());
+      return;
+    }
     if (_space == WorkspaceSpace.cinematic) {
       FocusManager.instance.primaryFocus?.unfocus();
       FocusManager.instance.applyFocusChangesIfNeeded();

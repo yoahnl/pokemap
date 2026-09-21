@@ -22,7 +22,6 @@ import '../../application/authoring_api/presentation_studio_layer_authoring_gate
 import '../../application/authoring_api/presentation_studio_property_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_studio_property_command.dart';
 import '../../application/authoring_api/presentation_studio_timeline_authoring_gateway.dart';
-import '../../application/authoring_api/presentation_studio_timeline_command.dart';
 import '../../application/authoring_api/presentation_timeline_projection_gateway.dart';
 import '../../application/authoring_api/scene_presentation_create_and_link_gateway.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
@@ -104,11 +103,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     );
     final sceneConsequenceCatalogsAsync =
         editor.workspaceMode == EditorWorkspaceMode.scenes ||
-                editor.workspaceMode == EditorWorkspaceMode.shops
+            editor.workspaceMode == EditorWorkspaceMode.shops
         ? ref.watch(sceneConsequenceCatalogsProvider(editor.projectRootPath))
-            : const AsyncValue<SceneConsequenceCatalogs>.data(
-                SceneConsequenceCatalogs.unavailable(),
-              );
+        : const AsyncValue<SceneConsequenceCatalogs>.data(
+            SceneConsequenceCatalogs.unavailable(),
+          );
     final baseSceneConsequenceCatalogs = sceneConsequenceCatalogsAsync.when(
       data: (catalogs) => catalogs,
       loading: () => const SceneConsequenceCatalogs.loading(),
@@ -128,8 +127,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     final project = editor.project;
     final catalogsWithStarters = baseSceneConsequenceCatalogs
         .withConfiguredStarters(
-      project?.newGame.starterOptions ?? const <ProjectStarterOption>[],
-    );
+          project?.newGame.starterOptions ?? const <ProjectStarterOption>[],
+        );
     final sceneConsequenceCatalogs = project == null
         ? catalogsWithStarters
         : catalogsWithStarters.withProjectStorySteps(project);
@@ -352,8 +351,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       );
       final pokemonCatalogRequest =
           NarrativeValidatorPokemonCatalogRequest.fromValidationRequest(
-        request,
-      );
+            request,
+          );
       final requestedDiagnosticKey =
           studioNavigation.location.destination ==
                   NarrativeStudioDestination.validator &&
@@ -622,9 +621,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               requestedDiagnosticNonce: studioNavigation.revision,
               requestedRestorationRevision:
                   validatorRestoration?.expectation.location.destination ==
-                          NarrativeStudioDestination.validator
-                      ? validatorRestoration?.revision
-                      : null,
+                      NarrativeStudioDestination.validator
+                  ? validatorRestoration?.revision
+                  : null,
               onRestorationApplied: (revision) => ref
                   .read(narrativeStudioNavigationControllerProvider.notifier)
                   .consumeRestoration(revision),
@@ -942,15 +941,15 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       required String sceneId,
       required String nodeId,
     }) => NarrativeStudioReturnExpectation(
-          location: NarrativeStudioRouteLocation.scenes(
-            selection: NarrativeStudioAssetSelection(
-              kind: NarrativeStudioAssetKind.scene,
-              assetId: sceneId,
-              focusId: nodeId,
-            ),
-          ),
-          focusAnchorId: nodeId,
-        );
+      location: NarrativeStudioRouteLocation.scenes(
+        selection: NarrativeStudioAssetSelection(
+          kind: NarrativeStudioAssetKind.scene,
+          assetId: sceneId,
+          focusId: nodeId,
+        ),
+      ),
+      focusAnchorId: nodeId,
+    );
 
     void openSceneDialogue({
       required String sceneId,
@@ -1022,349 +1021,348 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     final sceneRestoration = studioNavigation.restorationRequest;
     final requestedSceneRestoration =
         sceneRestoration?.expectation.location.destination ==
-                NarrativeStudioDestination.scenes
-            ? sceneRestoration
-            : null;
+            NarrativeStudioDestination.scenes
+        ? sceneRestoration
+        : null;
 
     final mainContent = switch (editor.workspaceMode) {
       EditorWorkspaceMode.narrativeOverview => NarrativeOverviewWorkspace(
-          readModel: buildNarrativeOverviewReadModel(
-            project: editor.project!,
-            activityJournal: overviewActivityAsync?.asData?.value,
-            activityJournalAvailability:
-                overviewActivityAsync == null || overviewActivityAsync.hasError
-                    ? NarrativeOverviewAvailability.unavailable
-                    : NarrativeOverviewAvailability.notEvaluated,
-            activityJournalStatusMessage: overviewActivityAsync == null
-                ? 'Enregistrez le projet pour activer le journal durable.'
-                : overviewActivityAsync.hasError
-                    ? 'Journal d’activité indisponible : '
-                        '${overviewActivityAsync.error}'
-                    : 'Chargement du journal d’activité…',
-            projectValidationReport: overviewValidatorAsync?.asData?.value,
+        readModel: buildNarrativeOverviewReadModel(
+          project: editor.project!,
+          activityJournal: overviewActivityAsync?.asData?.value,
+          activityJournalAvailability:
+              overviewActivityAsync == null || overviewActivityAsync.hasError
+              ? NarrativeOverviewAvailability.unavailable
+              : NarrativeOverviewAvailability.notEvaluated,
+          activityJournalStatusMessage: overviewActivityAsync == null
+              ? 'Enregistrez le projet pour activer le journal durable.'
+              : overviewActivityAsync.hasError
+              ? 'Journal d’activité indisponible : '
+                    '${overviewActivityAsync.error}'
+              : 'Chargement du journal d’activité…',
+          projectValidationReport: overviewValidatorAsync?.asData?.value,
           validatorAvailability:
               overviewValidatorAsync == null || overviewValidatorAsync.hasError
-                ? NarrativeOverviewAvailability.unavailable
-                : NarrativeOverviewAvailability.notEvaluated,
-            validatorStatusMessage: overviewValidatorAsync == null
-                ? 'Enregistrez le projet pour lancer le Validator global.'
-                : overviewValidatorAsync.hasError
-                    ? 'Validator indisponible : ${overviewValidatorAsync.error}'
-                    : 'Validation globale en cours…',
-          ),
-          onOpenStorylines: openGlobalStory,
-          onOpenScenes: openScenes,
-        onOpenCutscenes: openCinematics,
-          onOpenDialogues: openDialogue,
-          onOpenFacts: openFacts,
-          onOpenWorldRules: openWorldRules,
-          onResumeEditing: openResumeTarget,
-          onOpenActivity: (entry) => openResumeTarget(
-            NarrativeOverviewResumeTarget(
-              label: entry.label,
-              destination: entry.destination,
-              sourceLabel: 'Journal d’activité durable',
-              assetId: entry.assetId,
-            ),
-          ),
-          onOpenDiagnostic: openOverviewDiagnostic,
-          onOpenValidator: openOverviewValidator,
+              ? NarrativeOverviewAvailability.unavailable
+              : NarrativeOverviewAvailability.notEvaluated,
+          validatorStatusMessage: overviewValidatorAsync == null
+              ? 'Enregistrez le projet pour lancer le Validator global.'
+              : overviewValidatorAsync.hasError
+              ? 'Validator indisponible : ${overviewValidatorAsync.error}'
+              : 'Validation globale en cours…',
         ),
+        onOpenStorylines: openGlobalStory,
+        onOpenScenes: openScenes,
+        onOpenCutscenes: openCinematics,
+        onOpenDialogues: openDialogue,
+        onOpenFacts: openFacts,
+        onOpenWorldRules: openWorldRules,
+        onResumeEditing: openResumeTarget,
+        onOpenActivity: (entry) => openResumeTarget(
+          NarrativeOverviewResumeTarget(
+            label: entry.label,
+            destination: entry.destination,
+            sourceLabel: 'Journal d’activité durable',
+            assetId: entry.assetId,
+          ),
+        ),
+        onOpenDiagnostic: openOverviewDiagnostic,
+        onOpenValidator: openOverviewValidator,
+      ),
       EditorWorkspaceMode.globalStory => StorylinesWorkspace(
-          projection: projection,
-          selectedGlobalStoryId: narrative.selectedGlobalStoryId,
+        projection: projection,
+        selectedGlobalStoryId: narrative.selectedGlobalStoryId,
         requestedSelection:
             studioNavigation.location.destination ==
-                  NarrativeStudioDestination.storylines
-              ? studioNavigation.location.selection
-              : null,
-          requestedSelectionNonce: studioNavigation.revision,
-        ),
+                NarrativeStudioDestination.storylines
+            ? studioNavigation.location.selection
+            : null,
+        requestedSelectionNonce: studioNavigation.revision,
+      ),
       EditorWorkspaceMode.scenes => ScenesWorkspace(
-          scenes: projection.scenes,
-          requestedSceneId: selectedSceneRoute?.assetId ?? sceneFocus?.sceneId,
-          requestedNodeId: selectedSceneRoute?.focusId,
-          requestedSceneFocusNonce: selectedSceneRoute == null
-              ? sceneFocus?.nonce
-              : studioNavigation.revision,
-          strictRequestedSceneFocus: selectedSceneRoute != null,
-          requestedFocusAnchorId:
-              requestedSceneRestoration?.expectation.focusAnchorId,
+        scenes: projection.scenes,
+        requestedSceneId: selectedSceneRoute?.assetId ?? sceneFocus?.sceneId,
+        requestedNodeId: selectedSceneRoute?.focusId,
+        requestedSceneFocusNonce: selectedSceneRoute == null
+            ? sceneFocus?.nonce
+            : studioNavigation.revision,
+        strictRequestedSceneFocus: selectedSceneRoute != null,
+        requestedFocusAnchorId:
+            requestedSceneRestoration?.expectation.focusAnchorId,
         requestedViewportX: requestedSceneRestoration?.expectation.viewportX,
         requestedViewportY: requestedSceneRestoration?.expectation.viewportY,
-          requestedZoom: requestedSceneRestoration?.expectation.zoom,
-          requestedInspector:
-              requestedSceneRestoration?.expectation.sceneInspector,
-          requestedRestorationRevision: requestedSceneRestoration?.revision,
-          onRestorationApplied: (revision) => ref
-              .read(narrativeStudioNavigationControllerProvider.notifier)
-              .consumeRestoration(revision),
-          linkedAssetContracts: editor.project == null
-              ? null
-              : buildLinkedAssetContractsSnapshot(editor.project!),
-          cinematicsLibrary: editor.project == null
-              ? null
-              : buildCinematicsLibraryReadModel(editor.project!),
-          presentationCinematics:
-              editor.project?.presentationCinematics ?? const [],
+        requestedZoom: requestedSceneRestoration?.expectation.zoom,
+        requestedInspector:
+            requestedSceneRestoration?.expectation.sceneInspector,
+        requestedRestorationRevision: requestedSceneRestoration?.revision,
+        onRestorationApplied: (revision) => ref
+            .read(narrativeStudioNavigationControllerProvider.notifier)
+            .consumeRestoration(revision),
+        linkedAssetContracts: editor.project == null
+            ? null
+            : buildLinkedAssetContractsSnapshot(editor.project!),
+        cinematicsLibrary: editor.project == null
+            ? null
+            : buildCinematicsLibraryReadModel(editor.project!),
+        presentationCinematics:
+            editor.project?.presentationCinematics ?? const [],
         presentationFolders:
             editor.project?.cinematicLibraryCatalog.folders
-                  .where(
-                    (folder) =>
-                        folder.family == CinematicLibraryFamily.presentation &&
-                        !folder.isArchived,
-                  )
-                  .toList(growable: false) ??
-              const [],
-        newGameConfig:
-            editor.project?.newGame ?? const ProjectNewGameConfig(),
+                .where(
+                  (folder) =>
+                      folder.family == CinematicLibraryFamily.presentation &&
+                      !folder.isArchived,
+                )
+                .toList(growable: false) ??
+            const [],
+        newGameConfig: editor.project?.newGame ?? const ProjectNewGameConfig(),
         onCreateAndLinkPresentation:
             ({
-            required String sceneId,
-            required String targetNodeId,
-            required String title,
-            required String templateId,
-            required int templateVersion,
-            required String? folderId,
-          }) async {
-            final project = editor.project;
-            final projectRootPath = editor.projectRootPath;
-            if (project == null || projectRootPath == null) return null;
-            try {
-              final gateway = CanonicalScenePresentationCreateAndLinkGateway(
-                mutations: ref.read(authoringMutationAdapterProvider),
-                queries: ref.read(authoringQueryAdapterProvider),
-              );
-              final draft = gateway.prepareDraft(
-                expectedProject: project,
-                sceneId: sceneId,
-                targetNodeId: targetNodeId,
-                title: title,
-                templateId: templateId,
-                templateVersion: templateVersion,
-                folderId: folderId,
-              );
-              final applied = await editorNotifier.applyNarrativeDocumentEdit(
-                draft.manifest,
-                operationId:
-                    'scene-presentation-create-link-${DateTime.now().microsecondsSinceEpoch}',
-                label: 'Créer et lier une cinématique de présentation',
-                statusMessage:
-                    'Brouillon de cinématique créé et lié localement.',
-              );
-              if (!applied) return null;
-              return ScenePresentationCreateAndLinkOutcome(
-                cinematicId: draft.cinematicId,
-                nodeId: draft.nodeId,
-              );
-            } on Object catch (error) {
-              editorNotifier.reportNarrativeNavigationFailure(
-                'Impossible de créer et lier la cinématique : $error',
-              );
-              return null;
-            }
-          },
+              required String sceneId,
+              required String targetNodeId,
+              required String title,
+              required String templateId,
+              required int templateVersion,
+              required String? folderId,
+            }) async {
+              final project = editor.project;
+              final projectRootPath = editor.projectRootPath;
+              if (project == null || projectRootPath == null) return null;
+              try {
+                final gateway = CanonicalScenePresentationCreateAndLinkGateway(
+                  mutations: ref.read(authoringMutationAdapterProvider),
+                  queries: ref.read(authoringQueryAdapterProvider),
+                );
+                final draft = gateway.prepareDraft(
+                  expectedProject: project,
+                  sceneId: sceneId,
+                  targetNodeId: targetNodeId,
+                  title: title,
+                  templateId: templateId,
+                  templateVersion: templateVersion,
+                  folderId: folderId,
+                );
+                final applied = await editorNotifier.applyNarrativeDocumentEdit(
+                  draft.manifest,
+                  operationId:
+                      'scene-presentation-create-link-${DateTime.now().microsecondsSinceEpoch}',
+                  label: 'Créer et lier une cinématique de présentation',
+                  statusMessage:
+                      'Brouillon de cinématique créé et lié localement.',
+                );
+                if (!applied) return null;
+                return ScenePresentationCreateAndLinkOutcome(
+                  cinematicId: draft.cinematicId,
+                  nodeId: draft.nodeId,
+                );
+              } on Object catch (error) {
+                editorNotifier.reportNarrativeNavigationFailure(
+                  'Impossible de créer et lier la cinématique : $error',
+                );
+                return null;
+              }
+            },
         onOpenCreatedPresentation:
             ({
-            required String sceneId,
-            required String returnNodeId,
-            required String cinematicId,
-            required SceneGraphViewport viewport,
-            required NarrativeSceneInspector inspector,
-          }) {
-            ref
-                .read(narrativeStudioNavigationControllerProvider.notifier)
-                .openDocument(
-                  NarrativeDocumentRoute.presentation(
-                    cinematicId: cinematicId,
-                    source: NarrativeSceneSourceContext(
-                      sceneId: sceneId,
-                      viewportX: viewport.pan.dx,
-                      viewportY: viewport.pan.dy,
-                      zoom: viewport.zoom,
-                      selectedNodeId: returnNodeId,
-                      inspector: inspector,
+              required String sceneId,
+              required String returnNodeId,
+              required String cinematicId,
+              required SceneGraphViewport viewport,
+              required NarrativeSceneInspector inspector,
+            }) {
+              ref
+                  .read(narrativeStudioNavigationControllerProvider.notifier)
+                  .openDocument(
+                    NarrativeDocumentRoute.presentation(
+                      cinematicId: cinematicId,
+                      source: NarrativeSceneSourceContext(
+                        sceneId: sceneId,
+                        viewportX: viewport.pan.dx,
+                        viewportY: viewport.pan.dy,
+                        zoom: viewport.zoom,
+                        selectedNodeId: returnNodeId,
+                        inspector: inspector,
+                      ),
                     ),
-                  ),
-                );
+                  );
               editorNotifier.selectCinematicsWorkspace();
-          },
-          conditionSourceOptions: editor.project == null
-              ? const []
-              : _buildSceneConditionSourceOptions(
-                  editor.project!,
-                  activeMap: editor.activeMap,
-                ),
-          consequenceFactOptions: editor.project == null
-              ? const []
-              : _buildSceneConsequenceFactOptions(editor.project!),
-          consequenceEventOptions: editor.project == null
-              ? const []
-              : _buildSceneConsequenceEventOptions(
-                  editor.project!,
-                  activeMap: editor.activeMap,
-                ),
-          consequenceCatalogs: sceneConsequenceCatalogs,
-          actionPickerOptions: editor.project == null
-              ? const {}
-              : _buildSceneActionPickerOptions(
-                  editor.project!,
-                  sceneConsequenceCatalogs,
-                  activeMap: editor.activeMap,
-                ),
-          sceneConsumerPaths: editor.project == null
-              ? const <String, List<String>>{}
-              : _buildSceneConsumerPaths(
-                  editor.project!,
-                  activeMap: editor.activeMap,
-                ),
+            },
+        conditionSourceOptions: editor.project == null
+            ? const []
+            : _buildSceneConditionSourceOptions(
+                editor.project!,
+                activeMap: editor.activeMap,
+              ),
+        consequenceFactOptions: editor.project == null
+            ? const []
+            : _buildSceneConsequenceFactOptions(editor.project!),
+        consequenceEventOptions: editor.project == null
+            ? const []
+            : _buildSceneConsequenceEventOptions(
+                editor.project!,
+                activeMap: editor.activeMap,
+              ),
+        consequenceCatalogs: sceneConsequenceCatalogs,
+        actionPickerOptions: editor.project == null
+            ? const {}
+            : _buildSceneActionPickerOptions(
+                editor.project!,
+                sceneConsequenceCatalogs,
+                activeMap: editor.activeMap,
+              ),
+        sceneConsumerPaths: editor.project == null
+            ? const <String, List<String>>{}
+            : _buildSceneConsumerPaths(
+                editor.project!,
+                activeMap: editor.activeMap,
+              ),
         onEditScene:
             ({
-            required String sceneId,
-            required String name,
-            required SceneLibraryLocation location,
-            required List<String> tags,
-            required List<SceneOutcome> declaredOutcomes,
-          }) async {
-            final project = editor.project;
-            if (project == null) return null;
-            final renamed = renameSceneInProject(
-              project,
-              sceneId: sceneId,
-              name: name,
-            );
-            if (renamed.disposition ==
-                SceneLibraryMutationDisposition.rejected) {
-              return renamed;
-            }
-            final classified = updateSceneLibraryClassification(
-              renamed.after,
-              sceneId: sceneId,
-              location: location,
-              tags: tags,
-              declaredOutcomes: declaredOutcomes,
-            );
-            if (classified.disposition ==
-                SceneLibraryMutationDisposition.rejected) {
-              return classified;
-            }
-            editorNotifier.applyInMemoryProjectManifest(
-              classified.after,
-              statusMessage: 'Scene library metadata updated',
-            );
-            return classified;
-          },
-          onDuplicateScene: ({required String sceneId}) async {
-            final project = editor.project;
-            if (project == null) return null;
-            final result = duplicateSceneInProject(project, sceneId: sceneId);
-            if (result.isApplied) {
-              editorNotifier.applyInMemoryProjectManifest(
-                result.after,
-                statusMessage: 'Scene duplicated',
+              required String sceneId,
+              required String name,
+              required SceneLibraryLocation location,
+              required List<String> tags,
+              required List<SceneOutcome> declaredOutcomes,
+            }) async {
+              final project = editor.project;
+              if (project == null) return null;
+              final renamed = renameSceneInProject(
+                project,
+                sceneId: sceneId,
+                name: name,
               );
-            }
-            return result;
-          },
+              if (renamed.disposition ==
+                  SceneLibraryMutationDisposition.rejected) {
+                return renamed;
+              }
+              final classified = updateSceneLibraryClassification(
+                renamed.after,
+                sceneId: sceneId,
+                location: location,
+                tags: tags,
+                declaredOutcomes: declaredOutcomes,
+              );
+              if (classified.disposition ==
+                  SceneLibraryMutationDisposition.rejected) {
+                return classified;
+              }
+              editorNotifier.applyInMemoryProjectManifest(
+                classified.after,
+                statusMessage: 'Scene library metadata updated',
+              );
+              return classified;
+            },
+        onDuplicateScene: ({required String sceneId}) async {
+          final project = editor.project;
+          if (project == null) return null;
+          final result = duplicateSceneInProject(project, sceneId: sceneId);
+          if (result.isApplied) {
+            editorNotifier.applyInMemoryProjectManifest(
+              result.after,
+              statusMessage: 'Scene duplicated',
+            );
+          }
+          return result;
+        },
         onToggleArchiveScene:
             ({required String sceneId, required bool archived}) async {
-            final project = editor.project;
-            if (project == null) return null;
-            final result = archived
-                ? archiveSceneInProject(project, sceneId: sceneId)
-                : restoreSceneInProject(project, sceneId: sceneId);
-            if (result.isApplied) {
-              editorNotifier.applyInMemoryProjectManifest(
-                result.after,
-                statusMessage: archived ? 'Scene archived' : 'Scene restored',
-              );
-            }
-            return result;
-          },
+              final project = editor.project;
+              if (project == null) return null;
+              final result = archived
+                  ? archiveSceneInProject(project, sceneId: sceneId)
+                  : restoreSceneInProject(project, sceneId: sceneId);
+              if (result.isApplied) {
+                editorNotifier.applyInMemoryProjectManifest(
+                  result.after,
+                  statusMessage: archived ? 'Scene archived' : 'Scene restored',
+                );
+              }
+              return result;
+            },
         onDeleteScene:
             ({required String sceneId, String? replacementSceneId}) async {
-            final project = editor.project;
-            if (project == null) return null;
-            final maps = editor.activeMap == null
-                ? const <MapData>[]
-                : <MapData>[editor.activeMap!];
-            final result = deleteSceneFromProject(
-              project,
-              sceneId: sceneId,
-              replacementSceneId: replacementSceneId,
-              dependencyIndex: buildNarrativeDependencyIndex(
-                project: project,
-                maps: maps,
-              ),
-            );
-            if (result.isApplied) {
-              editorNotifier.applyInMemoryProjectManifest(
-                result.after,
-                statusMessage: 'Scene deleted safely',
+              final project = editor.project;
+              if (project == null) return null;
+              final maps = editor.activeMap == null
+                  ? const <MapData>[]
+                  : <MapData>[editor.activeMap!];
+              final result = deleteSceneFromProject(
+                project,
+                sceneId: sceneId,
+                replacementSceneId: replacementSceneId,
+                dependencyIndex: buildNarrativeDependencyIndex(
+                  project: project,
+                  maps: maps,
+                ),
               );
-            }
-            return result;
-          },
+              if (result.isApplied) {
+                editorNotifier.applyInMemoryProjectManifest(
+                  result.after,
+                  statusMessage: 'Scene deleted safely',
+                );
+              }
+              return result;
+            },
         onCreateSceneDraft:
             ({required String name, String? description}) async {
-            final project = editor.project;
-            if (project == null) {
-              return null;
-            }
-            final result = createSceneDraftInProject(
-              project,
-              name: name,
-              description: description,
-            );
-            editorNotifier.applyInMemoryProjectManifest(
-              result.updatedProject,
-              statusMessage: 'Scene draft created',
-            );
-            return result.createdScene.id;
-          },
+              final project = editor.project;
+              if (project == null) {
+                return null;
+              }
+              final result = createSceneDraftInProject(
+                project,
+                name: name,
+                description: description,
+              );
+              editorNotifier.applyInMemoryProjectManifest(
+                result.updatedProject,
+                statusMessage: 'Scene draft created',
+              );
+              return result.createdScene.id;
+            },
         onAddNodeDraft:
             ({required String sceneId, required SceneNodeKind kind}) async {
-            final project = editor.project;
-            if (project == null) {
-              return null;
-            }
+              final project = editor.project;
+              if (project == null) {
+                return null;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return null;
-            }
-            final result = addSceneNodeDraft(
-              project.scenes[sceneIndex],
-              kind: kind,
-            );
-            final scenes = project.scenes.toList(growable: true);
-            scenes[sceneIndex] = result.updatedScene;
-            editorNotifier.applyInMemoryProjectManifest(
-              project.copyWith(scenes: scenes),
-              statusMessage: 'Scene node draft added',
-            );
-            return result.createdNode.id;
-          },
+              if (sceneIndex < 0) {
+                return null;
+              }
+              final result = addSceneNodeDraft(
+                project.scenes[sceneIndex],
+                kind: kind,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene node draft added',
+              );
+              return result.createdNode.id;
+            },
         onAddLinkedAssetNodeDraft:
             ({
-            required String sceneId,
-            required SceneNodePayload payload,
-            String? title,
-          }) async {
-            final project = editor.project;
-            if (project == null) {
-              return null;
-            }
+              required String sceneId,
+              required SceneNodePayload payload,
+              String? title,
+            }) async {
+              final project = editor.project;
+              if (project == null) {
+                return null;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return null;
-            }
-            try {
-              final result = switch (payload) {
-                SceneActionPayload() => () {
+              if (sceneIndex < 0) {
+                return null;
+              }
+              try {
+                final result = switch (payload) {
+                  SceneActionPayload() => () {
                     final created = addSceneCommandActionNodeDraft(
                       project.scenes[sceneIndex],
                       payload: payload,
@@ -1375,7 +1373,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                       createdNode: created.createdNode,
                     );
                   }(),
-                SceneCinematicPayload() => () {
+                  SceneCinematicPayload() => () {
                     final created = addSceneCinematicNodeDraft(
                       project.scenes[sceneIndex],
                       project: project,
@@ -1387,7 +1385,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                       createdNode: created.createdNode,
                     );
                   }(),
-                _ => () {
+                  _ => () {
                     final created = addSceneLinkedAssetNodeDraft(
                       project.scenes[sceneIndex],
                       payload: payload,
@@ -1398,703 +1396,705 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                       createdNode: created.createdNode,
                     );
                   }(),
-              };
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene linked asset node draft added',
-              );
-              return result.createdNode.id;
-            } on ArgumentError {
-              return null;
-            }
-          },
+                };
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene linked asset node draft added',
+                );
+                return result.createdNode.id;
+              } on ArgumentError {
+                return null;
+              }
+            },
         onAddConsequenceActionNodeDraft:
             ({
-            required String sceneId,
-            required SceneConsequence consequence,
-            String? title,
-          }) async {
-            final project = editor.project;
-            if (project == null) {
-              return null;
-            }
+              required String sceneId,
+              required SceneConsequence consequence,
+              String? title,
+            }) async {
+              final project = editor.project;
+              if (project == null) {
+                return null;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return null;
-            }
-            try {
-              final result = addSceneConsequenceActionNodeDraft(
-                project.scenes[sceneIndex],
-                consequence: consequence,
-                title: title,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene consequence action node added',
-              );
-              return result.createdNode.id;
-            } on ArgumentError {
-              return null;
-            }
-          },
+              if (sceneIndex < 0) {
+                return null;
+              }
+              try {
+                final result = addSceneConsequenceActionNodeDraft(
+                  project.scenes[sceneIndex],
+                  consequence: consequence,
+                  title: title,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene consequence action node added',
+                );
+                return result.createdNode.id;
+              } on ArgumentError {
+                return null;
+              }
+            },
         onAddPreSessionInteractionDraft:
             ({
-            required String sceneId,
-            required String targetNodeId,
-            required ScenePreSessionInteractionDraft draft,
-          }) async {
-            final project = editor.project;
-            if (project == null) return null;
-            final scene = project.scenes
-                .where((candidate) => candidate.id == sceneId)
-                .firstOrNull;
-            if (scene == null) return null;
-            final authoringMaps = editor.activeMap == null
-                ? const <MapData>[]
-                : <MapData>[editor.activeMap!];
-            final nodeId = _nextSceneInteractionNodeId(
-              scene,
-              draft.interaction.kind,
-            );
-            final cue = draft.cueBinding;
-            try {
-              final projected = const SceneActions().insertPreSessionInteraction(
-                project,
-                maps: authoringMaps,
-                sceneId: sceneId,
-                nodeId: nodeId,
-                targetNodeId: targetNodeId,
-                title: draft.title,
-                interaction: draft.interaction,
-                cueBinding: cue == null
-                    ? null
-                    : ScenePreSessionInteractionCueBindingDraft(
-                        presentationNodeId: cue.presentationNodeId,
-                        markerId: cue.markerId,
-                      ),
+              required String sceneId,
+              required String targetNodeId,
+              required ScenePreSessionInteractionDraft draft,
+            }) async {
+              final project = editor.project;
+              if (project == null) return null;
+              final scene = project.scenes
+                  .where((candidate) => candidate.id == sceneId)
+                  .firstOrNull;
+              if (scene == null) return null;
+              final authoringMaps = editor.activeMap == null
+                  ? const <MapData>[]
+                  : <MapData>[editor.activeMap!];
+              final nodeId = _nextSceneInteractionNodeId(
+                scene,
+                draft.interaction.kind,
               );
-              editorNotifier.applyInMemoryProjectManifest(
-                projected,
-                statusMessage: 'Scene pre-session interaction added',
-              );
-              return nodeId;
-            } on Object {
-              return null;
-            }
-          },
+              final cue = draft.cueBinding;
+              try {
+                final projected = const SceneActions()
+                    .insertPreSessionInteraction(
+                      project,
+                      maps: authoringMaps,
+                      sceneId: sceneId,
+                      nodeId: nodeId,
+                      targetNodeId: targetNodeId,
+                      title: draft.title,
+                      interaction: draft.interaction,
+                      cueBinding: cue == null
+                          ? null
+                          : ScenePreSessionInteractionCueBindingDraft(
+                              presentationNodeId: cue.presentationNodeId,
+                              markerId: cue.markerId,
+                            ),
+                    );
+                editorNotifier.applyInMemoryProjectManifest(
+                  projected,
+                  statusMessage: 'Scene pre-session interaction added',
+                );
+                return nodeId;
+              } on Object {
+                return null;
+              }
+            },
         onAddEdgeDraft:
             ({
-            required String sceneId,
-            required String fromNodeId,
-            required String fromPortId,
-            required String toNodeId,
-          }) async {
-            final project = editor.project;
-            if (project == null) {
-              return null;
-            }
+              required String sceneId,
+              required String fromNodeId,
+              required String fromPortId,
+              required String toNodeId,
+            }) async {
+              final project = editor.project;
+              if (project == null) {
+                return null;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return null;
-            }
-            try {
-              final result = addSceneEdgeDraft(
-                project.scenes[sceneIndex],
-                fromNodeId: fromNodeId,
-                fromPortId: fromPortId,
-                toNodeId: toNodeId,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene edge draft added',
-              );
-              return result.createdEdge.id;
-            } on ArgumentError {
-              return null;
-            }
-          },
+              if (sceneIndex < 0) {
+                return null;
+              }
+              try {
+                final result = addSceneEdgeDraft(
+                  project.scenes[sceneIndex],
+                  fromNodeId: fromNodeId,
+                  fromPortId: fromPortId,
+                  toNodeId: toNodeId,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene edge draft added',
+                );
+                return result.createdEdge.id;
+              } on ArgumentError {
+                return null;
+              }
+            },
         onRemoveEdgeDraft:
             ({required String sceneId, required String edgeId}) async {
-            final project = editor.project;
-            if (project == null) {
-              return false;
-            }
+              final project = editor.project;
+              if (project == null) {
+                return false;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return false;
-            }
-            try {
-              final result = removeSceneEdgeDraft(
-                project.scenes[sceneIndex],
-                edgeId,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene edge draft removed',
-              );
-              return true;
-            } on ArgumentError {
-              return false;
-            }
-          },
+              if (sceneIndex < 0) {
+                return false;
+              }
+              try {
+                final result = removeSceneEdgeDraft(
+                  project.scenes[sceneIndex],
+                  edgeId,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene edge draft removed',
+                );
+                return true;
+              } on ArgumentError {
+                return false;
+              }
+            },
         onRemoveNodeDraft:
             ({required String sceneId, required String nodeId}) async {
-            final project = editor.project;
-            if (project == null) {
-              return false;
-            }
+              final project = editor.project;
+              if (project == null) {
+                return false;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return false;
-            }
-            try {
-              final result = removeSceneNodeDraft(
-                project.scenes[sceneIndex],
-                nodeId,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene node draft removed',
-              );
-              return true;
-            } on ArgumentError {
-              return false;
-            }
-          },
+              if (sceneIndex < 0) {
+                return false;
+              }
+              try {
+                final result = removeSceneNodeDraft(
+                  project.scenes[sceneIndex],
+                  nodeId,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene node draft removed',
+                );
+                return true;
+              } on ArgumentError {
+                return false;
+              }
+            },
         onDuplicateNodeDraft:
             ({required String sceneId, required String nodeId}) async {
-            final project = editor.project;
-            if (project == null) return null;
+              final project = editor.project;
+              if (project == null) return null;
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) return null;
-            try {
-              final result = duplicateSceneNodeDraft(
-                project.scenes[sceneIndex],
-                nodeId,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene node draft duplicated',
-              );
-              return result.createdNode.id;
-            } on ArgumentError {
-              return null;
-            }
-          },
+              if (sceneIndex < 0) return null;
+              try {
+                final result = duplicateSceneNodeDraft(
+                  project.scenes[sceneIndex],
+                  nodeId,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene node draft duplicated',
+                );
+                return result.createdNode.id;
+              } on ArgumentError {
+                return null;
+              }
+            },
         onUpdateNodeLayout:
             ({
-            required String sceneId,
-            required String nodeId,
-            required double x,
-            required double y,
-          }) async {
-            final project = editor.project;
-            if (project == null) {
-              return;
-            }
+              required String sceneId,
+              required String nodeId,
+              required double x,
+              required double y,
+            }) async {
+              final project = editor.project;
+              if (project == null) {
+                return;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return;
-            }
-            try {
-              final result = updateSceneNodeLayout(
-                project.scenes[sceneIndex],
-                nodeId: nodeId,
-                x: x,
-                y: y,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene node layout updated',
-              );
-            } on ArgumentError {
-              return;
-            }
-          },
+              if (sceneIndex < 0) {
+                return;
+              }
+              try {
+                final result = updateSceneNodeLayout(
+                  project.scenes[sceneIndex],
+                  nodeId: nodeId,
+                  x: x,
+                  y: y,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene node layout updated',
+                );
+              } on ArgumentError {
+                return;
+              }
+            },
         onUpdateConditionSource:
             ({
-            required String sceneId,
-            required String nodeId,
-            required SceneConditionSource source,
-          }) async {
-            final project = editor.project;
-            if (project == null) {
-              return false;
-            }
+              required String sceneId,
+              required String nodeId,
+              required SceneConditionSource source,
+            }) async {
+              final project = editor.project;
+              if (project == null) {
+                return false;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return false;
-            }
-            try {
-              final result = updateSceneConditionSource(
-                project.scenes[sceneIndex],
-                nodeId: nodeId,
-                source: source,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene condition source updated',
-              );
-              return true;
-            } on ArgumentError {
-              return false;
-            }
-          },
+              if (sceneIndex < 0) {
+                return false;
+              }
+              try {
+                final result = updateSceneConditionSource(
+                  project.scenes[sceneIndex],
+                  nodeId: nodeId,
+                  source: source,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene condition source updated',
+                );
+                return true;
+              } on ArgumentError {
+                return false;
+              }
+            },
         onUpdateYarnDialoguePayload:
             ({
-            required String sceneId,
-            required String nodeId,
-            required String dialogueId,
-            String? yarnNodeName,
-            required List<String> expectedOutcomes,
-          }) async {
-            final project = editor.project;
-            if (project == null) {
-              return false;
-            }
+              required String sceneId,
+              required String nodeId,
+              required String dialogueId,
+              String? yarnNodeName,
+              required List<String> expectedOutcomes,
+            }) async {
+              final project = editor.project;
+              if (project == null) {
+                return false;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return false;
-            }
-            try {
-              final result = updateSceneYarnDialoguePayload(
-                project.scenes[sceneIndex],
-                nodeId: nodeId,
-                dialogueId: dialogueId,
-                yarnNodeName: yarnNodeName,
-                expectedOutcomes: expectedOutcomes,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene dialogue payload updated',
-              );
-              return true;
-            } on ArgumentError {
-              return false;
-            }
-          },
+              if (sceneIndex < 0) {
+                return false;
+              }
+              try {
+                final result = updateSceneYarnDialoguePayload(
+                  project.scenes[sceneIndex],
+                  nodeId: nodeId,
+                  dialogueId: dialogueId,
+                  yarnNodeName: yarnNodeName,
+                  expectedOutcomes: expectedOutcomes,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene dialogue payload updated',
+                );
+                return true;
+              } on ArgumentError {
+                return false;
+              }
+            },
         onUpdateEndPayload:
             ({
-            required String sceneId,
-            required String nodeId,
-            String? sceneOutcomeId,
-            required SceneOutcomePolicy? outcomePolicy,
-          }) async {
-            final project = editor.project;
-            if (project == null) return false;
+              required String sceneId,
+              required String nodeId,
+              String? sceneOutcomeId,
+              required SceneOutcomePolicy? outcomePolicy,
+            }) async {
+              final project = editor.project;
+              if (project == null) return false;
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) return false;
-            try {
-              final result = updateSceneEndPayload(
-                project.scenes[sceneIndex],
-                nodeId: nodeId,
-                sceneOutcomeId: sceneOutcomeId,
-                outcomePolicy: outcomePolicy,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene outcome policy updated',
-              );
-              return true;
-            } on ArgumentError {
-              return false;
-            }
-          },
+              if (sceneIndex < 0) return false;
+              try {
+                final result = updateSceneEndPayload(
+                  project.scenes[sceneIndex],
+                  nodeId: nodeId,
+                  sceneOutcomeId: sceneOutcomeId,
+                  outcomePolicy: outcomePolicy,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene outcome policy updated',
+                );
+                return true;
+              } on ArgumentError {
+                return false;
+              }
+            },
         onUpdateBattlePayload:
             ({
-            required String sceneId,
-            required String nodeId,
-            required String trainerId,
-            required String battleKind,
-            String? battleTemplateId,
-          }) async {
-            final project = editor.project;
-            if (project == null) {
-              return false;
-            }
+              required String sceneId,
+              required String nodeId,
+              required String trainerId,
+              required String battleKind,
+              String? battleTemplateId,
+            }) async {
+              final project = editor.project;
+              if (project == null) {
+                return false;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return false;
-            }
-            try {
-              final result = updateSceneBattlePayload(
-                project.scenes[sceneIndex],
-                nodeId: nodeId,
-                trainerId: trainerId,
-                battleKind: battleKind,
-                battleTemplateId: battleTemplateId,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene battle payload updated',
-              );
-              return true;
-            } on ArgumentError {
-              return false;
-            }
-          },
+              if (sceneIndex < 0) {
+                return false;
+              }
+              try {
+                final result = updateSceneBattlePayload(
+                  project.scenes[sceneIndex],
+                  nodeId: nodeId,
+                  trainerId: trainerId,
+                  battleKind: battleKind,
+                  battleTemplateId: battleTemplateId,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene battle payload updated',
+                );
+                return true;
+              } on ArgumentError {
+                return false;
+              }
+            },
         onUpdateCinematicPayload:
             ({
-            required String sceneId,
-            required String nodeId,
-            required String cinematicId,
-          }) async {
-            final project = editor.project;
-            if (project == null) {
-              return false;
-            }
+              required String sceneId,
+              required String nodeId,
+              required String cinematicId,
+            }) async {
+              final project = editor.project;
+              if (project == null) {
+                return false;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return false;
-            }
-            try {
-              final result = updateSceneCinematicPayload(
-                project.scenes[sceneIndex],
-                nodeId: nodeId,
-                cinematicId: cinematicId,
-                project: project,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene cinematic payload updated',
-              );
-              return true;
-            } on ArgumentError {
-              return false;
-            }
-          },
+              if (sceneIndex < 0) {
+                return false;
+              }
+              try {
+                final result = updateSceneCinematicPayload(
+                  project.scenes[sceneIndex],
+                  nodeId: nodeId,
+                  cinematicId: cinematicId,
+                  project: project,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene cinematic payload updated',
+                );
+                return true;
+              } on ArgumentError {
+                return false;
+              }
+            },
         onUpdateActionConsequence:
             ({
-            required String sceneId,
-            required String nodeId,
-            required SceneConsequence consequence,
-          }) async {
-            final project = editor.project;
-            if (project == null) {
-              return false;
-            }
+              required String sceneId,
+              required String nodeId,
+              required SceneConsequence consequence,
+            }) async {
+              final project = editor.project;
+              if (project == null) {
+                return false;
+              }
               final sceneIndex = project.scenes.indexWhere(
                 (scene) => scene.id == sceneId,
               );
-            if (sceneIndex < 0) {
-              return false;
-            }
-            try {
-              final result = updateSceneActionConsequencePayload(
-                project.scenes[sceneIndex],
-                nodeId: nodeId,
-                consequence: consequence,
-              );
-              final scenes = project.scenes.toList(growable: true);
-              scenes[sceneIndex] = result.updatedScene;
-              editorNotifier.applyInMemoryProjectManifest(
-                project.copyWith(scenes: scenes),
-                statusMessage: 'Scene consequence payload updated',
-              );
-              return true;
-            } on ArgumentError {
-              return false;
-            }
-          },
+              if (sceneIndex < 0) {
+                return false;
+              }
+              try {
+                final result = updateSceneActionConsequencePayload(
+                  project.scenes[sceneIndex],
+                  nodeId: nodeId,
+                  consequence: consequence,
+                );
+                final scenes = project.scenes.toList(growable: true);
+                scenes[sceneIndex] = result.updatedScene;
+                editorNotifier.applyInMemoryProjectManifest(
+                  project.copyWith(scenes: scenes),
+                  statusMessage: 'Scene consequence payload updated',
+                );
+                return true;
+              } on ArgumentError {
+                return false;
+              }
+            },
         onUpdatePreSessionInteractionDraft:
             ({
-            required String sceneId,
-            required String nodeId,
-            required ScenePreSessionInteractionDraft draft,
-          }) async {
-            final project = editor.project;
-            if (project == null) return false;
-            final authoringMaps = editor.activeMap == null
-                ? const <MapData>[]
-                : <MapData>[editor.activeMap!];
-            final cue = draft.cueBinding;
-            try {
-              final projected = const SceneActions().updatePreSessionInteraction(
-                project,
-                maps: authoringMaps,
-                sceneId: sceneId,
-                nodeId: nodeId,
-                interaction: draft.interaction,
-                replaceCueBinding: true,
-                cueBinding: cue == null
-                    ? null
-                    : ScenePreSessionInteractionCueBindingDraft(
-                        presentationNodeId: cue.presentationNodeId,
-                        markerId: cue.markerId,
-                      ),
-              );
-              editorNotifier.applyInMemoryProjectManifest(
-                projected,
-                statusMessage: 'Scene pre-session interaction updated',
-              );
-              return true;
-            } on Object {
-              return false;
-            }
-          },
-          onOpenDialogue: openSceneDialogue,
-          onOpenCinematic: openSceneCinematic,
-        ),
+              required String sceneId,
+              required String nodeId,
+              required ScenePreSessionInteractionDraft draft,
+            }) async {
+              final project = editor.project;
+              if (project == null) return false;
+              final authoringMaps = editor.activeMap == null
+                  ? const <MapData>[]
+                  : <MapData>[editor.activeMap!];
+              final cue = draft.cueBinding;
+              try {
+                final projected = const SceneActions()
+                    .updatePreSessionInteraction(
+                      project,
+                      maps: authoringMaps,
+                      sceneId: sceneId,
+                      nodeId: nodeId,
+                      interaction: draft.interaction,
+                      replaceCueBinding: true,
+                      cueBinding: cue == null
+                          ? null
+                          : ScenePreSessionInteractionCueBindingDraft(
+                              presentationNodeId: cue.presentationNodeId,
+                              markerId: cue.markerId,
+                            ),
+                    );
+                editorNotifier.applyInMemoryProjectManifest(
+                  projected,
+                  statusMessage: 'Scene pre-session interaction updated',
+                );
+                return true;
+              } on Object {
+                return false;
+              }
+            },
+        onOpenDialogue: openSceneDialogue,
+        onOpenCinematic: openSceneCinematic,
+      ),
       EditorWorkspaceMode.events => LayoutBuilder(
-          builder: (context, constraints) => EventBuilderV2ProductRoute(
-            viewportWidth: MediaQuery.sizeOf(context).width,
-            availableWidth: constraints.maxWidth,
+        builder: (context, constraints) => EventBuilderV2ProductRoute(
+          viewportWidth: MediaQuery.sizeOf(context).width,
+          availableWidth: constraints.maxWidth,
           legacyWorkspace:
               (editor.project?.eventRegistry?.mode ??
-                        EventSystemMode.legacyOnly) ==
-                    EventSystemMode.legacyOnly
-                ? EventBuilderWorkspace(
-                    readModel: _buildEventBuilderWorkspaceReadModel(editor),
-                    selectedEventId: editor.selectedMapEventId,
-                    draftCreationGate: _buildEventBuilderDraftCreationGate(
-                      editor,
-                      editorNotifier,
-                    ),
+                      EventSystemMode.legacyOnly) ==
+                  EventSystemMode.legacyOnly
+              ? EventBuilderWorkspace(
+                  readModel: _buildEventBuilderWorkspaceReadModel(editor),
+                  selectedEventId: editor.selectedMapEventId,
+                  draftCreationGate: _buildEventBuilderDraftCreationGate(
+                    editor,
+                    editorNotifier,
+                  ),
                   sceneOptions: _buildEventBuilderSceneOptions(editor.project),
-                    factOptions: _buildEventBuilderFactOptions(editor.project),
-                    eventConditionOptions:
+                  factOptions: _buildEventBuilderFactOptions(editor.project),
+                  eventConditionOptions:
                       _buildEventBuilderConditionEventOptions(editor.activeMap),
-                    mapOptions: _buildEventBuilderMapOptions(editor.project),
-                    onOpenMap: (mapId) async {
-                      final entry = _findProjectMapById(editor.project, mapId);
-                      if (entry == null) {
-                        return;
-                      }
-                      final outcome = await requestEditorMapActivation(
-                        context: context,
-                        notifier: editorNotifier,
-                        relativePath: entry.relativePath,
-                      );
-                      if (outcome != MapActivationOutcome.activated) {
-                        return;
-                      }
-                      editorNotifier.selectEventsWorkspace();
-                    },
-                    onSelectEvent: editorNotifier.selectMapEvent,
-                    onRenameEventTitle:
-                        editorNotifier.renameEventBuilderEventTitle,
-                    onUpdateTriggerType:
-                        editorNotifier.updateEventBuilderTriggerType,
-                    onUpdateSceneAction:
-                        editorNotifier.updateEventBuilderEventSceneAction,
-                    onUpdateReusePolicy:
-                        editorNotifier.updateEventBuilderEventReusePolicy,
-                    onAddFactCondition:
-                        editorNotifier.addEventBuilderFactCondition,
-                    onAddEventConsumedCondition:
-                        editorNotifier.addEventBuilderEventConsumedCondition,
-                    onRemoveCondition:
-                        editorNotifier.removeEventBuilderConditionAt,
-                    onCreateDestinationLayer:
-                        editorNotifier.ensureEventBuilderObjectLayer,
-                  )
-                : null,
-          ),
+                  mapOptions: _buildEventBuilderMapOptions(editor.project),
+                  onOpenMap: (mapId) async {
+                    final entry = _findProjectMapById(editor.project, mapId);
+                    if (entry == null) {
+                      return;
+                    }
+                    final outcome = await requestEditorMapActivation(
+                      context: context,
+                      notifier: editorNotifier,
+                      relativePath: entry.relativePath,
+                    );
+                    if (outcome != MapActivationOutcome.activated) {
+                      return;
+                    }
+                    editorNotifier.selectEventsWorkspace();
+                  },
+                  onSelectEvent: editorNotifier.selectMapEvent,
+                  onRenameEventTitle:
+                      editorNotifier.renameEventBuilderEventTitle,
+                  onUpdateTriggerType:
+                      editorNotifier.updateEventBuilderTriggerType,
+                  onUpdateSceneAction:
+                      editorNotifier.updateEventBuilderEventSceneAction,
+                  onUpdateReusePolicy:
+                      editorNotifier.updateEventBuilderEventReusePolicy,
+                  onAddFactCondition:
+                      editorNotifier.addEventBuilderFactCondition,
+                  onAddEventConsumedCondition:
+                      editorNotifier.addEventBuilderEventConsumedCondition,
+                  onRemoveCondition:
+                      editorNotifier.removeEventBuilderConditionAt,
+                  onCreateDestinationLayer:
+                      editorNotifier.ensureEventBuilderObjectLayer,
+                )
+              : null,
         ),
+      ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
-          projection: projection,
-          selectedStep: selectedStep,
-          onSelectStep: (stepId) {
-            final step = projection.steps
-                .where((s) => s.id == stepId)
-                .cast<NarrativeStepSummary?>()
-                .firstWhere((s) => s != null, orElse: () => null);
-            narrativeController.selectStep(stepId);
-            narrativeController.openStep(
-              stepId: stepId,
-              globalScenarioId: step?.globalScenarioId,
-            );
-          },
-          onSelectOutcome: narrativeController.selectOutcome,
-          editorNotifier: editorNotifier,
-          project: editor.project,
-          activeMap: editor.activeMap,
-        ),
+        projection: projection,
+        selectedStep: selectedStep,
+        onSelectStep: (stepId) {
+          final step = projection.steps
+              .where((s) => s.id == stepId)
+              .cast<NarrativeStepSummary?>()
+              .firstWhere((s) => s != null, orElse: () => null);
+          narrativeController.selectStep(stepId);
+          narrativeController.openStep(
+            stepId: stepId,
+            globalScenarioId: step?.globalScenarioId,
+          );
+        },
+        onSelectOutcome: narrativeController.selectOutcome,
+        editorNotifier: editorNotifier,
+        project: editor.project,
+        activeMap: editor.activeMap,
+      ),
       EditorWorkspaceMode.cinematics => _CinematicsWorkspaceBody(
-          editorNotifier: editorNotifier,
-          cinematicLibraryGateway: CanonicalCinematicLibraryAuthoringGateway(
-            mutations: ref.read(authoringMutationAdapterProvider),
-            queries: ref.read(authoringQueryAdapterProvider),
-          ),
-          presentationDraftGateway:
-              CanonicalPresentationStudioDraftAuthoringGateway(
-            queries: ref.read(authoringQueryAdapterProvider),
-          ),
-          presentationLayerGateway:
-              CanonicalPresentationStudioLayerAuthoringGateway(
-            mutations: ref.read(authoringMutationAdapterProvider),
-            queries: ref.read(authoringQueryAdapterProvider),
-          ),
-          presentationTimelineGateway:
-              CanonicalPresentationStudioTimelineAuthoringGateway(
-            mutations: ref.read(authoringMutationAdapterProvider),
-            queries: ref.read(authoringQueryAdapterProvider),
-          ),
-          presentationPropertyGateway:
-              CanonicalPresentationStudioPropertyAuthoringGateway(
-            mutations: ref.read(authoringMutationAdapterProvider),
-            queries: ref.read(authoringQueryAdapterProvider),
-          ),
-        presentationAddGateway: CanonicalPresentationStudioAddAuthoringGateway(
-            mutations: ref.read(authoringMutationAdapterProvider),
-            queries: ref.read(authoringQueryAdapterProvider),
-          ),
-          presentationTimelineProjectionGateway:
-              CanonicalPresentationTimelineProjectionGateway(
-            reader: AuthoringPresentationTimelineProjectionMediaReader(
+        editorNotifier: editorNotifier,
+        cinematicLibraryGateway: CanonicalCinematicLibraryAuthoringGateway(
+          mutations: ref.read(authoringMutationAdapterProvider),
+          queries: ref.read(authoringQueryAdapterProvider),
+        ),
+        presentationDraftGateway:
+            CanonicalPresentationStudioDraftAuthoringGateway(
               queries: ref.read(authoringQueryAdapterProvider),
             ),
-          ),
-          presentationMediaReader:
-              AuthoringPresentationTimelineProjectionMediaReader(
-            queries: ref.read(authoringQueryAdapterProvider),
-          ),
-          projectRootPath: editor.projectRootPath,
-          project: editor.project,
+        presentationLayerGateway:
+            CanonicalPresentationStudioLayerAuthoringGateway(
+              mutations: ref.read(authoringMutationAdapterProvider),
+              queries: ref.read(authoringQueryAdapterProvider),
+            ),
+        presentationTimelineGateway:
+            CanonicalPresentationStudioTimelineAuthoringGateway(
+              mutations: ref.read(authoringMutationAdapterProvider),
+              queries: ref.read(authoringQueryAdapterProvider),
+            ),
+        presentationPropertyGateway:
+            CanonicalPresentationStudioPropertyAuthoringGateway(
+              mutations: ref.read(authoringMutationAdapterProvider),
+              queries: ref.read(authoringQueryAdapterProvider),
+            ),
+        presentationAddGateway: CanonicalPresentationStudioAddAuthoringGateway(
+          mutations: ref.read(authoringMutationAdapterProvider),
+          queries: ref.read(authoringQueryAdapterProvider),
+        ),
+        presentationTimelineProjectionGateway:
+            CanonicalPresentationTimelineProjectionGateway(
+              reader: AuthoringPresentationTimelineProjectionMediaReader(
+                queries: ref.read(authoringQueryAdapterProvider),
+              ),
+            ),
+        presentationMediaReader:
+            AuthoringPresentationTimelineProjectionMediaReader(
+              queries: ref.read(authoringQueryAdapterProvider),
+            ),
+        projectRootPath: editor.projectRootPath,
+        project: editor.project,
         requestedCinematicId:
             studioNavigation.location.destination ==
-                      NarrativeStudioDestination.cinematics &&
-                  studioNavigation.location.selection?.kind ==
-                      NarrativeStudioAssetKind.cinematic
-              ? studioNavigation.location.selection?.assetId
-              : null,
-          requestedCinematicNonce: studioNavigation.revision,
-          documentRoute: studioNavigation.documentRoute,
-          onRouteChanged: ref
+                    NarrativeStudioDestination.cinematics &&
+                studioNavigation.location.selection?.kind ==
+                    NarrativeStudioAssetKind.cinematic
+            ? studioNavigation.location.selection?.assetId
+            : null,
+        requestedCinematicNonce: studioNavigation.revision,
+        documentRoute: studioNavigation.documentRoute,
+        onRouteChanged: ref
+            .read(narrativeStudioNavigationControllerProvider.notifier)
+            .replace,
+        onOpenPresentationDocument: ref
+            .read(narrativeStudioNavigationControllerProvider.notifier)
+            .openDocument,
+        onCloseDocument: () {
+          final source = ref
               .read(narrativeStudioNavigationControllerProvider.notifier)
-              .replace,
-          onOpenPresentationDocument: ref
-              .read(narrativeStudioNavigationControllerProvider.notifier)
-              .openDocument,
-          onCloseDocument: () {
-            final source = ref
-                .read(narrativeStudioNavigationControllerProvider.notifier)
-                .closeDocument();
-            if (source is NarrativeSceneSourceContext) {
-              editorNotifier.selectScenesWorkspace();
-            }
-            return source;
-          },
-          onOpenSceneUsage: ({required sceneId, required nodeId}) {
-            ref
-                .read(narrativeStudioNavigationControllerProvider.notifier)
-                .replace(
-                  NarrativeStudioRouteLocation.scenes(
-                    selection: NarrativeStudioAssetSelection(
-                      kind: NarrativeStudioAssetKind.scene,
-                      assetId: sceneId,
-                      focusId: nodeId,
-                    ),
-                  ),
-                );
+              .closeDocument();
+          if (source is NarrativeSceneSourceContext) {
             editorNotifier.selectScenesWorkspace();
-          },
-        ),
+          }
+          return source;
+        },
+        onOpenSceneUsage: ({required sceneId, required nodeId}) {
+          ref
+              .read(narrativeStudioNavigationControllerProvider.notifier)
+              .replace(
+                NarrativeStudioRouteLocation.scenes(
+                  selection: NarrativeStudioAssetSelection(
+                    kind: NarrativeStudioAssetKind.scene,
+                    assetId: sceneId,
+                    focusId: nodeId,
+                  ),
+                ),
+              );
+          editorNotifier.selectScenesWorkspace();
+        },
+      ),
       EditorWorkspaceMode.dialogue => const DialogueStudioWorkspace(),
       EditorWorkspaceMode.facts => _buildFactsWorldRulesWorkspace(
-          editor: editor,
-          editorNotifier: editorNotifier,
-          mapRepository: ref.read(mapRepositoryProvider),
-          readLatestProject: () => ref.read(editorNotifierProvider).project,
-          initialMode: FactsWorldRulesWorkspaceMode.facts,
+        editor: editor,
+        editorNotifier: editorNotifier,
+        mapRepository: ref.read(mapRepositoryProvider),
+        readLatestProject: () => ref.read(editorNotifierProvider).project,
+        initialMode: FactsWorldRulesWorkspaceMode.facts,
         requestedFactId:
             studioNavigation.location.destination ==
-                      NarrativeStudioDestination.facts &&
-                  studioNavigation.location.selection?.kind ==
-                      NarrativeStudioAssetKind.fact
-              ? studioNavigation.location.selection?.assetId
-              : null,
-          requestedSelectionNonce: studioNavigation.revision,
-        ),
+                    NarrativeStudioDestination.facts &&
+                studioNavigation.location.selection?.kind ==
+                    NarrativeStudioAssetKind.fact
+            ? studioNavigation.location.selection?.assetId
+            : null,
+        requestedSelectionNonce: studioNavigation.revision,
+      ),
       EditorWorkspaceMode.shops => NarrativeStudioWorkspacePage(
-          presentation: narrativeStudioRoutePresentationFor(
-            EditorWorkspaceMode.shops,
-          )!,
-          body: ShopEditorPanel(
-            controller: ShopEditorController(
-              manifest: editor.project!,
-              itemOptions: [
-                for (final option in baseSceneConsequenceCatalogs.items.options)
-                  ShopEditorItemOption(
-                    id: option.id,
-                    label: option.label,
-                    definition: option.itemDefinition,
-                  ),
-              ],
-            ),
-            catalogMessage: baseSceneConsequenceCatalogs.items.message,
-            onRetryCatalog: () => ref.invalidate(
-              sceneConsequenceCatalogsProvider(editor.projectRootPath),
-            ),
-            onManifestChanged: (manifest) {
-              editorNotifier.applyInMemoryProjectManifest(
-                manifest,
-                statusMessage: 'Boutiques modifiées',
-              );
-            },
+        presentation: narrativeStudioRoutePresentationFor(
+          EditorWorkspaceMode.shops,
+        )!,
+        body: ShopEditorPanel(
+          controller: ShopEditorController(
+            manifest: editor.project!,
+            itemOptions: [
+              for (final option in baseSceneConsequenceCatalogs.items.options)
+                ShopEditorItemOption(
+                  id: option.id,
+                  label: option.label,
+                  definition: option.itemDefinition,
+                ),
+            ],
           ),
+          catalogMessage: baseSceneConsequenceCatalogs.items.message,
+          onRetryCatalog: () => ref.invalidate(
+            sceneConsequenceCatalogsProvider(editor.projectRootPath),
+          ),
+          onManifestChanged: (manifest) {
+            editorNotifier.applyInMemoryProjectManifest(
+              manifest,
+              statusMessage: 'Boutiques modifiées',
+            );
+          },
         ),
+      ),
       EditorWorkspaceMode.worldRules => _buildFactsWorldRulesWorkspace(
-          editor: editor,
-          editorNotifier: editorNotifier,
-          mapRepository: ref.read(mapRepositoryProvider),
-          readLatestProject: () => ref.read(editorNotifierProvider).project,
-          initialMode: FactsWorldRulesWorkspaceMode.worldRules,
+        editor: editor,
+        editorNotifier: editorNotifier,
+        mapRepository: ref.read(mapRepositoryProvider),
+        readLatestProject: () => ref.read(editorNotifierProvider).project,
+        initialMode: FactsWorldRulesWorkspaceMode.worldRules,
         requestedWorldRuleId:
             studioNavigation.location.destination ==
-                      NarrativeStudioDestination.worldRules &&
-                  studioNavigation.location.selection?.kind ==
-                      NarrativeStudioAssetKind.worldRule
-              ? studioNavigation.location.selection?.assetId
-              : null,
-          requestedSelectionNonce: studioNavigation.revision,
-        ),
+                    NarrativeStudioDestination.worldRules &&
+                studioNavigation.location.selection?.kind ==
+                    NarrativeStudioAssetKind.worldRule
+            ? studioNavigation.location.selection?.assetId
+            : null,
+        requestedSelectionNonce: studioNavigation.revision,
+      ),
       // Workspaces non narratifs: ce widget ne doit pas être utilisé.
       _ => const SizedBox.shrink(),
     };
@@ -2383,46 +2383,46 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
     },
     onUpdateFact:
         ({
-      required String factId,
-      required String label,
-      required String description,
-      required String category,
-      required NarrativeValue initialValue,
-    }) async {
-      try {
-        final latest = readLatestProject();
-        if (latest == null) {
-          return false;
-        }
+          required String factId,
+          required String label,
+          required String description,
+          required String category,
+          required NarrativeValue initialValue,
+        }) async {
+          try {
+            final latest = readLatestProject();
+            if (latest == null) {
+              return false;
+            }
             final current = latest.facts.firstWhere(
               (fact) => fact.id == factId,
             );
-        final preview = current.valueKind == initialValue.kind
-            ? null
-            : previewNarrativeFactTypeChange(
-                latest,
-                factId: factId,
-                nextKind: initialValue.kind,
-                maps: maps,
-              );
-        final result = updateNarrativeFact(
-          latest,
-          factId: factId,
-          label: label,
-          description: description,
-          category: category,
-          initialValue: initialValue,
-          typeChangePreview: preview,
-        );
-        editorNotifier.applyInMemoryProjectManifest(
-          result.updatedProject,
-          statusMessage: 'Fact updated',
-        );
-        return true;
-      } on ArgumentError {
-        return false;
-      }
-    },
+            final preview = current.valueKind == initialValue.kind
+                ? null
+                : previewNarrativeFactTypeChange(
+                    latest,
+                    factId: factId,
+                    nextKind: initialValue.kind,
+                    maps: maps,
+                  );
+            final result = updateNarrativeFact(
+              latest,
+              factId: factId,
+              label: label,
+              description: description,
+              category: category,
+              initialValue: initialValue,
+              typeChangePreview: preview,
+            );
+            editorNotifier.applyInMemoryProjectManifest(
+              result.updatedProject,
+              statusMessage: 'Fact updated',
+            );
+            return true;
+          } on ArgumentError {
+            return false;
+          }
+        },
     onRemoveFact: ({required String factId}) async {
       try {
         final latest = readLatestProject();
@@ -2449,76 +2449,76 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
     },
     onCreateWorldRule:
         ({
-      required String label,
-      required String description,
-      required bool enabled,
-      required WorldRuleSource source,
-      required WorldRuleTarget target,
-      required WorldRuleEffect effect,
-      required int priority,
-    }) async {
-      try {
-        final latest = readLatestProject();
-        if (latest == null) {
-          return null;
-        }
-        final result = addWorldRule(
-          latest,
-          label: label,
-          description: description,
-          enabled: enabled,
-          source: source,
-          target: target,
-          effect: effect,
-          priority: priority,
-          maps: maps,
-        );
-        editorNotifier.applyInMemoryProjectManifest(
-          result.updatedProject,
-          statusMessage: 'World rule created',
-        );
-        return result.createdRule.id;
-      } on ArgumentError {
-        return null;
-      }
-    },
+          required String label,
+          required String description,
+          required bool enabled,
+          required WorldRuleSource source,
+          required WorldRuleTarget target,
+          required WorldRuleEffect effect,
+          required int priority,
+        }) async {
+          try {
+            final latest = readLatestProject();
+            if (latest == null) {
+              return null;
+            }
+            final result = addWorldRule(
+              latest,
+              label: label,
+              description: description,
+              enabled: enabled,
+              source: source,
+              target: target,
+              effect: effect,
+              priority: priority,
+              maps: maps,
+            );
+            editorNotifier.applyInMemoryProjectManifest(
+              result.updatedProject,
+              statusMessage: 'World rule created',
+            );
+            return result.createdRule.id;
+          } on ArgumentError {
+            return null;
+          }
+        },
     onUpdateWorldRule:
         ({
-      required String ruleId,
-      required String label,
-      required String description,
-      required bool enabled,
-      required WorldRuleSource source,
-      required WorldRuleTarget target,
-      required WorldRuleEffect effect,
-      required int priority,
-    }) async {
-      try {
-        final latest = readLatestProject();
-        if (latest == null) {
-          return false;
-        }
-        final result = updateWorldRule(
-          latest,
-          ruleId: ruleId,
-          label: label,
-          description: description,
-          enabled: enabled,
-          source: source,
-          target: target,
-          effect: effect,
-          priority: priority,
-          maps: maps,
-        );
-        editorNotifier.applyInMemoryProjectManifest(
-          result.updatedProject,
-          statusMessage: 'World rule updated',
-        );
-        return true;
-      } on ArgumentError {
-        return false;
-      }
-    },
+          required String ruleId,
+          required String label,
+          required String description,
+          required bool enabled,
+          required WorldRuleSource source,
+          required WorldRuleTarget target,
+          required WorldRuleEffect effect,
+          required int priority,
+        }) async {
+          try {
+            final latest = readLatestProject();
+            if (latest == null) {
+              return false;
+            }
+            final result = updateWorldRule(
+              latest,
+              ruleId: ruleId,
+              label: label,
+              description: description,
+              enabled: enabled,
+              source: source,
+              target: target,
+              effect: effect,
+              priority: priority,
+              maps: maps,
+            );
+            editorNotifier.applyInMemoryProjectManifest(
+              result.updatedProject,
+              statusMessage: 'World rule updated',
+            );
+            return true;
+          } on ArgumentError {
+            return false;
+          }
+        },
     onRemoveWorldRule: ({required String ruleId}) async {
       try {
         final latest = readLatestProject();
@@ -2776,25 +2776,25 @@ PresentationStudioDiagnostic? _presentationDocumentDiagnostic(
   NarrativeDocumentSessionStatus? status,
 ) => switch (status) {
   NarrativeDocumentSessionStatus.failed => PresentationStudioDiagnostic(
-      code: PresentationDiagnosticCodes.saveFailed,
-      severity: PresentationDiagnosticSeverity.error,
-      title: 'Enregistrement impossible',
+    code: PresentationDiagnosticCodes.saveFailed,
+    severity: PresentationDiagnosticSeverity.error,
+    title: 'Enregistrement impossible',
     cause:
         notifier.narrativeDocumentDiagnosticMessage ??
-          'Le projet n’a pas pu être enregistré.',
-      impact: 'Le brouillon local est conservé et peut être réessayé.',
-      actionLabel: 'Réessayer l’enregistrement',
-    ),
+        'Le projet n’a pas pu être enregistré.',
+    impact: 'Le brouillon local est conservé et peut être réessayé.',
+    actionLabel: 'Réessayer l’enregistrement',
+  ),
   NarrativeDocumentSessionStatus.conflicted => PresentationStudioDiagnostic(
-      code: PresentationDiagnosticCodes.saveConflict,
-      severity: PresentationDiagnosticSeverity.error,
-      title: 'Conflit d’enregistrement',
+    code: PresentationDiagnosticCodes.saveConflict,
+    severity: PresentationDiagnosticSeverity.error,
+    title: 'Conflit d’enregistrement',
     cause:
         notifier.narrativeDocumentDiagnosticMessage ??
-          'Le projet a changé en dehors du Studio.',
+        'Le projet a changé en dehors du Studio.',
     impact: 'Le brouillon local est conservé ; aucune version n’a été écrasée.',
-      actionLabel: 'Recharger la version externe',
-    ),
+    actionLabel: 'Recharger la version externe',
+  ),
   _ => null,
 };
 
@@ -2841,7 +2841,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   final PresentationStudioPropertyAuthoringGateway presentationPropertyGateway;
   final PresentationStudioAddAuthoringGateway presentationAddGateway;
   final PresentationTimelineProjectionGateway
-      presentationTimelineProjectionGateway;
+  presentationTimelineProjectionGateway;
   final PresentationTimelineProjectionMediaReader presentationMediaReader;
   final String? projectRootPath;
   final ProjectManifest? project;
@@ -2862,14 +2862,14 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   NarrativeLibrarySourceContext? _restoredPresentationSource;
   late final PresentationStudioLayoutStore _presentationLayoutStore;
   late final PresentationStudioResponsiveCanvasController
-      _presentationResponsiveCanvasController;
+  _presentationResponsiveCanvasController;
   late final PresentationStudioDocumentController
-      _presentationDocumentController;
+  _presentationDocumentController;
   PresentationTimelineEditingController? _presentationTimelineEditingController;
   PresentationTimelineProjectionController?
-      _presentationTimelineProjectionController;
+  _presentationTimelineProjectionController;
   PresentationStudioProjectContentController?
-      _presentationProjectContentController;
+  _presentationProjectContentController;
   PresentationStudioDiagnostic? _presentationDiagnostic;
   VoidCallback? _presentationDiagnosticAction;
   PresentationStudioMediaSink? _presentationMediaSink;
@@ -2881,14 +2881,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   /// runner — BETA-CIN-080. The Editor holds no project revision, so the
   /// preview labels its own draft; the frames and outcomes come from the
   /// shared composition either way.
-  Widget _buildPresentationJourneyPreview(
-    PresentationCinematicAsset asset,
-  ) {
+  Widget _buildPresentationJourneyPreview(PresentationCinematicAsset asset) {
     final project = widget.project;
     final projectRootPath = widget.projectRootPath?.trim();
-    if (project == null ||
-        projectRootPath == null ||
-        projectRootPath.isEmpty) {
+    if (project == null || projectRootPath == null || projectRootPath.isEmpty) {
       return const Center(
         key: ValueKey('presentation-journey-preview-unavailable'),
         child: Text('Ouvrez un projet pour prévisualiser le parcours.'),
@@ -2901,20 +2897,19 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         project: project,
         projectRootDirectory: projectRootPath,
         projectRevision: 'studio-preview',
-        createSession: ({
-          required ProjectMediaCatalog catalog,
-          required Map<String, Uri> mediaUris,
-          required bool reducedMotion,
-        }) =>
-            PresentationPreviewSession(
-          runtimeSourceId: 'studio-preview:${asset.id}',
-          catalog: catalog,
-          mediaUris: mediaUris,
-          targetPlatform: currentPresentationMediaTargetPlatform(),
-          reducedMotion: reducedMotion,
-        ),
-        onClose: () =>
-            setState(() => _presentationJourneyPreviewOpen = false),
+        createSession:
+            ({
+              required ProjectMediaCatalog catalog,
+              required Map<String, Uri> mediaUris,
+              required bool reducedMotion,
+            }) => PresentationPreviewSession(
+              runtimeSourceId: 'studio-preview:${asset.id}',
+              catalog: catalog,
+              mediaUris: mediaUris,
+              targetPlatform: currentPresentationMediaTargetPlatform(),
+              reducedMotion: reducedMotion,
+            ),
+        onClose: () => setState(() => _presentationJourneyPreviewOpen = false),
       ),
     );
   }
@@ -2929,11 +2924,11 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       draftGateway: widget.presentationDraftGateway,
       applyRecovery: (manifest, {required operationId, required label}) =>
           widget.editorNotifier.applyNarrativeDocumentEdit(
-        manifest,
-        operationId: operationId,
-        label: label,
-        statusMessage: 'Brouillon Presentation mis à jour.',
-      ),
+            manifest,
+            operationId: operationId,
+            label: label,
+            statusMessage: 'Brouillon Presentation mis à jour.',
+          ),
       saveDurably: widget.editorNotifier.saveNarrativeDocument,
       discardDraft: widget.editorNotifier.discardNarrativeDocument,
     )..addListener(_onPresentationDocumentChanged);
@@ -3018,37 +3013,44 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     if (projectRootPath == null || projectRootPath.isEmpty) return;
     unawaited(
       loadProjectDirectoryPresentationMedia(
-        projectRootDirectory: projectRootPath,
-      ).then((media) {
-        if (!mounted ||
-            media == null ||
-            generation != _presentationMediaSinkGeneration) {
-          return;
-        }
-        final sink = PresentationStudioMediaSink(
-          catalog: media.catalog,
-          mediaUris: media.mediaUris,
-          targetPlatform: currentPresentationMediaTargetPlatform(),
-          aliases: PresentationMediaAliasStore(
-            root: Directory(
-              p.join(Directory.systemTemp.path, 'pokemap-presentation-media'),
-            ),
-          ),
-        );
-        sink.addListener(_onPresentationMediaSinkChanged);
-        setState(() {
-          _presentationMediaSinkFailure = null;
-          _presentationMediaSink = sink;
-          _presentationProjectContentController?.mediaSink = sink;
-        });
-      }).onError((error, _) {
-        if (!mounted || generation != _presentationMediaSinkGeneration) return;
-        // Never silent. A montage whose media cannot be catalogued plays
-        // nothing at all, and "nothing plays" with no explanation is
-        // indistinguishable from "the media is fine and the studio is
-        // broken" — which is exactly how this went unnoticed.
-        setState(() => _presentationMediaSinkFailure = '$error');
-      }),
+            projectRootDirectory: projectRootPath,
+          )
+          .then((media) {
+            if (!mounted ||
+                media == null ||
+                generation != _presentationMediaSinkGeneration) {
+              return;
+            }
+            final sink = PresentationStudioMediaSink(
+              catalog: media.catalog,
+              mediaUris: media.mediaUris,
+              targetPlatform: currentPresentationMediaTargetPlatform(),
+              aliases: PresentationMediaAliasStore(
+                root: Directory(
+                  p.join(
+                    Directory.systemTemp.path,
+                    'pokemap-presentation-media',
+                  ),
+                ),
+              ),
+            );
+            sink.addListener(_onPresentationMediaSinkChanged);
+            setState(() {
+              _presentationMediaSinkFailure = null;
+              _presentationMediaSink = sink;
+              _presentationProjectContentController?.mediaSink = sink;
+            });
+          })
+          .onError((error, _) {
+            if (!mounted || generation != _presentationMediaSinkGeneration) {
+              return;
+            }
+            // Never silent. A montage whose media cannot be catalogued plays
+            // nothing at all, and "nothing plays" with no explanation is
+            // indistinguishable from "the media is fine and the studio is
+            // broken" — which is exactly how this went unnoticed.
+            setState(() => _presentationMediaSinkFailure = '$error');
+          }),
     );
   }
 
@@ -3108,12 +3110,12 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _presentationDocumentController
           .open(projectRootPath, expectedProject: project)
           .then((opened) {
-        if (!opened && mounted) {
-          widget.editorNotifier.reportNarrativeNavigationFailure(
-            'Le brouillon Presentation n’a pas pu être ouvert.',
-          );
-        }
-      }),
+            if (!opened && mounted) {
+              widget.editorNotifier.reportNarrativeNavigationFailure(
+                'Le brouillon Presentation n’a pas pu être ouvert.',
+              );
+            }
+          }),
     );
   }
 
@@ -3163,10 +3165,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     final presentationRoute = widget.documentRoute;
     final project =
         presentationRoute?.kind ==
-                    NarrativeDocumentKind.presentationCinematic &&
-                _presentationDocumentController.isOpen
-            ? _presentationDocumentController.manifest
-            : widget.project;
+                NarrativeDocumentKind.presentationCinematic &&
+            _presentationDocumentController.isOpen
+        ? _presentationDocumentController.manifest
+        : widget.project;
     if (project == null) {
       return Center(
         child: Text(
@@ -3274,8 +3276,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           PokeMapCinematicDocumentState.error,
       };
       final documentStatusLabel = switch (draftStatus) {
-        PresentationStudioDocumentStatus.opening =>
-          'Préparation du brouillon',
+        PresentationStudioDocumentStatus.opening => 'Préparation du brouillon',
         PresentationStudioDocumentStatus.saved => 'Enregistré',
         PresentationStudioDocumentStatus.dirty =>
           _presentationDocumentController.recoveryPending
@@ -3289,26 +3290,26 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       Widget buildPresentationCanvas(
         PresentationFrameContentPort contentPort,
       ) => PresentationStudioResponsiveCanvas(
-            controller: _presentationResponsiveCanvasController,
-            frameBuilder: (playheadUs) => documentIsEmpty
-                ? null
-                : evaluator.evaluate(
-                    resolvedAsset,
+        controller: _presentationResponsiveCanvasController,
+        frameBuilder: (playheadUs) => documentIsEmpty
+            ? null
+            : evaluator.evaluate(
+                resolvedAsset,
                 timeUs: playheadUs.clamp(0, resolvedAsset.durationUs).toInt(),
-                  ),
-            contentPort: contentPort,
-            playerTheme: PokeMapPlayerTheme.dark(),
+              ),
+        contentPort: contentPort,
+        playerTheme: PokeMapPlayerTheme.dark(),
         orientationOverrides: _presentationOrientationOverrides(resolvedAsset),
         mediaBindings: _presentationResponsiveMediaBindings(resolvedAsset),
-            asset: resolvedAsset,
-            mediaSink: _presentationJourneyPreviewOpen
-                ? null
-                : _presentationMediaSink,
-            onRetry: _presentationResponsiveCanvasController.setReady,
-            onSelectedTextDrag: _presentationDocumentController.isOpen
-                ? _moveSelectedPresentationText
-                : null,
-          );
+        asset: resolvedAsset,
+        mediaSink: _presentationJourneyPreviewOpen
+            ? null
+            : _presentationMediaSink,
+        onRetry: _presentationResponsiveCanvasController.setReady,
+        onSelectedTextDrag: _presentationDocumentController.isOpen
+            ? _moveSelectedPresentationText
+            : null,
+      );
       final projectContentController = _presentationProjectContentController;
       final presentationCanvas = projectContentController == null
           ? buildPresentationCanvas(const _PresentationStudioContentPort())
@@ -3382,7 +3383,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
             // selection, and nothing else.
             animation: Listenable.merge([
               _presentationResponsiveCanvasController.orientation,
-              timelineEditingController,
+              PresentationTimelineEditingListenable(timelineEditingController),
             ]),
             builder: (context, _) => PresentationStudioPropertiesPanel(
               asset: resolvedAsset,
@@ -3397,7 +3398,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               },
               onCommand: (command) =>
                   unawaited(_applyPresentationPropertyCommand(command)),
-              mutationPending: !_presentationDocumentController.isOpen ||
+              mutationPending:
+                  !_presentationDocumentController.isOpen ||
                   _presentationDocumentController.isSaving,
               canUndo: widget.editorNotifier.canUndoNarrativeDocument,
               canRedo: widget.editorNotifier.canRedoNarrativeDocument,
@@ -3464,7 +3466,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
             onPlayheadChanged: _presentationResponsiveCanvasController.seekTo,
             onCommand: (command) =>
                 unawaited(_applyPresentationTimelineCommand(command)),
-            mutationPending: !_presentationDocumentController.isOpen ||
+            mutationPending:
+                !_presentationDocumentController.isOpen ||
                 _presentationDocumentController.isSaving,
             canUndo: widget.editorNotifier.canUndoNarrativeDocument,
             canRedo: widget.editorNotifier.canRedoNarrativeDocument,
@@ -3662,7 +3665,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     if (!undone || manifest == null || !mounted) return;
     _presentationDocumentController.adoptSessionManifest(
       manifest,
-      isDirty: widget.editorNotifier.narrativeDocumentStatus !=
+      isDirty:
+          widget.editorNotifier.narrativeDocumentStatus !=
           NarrativeDocumentSessionStatus.saved,
     );
     _clearPresentationDiagnostic();
@@ -3679,11 +3683,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     if (!redone || manifest == null || !mounted) return;
     _presentationDocumentController.adoptSessionManifest(
       manifest,
-      isDirty: widget.editorNotifier.narrativeDocumentStatus !=
+      isDirty:
+          widget.editorNotifier.narrativeDocumentStatus !=
           NarrativeDocumentSessionStatus.saved,
     );
     _clearPresentationDiagnostic();
   }
+
   Future<void> _applyPresentationPropertyCommand(
     PresentationStudioPropertyCommand command,
   ) async {
@@ -3725,10 +3731,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       return;
     }
     final cinematicId = route!.documentId;
-    for (final track in _presentationDocumentController.manifest
-        .presentationCinematics
-        .where((asset) => asset.id == cinematicId)
-        .expand((asset) => asset.tracks)) {
+    for (final track
+        in _presentationDocumentController.manifest.presentationCinematics
+            .where((asset) => asset.id == cinematicId)
+            .expand((asset) => asset.tracks)) {
       for (final clip in track.clips) {
         if (clip.id != selectedClipId || clip is! PresentationTextClip) {
           continue;
@@ -3817,15 +3823,15 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     }
     final result = await widget.editorNotifier
         .executeNarrativeAuthoringMutation(
-      (project) => NarrativeAssetMutation.createCinematic(
-        project,
-        title: cleanTitle,
-        timeline: templateKind == null
-            ? null
-            : buildNarrativeCinematicTemplateTimeline(templateKind),
-      ),
-      operationId: _cinematicAuthoringOperationId('create'),
-    );
+          (project) => NarrativeAssetMutation.createCinematic(
+            project,
+            title: cleanTitle,
+            timeline: templateKind == null
+                ? null
+                : buildNarrativeCinematicTemplateTimeline(templateKind),
+          ),
+          operationId: _cinematicAuthoringOperationId('create'),
+        );
     if (result == null) {
       return null;
     }
@@ -4004,12 +4010,12 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   Future<bool> _removeCinematic({required String cinematicId}) async {
     final result = await widget.editorNotifier
         .executeNarrativeAuthoringMutation(
-      (project) => NarrativeAssetMutation.deleteCinematic(
-        project,
-        cinematicId: cinematicId,
-      ),
-      operationId: _cinematicAuthoringOperationId('delete'),
-    );
+          (project) => NarrativeAssetMutation.deleteCinematic(
+            project,
+            cinematicId: cinematicId,
+          ),
+          operationId: _cinematicAuthoringOperationId('delete'),
+        );
     if (result == null) {
       return false;
     }
@@ -4802,27 +4808,27 @@ PresentationVisualComposition? _portraitCompositionOverride(
 };
 
 List<PresentationStudioResponsiveMediaBinding>
-    _presentationResponsiveMediaBindings(PresentationCinematicAsset asset) =>
-        <PresentationStudioResponsiveMediaBinding>[
-          for (final track in asset.tracks)
-            for (final clip in track.clips)
-              if (clip is PresentationVisualClip)
-                PresentationStudioResponsiveMediaBinding(
-                  clipId: clip.id,
-                  kind: switch (clip.mediaKind) {
-                    PresentationVisualMediaKind.image =>
-                      PresentationStudioResponsiveMediaKind.image,
-                    PresentationVisualMediaKind.video =>
-                      PresentationStudioResponsiveMediaKind.video,
-                    PresentationVisualMediaKind.poster =>
-                      PresentationStudioResponsiveMediaKind.poster,
-                  },
-                  sharedResourceId: clip.resourceId,
-                  landscapeResourceId: clip.landscapeResourceId,
-                  portraitResourceId: clip.portraitResourceId,
-                  requireDurationMetadata: false,
-                ),
-        ];
+_presentationResponsiveMediaBindings(PresentationCinematicAsset asset) =>
+    <PresentationStudioResponsiveMediaBinding>[
+      for (final track in asset.tracks)
+        for (final clip in track.clips)
+          if (clip is PresentationVisualClip)
+            PresentationStudioResponsiveMediaBinding(
+              clipId: clip.id,
+              kind: switch (clip.mediaKind) {
+                PresentationVisualMediaKind.image =>
+                  PresentationStudioResponsiveMediaKind.image,
+                PresentationVisualMediaKind.video =>
+                  PresentationStudioResponsiveMediaKind.video,
+                PresentationVisualMediaKind.poster =>
+                  PresentationStudioResponsiveMediaKind.poster,
+              },
+              sharedResourceId: clip.resourceId,
+              landscapeResourceId: clip.landscapeResourceId,
+              portraitResourceId: clip.portraitResourceId,
+              requireDurationMetadata: false,
+            ),
+    ];
 
 PresentationVisualComposition _translatePresentationComposition(
   PresentationVisualComposition composition,
@@ -4883,7 +4889,7 @@ Map<String, List<String>> _buildSceneConsumerPaths(
 }
 
 Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
-    _buildSceneActionPickerOptions(
+_buildSceneActionPickerOptions(
   ProjectManifest project,
   SceneConsequenceCatalogs catalogs, {
   MapData? activeMap,
@@ -4895,9 +4901,9 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
   List<SceneActionPickerOption> fromCatalog(
     SceneConsequenceCatalogSection section,
   ) => [
-        for (final option in section.options)
-          SceneActionPickerOption(id: option.id, label: option.label),
-      ];
+    for (final option in section.options)
+      SceneActionPickerOption(id: option.id, label: option.label),
+  ];
 
   return <NarrativeCommandParameterKind, List<SceneActionPickerOption>>{
     NarrativeCommandParameterKind.fact: [
@@ -5010,11 +5016,11 @@ String _nextSceneInteractionNodeId(
 }
 
 String _sceneFieldAbilityLabel(FieldAbility ability) => switch (ability) {
-      FieldAbility.surf => 'Surf',
-      FieldAbility.cut => 'Coupe',
-      FieldAbility.strength => 'Force',
-      FieldAbility.flash => 'Flash',
-      FieldAbility.rockSmash => 'Éclate-Roc',
-      FieldAbility.waterfall => 'Cascade',
-      FieldAbility.dive => 'Plongée',
-    };
+  FieldAbility.surf => 'Surf',
+  FieldAbility.cut => 'Coupe',
+  FieldAbility.strength => 'Force',
+  FieldAbility.flash => 'Flash',
+  FieldAbility.rockSmash => 'Éclate-Roc',
+  FieldAbility.waterfall => 'Cascade',
+  FieldAbility.dive => 'Plongée',
+};

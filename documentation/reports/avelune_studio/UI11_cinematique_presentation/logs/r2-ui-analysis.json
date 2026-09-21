@@ -1,0 +1,20 @@
+{
+  "command": [
+    "flutter",
+    "analyze",
+    "--no-pub",
+    "lib/presentation/features/cinematics",
+    "test/cinematics_ui10_error_recovery_test.dart"
+  ],
+  "runnerPid": 64702,
+  "owned": {
+    "64764": [
+      64702,
+      "501",
+      "Mon Sep 21 01:09:15 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart language-server --dart-sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk --disable-server-feature-completion --disable-server-feature-search"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

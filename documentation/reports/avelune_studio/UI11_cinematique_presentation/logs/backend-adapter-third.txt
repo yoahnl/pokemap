@@ -1,0 +1,29 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart
+00:00 +0: mapless final document and classification are published and independently reopened
+00:00 +1: independent manifest edits survive and conflicting document retains disk
+00:00 +1 -1: independent manifest edits survive and conflicting document retains disk [E]
+  Publication refusée, brouillon conservé : Bad state: La présentation ou son classement a changé. Le brouillon est conservé.
+  package:avelune_studio/features/presentations/data/local_presentation_publication.dart 85:7  LocalPresentationPublication._run.<fn>
+  
+00:00 +1 -1: staged image creates no durable files before one atomic publication
+00:00 +1 -2: staged image creates no durable files before one atomic publication [E]
+  Expected: <Instance of 'ProjectMediaAsset'>
+    Actual: <Instance of 'ProjectMediaAsset'>
+  
+  package:matcher                                              expect
+  package:flutter_test/src/widget_tester.dart 473:18           expect
+  test/presentations/presentation_adapter_ui11_test.dart 39:5  main.<fn>
+  
+00:00 +1 -2: abandoning staged image leaves no durable import
+00:00 +2 -2: create and link publishes final content and exact modified scene; stale source refuses
+00:00 +2 -3: create and link publishes final content and exact modified scene; stale source refuses [E]
+  Publication refusée, brouillon conservé : Bad state: La scène a changé. Le brouillon de présentation est conservé.
+  package:avelune_studio/features/presentations/data/local_presentation_publication.dart 85:7  LocalPresentationPublication._run.<fn>
+  
+00:00 +2 -3: archive and delete never remove imported media
+00:00 +3 -3: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: create and link publishes final content and exact modified scene; stale source refuses
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: independent manifest edits survive and conflicting document retains disk
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: staged image creates no durable files before one atomic publication

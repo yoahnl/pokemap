@@ -35,6 +35,7 @@ import '../domains/narrative/narrative_document_actions.dart';
 import '../domains/narrative/cinematic_actions.dart';
 import '../domains/narrative/cinematic_library_actions.dart';
 import '../domains/narrative/presentation_cinematic_actions.dart';
+import '../domains/narrative/presentation_publication_actions.dart';
 import '../domains/narrative/presentation_cinematic_template_actions.dart';
 import '../domains/narrative/rail_journey_actions.dart';
 import '../domains/narrative/event_actions.dart';
@@ -400,6 +401,10 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: cinematicLibrary.build,
         ),
+      MapMutationActionRegistration(
+        descriptor: PresentationPublicationActions.descriptor,
+        build: PresentationPublicationActions(mediaImports: presentationMedia).build,
+      ),
       for (final descriptor in PresentationCinematicActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,

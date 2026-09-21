@@ -1,0 +1,12 @@
+Analyzing 2 items...                                            
+
+  error • The argument type 'num' can't be assigned to the parameter type 'int'.  • lib/src/ui/canvas/cinematics/cinematic_actor_display_preview_overlay.dart:113:14 • argument_type_not_assignable
+  error • The argument type 'num' can't be assigned to the parameter type 'int'.  • lib/src/ui/canvas/cinematics/cinematic_actor_display_preview_overlay.dart:114:14 • argument_type_not_assignable
+  error • The argument type 'num' can't be assigned to the parameter type 'int'.  • lib/src/ui/canvas/cinematics/cinematic_actor_sprite_preview_resolver.dart:26:10 • argument_type_not_assignable
+  error • The argument type 'num' can't be assigned to the parameter type 'int'.  • lib/src/ui/canvas/cinematics/cinematic_actor_sprite_preview_resolver.dart:27:10 • argument_type_not_assignable
+  error • The argument type 'num' can't be assigned to the parameter type 'int'.  • lib/src/ui/canvas/cinematics/cinematic_actor_sprite_preview_resolver.dart:257:14 • argument_type_not_assignable
+  error • The argument type 'num' can't be assigned to the parameter type 'int'.  • lib/src/ui/canvas/cinematics/cinematic_actor_sprite_preview_resolver.dart:258:14 • argument_type_not_assignable
+   info • The import of 'preview/cinematic_media_preview_controller.dart' is unnecessary because all of the used elements are also provided by the import of 'package:map_core/map_core.dart'. Try removing the import directive • lib/src/ui/canvas/cinematics/cinematic_builder_workspace.dart:38:8 • unnecessary_import
+   info • The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/cupertino.dart'. Try removing the import directive • lib/src/ui/canvas/cinematics/cinematics_library_workspace.dart:6:8 • unnecessary_import
+
+8 issues found. (ran in 8.5s)

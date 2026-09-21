@@ -1431,6 +1431,15 @@ world_rule.validate
 
 ## 16. Events, Scenes, Storylines et cinématiques
 
+AS-UI-011 : `presentationCinematic.publish` publie un montage final et son
+classement, avec les médias staged nécessaires et, lorsqu’il est demandé, le
+lien vers une scène précise. L’action canonique compare les bases du montage,
+du classement, des médias utilisés et de la scène avant une transaction unique.
+Elle conserve les imports indépendants, refuse les sources obsolètes et ne
+publie aucune carte ni autre document ouvert. Les preuves directe, JSONL et
+Studio sont dans les tests `presentation_publication_ui11` et
+`presentation_adapter_ui11` ; le transport MCP utilise la même action.
+
 État actuel : `E/P`.
 
 ### 16.1 Map Events et Event V2

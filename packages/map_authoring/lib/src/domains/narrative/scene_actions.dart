@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import '../assets/project_media_store.dart';
 
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
@@ -7,6 +8,7 @@ import 'modern_narrative_inspection.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
 import 'presentation_cinematic_template_actions.dart';
+import 'presentation_publication_snapshot.dart';
 
 final class ScenePreSessionInteractionCueBindingDraft {
   const ScenePreSessionInteractionCueBindingDraft({
@@ -346,6 +348,8 @@ final class SceneActions {
             'targetNodeId',
           ),
           cinematic: cinematic,
+          mediaCatalog: _presentationMedia(context),
+          sourceAssets: presentationSourceAssets(context.snapshot),
           targetFolderId: _nullableStringParameter(
             parameters,
             'targetFolderId',
@@ -763,6 +767,8 @@ final class SceneActions {
     required String nodeId,
     required String targetNodeId,
     required PresentationCinematicAsset cinematic,
+    ProjectMediaCatalog? mediaCatalog,
+    Iterable<ProjectMediaSourceAssetDefinition> sourceAssets = const [],
     required String? targetFolderId,
     required int targetIndex,
   }) {
@@ -814,6 +820,8 @@ final class SceneActions {
     final referenceDiagnostics = PresentationReferenceGraph.build(
       cinematics: projected.presentationCinematics,
       scenes: projected.scenes,
+      mediaCatalog: mediaCatalog,
+      sourceAssets: sourceAssets,
     ).diagnostics;
     if (referenceDiagnostics.isNotEmpty) {
       throw NarrativeAuthoringException(
@@ -1801,4 +1809,13 @@ void _validateSceneCharacterAnimationCommand(
       'A directional custom animation requires a direction.',
     );
   }
+}
+
+ProjectMediaCatalog _presentationMedia(AuthoringPlanningContext context) {
+  final bytes = context.snapshot.findResourceBytes(
+    projectMediaCatalogResourceIdentity,
+  );
+  return bytes == null
+      ? ProjectMediaCatalog()
+      : decodeProjectMediaCatalogBytes(bytes);
 }

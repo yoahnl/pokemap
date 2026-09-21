@@ -1,0 +1,18 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_visuals_test.dart
+00:00 +0: staged illustration renders through shared canvas without project writes
+UI11 phase bound
+UI11 phase ready
+UI11 phase closing
+00:59 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_visuals_test.dart [E]
+  Bad state: Cannot close sink while adding stream.
+  package:stream_channel/src/guarantee_channel.dart 180:7      _GuaranteeSink.close
+  package:flutter_tools/src/test/flutter_platform.dart 765:43  FlutterPlatform._startTest
+  
+One or more uncaught errors occurred shutting down:
+  Bad state: Cannot add event while adding stream.
+00:59 +0 -1: staged illustration renders through shared canvas without project writes - did not complete [E]
+00:59 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_visuals_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_visuals_test.dart
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_visuals_test.dart: staged illustration renders through shared canvas without project writes (did not complete)

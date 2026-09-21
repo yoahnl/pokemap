@@ -1,0 +1,9 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui07_scene_linked_source_test.dart: read-only source and starts are original, never blank replacement
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart: typed linked callbacks retain scene draft, selection and viewport
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart: typed linked callbacks retain scene draft, selection and viewport
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart: typed linked callbacks retain scene draft, selection and viewport
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart: typed linked callbacks retain scene draft, selection and viewport
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart: typed linked callbacks retain scene draft, selection and viewport
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart: presentation preview resolves current draft and does not revive a deleted source
+00:01 +7: All tests passed!

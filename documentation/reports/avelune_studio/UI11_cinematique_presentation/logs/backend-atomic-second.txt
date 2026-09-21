@@ -1,0 +1,19 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart: dirty scene cue survives undo, direct deletion and late scene changes block save
+00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction [E]
+  Publication refusée, brouillon conservé : NarrativeAuthoringException(scene.preSession.presentation.reference_validation_failed): The Presentation create-and-link projection contains invalid references.
+  package:avelune_studio/features/presentations/data/local_presentation_publication.dart 221:7  LocalPresentationPublication._run.<fn>
+  
+00:00 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: import into unchanged document saves sources and deletion keeps them
+00:00 +2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: import into unchanged document saves sources and deletion keeps them
+00:00 +3 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved
+00:01 +3 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved [E]
+  Publication interrompue. Journal presentation_1789947903469208_2137378444 conservé : AuthoringPlanException(plan.no_changes): This preview preserves every existing choice and has no changes to apply.
+  package:avelune_studio/features/presentations/data/local_presentation_publication.dart 187:11  LocalPresentationPublication._run.<fn>
+  
+00:01 +3 -2: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction

@@ -39,6 +39,7 @@ class SceneInspector extends StatelessWidget {
     required this.onDuplicate,
     this.documents,
     this.narrative,
+    this.onCreatePresentation,
   });
   final SceneLinkedDocuments? documents;
   final NarrativeWorkspaceController? narrative;
@@ -47,6 +48,7 @@ class SceneInspector extends StatelessWidget {
   final String? nodeId, edgeId;
   final VoidCallback changed, onDelete, onDuplicate;
   final ValueChanged<SceneNode> onDocument;
+  final ValueChanged<SceneNode>? onCreatePresentation;
 
   void edit(SceneAsset Function(SceneAsset) mutation) {
     session.mutate(mutation);
@@ -116,6 +118,22 @@ class SceneInspector extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 ..._fields(context, node),
+                if (onCreatePresentation != null &&
+                    scene.executionProfile ==
+                        SceneExecutionProfile.preSession &&
+                    node.kind != SceneNodeKind.start) ...[
+                  const SizedBox(height: 12),
+                  StudioButton(
+                    label: 'Créer une présentation liée',
+                    secondary: true,
+                    onPressed: session.base == null || session.saving
+                        ? null
+                        : () => onCreatePresentation!(node),
+                  ),
+                  const Text(
+                    'Enregistrer la présentation publiera aussi cette scène.',
+                  ),
+                ],
                 const SizedBox(height: 20),
                 Text('Sorties', style: Theme.of(context).textTheme.titleSmall),
                 for (final port in authorableSceneOutputPortsForNodeInGraph(

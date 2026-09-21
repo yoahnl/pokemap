@@ -1,0 +1,30 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart
+lib/presentation/features/presentations/presentation_inspector.dart:14:6: Error: Error when reading 'lib/presentation/features/presentations/presentation_inspector_media.dart': No such file or directory
+part 'presentation_inspector_media.dart';
+     ^
+lib/presentation/features/presentations/presentation_inspector.dart:14:6: Error: Can't use 'lib/presentation/features/presentations/presentation_inspector_media.dart' as a part, because it has no 'part of' declaration.
+part 'presentation_inspector_media.dart';
+     ^
+lib/presentation/features/presentations/presentation_inspector.dart:132:24: Error: The method 'mediaFields' isn't defined for the type 'PresentationInspector'.
+ - 'PresentationInspector' is from 'package:avelune_studio/presentation/features/presentations/presentation_inspector.dart' ('lib/presentation/features/presentations/presentation_inspector.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'mediaFields'.
+                    ...mediaFields(selected),
+                       ^^^^^^^^^^^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart: lib/presentation/features/presentations/presentation_inspector.dart:14:6: Error: Error when reading 'lib/presentation/features/presentations/presentation_inspector_media.dart': No such file or directory
+  part 'presentation_inspector_media.dart';
+       ^
+  lib/presentation/features/presentations/presentation_inspector.dart:14:6: Error: Can't use 'lib/presentation/features/presentations/presentation_inspector_media.dart' as a part, because it has no 'part of' declaration.
+  part 'presentation_inspector_media.dart';
+       ^
+  lib/presentation/features/presentations/presentation_inspector.dart:132:24: Error: The method 'mediaFields' isn't defined for the type 'PresentationInspector'.
+   - 'PresentationInspector' is from 'package:avelune_studio/presentation/features/presentations/presentation_inspector.dart' ('lib/presentation/features/presentations/presentation_inspector.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'mediaFields'.
+                      ...mediaFields(selected),
+                         ^^^^^^^^^^^
+  .
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart

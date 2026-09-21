@@ -1,0 +1,14 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart
+00:00 +0: duplicate preserves canonical track hold policy
+00:00 +0 -1: duplicate preserves canonical track hold policy [E]
+  Expected: PresentationHoldTrackPolicy:<PresentationHoldTrackPolicy.ambientContinues>
+    Actual: PresentationHoldTrackPolicy:<PresentationHoldTrackPolicy.frozen>
+  
+  package:matcher                                                 expect
+  package:flutter_test/src/widget_tester.dart 473:18              expect
+  test/presentations/presentation_controller_ui11_test.dart 88:5  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: duplicate preserves canonical track hold policy

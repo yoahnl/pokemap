@@ -86,15 +86,18 @@ File? resolveProjectDirectoryAssetFile({
 Future<ProjectDirectoryPresentationMedia?>
     loadProjectDirectoryPresentationMedia({
   required String projectRootDirectory,
+  ProjectMediaCatalog? suppliedCatalog,
+  bool allowMissingSources = false,
 }) async {
   final mediaFile = File(
     p.join(projectRootDirectory, 'assets', '.pokemap-media.json'),
   );
-  if (!await mediaFile.exists()) return null;
+  if (suppliedCatalog == null && !await mediaFile.exists()) return null;
 
-  final catalog = ProjectMediaCatalog.fromJson(
-    await _readObject(mediaFile, 'the media catalog'),
-  );
+  final catalog = suppliedCatalog ??
+      ProjectMediaCatalog.fromJson(
+        await _readObject(mediaFile, 'the media catalog'),
+      );
   if (catalog.entries.isEmpty) {
     return ProjectDirectoryPresentationMedia(
       catalog: catalog,
@@ -106,6 +109,10 @@ Future<ProjectDirectoryPresentationMedia?>
     p.join(projectRootDirectory, 'assets', '.pokemap-assets.json'),
   );
   if (!await assetFile.exists()) {
+    if (allowMissingSources) {
+      return ProjectDirectoryPresentationMedia(
+          catalog: catalog, mediaUris: const {});
+    }
     throw const ProjectDirectoryPresentationMediaException(
       'The project declares media but carries no asset catalog.',
     );
@@ -145,6 +152,7 @@ Future<ProjectDirectoryPresentationMedia?>
   for (final media in catalog.entries) {
     final digest = digestsByAssetId[media.sourceAssetId];
     if (digest == null) {
+      if (allowMissingSources) continue;
       throw ProjectDirectoryPresentationMediaException(
         'A Presentation media asset is missing from the project.',
         mediaId: media.id,
@@ -162,6 +170,7 @@ Future<ProjectDirectoryPresentationMedia?>
       p.join(projectRootDirectory, 'assets', '.pokemap-store', '$digest.blob'),
     );
     if (!await blob.exists()) {
+      if (allowMissingSources) continue;
       throw ProjectDirectoryPresentationMediaException(
         'A Presentation media blob is missing from the project store.',
         mediaId: media.id,

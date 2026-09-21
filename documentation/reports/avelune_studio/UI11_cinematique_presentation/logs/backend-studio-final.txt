@@ -1,0 +1,33 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: mapless final document and classification are published and independently reopened
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: mapless final document and classification are published and independently reopened
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: mapless final document and classification are published and independently reopened
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: mapless final document and classification are published and independently reopened
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: mapless final document and classification are published and independently reopened
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: mapless final document and classification are published and independently reopened
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: create no disk write, grouped canonical intent, undo redo save and reopen
+00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:01 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:01 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:01 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:01 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:01 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: one shared draft, late opening cannot overwrite B
+00:01 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: one shared draft, late opening cannot overwrite B
+00:01 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: one shared draft, late opening cannot overwrite B
+00:01 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:02 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: import into unchanged document saves sources and deletion keeps them
+00:02 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: import into unchanged document saves sources and deletion keeps them
+00:02 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: import into unchanged document saves sources and deletion keeps them
+00:02 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: create and link publishes final content and exact modified scene; stale source refuses
+00:02 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: editing during save remains dirty and next save does not lose current text
+00:02 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:02 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved
+00:02 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved
+00:02 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved
+00:02 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved
+00:02 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:02 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:03 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: duplicate shares staged sources safely until both drafts are published
+00:03 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: duplicate shares staged sources safely until both drafts are published
+00:03 +31: All tests passed!

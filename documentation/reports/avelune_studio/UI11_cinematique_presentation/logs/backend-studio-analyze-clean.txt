@@ -1,0 +1,5 @@
+Analyzing presentation_workspace_controller.dart, presentation_workspace_editing.dart, presentation_workspace_library.dart, presentation_workspace_publication.dart, presentation_workspace_references.dart, presentation_edit_session.dart, data, domain, presentation_adapter_ui11_test.dart, presentation_controller_ui11_test.dart, presentation_atomic_ui11_test.dart, presentation_references_ui11_test.dart...
+
+   info - lib/features/presentations/application/presentation_workspace_publication.dart:112:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+1 issue found.

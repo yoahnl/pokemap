@@ -1,0 +1,15 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart
+00:00 +0: duplicate shares staged sources safely until both drafts are published
+00:00 +0 -1: duplicate shares staged sources safely until both drafts are published [E]
+  Expected: <true>
+    Actual: <false>
+  Enregistrez les médias importés avant de dupliquer ce montage.
+  
+  package:matcher                                                  expect
+  package:flutter_test/src/widget_tester.dart 473:18               expect
+  test/presentations/presentation_controller_ui11_test.dart 207:5  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: duplicate shares staged sources safely until both drafts are published

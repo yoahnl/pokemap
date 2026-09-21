@@ -1,0 +1,18 @@
+{
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "runnerPid": 13351,
+  "owned": {
+    "13369": [
+      13351,
+      "501",
+      "Mon Sep 21 01:49:16 2026",
+      "node /Users/karim/Project/pokemonProject/tools/pokemap_mcp/node_modules/.bin/tsc -p tsconfig.json"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

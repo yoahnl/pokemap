@@ -396,6 +396,7 @@ _PresentationMutation _duplicateCinematic(AuthoringPlanningContext context) {
           id: track.id,
           label: track.label,
           kind: track.kind,
+          holdPolicy: track.holdPolicy,
           clips: <PresentationClip>[
             for (final clip in track.clips)
               _copyClip(clip, id: '$duplicateId-${clip.id}'),

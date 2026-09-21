@@ -1,0 +1,35 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_scenario_test.dart
+00:00 +0: published presentation holds on real cue then continues the real scene
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.state (package:flutter_test/src/controller.dart:932:42)
+#2      WidgetTester.showKeyboard.<anonymous closure> (package:flutter_test/src/widget_tester.dart:1126:42)
+#4      TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#5      WidgetTester.showKeyboard (package:flutter_test/src/widget_tester.dart:1125:27)
+#6      WidgetTester.enterText.<anonymous closure> (package:flutter_test/src/widget_tester.dart:1161:13)
+#8      TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#9      WidgetTester.enterText (package:flutter_test/src/widget_tester.dart:1160:27)
+#10     main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_scenario_test.dart:64:20)
+<asynchronous suspension>
+#11     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#12     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 3 frames from dart:async and package:stack_trace)
+
+The test description was:
+  published presentation holds on real cue then continues the real scene
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:03 +0 -1: published presentation holds on real cue then continues the real scene [E]
+  Test failed. See exception logs above.
+  The test description was: published presentation holds on real cue then continues the real scene
+  
+00:03 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_scenario_test.dart: published presentation holds on real cue then continues the real scene

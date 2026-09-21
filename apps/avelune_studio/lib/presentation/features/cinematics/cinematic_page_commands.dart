@@ -165,7 +165,7 @@ extension _CinematicPageCommands on _CinematicWorkspacePageState {
       case CinematicTimelineStepKind.actorMove:
         final actor = state.actorId;
         if (actor == null) {
-          state.error = 'Ajoutez et sélectionnez un acteur.';
+          state.actionError = 'Ajoutez et sélectionnez un acteur.';
           break;
         }
         final target =
@@ -177,7 +177,7 @@ extension _CinematicPageCommands on _CinematicWorkspacePageState {
         state.mode = CinematicMapMode.destination;
       case CinematicTimelineStepKind.actorFace:
         if (state.actorId == null) {
-          state.error = 'Sélectionnez un acteur.';
+          state.actionError = 'Sélectionnez un acteur.';
           break;
         }
         id = controller.addFace(
@@ -187,7 +187,7 @@ extension _CinematicPageCommands on _CinematicWorkspacePageState {
         );
       case CinematicTimelineStepKind.actorEmote:
         if (state.actorId == null) {
-          state.error = 'Sélectionnez un acteur.';
+          state.actionError = 'Sélectionnez un acteur.';
           break;
         }
         id = controller.addEmote(
@@ -271,7 +271,7 @@ extension _CinematicPageCommands on _CinematicWorkspacePageState {
       state.selection
         ..clear()
         ..add(id);
-      state.error = null;
+      state.actionError = null;
     }
     refresh();
   }

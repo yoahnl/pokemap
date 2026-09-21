@@ -1,0 +1,32 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/presentation/features/presentations/presentation_library.dart",
+    "lib/presentation/features/presentations/presentation_library_elements.dart",
+    "test/ui11_presentation_widget_test.dart",
+    "test/ui11_presentation_library_test.dart",
+    "test/ui11_presentation_responsive_test.dart",
+    "test/ui11_presentation_field_guard_test.dart",
+    "test/support/ui11_widget_port.dart",
+    "test/support/ui11_workspace_harness.dart",
+    "test/support/ui11_presentation_fixture.dart"
+  ],
+  "runnerPid": 8728,
+  "owned": {
+    "8730": [
+      8728,
+      "501",
+      "Mon Sep 21 01:46:11 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ],
+    "8917": [
+      8728,
+      "501",
+      "Mon Sep 21 01:46:17 2026",
+      "<defunct>"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

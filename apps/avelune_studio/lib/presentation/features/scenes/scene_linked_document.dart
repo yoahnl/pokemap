@@ -11,6 +11,7 @@ part 'scene_linked_cinematic.dart';
 
 class SceneLinkedDocuments {
   DialogueWorkspaceController? dialogues;
+  PresentationCinematicAsset? Function(String)? presentationFor;
   final _dialogues = <Object, Future<NarrativeDialogueSource>>{};
   final _compiled = <String, RuntimeDialogueDocument>{};
 

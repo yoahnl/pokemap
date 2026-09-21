@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 import '../features/cinematics/data/local_cinematic_adapter.dart';
+import '../features/presentations/data/local_presentation_adapter.dart';
+import '../platform/files/native_presentation_media_picker.dart';
 import '../features/dialogues/data/local_dialogue_adapter.dart';
 import '../features/events/data/local_event_adapter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,6 +86,17 @@ class StudioBootstrap extends StatelessWidget {
       ),
       dialoguePortProvider.overrideWith(
         (ref, session) => LocalDialogueAdapter(
+          session: session,
+          mapAdapter:
+              ref.watch(mapWorkspacePortProvider(session))
+                  as LocalMapWorkspaceAdapter,
+        ),
+      ),
+      presentationMediaPickerProvider.overrideWithValue(
+        const NativePresentationMediaPicker().choose,
+      ),
+      presentationPortProvider.overrideWith(
+        (ref, session) => LocalPresentationAdapter(
           session: session,
           mapAdapter:
               ref.watch(mapWorkspacePortProvider(session))

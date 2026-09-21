@@ -16,6 +16,7 @@ class CinematicViewState {
   bool timelineFitted = false;
   double mapShare = .48;
   String? error;
+  String? actionError;
   String? spatialError;
   String? inspectorError;
   String? get stepId => selection.firstOrNull;

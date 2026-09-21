@@ -24,6 +24,7 @@ extension CinematicInspectorActors on CinematicInspector {
         },
         onChanged: (id) {
           view.actorId = id;
+          view.actionError = null;
           view.initialPlacementChoice = null;
           changed();
         },
@@ -36,6 +37,7 @@ extension CinematicInspectorActors on CinematicInspector {
           final id = controller.addActor('Nouvel acteur');
           if (id != null) {
             view.actorId = id;
+            view.actionError = null;
             view.initialPlacementChoice = null;
             changed();
           }

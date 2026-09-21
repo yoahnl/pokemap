@@ -104,7 +104,8 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   }
 
   /// The audio sources this sink has stopped trying to open.
-  Set<String> get unplayableResourceIds => Set<String>.unmodifiable(_unplayable);
+  Set<String> get unplayableResourceIds =>
+      Set<String>.unmodifiable(_unplayable);
 
   /// Why the frame could not be played, when it could not.
   ///
@@ -180,7 +181,7 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   }
 
   Future<void> _apply(_StudioMediaRequest request) async {
-    await _prepareAliases(request.frame);
+    await _prepareAliases(request);
     final timeUs = request.frame?.timeUs;
     final scrubbed = _scrubbed(timeUs);
     _lastFrameTimeUs = timeUs;
@@ -261,22 +262,25 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
     _StudioMediaRequest request, {
     required bool scrubbed,
   }) async {
-    final clip = _videoClipOf(request.frame);
+    final clip = _videoClipOf(request);
     if (clip == null) {
       await _releaseVideo();
       return;
     }
+    final resourceId = _videoResourceId(clip, request);
     final active = _activeVideo;
-    if (active == null || active.resourceId != clip.resourceId) {
+    if (active == null ||
+        active.resourceId != resourceId ||
+        active.clipId != clip.clipId) {
       await _releaseVideo();
-      final media = catalog.find(clip.resourceId);
+      final media = catalog.find(resourceId);
       if (media == null) return;
       final handle = await _video.prepare(
         _resolveMediaUri(media),
         initialVolume: _mixer.mix.volumeFor(RuntimeAudioRoute.cinematicMusic),
       );
       _activeVideo = _StudioActiveVideo(
-        resourceId: clip.resourceId,
+        resourceId: resourceId,
         clipId: clip.clipId,
         handle: handle,
         playing: false,
@@ -318,11 +322,13 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   }
 
   /// The clip whose picture the montage shows: the topmost active video.
-  PresentationVisualFrameClip? _videoClipOf(PresentationFrame? frame) {
+  PresentationVisualFrameClip? _videoClipOf(_StudioMediaRequest request) {
+    final frame = request.frame;
     if (frame == null) return null;
     PresentationVisualFrameClip? candidate;
     for (final clip in frame.visuals) {
-      if (catalog.find(clip.resourceId)?.kind != ProjectMediaKind.video) {
+      if (catalog.find(_videoResourceId(clip, request))?.kind !=
+          ProjectMediaKind.video) {
         continue;
       }
       if (candidate == null || clip.zIndex >= candidate.zIndex) {
@@ -330,6 +336,23 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
       }
     }
     return candidate;
+  }
+
+  String _videoResourceId(
+      PresentationVisualFrameClip frame, _StudioMediaRequest request) {
+    for (final track in request.asset.tracks) {
+      for (final clip in track.clips) {
+        if (clip is PresentationVisualClip && clip.id == frame.clipId) {
+          return switch (request.orientation) {
+            PresentationFrameOrientation.landscape =>
+              clip.landscapeResourceId ?? clip.resourceId,
+            PresentationFrameOrientation.portrait =>
+              clip.portraitResourceId ?? clip.resourceId,
+          };
+        }
+      }
+    }
+    return frame.resourceId;
   }
 
   void _notifyPicture() {
@@ -375,12 +398,13 @@ final class PresentationStudioMediaSink extends ChangeNotifier {
   ///
   /// Resolved once per media: an alias is a link into a content-addressed
   /// store, so it can never go stale.
-  Future<void> _prepareAliases(PresentationFrame? frame) async {
+  Future<void> _prepareAliases(_StudioMediaRequest request) async {
+    final frame = request.frame;
     final store = _aliases;
     if (store == null || frame == null) return;
     for (final mediaId in <String>{
       ..._audioResourcesOf(frame),
-      for (final clip in frame.visuals) clip.resourceId,
+      for (final clip in frame.visuals) _videoResourceId(clip, request),
     }) {
       if (_playablePaths.containsKey(mediaId)) continue;
       final media = catalog.find(mediaId);

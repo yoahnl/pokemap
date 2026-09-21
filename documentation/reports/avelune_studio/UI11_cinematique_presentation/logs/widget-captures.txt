@@ -1,0 +1,8 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart: UI11 real shared renderer early composition
+00:05 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_library_test.dart: UI11 library visual ordering archives and restores the real asset
+00:09 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_library_test.dart: UI11 library visual ordering archives and restores the real asset
+00:11 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart: UI11 blank to image text canvas timeline save and reopen via controls
+00:14 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart: UI11 blank to image text canvas timeline save and reopen via controls
+00:15 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_responsive_test.dart: UI11 responsive 1024 portrait and compare
+00:17 +6: All tests passed!

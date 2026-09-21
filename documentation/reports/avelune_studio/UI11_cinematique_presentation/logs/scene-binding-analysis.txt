@@ -1,0 +1,6 @@
+Analyzing 3 items...                                            
+
+warning • The member 'setState' can only be used within instance members of subclasses of 'State' • lib/presentation/features/scenes/scene_builder_commands.dart:11:18 • invalid_use_of_protected_member
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/presentation/features/scenes/scene_builder_commands.dart:29:7 • curly_braces_in_flow_control_structures
+
+2 issues found. (ran in 5.5s)

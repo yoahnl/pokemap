@@ -1,0 +1,27 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart: dirty scene cue survives undo, direct deletion and late scene changes block save [E]
+  Scene Presentation interaction cue "cue" references an unknown Scene node: confirm
+  package:map_core/src/models/scene_asset.dart 427:9               _validatePresentationInteractionCueBindings
+  package:map_core/src/models/scene_asset.dart 301:5               new SceneAsset
+  test/presentations/presentation_references_ui11_test.dart 52:51  _consumer
+  test/presentations/presentation_references_ui11_test.dart 22:16  main.<fn>
+  
+00:00 +0 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart: create and duplicate suspend the previous preview
+00:00 +0 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction [E]
+  Publication refusée, brouillon conservé : NarrativeAuthoringException(scene.preSession.presentation.reference_validation_failed): The Presentation create-and-link projection contains invalid references.
+  package:avelune_studio/features/presentations/data/local_presentation_publication.dart 218:7  LocalPresentationPublication._run.<fn>
+  
+00:00 +1 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: import into unchanged document saves sources and deletion keeps them
+00:00 +2 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved
+00:01 +2 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved [E]
+  Publication refusée, brouillon conservé : Invalid argument (changes): must not be empty: Instance(length:0) of '_GrowableList'
+  package:avelune_studio/features/presentations/data/local_presentation_publication.dart 218:7  LocalPresentationPublication._run.<fn>
+  
+00:01 +2 -3: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart: dirty scene cue survives undo, direct deletion and late scene changes block save

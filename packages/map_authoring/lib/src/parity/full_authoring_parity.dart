@@ -509,6 +509,15 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'presentationCinematic.publish') {
+    return const {
+      AuthoringTransport.directApi: 'test/tooling/jsonl_presentation_publication_ui11_test.dart',
+      AuthoringTransport.cli: 'test/tooling/jsonl_presentation_publication_ui11_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+
   if (actionId.startsWith('regionalMap.')) {
     return const {
       AuthoringTransport.directApi:
@@ -1075,6 +1084,8 @@ final class _ContractEvidenceRule {
 }
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
+  _ContractEvidenceRule(['presentationCinematic.publish'],
+    'test/domains/narrative/presentation_publication_ui11_test.dart'),
   _ContractEvidenceRule(
       ['regionalMap.'], 'test/domains/project/regional_map_actions_test.dart'),
   _ContractEvidenceRule(

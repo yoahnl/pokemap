@@ -32,8 +32,8 @@ final class CinematicActorSpriteDepthHint {
     required this.preferredRendererHint,
   });
 
-  final int tileX;
-  final int tileY;
+  final num tileX;
+  final num tileY;
   final double anchorTileX;
   final double anchorTileY;
   final double visualBottom;
@@ -81,7 +81,7 @@ final class CinematicActorSpritePreviewActor {
   final String actorId;
   final String actorLabel;
   final CinematicActorBindingKind bindingKind;
-  final GridPos position;
+  final ({num x, num y}) position;
   final CinematicActorPreviewDirection direction;
   final CinematicActorSpriteStatus status;
   final CinematicActorSpriteRef? spriteRef;

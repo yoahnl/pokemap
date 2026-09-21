@@ -1,0 +1,21 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: mapless final document and classification are published and independently reopened
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: create no disk write, grouped canonical intent, undo redo save and reopen
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: independent manifest edits survive and conflicting document retains disk
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: independent manifest edits survive and conflicting document retains disk
+00:00 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: independent manifest edits survive and conflicting document retains disk
+00:00 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: independent manifest edits survive and conflicting document retains disk
+00:00 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: independent manifest edits survive and conflicting document retains disk
+00:00 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: one shared draft, late opening cannot overwrite B
+00:00 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:00 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:00 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+00:01 +19: All tests passed!

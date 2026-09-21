@@ -1,0 +1,29 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_scenario_test.dart
+00:00 +0: published presentation holds on real cue then continues the real scene
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: Runtime scenario did not reach expected state
+
+When the exception was thrown, this was the stack:
+#0      _pumpUntil (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_scenario_test.dart:121:3)
+<asynchronous suspension>
+#1      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_scenario_test.dart:75:7)
+<asynchronous suspension>
+#2      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#3      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  published presentation holds on real cue then continues the real scene
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:06 +0 -1: published presentation holds on real cue then continues the real scene [E]
+  Test failed. See exception logs above.
+  The test description was: published presentation holds on real cue then continues the real scene
+  
+00:06 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_scenario_test.dart: published presentation holds on real cue then continues the real scene

@@ -1,0 +1,35 @@
+Waiting for another flutter command to release the startup lock...
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart: UI11 real shared renderer early composition
+00:05 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_library_test.dart: UI11 library visual ordering archives and restores the real asset
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: [Instance of 'PresentationLayer', Instance of 'PresentationLayer']
+  Actual: [Instance of 'PresentationLayer', Instance of 'PresentationLayer']
+   Which: at location [0] is <Instance of 'PresentationLayer'> instead of <Instance of
+'PresentationLayer'>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_library_test.dart:32:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_library_test.dart line 32
+The test description was:
+  UI11 library visual ordering archives and restores the real asset
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:07 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_widget_test.dart: UI11 blank to image text canvas timeline save and reopen via controls
+00:07 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_library_test.dart: UI11 library visual ordering archives and restores the real asset [E]
+  Test failed. See exception logs above.
+  The test description was: UI11 library visual ordering archives and restores the real asset
+  
+00:14 +2 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui11_presentation_library_test.dart: UI11 library visual ordering archives and restores the real asset

@@ -1,0 +1,29 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "lib/features/presentations/application/presentation_workspace_controller.dart",
+    "lib/features/presentations/application/presentation_workspace_editing.dart",
+    "lib/features/presentations/application/presentation_workspace_library.dart",
+    "lib/features/presentations/application/presentation_workspace_publication.dart",
+    "lib/features/presentations/application/presentation_workspace_references.dart",
+    "lib/features/presentations/application/presentation_edit_session.dart",
+    "lib/features/presentations/data",
+    "lib/features/presentations/domain",
+    "test/presentations/presentation_adapter_ui11_test.dart",
+    "test/presentations/presentation_controller_ui11_test.dart",
+    "test/presentations/presentation_atomic_ui11_test.dart",
+    "test/presentations/presentation_references_ui11_test.dart"
+  ],
+  "runnerPid": 13409,
+  "owned": {
+    "13413": [
+      13409,
+      "501",
+      "Mon Sep 21 01:49:17 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

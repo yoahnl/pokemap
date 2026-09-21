@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../theme/pokemap_player_theme.dart';
+import 'presentation_frame_geometry.dart';
 
 enum PresentationFrameOrientation {
   landscape(16 / 9),
@@ -215,11 +216,13 @@ class PresentationFrameRenderer extends StatelessWidget {
     required this.orientation,
     required this.contentPort,
     this.reduceMotion,
+    this.geometry,
     this.reduceFlashes = false,
     this.showCaptions = true,
     this.orientationOverrides = const PresentationFrameOrientationOverrides(),
   });
 
+  final PresentationFrameGeometryController? geometry;
   final PresentationFrame frame;
   final PresentationFrameOrientation orientation;
   final PresentationFrameContentPort contentPort;
@@ -245,35 +248,39 @@ class PresentationFrameRenderer extends StatelessWidget {
           child: ClipRect(
             child: ColoredBox(
               color: colors.background,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ..._orderedContentLayers(
-                    reduceMotion: resolvedReduceMotion,
-                  ),
-                  if (showCaptions && frame.captions.isNotEmpty)
-                    SafeArea(
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.all(PlayerSpacing.md),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              for (final caption in frame.captions)
-                                _PresentationCaption(
-                                  clip: caption,
-                                  resolution: contentPort.resolveCaption(
+              child: _probeGeometry(
+                geometry,
+                role: PresentationGeometryRole.canvas,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ..._orderedContentLayers(
+                      reduceMotion: resolvedReduceMotion,
+                    ),
+                    if (showCaptions && frame.captions.isNotEmpty)
+                      SafeArea(
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.all(PlayerSpacing.md),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (final caption in frame.captions)
+                                  _PresentationCaption(
                                     clip: caption,
-                                    locale: locale,
+                                    resolution: contentPort.resolveCaption(
+                                      clip: caption,
+                                      locale: locale,
+                                    ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -289,6 +296,7 @@ class PresentationFrameRenderer extends StatelessWidget {
           id: visual.clipId,
           zIndex: visual.zIndex,
           child: _PresentationVisualLayer(
+            geometry: geometry,
             clip: visual,
             orientation: orientation,
             composition: orientationOverrides.resolveVisual(
@@ -308,6 +316,7 @@ class PresentationFrameRenderer extends StatelessWidget {
           id: text.clipId,
           zIndex: text.zIndex,
           child: _PresentationTextLayer(
+            geometry: geometry,
             clip: text,
             composition: orientationOverrides.resolveText(
               clip: text,
@@ -348,6 +357,7 @@ PresentationVisualFrameClip _visualWithResourceId(
 
 class _PresentationVisualLayer extends StatelessWidget {
   const _PresentationVisualLayer({
+    this.geometry,
     required this.clip,
     required this.orientation,
     required this.composition,
@@ -355,6 +365,7 @@ class _PresentationVisualLayer extends StatelessWidget {
     required this.resolution,
   });
 
+  final PresentationFrameGeometryController? geometry;
   final PresentationVisualFrameClip clip;
   final PresentationFrameOrientation orientation;
   final PresentationVisualComposition composition;
@@ -403,7 +414,22 @@ class _PresentationVisualLayer extends StatelessWidget {
             child: ClipRect(
               key: ValueKey<String>('presentation-visual-crop-${clip.clipId}'),
               clipper: _PresentationCropClipper(composition),
-              child: child,
+              child: _probeGeometry(
+                geometry,
+                role: PresentationGeometryRole.crop,
+                clipId: clip.clipId,
+                clipper: _PresentationCropClipper(composition),
+                child: _probeGeometry(
+                  geometry,
+                  role: PresentationGeometryRole.content,
+                  clipId: clip.clipId,
+                  zIndex: clip.zIndex,
+                  opacity: reduceFlashes
+                      ? clip.reducedFlashOpacity
+                      : composition.opacity,
+                  child: child,
+                ),
+              ),
             ),
           ),
         ),
@@ -414,11 +440,13 @@ class _PresentationVisualLayer extends StatelessWidget {
 
 class _PresentationTextLayer extends StatelessWidget {
   const _PresentationTextLayer({
+    this.geometry,
     required this.clip,
     required this.composition,
     required this.reduceFlashes,
   });
 
+  final PresentationFrameGeometryController? geometry;
   final PresentationTextFrameClip clip;
   final PresentationVisualComposition composition;
   final bool reduceFlashes;
@@ -432,29 +460,37 @@ class _PresentationTextLayer extends StatelessWidget {
         PresentationTextAlignment.center => Alignment.center,
         PresentationTextAlignment.end => Alignment.centerRight,
       },
-      child: Text(
-        _decodeTextEscapes(clip.text),
-        key: ValueKey<String>('presentation-text-${clip.clipId}'),
-        maxLines: style.wrapping == PresentationTextWrapping.noWrap ? 1 : null,
-        overflow: style.wrapping == PresentationTextWrapping.noWrap
-            ? TextOverflow.clip
-            : null,
-        textAlign: switch (style.alignment) {
-          PresentationTextAlignment.start => TextAlign.start,
-          PresentationTextAlignment.center => TextAlign.center,
-          PresentationTextAlignment.end => TextAlign.end,
-        },
-        style: TextStyle(
-          inherit: false,
-          color: _colorFromHex(style.colorHex),
-          decoration: TextDecoration.none,
-          fontFamily: style.fontFamily,
-          fontSize: style.fontSize,
-          fontWeight: switch (style.weight) {
-            PresentationTextWeight.regular => FontWeight.w400,
-            PresentationTextWeight.medium => FontWeight.w500,
-            PresentationTextWeight.bold => FontWeight.w700,
+      child: _probeGeometry(
+        geometry,
+        role: PresentationGeometryRole.content,
+        clipId: clip.clipId,
+        zIndex: clip.zIndex,
+        opacity: reduceFlashes ? clip.reducedFlashOpacity : composition.opacity,
+        child: Text(
+          _decodeTextEscapes(clip.text),
+          key: ValueKey<String>('presentation-text-${clip.clipId}'),
+          maxLines:
+              style.wrapping == PresentationTextWrapping.noWrap ? 1 : null,
+          overflow: style.wrapping == PresentationTextWrapping.noWrap
+              ? TextOverflow.clip
+              : null,
+          textAlign: switch (style.alignment) {
+            PresentationTextAlignment.start => TextAlign.start,
+            PresentationTextAlignment.center => TextAlign.center,
+            PresentationTextAlignment.end => TextAlign.end,
           },
+          style: TextStyle(
+            inherit: false,
+            color: _colorFromHex(style.colorHex),
+            decoration: TextDecoration.none,
+            fontFamily: style.fontFamily,
+            fontSize: style.fontSize,
+            fontWeight: switch (style.weight) {
+              PresentationTextWeight.regular => FontWeight.w400,
+              PresentationTextWeight.medium => FontWeight.w500,
+              PresentationTextWeight.bold => FontWeight.w700,
+            },
+          ),
         ),
       ),
     );
@@ -476,9 +512,15 @@ class _PresentationTextLayer extends StatelessWidget {
             ),
             child: ClipRect(
               clipper: _PresentationCropClipper(composition),
-              child: Padding(
-                padding: const EdgeInsets.all(PlayerSpacing.md),
-                child: text,
+              child: _probeGeometry(
+                geometry,
+                role: PresentationGeometryRole.crop,
+                clipId: clip.clipId,
+                clipper: _PresentationCropClipper(composition),
+                child: Padding(
+                  padding: const EdgeInsets.all(PlayerSpacing.md),
+                  child: text,
+                ),
               ),
             ),
           ),
@@ -644,3 +686,24 @@ class _PresentationUnavailableContent extends StatelessWidget {
     );
   }
 }
+
+Widget _probeGeometry(
+  PresentationFrameGeometryController? controller, {
+  required PresentationGeometryRole role,
+  required Widget child,
+  String? clipId,
+  int zIndex = 0,
+  double opacity = 1,
+  CustomClipper<Rect>? clipper,
+}) =>
+    controller == null
+        ? child
+        : PresentationGeometryProbe(
+            controller: controller,
+            role: role,
+            clipId: clipId,
+            zIndex: zIndex,
+            opacity: opacity,
+            clipper: clipper,
+            child: child,
+          );

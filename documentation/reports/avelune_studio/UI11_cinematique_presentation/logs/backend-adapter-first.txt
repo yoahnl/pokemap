@@ -1,0 +1,18 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart
+test/presentations/presentation_adapter_ui11_test.dart:54:25: Error: The method 'copyWith' isn't defined for the type 'SceneAsset'.
+ - 'SceneAsset' is from 'package:map_core/src/models/scene_asset.dart' ('../../packages/map_core/lib/src/models/scene_asset.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'copyWith'.
+    final changed=scene.copyWith(name:'Scène modifiée');
+                        ^^^^^^^^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: test/presentations/presentation_adapter_ui11_test.dart:54:25: Error: The method 'copyWith' isn't defined for the type 'SceneAsset'.
+   - 'SceneAsset' is from 'package:map_core/src/models/scene_asset.dart' ('../../packages/map_core/lib/src/models/scene_asset.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'copyWith'.
+      final changed=scene.copyWith(name:'Scène modifiée');
+                          ^^^^^^^^
+  .
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart

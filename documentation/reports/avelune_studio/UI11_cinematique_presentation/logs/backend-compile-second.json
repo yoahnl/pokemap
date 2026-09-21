@@ -1,0 +1,21 @@
+{
+  "command": [
+    "dart",
+    "analyze",
+    "apps/avelune_studio/lib/features/presentations",
+    "packages/map_authoring/lib/src/domains/narrative/presentation_publication_actions.dart",
+    "packages/map_authoring/lib/src/domains/narrative/presentation_publication_guards.dart",
+    "packages/map_authoring/lib/src/domains/narrative/presentation_publication_snapshot.dart"
+  ],
+  "runnerPid": 75538,
+  "owned": {
+    "75540": [
+      75538,
+      "501",
+      "Mon Sep 21 01:19:50 2026",
+      "/opt/homebrew/Cellar/dart/3.12.1/libexec/bin/dartaotruntime /opt/homebrew/Cellar/dart/3.12.1/libexec/bin/snapshots/analysis_server_aot.dart.snapshot --client-id=dart-analyze --disable-server-feature-completion --disable-server-feature-search --disable-status-notification-debouncing --disable-silent-analysis-exceptions --sdk /opt/homebrew/Cellar/dart/3.12.1/libexec"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 0
+}

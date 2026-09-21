@@ -1,0 +1,27 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart: dirty scene cue survives undo, direct deletion and late scene changes block save
+00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: create no disk write, grouped canonical intent, undo redo save and reopen
+00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart: dirty scene cue survives undo, direct deletion and late scene changes block save [E]
+  SceneGraph.startNodeId must reference a start node
+  package:map_core/src/models/scene_asset.dart 473:7               new SceneGraph
+  test/presentations/presentation_references_ui11_test.dart 55:10  _consumer
+  test/presentations/presentation_references_ui11_test.dart 22:16  main.<fn>
+  
+00:00 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: create no disk write, grouped canonical intent, undo redo save and reopen
+00:00 +2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: mapless final document and classification are published and independently reopened
+00:00 +3 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: failed grouped edit rolls back all commands and accepts correction
+00:00 +4 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: independent manifest edits survive and conflicting document retains disk
+00:00 +5 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: one shared draft, late opening cannot overwrite B
+00:00 +6 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: staged image creates no durable files before one atomic publication
+00:01 +7 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: editing during save remains dirty and next save does not lose current text
+00:01 +8 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: editing during save remains dirty and next save does not lose current text
+00:01 +9 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: create and link publishes final content and exact modified scene; stale source refuses
+00:01 +10 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: create and link publishes final content and exact modified scene; stale source refuses
+00:01 +11 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_adapter_ui11_test.dart: create and link publishes final content and exact modified scene; stale source refuses
+00:01 +12 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: folder move stays in draft and participates in undo and publication
+00:01 +13 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: folder move stays in draft and participates in undo and publication
+00:01 +14 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart: duplicate shares staged sources safely until both drafts are published
+00:01 +15 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart: dirty scene cue survives undo, direct deletion and late scene changes block save

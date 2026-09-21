@@ -1,0 +1,86 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_transport_test.dart
+test/presentations_ui11_transport_test.dart:10:27: Error: The method 'toJson' isn't defined for the type 'PresentationCinematicAsset'.
+ - 'PresentationCinematicAsset' is from 'package:map_core/src/models/presentation_cinematic_asset.dart' ('../../packages/map_core/lib/src/models/presentation_cinematic_asset.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'toJson'.
+      final bytes = asset.toJson();
+                          ^^^^^^
+test/presentations_ui11_transport_test.dart:30:20: Error: The method 'toJson' isn't defined for the type 'PresentationCinematicAsset'.
+ - 'PresentationCinematicAsset' is from 'package:map_core/src/models/presentation_cinematic_asset.dart' ('../../packages/map_core/lib/src/models/presentation_cinematic_asset.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'toJson'.
+      expect(asset.toJson(), bytes);
+                   ^^^^^^
+00:00 +0 -1: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_transport_test.dart [E]
+  Failed to load "/Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_transport_test.dart":
+  Compilation failed for testPath=/Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_transport_test.dart: test/presentations_ui11_transport_test.dart:10:27: Error: The method 'toJson' isn't defined for the type 'PresentationCinematicAsset'.
+   - 'PresentationCinematicAsset' is from 'package:map_core/src/models/presentation_cinematic_asset.dart' ('../../packages/map_core/lib/src/models/presentation_cinematic_asset.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'toJson'.
+        final bytes = asset.toJson();
+                            ^^^^^^
+  test/presentations_ui11_transport_test.dart:30:20: Error: The method 'toJson' isn't defined for the type 'PresentationCinematicAsset'.
+   - 'PresentationCinematicAsset' is from 'package:map_core/src/models/presentation_cinematic_asset.dart' ('../../packages/map_core/lib/src/models/presentation_cinematic_asset.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'toJson'.
+        expect(asset.toJson(), bytes);
+                     ^^^^^^
+  .
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1021:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/future_impl.dart 961:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 990:13               Future._propagateToListeners
+  dart:async/future_impl.dart 874:9                Future._propagateToListeners
+  dart:async/future_impl.dart 732:5                Future._completeWithValue
+  dart:async/future_impl.dart 816:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone.dart 474:14                      Zone.runGuarded
+  dart:async/zone.dart 604:18                      Zone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+00:00 +0 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+00:00 +1 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+00:01 +1 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem [E]
+  PathNotFoundException: Cannot open file, path = '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/map_workspace/workspace_presentation_binding.dart' (OS Error: No such file or directory, errno = 2)
+  dart:io                                                    _File.readAsStringSync
+  test/architecture/architecture_boundaries_test.dart 20:44  main.<fn>
+  test/architecture/dart_dependency_graph.dart 49:62         DartDependencyGraph.specifiers
+  dart:async                                                 _SyncStarIterator.moveNext
+  test/architecture/dart_dependency_graph.dart 77:31         DartDependencyGraph.walk
+  package:matcher                                            expect
+  package:flutter_test/src/widget_tester.dart 473:18         expect
+  test/architecture/architecture_boundaries_test.dart 83:5   main.<fn>
+  
+00:01 +1 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: theme et widgets partages independants des features et de la DI
+00:01 +2 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation centralisee et barrel DI limite aux exports
+00:01 +3 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucun import prive inter-package dans les sources Studio
+00:01 +4 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+00:01 +4 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur [E]
+  PathNotFoundException: Cannot open file, path = '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/map_workspace/workspace_presentation_binding.dart' (OS Error: No such file or directory, errno = 2)
+  dart:io                                                    _File.readAsStringSync
+  test/architecture/architecture_boundaries_test.dart 20:44  main.<fn>
+  test/architecture/dart_dependency_graph.dart 49:62         DartDependencyGraph.specifiers
+  dart:async                                                 _SyncStarIterator.moveNext
+  test/architecture/dart_dependency_graph.dart 77:31         DartDependencyGraph.walk
+  package:matcher                                            expect
+  package:flutter_test/src/widget_tester.dart 473:18         expect
+  test/architecture/architecture_boundaries_test.dart 156:5  main.<fn>
+  
+00:01 +4 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+00:02 +4 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes [E]
+  Expected: empty
+    Actual: [
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/platform/rendering/studio_map_resources.dart: 301 lignes',
+              '/Users/karim/Project/pokemonProject/apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart: 304 lignes'
+            ]
+  
+  package:matcher                                            expect
+  package:flutter_test/src/widget_tester.dart 473:18         expect
+  test/architecture/architecture_boundaries_test.dart 169:5  main.<fn>
+  
+00:02 +4 -4: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: aucune dependance vers ancien editeur
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_transport_test.dart: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_transport_test.dart

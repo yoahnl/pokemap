@@ -22,7 +22,7 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
     final List<CinematicActorDisplayPreviewDiagnostic> actorDiagnostics =
         List.from(actor.diagnostics);
     final bindingKind = actor.bindingKind ?? CinematicActorBindingKind.unbound;
-    final pos = GridPos(
+    final pos = (
       x: actor.position.x ?? 0,
       y: actor.position.y ?? 0,
     );
@@ -256,9 +256,9 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
     final depthHint = CinematicActorSpriteDepthHint(
       tileX: tileX,
       tileY: tileY,
-      anchorTileX: tileX + frameWidthTiles / 2.0,
-      anchorTileY: (tileY + frameHeightTiles).toDouble(),
-      visualBottom: (tileY + frameHeightTiles).toDouble(),
+      anchorTileX: tileX.toDouble(),
+      anchorTileY: (tileY + frameHeightTiles / 2).toDouble(),
+      visualBottom: (tileY + frameHeightTiles / 2).toDouble(),
       footprintWidthTiles: frameWidthTiles,
       footprintHeightTiles: frameHeightTiles,
       preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,

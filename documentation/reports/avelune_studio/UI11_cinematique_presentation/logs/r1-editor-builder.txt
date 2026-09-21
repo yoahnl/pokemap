@@ -1,0 +1,1143 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart
+00:00 +0: NSC-60 characterizes palette, stage, timeline and inspector boundaries
+00:01 +1: shows populated cinematic builder in the shared workspace page
+00:01 +2: uses simplified no-code destination vocabulary in builder
+00:02 +3: V1-128 palette adds actor emote block
+00:02 +4: CHS-046 palette authors a custom animation with guided pickers
+00:02 +5: V1-128 actor emote inspector lets user choose actor
+00:03 +6: V1-128 actor emote inspector lets user choose no-code emote and duration
+00:04 +7: captures V1-128 cinematic emote block editor ui visual gate
+00:04 +8: V1-129 seek renders active actor emote above playback actor without mutating data
+00:04 +9: V1-129 dragging playback playhead scrubs emote visibility without creating a probe
+00:04 +10: V1-129 emote overlay follows actor poses supplied by playback frames
+00:04 +11: captures V1-129 cinematic emote preview playback ui visual gate
+00:04 +12: V1-132 shows focus camera mode in camera inspector
+00:04 +13: V1-132 selecting focus defaults to scene center and medium zoom
+00:05 +14: V1-132 selecting scene center stores no actor or stage point id
+00:05 +15: V1-132 selecting actor target uses actor picker and preserves zoom
+00:05 +16: V1-132 selecting stage point target uses stage point picker and preserves zoom
+00:06 +17: V1-132 changing zoom preserves selected target
+00:06 +18: V1-132 reset clears focus target and zoom metadata
+00:06 +19: V1-132 hold clears focus target and zoom metadata
+00:06 +20: V1-132 focus with no stage points shows no-code empty repere message
+00:06 +21: V1-132 focus camera remains no-code without raw metadata after geometry preview
+00:07 +22: captures V1-132 cinematic camera target zoom editor ui visual gate
+00:07 +23: edits cinematic stage map and backdrop from builder
+00:07 +24: shows cinematic stage preview readiness checklist without starting preview
+00:07 +25: renders static map backdrop preview when backdrop model is available
+00:07 +26: renders real tile map backdrop when tileset image is available
+00:07 +27: renders static actor placeholders over the cinematic map backdrop
+00:08 +28: aligns actor placeholders with the backdrop viewport transform
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a numeric value within <1> of <316.4>
+  Actual: <320.95>
+   Which:  differs by <4.550000000000011>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:1780:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 1780
+The test description was:
+  aligns actor placeholders with the backdrop viewport transform
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:09 +28 -1: aligns actor placeholders with the backdrop viewport transform [E]
+  Test failed. See exception logs above.
+  The test description was: aligns actor placeholders with the backdrop viewport transform
+  
+00:09 +28 -1: falls back to structural backdrop when tileset image is unavailable
+00:09 +29 -1: builds bitmap instructions only from visible tile layers
+00:09 +30 -1: reproduces real cinematic backdrop depth divergence from Map Editor ordering
+00:09 +31 -1: renders a Smart Tiles Studio path preset through the canonical catalog
+00:09 +32 -1: renders scene framing mode zoomed beyond full map fit
+00:10 +33 -1: zooms in and resets cinematic backdrop framing without mutating project or map
+00:10 +34 -1: keeps actor placeholders aligned after scene framing zoom
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a numeric value within <1> of <709.6875>
+  Actual: <690.75>
+   Which:  differs by <18.9375>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:2276:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 2276
+The test description was:
+  keeps actor placeholders aligned after scene framing zoom
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:11 +34 -2: keeps actor placeholders aligned after scene framing zoom [E]
+  Test failed. See exception logs above.
+  The test description was: keeps actor placeholders aligned after scene framing zoom
+  
+00:11 +34 -2: resolves cinematic backdrop focus from selected actor before fallbacks
+00:11 +35 -2: renders a larger canvas-first scene preview with compact backdrop chrome
+00:12 +36 -2: expands and collapses backdrop details without mutating the project
+00:12 +37 -2: pans the scene view locally by dragging the backdrop viewport
+00:12 +38 -2: clamps scene view pan in tile units
+00:12 +39 -2: resets scene view pan and zoom without mutating cinematic data
+00:12 +40 -2: keeps actor placeholders aligned after scene framing pan
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a numeric value within <1> of <709.6875>
+  Actual: <690.75>
+   Which:  differs by <18.9375>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:2624:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 2624
+The test description was:
+  keeps actor placeholders aligned after scene framing pan
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:14 +40 -3: keeps actor placeholders aligned after scene framing pan [E]
+  Test failed. See exception logs above.
+  The test description was: keeps actor placeholders aligned after scene framing pan
+  
+00:14 +40 -3: keeps grid hidden by default in scene view and toggles it locally
+00:14 +41 -3: renders extended cinematic map backdrop with terrain path surface and placed elements
+00:14 +42 -3: preserves actor display placeholders over extended backdrop
+00:14 +43 -3: keeps real tile backdrop visible with extended render plan
+00:14 +44 -3: shows partial backdrop diagnostics for missing visual families
+00:14 +45 -3: keeps transport controls disabled with extended backdrop
+00:14 +46 -3: keeps timeline visible with extended backdrop
+00:15 +47 -3: keeps duration editor working with extended backdrop
+00:15 +48 -3: keeps resize handle working with extended backdrop
+00:15 +49 -3: keeps mouse probe working with extended backdrop
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with key [<'cinematic-builder-time-tick-500'>]: []" (used in a call to
+"getTopLeft()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getTopLeft (package:flutter_test/src/controller.dart:1963:12)
+#2      WidgetController.getRect (package:flutter_test/src/controller.dart:2347:23)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:3047:32)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  keeps mouse probe working with extended backdrop
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:16 +49 -4: keeps mouse probe working with extended backdrop [E]
+  Test failed. See exception logs above.
+  The test description was: keeps mouse probe working with extended backdrop
+  
+00:16 +49 -4: keeps mapEntity actor picker working with extended backdrop
+00:16 +50 -4: keeps movement target mapEntity/mapEvent pickers working with extended backdrop
+00:16 +51 -4: keeps Character Library picker working with extended backdrop
+00:16 +52 -4: does not render runtime entities events triggers collisions or warps
+00:16 +53 -4: does not mutate project when rendering extended backdrop
+00:16 +54 -4: shows human fallbacks for every non available backdrop status
+00:17 +55 -4: shows human fallback when static map backdrop data is unavailable
+00:17 +56 -4: shows honest structural fallback when no spatial primitives exist
+00:17 +57 -4: shows sandbox-only readiness before stage context is configured
+00:17 +58 -4: shows blocked readiness with human stage diagnostic messages
+00:18 +59 -4: shows ready readiness for complete stage context
+00:18 +60 -4: clears cinematic stage map from builder
+00:18 +61 -4: switches backdrop mode without duplicating map id
+00:18 +62 -4: shows actor binding section for required actors
+00:18 +63 -4: binds actor to player
+00:18 +64 -4: binds actor to selected map entity through stage source picker
+00:18 +65 -4: prevents duplicate player binding
+00:18 +66 -4: binds actor to cinematic only
+00:18 +67 -4: selects character library entry for cinematic only actor
+00:19 +68 -4: keeps Character Library picker working with map backdrop visible
+00:19 +69 -4: shows empty character library message for cinematic only actor
+00:19 +70 -4: keeps appearance picker disabled for inherited actor bindings
+00:19 +71 -4: shows incompatible character appearance drift when actor is no longer cinematic only
+00:19 +72 -4: shows orphan actor appearance binding and cleans it explicitly
+00:19 +73 -4: clears broken character library reference explicitly
+00:19 +74 -4: updates readiness for cinematic only character appearances
+00:19 +75 -4: binds actor to unbound
+00:19 +76 -4: shows map entity binding option disabled when no stage map is selected
+00:20 +77 -4: shows honest disabled message when map entities/events are unavailable
+00:20 +78 -4: shows initial placement section
+00:20 +79 -4: sets initial placement to unset
+00:20 +80 -4: sets initial placement from movement target
+00:20 +81 -4: sets initial placement from map entity only when actor binding supports it
+00:20 +82 -4: shows movement target binding section
+00:20 +83 -4: sets movement target binding to abstract point
+00:21 +84 -4: binds movement target to selected map entity source
+00:21 +85 -4: binds movement target to selected map event source
+00:21 +86 -4: keeps map-aware pickers working with map backdrop visible
+00:21 +87 -4: shows stage diagnostics in builder
+00:22 +88 -4: does not expose raw JSON
+00:22 +89 -4: does not expose free ID text fields
+00:22 +90 -4: does not add stageContext map id during readiness polish
+00:22 +91 -4: does not mutate timeline steps
+00:22 +92 -4: does not mutate durationMs
+00:22 +93 -4: does not enable transport controls
+00:22 +94 -4: does not start preview playback
+00:22 +95 -4: duration editor still works after stage edits
+00:23 +96 -4: resize handle still works after stage edits
+00:23 +97 -4: keeps duration resize and mouse probe working with map backdrop visible
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with key [<'cinematic-builder-time-tick-500'>]: []" (used in a call to
+"getTopLeft()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getTopLeft (package:flutter_test/src/controller.dart:1963:12)
+#2      WidgetController.getRect (package:flutter_test/src/controller.dart:2347:23)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:5516:34)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  keeps duration resize and mouse probe working with map backdrop visible
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:24 +97 -5: keeps duration resize and mouse probe working with map backdrop visible [E]
+  Test failed. See exception logs above.
+  The test description was: keeps duration resize and mouse probe working with map backdrop visible
+  
+00:24 +97 -5: renders a derived time axis with proportional bars
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 2 widgets with text "0 ms": [
+            Text("0 ms", dependencies: [DefaultSelectionStyle, DefaultTextStyle, MediaQuery]),
+            Text("0 ms", debugLabel: ((englishLike bodyMedium 2021).merge((blackMountainView
+bodyMedium).apply)).copyWith, inherit: false, color: Color(alpha: 1.0000, red: 0.4549, green:
+0.5059, blue: 0.6000, colorSpace: ColorSpace.sRGB), family: Roboto, size: 9.0, weight: 700,
+letterSpacing: 0.3, baseline: alphabetic, height: 1.4x, leadingDistribution: even, decoration:
+Color(alpha: 1.0000, red: 0.1137, green: 0.1059, blue: 0.1255, colorSpace: ColorSpace.sRGB)
+TextDecoration.none, overflow: ellipsis, maxLines: 1, dependencies: [DefaultSelectionStyle,
+DefaultTextStyle, MediaQuery]),
+          ]>
+   Which: is too many
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:5546:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 5546
+The test description was:
+  renders a derived time axis with proportional bars
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:25 +97 -6: renders a derived time axis with proportional bars [E]
+  Test failed. See exception logs above.
+  The test description was: renders a derived time axis with proportional bars
+  
+00:25 +97 -6: renders timeline bars with corrected duration geometry
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a numeric value within <2> of <790.6296296296298>
+  Actual: <691.1851851851852>
+   Which:  differs by <99.44444444444457>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:5650:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 5650
+The test description was:
+  renders timeline bars with corrected duration geometry
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:26 +97 -7: renders timeline bars with corrected duration geometry [E]
+  Test failed. See exception logs above.
+  The test description was: renders timeline bars with corrected duration geometry
+  
+00:26 +97 -7: shows a non-interactive selection cursor on selected block start
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Sélection : 1.1 s": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:5708:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 5708
+The test description was:
+  shows a non-interactive selection cursor on selected block start
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:27 +97 -8: shows a non-interactive selection cursor on selected block start [E]
+  Test failed. See exception logs above.
+  The test description was: shows a non-interactive selection cursor on selected block start
+  
+00:27 +97 -8: sets a local timeline time probe from mouse interaction without changing selection
+00:27 +98 -8: snaps local timeline time probe to block boundaries without changing selection
+00:27 +99 -8: clears local timeline time probe without changing selected block
+00:28 +100 -8: clears local time probe with Escape while timeline has focus
+00:28 +101 -8: keeps local time probe when Escape targets a text field
+00:28 +102 -8: clears local time probe after accepted duration edit
+00:29 +103 -8: resizes selected cinematic block duration from right handle
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: true
+  Actual: <false>
+
+When the exception was thrown, this was the stack:
+#4      _expectTimelineStepSelected (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:21767:3)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6175:5)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 21767
+The test description was:
+  resizes selected cinematic block duration from right handle
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:29 +103 -9: resizes selected cinematic block duration from right handle [E]
+  Test failed. See exception logs above.
+  The test description was: resizes selected cinematic block duration from right handle
+  
+00:29 +103 -9: shows right resize handle for selected editable authoring-owned block
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _KeyWidgetFinder:<Found 0 widgets with key
+[<'cinematic-builder-duration-resize-handle-step_face'>]: []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6294:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 6294
+The test description was:
+  shows right resize handle for selected editable authoring-owned block
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:30 +103 -10: shows right resize handle for selected editable authoring-owned block [E]
+  Test failed. See exception logs above.
+  The test description was: shows right resize handle for selected editable authoring-owned block
+  
+00:30 +103 -10: hides resize handle for non-owned block
+00:30 +104 -10: hides resize handle for marker draft
+00:31 +105 -10: dragging right handle decreases duration
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with key [<'cinematic-builder-duration-resize-handle-step_face'>]: []"
+(used in a call to "drag()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.drag (package:flutter_test/src/controller.dart:1604:7)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6385:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  dragging right handle decreases duration
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:31 +105 -11: dragging right handle decreases duration [E]
+  Test failed. See exception logs above.
+  The test description was: dragging right handle decreases duration
+  
+00:31 +105 -11: duration clamps to minimum
+00:32 +106 -11: duration clamps to maximum
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with key [<'cinematic-builder-duration-resize-handle-step_face'>]: []"
+(used in a call to "drag()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.drag (package:flutter_test/src/controller.dart:1604:7)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6448:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  duration clamps to maximum
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:32 +106 -12: duration clamps to maximum [E]
+  Test failed. See exception logs above.
+  The test description was: duration clamps to maximum
+  
+00:32 +106 -12: duration snaps to 100 ms increments
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with key [<'cinematic-builder-duration-resize-handle-step_face'>]: []"
+(used in a call to "drag()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.drag (package:flutter_test/src/controller.dart:1604:7)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6478:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  duration snaps to 100 ms increments
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:33 +106 -13: duration snaps to 100 ms increments [E]
+  Test failed. See exception logs above.
+  The test description was: duration snaps to 100 ms increments
+  
+00:33 +106 -13: left edge is not draggable
+00:33 +107 -13: hover details remain functional after resize
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with key [<'cinematic-builder-duration-resize-handle-step_face'>]: []"
+(used in a call to "drag()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.drag (package:flutter_test/src/controller.dart:1604:7)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6543:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  hover details remain functional after resize
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:34 +107 -14: hover details remain functional after resize [E]
+  Test failed. See exception logs above.
+  The test description was: hover details remain functional after resize
+  
+00:34 +107 -14: keyboard navigation remains functional after resize
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with key [<'cinematic-builder-duration-resize-handle-step_face'>]: []"
+(used in a call to "drag()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.drag (package:flutter_test/src/controller.dart:1604:7)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6591:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  keyboard navigation remains functional after resize
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:35 +107 -15: keyboard navigation remains functional after resize [E]
+  Test failed. See exception logs above.
+  The test description was: keyboard navigation remains functional after resize
+  
+00:35 +107 -15: shows duration validation guidance and rejects invalid duration without mutation
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Bornes : 100–30000 ms · pas 100 ms": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6630:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 6630
+The test description was:
+  shows duration validation guidance and rejects invalid duration without mutation
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:36 +107 -16: shows duration validation guidance and rejects invalid duration without mutation [E]
+  Test failed. See exception logs above.
+  The test description was: shows duration validation guidance and rejects invalid duration without mutation
+  
+00:36 +107 -16: shows actorMove specific minimum duration guidance
+00:36 +108 -16: shows maximum duration guidance
+00:36 +109 -16: shows non editable duration reason for marker draft
+00:36 +110 -16: shows non editable duration reason for non-owned step
+00:36 +111 -16: shows inline error for empty duration input
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
+#2      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2389:32)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6760:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  shows inline error for empty duration input
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:37 +111 -17: shows inline error for empty duration input [E]
+  Test failed. See exception logs above.
+  The test description was: shows inline error for empty duration input
+  
+00:37 +111 -17: shows inline error for non integer duration input
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
+#2      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2389:32)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6796:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  shows inline error for non integer duration input
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:38 +111 -18: shows inline error for non integer duration input [E]
+  Test failed. See exception logs above.
+  The test description was: shows inline error for non integer duration input
+  
+00:38 +111 -18: shows inline error above maximum
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:888:30)
+#2      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2389:32)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6833:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  shows inline error above maximum
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:38 +111 -19: shows inline error above maximum [E]
+  Test failed. See exception logs above.
+  The test description was: shows inline error above maximum
+  
+00:38 +111 -19: shows resize minimum clamp feedback
+00:39 +112 -19: shows resize maximum clamp feedback
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with key [<'cinematic-builder-duration-resize-handle-step_face'>]: []"
+(used in a call to "drag()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getCenter (package:flutter_test/src/controller.dart:1947:12)
+#2      WidgetController.drag (package:flutter_test/src/controller.dart:1604:7)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:6891:18)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  shows resize maximum clamp feedback
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:40 +112 -20: shows resize maximum clamp feedback [E]
+  Test failed. See exception logs above.
+  The test description was: shows resize maximum clamp feedback
+  
+00:40 +112 -20: shows local time probe help explaining selection and probe
+00:40 +113 -20: clears local time probe with Escape after probe help is open
+00:40 +114 -20: clears local time probe without selection and can snap again
+00:40 +115 -20: snaps local timeline time probe to timeline start and end
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following assertion was thrown running a test:
+The finder "Found 0 widgets with key [<'cinematic-builder-time-tick-3000'>]: []" (used in a call to
+"getTopLeft()") could not find any matching widgets.
+
+When the exception was thrown, this was the stack:
+#0      WidgetController._getElementPoint (package:flutter_test/src/controller.dart:2095:7)
+#1      WidgetController.getTopLeft (package:flutter_test/src/controller.dart:1963:12)
+#2      WidgetController.getRect (package:flutter_test/src/controller.dart:2347:23)
+#3      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:7229:40)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  snaps local timeline time probe to timeline start and end
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:42 +115 -21: snaps local timeline time probe to timeline start and end [E]
+  Test failed. See exception logs above.
+  The test description was: snaps local timeline time probe to timeline start and end
+  
+00:42 +115 -21: snaps local timeline time probe to shared block boundary
+00:42 +116 -21: snap chooses nearest semantic target when boundaries overlap
+00:42 +117 -21: drags local timeline time probe and clamps to boundaries
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Marqueur : 3 s · fin timeline": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:7387:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 7387
+The test description was:
+  drags local timeline time probe and clamps to boundaries
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:43 +117 -22: drags local timeline time probe and clamps to boundaries [E]
+  Test failed. See exception logs above.
+  The test description was: drags local timeline time probe and clamps to boundaries
+  
+00:43 +117 -22: clears local time probe when selecting blocks or using keyboard
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Sélection : 1.1 s": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:7456:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 7456
+The test description was:
+  clears local time probe when selecting blocks or using keyboard
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:45 +117 -23: clears local time probe when selecting blocks or using keyboard [E]
+  Test failed. See exception logs above.
+  The test description was: clears local time probe when selecting blocks or using keyboard
+  
+00:45 +117 -23: time probe accounts for horizontal scroll offset
+00:45 +118 -23: snap respects horizontal scroll offset
+00:45 +119 -23: dragging a timeline block does not move or resize it
+00:45 +120 -23: keeps transport controls present without changing selection
+00:46 +121 -23: V1-111 initializes transport from playback plan and handles empty timeline
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "0 ms / 3 s": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:7713:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 7713
+The test description was:
+  V1-111 initializes transport from playback plan and handles empty timeline
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:47 +121 -24: V1-111 initializes transport from playback plan and handles empty timeline [E]
+  Test failed. See exception logs above.
+  The test description was: V1-111 initializes transport from playback plan and handles empty timeline
+  
+00:47 +121 -24: V1-111 plays pauses stops and resets local playback time
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "1.2 s / 3 s": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:7767:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 7767
+The test description was:
+  V1-111 plays pauses stops and resets local playback time
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:49 +121 -25: V1-111 plays pauses stops and resets local playback time [E]
+  Test failed. See exception logs above.
+  The test description was: V1-111 plays pauses stops and resets local playback time
+  
+00:49 +121 -25: V1-111 keeps playback playhead separate from selection probe and editing
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "700 ms / 3 s": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:7864:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 7864
+The test description was:
+  V1-111 keeps playback playhead separate from selection probe and editing
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:50 +121 -26: V1-111 keeps playback playhead separate from selection probe and editing [E]
+  Test failed. See exception logs above.
+  The test description was: V1-111 keeps playback playhead separate from selection probe and editing
+  
+00:50 +121 -26: V1-120 clicking timeline axis seeks playback without changing selection
+00:50 +122 -26: V1-120 clicking timeline bars keeps selection as the only block action
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "0 ms / 3 s": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:7993:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 7993
+The test description was:
+  V1-120 clicking timeline bars keeps selection as the only block action
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:51 +122 -27: V1-120 clicking timeline bars keeps selection as the only block action [E]
+  Test failed. See exception logs above.
+  The test description was: V1-120 clicking timeline bars keeps selection as the only block action
+  
+00:51 +122 -27: V1-120 clicking empty timeline background seeks playback
+00:51 +123 -27: V1-120 dragging playback playhead scrubs actor preview without creating mouse probe
+00:51 +124 -27: V1-120 dragging playback playhead clamps to timeline bounds
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: <3000>
+  Actual: <2700>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:8151:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 8151
+The test description was:
+  V1-120 dragging playback playhead clamps to timeline bounds
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:53 +124 -28: V1-120 dragging playback playhead clamps to timeline bounds [E]
+  Test failed. See exception logs above.
+  The test description was: V1-120 dragging playback playhead clamps to timeline bounds
+  
+00:53 +124 -28: timeline zoom controls resize the grid and keep seek scrub and cursor aligned
+00:53 +125 -28: timeline zoom trackpad pinch updates zoom without seeking or selecting
+00:53 +126 -28: V1-120 dragging playback playhead pauses then resumes active preview
+00:53 +127 -28: V1-120 clear probe stop and reset keep probe and playback roles separated
+00:54 +128 -28: V1-120 exposes no-code seek and scrub labels
+00:54 +129 -28: captures V1-120 cinematic preview playback scrub seek ui visual gate
+00:54 +130 -28: V1-121 fade out preview overlay follows playback time
+00:54 +131 -28: V1-121 fade in preview overlay clears over playback
+00:54 +132 -28: V1-121 seek updates fade preview opacity without mutating project
+00:54 +133 -28: V1-121 drag-to-scrub updates fade preview opacity and keeps overlay passive
+00:54 +134 -28: captures V1-121 cinematic fade preview playback visual gate
+00:54 +135 -28: V1-124 active supported camera shows camera preview overlay
+00:54 +136 -28: V1-124 unsupported camera shows no-code camera fallback message
+00:55 +137 -28: V1-124 missing camera mode shows Cadrage caméra incomplet
+00:55 +138 -28: V1-124 no active camera hides camera overlay before and after step
+00:55 +139 -28: V1-124 Play Pause Stop and Reset update camera overlay from playback time
+00:55 +140 -28: V1-124 seek and scrub update camera overlay without probe or selection changes
+00:55 +141 -28: captures V1-124 cinematic camera preview playback ui visual gate
+00:55 +142 -28: V1-134 renders camera geometry frame when focus geometry is available
+00:55 +143 -28: V1-134 renders camera target marker at resolved actor pose
+00:55 +144 -28: V1-134 renders camera target marker at resolved stage point
+00:56 +145 -28: V1-134 wide medium close produce distinct frame sizes
+00:56 +146 -28: V1-134 unavailable geometry shows no-code fallback
+00:57 +147 -28: V1-134 reset and hold keep symbolic camera behavior
+00:57 +148 -28: V1-134 seek and scrub update camera geometry overlay from playback frame
+00:57 +149 -28: captures V1-134 cinematic camera geometry preview ui visual gate
+00:57 +150 -28: V1-135 focus camera uses consistent visible geometry wording
+00:57 +151 -28: V1-135 reset and hold stay symbolic without target geometry frame
+00:57 +152 -28: V1-135 unavailable focus geometry keeps human diagnostics
+00:57 +153 -28: V1-135 camera overlay remains passive and does not mutate data
+00:57 +154 -28: captures V1-135 cinematic builder v1 camera closure polish gate
+00:57 +155 -28: V1-112 moves direct actorMove actor during playback and resets to start
+00:58 +156 -28: V1-112 follows manual path actorMove poses without mutating waypoints
+00:58 +157 -28: V1-113 direct actorMove preserves sub-tile playback positions
+00:58 +158 -28: V1-113 manual path actorMove moves before tile rounding threshold
+00:58 +159 -28: V1-113 overlay applies sub-tile playback overrides and static fallback
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: a numeric value within <1> of <75>
+  Actual: <84.0>
+   Which:  differs by <9.0>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:10459:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 10459
+The test description was:
+  V1-113 overlay applies sub-tile playback overrides and static fallback
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:59 +159 -29: V1-113 overlay applies sub-tile playback overrides and static fallback [E]
+  Test failed. See exception logs above.
+  The test description was: V1-113 overlay applies sub-tile playback overrides and static fallback
+  
+00:59 +159 -29: V1-113 adapter falls back when playback pose has no position
+00:59 +160 -29: V1-116 actorMove walk renders walking sprite frame and stop returns idle
+00:59 +161 -29: V1-116 actorMove run renders run frame and falls back to walk
+01:00 +162 -29: V1-116 manual path actorMove renders walking sprite frame while moving
+01:00 +163 -29: captures V1-116 cinematic actor walking animation renderer integration visual gate
+01:00 +164 -29: V1-117 fast actorMove uses playback velocity cadence for rendered frame
+01:00 +165 -29: V1-117 run playback advances sprite cadence faster than walk
+01:00 +166 -29: V1-117 playback status chips stay coherent during active and paused animation
+01:00 +167 -29: V1-117 fallback animation status is partial and stop returns idle
+01:01 +168 -29: V1-118 ready animation does not show fallback details
+01:01 +169 -29: V1-118 partial animation shows no-code fallback details without mutation
+01:01 +170 -29: V1-118 fallback details remain visible while playback is paused
+01:01 +171 -29: captures V1-118 cinematic playback preview diagnostics fallback detail polish visual gate
+01:01 +172 -29: V1-117 manual path playback uses cadence hint without mutating waypoints
+01:01 +173 -29: captures V1-117 cinematic actor animation cadence playback status polish visual gate
+01:01 +174 -29: captures V1-113 cinematic actor playback smooth motion visual gate
+01:01 +175 -29: captures V1-112 cinematic actorMove preview playback visual gate
+01:01 +176 -29: captures V1-111 cinematic preview playback transport UI when requested
+01:01 +177 -29: keeps hover help and transport controls after snapped probe
+01:02 +178 -29: renders polished dense timeline on reference surface
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 2 widgets with text "0 ms": [
+            Text("0 ms", dependencies: [DefaultSelectionStyle, DefaultTextStyle, MediaQuery]),
+            Text("0 ms", debugLabel: ((englishLike bodyMedium 2021).merge((blackMountainView
+bodyMedium).apply)).copyWith, inherit: false, color: Color(alpha: 1.0000, red: 0.4549, green:
+0.5059, blue: 0.6000, colorSpace: ColorSpace.sRGB), family: Roboto, size: 9.0, weight: 700,
+letterSpacing: 0.3, baseline: alphabetic, height: 1.4x, leadingDistribution: even, decoration:
+Color(alpha: 1.0000, red: 0.1137, green: 0.1059, blue: 0.1255, colorSpace: ColorSpace.sRGB)
+TextDecoration.none, overflow: ellipsis, maxLines: 1, dependencies: [DefaultSelectionStyle,
+DefaultTextStyle, MediaQuery]),
+          ]>
+   Which: is too many
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:11525:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 11525
+The test description was:
+  renders polished dense timeline on reference surface
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:02 +178 -30: renders polished dense timeline on reference surface [E]
+  Test failed. See exception logs above.
+  The test description was: renders polished dense timeline on reference surface
+  
+01:02 +178 -30: shows hover details without selecting or moving cursor
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Durée : 300 ms visuel": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:11599:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 11599
+The test description was:
+  shows hover details without selecting or moving cursor
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:03 +178 -31: shows hover details without selecting or moving cursor [E]
+  Test failed. See exception logs above.
+  The test description was: shows hover details without selecting or moving cursor
+  
+01:03 +178 -31: navigates selected timeline blocks with local keyboard focus
+01:04 +179 -31: keyboard navigation scrolls selected timeline block into view
+01:04 +180 -31: shows compact keyboard navigation help without changing timeline selection
+01:05 +181 -31: navigates selected timeline blocks vertically with local keyboard focus
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Sélection : 2.7 s": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:12018:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 12018
+The test description was:
+  navigates selected timeline blocks vertically with local keyboard focus
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:06 +181 -32: navigates selected timeline blocks vertically with local keyboard focus [E]
+  Test failed. See exception logs above.
+  The test description was: navigates selected timeline blocks vertically with local keyboard focus
+  
+01:06 +181 -32: uses step index as vertical navigation tie break
+01:06 +182 -32: handles vertical navigation without selection and empty timelines
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Sélection : 800 ms": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart:12123:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1978:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart line 12123
+The test description was:
+  handles vertical navigation without selection and empty timelines
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:06 +182 -33: handles vertical navigation without selection and empty timelines [E]
+  Test failed. See exception logs above.
+  The test description was: handles vertical navigation without selection and empty timelines
+  
+01:06 +182 -33: keeps keyboard shortcuts local and protects text fields
+01:07 +183 -33: keeps vertical keyboard shortcuts local and protects text fields
+01:07 +184 -33: balances sandbox preview and useful timeline grid proportions
+01:07 +185 -33: lists timeline steps in order with read-only details
+01:07 +186 -33: selects a step locally and updates read-only inspector
+01:08 +187 -33: shows lane grouping V0 without enabling actor movement
+01:08 +188 -33: shows step diagnostics without enabling timeline changes
+01:08 +189 -33: adds a safe draft after selected step and inspects it
+01:08 +190 -33: removes only the selected draft from the builder
+01:08 +191 -33: adds and edits wait fade and camera basic blocks
+01:09 +192 -33: adds a required actor before enabling actor facing
+01:09 +193 -33: renames required actor from expanded actor row
+01:09 +194 -33: removes unused required actor from expanded actor row
+01:09 +195 -33: keeps required actor delete disabled while actor is used by timeline
+01:09 +196 -33: adds and edits actor facing with actor picker and direction
+01:09 +197 -33: enables actor movement only after actor and target exist
+01:09 +198 -33: binds actor movement destination to a stage point from the action inspector
+01:09 +199 -33: V1-117-bis changing one actorMove destination keeps another actorMove destination unchanged
+01:10 +200 -33: keeps actor movement disabled without required actor
+01:10 +201 -33: adds edits and removes actor movement authoring block
+01:10 +202 -33: polishes movement target labels and actor movement inspector
+01:11 +203 -33: shows empty timeline state without authoring controls
+01:11 +204 -33: calls back to library from the shared leading action
+01:11 +205 -33: keeps the builder usable at 125 percent text scale
+01:11 +206 -33: captures V1-43 builder timeline screenshot when requested
+01:11 +207 -33: captures V1-44 builder draft screenshot when requested
+01:11 +208 -33: captures V1-45 builder basic blocks screenshot when requested
+01:11 +209 -33: captures V1-46 builder actor facing screenshot when requested
+01:11 +210 -33: captures V1-48 builder lane grouping screenshot when requested
+01:11 +211 -33: captures V1-49 actor movement block screenshot when requested
+01:11 +212 -33: captures V1-50 actor movement target polish screenshot when requested
+01:11 +213 -33: captures V1-51 timeline time axis bar layout when requested
+01:11 +214 -33: captures V1-52 timeline selection cursor when requested
+01:11 +215 -33: captures V1-53 timeline transport controls placeholder when requested
+01:11 +216 -33: captures V1-54 timeline visual polish density pass when requested
+01:11 +217 -33: captures V1-55 timeline hover details polish when requested
+01:11 +218 -33: captures V1-56 timeline bar geometry correction when requested
+01:11 +219 -33: captures V1-57 timeline keyboard navigation selection polish when requested
+01:11 +220 -33: captures V1-59 cinematic timeline lane vertical navigation when requested
+01:11 +221 -33: captures V1-60 cinematic timeline keyboard navigation help when requested
+01:11 +222 -33: captures V1-62 cinematic timeline mouse time probe when requested
+01:11 +223 -33: captures V1-64 cinematic timeline mouse probe snap when requested
+01:11 +224 -33: captures V1-65 cinematic timeline mouse probe clear controls when requested
+01:11 +225 -33: captures V1-66 cinematic timeline mouse probe help when requested
+01:11 +226 -33: captures V1-68 duration inspector editing when requested
+01:11 +227 -33: captures V1-69 duration resize handles when requested
+01:11 +228 -33: captures V1-70 duration validation diagnostics polish when requested
+01:11 +229 -33: captures V1-73 cinematic stage map context editor when requested
+01:11 +230 -33: captures V1-74 cinematic stage preview readiness polish when requested
+01:11 +231 -33: captures V1-77 cinematic stage map source pickers when requested
+01:11 +232 -33: captures V1-80 cinematic character library picker when requested
+01:11 +233 -33: captures V1-81 cinematic actor appearance drift diagnostics polish when requested
+01:11 +234 -33: captures V1-84 cinematic map backdrop preview when requested
+01:11 +235 -33: captures V1-85 cinematic map backdrop visual primitives when requested
+01:11 +236 -33: captures V1-86 cinematic map backdrop visual composition when requested
+01:11 +237 -33: captures V1-88 cinematic map backdrop real tile renderer when requested
+01:11 +238 -33: captures V1-92 cinematic actor display preview renderer when requested
+01:11 +239 -33: captures V1-94 cinematic extended map backdrop visual gate when requested
+01:11 +240 -33: captures V1-95 cinematic backdrop framing zoom controls when requested
+01:11 +241 -33: captures V1-95-bis cinematic backdrop canvas ux polish visual gate when requested
+01:11 +242 -33: captures V1-105 cinematic builder ux simplification destination vocabulary visual gate when requested
+01:11 +243 -33: orders cinematic backdrop placed elements by visual depth around the actor overlay
+01:11 +244 -33: keeps placed foreground above actor placeholders when marked as foreground
+01:11 +245 -33: captures V1-96 cinematic backdrop depth z order parity visual gate when requested
+01:11 +246 -33: captures V1-96-bis real Map Editor ordering fix visual gate when requested
+01:12 +247 -33: captures V1-99 cinematic actor sprite renderer visual gate when requested
+01:12 +248 -33: captures V1-99-bis cinematic actor sprite real asset fidelity visual gate polish v0 when requested
+01:12 +249 -33: captures V1-102 cinematic preview point placement ui visual gate when requested
+01:12 +250 -33: V1-102-bis — Stage Point Placement UX Discoverability and ESC cancellation
+01:12 +251 -33: captures V1-102-bis stage point placement ux discoverability visual gate
+01:12 +252 -33: V1-103 — Cinematic Actor Initial Placement from Stage Points V0
+01:13 +253 -33: V1-104 — Cinematic ActorMove Target from Stage Points V0
+01:14 +254 -33: captures V1-103 actor initial placement from stage point visual gate
+01:14 +255 -33: captures V1-104 actorMove target from stage point visual gate
+01:14 +256 -33: V1-108 — Cinematic Manual Path Drawing UI V0
+01:14 +257 -33: V1-108 — adding a waypoint creates the manual path when missing
+01:14 +258 -33: V1-108 — manual mode reuses an existing path owned by a direct actorMove
+01:15 +259 -33: captures V1-108 cinematic manual path drawing ui visual gate when requested
+01:15 +260 -33: NSC-66 creates a guided dialogue command and reloads it
+01:15 +261 -33: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart: V1-111 initializes transport from playback plan and handles empty timeline
+  /Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart: V1-111 keeps playback playhead separate from selection probe and editing
+  /Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart: V1-111 plays pauses stops and resets local playback time
+  /Users/karim/Project/pokemonProject/packages/map_editor/test/cinematic_builder_workspace_test.dart: V1-113 overlay applies sub-tile playback overrides and static fallback
+  ... and 29 more

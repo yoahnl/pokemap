@@ -1,0 +1,16 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart
+00:00 +0: shared montage equals actual runtime frames portrait=false
+parity terminal reached
+unmounted
+10:00 +0 -1: shared montage equals actual runtime frames portrait=false [E]
+  TimeoutException after 0:10:00.000000: Test timed out after 10 minutes.
+  dart:isolate  _RawReceivePort._handleMessage
+  
+surface resetting
+surface reset
+fixture deleting
+fixture deleted
+10:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart: shared montage equals actual runtime frames portrait=false

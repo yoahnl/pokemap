@@ -1,5 +1,7 @@
 library;
 
+export 'presentation_frame_geometry.dart';
+
 export 'src/player/presentation_frame_renderer.dart';
 export 'src/player/presentation_interpolating_content_port.dart';
 export 'src/player/runtime_presentation_frame_surface.dart';

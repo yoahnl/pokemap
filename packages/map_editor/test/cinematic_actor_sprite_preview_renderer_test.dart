@@ -82,8 +82,8 @@ void main() {
         position: const CinematicActorPreviewPosition(
           status: CinematicActorPreviewPositionStatus.resolved,
           sourceKind: CinematicActorPreviewPositionSourceKind.mapEntity,
-          x: 5,
-          y: 10,
+          x: 5.25,
+          y: 10.5,
         ),
         appearance: const CinematicActorPreviewAppearance(
           status: CinematicActorPreviewAppearanceStatus.spriteReady,
@@ -109,7 +109,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5.25, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -181,6 +181,12 @@ void main() {
       // The labels and direction hints should also be visible
       expect(find.text('Professor'), findsOneWidget);
       expect(find.text('S'), findsOneWidget);
+      final painter = find.byWidgetPredicate((widget) =>
+          widget is CustomPaint && widget.painter is CinematicActorSpritePainter);
+      final overlay = tester.renderObject<RenderBox>(
+        find.byKey(const ValueKey('cinematic-builder-actor-display-overlay')));
+      expect(tester.getCenter(painter), overlay.localToGlobal(const Offset(105, 210)));
+
     });
 
     testWidgets('keeps placeholder fallback when actor image is unavailable',
@@ -223,7 +229,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -330,7 +336,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.missingCharacter,
             placeholderFallback: true,
@@ -383,7 +389,7 @@ void main() {
       expect(find.text('C'), findsOneWidget);
     });
 
-    testWidgets('anchors actor sprite bottom center on actor tile',
+    testWidgets('anchors actor sprite center on canonical actor focus',
         (tester) async {
       final tilesetImage = await _makeTestTilesetImage();
 
@@ -425,7 +431,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -501,7 +507,7 @@ void main() {
             .first,
       );
 
-      expect(positioned.left, closeTo(64.0, 0.01));
+      expect(positioned.left, closeTo(54.0, 0.01));
       expect(positioned.top, closeTo(148.0, 0.01));
       expect(positioned.width, closeTo(92.0, 0.01));
       expect(positioned.height, closeTo(72.0, 0.01));
@@ -549,7 +555,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -622,7 +628,7 @@ void main() {
             .first,
       );
 
-      expect(positioned.left, closeTo(174.0, 0.01));
+      expect(positioned.left, closeTo(154.0, 0.01));
       expect(positioned.top, closeTo(328.0, 0.01));
     });
 
@@ -723,7 +729,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -835,7 +841,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -982,7 +988,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -1090,7 +1096,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -1154,7 +1160,7 @@ void main() {
       expect(find.text('S'), findsOneWidget);
     });
 
-    testWidgets('anchors real sprite bottom center', (tester) async {
+    testWidgets('anchors real sprite center on canonical actor focus', (tester) async {
       ui.Image? timiImage;
       await tester.runAsync(() async {
         timiImage = await _loadTimiFixtureImage();
@@ -1197,7 +1203,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -1269,7 +1275,7 @@ void main() {
             .first,
       );
 
-      expect(positioned.left, closeTo(64.0, 0.01));
+      expect(positioned.left, closeTo(54.0, 0.01));
       expect(positioned.top, closeTo(148.0, 0.01));
     });
 
@@ -1316,7 +1322,7 @@ void main() {
             actorId: 'actor_prof',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 5, y: 10),
+            position: (x: 5, y: 10),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -1388,7 +1394,7 @@ void main() {
             .first,
       );
 
-      expect(positioned.left, closeTo(168.0, 0.01));
+      expect(positioned.left, closeTo(148.0, 0.01));
       expect(positioned.top, closeTo(328.0, 0.01));
     });
 

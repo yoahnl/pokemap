@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:map_core/map_core.dart';
 
 import '../../../application/authoring_api/cinematic_library_authoring_gateway.dart';

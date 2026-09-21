@@ -1,4 +1,10 @@
 import 'dart:async';
+import '../../../features/presentations/application/presentation_workspace_controller.dart';
+import '../../../features/scenes/domain/scene_presentation_creation_request.dart';
+import '../presentations/presentation_view_state.dart';
+import '../presentations/presentation_workspace_page.dart';
+import '../presentations/presentation_workspace_visuals.dart';
+import '../presentations/presentation_media_picker.dart';
 import '../../../features/cinematics/domain/cinematic_port.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../cinematics/cinematic_view_state.dart';
@@ -50,6 +56,8 @@ part 'workspace_screen_body.dart';
 part 'workspace_event_binding.dart';
 part 'workspace_dialogue_binding.dart';
 part 'workspace_cinematic_binding.dart';
+part 'workspace_presentation_binding.dart';
+part 'workspace_keyboard_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -67,6 +75,8 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.eventPort,
     this.dialoguePort,
     this.cinematicPort,
+    this.presentationPort,
+    this.presentationMediaPicker,
     this.home,
   });
   final MapWorkspaceController controller;
@@ -78,6 +88,8 @@ class MapWorkspaceScreen extends StatefulWidget {
   final EventPort? eventPort;
   final DialoguePort? dialoguePort;
   final CinematicPort? cinematicPort;
+  final PresentationPort? presentationPort;
+  final PickPresentationMedia? presentationMediaPicker;
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -101,6 +113,11 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   StoryWorkspaceController? _stories;
   EventWorkspaceController? _events;
   DialogueWorkspaceController? _dialogues;
+  PresentationWorkspaceController? _presentations;
+  final _presentationViews = PresentationViewStore();
+  PresentationWorkspaceVisuals? _presentationVisuals;
+  Object? _presentationVisualKey;
+  WorkspaceSpace _presentationOrigin = WorkspaceSpace.story;
   CinematicWorkspaceController? _cinematics;
   final _cinematicViews = CinematicViewStore();
   WorkspaceSpace _cinematicOrigin = WorkspaceSpace.story;
@@ -148,6 +165,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       events: () => _events,
       dialogues: () => _dialogues,
       cinematics: () => _cinematics,
+      presentations: () => _presentations,
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,
     );
@@ -173,6 +191,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       _initializeEvents();
       _initializeDialogues();
       _initializeCinematics();
+      _initializePresentations();
       _changed();
     } catch (_) {
       if (mounted) {
@@ -203,6 +222,11 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _show(WorkspaceSpace space) {
+    final inPresentation = _space == WorkspaceSpace.presentation;
+    if (inPresentation && space != _space) {
+      _presentations?.suspendPreview?.call();
+    }
+    if (inPresentation && _presentations?.flushEdits?.call() == false) return;
     if (_space == WorkspaceSpace.cinematic) {
       _cinematics?.transport.pause();
       FocusManager.instance.primaryFocus?.unfocus();
@@ -236,19 +260,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     if (await _actions.allowClose() && mounted) await widget.onClose();
   }
 
-  void _keyboard(void Function() action) {
-    if (_space != WorkspaceSpace.map) return;
-    final focus = FocusManager.instance.primaryFocus;
-    if (focus?.context?.findAncestorWidgetOfExactType<EditableText>() != null ||
-        _controller.loading ||
-        _actions.testing ||
-        _actions.closing) {
-      return;
-    }
-    action();
-    _toolChanged();
-  }
-
   @override
   void dispose() {
     widget.registerExitGuard(null);
@@ -266,6 +277,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     _stories?.dispose();
     _events?.dispose();
     _dialogues?.dispose();
+    _presentations?.dispose();
+    _presentationViews.dispose();
+    if (_presentationVisuals != null) unawaited(_presentationVisuals!.close());
     _cinematics?.dispose();
     _cinematicViews.dispose();
     _dialogueViews.dispose();

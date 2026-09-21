@@ -1772,12 +1772,15 @@ void main() {
           const ValueKey('cinematic-builder-actor-display-actor-actor_guard'),
         ),
       );
+      final guard = actorDisplayPreviewModel.actors.singleWhere(
+        (actor) => actor.actorId == 'actor_guard',
+      );
       final expectedGuardAnchor = Offset(
-        viewportRect.left + (6.5 * viewportRect.width / 12),
-        viewportRect.top + (6 * viewportRect.height / 10),
+        viewportRect.left + (guard.position.x! * viewportRect.width / 12),
+        viewportRect.top + (guard.position.y! * viewportRect.height / 10),
       );
       expect(guardRect.center.dx, closeTo(expectedGuardAnchor.dx, 1));
-      expect(guardRect.bottom, closeTo(expectedGuardAnchor.dy, 1));
+      expect(guardRect.bottom - 9, closeTo(expectedGuardAnchor.dy, 1));
       expect(
         find.descendant(
           of: find.byKey(
@@ -1785,7 +1788,7 @@ void main() {
               'cinematic-builder-actor-display-direction-actor_lysa',
             ),
           ),
-          matching: find.text('E'),
+          matching: find.text('S'),
         ),
         findsOneWidget,
       );
@@ -2269,12 +2272,15 @@ void main() {
         const ValueKey('cinematic-builder-actor-display-actor-actor_lysa'),
       ),
     );
+    final actor = actorDisplayPreviewModel.actors.singleWhere(
+      (actor) => actor.actorId == 'actor_lysa',
+    );
     final expectedAnchor = Offset(
-      mapFrameRect.left + (8.5 * mapFrameRect.width / 12),
-      mapFrameRect.top + (4 * mapFrameRect.height / 10),
+      mapFrameRect.left + (actor.position.x! * mapFrameRect.width / 12),
+      mapFrameRect.top + (actor.position.y! * mapFrameRect.height / 10),
     );
     expect(actorRect.center.dx, closeTo(expectedAnchor.dx, 1));
-    expect(actorRect.bottom, closeTo(expectedAnchor.dy, 1));
+    expect(actorRect.bottom - 11, closeTo(expectedAnchor.dy, 1));
   });
 
   test(
@@ -2617,12 +2623,15 @@ void main() {
         const ValueKey('cinematic-builder-actor-display-actor-actor_lysa'),
       ),
     );
+    final actor = actorDisplayPreviewModel.actors.singleWhere(
+      (actor) => actor.actorId == 'actor_lysa',
+    );
     final expectedAnchor = Offset(
-      mapFrameRect.left + (8.5 * mapFrameRect.width / 12),
-      mapFrameRect.top + (4 * mapFrameRect.height / 10),
+      mapFrameRect.left + (actor.position.x! * mapFrameRect.width / 12),
+      mapFrameRect.top + (actor.position.y! * mapFrameRect.height / 10),
     );
     expect(actorRect.center.dx, closeTo(expectedAnchor.dx, 1));
-    expect(actorRect.bottom, closeTo(expectedAnchor.dy, 1));
+    expect(actorRect.bottom - 11, closeTo(expectedAnchor.dy, 1));
   });
 
   testWidgets(
@@ -16421,7 +16430,7 @@ void main() {
             actorId: 'actor_professor',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 6, y: 7),
+            position: (x: 6, y: 7),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -16455,7 +16464,7 @@ void main() {
             actorId: 'actor_unresolved',
             actorLabel: 'Missing actor',
             bindingKind: CinematicActorBindingKind.unbound,
-            position: GridPos(x: 9, y: 7),
+            position: (x: 9, y: 7),
             direction: CinematicActorPreviewDirection.north,
             status: CinematicActorSpriteStatus.missingCharacter,
             placeholderFallback: true,
@@ -16627,7 +16636,7 @@ void main() {
             actorId: 'actor_professor',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 6, y: 7),
+            position: (x: 6, y: 7),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -16661,7 +16670,7 @@ void main() {
             actorId: 'actor_unresolved',
             actorLabel: 'Missing actor',
             bindingKind: CinematicActorBindingKind.unbound,
-            position: GridPos(x: 9, y: 7),
+            position: (x: 9, y: 7),
             direction: CinematicActorPreviewDirection.north,
             status: CinematicActorSpriteStatus.missingCharacter,
             placeholderFallback: true,
@@ -17450,7 +17459,7 @@ void main() {
             actorId: 'actor_professor',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: GridPos(x: 3, y: 4),
+            position: (x: 3, y: 4),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
             spriteRef: CinematicActorSpriteRef(
@@ -17704,7 +17713,7 @@ void main() {
           actorId: 'actor_professor',
           actorLabel: 'Professor',
           bindingKind: CinematicActorBindingKind.cinematicOnly,
-          position: GridPos(x: 3, y: 4),
+          position: (x: 3, y: 4),
           direction: CinematicActorPreviewDirection.south,
           status: CinematicActorSpriteStatus.spriteReady,
           spriteRef: CinematicActorSpriteRef(

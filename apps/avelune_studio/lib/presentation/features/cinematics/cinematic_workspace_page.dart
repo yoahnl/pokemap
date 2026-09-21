@@ -41,6 +41,7 @@ class CinematicWorkspacePage extends StatefulWidget {
     required this.onDialogue,
     required this.onLocate,
     this.dialogues,
+    this.onPresentations,
   });
   final CinematicWorkspaceController controller;
   final CinematicViewStore views;
@@ -51,6 +52,7 @@ class CinematicWorkspacePage extends StatefulWidget {
   final ValueChanged<String> onDialogue;
   final Future<String?> Function(String) onLocate;
   final DialogueWorkspaceController? dialogues;
+  final VoidCallback? onPresentations;
   @override
   State<CinematicWorkspacePage> createState() => _CinematicWorkspacePageState();
 }
@@ -145,6 +147,7 @@ class _CinematicWorkspacePageState extends State<CinematicWorkspacePage> {
               children: [
                 header(small),
                 if (state?.error ??
+                        state?.actionError ??
                         state?.spatialError ??
                         controller.error ??
                         session?.readOnlyReason

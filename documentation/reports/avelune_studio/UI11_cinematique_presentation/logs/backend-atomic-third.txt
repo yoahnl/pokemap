@@ -1,0 +1,7 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: final edited asset, image and scene recover as one transaction
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart: create and duplicate suspend the previous preview
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: import into unchanged document saves sources and deletion keeps them
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart: changed referenced media refuses while independent media import is preserved
+00:01 +5: All tests passed!

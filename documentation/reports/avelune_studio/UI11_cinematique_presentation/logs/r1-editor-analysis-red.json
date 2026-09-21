@@ -1,0 +1,26 @@
+{
+  "command": [
+    "flutter",
+    "analyze",
+    "--no-pub",
+    "lib",
+    "test/release"
+  ],
+  "runnerPid": 53716,
+  "owned": {
+    "53756": [
+      53716,
+      "501",
+      "Mon Sep 21 00:58:23 2026",
+      "(git)"
+    ],
+    "53782": [
+      53716,
+      "501",
+      "Mon Sep 21 00:58:24 2026",
+      "/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart language-server --dart-sdk /opt/homebrew/share/flutter/bin/cache/dart-sdk --disable-server-feature-completion --disable-server-feature-search"
+    ]
+  },
+  "reaped": [],
+  "exitCode": 1
+}

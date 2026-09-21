@@ -1329,6 +1329,20 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
       confirmed?: boolean;
     }> = [
       {
+        actionId: "presentationCinematic.publish",
+        parameters: {
+          cinematic: {
+            schemaVersion: 3,
+            capabilities: ["cinematic.presentation"],
+            timebase: { unit: "microsecond", ticksPerSecond: 1_000_000 },
+            id: "ui11-final-document", title: "Final edited document",
+            durationUs: 12_000_000, layers: [], visualFolders: [], tracks: [],
+          },
+          expectedCinematic: null, expectedEntry: null,
+          expectedMedia: [], imports: [], folderId: null,
+        },
+      },
+      {
         actionId: "presentationCinematic.create",
         parameters: {
           cinematicId: "intro",
