@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' as rendering;
 import 'package:map_core/map_core.dart';
 
 import '../../../application/authoring_api/cinematic_library_authoring_gateway.dart';
@@ -25,209 +26,234 @@ import 'cinematic_map_backdrop_tile_plan_loader.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_stage_preview_readiness.dart';
 
-typedef CreateCinematicShellCallback = Future<String?> Function({
-  required String title,
-  NarrativeTemplateKind? templateKind,
-});
+typedef CreateCinematicShellCallback =
+    Future<String?> Function({
+      required String title,
+      NarrativeTemplateKind? templateKind,
+    });
 
-typedef AdoptCanonicalCinematicLibraryManifest = void Function(
-  ProjectManifest manifest, {
-  required String statusMessage,
-});
+typedef AdoptCanonicalCinematicLibraryManifest =
+    void Function(ProjectManifest manifest, {required String statusMessage});
 
-typedef UpdateCinematicMetadataCallback = Future<bool> Function({
-  required String cinematicId,
-  required String title,
-  required String description,
-  required String notes,
-  required String? mapId,
-  required String? storylineId,
-  required String? chapterId,
-  required List<String> tags,
-  required bool archived,
-});
+typedef UpdateCinematicMetadataCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String title,
+      required String description,
+      required String notes,
+      required String? mapId,
+      required String? storylineId,
+      required String? chapterId,
+      required List<String> tags,
+      required bool archived,
+    });
 
-typedef DuplicateCinematicCallback = Future<String?> Function(
-    {required String cinematicId});
+typedef DuplicateCinematicCallback =
+    Future<String?> Function({required String cinematicId});
 
-typedef ToggleCinematicArchiveCallback = Future<bool> Function({
-  required String cinematicId,
-  required bool archived,
-});
+typedef ToggleCinematicArchiveCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required bool archived,
+    });
 
-typedef BulkTagCinematicsCallback = Future<bool> Function({
-  required Set<String> cinematicIds,
-  required List<String> tags,
-});
+typedef BulkTagCinematicsCallback =
+    Future<bool> Function({
+      required Set<String> cinematicIds,
+      required List<String> tags,
+    });
 
-typedef BulkArchiveCinematicsCallback = Future<bool> Function({
-  required Set<String> cinematicIds,
-  required bool archived,
-});
+typedef BulkArchiveCinematicsCallback =
+    Future<bool> Function({
+      required Set<String> cinematicIds,
+      required bool archived,
+    });
 
-typedef OpenCinematicSceneUsageCallback = void Function(
-    {required String sceneId, required String nodeId});
+typedef OpenCinematicSceneUsageCallback =
+    void Function({required String sceneId, required String nodeId});
 
-typedef RemoveCinematicCallback = Future<bool> Function(
-    {required String cinematicId});
+typedef RemoveCinematicCallback =
+    Future<bool> Function({required String cinematicId});
 
-typedef AddTimelineDraftCallback = Future<String?> Function({
-  required String cinematicId,
-  String? afterStepId,
-});
+typedef AddTimelineDraftCallback =
+    Future<String?> Function({
+      required String cinematicId,
+      String? afterStepId,
+    });
 
-typedef RemoveTimelineDraftCallback = Future<bool> Function({
-  required String cinematicId,
-  required String stepId,
-});
+typedef RemoveTimelineDraftCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String stepId,
+    });
 
-typedef AddTimelineBasicBlockCallback = Future<String?> Function({
-  required String cinematicId,
-  required CinematicTimelineBasicBlockKind blockKind,
-  String? afterStepId,
-});
+typedef AddTimelineBasicBlockCallback =
+    Future<String?> Function({
+      required String cinematicId,
+      required CinematicTimelineBasicBlockKind blockKind,
+      String? afterStepId,
+    });
 
-typedef UpdateTimelineBasicBlockCallback = Future<bool> Function({
-  required String cinematicId,
-  required String stepId,
-  int? durationMs,
-  CinematicTimelineFadeMode? fadeMode,
-  CinematicTimelineCameraMode? cameraMode,
-  CinematicTimelineCameraFocusBinding? cameraFocusBinding,
-});
+typedef UpdateTimelineBasicBlockCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String stepId,
+      int? durationMs,
+      CinematicTimelineFadeMode? fadeMode,
+      CinematicTimelineCameraMode? cameraMode,
+      CinematicTimelineCameraFocusBinding? cameraFocusBinding,
+    });
 
-typedef AddRequiredActorCallback = Future<String?> Function(
-    {required String cinematicId, String? label});
+typedef AddRequiredActorCallback =
+    Future<String?> Function({required String cinematicId, String? label});
 
-typedef RenameRequiredActorCallback = Future<bool> Function({
-  required String cinematicId,
-  required String actorId,
-  required String label,
-});
+typedef RenameRequiredActorCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String actorId,
+      required String label,
+    });
 
-typedef RemoveRequiredActorCallback = Future<bool> Function({
-  required String cinematicId,
-  required String actorId,
-});
+typedef RemoveRequiredActorCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String actorId,
+    });
 
-typedef AddMovementTargetCallback = Future<String?> Function(
-    {required String cinematicId});
+typedef AddMovementTargetCallback =
+    Future<String?> Function({required String cinematicId});
 
-typedef UpdateMovementTargetCallback = Future<bool> Function({
-  required String cinematicId,
-  required String targetId,
-  required String label,
-  String? description,
-});
+typedef UpdateMovementTargetCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String targetId,
+      required String label,
+      String? description,
+    });
 
-typedef RemoveMovementTargetCallback = Future<bool> Function({
-  required String cinematicId,
-  required String targetId,
-});
+typedef RemoveMovementTargetCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String targetId,
+    });
 
-typedef AddTimelineActorFacingCallback = Future<String?> Function({
-  required String cinematicId,
-  required String actorId,
-  required CinematicTimelineActorFacingDirection direction,
-  String? afterStepId,
-});
+typedef AddTimelineActorFacingCallback =
+    Future<String?> Function({
+      required String cinematicId,
+      required String actorId,
+      required CinematicTimelineActorFacingDirection direction,
+      String? afterStepId,
+    });
 
-typedef UpdateTimelineActorFacingCallback = Future<bool> Function({
-  required String cinematicId,
-  required String stepId,
-  String? actorId,
-  CinematicTimelineActorFacingDirection? direction,
-  int? durationMs,
-});
+typedef UpdateTimelineActorFacingCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String stepId,
+      String? actorId,
+      CinematicTimelineActorFacingDirection? direction,
+      int? durationMs,
+    });
 
-typedef AddTimelineActorMoveCallback = Future<String?> Function({
-  required String cinematicId,
-  required String actorId,
-  required String targetId,
-  required int durationMs,
-  required CinematicTimelineActorMovementMode movementMode,
-  String? afterStepId,
-});
+typedef AddTimelineActorMoveCallback =
+    Future<String?> Function({
+      required String cinematicId,
+      required String actorId,
+      required String targetId,
+      required int durationMs,
+      required CinematicTimelineActorMovementMode movementMode,
+      String? afterStepId,
+    });
 
-typedef UpdateTimelineActorMoveCallback = Future<bool> Function({
-  required String cinematicId,
-  required String stepId,
-  String? actorId,
-  String? targetId,
-  int? durationMs,
-  CinematicTimelineActorMovementMode? movementMode,
-});
+typedef UpdateTimelineActorMoveCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String stepId,
+      String? actorId,
+      String? targetId,
+      int? durationMs,
+      CinematicTimelineActorMovementMode? movementMode,
+    });
 
-typedef AddTimelineActorEmoteCallback = Future<String?> Function({
-  required String cinematicId,
-  required String actorId,
-  required String emoteId,
-  int? durationMs,
-  String? afterStepId,
-});
+typedef AddTimelineActorEmoteCallback =
+    Future<String?> Function({
+      required String cinematicId,
+      required String actorId,
+      required String emoteId,
+      int? durationMs,
+      String? afterStepId,
+    });
 
-typedef UpdateTimelineActorEmoteCallback = Future<bool> Function({
-  required String cinematicId,
-  required String stepId,
-  String? actorId,
-  String? emoteId,
-  int? durationMs,
-});
+typedef UpdateTimelineActorEmoteCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String stepId,
+      String? actorId,
+      String? emoteId,
+      int? durationMs,
+    });
 
-typedef UpsertTimelineActorAnimationCallback = Future<String?> Function({
-  required String cinematicId,
-  required CharacterCustomAnimationRuntimeCommand command,
-  String? stepId,
-  String? afterStepId,
-  String? label,
-});
+typedef UpsertTimelineActorAnimationCallback =
+    Future<String?> Function({
+      required String cinematicId,
+      required CharacterCustomAnimationRuntimeCommand command,
+      String? stepId,
+      String? afterStepId,
+      String? label,
+    });
 
-typedef RemoveTimelineAuthoringStepCallback = Future<bool> Function({
-  required String cinematicId,
-  required String stepId,
-});
+typedef RemoveTimelineAuthoringStepCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String stepId,
+    });
 
-typedef UpdateStageMapCallback = Future<bool> Function(
-    {required String cinematicId, String? mapId});
+typedef UpdateStageMapCallback =
+    Future<bool> Function({required String cinematicId, String? mapId});
 
-typedef UpdateStageContextCallback = Future<bool> Function({
-  required String cinematicId,
-  required CinematicStageContext stageContext,
-});
+typedef UpdateStageContextCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required CinematicStageContext stageContext,
+    });
 
-typedef UpsertActorBindingCallback = Future<bool> Function({
-  required String cinematicId,
-  required CinematicActorBinding binding,
-});
+typedef UpsertActorBindingCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required CinematicActorBinding binding,
+    });
 
-typedef UpsertActorAppearanceBindingCallback = Future<bool> Function({
-  required String cinematicId,
-  required CinematicActorAppearanceBinding binding,
-});
+typedef UpsertActorAppearanceBindingCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required CinematicActorAppearanceBinding binding,
+    });
 
-typedef RemoveActorAppearanceBindingCallback = Future<bool> Function({
-  required String cinematicId,
-  required String actorId,
-});
+typedef RemoveActorAppearanceBindingCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required String actorId,
+    });
 
-typedef UpsertActorInitialPlacementCallback = Future<bool> Function({
-  required String cinematicId,
-  required CinematicActorInitialPlacement placement,
-});
+typedef UpsertActorInitialPlacementCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required CinematicActorInitialPlacement placement,
+    });
 
-typedef UpsertMovementTargetBindingCallback = Future<bool> Function({
-  required String cinematicId,
-  required CinematicMovementTargetBinding binding,
-});
+typedef UpsertMovementTargetBindingCallback =
+    Future<bool> Function({
+      required String cinematicId,
+      required CinematicMovementTargetBinding binding,
+    });
 
 typedef LoadStageMapSnapshotCallback = Future<MapData?> Function(String mapId);
 
-typedef BuildCinematicBackdropTileRenderPlanCallback
-    = CinematicMapBackdropTileRenderPlan? Function({
-  required CinematicAsset asset,
-  required MapData? mapData,
-  required CinematicMapBackdropPreviewModel? previewModel,
-});
+typedef BuildCinematicBackdropTileRenderPlanCallback =
+    CinematicMapBackdropTileRenderPlan? Function({
+      required CinematicAsset asset,
+      required MapData? mapData,
+      required CinematicMapBackdropPreviewModel? previewModel,
+    });
 
 enum _CinematicsLibraryFilter { all, canonical }
 
@@ -334,7 +360,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final UpdateCinematicAssetCallback? onUpdateCinematicAsset;
   final LoadStageMapSnapshotCallback? onLoadStageMapSnapshot;
   final BuildCinematicBackdropTileRenderPlanCallback?
-      onBuildBackdropTileRenderPlan;
+  onBuildBackdropTileRenderPlan;
   final ResolveCinematicBackdropTilesetPath? onResolveBackdropTilesetPath;
 
   @override
@@ -411,10 +437,11 @@ class _CinematicsLibraryWorkspaceState
     final requested = widget.requestedEntryId?.trim();
     final previousRequestId =
         previousRequested == null || previousRequested.isEmpty
-            ? null
-            : previousRequested;
+        ? null
+        : previousRequested;
     final requestId = requested == null || requested.isEmpty ? null : requested;
-    final typedRequestChanged = previousRequestId != requestId ||
+    final typedRequestChanged =
+        previousRequestId != requestId ||
         (requestId != null &&
             (oldWidget.requestedEntryNonce != widget.requestedEntryNonce ||
                 oldWidget.openRequestedEntryInBuilder !=
@@ -455,8 +482,9 @@ class _CinematicsLibraryWorkspaceState
         ? null
         : readModel.entryById(_selectedEntryId!);
     _syncMetadataEditor(selectedEntry);
-    final builderEntry =
-        _builderEntryId == null ? null : readModel.entryById(_builderEntryId!);
+    final builderEntry = _builderEntryId == null
+        ? null
+        : readModel.entryById(_builderEntryId!);
     final builderAsset = _builderEntryId == null
         ? null
         : findCinematicById(widget.project, _builderEntryId!);
@@ -478,11 +506,11 @@ class _CinematicsLibraryWorkspaceState
       );
       final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan =
           actorDisplayPreviewModel == null
-              ? null
-              : buildCinematicActorSpritePreviewPlan(
-                  actorDisplayModel: actorDisplayPreviewModel,
-                  project: widget.project,
-                );
+          ? null
+          : buildCinematicActorSpritePreviewPlan(
+              actorDisplayModel: actorDisplayPreviewModel,
+              project: widget.project,
+            );
       final combinedTilesets = <String, CinematicResolvedTilesetAsset>{
         ...?backdropLayerRenderPlan?.tilesets,
         ...?backdropTileRenderPlan?.tilesets,
@@ -525,15 +553,15 @@ class _CinematicsLibraryWorkspaceState
         onUpdateActorMoveStep: widget.onUpdateTimelineActorMove,
         onAddActorEmoteStep: widget.onAddTimelineActorEmote,
         onUpdateActorEmoteStep: widget.onUpdateTimelineActorEmote,
-        onUpsertActorAnimationStep: widget.onUpsertTimelineActorAnimation ??
+        onUpsertActorAnimationStep:
+            widget.onUpsertTimelineActorAnimation ??
             ({
               required String cinematicId,
               required CharacterCustomAnimationRuntimeCommand command,
               String? stepId,
               String? afterStepId,
               String? label,
-            }) async =>
-                null,
+            }) async => null,
         onRemoveAuthoringStep: widget.onRemoveTimelineAuthoringStep,
         onUpdateStageMap: widget.onUpdateStageMap,
         onUpdateStageContext: widget.onUpdateStageContext,
@@ -582,13 +610,15 @@ class _CinematicsLibraryWorkspaceState
                 setState(() => _libraryNavigation = value);
               },
               onOpenInGame: _openInGameFromLibrary,
-              onOpenPresentation: widget.onOpenPresentation ??
+              onOpenPresentation:
+                  widget.onOpenPresentation ??
                   ({required cinematicId, required source}) {},
               onCreate: _canUseLibraryCommands ? _createFromLibrary : null,
               onRename: _canUseLibraryCommands ? _renameFromLibrary : null,
               onMove: _canUseLibraryCommands ? _moveFromLibrary : null,
-              onDuplicate:
-                  _canUseLibraryCommands ? _duplicateFromLibrary : null,
+              onDuplicate: _canUseLibraryCommands
+                  ? _duplicateFromLibrary
+                  : null,
               onArchive: _canUseLibraryCommands ? _archiveFromLibrary : null,
               onDelete: _canUseLibraryCommands ? _deleteFromLibrary : null,
             ),
@@ -1068,8 +1098,8 @@ class _CinematicsLibraryWorkspaceState
     }
 
     // 2. Scan default player character settings as fallback
-    final defaultPlayerCharId =
-        widget.project.settings.defaultPlayerCharacterId?.trim();
+    final defaultPlayerCharId = widget.project.settings.defaultPlayerCharacterId
+        ?.trim();
     if (defaultPlayerCharId != null && defaultPlayerCharId.isNotEmpty) {
       for (final character in widget.project.characters) {
         if (character.id.trim() == defaultPlayerCharId) {
@@ -1092,11 +1122,12 @@ class _CinematicsLibraryWorkspaceState
       }
     }
 
-    final missingTilesetIds =
-        {...requiredTilesetIds, ...requiredCustomAssetIds}.where((id) {
-      return !_resolvedActorTilesets.containsKey(id) &&
-          !_loadingActorTilesetIds.contains(id);
-    }).toList();
+    final missingTilesetIds = {...requiredTilesetIds, ...requiredCustomAssetIds}
+        .where((id) {
+          return !_resolvedActorTilesets.containsKey(id) &&
+              !_loadingActorTilesetIds.contains(id);
+        })
+        .toList();
 
     if (missingTilesetIds.isEmpty) {
       return;
@@ -1367,9 +1398,9 @@ class _CinematicsLibraryWorkspaceState
     );
     final groupedEntries =
         <({CinematicsLibraryGroup group, CinematicsLibraryEntry entry})>[
-      for (final group in groups)
-        for (final entry in group.entries) (group: group, entry: entry),
-    ];
+          for (final group in groups)
+            for (final entry in group.entries) (group: group, entry: entry),
+        ];
     return PokeMapPanel(
       expandChild: true,
       padding: const EdgeInsets.all(12),
@@ -1427,7 +1458,9 @@ class _CinematicsLibraryWorkspaceState
                   )
                 : ListView.builder(
                     key: const ValueKey('cinematics-library-list'),
-                    scrollCacheExtent: const ScrollCacheExtent.pixels(300),
+                    scrollCacheExtent: const rendering.ScrollCacheExtent.pixels(
+                      300,
+                    ),
                     itemCount: groupedEntries.length,
                     itemBuilder: (context, index) {
                       final item = groupedEntries[index];
@@ -1441,13 +1474,14 @@ class _CinematicsLibraryWorkspaceState
                             entry: entry,
                             selected: _selectedEntryId == entry.id,
                             bulkSelected: _bulkSelection.contains(entry.id),
-                            onToggleBulk: entry.kind ==
+                            onToggleBulk:
+                                entry.kind ==
                                     CinematicsLibraryEntryKind.canonical
                                 ? () => setState(() {
-                                      if (!_bulkSelection.add(entry.id)) {
-                                        _bulkSelection.remove(entry.id);
-                                      }
-                                    })
+                                    if (!_bulkSelection.add(entry.id)) {
+                                      _bulkSelection.remove(entry.id);
+                                    }
+                                  })
                                 : null,
                             onTap: () {
                               setState(() {
@@ -1619,9 +1653,9 @@ class _CinematicsLibraryWorkspaceState
                         onOpen: widget.onOpenSceneUsage == null
                             ? null
                             : () => widget.onOpenSceneUsage!(
-                                  sceneId: usage.sceneId,
-                                  nodeId: usage.nodeId,
-                                ),
+                                sceneId: usage.sceneId,
+                                nodeId: usage.nodeId,
+                              ),
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -1823,8 +1857,9 @@ class _CinematicsLibraryWorkspaceState
       description: _descriptionController.text.trim(),
       notes: _notesController.text.trim(),
       mapId: mapId == null ? entry.mapId : _optionalId(mapId),
-      storylineId:
-          storylineId == null ? entry.storylineId : _optionalId(storylineId),
+      storylineId: storylineId == null
+          ? entry.storylineId
+          : _optionalId(storylineId),
       chapterId: chapterId == null ? entry.chapterId : _optionalId(chapterId),
       tags: _parseTags(_tagsController.text),
       archived: entry.isArchived,
@@ -1862,8 +1897,8 @@ class _CinematicsLibraryWorkspaceState
       _loadedEditorId = null;
       _feedback = saved
           ? (entry.isArchived
-              ? 'Cinématique restaurée.'
-              : 'Cinématique archivée.')
+                ? 'Cinématique restaurée.'
+                : 'Cinématique archivée.')
           : 'Changement d’archive impossible.';
     });
   }
@@ -1876,8 +1911,9 @@ class _CinematicsLibraryWorkspaceState
     if (!mounted) return;
     setState(() {
       _loadedEditorId = null;
-      _feedback =
-          saved ? 'Tags appliqués à la sélection.' : 'Tags non appliqués.';
+      _feedback = saved
+          ? 'Tags appliqués à la sélection.'
+          : 'Tags non appliqués.';
       if (saved) _bulkSelection.clear();
     });
   }
@@ -2094,10 +2130,10 @@ class _CinematicEntryCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: DefaultTextStyle.of(context).style.copyWith(
-                        color: colors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: colors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               if (onToggleBulk != null)
@@ -2124,10 +2160,10 @@ class _CinematicEntryCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: DefaultTextStyle.of(context).style.copyWith(
-                  color: colors.textMuted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: colors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -2136,10 +2172,10 @@ class _CinematicEntryCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: DefaultTextStyle.of(context).style.copyWith(
-                  color: colors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: colors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           if (entry.isArchived) ...[
             const SizedBox(height: 6),
@@ -2181,9 +2217,11 @@ class _CinematicGeneratedThumbnail extends StatelessWidget {
             : Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  for (var index = 0;
-                      index < entry.timeline.stepCount.clamp(1, 5);
-                      index++) ...[
+                  for (
+                    var index = 0;
+                    index < entry.timeline.stepCount.clamp(1, 5);
+                    index++
+                  ) ...[
                     Expanded(
                       child: Container(
                         height: 8.0 + (index % 3) * 5,
@@ -2350,8 +2388,8 @@ class _MetadataSummary extends StatelessWidget {
             value: entry.requiredActors.isEmpty
                 ? 'Aucun acteur requis'
                 : entry.requiredActors
-                    .map((actor) => actor.displayLabel)
-                    .join(', '),
+                      .map((actor) => actor.displayLabel)
+                      .join(', '),
           ),
           if (entry.requiredActors.isNotEmpty)
             Wrap(
@@ -2428,8 +2466,8 @@ const _stageDiagnosticCodes = <String>{
   'movementTargetBindingMissingSource',
 };
 
-typedef _CinematicClassificationChanged = void Function(
-    {String? mapId, String? storylineId, String? chapterId});
+typedef _CinematicClassificationChanged =
+    void Function({String? mapId, String? storylineId, String? chapterId});
 
 class _CinematicClassificationPickers extends StatelessWidget {
   const _CinematicClassificationPickers({
@@ -2452,8 +2490,9 @@ class _CinematicClassificationPickers extends StatelessWidget {
           in selectedStoryline?.chapters ?? const <StorylineChapter>[])
         chapter.id,
     };
-    final chapterValue =
-        chapterIds.contains(entry.chapterId) ? entry.chapterId! : '';
+    final chapterValue = chapterIds.contains(entry.chapterId)
+        ? entry.chapterId!
+        : '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -2659,10 +2698,10 @@ class _PanelHeader extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: DefaultTextStyle.of(context).style.copyWith(
-                      color: colors.textPrimary,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  color: colors.textPrimary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 3),
               Text(
@@ -2670,10 +2709,10 @@ class _PanelHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: DefaultTextStyle.of(context).style.copyWith(
-                      color: colors.textMuted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: colors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -2702,10 +2741,10 @@ class _SectionTitle extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: DefaultTextStyle.of(context).style.copyWith(
-                color: colors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-              ),
+            color: colors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
@@ -2713,10 +2752,10 @@ class _SectionTitle extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: DefaultTextStyle.of(context).style.copyWith(
-                color: colors.textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
+            color: colors.textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
@@ -2736,10 +2775,10 @@ class _FieldLabel extends StatelessWidget {
       child: Text(
         label,
         style: DefaultTextStyle.of(context).style.copyWith(
-              color: colors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-            ),
+          color: colors.textSecondary,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -2764,10 +2803,10 @@ class _KeyValue extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: DefaultTextStyle.of(context).style.copyWith(
-                  color: colors.textMuted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: colors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
@@ -2775,10 +2814,10 @@ class _KeyValue extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: DefaultTextStyle.of(context).style.copyWith(
-                  color: colors.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: colors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -2797,10 +2836,10 @@ class _BodyText extends StatelessWidget {
     return Text(
       value,
       style: DefaultTextStyle.of(context).style.copyWith(
-            color: colors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
@@ -2824,20 +2863,20 @@ class _EmptyState extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: DefaultTextStyle.of(context).style.copyWith(
-                    color: colors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: colors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 5),
             Text(
               description,
               textAlign: TextAlign.center,
               style: DefaultTextStyle.of(context).style.copyWith(
-                    color: colors.textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: colors.textMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),

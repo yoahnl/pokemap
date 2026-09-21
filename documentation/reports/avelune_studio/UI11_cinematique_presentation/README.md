@@ -189,6 +189,16 @@ Autres limites, annoncées et non contournées :
   restent atteignables, mais la timeline est à l'étroit et ses pistes sont
   tronquées verticalement. Aucune exception de débordement n'est levée. C'est un
   écart de confort, pas une perte de fonction.
+- **Le SDK local n'est pas celui de la CI.** La CI épingle Flutter
+  `3.46.0-0.3.pre` ; la machine de développement tourne en `3.48.0-0.4.pre`.
+  Rejouer la commande CI en local ne suffit donc pas à prouver l'étape. Un
+  premier push l'a démontré : `ScrollCacheExtent`, réexporté par
+  `package:flutter/cupertino.dart` en 3.48 mais pas en 3.46, rendait l'import
+  explicite « redondant » pour l'analyse locale et indispensable pour la CI.
+  Supprimer cet import sur la foi du lint local a cassé l'étape Editor. Le
+  fichier passe désormais par un import préfixé, forme acceptée par les deux
+  versions sans directive `ignore`.
+
 - **`map_workspace_screen.dart` est exactement à la limite de 300 lignes**
   imposée par `architecture_boundaries_test.dart`. La correction de lint de ce
   lot a dû être écrite pour tenir dans ce budget. La prochaine ligne ajoutée à
