@@ -13,23 +13,15 @@ class Ui12WidgetWorldPort implements WorldPort {
   int writes = 0;
 
   Future<T> _run<T>(Future<T> Function() action) async {
-    final operation = tester.runAsync(() async {
+    final result = (await WidgetResourcePort.serial(tester, () async {
       try {
         return (await action(), null);
       } catch (error) {
         return (null, error);
       }
-    });
-    WidgetResourcePort.pending = operation;
-    try {
-      final result = (await operation)!;
-      if (result.$2 case final error?) throw error;
-      return result.$1 as T;
-    } finally {
-      if (identical(WidgetResourcePort.pending, operation)) {
-        WidgetResourcePort.pending = null;
-      }
-    }
+    }))!;
+    if (result.$2 case final error?) throw error;
+    return result.$1 as T;
   }
 
   @override

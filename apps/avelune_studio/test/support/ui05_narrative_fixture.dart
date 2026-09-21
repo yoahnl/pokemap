@@ -255,17 +255,8 @@ class Ui05NarrativePort implements NarrativePort {
   final WidgetTester tester;
   int dialogueReads = 0;
   int publications = 0;
-  Future<T> run<T>(Future<T> Function() action) async {
-    final operation = tester.runAsync(action);
-    WidgetResourcePort.pending = operation;
-    try {
-      return (await operation)!;
-    } finally {
-      if (identical(WidgetResourcePort.pending, operation)) {
-        WidgetResourcePort.pending = null;
-      }
-    }
-  }
+  Future<T> run<T>(Future<T> Function() action) async =>
+      (await WidgetResourcePort.serial(tester, action))!;
 
   @override
   Future<NarrativeDialogueSource> readDialogue(ProjectDialogueEntry entry) {

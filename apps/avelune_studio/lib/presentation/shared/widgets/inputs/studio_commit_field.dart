@@ -31,13 +31,15 @@ class _StudioCommitFieldState extends State<StudioCommitField> {
   }
 
   bool _committedSinceEdit = false;
+  bool _rejected = false;
 
   void _commit() {
     if (_committedSinceEdit) return;
     _committedSinceEdit = true;
-    if (widget.alwaysCommit || _text.text != widget.value) {
+    if (widget.alwaysCommit || _text.text != widget.value || _rejected) {
       if (widget.tryCommit case final commit?) {
-        if (!commit(_text.text)) _text.text = widget.value;
+        _rejected = !commit(_text.text);
+        if (_rejected) _text.text = widget.value;
       } else {
         widget.onCommit!(_text.text);
       }
@@ -49,6 +51,7 @@ class _StudioCommitFieldState extends State<StudioCommitField> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value && _text.text != widget.value) {
       _text.text = widget.value;
+      _rejected = false;
     }
   }
 

@@ -132,17 +132,29 @@ class WidgetResourcePort implements ResourcePort {
   final ResourcePort port;
   final WidgetTester tester;
   static Future<Object?>? pending;
-  Future<ResourceMutationReceipt> run(
-    Future<ResourceMutationReceipt> Function() action,
+
+  /// Only one [WidgetTester.runAsync] may be open at a time. A close that
+  /// chains several real writes would otherwise collide with the pump loop,
+  /// so a caller waits for the current turn instead of being denied.
+  static Future<T?> serial<T>(
+    WidgetTester tester,
+    Future<T> Function() action,
   ) async {
+    while (pending != null) {
+      await pending;
+    }
     final operation = tester.runAsync(action);
     pending = operation;
     try {
-      return (await operation)!;
+      return await operation;
     } finally {
       if (identical(pending, operation)) pending = null;
     }
   }
+
+  Future<ResourceMutationReceipt> run(
+    Future<ResourceMutationReceipt> Function() action,
+  ) async => (await serial(tester, action))!;
 
   @override
   Future<ResourceMutationReceipt> importImage(
@@ -166,22 +178,18 @@ class WidgetMapController extends MapWorkspaceController {
   final WidgetTester tester;
   @override
   Future<bool> save(EditableMapDocument document) async {
-    final operation = tester.runAsync(() => super.save(document));
-    WidgetResourcePort.pending = operation;
-    try {
-      return (await operation)!;
-    } finally {
-      if (identical(WidgetResourcePort.pending, operation)) {
-        WidgetResourcePort.pending = null;
-      }
-    }
+    return (await WidgetResourcePort.serial(
+      tester,
+      () => super.save(document),
+    ))!;
   }
 }
 
 Future<void> pumpIo(WidgetTester tester, {int frames = 30}) async {
   for (var i = 0; i < frames; i++) {
     await WidgetResourcePort.pending;
-    await tester.runAsync(
+    await WidgetResourcePort.serial(
+      tester,
       () => Future<void>.delayed(const Duration(milliseconds: 10)),
     );
     await tester.pump(const Duration(milliseconds: 16));
