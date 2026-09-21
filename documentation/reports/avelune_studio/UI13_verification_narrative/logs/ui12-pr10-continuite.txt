@@ -37,10 +37,10 @@ Try `flutter pub outdated` for more information.
 00:05 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_close_test.dart: invalid rule input blocks global save until corrected
 00:05 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_close_test.dart: invalid rule input blocks global save until corrected
 00:06 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_page_test.dart: a state and its rule are composed from the page controls
-00:07 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_workspace_return_test.dart: a detour through a second consumer still returns to scene A
+00:06 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_workspace_return_test.dart: a detour through a second consumer still returns to scene A
 00:08 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_workspace_return_test.dart: a detour through a second consumer still returns to scene A
-00:09 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_workspace_return_test.dart: a detour through a second consumer still returns to scene A
-00:09 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_workspace_return_test.dart: a detour through a second consumer still returns to scene A
+00:08 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_workspace_return_test.dart: a detour through a second consumer still returns to scene A
+00:08 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_workspace_return_test.dart: a detour through a second consumer still returns to scene A
 00:10 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_workspace_return_test.dart: a detour through a second consumer still returns to scene A
-00:11 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: a failed rule keeps close blocked after its new state is saved
+00:10 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: a failed rule keeps close blocked after its new state is saved
 00:11 +15: All tests passed!

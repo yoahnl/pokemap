@@ -30,6 +30,28 @@ class VerificationRuntimeEvidence {
   };
 }
 
+/// One dialogue source as the control saw it, with where it came from.
+///
+/// A source that could not be read carries its [problem] and no text: it is
+/// declared outside the coverage instead of becoming an empty document.
+class VerificationDialogueSource {
+  const VerificationDialogueSource({
+    required this.entry,
+    required this.text,
+    required this.origin,
+    this.revision,
+    this.problem,
+  });
+
+  final ProjectDialogueEntry entry;
+  final String text;
+  final String origin;
+  final String? revision;
+  final String? problem;
+
+  bool get readable => problem == null;
+}
+
 /// The canonical result of one analysis, produced away from the interface.
 class VerificationAnalysis {
   const VerificationAnalysis({
@@ -69,12 +91,19 @@ abstract interface class VerificationPort {
     NarrativeRuntimeSmokeProfile profile,
   );
 
+  /// The saved Yarn sources of the dialogues the control needs, read once at
+  /// launch. It opens no editing session and loads no image, atlas or video.
+  Future<List<VerificationDialogueSource>> readDialogueSources(
+    List<ProjectDialogueEntry> entries,
+  );
+
   /// Runs the canonical validators away from the interface isolate. Cancelling
   /// the returned job stops that work and frees it, without touching another
   /// session.
   VerificationJob analyse({
     required ProjectManifest project,
     required List<MapData> maps,
+    required List<VerificationDialogueSource> sources,
   });
 }
 

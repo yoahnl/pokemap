@@ -2,6 +2,9 @@ part of 'verification_workspace_controller.dart';
 
 enum VerificationPhase { idle, reading, analysing, ready, failed, cancelled }
 
+/// Why a request stopped before adopting its result.
+enum VerificationStop { none, replaced, closed, projectChanged }
+
 /// A rule draft the author has not finished. It is not a validator diagnostic:
 /// an incomplete relation is no [WorldRuleDefinition] and must neither be
 /// forced into the model nor dropped to show green.

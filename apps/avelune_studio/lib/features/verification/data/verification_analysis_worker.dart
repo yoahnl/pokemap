@@ -1,5 +1,7 @@
 import 'dart:isolate';
 
+import 'package:map_authoring/map_authoring.dart'
+    show DialogueAuthoringCompiler, NarrativeAuthoringDiagnosticSeverity;
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_gameplay/map_gameplay.dart'
     show
@@ -13,20 +15,27 @@ import '../domain/verification_port.dart';
 const verificationWorkerName = 'avelune-verification';
 
 class VerificationAnalysisRequest {
-  const VerificationAnalysisRequest(this.reply, this.project, this.maps);
+  const VerificationAnalysisRequest(
+    this.reply,
+    this.project,
+    this.maps,
+    this.sources,
+  );
   final SendPort reply;
   final ProjectManifest project;
   final List<MapData> maps;
+  final List<VerificationDialogueSource> sources;
 }
 
 /// Runs the canonical validators in the spawned isolate. The interface isolate
 /// only receives the finished result.
 void verificationAnalysisWorker(VerificationAnalysisRequest request) {
   try {
-    final validation = validateNarrativeProject(
+    final canonical = validateNarrativeProject(
       request.project,
       maps: request.maps,
     );
+    final validation = _withDialogueSources(canonical, request.sources);
     final symbolic = validation.symbolicReachability;
     final physical = symbolic == null
         ? NarrativeValidationDimensionResult(
@@ -83,3 +92,43 @@ NarrativeValidationDimensionResult _physical(
       ),
   ],
 );
+
+/// Compiles the captured Yarn sources with the authoring compiler the dialogue
+/// editor already uses, and folds its verdicts into the canonical report. No
+/// second set of rules, and a diagnostic the validator already produced is
+/// never shown twice.
+NarrativeProjectValidationReport _withDialogueSources(
+  NarrativeProjectValidationReport canonical,
+  List<VerificationDialogueSource> sources,
+) {
+  const compiler = DialogueAuthoringCompiler();
+  final known = {for (final item in canonical.diagnostics) item.stableKey};
+  final added = <NarrativeProjectDiagnostic>[];
+  for (final source in sources) {
+    if (!source.readable) continue;
+    final result = compiler.compile(entry: source.entry, source: source.text);
+    for (final diagnostic in result.diagnostics) {
+      final item = NarrativeProjectDiagnostic(
+        code: diagnostic.code,
+        severity:
+            diagnostic.severity == NarrativeAuthoringDiagnosticSeverity.error
+            ? NarrativeProjectDiagnosticSeverity.error
+            : NarrativeProjectDiagnosticSeverity.warning,
+        domain: NarrativeProjectDiagnosticDomain.dialogue,
+        message: diagnostic.line == null
+            ? diagnostic.message
+            : '${diagnostic.message} (ligne ${diagnostic.line})',
+        path: diagnostic.path ?? 'dialogues.${source.entry.id}',
+        destination: NarrativeProjectDiagnosticDestination.dialogue,
+        dialogueId: source.entry.id,
+      );
+      if (known.add(item.stableKey)) added.add(item);
+    }
+  }
+  if (added.isEmpty) return canonical;
+  return NarrativeProjectValidationReport(
+    diagnostics: [...canonical.diagnostics, ...added],
+    mapEventViews: canonical.mapEventViews,
+    symbolicReachability: canonical.symbolicReachability,
+  );
+}

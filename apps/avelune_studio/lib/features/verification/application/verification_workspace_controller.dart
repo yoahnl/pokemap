@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../cinematics/application/cinematic_workspace_controller.dart';
 import '../../dialogues/application/dialogue_workspace_controller.dart';
+import '../../dialogues/application/dialogue_working_source.dart';
 import '../../events/application/event_workspace_controller.dart';
 import '../../narrative/application/narrative_workspace_controller.dart';
 import '../../presentations/application/presentation_workspace_controller.dart';

@@ -20,6 +20,8 @@ class VerificationSnapshot {
   VerificationSnapshot({
     required this.project,
     required this.maps,
+    required this.sources,
+    required this.savedRevision,
     required this.revision,
     required this.fingerprint,
     required this.exclusions,
@@ -30,6 +32,10 @@ class VerificationSnapshot {
 
   final ProjectManifest project;
   final List<MapData> maps;
+
+  /// The Yarn texts actually handed to the compiler, with their provenance.
+  final List<VerificationDialogueSource> sources;
+  final String savedRevision;
   final String revision;
   final String fingerprint;
   final List<VerificationExclusion> exclusions;
@@ -44,7 +50,31 @@ extension VerificationSnapshots on VerificationWorkspaceController {
   /// The version the author is working on: every owner contributes its own
   /// working documents through its existing accessor, so a shared document is
   /// read once and never duplicated for the control.
-  VerificationSnapshot capture(List<MapData> loaded) {
+  /// The dialogue entries the working version carries.
+  List<ProjectDialogueEntry> workingDialogueEntries() =>
+      dialogues?.call()?.entries ?? narrative.project.dialogues;
+
+  /// The version an editor holds for a dialogue, through the resolver the
+  /// dialogue feature already owns: a read-only advanced source is kept as it
+  /// stands, and two incompatible drafts are a named conflict, not a choice.
+  DialogueWorkingSource openSource(String dialogueId) =>
+      resolveDialogueWorkingSource(
+        narrative: narrative,
+        dialogueId: dialogueId,
+        dialogues: dialogues?.call(),
+      );
+
+  /// The version the author is working on: every owner contributes its own
+  /// working documents through its existing accessor, so a shared document is
+  /// read once and never duplicated for the control.
+  ///
+  /// Returns null when a dialogue opened or closed while the sources were
+  /// read: the caller prepares again rather than mixing two versions.
+  VerificationSnapshot? capture(
+    List<MapData> loaded,
+    String savedRevision,
+    List<VerificationDialogueSource> saved,
+  ) {
     final revision = workingRevision();
     final maps = [
       for (final map in loaded)
@@ -63,12 +93,54 @@ extension VerificationSnapshots on VerificationWorkspaceController {
       presentationCinematics:
           presentations?.call()?.entries ?? base.presentationCinematics,
     );
+    final exclusions = _exclusions();
+    final sources = <VerificationDialogueSource>[];
+    final readable = {for (final item in saved) item.entry.id: item};
+    for (final entry in project.dialogues) {
+      final held = openSource(entry.id);
+      if (held.problem case final problem?) {
+        exclusions.add(
+          VerificationExclusion(
+            owner: 'Dialogues',
+            label: entry.id,
+            reason: problem,
+          ),
+        );
+        continue;
+      }
+      if (held.source case final source?) {
+        sources.add(
+          VerificationDialogueSource(
+            entry: source.entry,
+            text: source.source,
+            origin: held.dirty ? 'brouillon ouvert' : 'session ouverte',
+            revision: source.revision,
+          ),
+        );
+        continue;
+      }
+      final stored = readable[entry.id];
+      if (stored == null) return null;
+      if (!stored.readable) {
+        exclusions.add(
+          VerificationExclusion(
+            owner: 'Dialogues',
+            label: entry.id,
+            reason: stored.problem!,
+          ),
+        );
+        continue;
+      }
+      sources.add(stored);
+    }
     return VerificationSnapshot(
       project: project,
       maps: maps,
+      sources: sources,
+      savedRevision: savedRevision,
       revision: revision,
-      fingerprint: _inputFingerprint(project, maps),
-      exclusions: _exclusions(),
+      fingerprint: _inputFingerprint(project, maps, sources),
+      exclusions: exclusions,
       blockers: [
         if (owner != null)
           for (final draft in owner.pendingRules.values)
@@ -83,7 +155,7 @@ extension VerificationSnapshots on VerificationWorkspaceController {
         '${maps.length} carte(s) analysée(s)',
         '${project.storylines.length} histoire(s)',
         '${project.scenes.length} scène(s)',
-        '${project.dialogues.length} dialogue(s)',
+        '${sources.length} source(s) de dialogue compilée(s)',
         '${project.facts.length} état(s) du monde',
         '${project.worldRules.length} règle(s) du monde',
       ],
@@ -200,16 +272,26 @@ extension VerificationSnapshots on VerificationWorkspaceController {
     return result;
   }
 
-  String _inputFingerprint(ProjectManifest project, List<MapData> maps) =>
-      computeNarrativeProjectFingerprint([
-        NarrativeProjectFingerprintEntry(
-          relativePath: 'analysed/project.json',
-          bytes: utf8.encode(jsonEncode(project.toJson())),
-        ),
-        for (final map in maps)
-          NarrativeProjectFingerprintEntry(
-            relativePath: 'analysed/maps/${map.id}.json',
-            bytes: utf8.encode(jsonEncode(map.toJson())),
-          ),
-      ]);
+  /// The exact bytes the analysis received, sources included, so changing one
+  /// line of Yarn changes the fingerprint.
+  String _inputFingerprint(
+    ProjectManifest project,
+    List<MapData> maps,
+    List<VerificationDialogueSource> sources,
+  ) => computeNarrativeProjectFingerprint([
+    NarrativeProjectFingerprintEntry(
+      relativePath: 'analysed/project.json',
+      bytes: utf8.encode(jsonEncode(project.toJson())),
+    ),
+    for (final map in maps)
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'analysed/maps/${map.id}.json',
+        bytes: utf8.encode(jsonEncode(map.toJson())),
+      ),
+    for (final source in sources)
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'analysed/dialogues/${source.entry.id}.yarn',
+        bytes: utf8.encode(source.text),
+      ),
+  ]);
 }

@@ -10,11 +10,17 @@ class Ui13ControllableVerificationPort implements VerificationPort {
     required this.revision,
     required this.maps,
     required this.evidence,
+    this.sources = const [],
   });
 
   String revision;
   List<MapData> maps;
   VerificationRuntimeEvidence evidence;
+  List<VerificationDialogueSource> sources;
+
+  /// Runs once before the maps are answered, so a test can publish while the
+  /// preparation is in flight.
+  Future<void> Function()? beforeMaps;
   final started = <Completer<VerificationAnalysis>>[];
   final cancelled = <int>[];
   Object? readFailure;
@@ -28,7 +34,25 @@ class Ui13ControllableVerificationPort implements VerificationPort {
   }
 
   @override
-  Future<List<MapData>> loadMaps() async => maps;
+  Future<List<MapData>> loadMaps() async {
+    await beforeMaps?.call();
+    return maps;
+  }
+
+  @override
+  Future<List<VerificationDialogueSource>> readDialogueSources(
+    List<ProjectDialogueEntry> entries,
+  ) async => [
+    for (final entry in entries)
+      sources.firstWhere(
+        (item) => item.entry.id == entry.id,
+        orElse: () => VerificationDialogueSource(
+          entry: entry,
+          text: '',
+          origin: 'version enregistrée',
+        ),
+      ),
+  ];
 
   @override
   Future<VerificationRuntimeEvidence> readRuntimeEvidence(
@@ -39,6 +63,7 @@ class Ui13ControllableVerificationPort implements VerificationPort {
   VerificationJob analyse({
     required ProjectManifest project,
     required List<MapData> maps,
+    required List<VerificationDialogueSource> sources,
   }) {
     final completer = Completer<VerificationAnalysis>();
     final index = started.length;

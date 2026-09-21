@@ -127,6 +127,7 @@ void main() {
     await pumpIo(tester, frames: 6);
     await launch(tester, h);
     final runs = h.port.runs;
+    final reads = h.port.sourceReads;
 
     h.controller.report = inflate(h.controller.report!, 4000);
     h.controller.changed();
@@ -152,6 +153,11 @@ void main() {
       h.port.runs,
       runs,
       reason: 'filtering and selecting never re-run a control',
+    );
+    expect(
+      h.port.sourceReads,
+      reads,
+      reason: 'filtering and selecting never read a dialogue source again',
     );
     expect(tester.takeException(), isNull);
   });

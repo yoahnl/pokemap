@@ -6,51 +6,111 @@ extension VerificationRun on VerificationWorkspaceController {
   Future<bool> run() async {
     if (_closed || running) return false;
     final ticket = ++_generation;
-    final manifest = project;
+    final session = _sessionId;
     phase = VerificationPhase.reading;
     error = null;
     changed();
-    if (await flushEdits?.call() == false) {
-      return ticket == _generation
-          ? _fail(
-              const VerificationFailure(
-                'Corrigez les saisies refusées avant de lancer le contrôle. '
-                'Aucune saisie refusée n’a été publiée.',
-              ),
-            )
-          : false;
-    }
     try {
-      final revision = await port.projectRevision();
-      if (_stopped(ticket, manifest)) return false;
-      final loaded = await port.loadMaps();
-      if (_stopped(ticket, manifest)) return false;
-      final evidence = await port.readRuntimeEvidence(selbrumeReleaseV1Profile);
-      if (_stopped(ticket, manifest)) return false;
-      final snapshot = capture(loaded);
+      if (await flushEdits?.call() == false) {
+        return _interrupted(ticket, session) == VerificationStop.none
+            ? _fail(
+                const VerificationFailure(
+                  'Corrigez les saisies refusées avant de lancer le contrôle. '
+                  'Aucune saisie refusée n’a été publiée.',
+                ),
+              )
+            : false;
+      }
+      final snapshot = await _prepare(ticket, session);
+      if (snapshot == null) return _stopped(ticket, session);
       phase = VerificationPhase.analysing;
       changed();
-      final job = port.analyse(project: snapshot.project, maps: snapshot.maps);
+      final job = port.analyse(
+        project: snapshot.project,
+        maps: snapshot.maps,
+        sources: snapshot.sources,
+      );
       _job = job;
       final analysis = await job.result;
-      if (_stopped(ticket, manifest)) return false;
-      _job = null;
-      report = _assemble(ticket, revision, snapshot, analysis, evidence);
+      if (_interrupted(ticket, session) != VerificationStop.none) {
+        return _stopped(ticket, session);
+      }
+      report = _assemble(ticket, snapshot, analysis, await _evidence(snapshot));
       _keepSelection();
-      phase = VerificationPhase.ready;
-      changed();
       return true;
     } on Object catch (failure) {
-      if (ticket != _generation) return false;
-      _job = null;
-      return _fail(failure);
+      return _interrupted(ticket, session) == VerificationStop.none
+          ? _fail(failure)
+          : _stopped(ticket, session);
+    } finally {
+      _recover(ticket);
     }
   }
 
-  /// A reply from a replaced request, a cancelled one or a closed project is
-  /// dropped instead of taking the place of the current report.
-  bool _stopped(int ticket, ProjectManifest manifest) =>
-      _closed || ticket != _generation || !identical(project, manifest);
+  String get _sessionId => narrative.workspace.session.sessionId;
+
+  /// Why a request may not adopt its result. A new revision of the same
+  /// project is not one of them: its snapshot simply became old.
+  VerificationStop _interrupted(int ticket, String session) {
+    if (_closed) return VerificationStop.closed;
+    if (ticket != _generation) return VerificationStop.replaced;
+    if (_sessionId != session) return VerificationStop.projectChanged;
+    return VerificationStop.none;
+  }
+
+  /// A replaced or closed request leaves the state to whoever owns it now. A
+  /// project that really changed is refused with its reason, and the page can
+  /// be launched again.
+  bool _stopped(int ticket, String session) =>
+      _interrupted(ticket, session) == VerificationStop.projectChanged
+      ? _fail(
+          const VerificationFailure(
+            'Le projet a changé pendant le contrôle : son résultat a été '
+            'refusé. Relancez la vérification.',
+          ),
+        )
+      : false;
+
+  /// Every exit frees the page, and never touches a newer request.
+  void _recover(int ticket) {
+    if (_closed || ticket != _generation) return;
+    _job = null;
+    if (phase == VerificationPhase.reading ||
+        phase == VerificationPhase.analysing) {
+      phase = report == null ? VerificationPhase.idle : VerificationPhase.ready;
+    }
+    changed();
+  }
+
+  /// Reads the entries, the maps and the dialogue sources, then freezes them
+  /// together. A publication during those reads restarts the preparation
+  /// rather than mixing two versions of the same document.
+  Future<VerificationSnapshot?> _prepare(int ticket, String session) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final manifest = project;
+      final savedRevision = await port.projectRevision();
+      if (_interrupted(ticket, session) != VerificationStop.none) return null;
+      final loaded = await port.loadMaps();
+      if (_interrupted(ticket, session) != VerificationStop.none) return null;
+      final entries = workingDialogueEntries();
+      final saved = await port.readDialogueSources([
+        for (final entry in entries)
+          if (attempt > 0 || openSource(entry.id).source == null) entry,
+      ]);
+      if (_interrupted(ticket, session) != VerificationStop.none) return null;
+      if (!identical(project, manifest)) continue;
+      final snapshot = capture(loaded, savedRevision, saved);
+      if (snapshot != null) return snapshot;
+    }
+    throw const VerificationFailure(
+      'Le projet a changé pendant la préparation du contrôle. '
+      'Relancez la vérification.',
+    );
+  }
+
+  Future<VerificationRuntimeEvidence> _evidence(
+    VerificationSnapshot snapshot,
+  ) => port.readRuntimeEvidence(selbrumeReleaseV1Profile);
 
   /// A new report keeps the selection when its key survives. A key that is
   /// gone says so: it includes the severity, so its absence proves nothing.
@@ -70,13 +130,12 @@ extension VerificationRun on VerificationWorkspaceController {
 
   VerificationReport _assemble(
     int ticket,
-    String savedRevision,
     VerificationSnapshot snapshot,
     VerificationAnalysis analysis,
     VerificationRuntimeEvidence evidence,
   ) => VerificationReport(
     requestId: ticket,
-    savedRevision: savedRevision,
+    savedRevision: snapshot.savedRevision,
     generatedAt: DateTime.now(),
     validatorVersion: VerificationWorkspaceController.validatorVersion,
     inputFingerprint: snapshot.fingerprint,

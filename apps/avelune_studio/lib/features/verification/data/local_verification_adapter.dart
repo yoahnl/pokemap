@@ -7,6 +7,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:path/path.dart' as p;
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
+import '../../narrative/data/local_narrative_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/verification_port.dart';
 import 'verification_analysis_worker.dart';
@@ -42,9 +43,44 @@ class LocalVerificationAdapter implements VerificationPort {
   }
 
   @override
+  Future<List<VerificationDialogueSource>> readDialogueSources(
+    List<ProjectDialogueEntry> entries,
+  ) async {
+    final reader = LocalNarrativeAdapter(
+      session: session,
+      mapAdapter: mapAdapter,
+    );
+    final sources = <VerificationDialogueSource>[];
+    for (final entry in entries) {
+      try {
+        final read = await reader.readDialogue(entry);
+        sources.add(
+          VerificationDialogueSource(
+            entry: read.entry,
+            text: read.source,
+            origin: 'version enregistrée',
+            revision: read.revision,
+          ),
+        );
+      } on Object catch (failure) {
+        sources.add(
+          VerificationDialogueSource(
+            entry: entry,
+            text: '',
+            origin: 'version enregistrée',
+            problem: 'Source illisible : $failure',
+          ),
+        );
+      }
+    }
+    return sources;
+  }
+
+  @override
   VerificationJob analyse({
     required ProjectManifest project,
     required List<MapData> maps,
+    required List<VerificationDialogueSource> sources,
   }) {
     final replies = ReceivePort();
     final completer = Completer<VerificationAnalysis>();
@@ -70,7 +106,7 @@ class LocalVerificationAdapter implements VerificationPort {
     unawaited(
       Isolate.spawn(
         verificationAnalysisWorker,
-        VerificationAnalysisRequest(replies.sendPort, project, maps),
+        VerificationAnalysisRequest(replies.sendPort, project, maps, sources),
         debugName: verificationWorkerName,
         errorsAreFatal: true,
         onError: replies.sendPort,

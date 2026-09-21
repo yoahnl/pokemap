@@ -1,8 +1,8 @@
 # AS-UI-013 — Vérification narrative
 
 Réalisation de l'image 09 du kit Narrative Studio, précédée de la validation
-du correctif UI12 de la PR #10, puis finalisée par le lot de fiabilité décrit
-plus bas (revue sur `9764082e3`).
+du correctif UI12 de la PR #10, puis finalisée par deux lots de fiabilité
+décrits plus bas (revues sur `9764082e3` puis `dbda4a562`).
 
 Base de travail : `main` à `edf0f96c96a8db4475c5f3eb084fc8a88062894c`, la base
 exacte du pack. SDK local Flutter `3.48.0-0.4.pre` ; la CI épingle
@@ -158,6 +158,61 @@ précédente » partagée. Une nouvelle vérification conserve la sélection don
 clé survit ; sinon elle explique que le diagnostic n'est plus présent, sans
 conclure qu'il est résolu.
 
+## Récupération des analyses et contrôle des dialogues
+
+Deux raccordements de la revue de `dbda4a562`, reproduits avant correction.
+
+**Un enregistrement pendant une analyse laissait un contrôle fantôme.**
+`_stopped()` traitait le remplacement de l'instance du manifeste comme une
+raison de refuser le résultat, et les sorties anticipées laissaient la phase
+sur `reading` ou `analysing` : la page restait occupée, et seul « Abandonner »
+la libérait.
+
+Trois situations sont désormais distinguées. Une **nouvelle révision du même
+projet** n'arrête rien : l'instantané est cohérent, il est simplement devenu
+ancien, donc le rapport est adopté avec sa révision d'origine et signalé
+périmé. Une **requête annulée ou remplacée** laisse l'état à celle qui le
+détient maintenant. Un **projet réellement remplacé** est refusé avec sa raison
+et la page peut relancer.
+
+Toutes les sorties passent par un `finally` qui libère l'état occupé, annule la
+référence du travail et ne touche jamais une requête plus récente : cela
+couvre aussi l'échec de la validation des saisies et celui de la préparation.
+
+La préparation elle-même est cohérente : révision, cartes et sources de
+dialogue sont lues puis figées ensemble, et une publication pendant ces
+lectures fait recommencer la préparation au lieu de mélanger deux versions
+d'un même document.
+
+**Le texte Yarn était suivi mais jamais contrôlé.** L'instantané porte
+maintenant les sources elles-mêmes, avec leur provenance et leur version. La
+résolution réutilise `resolveDialogueWorkingSource`, le résolveur que la
+fonctionnalité Dialogues possède déjà : brouillon de l'éditeur, source
+enregistrée quand rien n'est ouvert, **source avancée en lecture seule gardée
+telle quelle** plutôt que remplacée par sa réencodage simplifié, et conflit
+nommé quand deux propriétaires tiennent des versions incompatibles.
+`sourceForDialogue()` n'est pas utilisé comme source d'origine : il rend la
+représentation courante, pas l'originale.
+
+Les dialogues que personne n'a ouverts sont lus par le port existant au
+lancement explicite, un par un, sans ouvrir de session d'édition et sans
+charger la moindre image. Une source illisible ou conflictuelle ne devient ni
+un texte vide ni une ancienne version : elle est déclarée hors couverture avec
+sa raison, et le périmètre annonce le nombre de sources réellement compilées.
+
+La compilation réutilise `DialogueAuthoringCompiler`, celui de l'éditeur de
+dialogue, exécuté dans le travail isolé déjà en place. Ses verdicts gardent
+leur code, leur gravité et leur provenance, portent leur dialogue, apparaissent
+dans la liste, les filtres et le détail, ouvrent l'éditeur de dialogue et
+pèsent dans la dimension structurelle. Ils sont fondus dans le rapport
+canonique, jamais posés à côté, et un diagnostic déjà produit par le validateur
+n'est pas affiché deux fois.
+
+L'empreinte de l'instantané inclut les octets réellement transmis au
+compilateur, sous `analysed/dialogues/<id>.yarn` : changer une seule réplique
+la change. Elle reste distincte de l'empreinte des fichiers bruts du reçu
+runtime. Filtrer, sélectionner ou déplacer le graphe ne relit aucune source.
+
 ## Honnêteté du verdict
 
 Pas de score, pas de pourcentage, pas de jauge. Les quatre dimensions gardent
@@ -271,19 +326,24 @@ Depuis `apps/avelune_studio`.
 | Périmètre | Commande | Résultat |
 | --- | --- | --- |
 | Continuité UI12 et PR #10, correctif `810c8967` conservé | `flutter test test/ui12_world_*.dart test/ui12_workspace_return_test.dart` | 15 verts (`logs/ui12-pr10-continuite.txt`) |
-| UI13, les neuf fichiers ensemble | `flutter test test/ui13_verification_*.dart` | **50 verts** (`logs/ui13-cible.txt`) |
+| UI13, les treize fichiers ensemble | `flutter test test/ui13_verification_*.dart` | **63 verts** (`logs/ui13-cible.txt`) |
 | — contrôleur | `test/ui13_verification_controller_test.dart` | 12 |
 | — sélection entre deux contrôles | `test/ui13_verification_selection_test.dart` | 2 |
 | — versions de travail, fraîcheur, empreintes, preuve | `test/ui13_verification_working_version_test.dart` | 5 |
 | — identités canoniques et homonymes | `test/ui13_verification_identity_test.dart` | 5 |
 | — exécuteur, annulation, isolate | `test/ui13_verification_executor_test.dart` | 7 |
+| — récupération après enregistrement | `test/ui13_verification_recovery_test.dart` | 5 |
+| — récupération dans l'hôte réel | `test/ui13_verification_host_recovery_test.dart` | 1 |
+| — sources de dialogue compilées | `test/ui13_verification_dialogue_source_test.dart` | 4 |
+| — versions et conflits de dialogue | `test/ui13_verification_dialogue_version_test.dart` | 3 |
 | — preuves runtime | `test/ui13_verification_runtime_test.dart` | 6 |
 | — page et parcours | `test/ui13_verification_page_test.dart` | 4 |
 | — hôte réel, quatre allers-retours | `test/ui13_verification_navigation_test.dart` | 4 |
 | — quatre tailles et grande liste | `test/ui13_verification_scale_test.dart` | 5 |
+| Régressions dialogue UI09 | `flutter test test/dialogues test/dialogues_ui09_navigation_test.dart` | 31 verts (`logs/dialogues-regression.txt`) |
 | Frontières d'architecture | `flutter test test/architecture/architecture_boundaries_test.dart` | 7 verts (`logs/architecture.txt`) |
 | Analyse Studio | `flutter analyze` | `No issues found!` (`logs/analyse.txt`) |
-| Suite Studio | `flutter test` | **710 verts, 2 ignorés, aucun échec** (`logs/suite-studio-finale.txt`) |
+| Suite Studio | `flutter test` | **723 verts, 2 ignorés, aucun échec** (`logs/suite-studio-finale.txt`) |
 
 Ce que ces tests prouvent, cas par cas : entrée passive sans calcul ni
 écriture ; lancement unique malgré un second clic ; concordance exacte des
@@ -300,7 +360,11 @@ empreinte décrivant ses propres entrées ; reçu valide qui cesse de certifier
 dès qu'un brouillon entre ; homonymes distingués et ambiguïtés déclarées ;
 annulation, remplacement, fermeture et réponse tardive ; calcul prouvé hors de
 l'isolate d'interface ; quatre allers-retours dans le véritable hôte, dont
-Vérification → Scène → Dialogue → Scène → Vérification.
+Vérification → Scène → Dialogue → Scène → Vérification ; enregistrement d'une
+scène pendant une analyse retenue, dans l'hôte réel, suivi d'une relance sans
+passer par Abandonner ; texte Yarn modifié sans enregistrement, compilé à la
+relance ; source illisible déclarée hors couverture ; source avancée en
+lecture seule conservée ; deux versions incompatibles refusées ensemble.
 
 Deux destinations n'ont pas de diagnostic sur cette fixture — la carte et la
 scène. Leur ligne est injectée dans le rapport, mais l'ouverture, l'éditeur
@@ -319,6 +383,11 @@ atteint et le retour sont les vrais chemins de l'hôte.
 - **Les brouillons d'interactions ne sont pas représentables** dans le manifeste
   analysé. Chacun est nommé dans « Hors du contrôle » avec sa raison, et le
   rapport ne prétend pas couvrir ce périmètre.
+- **La compilation d'une source ne prouve pas l'exécution en jeu** ni qu'une
+  histoire est terminable : elle dit que le texte se compile, rien de plus.
+- **Un brouillon structuré de l'éditeur de dialogue ne peut pas produire
+  certaines fautes** que le compilateur refuse, car son codec les indente. Ces
+  fautes sont couvertes par les sources brutes : disque et source avancée.
 - **L'index de dépendances ne qualifie pas les étapes par leur parent.** Deux
   étapes de même identifiant dans deux histoires sont donc déclarées ambiguës
   plutôt que distinguées ; la navigation, elle, reste précise parce qu'elle
@@ -336,7 +405,7 @@ atteint et le retour sont les vrais chemins de l'hôte.
 ## Échecs observés
 
 Aucun, sur l'état final. La suite Studio complète est passée d'un bout à
-l'autre avec des moyennes de charge autour de 16.
+l'autre, avec des moyennes de charge autour de 75.
 
 Cela lève les deux réserves du lot précédent. **`desktop_workspace_layout_test`**
 avait échoué dans la suite et seul, la nuit du 21 septembre, avec des charges

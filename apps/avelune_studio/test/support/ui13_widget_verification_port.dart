@@ -13,6 +13,7 @@ class Ui13WidgetVerificationPort implements VerificationPort {
   final WidgetTester tester;
   int runs = 0;
   int analyses = 0;
+  int sourceReads = 0;
 
   Future<T> _run<T>(Future<T> Function() action) async =>
       (await WidgetResourcePort.serial(tester, action)) as T;
@@ -32,15 +33,24 @@ class Ui13WidgetVerificationPort implements VerificationPort {
   ) => _run(() => delegate.readRuntimeEvidence(profile));
 
   @override
+  Future<List<VerificationDialogueSource>> readDialogueSources(
+    List<ProjectDialogueEntry> entries,
+  ) {
+    sourceReads++;
+    return _run(() => delegate.readDialogueSources(entries));
+  }
+
+  @override
   VerificationJob analyse({
     required ProjectManifest project,
     required List<MapData> maps,
+    required List<VerificationDialogueSource> sources,
   }) {
     analyses++;
     VerificationJob? inner;
     var cancelled = false;
     final result = _run(() async {
-      inner = delegate.analyse(project: project, maps: maps);
+      inner = delegate.analyse(project: project, maps: maps, sources: sources);
       if (cancelled) {
         inner!.cancel();
         throw const VerificationFailure('Contrôle abandonné.');
