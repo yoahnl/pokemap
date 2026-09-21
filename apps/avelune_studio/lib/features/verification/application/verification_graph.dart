@@ -16,58 +16,132 @@ extension VerificationGraphs on VerificationWorkspaceController {
       );
     }
     final focus = selected;
-    return focus == null
-        ? _overview(current)
-        : _context(current, focus) ?? _missing(current, focus);
+    if (focus == null) return _overview(current);
+    final resolved = verificationResolve(current.dependencies, focus);
+    if (resolved.key case final key?) return _context(current, key);
+    return _missing(current, focus, resolved.ambiguous);
+  }
+
+  VerificationGraph _context(
+    VerificationReport current,
+    NarrativeDependencyKey key,
+  ) {
+    final index = current.dependencies;
+    final nodes = <String, VerificationGraphNode>{};
+    final edges = <VerificationGraphEdge>[];
+    var hidden = 0;
+
+    void put(
+      NarrativeDependencyKey item,
+      VerificationNodeRole role, {
+      bool missing = false,
+    }) {
+      final id = verificationKeyId(item);
+      if (nodes.containsKey(id)) return;
+      if (nodes.length >= _budget) {
+        hidden++;
+        return;
+      }
+      nodes[id] = VerificationGraphNode(
+        key: item,
+        label: current.labelOf(item),
+        role: role,
+        missing: missing,
+      );
+    }
+
+    put(key, VerificationNodeRole.focus);
+    for (final usage in index.usagesFor(key)) {
+      put(usage.owner, VerificationNodeRole.owner);
+      if (!nodes.containsKey(verificationKeyId(usage.owner))) continue;
+      edges.add(
+        VerificationGraphEdge(
+          from: verificationKeyId(usage.owner),
+          to: verificationKeyId(key),
+          sense: _sense(key.kind),
+          unresolved:
+              usage.resolution != NarrativeDependencyResolution.resolved,
+        ),
+      );
+    }
+    for (final usage in index.usagesOwnedBy(key)) {
+      final resolved =
+          usage.resolution == NarrativeDependencyResolution.resolved;
+      put(usage.target, VerificationNodeRole.target, missing: !resolved);
+      if (!nodes.containsKey(verificationKeyId(usage.target))) continue;
+      edges.add(
+        VerificationGraphEdge(
+          from: verificationKeyId(key),
+          to: verificationKeyId(usage.target),
+          sense: _sense(usage.target.kind),
+          unresolved: !resolved,
+        ),
+      );
+    }
+    return VerificationGraph(
+      nodes: nodes.values.toList(),
+      edges: edges,
+      title: 'Contexte de ${current.labelOf(key)}',
+      focusId: verificationKeyId(key),
+      hiddenCount: hidden,
+    );
   }
 
   /// A diagnostic whose element is not in the index points at something that
-  /// does not exist. It is drawn as missing, with the owners that name it,
-  /// never replaced by a look-alike document.
+  /// does not exist, or at a name several documents answer to. Both are drawn
+  /// as such, never replaced by a look-alike.
   VerificationGraph _missing(
     VerificationReport current,
     NarrativeProjectDiagnostic diagnostic,
+    bool ambiguous,
   ) {
-    final label = current.labelFor(diagnostic);
+    final candidate = verificationCandidates(diagnostic).firstOrNull;
+    final key = NarrativeDependencyKey(
+      candidate?.$1 ?? _diagnosticKind(diagnostic),
+      candidate?.$2 ?? diagnostic.path,
+    );
+    final label = candidate?.$2 ?? diagnostic.path;
     final nodes = <VerificationGraphNode>[
       VerificationGraphNode(
-        id: diagnostic.stableKey,
+        key: key,
         label: label,
-        kind: _diagnosticKind(diagnostic),
         role: VerificationNodeRole.focus,
         missing: true,
       ),
     ];
     final edges = <VerificationGraphEdge>[];
-    for (final issue in current.dependencies.issues) {
-      if (issue.target.id != label && issue.target.id != diagnostic.factId) {
-        continue;
-      }
-      if (issue.owner case final owner?) {
-        nodes.insert(
-          0,
-          VerificationGraphNode(
-            id: owner.id,
-            label: current.labels[owner.id] ?? owner.id,
-            kind: owner.kind,
-            role: VerificationNodeRole.owner,
-          ),
-        );
-        edges.add(
-          VerificationGraphEdge(
-            from: owner.id,
-            to: diagnostic.stableKey,
-            sense: _sense(issue.target.kind),
-            unresolved: true,
-          ),
-        );
+    if (!ambiguous) {
+      for (final issue in current.dependencies.issues) {
+        if (issue.target.kind != key.kind || issue.target.id != key.id) {
+          continue;
+        }
+        if (issue.owner case final owner?) {
+          nodes.insert(
+            0,
+            VerificationGraphNode(
+              key: owner,
+              label: current.labelOf(owner),
+              role: VerificationNodeRole.owner,
+            ),
+          );
+          edges.add(
+            VerificationGraphEdge(
+              from: verificationKeyId(owner),
+              to: verificationKeyId(key),
+              sense: _sense(key.kind),
+              unresolved: true,
+            ),
+          );
+        }
       }
     }
     return VerificationGraph(
       nodes: nodes,
       edges: edges,
-      title: 'Référence introuvable : $label',
-      focusId: diagnostic.stableKey,
+      title: ambiguous
+          ? 'Cible ambiguë : plusieurs documents répondent à « $label »'
+          : 'Référence introuvable : $label',
+      focusId: verificationKeyId(key),
     );
   }
 
@@ -90,102 +164,8 @@ extension VerificationGraphs on VerificationWorkspaceController {
     _ => NarrativeDependencyTargetKind.sourceMap,
   };
 
-  NarrativeDependencyKey? _keyOf(
-    VerificationReport current,
-    NarrativeProjectDiagnostic diagnostic,
-  ) {
-    final ids = <String>[
-      for (final id in [
-        diagnostic.worldRuleId,
-        diagnostic.factId,
-        diagnostic.dialogueId,
-        diagnostic.cinematicId,
-        diagnostic.stepId,
-        diagnostic.chapterId,
-        diagnostic.storylineId,
-        diagnostic.sceneId,
-        diagnostic.eventId,
-        diagnostic.mapId,
-      ])
-        if (id != null && id.isNotEmpty) id,
-    ];
-    for (final id in ids) {
-      for (final definition in current.dependencies.definitions) {
-        if (definition.key.id == id) return definition.key;
-      }
-    }
-    return null;
-  }
-
-  VerificationGraph? _context(
-    VerificationReport current,
-    NarrativeProjectDiagnostic diagnostic,
-  ) {
-    final key = _keyOf(current, diagnostic);
-    if (key == null) return null;
-    final index = current.dependencies;
-    final nodes = <String, VerificationGraphNode>{};
-    final edges = <VerificationGraphEdge>[];
-    var hidden = 0;
-
-    void put(
-      NarrativeDependencyKey item,
-      VerificationNodeRole role, {
-      bool missing = false,
-    }) {
-      if (nodes.containsKey(item.id)) return;
-      if (nodes.length >= _budget) {
-        hidden++;
-        return;
-      }
-      nodes[item.id] = VerificationGraphNode(
-        id: item.id,
-        label: current.labels[item.id] ?? item.id,
-        kind: item.kind,
-        role: role,
-        missing: missing,
-      );
-    }
-
-    put(key, VerificationNodeRole.focus);
-    for (final usage in index.usagesFor(key)) {
-      put(usage.owner, VerificationNodeRole.owner);
-      if (!nodes.containsKey(usage.owner.id)) continue;
-      edges.add(
-        VerificationGraphEdge(
-          from: usage.owner.id,
-          to: key.id,
-          sense: _sense(key.kind),
-          unresolved:
-              usage.resolution != NarrativeDependencyResolution.resolved,
-        ),
-      );
-    }
-    for (final usage in index.usagesOwnedBy(key)) {
-      final resolved =
-          usage.resolution == NarrativeDependencyResolution.resolved;
-      put(usage.target, VerificationNodeRole.target, missing: !resolved);
-      if (!nodes.containsKey(usage.target.id)) continue;
-      edges.add(
-        VerificationGraphEdge(
-          from: key.id,
-          to: usage.target.id,
-          sense: _sense(usage.target.kind),
-          unresolved: !resolved,
-        ),
-      );
-    }
-    return VerificationGraph(
-      nodes: nodes.values.toList(),
-      edges: edges,
-      title: 'Contexte de ${current.labels[key.id] ?? key.id}',
-      focusId: key.id,
-      hiddenCount: hidden,
-    );
-  }
-
   /// Without a selection, show the spine the author recognises: histories,
-  /// their steps and the scenes they link, bounded and grouped.
+  /// their chapters and steps, the scenes and the rules, bounded and grouped.
   VerificationGraph _overview(VerificationReport current) {
     final index = current.dependencies;
     final nodes = <String, VerificationGraphNode>{};
@@ -205,20 +185,20 @@ extension VerificationGraphs on VerificationWorkspaceController {
         hidden++;
         continue;
       }
-      nodes[definition.key.id] = VerificationGraphNode(
-        id: definition.key.id,
+      nodes[verificationKeyId(definition.key)] = VerificationGraphNode(
+        key: definition.key,
         label: definition.label,
-        kind: definition.key.kind,
         role: VerificationNodeRole.context,
       );
     }
     for (final usage in index.usages) {
-      if (!nodes.containsKey(usage.owner.id)) continue;
-      if (!nodes.containsKey(usage.target.id)) continue;
+      final from = verificationKeyId(usage.owner);
+      final to = verificationKeyId(usage.target);
+      if (!nodes.containsKey(from) || !nodes.containsKey(to)) continue;
       edges.add(
         VerificationGraphEdge(
-          from: usage.owner.id,
-          to: usage.target.id,
+          from: from,
+          to: to,
           sense: _sense(usage.target.kind),
           unresolved:
               usage.resolution != NarrativeDependencyResolution.resolved,

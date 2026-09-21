@@ -28,4 +28,4 @@ Got dependencies!
 24 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 Analyzing avelune_studio...                                     
-No issues found! (ran in 7.1s)
+No issues found! (ran in 6.1s)

@@ -5,10 +5,12 @@ extension _VerificationDetail on _VerificationWorkspacePageState {
     final report = controller.report;
     final item = controller.selected;
     if (report == null || item == null) {
-      return const StudioPanel(
+      return StudioPanel(
         title: 'Détail',
         children: [
-          Expanded(
+          if (controller.selectionNotice case final notice?)
+            StudioNotice(notice),
+          const Expanded(
             child: SingleChildScrollView(
               child: StudioEmptyState(
                 title: 'Aucun diagnostic sélectionné',

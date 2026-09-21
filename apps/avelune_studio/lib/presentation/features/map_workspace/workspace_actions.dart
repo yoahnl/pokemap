@@ -69,6 +69,13 @@ class WorkspaceActions {
 
   Future<bool> allowClose() => _allowClose();
 
+  /// Validates the active inputs of every page that owns one, through their
+  /// own mechanisms. It publishes nothing.
+  Future<bool> flushEditors() async =>
+      _flushDialogueEdit() &&
+      await _flushEventEdits() &&
+      _validateWorldInputs();
+
   Future<void> test() async {
     if (presentations?.call()?.flushEdits?.call() == false) return;
     if (presentations?.call()?.dirty == true) {

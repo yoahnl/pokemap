@@ -1,7 +1,13 @@
 import 'dart:convert';
 
 import 'package:map_core/map_core_domain.dart';
+
+import '../../cinematics/application/cinematic_workspace_controller.dart';
+import '../../dialogues/application/dialogue_workspace_controller.dart';
+import '../../events/application/event_workspace_controller.dart';
 import '../../narrative/application/narrative_workspace_controller.dart';
+import '../../presentations/application/presentation_workspace_controller.dart';
+import '../../scenes/application/scene_workspace_controller.dart';
 import '../../world/application/world_workspace_controller.dart';
 import '../domain/verification_port.dart';
 
@@ -12,6 +18,7 @@ part 'verification_graph.dart';
 part 'verification_graph_model.dart';
 part 'verification_report.dart';
 part 'verification_run.dart';
+part 'verification_snapshot.dart';
 
 /// Narrative verification of one project.
 ///
@@ -24,6 +31,11 @@ class VerificationWorkspaceController {
     this.port, {
     required this.changed,
     this.world,
+    this.scenes,
+    this.dialogues,
+    this.events,
+    this.cinematics,
+    this.presentations,
   });
 
   static const validatorVersion = 'narrative-validator-v1';
@@ -32,14 +44,20 @@ class VerificationWorkspaceController {
   final VerificationPort port;
   final void Function() changed;
   final WorldWorkspaceController? Function()? world;
+  final SceneWorkspaceController? Function()? scenes;
+  final DialogueWorkspaceController? Function()? dialogues;
+  final EventWorkspaceController? Function()? events;
+  final CinematicWorkspaceController? Function()? cinematics;
+  final PresentationWorkspaceController? Function()? presentations;
 
-  /// Validates the active inputs of the pages that hold one, through their own
-  /// mechanisms, before a snapshot is taken.
-  bool Function()? flushEdits;
+  /// Validates the active inputs of every page that owns one, through their
+  /// own mechanisms, before a snapshot is taken. It publishes nothing.
+  Future<bool> Function()? flushEdits;
 
   VerificationPhase phase = VerificationPhase.idle;
   VerificationReport? report;
   String? error;
+  String? selectionNotice;
   String search = '';
   String? selectedKey;
   final severities = <NarrativeProjectDiagnosticSeverity>{};
@@ -47,6 +65,7 @@ class VerificationWorkspaceController {
 
   int _generation = 0;
   bool _closed = false;
+  VerificationJob? _job;
 
   ProjectManifest get project => narrative.project;
   bool get running =>
@@ -59,32 +78,14 @@ class VerificationWorkspaceController {
   /// it is noticed at the next explicit control, which the report states.
   bool get stale {
     final current = report;
-    return current != null && current.freshnessKey != _freshnessKey();
-  }
-
-  String _freshnessKey() {
-    final owner = world?.call();
-    final documents = narrative.workspace.documents.entries.toList()
-      ..sort((left, right) => left.key.compareTo(right.key));
-    return [
-      identityHashCode(project),
-      for (final fact in narrative.pendingFacts.values)
-        jsonEncode(fact.toJson()),
-      for (final story in narrative.pendingStories.values)
-        jsonEncode(story.toJson()),
-      ...narrative.pendingStoryDeletions,
-      if (owner != null)
-        for (final draft in owner.pendingRules.values) draft.signature,
-      for (final entry in documents)
-        '${entry.key}:${entry.value.dirty}:${entry.value.undoCount}',
-      for (final session in narrative.sessions.entries)
-        if (session.value.dirty) 'session:${session.key}',
-    ].join('|');
+    return current != null && current.freshnessKey != workingRevision();
   }
 
   void abandon() {
     if (!running) return;
     _generation++;
+    _job?.cancel();
+    _job = null;
     phase = report == null
         ? VerificationPhase.cancelled
         : VerificationPhase.ready;
@@ -93,6 +94,7 @@ class VerificationWorkspaceController {
 
   void select(String? key) {
     selectedKey = key;
+    selectionNotice = null;
     changed();
   }
 
@@ -108,5 +110,7 @@ class VerificationWorkspaceController {
   void dispose() {
     _closed = true;
     _generation++;
+    _job?.cancel();
+    _job = null;
   }
 }

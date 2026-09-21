@@ -88,6 +88,9 @@ Widget? workspaceSecondaryContent({
   required VoidCallback onScenes,
   VoidCallback? onWorld,
   VoidCallback? onVerification,
+  VoidCallback? onProgressionBack,
+  VoidCallback? onReturnVerification,
+  String progressionBackLabel = 'Histoire',
   required Future<String?> Function(String) onOpenScene,
   required ResourceNavigation? resources,
   required MapWorkspaceVisuals? visuals,
@@ -148,7 +151,8 @@ Widget? workspaceSecondaryContent({
     return StoryProgressionPage(
       controller: stories,
       views: progressionViews,
-      onBack: onStory,
+      onBack: onProgressionBack ?? onStory,
+      onBackLabel: progressionBackLabel,
       onOpenScene: onOpenScene,
     );
   }
@@ -174,6 +178,9 @@ Widget? workspaceSecondaryContent({
           ? onReturnEvents
           : sceneOrigin.space == WorkspaceSpace.progression
           ? onReturnProgression
+          : sceneOrigin.space == WorkspaceSpace.verification &&
+                onReturnVerification != null
+          ? onReturnVerification
           : onStory,
       onBackLabel: sceneOrigin.space == WorkspaceSpace.presentation
           ? 'la présentation'
@@ -181,6 +188,8 @@ Widget? workspaceSecondaryContent({
           ? 'Événements'
           : sceneOrigin.space == WorkspaceSpace.progression
           ? 'Histoires et progression'
+          : sceneOrigin.space == WorkspaceSpace.verification
+          ? 'Vérification'
           : 'Histoire',
       onTest: onTest,
     );

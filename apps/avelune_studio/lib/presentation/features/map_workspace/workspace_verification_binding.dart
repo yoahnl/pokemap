@@ -9,8 +9,12 @@ extension _WorkspaceVerificationBinding on _MapWorkspaceScreenState {
       port,
       changed: _changed,
       world: () => _world,
-      // The pages that own an input validate it themselves before a snapshot.
-    )..flushEdits = () => _worldView.invalidFields.isEmpty;
+      scenes: () => _scenes,
+      dialogues: () => _dialogues,
+      events: () => _events,
+      cinematics: () => _cinematics,
+      presentations: () => _presentations,
+    )..flushEdits = _actions.flushEditors;
   }
 
   void _openVerification() {
@@ -40,31 +44,39 @@ extension _WorkspaceVerificationBinding on _MapWorkspaceScreenState {
   String? _destinationLabel(NarrativeProjectDiagnostic item) =>
       switch (item.destination) {
         NarrativeProjectDiagnosticDestination.scene =>
-          item.sceneId == null || _scenes == null ? null : 'Éditeur de scène',
+          _empty(item.sceneId) || _scenes == null ? null : 'Éditeur de scène',
         NarrativeProjectDiagnosticDestination.dialogue =>
-          item.dialogueId == null || _dialogues == null
+          _empty(item.dialogueId) || _dialogues == null
               ? null
               : 'Éditeur de dialogue',
         NarrativeProjectDiagnosticDestination.cinematic =>
-          item.cinematicId == null || _cinematics == null
+          _empty(item.cinematicId) || _cinematics == null
               ? null
               : 'Cinématique sur carte',
         NarrativeProjectDiagnosticDestination.event =>
-          item.eventId == null || _events == null
+          _empty(item.eventId) || _events == null
               ? null
               : 'Événements et déclencheurs',
         NarrativeProjectDiagnosticDestination.storyline =>
-          item.storylineId == null || _stories == null
+          _empty(item.storylineId) || _stories == null
               ? null
-              : 'Histoires et progression (le retour rejoint Histoire)',
+              : _progressionLabel(item),
         NarrativeProjectDiagnosticDestination.fact =>
-          item.factId == null || _world == null ? null : 'États du monde',
+          _empty(item.factId) || _world == null ? null : 'États du monde',
         NarrativeProjectDiagnosticDestination.worldRule =>
-          item.worldRuleId == null || _world == null ? null : 'Règles du monde',
+          _empty(item.worldRuleId) || _world == null ? null : 'Règles du monde',
         NarrativeProjectDiagnosticDestination.map =>
-          item.mapId == null ? null : 'Carte',
+          _empty(item.mapId) ? null : 'Carte',
         NarrativeProjectDiagnosticDestination.overview => null,
       };
+
+  bool _empty(String? value) => value == null || value.isEmpty;
+
+  /// The page only promises the precision the diagnostic actually carries.
+  String _progressionLabel(NarrativeProjectDiagnostic item) =>
+      _empty(item.stepId) && _empty(item.chapterId)
+      ? 'Histoires et progression (l’histoire, sans étape précise)'
+      : 'Histoires et progression (étape ciblée)';
 
   /// Opens the document responsible for the diagnostic. A destination that
   /// fails explains itself and never changes the selection or a draft.
@@ -103,11 +115,7 @@ extension _WorkspaceVerificationBinding on _MapWorkspaceScreenState {
         _show(WorkspaceSpace.events);
         return null;
       case NarrativeProjectDiagnosticDestination.storyline:
-        if (!_stories!.open(item.storylineId!)) {
-          return _stories!.error ?? 'Cette histoire n’est plus disponible.';
-        }
-        _show(WorkspaceSpace.progression);
-        return null;
+        return _openProgressionTarget(item);
       case NarrativeProjectDiagnosticDestination.fact:
       case NarrativeProjectDiagnosticDestination.worldRule:
         return _openWorldDocument(item);
@@ -118,10 +126,41 @@ extension _WorkspaceVerificationBinding on _MapWorkspaceScreenState {
     }
   }
 
+  /// A diagnostic that names a chapter or a step selects it; one that only
+  /// names the story opens the story and claims nothing more.
+  String? _openProgressionTarget(NarrativeProjectDiagnostic item) {
+    final stories = _stories!;
+    final storyId = item.storylineId!;
+    if (!stories.open(storyId)) {
+      return stories.error ?? 'Cette histoire n’est plus disponible.';
+    }
+    final step = item.stepId, chapter = item.chapterId;
+    if (!_empty(step) || !_empty(chapter)) {
+      final projection = buildStorylineProgressionProjection(
+        project: stories.project,
+        storylineId: storyId,
+      );
+      final node = projection.nodes
+          .where(
+            (candidate) => _empty(step)
+                ? candidate.chapterId == chapter
+                : candidate.stepId == step,
+          )
+          .firstOrNull;
+      if (node != null) {
+        _progressionViews.forStory(stories.project, storyId).selection =
+            StoryGraphSelection.node(node);
+      }
+    }
+    _progressionOrigin = const WorkspaceReturn(WorkspaceSpace.verification);
+    _show(WorkspaceSpace.progression);
+    return null;
+  }
+
   String? _openWorldDocument(NarrativeProjectDiagnostic item) {
     final world = _world!;
     final rule = item.worldRuleId;
-    if (rule != null) {
+    if (!_empty(rule)) {
       if (!world.rules.any((candidate) => candidate.id == rule)) {
         return 'Cette règle n’existe plus dans la version de travail.';
       }
@@ -149,6 +188,7 @@ extension _WorkspaceVerificationBinding on _MapWorkspaceScreenState {
         .firstOrNull;
     if (entry == null) return 'Cette carte n’est plus dans le projet.';
     unawaited(_controller.activate(entry));
+    _verificationMapReturn = true;
     _show(WorkspaceSpace.map);
     return null;
   }

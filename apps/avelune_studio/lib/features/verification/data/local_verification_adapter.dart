@@ -1,17 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:map_core/map_core_domain.dart';
-import 'package:map_gameplay/map_gameplay.dart'
-    show
-        NarrativePhysicalIssueCode,
-        NarrativePhysicalReachabilityVerdict,
-        validateNarrativePhysicalReachability;
 import 'package:path/path.dart' as p;
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/verification_port.dart';
+import 'verification_analysis_worker.dart';
 
 class LocalVerificationAdapter implements VerificationPort {
   LocalVerificationAdapter({required this.session, required this.mapAdapter});
@@ -44,49 +42,61 @@ class LocalVerificationAdapter implements VerificationPort {
   }
 
   @override
-  Future<NarrativeValidationDimensionResult> physicalReachability({
+  VerificationJob analyse({
     required ProjectManifest project,
     required List<MapData> maps,
-    required NarrativeSymbolicReachabilityReport? symbolic,
-  }) async {
-    if (symbolic == null) {
-      return NarrativeValidationDimensionResult(
-        status: NarrativeValidationStatus.notRun,
-        limitations: const [
-          'La preuve symbolique manque : aucune exploration physique n’a '
-              'été tentée.',
-        ],
-      );
+  }) {
+    final replies = ReceivePort();
+    final completer = Completer<VerificationAnalysis>();
+    Isolate? worker;
+    var settled = false;
+    void finish(void Function() apply) {
+      if (settled) return;
+      settled = true;
+      replies.close();
+      apply();
     }
-    final report = validateNarrativePhysicalReachability(
-      project: project,
-      maps: maps,
-      narrativeReport: symbolic,
+
+    replies.listen((message) {
+      if (message is VerificationAnalysis) {
+        finish(() => completer.complete(message));
+      } else {
+        finish(
+          () =>
+              completer.completeError(VerificationFailure(message.toString())),
+        );
+      }
+    });
+    unawaited(
+      Isolate.spawn(
+        verificationAnalysisWorker,
+        VerificationAnalysisRequest(replies.sendPort, project, maps),
+        debugName: verificationWorkerName,
+        errorsAreFatal: true,
+        onError: replies.sendPort,
+        onExit: replies.sendPort,
+      ).then(
+        (spawned) {
+          if (settled) {
+            spawned.kill(priority: Isolate.immediate);
+            return;
+          }
+          worker = spawned;
+        },
+        onError: (Object error) => finish(
+          () => completer.completeError(VerificationFailure(error.toString())),
+        ),
+      ),
     );
-    return NarrativeValidationDimensionResult(
-      status: switch (report.verdict) {
-        NarrativePhysicalReachabilityVerdict.pass =>
-          NarrativeValidationStatus.pass,
-        NarrativePhysicalReachabilityVerdict.fail =>
-          NarrativeValidationStatus.fail,
-        NarrativePhysicalReachabilityVerdict.indeterminate =>
-          NarrativeValidationStatus.indeterminate,
-      },
-      diagnostics: [
-        for (final issue in report.issues)
-          NarrativeMultidimensionalDiagnostic(
-            id:
-                'physical:${issue.code.name}:${issue.eventId ?? ''}'
-                ':${issue.mapId ?? ''}',
-            code: issue.code.name,
-            severity:
-                issue.code == NarrativePhysicalIssueCode.permanentlyBlocked
-                ? 'error'
-                : 'warning',
-            message: issue.message,
-            path: issue.mapId == null ? 'maps' : 'maps.${issue.mapId}',
-          ),
-      ],
+    return VerificationJob(
+      result: completer.future,
+      cancel: () => finish(() {
+        worker?.kill(priority: Isolate.immediate);
+        worker = null;
+        completer.completeError(
+          const VerificationFailure('Contrôle abandonné.'),
+        );
+      }),
     );
   }
 

@@ -44,6 +44,19 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                         },
                       ),
                     ),
+                  if (_verificationMapReturn && _space == WorkspaceSpace.map)
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: StudioButton(
+                        label: 'Retour à la vérification',
+                        secondary: true,
+                        icon: Icons.arrow_back,
+                        onPressed: () {
+                          _verificationMapReturn = false;
+                          _show(WorkspaceSpace.verification);
+                        },
+                      ),
+                    ),
                   if (_eventMapReturn && _space == WorkspaceSpace.map)
                     Padding(
                       padding: const EdgeInsets.all(8),
@@ -164,6 +177,16 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                   _show(WorkspaceSpace.progression),
                               onScenes: _openScenes,
                               onWorld: _world == null ? null : _openWorld,
+                              onProgressionBack: () =>
+                                  _show(_progressionOrigin.space),
+                              onReturnVerification: _verification == null
+                                  ? null
+                                  : () => _show(WorkspaceSpace.verification),
+                              progressionBackLabel:
+                                  _progressionOrigin.space ==
+                                      WorkspaceSpace.verification
+                                  ? 'Vérification'
+                                  : 'Histoire',
                               onVerification: _verification == null
                                   ? null
                                   : _openVerification,

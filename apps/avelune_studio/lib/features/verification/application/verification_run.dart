@@ -5,19 +5,21 @@ extension VerificationRun on VerificationWorkspaceController {
   /// than queued, so two reports can never contradict each other.
   Future<bool> run() async {
     if (_closed || running) return false;
-    if (flushEdits?.call() == false) {
-      return _fail(
-        const VerificationFailure(
-          'Corrigez les saisies refusées avant de lancer le contrôle. '
-          'Aucune saisie refusée n’a été publiée.',
-        ),
-      );
-    }
     final ticket = ++_generation;
     final manifest = project;
     phase = VerificationPhase.reading;
     error = null;
     changed();
+    if (await flushEdits?.call() == false) {
+      return ticket == _generation
+          ? _fail(
+              const VerificationFailure(
+                'Corrigez les saisies refusées avant de lancer le contrôle. '
+                'Aucune saisie refusée n’a été publiée.',
+              ),
+            )
+          : false;
+    }
     try {
       final revision = await port.projectRevision();
       if (_stopped(ticket, manifest)) return false;
@@ -25,107 +27,91 @@ extension VerificationRun on VerificationWorkspaceController {
       if (_stopped(ticket, manifest)) return false;
       final evidence = await port.readRuntimeEvidence(selbrumeReleaseV1Profile);
       if (_stopped(ticket, manifest)) return false;
+      final snapshot = capture(loaded);
       phase = VerificationPhase.analysing;
       changed();
-      final maps = _workingMaps(loaded);
-      final analysed = project.copyWith(
-        facts: narrative.facts,
-        storylines: narrative.stories,
-        worldRules: world?.call()?.rules ?? project.worldRules,
-      );
-      final validation = validateNarrativeProject(analysed, maps: maps);
-      final physical = await port.physicalReachability(
-        project: analysed,
-        maps: maps,
-        symbolic: validation.symbolicReachability,
-      );
+      final job = port.analyse(project: snapshot.project, maps: snapshot.maps);
+      _job = job;
+      final analysis = await job.result;
       if (_stopped(ticket, manifest)) return false;
-      final built = _assemble(
-        ticket,
-        revision,
-        analysed,
-        maps,
-        validation,
-        physical,
-        evidence,
-      );
-      if (_stopped(ticket, manifest)) return false;
-      report = built;
-      selectedKey = null;
+      _job = null;
+      report = _assemble(ticket, revision, snapshot, analysis, evidence);
+      _keepSelection();
       phase = VerificationPhase.ready;
       changed();
       return true;
     } on Object catch (failure) {
-      return ticket == _generation ? _fail(failure) : false;
+      if (ticket != _generation) return false;
+      _job = null;
+      return _fail(failure);
     }
   }
 
-  /// The project may have been closed or replaced while a read was pending.
+  /// A reply from a replaced request, a cancelled one or a closed project is
+  /// dropped instead of taking the place of the current report.
   bool _stopped(int ticket, ProjectManifest manifest) =>
       _closed || ticket != _generation || !identical(project, manifest);
 
-  VerificationReport _assemble(
-    int ticket,
-    String revision,
-    ProjectManifest analysed,
-    List<MapData> maps,
-    NarrativeProjectValidationReport validation,
-    NarrativeValidationDimensionResult physical,
-    VerificationRuntimeEvidence evidence,
-  ) {
-    final owner = world?.call();
-    final dependencies = buildNarrativeDependencyIndex(
-      project: analysed,
-      maps: maps,
-    );
-    return VerificationReport(
-      requestId: ticket,
-      sessionId: revision,
-      generatedAt: DateTime.now(),
-      validatorVersion: VerificationWorkspaceController.validatorVersion,
-      inputFingerprint: _fingerprint(analysed, maps),
-      freshnessKey: _freshnessKey(),
-      project: validation,
-      dependencies: dependencies,
-      dimensions: _dimensions(validation, physical, evidence),
-      runtime: evidence,
-      scope: _scope(analysed, maps),
-      limitations: _limitations(owner, evidence),
-      blockers: _blockers(owner),
-      labels: {
-        for (final map in maps) map.id: map.name.isEmpty ? map.id : map.name,
-        for (final definition in dependencies.definitions)
-          definition.key.id: definition.label,
-      },
-      includesDrafts: true,
-    );
+  /// A new report keeps the selection when its key survives. A key that is
+  /// gone says so: it includes the severity, so its absence proves nothing.
+  void _keepSelection() {
+    final key = selectedKey;
+    if (key == null) return;
+    if (report!.diagnostics.any((item) => item.stableKey == key)) {
+      selectionNotice = null;
+      return;
+    }
+    selectedKey = null;
+    selectionNotice =
+        'Le diagnostic sélectionné n’est plus présent dans ce rapport. '
+        'Sa clé inclut sa gravité : son absence ne prouve pas qu’il est '
+        'résolu.';
   }
 
-  /// The version the author is working on: a map with an unsaved draft is
-  /// analysed as it stands on screen, not as it stands on disk.
-  List<MapData> _workingMaps(List<MapData> loaded) => [
-    for (final map in loaded)
-      narrative.workspace.documents[map.id]?.current ?? map,
-  ];
-
-  String _fingerprint(ProjectManifest analysed, List<MapData> maps) =>
-      computeNarrativeProjectFingerprint([
-        NarrativeProjectFingerprintEntry(
-          relativePath: 'project.json',
-          bytes: utf8.encode(jsonEncode(analysed.toJson())),
-        ),
-        for (final map in maps)
-          NarrativeProjectFingerprintEntry(
-            relativePath: 'maps/${map.id}.json',
-            bytes: utf8.encode(jsonEncode(map.toJson())),
+  VerificationReport _assemble(
+    int ticket,
+    String savedRevision,
+    VerificationSnapshot snapshot,
+    VerificationAnalysis analysis,
+    VerificationRuntimeEvidence evidence,
+  ) => VerificationReport(
+    requestId: ticket,
+    savedRevision: savedRevision,
+    generatedAt: DateTime.now(),
+    validatorVersion: VerificationWorkspaceController.validatorVersion,
+    inputFingerprint: snapshot.fingerprint,
+    freshnessKey: snapshot.revision,
+    isolateName: analysis.isolateName,
+    project: analysis.validation,
+    dependencies: analysis.dependencies,
+    dimensions: _dimensions(analysis, snapshot, evidence),
+    runtime: evidence,
+    scope: snapshot.scope,
+    limitations: _limitations(snapshot, evidence),
+    blockers: snapshot.blockers,
+    exclusions: snapshot.exclusions,
+    labels: {
+      for (final map in snapshot.maps)
+        verificationKeyId(
+          NarrativeDependencyKey(
+            NarrativeDependencyTargetKind.sourceMap,
+            map.id,
           ),
-      ]);
+        ): map.name.isEmpty
+            ? map.id
+            : map.name,
+      for (final definition in analysis.dependencies.definitions)
+        verificationKeyId(definition.key): definition.label,
+    },
+    drafted: snapshot.drafted,
+  );
 
   NarrativeMultidimensionalValidationReport _dimensions(
-    NarrativeProjectValidationReport validation,
-    NarrativeValidationDimensionResult physical,
+    VerificationAnalysis analysis,
+    VerificationSnapshot snapshot,
     VerificationRuntimeEvidence evidence,
   ) {
+    final validation = analysis.validation;
     bool narrativeCode(String code) =>
         code.startsWith('narrative') ||
         code == 'oneShotRetryableOutcomeSoftlock';
@@ -147,7 +133,7 @@ extension VerificationRun on VerificationWorkspaceController {
       validatorVersion: VerificationWorkspaceController.validatorVersion,
       profileId: selbrumeReleaseV1Profile.id,
       profileVersion: selbrumeReleaseV1Profile.version,
-      projectFingerprint: evidence.receipt?.projectFingerprint ?? _absentHash,
+      projectFingerprint: snapshot.fingerprint,
       generatedAt: DateTime.now().toUtc(),
       structurallyValid: NarrativeValidationDimensionResult(
         status: structuralFails
@@ -171,17 +157,33 @@ extension VerificationRun on VerificationWorkspaceController {
             ? const ['La preuve symbolique n’a pas été exécutée.']
             : [for (final issue in symbolic.issues) issue.message],
       ),
-      physicallyReachable: physical,
-      runtimeSmokeVerified: NarrativeValidationDimensionResult(
-        status: evidence.status,
-        limitations: [evidence.reason],
-        evidenceRefs: [
-          if (evidence.receipt case final receipt?)
-            'receipt:${receipt.completedAt.toIso8601String()}',
-        ],
-      ),
+      physicallyReachable: analysis.physical,
+      runtimeSmokeVerified: _runtime(snapshot, evidence),
     );
   }
+
+  /// A receipt describes the project as it was written on disk. It cannot
+  /// speak for a version that carries unsaved documents, so the runtime
+  /// dimension of the working version stays unexecuted and says why.
+  NarrativeValidationDimensionResult _runtime(
+    VerificationSnapshot snapshot,
+    VerificationRuntimeEvidence evidence,
+  ) => NarrativeValidationDimensionResult(
+    status: snapshot.drafted
+        ? NarrativeValidationStatus.notRun
+        : evidence.status,
+    limitations: [
+      if (snapshot.drafted)
+        'Le contrôle porte sur des documents non enregistrés. La preuve '
+            'd’exécution ne décrit que la version enregistrée du projet : '
+            'elle ne certifie pas ces entrées.',
+      'Version enregistrée · ${evidence.reason}',
+    ],
+    evidenceRefs: [
+      if (evidence.receipt case final receipt?)
+        'receipt:${receipt.completedAt.toIso8601String()}',
+    ],
+  );
 
   NarrativeMultidimensionalDiagnostic _multidimensional(
     NarrativeProjectDiagnostic item,
@@ -193,49 +195,25 @@ extension VerificationRun on VerificationWorkspaceController {
     path: item.path,
   );
 
-  List<String> _scope(ProjectManifest analysed, List<MapData> maps) => [
-    '${maps.length} carte(s) analysée(s)',
-    '${analysed.storylines.length} histoire(s)',
-    '${analysed.scenes.length} scène(s)',
-    '${analysed.dialogues.length} dialogue(s)',
-    '${analysed.facts.length} état(s) du monde',
-    '${analysed.worldRules.length} règle(s) du monde',
-  ];
-
   List<String> _limitations(
-    WorldWorkspaceController? owner,
+    VerificationSnapshot snapshot,
     VerificationRuntimeEvidence evidence,
-  ) {
-    final sessions = narrative.sessions.values
-        .where((session) => session.dirty)
-        .length;
-    return [
-      'Catalogues Pokémon non contrôlés : le Studio ne les lit pas, leurs '
-          'références ne sont donc ni validées ni déclarées valides.',
-      'Fraîcheur : un fichier modifié hors du Studio n’est vu qu’au prochain '
-          'contrôle explicite.',
-      if (sessions > 0)
-        '$sessions interaction(s) ont un brouillon non représentable dans ce '
-            'contrôle : leur version enregistrée a été analysée.',
-      if (owner != null && owner.pendingRules.isNotEmpty)
-        'Les règles incomplètes sont listées à part : elles ne sont pas des '
-            'définitions et n’atteignent pas le validateur.',
-      evidence.reason,
-    ];
-  }
-
-  List<VerificationDraftBlocker> _blockers(WorldWorkspaceController? owner) => [
-    if (owner != null)
-      for (final draft in owner.pendingRules.values)
-        if (draft.complete == null)
-          VerificationDraftBlocker(
-            ruleId: draft.id,
-            label: draft.label,
-            missing: draft.missing,
-          ),
+  ) => [
+    'Catalogues Pokémon non contrôlés : le Studio ne les lit pas, leurs '
+        'références ne sont donc ni validées ni déclarées valides.',
+    'Fraîcheur : un fichier modifié hors du Studio n’est vu qu’au prochain '
+        'contrôle explicite.',
+    if (snapshot.drafted)
+      'Périmètre : version de travail, documents enregistrés et brouillons '
+          'représentables compris.'
+    else
+      'Périmètre : version enregistrée, aucun brouillon n’était ouvert.',
+    for (final exclusion in snapshot.exclusions)
+      'Hors contrôle · ${exclusion.owner} · ${exclusion.label} : '
+          '${exclusion.reason}',
+    if (snapshot.blockers.isNotEmpty)
+      'Les règles incomplètes sont listées à part : elles ne sont pas des '
+          'définitions et n’atteignent pas le validateur.',
+    'Preuve d’exécution · ${evidence.reason}',
   ];
 }
-
-const _absentHash =
-    'sha256:${''
-        '0000000000000000000000000000000000000000000000000000000000000000'}';

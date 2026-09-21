@@ -4,13 +4,15 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'm2_ui_fixture.dart';
 
-/// Runs the real reads of [VerificationPort] where a widget test can await
-/// them, and counts them so a test can prove that nothing runs on its own.
+/// Runs the real reads and the real analysis of [VerificationPort] where a
+/// widget test can await them, and counts them so a test can prove that
+/// nothing runs on its own.
 class Ui13WidgetVerificationPort implements VerificationPort {
   Ui13WidgetVerificationPort(this.delegate, this.tester);
   final VerificationPort delegate;
   final WidgetTester tester;
   int runs = 0;
+  int analyses = 0;
 
   Future<T> _run<T>(Future<T> Function() action) async =>
       (await WidgetResourcePort.serial(tester, action)) as T;
@@ -30,15 +32,27 @@ class Ui13WidgetVerificationPort implements VerificationPort {
   ) => _run(() => delegate.readRuntimeEvidence(profile));
 
   @override
-  Future<NarrativeValidationDimensionResult> physicalReachability({
+  VerificationJob analyse({
     required ProjectManifest project,
     required List<MapData> maps,
-    required NarrativeSymbolicReachabilityReport? symbolic,
-  }) => _run(
-    () => delegate.physicalReachability(
-      project: project,
-      maps: maps,
-      symbolic: symbolic,
-    ),
-  );
+  }) {
+    analyses++;
+    VerificationJob? inner;
+    var cancelled = false;
+    final result = _run(() async {
+      inner = delegate.analyse(project: project, maps: maps);
+      if (cancelled) {
+        inner!.cancel();
+        throw const VerificationFailure('Contrôle abandonné.');
+      }
+      return inner!.result;
+    });
+    return VerificationJob(
+      result: result,
+      cancel: () {
+        cancelled = true;
+        inner?.cancel();
+      },
+    );
+  }
 }

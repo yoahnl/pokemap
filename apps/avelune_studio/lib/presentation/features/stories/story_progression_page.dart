@@ -19,11 +19,13 @@ class StoryProgressionPage extends StatefulWidget {
     required this.controller,
     required this.views,
     required this.onBack,
+    this.onBackLabel = 'Histoire',
     required this.onOpenScene,
   });
   final StoryWorkspaceController controller;
   final StoryProgressionViewStore views;
   final VoidCallback onBack;
+  final String onBackLabel;
   final Future<String?> Function(String) onOpenScene;
   @override
   State<StoryProgressionPage> createState() => _StoryProgressionPageState();
@@ -140,7 +142,7 @@ class _StoryProgressionPageState extends State<StoryProgressionPage> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   StudioButton(
-                    label: 'Histoire',
+                    label: widget.onBackLabel,
                     secondary: true,
                     icon: Icons.arrow_back,
                     onPressed: widget.onBack,

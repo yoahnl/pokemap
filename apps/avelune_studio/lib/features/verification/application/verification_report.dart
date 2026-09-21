@@ -22,11 +22,12 @@ class VerificationDraftBlocker {
 class VerificationReport {
   VerificationReport({
     required this.requestId,
-    required this.sessionId,
+    required this.savedRevision,
     required this.generatedAt,
     required this.validatorVersion,
     required this.inputFingerprint,
     required this.freshnessKey,
+    required this.isolateName,
     required this.project,
     required this.dependencies,
     required this.dimensions,
@@ -34,15 +35,20 @@ class VerificationReport {
     required this.scope,
     required this.limitations,
     required this.blockers,
+    required this.exclusions,
     required this.labels,
-    required this.includesDrafts,
+    required this.drafted,
   });
 
+  /// Identity of this request, of the saved project, of the analysed inputs
+  /// and of where the work ran — four different things, kept apart.
   final int requestId;
-  final String sessionId;
+  final String savedRevision;
+  final String inputFingerprint;
+  final String isolateName;
+
   final DateTime generatedAt;
   final String validatorVersion;
-  final String inputFingerprint;
   final String freshnessKey;
   final NarrativeProjectValidationReport project;
   final NarrativeDependencyIndex dependencies;
@@ -51,59 +57,61 @@ class VerificationReport {
   final List<String> scope;
   final List<String> limitations;
   final List<VerificationDraftBlocker> blockers;
+  final List<VerificationExclusion> exclusions;
   final Map<String, String> labels;
-  final bool includesDrafts;
+  final bool drafted;
 
   List<NarrativeProjectDiagnostic> get diagnostics => project.diagnostics;
 
   int countOf(NarrativeProjectDiagnosticSeverity severity) =>
-      diagnostics.where((diagnostic) => diagnostic.severity == severity).length;
+      diagnostics.where((item) => item.severity == severity).length;
 
   int errorsIn(NarrativeProjectDiagnosticDomain domain) => diagnostics
       .where(
-        (diagnostic) =>
-            diagnostic.domain == domain &&
-            diagnostic.severity == NarrativeProjectDiagnosticSeverity.error,
+        (item) =>
+            item.domain == domain &&
+            item.severity == NarrativeProjectDiagnosticSeverity.error,
       )
       .length;
 
   int warningsIn(NarrativeProjectDiagnosticDomain domain) => diagnostics
       .where(
-        (diagnostic) =>
-            diagnostic.domain == domain &&
-            diagnostic.severity == NarrativeProjectDiagnosticSeverity.warning,
+        (item) =>
+            item.domain == domain &&
+            item.severity == NarrativeProjectDiagnosticSeverity.warning,
       )
       .length;
 
   int countIn(NarrativeProjectDiagnosticDomain domain) =>
-      diagnostics.where((diagnostic) => diagnostic.domain == domain).length;
+      diagnostics.where((item) => item.domain == domain).length;
 
-  /// The human name of the element a diagnostic points at, taken from the
-  /// dependency index rather than parsed out of the message.
+  /// The human name of a canonical identity.
+  String labelOf(NarrativeDependencyKey key) =>
+      labels[verificationKeyId(key)] ?? key.id;
+
+  /// The human name of the element a diagnostic points at, resolved through
+  /// the full canonical identity rather than a bare text identifier.
   String labelFor(NarrativeProjectDiagnostic diagnostic) {
-    for (final id in [
-      diagnostic.worldRuleId,
-      diagnostic.factId,
-      diagnostic.dialogueId,
-      diagnostic.cinematicId,
-      diagnostic.stepId,
-      diagnostic.chapterId,
-      diagnostic.storylineId,
-      diagnostic.sceneId,
-      diagnostic.eventId,
-      diagnostic.mapId,
-    ]) {
-      if (id == null || id.isEmpty) continue;
-      if (labels[id] case final label?) return label;
-      return id;
-    }
-    return diagnostic.path;
+    final resolved = verificationResolve(dependencies, diagnostic);
+    if (resolved.key case final key?) return labelOf(key);
+    final candidate = verificationCandidates(diagnostic).firstOrNull;
+    if (candidate == null) return diagnostic.path;
+    return resolved.ambiguous
+        ? '${candidate.$2} (plusieurs documents)'
+        : candidate.$2;
   }
 
   /// Where the problem lives, qualified so two homonyms stay distinct.
   String locationOf(NarrativeProjectDiagnostic diagnostic) {
     final map = diagnostic.mapId;
-    final mapLabel = map == null ? null : labels[map] ?? map;
+    final mapLabel = map == null || map.isEmpty
+        ? null
+        : labelOf(
+            NarrativeDependencyKey(
+              NarrativeDependencyTargetKind.sourceMap,
+              map,
+            ),
+          );
     return switch (diagnostic.domain) {
       NarrativeProjectDiagnosticDomain.map => mapLabel ?? 'Cartes',
       NarrativeProjectDiagnosticDomain.worldRule => 'Règles du monde',

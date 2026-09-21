@@ -1,7 +1,8 @@
 # AS-UI-013 — Vérification narrative
 
 Réalisation de l'image 09 du kit Narrative Studio, précédée de la validation
-du correctif UI12 de la PR #10.
+du correctif UI12 de la PR #10, puis finalisée par le lot de fiabilité décrit
+plus bas (revue sur `9764082e3`).
 
 Base de travail : `main` à `edf0f96c96a8db4475c5f3eb084fc8a88062894c`, la base
 exacte du pack. SDK local Flutter `3.48.0-0.4.pre` ; la CI épingle
@@ -78,6 +79,85 @@ qu'il atteint `map_core.dart` et donc `dart:io` : le solveur est donc appelé
 **depuis l'adaptateur**, et ne traverse le port que sous forme canonique
 (`NarrativeValidationDimensionResult`). Le garde-fou n'a pas été modifié.
 
+## Finalisation de la fiabilité
+
+Cinq points de la revue de `9764082e3`, reproduits sur l'état courant avant
+correction.
+
+**1 · Le contrôle lisait une version de travail incomplète.** Il reprenait les
+cartes, les états, les histoires et les règles, mais pas les sessions des
+éditeurs. Les cinq propriétaires contribuent maintenant par leur propre
+accesseur — `scenes.scenes`, `dialogues.entries`, `events.project`,
+`cinematics.entries`, `presentations.entries` — sans qu'aucun document partagé
+soit dupliqué : le manifeste de travail part de celui que les Événements
+composent déjà. Une scène renommée dans son éditeur est analysée sans être
+enregistrée, et le fichier du projet ne bouge pas.
+
+La validation des saisies ne se limite plus aux champs UI12 : la page appelle
+`WorkspaceActions.flushEditors()`, le même chemin que la garde de fermeture,
+qui valide présentations, cinématiques, dialogues, événements et monde sans
+rien publier.
+
+Ce qui n'est pas représentable est nommé avec sa raison : un brouillon
+d'interaction, et le conflit entre deux propriétaires qui tiennent chacun une
+version du même dialogue. Le rapport les liste sous « Hors du contrôle » et
+ses limites disent que ce périmètre n'est pas couvert.
+
+**L'entrée est figée.** `VerificationSnapshot` porte le projet analysé, ses
+cartes, sa révision, son empreinte, ses exclusions et ses brouillons
+bloquants ; le rapport, le graphe, les limites et l'empreinte décrivent ce
+même objet. La révision est capturée au moment du gel, avant les calculs :
+une modification pendant l'analyse laisse le résultat **ancien**, jamais
+estampillé d'une révision plus récente.
+
+La fraîcheur suit le contenu, pas la forme. Chaque document de travail est une
+valeur immuable remplacée à chaque édition, donc son identité d'instance bouge
+quand son contenu bouge : deuxième modification d'un document déjà modifié,
+annulation puis autre modification, texte Yarn seul, changement sans nouveau
+document ni nouvel identifiant. Aucun booléen `dirty` ni compteur d'annulations
+n'entre dans cette clé, et rien n'est sérialisé à chaque reconstruction.
+
+**2 · La preuve runtime parlait pour la mauvaise version.** Quatre identités
+sont désormais distinctes : la session/projet (`savedRevision`), la requête
+(`requestId`), les entrées analysées (`inputFingerprint`) et la preuve
+d'exécution. Le `projectFingerprint` du rapport multidimensionnel décrit ses
+propres entrées — il n'est plus copié du reçu et n'est jamais une empreinte de
+zéros. Le reçu reste comparé au disque avec **son** contrat, celui de son
+écrivain canonique ; un manifeste réencodé n'est pas comparé à des fichiers
+bruts. Dès qu'un brouillon entre dans le contrôle, la dimension runtime du
+travail courant redevient `notRun` et le dit, la preuve enregistrée restant
+consultable avec son périmètre.
+
+**3 · Le graphe confondait deux documents de même nom.** `verificationKeyId`
+compose type, identifiant, portée, parent et `sourceKind`, et cette identité
+sert aux recherches, aux libellés, aux nœuds, aux extrémités des connexions et
+à la sélection. `verificationResolve` ne traverse jamais deux types, et refuse
+de choisir quand plusieurs documents répondent : la page écrit alors
+« plusieurs documents » et le graphe titre « Cible ambiguë ». Deux entités
+`depart`, une par carte, restent deux nœuds distincts ; deux étapes de même
+identifiant, que l'index ne qualifie par aucun parent, sont déclarées ambiguës
+plutôt que confondues.
+
+**4 · L'analyse bloquait l'isolate d'interface.** `VerificationPort.analyse`
+rend un `VerificationJob` annulable ; l'adaptateur lance un isolate dédié
+(`avelune-verification`) qui exécute `validateNarrativeProject`,
+`buildNarrativeDependencyIndex` et le solveur physique, puis renvoie le
+résultat. Un test le prouve par le nom de l'isolate producteur, pas par une
+attente simulée. Annuler tue le travail possédé par la requête et libère son
+port ; une réponse annulée, remplacée ou d'un projet fermé ne remplace jamais
+le rapport courant. Aucune dépendance du Studio vers `map_editor`.
+
+**5 · Les destinations et les retours étaient incomplets.** Un diagnostic qui
+porte une histoire, un chapitre et une étape ouvre cette étape : la projection
+canonique de progression est construite et le nœud correspondant devient la
+sélection. Le retour rejoint le rapport, pas l'accueil Histoire. Les retours de
+scène et de carte connaissent aussi la vérification, et le détour
+Vérification → Scène → Dialogue → Scène → Vérification retrouve son rapport :
+chaque espace garde sa propre origine, il n'y a pas de variable « page
+précédente » partagée. Une nouvelle vérification conserve la sélection dont la
+clé survit ; sinon elle explique que le diagnostic n'est plus présent, sans
+conclure qu'il est résolu.
+
 ## Honnêteté du verdict
 
 Pas de score, pas de pourcentage, pas de jauge. Les quatre dimensions gardent
@@ -95,7 +175,9 @@ Les catalogues Pokémon restent tri-état : le Studio ne les lit pas, ils sont
 donc déclarés **non contrôlés** et `requirePokemonCatalogs` n'a pas été touché.
 Le validateur produit lui-même l'avertissement correspondant.
 
-**Preuve runtime.** Le reçu est lu à
+**Preuve runtime.** Elle ne vaut que pour la version enregistrée : dès qu'un
+brouillon entre dans le contrôle, la dimension du travail courant est
+`notRun`. Le reçu est lu à
 `.pokemap/validation/narrative_runtime_smoke_receipt.json` et classé : absent,
 illisible, mauvais profil, suites incomplètes, périmé, ou frais. L'empreinte
 comparée est calculée avec le même cadrage et les mêmes exclusions que
@@ -188,16 +270,20 @@ Depuis `apps/avelune_studio`.
 
 | Périmètre | Commande | Résultat |
 | --- | --- | --- |
-| Continuité UI12 et PR #10 | `flutter test test/ui12_world_close_test.dart test/ui12_world_global_close_test.dart test/ui12_world_drafts_test.dart test/ui12_world_page_test.dart test/ui12_world_controller_test.dart test/ui12_world_navigation_test.dart test/ui12_workspace_return_test.dart` | 15 verts (`logs/ui12-pr10-continuite.txt`) |
-| UI13, les cinq fichiers ensemble | `flutter test test/ui13_verification_controller_test.dart test/ui13_verification_runtime_test.dart test/ui13_verification_page_test.dart test/ui13_verification_navigation_test.dart test/ui13_verification_scale_test.dart` | **28 verts** (`logs/ui13-cible.txt`) |
+| Continuité UI12 et PR #10, correctif `810c8967` conservé | `flutter test test/ui12_world_*.dart test/ui12_workspace_return_test.dart` | 15 verts (`logs/ui12-pr10-continuite.txt`) |
+| UI13, les neuf fichiers ensemble | `flutter test test/ui13_verification_*.dart` | **50 verts** (`logs/ui13-cible.txt`) |
 | — contrôleur | `test/ui13_verification_controller_test.dart` | 12 |
+| — sélection entre deux contrôles | `test/ui13_verification_selection_test.dart` | 2 |
+| — versions de travail, fraîcheur, empreintes, preuve | `test/ui13_verification_working_version_test.dart` | 5 |
+| — identités canoniques et homonymes | `test/ui13_verification_identity_test.dart` | 5 |
+| — exécuteur, annulation, isolate | `test/ui13_verification_executor_test.dart` | 7 |
 | — preuves runtime | `test/ui13_verification_runtime_test.dart` | 6 |
 | — page et parcours | `test/ui13_verification_page_test.dart` | 4 |
-| — hôte réel, aller-retour | `test/ui13_verification_navigation_test.dart` | 1 |
+| — hôte réel, quatre allers-retours | `test/ui13_verification_navigation_test.dart` | 4 |
 | — quatre tailles et grande liste | `test/ui13_verification_scale_test.dart` | 5 |
 | Frontières d'architecture | `flutter test test/architecture/architecture_boundaries_test.dart` | 7 verts (`logs/architecture.txt`) |
 | Analyse Studio | `flutter analyze` | `No issues found!` (`logs/analyse.txt`) |
-| Suite Studio | `flutter test` | **687 verts, 2 ignorés, 1 échec** (`logs/suite-studio-finale.txt`) |
+| Suite Studio | `flutter test` | **710 verts, 2 ignorés, aucun échec** (`logs/suite-studio-finale.txt`) |
 
 Ce que ces tests prouvent, cas par cas : entrée passive sans calcul ni
 écriture ; lancement unique malgré un second clic ; concordance exacte des
@@ -207,7 +293,18 @@ seule ; zéro filtré distinct du zéro projet ; sélection hors filtre ; absenc
 totale d'écriture disque pendant une consultation ; correction réelle dans
 l'éditeur puis disparition du diagnostic à la relance et relecture par un
 adaptateur neuf ; rapport d'un autre projet jamais adopté ; cinq états de reçu
-runtime ; virtualisation à 4 000 lignes sans nouveau contrôle.
+runtime ; virtualisation à 4 000 lignes sans nouveau contrôle ; scène
+modifiée dans son éditeur et analysée sans enregistrement ; révision qui suit
+le contenu ; résultat gardé ancien après une modification pendant l'analyse ;
+empreinte décrivant ses propres entrées ; reçu valide qui cesse de certifier
+dès qu'un brouillon entre ; homonymes distingués et ambiguïtés déclarées ;
+annulation, remplacement, fermeture et réponse tardive ; calcul prouvé hors de
+l'isolate d'interface ; quatre allers-retours dans le véritable hôte, dont
+Vérification → Scène → Dialogue → Scène → Vérification.
+
+Deux destinations n'ont pas de diagnostic sur cette fixture — la carte et la
+scène. Leur ligne est injectée dans le rapport, mais l'ouverture, l'éditeur
+atteint et le retour sont les vrais chemins de l'hôte.
 
 ## Limites et écarts ouverts
 
@@ -215,16 +312,17 @@ runtime ; virtualisation à 4 000 lignes sans nouveau contrôle.
   jeu » lit un reçu ; elle ne l'écrit pas et le Studio n'a pas d'exécuteur. Sur
   un projet sans reçu, elle reste `notRun`.
 - **La fraîcheur ne surveille pas le disque.** Une modification externe est vue
-  au prochain contrôle explicite, pas en temps réel.
-- **L'annulation abandonne le résultat, elle n'interrompt pas le solveur.**
-  L'analyse canonique est synchrone ; le bouton « Abandonner le contrôle »
-  libère la page et écarte le rapport en cours, ce que son libellé dit.
+  au prochain contrôle explicite, pas en temps réel. À l'intérieur du Studio,
+  elle suit le contenu des documents de travail.
+- **L'annulation tue l'isolate de la requête.** Le travail déjà engagé s'arrête
+  avec lui ; aucune autre session n'est touchée.
 - **Les brouillons d'interactions ne sont pas représentables** dans le manifeste
-  analysé. Leur nombre est nommé dans les limites du rapport et c'est leur
-  version enregistrée qui est contrôlée.
-- **Le retour depuis Histoires et progression rejoint Histoire**, pas le
-  rapport : cet espace n'a pas d'origine typée dans l'hôte. Le libellé de la
-  destination le dit avant l'ouverture.
+  analysé. Chacun est nommé dans « Hors du contrôle » avec sa raison, et le
+  rapport ne prétend pas couvrir ce périmètre.
+- **L'index de dépendances ne qualifie pas les étapes par leur parent.** Deux
+  étapes de même identifiant dans deux histoires sont donc déclarées ambiguës
+  plutôt que distinguées ; la navigation, elle, reste précise parce qu'elle
+  lit l'histoire portée par le diagnostic.
 - **Un clic simple sur une ligne attend la fenêtre de double-clic** (300 ms)
   parce que le double-clic ouvre l'éditeur, comme le demande le §12.
 - À 1024 × 640 avec texte à 150 %, le panneau du graphe est à l'étroit et un
@@ -237,21 +335,15 @@ runtime ; virtualisation à 4 000 lignes sans nouveau contrôle.
 
 ## Échecs observés
 
-**`desktop_workspace_layout_test`** échoue dans la suite finale et à nouveau
-seul, avec « Les E/S réelles ne terminent pas entre les frames en 20 secondes »
-(`logs/desktop-layout-seul.txt`). Ce test n'est pas touché par ce lot, et le
-même symptôme avait été attribué à l'environnement lors de UI11, par trois
-reproductions au commit de base. Ce soir il est instable : **passé seul deux
-fois, échoué seul une fois**, avec des moyennes de charge comprises entre 374
-et 507. Je n'ai pas rejoué ce test au commit de base dans ce lot, donc je ne le
-déclare pas préexistant : je le signale comme instable sous charge et à
-revérifier sur une machine calme.
+Aucun, sur l'état final. La suite Studio complète est passée d'un bout à
+l'autre avec des moyennes de charge autour de 16.
 
-**`cinematics_ui10_error_recovery_test`** a échoué **une seule fois**, dans une
-exécution intermédiaire de la suite, puis a passé trois fois seul et dans les
-deux suites suivantes. Le détail de l'échec n'a pas été capturé dans ce
-journal. Ce test parle des champs invalides, que la PR #10 modifie dans
-`studio_commit_field.dart` : à surveiller, même si rien n'a pu être reproduit.
+Cela lève les deux réserves du lot précédent. **`desktop_workspace_layout_test`**
+avait échoué dans la suite et seul, la nuit du 21 septembre, avec des charges
+comprises entre 374 et 507 ; il passe ici sans intervention et n'a jamais été
+touché par ce lot — la charge machine était bien la variable.
+**`cinematics_ui10_error_recovery_test`**, qui n'avait échoué qu'une fois, n'a
+plus rechuté.
 
 ## Journaux et captures
 

@@ -33,7 +33,9 @@ String composeRule(Ui12WorldHarness h, String factId) {
       entityId: entity.id,
       label: entity.id,
     );
-    draft.effect = const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden);
+    draft.effect = const WorldRuleEffect(
+      kind: WorldRuleEffectKind.entityHidden,
+    );
   });
   return id;
 }
@@ -79,11 +81,18 @@ void main() {
       [published.id],
       reason: 'the edit made during the write must survive the receipt',
     );
-    expect(h.world.ruleDraft(published.id)!.description, 'Ajoutée pendant l’écriture');
+    expect(
+      h.world.ruleDraft(published.id)!.description,
+      'Ajoutée pendant l’écriture',
+    );
     expect(h.world.selectedRuleId, published.id);
     expect(h.world.isRuleDirty(published.id), isTrue);
 
-    expect(await h.world.saveRule(published.id), isTrue, reason: h.world.error ?? '');
+    expect(
+      await h.world.saveRule(published.id),
+      isTrue,
+      reason: h.world.error ?? '',
+    );
     expect(h.world.pendingRules, isEmpty);
 
     final reopened = await Ui12WorldHarness.open(h.directory);
@@ -108,49 +117,55 @@ void main() {
     expect(h.world.hasRuleDraft, isFalse);
   });
 
-  test('a rule saved before its brand-new state explains the dependency', () async {
-    final h = await Ui12WorldHarness.create();
-    addTearDown(h.dispose);
-    final factId = draftState(h);
-    final ruleId = composeRule(h, factId);
+  test(
+    'a rule saved before its brand-new state explains the dependency',
+    () async {
+      final h = await Ui12WorldHarness.create();
+      addTearDown(h.dispose);
+      final factId = draftState(h);
+      final ruleId = composeRule(h, factId);
 
-    expect(await h.world.saveRule(ruleId), isFalse);
-    expect(h.world.error, contains(_label));
-    expect(
-      h.world.pendingRules.keys,
-      contains(ruleId),
-      reason: 'a refused publication must never drop the draft',
-    );
-    expect(h.world.project.worldRules, isEmpty);
-    expect(h.world.unsavedRuleDependency(ruleId)?.id, factId);
+      expect(await h.world.saveRule(ruleId), isFalse);
+      expect(h.world.error, contains(_label));
+      expect(
+        h.world.pendingRules.keys,
+        contains(ruleId),
+        reason: 'a refused publication must never drop the draft',
+      );
+      expect(h.world.project.worldRules, isEmpty);
+      expect(h.world.unsavedRuleDependency(ruleId)?.id, factId);
 
-    expect(
-      await h.world.saveRuleWithDependency(ruleId),
-      isTrue,
-      reason: h.world.error ?? '',
-    );
-    final rule = h.world.project.worldRules.single;
-    expect(rule.source.sourceId, isNot(factId));
-    expect(
-      h.world.project.facts.any((fact) => fact.id == rule.source.sourceId),
-      isTrue,
-      reason: 'the rule must keep the canonical id the state received',
-    );
-    expect(h.world.pendingRules, isEmpty);
-  });
+      expect(
+        await h.world.saveRuleWithDependency(ruleId),
+        isTrue,
+        reason: h.world.error ?? '',
+      );
+      final rule = h.world.project.worldRules.single;
+      expect(rule.source.sourceId, isNot(factId));
+      expect(
+        h.world.project.facts.any((fact) => fact.id == rule.source.sourceId),
+        isTrue,
+        reason: 'the rule must keep the canonical id the state received',
+      );
+      expect(h.world.pendingRules, isEmpty);
+    },
+  );
 
-  test('a state saved and a rule refused is reported as a partial result', () async {
-    final (h, port) = await held();
-    addTearDown(h.dispose);
-    final factId = draftState(h);
-    final ruleId = composeRule(h, factId);
-    port.ruleFailure = const WorldFailure('écriture refusée');
+  test(
+    'a state saved and a rule refused is reported as a partial result',
+    () async {
+      final (h, port) = await held();
+      addTearDown(h.dispose);
+      final factId = draftState(h);
+      final ruleId = composeRule(h, factId);
+      port.ruleFailure = const WorldFailure('écriture refusée');
 
-    expect(await h.world.saveRuleWithDependency(ruleId), isFalse);
-    expect(h.world.error, contains('écriture refusée'));
-    expect(h.world.error, contains('état'));
-    expect(h.world.project.facts.any((fact) => fact.label == _label), isTrue);
-    expect(h.world.pendingRules, isNotEmpty);
-    expect(h.world.project.worldRules, isEmpty);
-  });
+      expect(await h.world.saveRuleWithDependency(ruleId), isFalse);
+      expect(h.world.error, contains('écriture refusée'));
+      expect(h.world.error, contains('état'));
+      expect(h.world.project.facts.any((fact) => fact.label == _label), isTrue);
+      expect(h.world.pendingRules, isNotEmpty);
+      expect(h.world.project.worldRules, isEmpty);
+    },
+  );
 }

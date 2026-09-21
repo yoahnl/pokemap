@@ -30,6 +30,31 @@ class VerificationRuntimeEvidence {
   };
 }
 
+/// The canonical result of one analysis, produced away from the interface.
+class VerificationAnalysis {
+  const VerificationAnalysis({
+    required this.validation,
+    required this.dependencies,
+    required this.physical,
+    required this.isolateName,
+  });
+
+  final NarrativeProjectValidationReport validation;
+  final NarrativeDependencyIndex dependencies;
+  final NarrativeValidationDimensionResult physical;
+
+  /// Where the computation actually ran, so a test can prove it left the
+  /// interface isolate instead of trusting an await.
+  final String isolateName;
+}
+
+/// One analysis in flight, owned by the request that started it.
+class VerificationJob {
+  const VerificationJob({required this.result, required this.cancel});
+  final Future<VerificationAnalysis> result;
+  final void Function() cancel;
+}
+
 /// Reads what a narrative verification consumes. It never writes.
 abstract interface class VerificationPort {
   /// The maps the validator, the dependency index and the graph read.
@@ -44,13 +69,12 @@ abstract interface class VerificationPort {
     NarrativeRuntimeSmokeProfile profile,
   );
 
-  /// Runs the canonical physical reachability solver and answers in canonical
-  /// terms. The solver itself lives in a package the application layer may not
-  /// reach, so infrastructure runs it and the verdict crosses the port.
-  Future<NarrativeValidationDimensionResult> physicalReachability({
+  /// Runs the canonical validators away from the interface isolate. Cancelling
+  /// the returned job stops that work and frees it, without touching another
+  /// session.
+  VerificationJob analyse({
     required ProjectManifest project,
     required List<MapData> maps,
-    required NarrativeSymbolicReachabilityReport? symbolic,
   });
 }
 

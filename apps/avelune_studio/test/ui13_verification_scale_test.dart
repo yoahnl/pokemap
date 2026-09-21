@@ -19,11 +19,12 @@ Future<void> launch(WidgetTester tester, Ui13PageHarness h) async {
 VerificationReport inflate(VerificationReport real, int count) =>
     VerificationReport(
       requestId: real.requestId,
-      sessionId: real.sessionId,
+      savedRevision: real.savedRevision,
       generatedAt: real.generatedAt,
       validatorVersion: real.validatorVersion,
       inputFingerprint: real.inputFingerprint,
       freshnessKey: real.freshnessKey,
+      isolateName: real.isolateName,
       project: NarrativeProjectValidationReport(
         diagnostics: [
           for (var index = 0; index < count; index++)
@@ -47,8 +48,9 @@ VerificationReport inflate(VerificationReport real, int count) =>
       scope: real.scope,
       limitations: real.limitations,
       blockers: real.blockers,
+      exclusions: real.exclusions,
       labels: real.labels,
-      includesDrafts: real.includesDrafts,
+      drafted: real.drafted,
     );
 
 void main() {

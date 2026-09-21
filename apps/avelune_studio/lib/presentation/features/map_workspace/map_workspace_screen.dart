@@ -32,6 +32,7 @@ import 'workspace_actions.dart';
 import 'workspace_session_loader.dart';
 import '../../../features/verification/application/verification_workspace_controller.dart';
 import '../../../features/world/application/world_workspace_controller.dart';
+import '../stories/story_view_state.dart';
 import '../verification/verification_view_state.dart';
 import '../verification/verification_workspace_page.dart';
 import '../world/world_view_state.dart';
@@ -146,6 +147,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   WorldWorkspaceController? _world;
   final _worldView = WorldViewState();
   WorkspaceReturn _worldOrigin = WorkspaceReturn.story;
+  bool _verificationMapReturn = false;
+  WorkspaceReturn _progressionOrigin = WorkspaceReturn.story;
   VerificationWorkspaceController? _verification;
   final _verificationView = VerificationViewState();
   WorkspaceReturn _verificationOrigin = WorkspaceReturn.story;
@@ -261,6 +264,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       FocusManager.instance.applyFocusChangesIfNeeded();
     }
     if (space != WorkspaceSpace.map) _eventMapReturn = false;
+    if (space != WorkspaceSpace.map) _verificationMapReturn = false;
     if (_space == WorkspaceSpace.events) {
       FocusManager.instance.primaryFocus?.unfocus();
       FocusManager.instance.applyFocusChangesIfNeeded();

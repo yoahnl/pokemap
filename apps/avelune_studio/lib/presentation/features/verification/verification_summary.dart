@@ -73,6 +73,10 @@ extension _VerificationSummary on _VerificationWorkspacePageState {
                       const SizedBox(height: 12),
                       _blockers(report),
                     ],
+                    if (report.exclusions.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _exclusions(report),
+                    ],
                     const SizedBox(height: 12),
                     _limitations(report),
                   ],
@@ -243,6 +247,24 @@ extension _VerificationSummary on _VerificationWorkspacePageState {
         'analysée et n’a pas été publiée.',
         style: _labelStyle,
       ),
+    ],
+  );
+
+  /// What the control could not represent, named with its reason. The verdict
+  /// above never claims to cover these documents.
+  Widget _exclusions(VerificationReport report) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text('Hors du contrôle', style: _labelStyle),
+      const SizedBox(height: 4),
+      for (final exclusion in report.exclusions)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Text(
+            '${exclusion.owner} · ${exclusion.label} — ${exclusion.reason}',
+            style: _labelStyle,
+          ),
+        ),
     ],
   );
 
