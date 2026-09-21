@@ -1,0 +1,40 @@
+[runtime_loader] project manifest read ok bytes=45398
+[runtime_loader] project manifest validated maps=2 tilesets=2 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_xC5lXm/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_xC5lXm/maps/jardin.json
+[runtime_loader] map file read ok bytes=23842
+[runtime_loader] map validated id=jardin size=24x16 layers=4 entities=1 placedElements=6 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier,source_1789996766603649_2377277136
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_xC5lXm/assets/atelier.png
+[runtime_loader] bundle tileset path id=source_1789996766603649_2377277136 path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_xC5lXm/assets/.pokemap-store/410a5c9667c98ac02aab06b022caa817b619b07228972c838d3c023576cff8a8.blob
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_xC5lXm tilesets=2
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=2
+[runtime_game] tileset cache resolve ok result=2
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_m2_ui_xC5lXm/project.json tilesets=2
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=2 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1789996778670192_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+04:32 +633 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+04:33 +634 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+04:33 +635 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+04:34 +636 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+04:34 +637 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/m2_end_to_end_test.dart: real import decor terrain save reload and runtime journey
+04:34 +638 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart: UI08 complete source conditions scene publication simulation and returns
+04:35 +639 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart: UI08 complete source conditions scene publication simulation and returns
+04:35 +640 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart: UI08 complete source conditions scene publication simulation and returns
+04:35 +641 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart: UI08 complete source conditions scene publication simulation and returns
+04:35 +642 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart: UI08 complete source conditions scene publication simulation and returns
+04:35 +643 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart: UI08 complete source conditions scene publication simulation and returns
+04:35 +644 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart: UI08 complete source conditions scene publication simulation and returns
+04:36 +645 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_journey_test.dart: UI08 complete source conditions scene publication simulation and returns
+04:37 +646 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_story_journey_test.dart: UI05 story overview reads canonical fixture without mutations
+04:38 +647 ~2 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_sources_test.dart: UI08 four real sources preserve exact targets and Escape cancels without writes
+04:39 +648 ~2 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/desktop_workspace_layout_test.dart: real stress workspace stays usable across desktop sizes and diagnostics
