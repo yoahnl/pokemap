@@ -89,6 +89,40 @@ aligné sur le motif déjà présent dans `presentation_studio_responsive_canvas
 de `map_editor` : un handler `HardwareKeyboard`, borné au geste armé, qui ne
 consomme la touche que pendant un drag.
 
+## Retour de validation : la création semblait ne rien faire
+
+Signalé par Yoahn à la première prise en main. Créer une présentation paraissait
+sans effet : après le nom et le choix du modèle, rien ne changeait pendant
+plusieurs secondes, ni dans la bibliothèque ni au centre.
+
+Le document arrivait bien, mais tard. `PresentationPort.prepare` relit le projet
+depuis le disque avant d'instancier le modèle, et le `project.json` du Train
+pèse environ 10,7 Mo. L'attente est donc réelle et attendue à cette taille.
+
+Le défaut était l'absence totale de retour visuel. Le contrôleur publiait déjà
+`busy` (`_loading || saving`) et le posait autour de la préparation, mais
+**aucun widget ne le lisait** : `flutter analyze` ne signale pas un getter
+public inutilisé. L'en-tête n'affichait une attente que pour la sauvegarde,
+via `loading: controller.saving`.
+
+Correctif, aligné sur le motif déjà utilisé par le pane Ressources et l'éditeur
+de terrains (`if (busy) const LinearProgressIndicator()`) :
+
+- une barre de progression sous l'en-tête de la page, qui couvre aussi
+  l'ouverture d'une présentation existante, elle aussi tributaire d'une lecture
+  disque ;
+- `loading: controller.busy` sur « Nouvelle cinématique » et sur « Créer une
+  présentation », ce qui affiche un indicateur dans le bouton et interdit un
+  second départ pendant la préparation.
+
+`ui11_presentation_busy_test.dart` verrouille le comportement : il retient
+`prepare` derrière une porte, vérifie que la barre est présente et que le bouton
+refuse un second clic, puis relâche et vérifie que le document ouvert est bien
+le nouveau. Capture `ui11-03-busy-create.png`.
+
+Aucune optimisation de la lecture disque n'a été tentée : elle est hors du
+périmètre de ce lot et demanderait de toucher au chargement du projet.
+
 ## Composition livrée
 
 Le cadre Avelune, la navigation et l'espace Histoire sont réutilisés tels quels.
@@ -149,7 +183,7 @@ pas : la suite Studio contient déjà les tests ciblés UI11.
 | Périmètre | Commande | Résultat |
 | --- | --- | --- |
 | Tests ciblés UI11 | `flutter test` sur les 12 fichiers UI11 et `test/presentations/` | 41 verts |
-| Suite Studio complète | `flutter test` dans `apps/avelune_studio` | 636 verts, 2 ignorés |
+| Suite Studio complète | `flutter test` dans `apps/avelune_studio` | 637 verts, 2 ignorés |
 | Analyse Studio | `flutter analyze` | `No issues found!` |
 | Analyse `map_authoring` | `dart analyze` | `No issues found!` |
 | Analyse `map_player_ui` | `dart analyze` | `No issues found!` |
@@ -157,6 +191,12 @@ pas : la suite Studio contient déjà les tests ciblés UI11.
 | Tests CI `map_editor` | 3 fichiers de l'étape CI | 20 verts |
 | Transport MCP | `node --import tsx --test test/mutation_server.test.ts` | 34 verts |
 | Build macOS | `flutter build macos --debug` | `Avelune Studio.app` produit |
+
+`test/presentation/desktop_workspace_layout_test.dart` a échoué une fois sur
+une exécution de la suite complète, puis est repassé au vert seul comme en
+suite. C'est un test de charge — deux cents diagnostics et de nombreux atlas —
+sensible au temps de réponse de la machine. Il est signalé ici comme instable
+plutôt que déclaré fiable.
 
 Les deux tests ignorés de la suite Studio sont conditionnés à la variable
 `AVELUNE_PROJECT_COPY` et à un chemin de projet réel. Ils préexistent au lot et
@@ -232,6 +272,7 @@ vrais widgets, sans retouche ni assemblage de maquette.
 | `ui11-01-early-composition.png` | Page complète, comparaison précoce avec l'image 07 |
 | `ui11-02-title-scale-transformed.png` | Titre sélectionné et mis à l'échelle par sa poignée |
 | `ui11-02-title-rotate-transformed.png` | Titre pivoté, overlay de sélection épousant le contenu transformé |
+| `ui11-03-busy-create.png` | Préparation en cours : barre de progression et bouton de création verrouillé |
 | `ui11-04-landscape-{1536,1440,1280,1024}.png` | Page complète aux quatre tailles, texte à 150 % à 1024 |
 | `ui11-05-portrait-{1536,1440,1280,1024}.png` | Vue portrait |
 | `ui11-06-compare-{1536,1440,1280,1024}.png` | Mode Comparer les formats |

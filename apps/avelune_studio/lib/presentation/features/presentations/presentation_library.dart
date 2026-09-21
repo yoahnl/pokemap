@@ -146,6 +146,7 @@ class PresentationLibrary extends StatelessWidget {
             icon: Icons.add,
             onPressed: onCreate,
             secondary: true,
+            loading: controller.busy,
           ),
         ] else if (asset != null && view != null) ...[
           Expanded(

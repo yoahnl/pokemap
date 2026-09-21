@@ -9,6 +9,7 @@ class Ui11WidgetPort implements PresentationPort {
   final WidgetTester tester;
   bool interactive = false;
   int reads = 0, writes = 0;
+  Future<void>? gate;
   Future<T> _run<T>(Future<T> Function() action) async {
     if (!interactive) return action();
     final operation = tester.runAsync(() async {
@@ -37,8 +38,11 @@ class Ui11WidgetPort implements PresentationPort {
   }
 
   @override
-  Future<PresentationDraftProjection> prepare(ProjectManifest project) =>
-      _run(() => delegate.prepare(project));
+  Future<PresentationDraftProjection> prepare(ProjectManifest project) async {
+    await gate;
+    return _run(() => delegate.prepare(project));
+  }
+
   @override
   Future<PresentationPublicationReceipt> publish({
     required PresentationCinematicAsset asset,

@@ -62,6 +62,7 @@ extension _PresentationPageBody on _PresentationWorkspacePageState {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   header(compact),
+                  if (controller.busy) const LinearProgressIndicator(),
                   if (controller.error ?? state?.actionError case final error?)
                     StudioNotice(error, isError: true),
                   if (controller.active?.link != null)
@@ -85,6 +86,7 @@ extension _PresentationPageBody on _PresentationWorkspacePageState {
                                         child: StudioButton(
                                           label: 'Créer une présentation',
                                           icon: Icons.add,
+                                          loading: controller.busy,
                                           onPressed: create,
                                         ),
                                       ))
