@@ -19,17 +19,25 @@ class Ui12WorldHarness {
   final MapWorkspaceController maps;
   final WorldWorkspaceController world;
   int changes = 0;
+  void Function()? onChanged;
 
-  static Future<Ui12WorldHarness> create() async {
+  static Future<Ui12WorldHarness> create({
+    WorldPort Function(WorldPort)? wrap,
+    bool initialize = true,
+  }) async {
     final temporary = await Directory.systemTemp.createTemp('avelune_ui12w_');
     final directory = Directory(await temporary.resolveSymbolicLinks());
     await writeExampleProject(directory);
-    return open(directory);
+    return open(directory, wrap: wrap, initialize: initialize);
   }
 
   /// Reopens the same folder through fresh adapters, the way a later session
   /// would: what is asserted after this has really been written.
-  static Future<Ui12WorldHarness> open(Directory directory) async {
+  static Future<Ui12WorldHarness> open(
+    Directory directory, {
+    WorldPort Function(WorldPort)? wrap,
+    bool initialize = true,
+  }) async {
     final session = ProjectSession(
       sessionId: directory.path,
       name: 'UI12',
@@ -47,11 +55,16 @@ class Ui12WorldHarness {
     late Ui12WorldHarness harness;
     final world = WorldWorkspaceController(
       narrative,
-      LocalWorldAdapter(session: session, mapAdapter: adapter),
-      changed: () => harness.changes++,
+      (wrap ?? (port) => port)(
+        LocalWorldAdapter(session: session, mapAdapter: adapter),
+      ),
+      changed: () {
+        harness.changes++;
+        harness.onChanged?.call();
+      },
     );
     harness = Ui12WorldHarness(directory, session, maps, world);
-    await world.initialize();
+    if (initialize) await world.initialize();
     return harness;
   }
 

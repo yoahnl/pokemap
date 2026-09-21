@@ -1,0 +1,101 @@
+import 'dart:async';
+
+import 'package:avelune_studio/presentation/features/world/world_view_state.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core_domain.dart';
+
+import 'support/m2_ui_fixture.dart';
+import 'support/ui12_page_harness.dart';
+
+Future<void> activate(WidgetTester tester, Finder finder) async {
+  await tester.pump(const Duration(milliseconds: 350));
+  await tester.ensureVisible(finder);
+  await tester.tap(finder);
+  await tester.pump(const Duration(milliseconds: 350));
+  await pumpIo(tester, frames: 12);
+}
+
+void main() {
+  testWidgets('a state and its rule are composed from the page controls', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1536, 1024);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final h = (await tester.runAsync(() => Ui12PageHarness.create(tester)))!;
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(h.dispose);
+    });
+    await tester.pumpWidget(h.app());
+    unawaited(h.controller.initialize());
+    await pumpIo(tester);
+
+    await activate(tester, find.text('Nouvel état').first);
+    expect(h.controller.selectedFactId, isNotNull);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Nouvel état').first,
+      'Train parti',
+    );
+    await activate(tester, find.text('États').first);
+    expect(h.controller.activeFact!.label, 'Train parti');
+    await activate(tester, find.text('Enregistrer').first);
+    for (var i = 0; i < 30 && h.controller.loading; i++) {
+      await pumpIo(tester, frames: 3);
+    }
+    final factId = h.controller.selectedFactId!;
+    expect(h.controller.isFactDirty(factId), isFalse);
+    await h.capture(tester, 'ui12-01-etats');
+
+    await activate(tester, find.byTooltip('Créer une règle avec cet état'));
+    expect(h.view.view, WorldView.rules);
+    final ruleId = h.controller.selectedRuleId!;
+    expect(h.controller.ruleDraft(ruleId)!.source, isNotNull);
+    expect(
+      h.controller.ruleDraft(ruleId)!.missing,
+      contains('la cible'),
+      reason: 'An unfinished draft names what it still needs',
+    );
+
+    final target = h.controller.model.targetOptions.firstWhere(
+      (option) => option.kind == WorldRuleTargetKind.mapEntity,
+    );
+    await activate(tester, find.byKey(const ValueKey('rule-block-Cible')));
+    await activate(tester, find.text(target.label).last);
+    expect(h.controller.ruleDraft(ruleId)!.target?.entityId, target.entityId);
+
+    await activate(tester, find.byKey(const ValueKey('rule-block-Effet')));
+    expect(
+      find.text('Remplacer le dialogue'),
+      findsNothing,
+      reason: 'A visibility target never offers a dialogue effect',
+    );
+    await activate(tester, find.text('Masquer le personnage').last);
+    final draft = h.controller.ruleDraft(ruleId)!;
+    expect(draft.effect, isNotNull);
+    expect(
+      isWorldRuleEffectCompatibleWithTarget(
+        draft.target!.kind,
+        draft.effect!.kind,
+      ),
+      isTrue,
+      reason: 'The effect catalogue is filtered by the chosen target',
+    );
+    expect(draft.missing, isEmpty);
+
+    await activate(tester, find.text('Enregistrer').first);
+    expect(h.controller.error, isNull);
+    await activate(tester, find.text('Tester la règle'));
+    expect(h.controller.report, isNotNull);
+    await h.capture(tester, 'ui12-02-regle');
+
+    expect(
+      h.controller.fact(factId)!.initialValue,
+      const NarrativeValue.boolean(false),
+      reason: 'Testing never rewrites the value of the project',
+    );
+    expect(tester.takeException(), isNull);
+  });
+}

@@ -13,7 +13,7 @@ void main() {
         order: 7,
         description: 'Description',
         authorNotes: 'Notes',
-      metadata: {'kept': '4'},
+        metadata: {'kept': '4'},
         completionCondition: ScriptCondition(
           type: ScriptConditionType.flagIsSet,
           params: {ScriptConditionParams.flagName: 'ready'},

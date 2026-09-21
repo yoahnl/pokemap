@@ -88,12 +88,15 @@ void main() {
       }
       await tester.pump();
       expect(moved, isEmpty);
-      await drag.up(); await tester.pump();
+      await drag.up();
+      await tester.pump();
       expect(moved, [Offset(point.x + 2, point.y)]);
       final cancel = await tester.startGesture(tester.getCenter(handle));
-      await cancel.moveBy(const Offset(60, 0)); await tester.pump();
+      await cancel.moveBy(const Offset(60, 0));
+      await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await cancel.up(); await tester.pump();
+      await cancel.up();
+      await tester.pump();
       expect(moved, hasLength(1));
       expect(model.map.toJson(), original);
       expect(tester.takeException(), isNull);

@@ -29,7 +29,9 @@ void main() {
         await pumpIo(tester);
         await harness.open(tester);
         tester.view.physicalSize = size;
-        await tester.pumpWidget(harness.app(textScale: size.width == 1024 ? 1.5 : 1));
+        await tester.pumpWidget(
+          harness.app(textScale: size.width == 1024 ? 1.5 : 1),
+        );
         await pumpIo(tester);
         final field = find.descendant(
           of: find.byKey(const ValueKey('cinematic-title-$ui10CinematicId')),

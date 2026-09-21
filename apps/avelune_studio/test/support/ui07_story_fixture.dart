@@ -36,7 +36,10 @@ class Ui07StoryFixture {
     );
     var receipt = await port.publishFact(
       base: null,
-      current: addNarrativeFact(source.manifest, label: 'Billet obtenu').createdFact,
+      current: addNarrativeFact(
+        source.manifest,
+        label: 'Billet obtenu',
+      ).createdFact,
     );
     if (withStories) {
       for (final story in [mainStory(), sideStory()]) {
