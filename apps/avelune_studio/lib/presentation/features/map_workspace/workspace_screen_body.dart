@@ -109,7 +109,9 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                       deletionBlocked: _narrative?.blocksDeletion,
                       onOpenElement: (element) => _openResources(element),
                       onEditElement: (element) => _openResources(element, true),
-                      resourceContent: _space == WorkspaceSpace.presentation
+                      resourceContent: _space == WorkspaceSpace.world
+                          ? _worldPage()
+                          : _space == WorkspaceSpace.presentation
                           ? _presentationPage()
                           : workspaceSecondaryContent(
                               space: _space,
@@ -159,6 +161,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               onReturnProgression: () =>
                                   _show(WorkspaceSpace.progression),
                               onScenes: _openScenes,
+                              onWorld: _world == null ? null : _openWorld,
                               onOpenScene: _openScene,
                               resources: _resources,
                               visuals: _visuals,

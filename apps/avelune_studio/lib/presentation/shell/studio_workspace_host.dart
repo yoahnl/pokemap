@@ -32,6 +32,7 @@ class StudioWorkspaceHost extends ConsumerWidget {
       dialoguePort: ref.watch(dialoguePortProvider(session)),
       cinematicPort: ref.watch(cinematicPortProvider(session)),
       presentationPort: ref.watch(presentationPortProvider(session)),
+      worldPort: ref.watch(worldPortProvider(session)),
       presentationMediaPicker: ref.watch(presentationMediaPickerProvider),
       imagePicker: ref.watch(resourceImagePickerProvider),
       loadVisuals: ref.watch(workspaceVisualsLoaderProvider),

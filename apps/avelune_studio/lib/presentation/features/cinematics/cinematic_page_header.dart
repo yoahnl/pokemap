@@ -12,8 +12,16 @@ extension _CinematicPageHeader on _CinematicWorkspacePageState {
       alignActionsToEnd: true,
       actions: [
         if (widget.onPresentations != null)
-          StudioButton(label: 'Présentation', secondary: true,
-            onPressed: () { if (flush()) { controller.transport.pause(); widget.onPresentations!(); } }),
+          StudioButton(
+            label: 'Présentation',
+            secondary: true,
+            onPressed: () {
+              if (flush()) {
+                controller.transport.pause();
+                widget.onPresentations!();
+              }
+            },
+          ),
         StudioTool(
           label: 'Retour à ${widget.backLabel}',
           icon: Icons.arrow_back,

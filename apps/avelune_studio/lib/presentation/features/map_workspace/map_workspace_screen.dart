@@ -30,6 +30,9 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'workspace_actions.dart';
 import 'workspace_session_loader.dart';
+import '../../../features/world/application/world_workspace_controller.dart';
+import '../world/world_view_state.dart';
+import '../world/world_workspace_page.dart';
 import '../narrative/narrative_navigation.dart';
 import '../narrative/narrative_overview_view_state.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -58,6 +61,8 @@ part 'workspace_dialogue_binding.dart';
 part 'workspace_cinematic_binding.dart';
 part 'workspace_presentation_binding.dart';
 part 'workspace_keyboard_binding.dart';
+part 'workspace_lifecycle_binding.dart';
+part 'workspace_world_binding.dart';
 
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
@@ -76,6 +81,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.dialoguePort,
     this.cinematicPort,
     this.presentationPort,
+    this.worldPort,
     this.presentationMediaPicker,
     this.home,
   });
@@ -89,6 +95,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final DialoguePort? dialoguePort;
   final CinematicPort? cinematicPort;
   final PresentationPort? presentationPort;
+  final WorldPort? worldPort;
   final PickPresentationMedia? presentationMediaPicker;
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
@@ -130,6 +137,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   bool _eventMapReturn = false;
   final _progressionViews = StoryProgressionViewStore();
   WorkspaceReturn _sceneOrigin = WorkspaceReturn.story;
+  WorldWorkspaceController? _world;
+  final _worldView = WorldViewState();
+  WorkspaceReturn _worldOrigin = WorkspaceReturn.story;
   final _sceneViews = SceneBuilderViewStore();
   bool? _inspector;
   MapData? _preparedMap;
@@ -192,6 +202,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       _initializeDialogues();
       _initializeCinematics();
       _initializePresentations();
+      _initializeWorld();
       _changed();
     } catch (_) {
       if (mounted) {
@@ -262,36 +273,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
 
   @override
   void dispose() {
-    widget.registerExitGuard(null);
-    _controller.removeListener(_changed);
-    _controller.historyGuard = null;
-    final visuals = _visuals;
-    if (visuals != null) {
-      visuals.removeListener(_changed);
-      unawaited(visuals.dispose());
-    }
-    _resources?.removeListener(_changed);
-    _resources?.dispose();
-    _narrative?.dispose();
-    _scenes?.dispose();
-    _stories?.dispose();
-    _events?.dispose();
-    _dialogues?.dispose();
-    _presentations?.dispose();
-    _presentationViews.dispose();
-    if (_presentationVisuals != null) unawaited(_presentationVisuals!.close());
-    _cinematics?.dispose();
-    _cinematicViews.dispose();
-    _dialogueViews.dispose();
-    _eventView.dispose();
-    _progressionViews.dispose();
-    _sceneViews.dispose();
-    _storyViewState.dispose();
-    _search.dispose();
-    _homeSearch.dispose();
-    for (final view in _views.values) {
-      view.dispose();
-    }
+    disposeWorkspace();
     super.dispose();
   }
 

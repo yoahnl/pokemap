@@ -36,7 +36,7 @@ class WorldWorkspaceController {
   String? _modelKey;
   NarrativeWorldStateSimulationReport? report;
   String? selectedFactId, selectedRuleId, error;
-  bool loading = false, _closed = false;
+  bool loading = false, initialized = false, _closed = false;
   int _generation = 0;
 
   ProjectManifest get project => narrative.project;
@@ -123,6 +123,7 @@ class WorldWorkspaceController {
       final loaded = await port.loadMaps();
       if (_closed || ticket != _generation) return;
       _maps = loaded;
+      initialized = true;
       invalidate();
       error = null;
     } on Object catch (failure) {

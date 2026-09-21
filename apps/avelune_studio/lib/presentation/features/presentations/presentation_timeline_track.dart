@@ -11,6 +11,7 @@ extension _PresentationTrackControls on _PresentationTimelineState {
     }
     widget.changed();
   }
+
   Future<void> editTrack(PresentationTrack track) async {
     if (widget.beforeSelection?.call() == false) return;
     final owner = widget.asset;

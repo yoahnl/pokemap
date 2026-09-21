@@ -12,12 +12,21 @@ import '../../tool/create_example_project.dart';
 
 /// A real project on disk for the states and world rules of UI12.
 class Ui12WorldHarness {
-  Ui12WorldHarness(this.directory, this.session, this.maps, this.world);
+  Ui12WorldHarness(
+    this.directory,
+    this.session,
+    this.maps,
+    this.world,
+    this.adapter,
+    this.port,
+  );
 
   final Directory directory;
   final ProjectSession session;
   final MapWorkspaceController maps;
   final WorldWorkspaceController world;
+  final LocalMapWorkspaceAdapter adapter;
+  final WorldPort port;
   int changes = 0;
   void Function()? onChanged;
 
@@ -53,17 +62,18 @@ class Ui12WorldHarness {
       (_, _) async {},
     );
     late Ui12WorldHarness harness;
+    final port = (wrap ?? (value) => value)(
+      LocalWorldAdapter(session: session, mapAdapter: adapter),
+    );
     final world = WorldWorkspaceController(
       narrative,
-      (wrap ?? (port) => port)(
-        LocalWorldAdapter(session: session, mapAdapter: adapter),
-      ),
+      port,
       changed: () {
         harness.changes++;
         harness.onChanged?.call();
       },
     );
-    harness = Ui12WorldHarness(directory, session, maps, world);
+    harness = Ui12WorldHarness(directory, session, maps, world, adapter, port);
     if (initialize) await world.initialize();
     return harness;
   }

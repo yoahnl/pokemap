@@ -95,11 +95,15 @@ class PresentationInspector extends StatelessWidget {
       title: 'Élément sélectionné',
       compact: true,
       children: [
-        StudioTabs(items: const {'properties': 'Propriétés', 'animations': 'Animations'},
-          selected: view.inspectorTab, onChanged: (value) {
+        StudioTabs(
+          items: const {'properties': 'Propriétés', 'animations': 'Animations'},
+          selected: view.inspectorTab,
+          onChanged: (value) {
             if (beforeSelection?.call() == false) return;
-            view.inspectorTab = value; changed();
-          }),
+            view.inspectorTab = value;
+            changed();
+          },
+        ),
         const SizedBox(height: 12),
         Expanded(
           child: SingleChildScrollView(
@@ -137,16 +141,20 @@ class PresentationInspector extends StatelessWidget {
                           factor: 1000000,
                         ),
                       const SizedBox(height: 14),
-                      if (selected is PresentationTextClip && view.inspectorTab == 'properties')
+                      if (selected is PresentationTextClip &&
+                          view.inspectorTab == 'properties')
                         ...textFields(selected),
-                      if (view.inspectorTab == 'properties' && (selected is PresentationVisualClip ||
-                          selected is PresentationAudioClip ||
-                          selected is PresentationCaptionClip))
+                      if (view.inspectorTab == 'properties' &&
+                          (selected is PresentationVisualClip ||
+                              selected is PresentationAudioClip ||
+                              selected is PresentationCaptionClip))
                         ...mediaFields(selected),
                       if (selected is PresentationTextClip ||
                           selected is PresentationVisualClip) ...[
-                        if (view.inspectorTab == 'properties') ...transformFields(selected),
-                        if (view.inspectorTab == 'animations') ...animationFields(selected),
+                        if (view.inspectorTab == 'properties')
+                          ...transformFields(selected),
+                        if (view.inspectorTab == 'animations')
+                          ...animationFields(selected),
                       ],
                       if (selected is PresentationAudioClip) ...[
                         field(

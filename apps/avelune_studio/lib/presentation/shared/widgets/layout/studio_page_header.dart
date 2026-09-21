@@ -24,7 +24,12 @@ class StudioPageHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(title, style: prominent ? Theme.of(context).textTheme.headlineMedium : Theme.of(context).textTheme.titleLarge),
+            Text(
+              title,
+              style: prominent
+                  ? Theme.of(context).textTheme.headlineMedium
+                  : Theme.of(context).textTheme.titleLarge,
+            ),
             if (description != null) ...[
               const SizedBox(height: 4),
               Text(description!, style: Theme.of(context).textTheme.bodySmall),
