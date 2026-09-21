@@ -47,7 +47,7 @@ class StudioPresentationVisuals extends ChangeNotifier
       _error != null || _sink?.diagnostic != null || _contentFailed;
   bool get _contentFailed => _content?.currentDiagnosticIsFailure ?? false;
   int get mediaReads => _content?.reads ?? 0;
-  int get appliedMediaEpoch => _epoch;
+  int mediaReleases = 0, mediaPublishes = 0;
 
   Future<void> _initialize() async {
     final stagedIds = imports.map((item) => item.media.id).toSet();
@@ -152,10 +152,15 @@ class StudioPresentationVisuals extends ChangeNotifier
     if (_closed || loading) return;
     final transport = _transport;
     final sink = _sink;
-    if (transport == null || sink == null || transport.scrubbing) return;
+    if (transport == null || sink == null) return;
     if (_epoch != transport.mediaEpoch) {
       _epoch = transport.mediaEpoch;
+      if (transport.scrubbing) {
+        _publishMedia();
+        return;
+      }
       final epoch = _epoch;
+      mediaReleases++;
       _releaseFuture = sink.release().then((_) {
         if (!_closed && epoch == _epoch) _publishMedia();
       });
@@ -168,6 +173,7 @@ class StudioPresentationVisuals extends ChangeNotifier
     final transport = _transport;
     final asset = transport?.asset;
     if (_closed || transport == null || asset == null) return;
+    mediaPublishes++;
     _sink?.synchronize(
       asset: asset,
       frame: transport.frame,

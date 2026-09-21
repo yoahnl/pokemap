@@ -202,17 +202,31 @@ Le défaut existait avant, mais restait invisible : seul un clic pouvait déplac
 la tête de lecture, ce qui produisait un unique battement. Le glissement livré
 au retour précédent en produit sept par seconde, ce qui l'a rendu manifeste.
 
-Correctif : la synchronisation média est coalescée pendant le geste. Le
-transport porte un état `scrubbing`, `_syncMedia` ne publie rien tant qu'il est
-actif, et la sortie du geste déclenche une libération et une reprise uniques à
-l'instant final. C'est aussi ce que demandent la section 13, qui interdit de
-rejouer les sources depuis zéro pendant un scrub, et la section 19, qui interdit
-un décodage à chaque frame de glissement.
+Première tentative, insuffisante : la synchronisation média a été coalescée
+pendant le geste, c'est-à-dire suspendue de bout en bout. Le stroboscope a
+disparu, mais la vidéo ne suivait plus la tête de lecture et le basculement
+poster vers lecteur se produisait au relâchement, à l'endroit le plus visible.
+Le remède traitait le symptôme du mauvais côté.
 
-Le test `UI11 scrubbing does not churn the media between frames` compare l'epoch
-média appliqué par les visuals à celui du transport. Sans le correctif il relève
-sept applications au lieu d'une pendant un glissement de six échantillons — le
-même chiffre que la mesure vidéo.
+Correctif retenu, après lecture du sink. `_applyVideo` ne détruit rien quand la
+ressource et le clip ne changent pas : il se contente de déplacer le décodeur,
+et son commentaire le dit explicitement. Le teardown venait donc entièrement de
+`_syncMedia`, qui appelait `sink.release()` sur tout changement d'epoch, seek
+compris.
+
+La sémantique de `mediaEpoch` est conservée — un test existant affirme
+délibérément qu'un scrub manuel invalide l'epoch, et le contrat n'a pas été
+touché. Seule la réaction change : pendant un geste, l'epoch est adopté et la
+frame publiée sans libération. Le décodeur reste vivant et cherche sa position,
+donc **l'image suit la tête de lecture**, et plus rien n'est détruit puis
+reconstruit entre deux échantillons. Le basculement unique poster vers lecteur
+se produit désormais au premier échantillon du geste plutôt qu'à sa fin.
+
+Le test `UI11 scrubbing does not churn the media between frames` compte les
+libérations et les publications des visuals : sur un glissement de six
+échantillons il exige que les publications augmentent — l'image suit — et que
+les libérations n'augmentent pas. Sans le correctif il en relève huit au lieu
+de deux.
 
 `_UnavailableContent` a été extraite vers `presentation_unavailable_content.dart`
 pour rendre au fichier la marge nécessaire sous la limite de trois cents lignes.

@@ -67,7 +67,8 @@ void main() {
     final transport = tester
         .widget<PresentationTimeline>(find.byType(PresentationTimeline))
         .transport;
-    final applied = harness.visuals.appliedMediaEpoch;
+    final releases = harness.visuals.mediaReleases;
+    final publishes = harness.visuals.mediaPublishes;
 
     final gesture = await tester.startGesture(
       tester.getTopLeft(ruler) + const Offset(4, 12),
@@ -77,17 +78,21 @@ void main() {
       await tester.pump();
     }
     expect(transport.scrubbing, isTrue);
-    expect(transport.mediaEpoch, greaterThan(applied));
     expect(
-      harness.visuals.appliedMediaEpoch,
-      applied,
-      reason: 'Releasing and restarting media on every scrub sample strobes',
+      harness.visuals.mediaPublishes,
+      greaterThan(publishes),
+      reason: 'The picture must follow the playhead while it is dragged',
+    );
+    expect(
+      harness.visuals.mediaReleases,
+      releases,
+      reason: 'Tearing the decoder down on every sample strobes the canvas',
     );
 
     await gesture.up();
     await harness.settle(tester);
     expect(transport.scrubbing, isFalse);
-    expect(harness.visuals.appliedMediaEpoch, transport.mediaEpoch);
+    expect(harness.visuals.mediaReleases, releases);
     expect(tester.takeException(), isNull);
   });
 
