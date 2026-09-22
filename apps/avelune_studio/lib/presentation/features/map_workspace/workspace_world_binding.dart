@@ -73,14 +73,17 @@ extension _WorkspaceWorldBinding on _MapWorkspaceScreenState {
     return MapDraftReferenceSources(
       eventDrafts: [
         if (events != null)
-          for (final id in events.dirtyIds)
-            ?events.record(id),
+          for (final id in events.dirtyIds) ?events.record(id),
       ],
       ruleTargets: [
         if (world != null)
           for (final draft in world.pendingRules.values)
             if (draft.target?.entityId case final entityId?)
-              (mapId: draft.target!.mapId, entityId: entityId),
+              (
+                mapId: draft.target!.mapId,
+                kind: MapDraftReferenceKind.entity,
+                id: entityId,
+              ),
       ],
       interactionDrafts: [
         if (narrative != null)
@@ -89,7 +92,11 @@ extension _WorkspaceWorldBinding on _MapWorkspaceScreenState {
               if (session.current.interaction.source.toJson() case final source)
                 if (source['mapId'] case final String mapId)
                   if (source['entityId'] case final String entityId)
-                    (mapId: mapId, entityId: entityId),
+                    (
+                      mapId: mapId,
+                      kind: MapDraftReferenceKind.entity,
+                      id: entityId,
+                    ),
       ],
     );
   }

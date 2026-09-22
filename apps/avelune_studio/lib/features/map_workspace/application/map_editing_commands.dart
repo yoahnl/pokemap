@@ -77,6 +77,40 @@ class MapEditingCommands {
   bool canReorder({required bool forward}) =>
       _reordered(forward: forward) != document.current;
 
+  bool canReorderAt({
+    required String instanceId,
+    required GridPos at,
+    required bool forward,
+  }) =>
+      _reorderedAt(instanceId: instanceId, at: at, forward: forward) !=
+      document.current;
+
+  void reorderAt({
+    required String instanceId,
+    required GridPos at,
+    required bool forward,
+  }) => document.commit(
+    _reorderedAt(instanceId: instanceId, at: at, forward: forward),
+  );
+
+  MapData _reorderedAt({
+    required String instanceId,
+    required GridPos at,
+    required bool forward,
+  }) {
+    try {
+      return moveMapPlacedElementVisualOrder(
+        document.current,
+        manifest: project,
+        instanceId: instanceId,
+        forward: forward,
+        at: at,
+      );
+    } on ValidationException {
+      return document.current;
+    }
+  }
+
   MapData _reordered({required bool forward}) {
     final id = document.selectedId;
     if (id == null) return document.current;

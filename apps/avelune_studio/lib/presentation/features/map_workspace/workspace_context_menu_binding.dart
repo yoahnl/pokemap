@@ -27,6 +27,17 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
     );
   }
 
+  /// Keyboard entry point: opens the menu on the current selection, anchored
+  /// on its cell.
+  void _openContextMenuFromKeyboard() {
+    final document = _controller.active;
+    final target = _view?.target;
+    if (document == null) return;
+    final cell = document.stackPosition ?? const GridPos(x: 0, y: 0);
+    if (target != null && target.mapId != document.current.id) return;
+    _openContextMenu(cell, const Offset(120, 120));
+  }
+
   void _openContextMenu(GridPos cell, Offset globalPosition) {
     final context = _contextAt(cell);
     if (context == null) return;
@@ -115,7 +126,10 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
 
   MapContextNavigation _contextNavigation(MapContextActionContext context) =>
       MapContextNavigation(
-        showProperties: () => _inspector = true,
+        showProperties: () {
+          _inspector = true;
+          _view?.revealInspector = true;
+        },
         copyCoordinates: (text) =>
             unawaited(Clipboard.setData(ClipboardData(text: text))),
         openResource: (entry) => _openResources(entry),
@@ -128,12 +142,14 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
         openStoryZone: (trigger) =>
             unawaited(_openExistingStoryZone(context.document, trigger)),
         startMove: (target) {
+          final family = _selectionFamily(target.family);
           _view
             ?..tool = StudioMapTool.select
-            ..select(
-              context.document,
-              _selectionFamily(target.family),
-              target.id,
+            ..select(context.document, family, target.id)
+            ..pendingMove = MapSelectionTarget(
+              mapId: context.document.current.id,
+              family: family,
+              id: target.id,
             );
           context.document.stackPosition = context.position;
           _movingHint =
@@ -143,21 +159,59 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
         },
       );
 
-  /// Opens the interaction already attached to a story zone, without creating
-  /// a new one: the narrative owner keeps its own return path.
+  /// Every interaction attached to this exact source: unsaved sessions,
+  /// event drafts and saved records alike.
+  List<String> _interactionsOnSource(String mapId, String triggerId) {
+    final narrative = _narrative;
+    if (narrative == null) return const [];
+    bool matches(NarrativeEventSourceRef? source) {
+      final json = source?.toJson();
+      return json != null &&
+          json['mapId'] == mapId &&
+          json['triggerId'] == triggerId;
+    }
+
+    final found = <String>{
+      for (final entry in narrative.sessions.entries)
+        if (matches(entry.value.current.interaction.source)) entry.key,
+      for (final record
+          in _events?.records ??
+              narrative.project.eventRegistry?.records ??
+              const <NarrativeEventRecord>[])
+        if (matches(recordSource(record))) record.id,
+    };
+    return found.toList();
+  }
+
+  /// Opens the interaction already attached to a story zone. It never creates
+  /// a narrative identity: opening is not authoring.
   Future<void> _openExistingStoryZone(
     EditableMapDocument document,
     MapTrigger trigger,
   ) async {
-    final narrative = _narrative;
-    if (narrative == null) return;
-    await narrative.openSource(
-      document,
-      NarrativeEventSourceRef.triggerEnter(document.current.id, trigger.id),
-      trigger.name,
-    );
-    if (!mounted || narrative.active == null) return;
-    _interactionOrigin = WorkspaceSpace.map;
-    _show(WorkspaceSpace.interaction);
+    final mapId = document.current.id;
+    final found = _interactionsOnSource(mapId, trigger.id);
+    if (found.isEmpty) {
+      document.error =
+          'Aucune interaction n’est liée à cette zone. Tracez-la depuis '
+          'Histoire pour en écrire une.';
+      _changed();
+      return;
+    }
+    if (found.length > 1) {
+      document.error =
+          '${found.length} interactions utilisent cette zone. Choisissez '
+          'celle à ouvrir dans Événements.';
+      _openEvents();
+      return;
+    }
+    final request = ++_navigationRequest;
+    final problem = await _openStoryInteraction(found.single);
+    if (!mounted || request != _navigationRequest) return;
+    if (_controller.active?.current.id != mapId) return;
+    if (problem != null) {
+      document.error = problem;
+      _changed();
+    }
   }
 }

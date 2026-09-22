@@ -1,11 +1,14 @@
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 
 class TriggerEditingCommands {
-  TriggerEditingCommands(this.document, this.project);
+  TriggerEditingCommands(this.document, this.project, {this.draftGuard});
   final EditableMapDocument document;
   final ProjectManifest project;
+  final MapReferenceGuard? draftGuard;
 
   MapTrigger? selected(String? id) =>
       document.current.triggers.where((entry) => entry.id == id).firstOrNull;
@@ -49,10 +52,15 @@ class TriggerEditingCommands {
             sourceId: id,
           ),
         );
-    return usages.isEmpty
-        ? null
-        : 'Cette zone porte une interaction de l’histoire. Retirez sa liaison '
-              'avant de la supprimer.';
+    if (usages.isNotEmpty) {
+      return 'Cette zone porte une interaction de l’histoire. Retirez sa '
+          'liaison avant de la supprimer.';
+    }
+    return draftGuard?.call(
+      mapId: document.current.id,
+      entityId: id,
+      kind: MapDraftReferenceKind.trigger,
+    );
   }
 
   void delete(String id) {

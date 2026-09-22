@@ -9,7 +9,7 @@ import 'map_workspace_visuals.dart';
 import 'map_workspace_toolbar.dart';
 import 'map_workspace_canvas.dart';
 import 'map_workspace_palette_column.dart';
-import 'workspace_resource_diagnostics.dart';
+import 'workspace_map_footer.dart';
 import 'map_selection_inspector.dart';
 import 'workspace_compact_panel.dart';
 
@@ -150,6 +150,20 @@ class MapWorkspaceLayout extends StatelessWidget {
         );
       }
 
+      if (ready && activeSpace == 'map' && view!.revealInspector) {
+        view!.revealInspector = false;
+        if (compactInspector) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            showWorkspaceCompactPanel(
+              context,
+              title: 'Inspecteur',
+              builder: (context, refresh, close) =>
+                  inspectorContent(refresh, close),
+            );
+          });
+        }
+      }
       if (ready && activeSpace == 'map' && view!.revealPalette) {
         view!.revealPalette = false;
         if (compactPalette) {
@@ -258,32 +272,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                         )),
             ),
             if (visuals != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 5,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (doc?.current.layers.any(
-                          (layer) => layer is BorderLayer && layer.isVisible,
-                        ) ==
-                        true)
-                      const Tooltip(
-                        message:
-                            'Les bordures restent conservées et rendues dans le test du jeu.',
-                        child: Text(
-                          'Bordures non prévisualisées · visibles dans le test du jeu',
-                          key: ValueKey('map-border-notice'),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    WorkspaceResourceDiagnostics(visuals: visuals!),
-                  ],
-                ),
-              ),
+              WorkspaceMapFooter(visuals: visuals!, map: doc?.current),
           ],
         ),
       );

@@ -376,6 +376,23 @@ Le garde est injecté dans la commande (`draftGuard`), donc la protection agit �
 l'exécution, pas seulement sur l'état du bouton. Les identités sont qualifiées :
 un homonyme sur une autre carte ne bloque ni n'autorise à tort.
 
+**Complété depuis** : l'index lisait un enregistrement d'Événements par son
+brouillon seul. Une interaction déjà configurée puis jamais réenregistrée n'a
+plus de brouillon : sa source vit dans sa définition. `recordSource()` lit
+désormais `draftOrNull` **puis** `definitionOrNull`, donc un travail configuré
+protège sa cible comme un brouillon.
+
+Trois familles manquaient au raccordement, alors que l'index les connaissait :
+
+| Famille | Commande | Ce qui bloque désormais |
+| --- | --- | --- |
+| Panneau, point d'apparition | `MapEntityEditingCommands` | brouillon d'événement ou de règle visant l'entité |
+| Personnage | `CharacterEditingCommands` | idem, plus l'interaction en cours d'écriture |
+| Zone d'histoire | `TriggerEditingCommands` | brouillon visant le déclencheur (`MapDraftReferenceKind.trigger`) |
+
+Le garde porte maintenant la nature de la cible, une entité et un déclencheur
+pouvant partager un identifiant local sans se protéger l'un l'autre.
+
 ### Sauvegarde : bouton et raccourci sur le même chemin
 
 Le bouton Enregistrer appelait directement la sauvegarde, sans valider la
@@ -403,7 +420,8 @@ Le harnais reprend la convention des tests runtime existants
 
 | Nature | Fichier |
 | --- | --- |
-| brouillons réels des propriétaires Événements et Monde | `test/map_workspace/draft_reference_guard_test.dart` (5) |
+| brouillons réels des propriétaires Événements et Monde | `test/map_workspace/draft_reference_guard_test.dart` (6) |
+| refus de suppression : personnage et zone d'histoire | `test/map_workspace/draft_deletion_guard_test.dart` (2) |
 | sauvegarde dans le véritable hôte, écriture et relecture disque | `test/map_workspace/save_while_typing_test.dart` (3) |
 | parcours dans le véritable Player | `test/map_workspace/warp_player_journey_test.dart` (2) |
 
@@ -412,17 +430,20 @@ Le harnais reprend la convention des tests runtime existants
 
 | Vérification | Résultat |
 | --- | --- |
-| formatage des fichiers touchés | 13 fichiers reformatés sur 199 |
+| formatage | 9 fichiers reformatés sur 768 |
 | analyse Studio | aucune remarque |
 | frontières d'architecture | 12 verts |
-| placements, protections et menu | 98 verts |
-| suite Studio complète | 825 verts, 2 ignorés, 1 échec de charge |
+| placements, protections et menu | 124 verts |
+| suite Studio complète | 845 verts, 2 ignorés, **aucun échec** |
 
-L'unique échec de la suite est `desktop_workspace_layout_test`, sur son message
-connu « Les E/S réelles ne terminent pas entre les frames en 20 secondes ». Il
-passe seul en 24 s. Un premier passage, sur une machine saturée (36 minutes au
-lieu de 3), avait produit 6 échecs de ce type ; les cinq autres repassent tous
-isolément et le second passage à froid ne les reproduit pas.
+Le garde d'architecture tombait au départ de cette mesure : trois fichiers
+manuels dépassaient 300 lignes. Ils ont été découpés (voir le rapport
+AS-MAP-002), et les 12 vérifications passent ensuite.
+
+`desktop_workspace_layout_test`, seul échec de charge des passages précédents,
+passe cette fois dans la suite complète (3 min 25). Son message connu — « Les
+E/S réelles ne terminent pas entre les frames en 20 secondes » — reste un
+symptôme de machine saturée, pas de régression : il ne s'est pas reproduit.
 
 Journaux : `logs/analyse.txt`, `logs/architecture.txt`,
 `logs/placements-cible.txt`, `logs/suite-studio-finale.txt`.

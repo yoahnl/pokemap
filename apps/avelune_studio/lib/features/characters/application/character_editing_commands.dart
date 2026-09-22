@@ -1,10 +1,13 @@
 import 'package:map_core/map_core_domain.dart';
+
+import '../../map_workspace/application/map_entity_editing_commands.dart';
 import '../../map_workspace/application/editable_map_document.dart';
 
 class CharacterEditingCommands {
-  CharacterEditingCommands(this.document, this.project);
+  CharacterEditingCommands(this.document, this.project, {this.draftGuard});
   final EditableMapDocument document;
   final ProjectManifest project;
+  final MapReferenceGuard? draftGuard;
   static int _sequence = 0;
 
   String _id() {
@@ -75,9 +78,11 @@ class CharacterEditingCommands {
             sourceId: id,
           ),
         );
-    return usages.isEmpty
-        ? null
-        : 'Ce personnage est utilisé par l’histoire. Retirez ses liaisons avant de le supprimer.';
+    if (usages.isNotEmpty) {
+      return 'Ce personnage est utilisé par l’histoire. Retirez ses liaisons '
+          'avant de le supprimer.';
+    }
+    return draftGuard?.call(mapId: document.current.id, entityId: id);
   }
 
   void delete(String id) {

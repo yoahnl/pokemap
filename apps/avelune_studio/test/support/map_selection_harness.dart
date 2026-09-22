@@ -1,3 +1,4 @@
+import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_selection_inspector.dart';
@@ -72,8 +73,11 @@ class MapSelectionHarness {
                     onEditElement: (_) {},
                     referenceGuard: draftBlocked == null
                         ? null
-                        : ({required mapId, required entityId}) =>
-                              draftBlocked!(entityId)
+                        : ({
+                            required mapId,
+                            required entityId,
+                            kind = MapDraftReferenceKind.entity,
+                          }) => draftBlocked!(entityId)
                               ? 'Un brouillon en cours utilise cet élément.'
                               : null,
                   ),

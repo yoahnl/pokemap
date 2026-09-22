@@ -46,7 +46,7 @@ class MapContextCommandRunner {
             context.document,
             context.project,
             context.position,
-          ).where((item) => item.id == target.id).firstOrNull;
+          ).where(target.sameAs).firstOrNull;
     if (target != null &&
         (present == null || target.mapId != context.document.current.id)) {
       return 'Cet élément n’est plus à cet endroit.';
@@ -82,11 +82,9 @@ class MapContextCommandRunner {
       case MapContextCommand.move:
         if (target != null) navigation?.startMove?.call(target);
       case MapContextCommand.bringForward:
-        _selectDecor(target);
-        MapEditingCommands(document, project).reorder(forward: true);
+        _reorder(target, forward: true);
       case MapContextCommand.sendBackward:
-        _selectDecor(target);
-        MapEditingCommands(document, project).reorder(forward: false);
+        _reorder(target, forward: false);
       case MapContextCommand.openResource:
       case MapContextCommand.editResource:
         final entry = _decorEntry(target);
@@ -124,10 +122,12 @@ class MapContextCommandRunner {
     }
   }
 
-  void _selectDecor(MapContextTarget? target) {
-    if (target?.family == MapContextFamily.decor) {
-      context.document.selectedId = target!.id;
-    }
+  void _reorder(MapContextTarget? target, {required bool forward}) {
+    if (target?.family != MapContextFamily.decor) return;
+    MapEditingCommands(
+      context.document,
+      context.project,
+    ).reorderAt(instanceId: target!.id, at: context.position, forward: forward);
   }
 
   ProjectElementEntry? _decorEntry(MapContextTarget? target) {
@@ -169,7 +169,11 @@ class MapContextCommandRunner {
         document.selectedId = target.id;
         MapEditingCommands(document, project).deleteSelected();
       case MapContextFamily.character:
-        CharacterEditingCommands(document, project).delete(target.id);
+        CharacterEditingCommands(
+          document,
+          project,
+          draftGuard: context.referenceGuard,
+        ).delete(target.id);
       case MapContextFamily.marker:
         MapEntityEditingCommands(
           document,
@@ -181,7 +185,11 @@ class MapContextCommandRunner {
       case MapContextFamily.zone:
         GameplayZoneEditingCommands(document, project).delete(target.id);
       case MapContextFamily.trigger:
-        TriggerEditingCommands(document, project).delete(target.id);
+        TriggerEditingCommands(
+          document,
+          project,
+          draftGuard: context.referenceGuard,
+        ).delete(target.id);
       case MapContextFamily.cell:
         return;
     }

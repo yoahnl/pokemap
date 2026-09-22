@@ -6,23 +6,8 @@ import 'package:avelune_studio/features/map_workspace/application/map_entity_edi
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
+import '../support/draft_reference_fixture.dart';
 import '../support/ui12_world_harness.dart';
-
-MapDraftReferenceSources sourcesOf(
-  Ui12WorldHarness h, {
-  EventWorkspaceController? events,
-}) => MapDraftReferenceSources(
-  eventDrafts: [
-    if (events != null)
-      for (final id in events.dirtyIds)
-        ?events.record(id),
-  ],
-  ruleTargets: [
-    for (final draft in h.world.pendingRules.values)
-      if (draft.target?.entityId case final entityId?)
-        (mapId: draft.target!.mapId, entityId: entityId),
-  ],
-);
 
 void main() {
   late Ui12WorldHarness h;
@@ -35,18 +20,8 @@ void main() {
     }
   });
 
-  Future<MapEntity> signOn(String mapId) async {
-    await h.maps.activate(
-      h.maps.project!.maps.firstWhere((entry) => entry.id == mapId),
-    );
-    return MapEntityEditingCommands(
-      h.maps.active!,
-      h.maps.project!,
-    ).place(MapEntityKind.sign, const GridPos(x: 5, y: 5));
-  }
-
   test('an unsaved world rule draft protects the entity it targets', () async {
-    final sign = await signOn('jardin');
+    final sign = await signOn(h, 'jardin');
     final document = h.maps.active!;
     final index = MapDraftReferenceIndex(() => sourcesOf(h));
     final commands = MapEntityEditingCommands(
@@ -84,7 +59,7 @@ void main() {
   });
 
   test('an unsaved event draft protects the entity it targets', () async {
-    final sign = await signOn('jardin');
+    final sign = await signOn(h, 'jardin');
     final document = h.maps.active!;
     final events = EventWorkspaceController(
       h.world.narrative,
@@ -116,7 +91,7 @@ void main() {
   test(
     'a draft targeting a twin id on another map blocks nothing here',
     () async {
-      final sign = await signOn('jardin');
+      final sign = await signOn(h, 'jardin');
       final document = h.maps.active!;
       final index = MapDraftReferenceIndex(() => sourcesOf(h));
       final commands = MapEntityEditingCommands(
@@ -148,7 +123,7 @@ void main() {
   );
 
   test('a dependency added after the first read is honoured', () async {
-    final sign = await signOn('jardin');
+    final sign = await signOn(h, 'jardin');
     final document = h.maps.active!;
     final index = MapDraftReferenceIndex(() => sourcesOf(h));
     final commands = MapEntityEditingCommands(
@@ -176,7 +151,7 @@ void main() {
   });
 
   test('removing the draft frees the entity again', () async {
-    final sign = await signOn('jardin');
+    final sign = await signOn(h, 'jardin');
     final document = h.maps.active!;
     final index = MapDraftReferenceIndex(() => sourcesOf(h));
     final commands = MapEntityEditingCommands(
@@ -199,5 +174,36 @@ void main() {
     expect(commands.deletionProblem(sign.id), isNull);
     commands.delete(sign.id);
     expect(commands.selected(sign.id), isNull);
+  });
+
+  test('a configured record is read from its definition, not its draft', () {
+    // The business state says configured; the working version is still
+    // unsaved. Its source then lives in the definition.
+    final configured = NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(
+        id: 'evt_0192bc3d-4e5f-7a1b-8c2d-3e4f5a6b7c8d',
+        name: 'Lecture',
+        source: NarrativeEventSourceRef.entityInteract('jardin', 'panneau'),
+        conditions: const [],
+        conditionExpression: NarrativeEventConditionExpression.all(const []),
+        sceneId: 'scene',
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+        priority: 0,
+        order: 0,
+      ),
+      enabled: true,
+    );
+    expect(configured.draftOrNull, isNull);
+    expect(recordSource(configured), isNotNull);
+
+    final index = MapDraftReferenceIndex(
+      () => MapDraftReferenceSources(eventDrafts: [configured]),
+    );
+    expect(
+      index.problemFor(mapId: 'jardin', entityId: 'panneau'),
+      contains('brouillon'),
+      reason: 'the guard follows the source wherever the shape keeps it',
+    );
+    expect(index.problemFor(mapId: 'clairiere', entityId: 'panneau'), isNull);
   });
 }

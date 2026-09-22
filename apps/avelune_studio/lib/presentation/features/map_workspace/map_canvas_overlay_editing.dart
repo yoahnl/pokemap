@@ -38,7 +38,9 @@ MapCanvasOverlay buildEditingOverlay({
     selectedMarkerId: view.selectedFor(map.id, MapSelectionFamily.marker),
     selectedZoneId: view.selectedFor(map.id, MapSelectionFamily.zone),
     markerPreview: gesture?.entity == null ? null : gesture?.destination,
-    zone: gesture?.zone == true
+    zone: gesture?.movesArea == true
+        ? gesture!.armedArea
+        : gesture?.zone == true
         ? gesture!.rectangle
         : map.triggers
               .where(

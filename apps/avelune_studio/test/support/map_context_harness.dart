@@ -27,6 +27,35 @@ class MapContextHarness {
   MapContextTarget? _target;
   MapContextMenuRequest? _request;
   MapContextNavigation? navigation;
+
+  /// The same arming the screen performs, so the harness exercises the real
+  /// move path instead of a stub.
+  MapContextNavigation get _navigation =>
+      navigation ??
+      MapContextNavigation(
+        startMove: (target) {
+          final family = _selectionFamily(target.family);
+          view
+            ..tool = StudioMapTool.select
+            ..select(document, family, target.id)
+            ..pendingMove = MapSelectionTarget(
+              mapId: document.current.id,
+              family: family,
+              id: target.id,
+            );
+        },
+      );
+
+  MapSelectionFamily _selectionFamily(MapContextFamily family) =>
+      switch (family) {
+        MapContextFamily.decor => MapSelectionFamily.decor,
+        MapContextFamily.character => MapSelectionFamily.character,
+        MapContextFamily.marker => MapSelectionFamily.marker,
+        MapContextFamily.warp => MapSelectionFamily.warp,
+        MapContextFamily.zone => MapSelectionFamily.zone,
+        MapContextFamily.trigger => MapSelectionFamily.trigger,
+        MapContextFamily.cell => MapSelectionFamily.decor,
+      };
   late StateSetter _redraw;
 
   static MapContextHarness of(ProjectManifest project, {String mapId = 'a'}) =>
@@ -70,15 +99,7 @@ class MapContextHarness {
       view.clearSelection(document);
       return;
     }
-    view.select(document, switch (target.family) {
-      MapContextFamily.decor => MapSelectionFamily.decor,
-      MapContextFamily.character => MapSelectionFamily.character,
-      MapContextFamily.marker => MapSelectionFamily.marker,
-      MapContextFamily.warp => MapSelectionFamily.warp,
-      MapContextFamily.zone => MapSelectionFamily.zone,
-      MapContextFamily.trigger => MapSelectionFamily.trigger,
-      MapContextFamily.cell => MapSelectionFamily.decor,
-    }, target.id);
+    view.select(document, _selectionFamily(target.family), target.id);
   }
 
   void close() {
@@ -95,7 +116,7 @@ class MapContextHarness {
     close();
     final refusal = MapContextCommandRunner(
       context,
-      navigation: navigation,
+      navigation: _navigation,
     ).run(command, target);
     if (refusal != null) document.error = refusal;
     _redraw(() {});

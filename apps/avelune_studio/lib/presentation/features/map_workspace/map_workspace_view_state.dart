@@ -42,12 +42,17 @@ class MapWorkspaceViewState {
   ProjectMapEntry? warpDestination;
   MapSelectionTarget? _target;
   MapSelectionTarget? get target => _target;
+
+  /// Armed by the context menu: the element the next drag must move, whatever
+  /// else sits under the pointer.
+  MapSelectionTarget? pendingMove;
   GameplayZoneKind zoneKind = GameplayZoneKind.encounter;
   String characterQuery = '';
   double characterScrollOffset = 0;
   bool grid = true;
   bool paletteTiles = false;
   bool revealPalette = false;
+  bool revealInspector = false;
   String paletteTab = 'Décors';
   final paletteScrollOffsets = <String, double>{};
   String? paletteAtlasId;
@@ -128,6 +133,7 @@ class MapWorkspaceViewState {
 
   void clearSelection(EditableMapDocument document) {
     _target = null;
+    pendingMove = null;
     document.selectedId = null;
   }
 

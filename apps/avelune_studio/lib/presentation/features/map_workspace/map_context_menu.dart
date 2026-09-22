@@ -37,17 +37,27 @@ class MapContextMenu extends StatefulWidget {
 
 class _MapContextMenuState extends State<MapContextMenu> {
   final _focus = FocusScopeNode(debugLabel: 'map-context-menu');
+  FocusNode? _restoreTo;
 
   @override
   void initState() {
     super.initState();
+    _restoreTo = FocusManager.instance.primaryFocus;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _focus.requestFocus();
+      if (!mounted) return;
+      _focus.requestFocus();
+      _focus.nextFocus();
     });
   }
 
   @override
   void dispose() {
+    final restore = _restoreTo;
+    if (restore != null && restore.context != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (restore.context != null) restore.requestFocus();
+      });
+    }
     _focus.dispose();
     super.dispose();
   }
@@ -61,11 +71,10 @@ class _MapContextMenuState extends State<MapContextMenu> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: GestureDetector(
+            child: Listener(
               key: const ValueKey('map-context-scrim'),
               behavior: HitTestBehavior.opaque,
-              onTap: widget.onDismiss,
-              onSecondaryTap: widget.onDismiss,
+              onPointerDown: (_) => widget.onDismiss(),
             ),
           ),
           CustomSingleChildLayout(
@@ -182,21 +191,21 @@ class _ActionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final row = InkWell(
-      onTap: action.enabled ? onPressed : null,
-      child: Container(
-        color: selected ? colors.primaryContainer : null,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Text(
-          action.label,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: action.enabled
-                ? (selected ? colors.onPrimaryContainer : colors.onSurface)
-                : colors.onSurfaceVariant,
-          ),
-        ),
+    final row = TextButton(
+      onPressed: action.enabled ? onPressed : null,
+      style: TextButton.styleFrom(
+        alignment: Alignment.centerLeft,
+        shape: const RoundedRectangleBorder(),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        backgroundColor: selected ? colors.primaryContainer : null,
+        foregroundColor: selected
+            ? colors.onPrimaryContainer
+            : colors.onSurface,
+        disabledForegroundColor: colors.onSurfaceVariant,
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(action.label, maxLines: 2, overflow: TextOverflow.ellipsis),
       ),
     );
     return action.enabled

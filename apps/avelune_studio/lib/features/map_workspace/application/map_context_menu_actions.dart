@@ -90,14 +90,24 @@ List<MapContextAction> _decorActions(
     MapContextAction(
       MapContextCommand.bringForward,
       'Passer devant',
-      unavailable: commands.canReorder(forward: true)
+      unavailable:
+          commands.canReorderAt(
+            instanceId: target.id,
+            at: context.position,
+            forward: true,
+          )
           ? null
           : 'Ce décor est déjà devant les autres à cet endroit.',
     ),
     MapContextAction(
       MapContextCommand.sendBackward,
       'Passer derrière',
-      unavailable: commands.canReorder(forward: false)
+      unavailable:
+          commands.canReorderAt(
+            instanceId: target.id,
+            at: context.position,
+            forward: false,
+          )
           ? null
           : 'Ce décor est déjà derrière les autres à cet endroit.',
     ),
@@ -113,6 +123,7 @@ List<MapContextAction> _characterActions(
       CharacterEditingCommands(
         context.document,
         context.project,
+        draftGuard: context.referenceGuard,
       ).deletionProblem(target.id) ??
       context.narrativeGuard?.call(target.id);
   return [
@@ -182,6 +193,7 @@ List<MapContextAction> _triggerActions(
   final blocked = TriggerEditingCommands(
     context.document,
     context.project,
+    draftGuard: context.referenceGuard,
   ).deletionProblem(target.id);
   return [
     const MapContextAction(MapContextCommand.properties, 'Propriétés'),

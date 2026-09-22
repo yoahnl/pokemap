@@ -13,6 +13,7 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
   void Function(void Function()) guarded, {
   VoidCallback? onSave,
   void Function(void Function())? guardedWhileTyping,
+  VoidCallback? onContextMenu,
 }) {
   final document = controller.active;
   final project = controller.project;
@@ -45,10 +46,21 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
     }
   }
 
+  void cancelPending() {
+    if (document != null) view?.pendingMove = null;
+  }
+
   final result = <ShortcutActivator, VoidCallback>{
     const SingleActivator(LogicalKeyboardKey.escape): () => guarded(() {
+      cancelPending();
       view?.tool = StudioMapTool.select;
     }),
+    if (onContextMenu != null)
+      const SingleActivator(LogicalKeyboardKey.f10, shift: true): () =>
+          guarded(onContextMenu),
+    if (onContextMenu != null)
+      const SingleActivator(LogicalKeyboardKey.contextMenu): () =>
+          guarded(onContextMenu),
     const SingleActivator(LogicalKeyboardKey.delete): () => guarded(delete),
     const SingleActivator(LogicalKeyboardKey.backspace): () => guarded(delete),
   };

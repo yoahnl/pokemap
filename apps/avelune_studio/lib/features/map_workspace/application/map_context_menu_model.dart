@@ -38,6 +38,12 @@ class MapContextTarget {
   final String id;
   final String label;
   final String kindLabel;
+
+  /// Map, family and identifier together: two families may legitimately carry
+  /// the same local id, and two projects the same map id.
+  String get key => '$mapId\u001f${family.name}\u001f$id';
+
+  bool sameAs(MapContextTarget? other) => other != null && other.key == key;
 }
 
 class MapContextAction {

@@ -7,6 +7,7 @@ import '../../../features/map_workspace/application/gameplay_zone_editing_comman
 import '../../../features/map_workspace/application/map_entity_editing_commands.dart';
 import '../../../features/map_workspace/application/trigger_editing_commands.dart';
 import '../../../features/map_workspace/application/warp_editing_commands.dart';
+import 'map_armed_area_move.dart';
 import 'map_workspace_view_state.dart';
 
 class MapCharacterGesture {
@@ -18,6 +19,7 @@ class MapCharacterGesture {
     this.entity,
     this.zone, {
     this.warp,
+    this.armed,
   }) : source = document.current,
        end = origin;
   final EditableMapDocument document;
@@ -28,6 +30,10 @@ class MapCharacterGesture {
   final MapEntity? entity;
   final bool zone;
   final MapWarp? warp;
+
+  /// Set when the context menu armed a move: this target moves, nothing else
+  /// under the pointer is re-resolved.
+  final MapSelectionTarget? armed;
   GridPos end;
 
   static MapCharacterGesture? start({
@@ -44,6 +50,41 @@ class MapCharacterGesture {
         origin.y >= size.height) {
       return null;
     }
+    MapCharacterGesture holding(MapEntity? entity, {MapWarp? warp}) {
+      document.stackPosition = origin;
+      return MapCharacterGesture._(
+        document,
+        project,
+        view,
+        origin,
+        entity,
+        false,
+        warp: warp,
+      );
+    }
+
+    final armed = view.pendingMove;
+    if (armed != null && armed.mapId == document.current.id) {
+      return MapCharacterGesture._(
+        document,
+        project,
+        view,
+        origin,
+        armed.family == MapSelectionFamily.character ||
+                armed.family == MapSelectionFamily.marker
+            ? document.current.entities
+                  .where((entry) => entry.id == armed.id)
+                  .firstOrNull
+            : null,
+        false,
+        warp: armed.family == MapSelectionFamily.warp
+            ? document.current.warps
+                  .where((entry) => entry.id == armed.id)
+                  .firstOrNull
+            : null,
+        armed: armed,
+      );
+    }
     if (view.tool == StudioMapTool.zone ||
         view.tool == StudioMapTool.gameplayZone) {
       return MapCharacterGesture._(document, project, view, origin, null, true);
@@ -59,15 +100,7 @@ class MapCharacterGesture {
         project,
       ).place(placed, origin);
       view.select(document, MapSelectionFamily.marker, entity.id);
-      document.stackPosition = origin;
-      return MapCharacterGesture._(
-        document,
-        project,
-        view,
-        origin,
-        null,
-        false,
-      );
+      return holding(null);
     }
     if (view.tool == StudioMapTool.warp && view.warpDestination != null) {
       final warp = WarpEditingCommands(
@@ -75,28 +108,12 @@ class MapCharacterGesture {
         project,
       ).place(view.warpDestination!, origin);
       view.select(document, MapSelectionFamily.warp, warp.id);
-      document.stackPosition = origin;
-      return MapCharacterGesture._(
-        document,
-        project,
-        view,
-        origin,
-        null,
-        false,
-      );
+      return holding(null);
     }
     if (view.tool == StudioMapTool.character && view.character != null) {
       final entity = commands.place(view.character!, origin);
       view.select(document, MapSelectionFamily.character, entity.id);
-      document.stackPosition = origin;
-      return MapCharacterGesture._(
-        document,
-        project,
-        view,
-        origin,
-        null,
-        false,
-      );
+      return holding(null);
     }
     if (view.tool != StudioMapTool.select) return null;
     final hits = commands.at(origin);
@@ -116,15 +133,7 @@ class MapCharacterGesture {
           placements.firstOrNull;
       if (marker != null) {
         view.select(document, MapSelectionFamily.marker, marker.id);
-        document.stackPosition = origin;
-        return MapCharacterGesture._(
-          document,
-          project,
-          view,
-          origin,
-          marker,
-          false,
-        );
+        return holding(marker);
       }
       final warps = WarpEditingCommands(document, project).at(origin);
       final chosen =
@@ -141,16 +150,7 @@ class MapCharacterGesture {
           warps.firstOrNull;
       if (chosen != null) {
         view.select(document, MapSelectionFamily.warp, chosen.id);
-        document.stackPosition = origin;
-        return MapCharacterGesture._(
-          document,
-          project,
-          view,
-          origin,
-          null,
-          false,
-          warp: chosen,
-        );
+        return holding(null, warp: chosen);
       }
     }
     final selected = hits
@@ -174,15 +174,7 @@ class MapCharacterGesture {
     }
     final entity = selected ?? hits.first;
     view.select(document, MapSelectionFamily.character, entity.id);
-    document.stackPosition = origin;
-    return MapCharacterGesture._(
-      document,
-      project,
-      view,
-      origin,
-      entity,
-      false,
-    );
+    return holding(entity);
   }
 
   MapRect get rectangle => MapRect(
@@ -234,8 +226,30 @@ class MapCharacterGesture {
     );
   }
 
+  MapArmedAreaMove? get _areaMove {
+    final target = armed;
+    return target == null ? null : MapArmedAreaMove(document, project, target);
+  }
+
+  /// The rectangle an armed area target would occupy at the current drag.
+  MapRect? get armedArea => _areaMove?.previewAt(
+    source.size,
+    GridPos(x: end.x - origin.x, y: end.y - origin.y),
+  );
+
+  bool get movesArea => _areaMove?.area != null;
+
   MapRect? commit() {
     if (document.current != source) return null;
+    final move = _areaMove;
+    if (move != null) {
+      view.pendingMove = null;
+      final area = armedArea;
+      if (area != null) {
+        move.commit(area.pos);
+        return null;
+      }
+    }
     if (zone) {
       final area = rectangle;
       final single = area.size.width == 1 && area.size.height == 1;

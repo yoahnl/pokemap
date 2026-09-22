@@ -18,6 +18,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
         _keyboard,
         onSave: _saveWorkspaceDocument,
         guardedWhileTyping: _keyboardWhileTyping,
+        onContextMenu: _openContextMenuFromKeyboard,
       ),
       child: Focus(
         autofocus: true,

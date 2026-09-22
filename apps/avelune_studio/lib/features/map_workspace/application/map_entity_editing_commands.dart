@@ -1,11 +1,16 @@
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
 
 const studioEntityKinds = [MapEntityKind.spawn, MapEntityKind.sign];
 
 typedef MapReferenceGuard =
-    String? Function({required String mapId, required String entityId});
+    String? Function({
+      required String mapId,
+      required String entityId,
+      MapDraftReferenceKind kind,
+    });
 
 class MapEntityEditingCommands {
   MapEntityEditingCommands(this.document, this.project, {this.draftGuard});

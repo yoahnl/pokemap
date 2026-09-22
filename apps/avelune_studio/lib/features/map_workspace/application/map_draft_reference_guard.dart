@@ -2,7 +2,13 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 
-typedef MapEntityRef = ({String mapId, String entityId});
+enum MapDraftReferenceKind { entity, trigger }
+
+typedef MapDraftReference = ({
+  String mapId,
+  MapDraftReferenceKind kind,
+  String id,
+});
 
 class MapDraftReferenceSources {
   const MapDraftReferenceSources({
@@ -10,46 +16,61 @@ class MapDraftReferenceSources {
     this.ruleTargets = const [],
     this.interactionDrafts = const [],
   });
+
+  /// Records with unsaved work, whatever their business shape: a configured
+  /// record keeps its source in the definition, a draft one in the draft.
   final List<NarrativeEventRecord> eventDrafts;
-  final List<MapEntityRef> ruleTargets;
-  final List<MapEntityRef> interactionDrafts;
+  final List<MapDraftReference> ruleTargets;
+  final List<MapDraftReference> interactionDrafts;
 
   List<Object?> get signature => [
     for (final record in eventDrafts) '${record.id}/${_sourceKey(record)}',
-    for (final target in ruleTargets) '${target.mapId}/${target.entityId}',
-    for (final draft in interactionDrafts) '${draft.mapId}/${draft.entityId}',
+    for (final target in ruleTargets)
+      '${target.mapId}/${target.kind.name}/${target.id}',
+    for (final draft in interactionDrafts)
+      '${draft.mapId}/${draft.kind.name}/${draft.id}',
   ];
 
-  Iterable<MapEntityRef> get targets sync* {
+  Iterable<MapDraftReference> get references sync* {
     for (final record in eventDrafts) {
-      final source = record.draftOrNull?.source;
-      if (source == null) continue;
-      final target = _entityTarget(source.toJson());
-      if (target != null) yield target;
+      final reference = _referenceOf(recordSource(record));
+      if (reference != null) yield reference;
     }
     yield* ruleTargets;
     yield* interactionDrafts;
   }
 }
 
+/// The source of a record, wherever its current shape keeps it.
+NarrativeEventSourceRef? recordSource(NarrativeEventRecord record) =>
+    record.draftOrNull?.source ?? record.definitionOrNull?.source;
+
 String _sourceKey(NarrativeEventRecord record) {
-  final source = record.draftOrNull?.source;
+  final source = recordSource(record);
   if (source == null) return 'none';
   final json = source.toJson();
   return '${json['mapId']}/${json['entityId']}/${json['triggerId']}';
 }
 
-MapEntityRef? _entityTarget(Map<String, dynamic> json) {
+MapDraftReference? _referenceOf(NarrativeEventSourceRef? source) {
+  if (source == null) return null;
+  final json = source.toJson();
   final mapId = json['mapId'] as String?;
+  if (mapId == null || mapId.isEmpty) return null;
   final entityId = json['entityId'] as String?;
-  return mapId == null || mapId.isEmpty || entityId == null || entityId.isEmpty
+  if (entityId != null && entityId.isNotEmpty) {
+    return (mapId: mapId, kind: MapDraftReferenceKind.entity, id: entityId);
+  }
+  final triggerId = json['triggerId'] as String?;
+  return triggerId == null || triggerId.isEmpty
       ? null
-      : (mapId: mapId, entityId: entityId);
+      : (mapId: mapId, kind: MapDraftReferenceKind.trigger, id: triggerId);
 }
 
-String _key(String mapId, String entityId) => '$mapId$entityId';
+String _key(String mapId, MapDraftReferenceKind kind, String id) =>
+    '$mapId${kind.name}$id';
 
-/// Answers whether an unsaved draft still points at a map entity. The set is
+/// Answers whether an unsaved draft still points at a map element. The set is
 /// rebuilt only when the drafts themselves change, never on every build.
 class MapDraftReferenceIndex {
   MapDraftReferenceIndex(this._read);
@@ -65,7 +86,8 @@ class MapDraftReferenceIndex {
     _primed = true;
     _signature = signature;
     _blocked = {
-      for (final target in sources.targets) _key(target.mapId, target.entityId),
+      for (final reference in sources.references)
+        _key(reference.mapId, reference.kind, reference.id),
     };
   }
 
@@ -77,9 +99,13 @@ class MapDraftReferenceIndex {
     return true;
   }
 
-  String? problemFor({required String mapId, required String entityId}) {
+  String? problemFor({
+    required String mapId,
+    required String entityId,
+    MapDraftReferenceKind kind = MapDraftReferenceKind.entity,
+  }) {
     _refresh();
-    return _blocked.contains(_key(mapId, entityId))
+    return _blocked.contains(_key(mapId, kind, entityId))
         ? 'Un brouillon en cours utilise cet élément. Enregistrez-le ou '
               'retirez sa liaison avant de le supprimer.'
         : null;
