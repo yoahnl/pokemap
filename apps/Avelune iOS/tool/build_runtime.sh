@@ -5,6 +5,8 @@
 # resolve through Swift Package Manager. It needs a regular Flutter project, not
 # an add-to-app module, because the tool disables SPM for modules
 # (xcode_project.dart, flutter/flutter#146957).
+#
+# Extra arguments are forwarded to the Flutter command; CI passes --no-codesign.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,9 +24,14 @@ flutter build swift-package \
   --platform ios \
   --build-mode debug \
   --build-mode release \
-  -o "$OUTPUT"
+  -o "$OUTPUT" \
+  "$@"
 
 python3 "$ROOT/tool/patch_swift_package.py" "$OUTPUT"
 
 cd "$ROOT"
-xcodegen generate
+if command -v xcodegen > /dev/null; then
+  xcodegen generate
+else
+  echo "xcodegen absent, le projet Xcode existant est conservé."
+fi
