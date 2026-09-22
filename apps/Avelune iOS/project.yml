@@ -6,6 +6,20 @@ options:
   xcodeVersion: "16.0"
   generateEmptyDirectories: true
 
+schemes:
+  AveluneiOS:
+    build:
+      targets:
+        AveluneiOS: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
 packages:
   FlutterNativeIntegration:
     path: flutter_runtime/build/swift-package/FlutterNativeIntegration
