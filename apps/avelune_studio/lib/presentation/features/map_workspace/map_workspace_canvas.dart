@@ -76,7 +76,6 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
         origin: cell,
       );
       if (_characterGesture != null) {
-        widget.view.selectedTriggerId = null;
         widget.onChanged();
         return;
       }
@@ -90,20 +89,31 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     final tool = widget.view.tool;
     if (tool == StudioMapTool.place) {
       final brush = widget.view.brush;
-      if (brush != null) _commands.place(brush, cell);
+      final placed = brush == null ? null : _commands.place(brush, cell);
+      if (placed != null) {
+        widget.view.select(widget.document, MapSelectionFamily.decor, placed);
+      }
       _cancel();
       widget.onChanged();
     } else if (tool == StudioMapTool.select) {
-      widget.view.selectedEntityId = null;
-      widget.view.selectedTriggerId = null;
-      widget.view.selectedWarpId = null;
-      widget.view.selectedPlacementId = null;
       final hits = _commands.stack(cell);
-      final selected = widget.document.selected;
-      _moving = selected != null && hits.any((e) => e.id == selected.id)
-          ? selected
+      final held = widget.view.selectedFor(
+        widget.document.current.id,
+        MapSelectionFamily.decor,
+      );
+      _moving = hits.any((e) => e.id == held)
+          ? hits.firstWhere((e) => e.id == held)
           : hits.firstOrNull;
-      widget.document.selectedId = _moving?.id;
+      final moving = _moving;
+      if (moving == null) {
+        widget.view.clearSelection(widget.document);
+      } else {
+        widget.view.select(
+          widget.document,
+          MapSelectionFamily.decor,
+          moving.id,
+        );
+      }
       widget.document.stackPosition = cell;
       widget.onChanged();
     } else {

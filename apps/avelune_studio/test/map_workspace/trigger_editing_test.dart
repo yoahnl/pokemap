@@ -158,10 +158,12 @@ void main() {
       find.byKey(const ValueKey('map-canvas')),
     );
 
-    await tester.tapAt(box.localToGlobal(const Offset(3 * 32 + 16, 3 * 32 + 16)));
+    await tester.tapAt(
+      box.localToGlobal(const Offset(3 * 32 + 16, 3 * 32 + 16)),
+    );
     await tester.pump();
     expect(
-      view.selectedTriggerId,
+      view.selectedFor(document.current.id, MapSelectionFamily.trigger),
       'quai',
       reason: 'the author comes back to an existing story zone',
     );
@@ -171,7 +173,9 @@ void main() {
       reason: 'clicking an existing zone never opens a new interaction',
     );
 
-    await tester.tapAt(box.localToGlobal(const Offset(9 * 32 + 16, 9 * 32 + 16)));
+    await tester.tapAt(
+      box.localToGlobal(const Offset(9 * 32 + 16, 9 * 32 + 16)),
+    );
     await tester.pump();
     expect(
       drawn.single,

@@ -43,8 +43,8 @@ void main() {
       final view = MapWorkspaceViewState()
         ..tool = kind == MapEntityKind.spawn
             ? StudioMapTool.spawn
-            : StudioMapTool.sign
-        ..selectedPlacementId = entity.id;
+            : StudioMapTool.sign;
+      view.select(document, MapSelectionFamily.marker, entity.id);
       addTearDown(view.dispose);
       final search = TextEditingController();
       addTearDown(search.dispose);

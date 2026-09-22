@@ -47,23 +47,26 @@ class MapSelectionInspector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final commands = CharacterEditingCommands(document, project);
-    final selected = commands.selected(view.selectedEntityId);
+    final mapId = document.current.id;
+    final selected = commands.selected(
+      view.selectedFor(mapId, MapSelectionFamily.character),
+    );
     final warp = WarpEditingCommands(
       document,
       project,
-    ).selected(view.selectedWarpId);
+    ).selected(view.selectedFor(mapId, MapSelectionFamily.warp));
     final marker = MapEntityEditingCommands(
       document,
       project,
-    ).selected(view.selectedPlacementId);
+    ).selected(view.selectedFor(mapId, MapSelectionFamily.marker));
     final zone = GameplayZoneEditingCommands(
       document,
       project,
-    ).selected(view.selectedZoneId);
+    ).selected(view.selectedFor(mapId, MapSelectionFamily.zone));
     final trigger = TriggerEditingCommands(
       document,
       project,
-    ).selected(view.selectedTriggerId);
+    ).selected(view.selectedFor(mapId, MapSelectionFamily.trigger));
     final pos = document.stackPosition;
     final entities = pos == null ? <MapEntity>[] : commands.at(pos);
     final decors = pos == null
@@ -95,10 +98,18 @@ class MapSelectionInspector extends StatelessWidget {
                           return StudioChoice(
                             label: entity.inspectorHeadline,
                             subtitle: 'Personnage',
-                            selected: entity.id == view.selectedEntityId,
+                            selected:
+                                entity.id ==
+                                view.selectedFor(
+                                  mapId,
+                                  MapSelectionFamily.character,
+                                ),
                             onTap: () {
-                              view.selectedEntityId = entity.id;
-                              document.selectedId = null;
+                              view.select(
+                                document,
+                                MapSelectionFamily.character,
+                                entity.id,
+                              );
                               onChanged();
                             },
                           );
@@ -112,8 +123,11 @@ class MapSelectionInspector extends StatelessWidget {
                           subtitle: 'Décor',
                           selected: document.selectedId == decor.id,
                           onTap: () {
-                            document.selectedId = decor.id;
-                            view.selectedEntityId = null;
+                            view.select(
+                              document,
+                              MapSelectionFamily.decor,
+                              decor.id,
+                            );
                             onChanged();
                           },
                         );
@@ -135,7 +149,7 @@ class MapSelectionInspector extends StatelessWidget {
                         trigger: trigger,
                         onChanged: onChanged,
                         onDeleted: () {
-                          view.selectedTriggerId = null;
+                          view.clearSelection(document);
                           onChanged();
                         },
                       ),
@@ -152,7 +166,7 @@ class MapSelectionInspector extends StatelessWidget {
                         zone: zone,
                         onChanged: onChanged,
                         onDeleted: () {
-                          view.selectedZoneId = null;
+                          view.clearSelection(document);
                           onChanged();
                         },
                       ),
@@ -167,9 +181,10 @@ class MapSelectionInspector extends StatelessWidget {
                         document: document,
                         project: project,
                         entity: marker,
+                        draftBlocked: deletionBlocked,
                         onChanged: onChanged,
                         onDeleted: () {
-                          view.selectedPlacementId = null;
+                          view.clearSelection(document);
                           onChanged();
                         },
                       ),
@@ -186,7 +201,7 @@ class MapSelectionInspector extends StatelessWidget {
                         warp: warp,
                         onChanged: onChanged,
                         onDeleted: () {
-                          view.selectedWarpId = null;
+                          view.clearSelection(document);
                           onChanged();
                         },
                         onOpenDestination: onOpenMap,
@@ -204,7 +219,15 @@ class MapSelectionInspector extends StatelessWidget {
                         visuals: visuals,
                         onChanged: onChanged,
                         onSelect: (id) {
-                          view.selectedEntityId = id;
+                          if (id == null) {
+                            view.clearSelection(document);
+                          } else {
+                            view.select(
+                              document,
+                              MapSelectionFamily.character,
+                              id,
+                            );
+                          }
                           onChanged();
                         },
                         onEditInteraction: onEditInteraction ?? (_) {},
@@ -217,6 +240,7 @@ class MapSelectionInspector extends StatelessWidget {
                     project: project,
                     document: document,
                     visuals: visuals,
+                    view: view,
                     onChanged: onChanged,
                     onOpenResource: onOpenElement,
                     onEditResource: onEditElement,

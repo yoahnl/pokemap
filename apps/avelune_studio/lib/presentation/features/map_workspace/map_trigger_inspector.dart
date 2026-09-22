@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/trigger_editing_commands.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
+import '../../shared/widgets/inputs/studio_commit_field.dart';
 
 class MapTriggerInspector extends StatefulWidget {
   const MapTriggerInspector({
@@ -27,17 +28,8 @@ class MapTriggerInspector extends StatefulWidget {
 }
 
 class _MapTriggerInspectorState extends State<MapTriggerInspector> {
-  final _name = TextEditingController();
-  String? _appliedTo;
-
   TriggerEditingCommands get _commands =>
       TriggerEditingCommands(widget.document, widget.project);
-
-  @override
-  void dispose() {
-    _name.dispose();
-    super.dispose();
-  }
 
   void _change(VoidCallback action) {
     try {
@@ -53,10 +45,7 @@ class _MapTriggerInspectorState extends State<MapTriggerInspector> {
   @override
   Widget build(BuildContext context) {
     final trigger = widget.trigger;
-    if (_appliedTo != trigger.id) {
-      _appliedTo = trigger.id;
-      _name.text = trigger.name;
-    }
+    final owner = '${widget.document.current.id}/${trigger.id}';
     final blocked = _commands.deletionProblem(trigger.id);
     final area = trigger.area;
     return Column(
@@ -69,18 +58,12 @@ class _MapTriggerInspectorState extends State<MapTriggerInspector> {
           'depuis ${area.pos.x}, ${area.pos.y}',
         ),
         const SizedBox(height: 12),
-        TextField(
-          key: const ValueKey('trigger-name'),
-          controller: _name,
-          decoration: const InputDecoration(labelText: 'Nom'),
-          onSubmitted: (value) =>
+        StudioCommitField(
+          key: ValueKey('trigger-name-$owner'),
+          label: 'Nom',
+          value: trigger.name,
+          onCommit: (value) =>
               _change(() => _commands.rename(trigger.id, value)),
-          onTapOutside: (_) {
-            if (_name.text != trigger.name) {
-              _change(() => _commands.rename(trigger.id, _name.text));
-            }
-            FocusManager.instance.primaryFocus?.unfocus();
-          },
         ),
         const SizedBox(height: 12),
         Text(

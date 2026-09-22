@@ -2,6 +2,21 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+
+enum MapSelectionFamily { decor, character, marker, warp, zone, trigger }
+
+class MapSelectionTarget {
+  const MapSelectionTarget({
+    required this.mapId,
+    required this.family,
+    required this.id,
+  });
+  final String mapId;
+  final MapSelectionFamily family;
+  final String id;
+}
+
 enum StudioMapTool {
   select,
   place,
@@ -25,11 +40,8 @@ class MapWorkspaceViewState {
   ProjectSmartTilePreset? terrain;
   ProjectCharacterEntry? character;
   ProjectMapEntry? warpDestination;
-  String? selectedEntityId;
-  String? selectedTriggerId;
-  String? selectedWarpId;
-  String? selectedPlacementId;
-  String? selectedZoneId;
+  MapSelectionTarget? _target;
+  MapSelectionTarget? get target => _target;
   GameplayZoneKind zoneKind = GameplayZoneKind.encounter;
   String characterQuery = '';
   double characterScrollOffset = 0;
@@ -89,17 +101,34 @@ class MapWorkspaceViewState {
     tile = null;
     terrain = null;
     character = null;
-    tool = warpDestination == null
-        ? StudioMapTool.select
-        : StudioMapTool.warp;
+    tool = warpDestination == null ? StudioMapTool.select : StudioMapTool.warp;
   }
 
-  void clearSelection() {
-    selectedEntityId = null;
-    selectedWarpId = null;
-    selectedTriggerId = null;
-    selectedPlacementId = null;
-    selectedZoneId = null;
+  String? selectedFor(String mapId, MapSelectionFamily family) {
+    final target = _target;
+    return target != null && target.mapId == mapId && target.family == family
+        ? target.id
+        : null;
+  }
+
+  bool hasSelectionIn(String mapId) => _target?.mapId == mapId;
+
+  void select(
+    EditableMapDocument document,
+    MapSelectionFamily family,
+    String id,
+  ) {
+    _target = MapSelectionTarget(
+      mapId: document.current.id,
+      family: family,
+      id: id,
+    );
+    document.selectedId = family == MapSelectionFamily.decor ? id : null;
+  }
+
+  void clearSelection(EditableMapDocument document) {
+    _target = null;
+    document.selectedId = null;
   }
 
   void dispose() {

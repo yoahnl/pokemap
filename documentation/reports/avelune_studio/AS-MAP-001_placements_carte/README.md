@@ -250,6 +250,113 @@ ont été raccourcis pour cette raison.
 Les familles `item` et `custom` restent hors de portée tant que Studio n'expose
 pas le catalogue d'objets ; c'est dit dans les limites du lot 2, pas escamoté.
 
+## Lot 5 — Fiabilisation des manipulations
+
+Quatre défauts déduits du code de `12bb8c397`, tous reproduits sur l'état local
+par un test en échec avant correction.
+
+### Une seule cible active entre les familles
+
+Chaque branche nettoyait les identifiants de sélection à sa façon : la pose d'un
+passage laissait un panneau sélectionné, la sélection d'un décor laissait une
+zone de jeu active, et `clearSelection()` ne touchait pas
+`EditableMapDocument.selectedId`. L'inspecteur pouvait donc afficher une
+ancienne cible — et son bouton de suppression visait celle-là.
+
+La sélection est maintenant **une cible unique** `MapSelectionTarget`
+(carte, famille, identifiant) posée par `MapWorkspaceViewState.select(document,
+famille, id)`, qui écrit aussi `document.selectedId` : les deux responsabilités
+sont traitées ensemble. Les lectures passent par `selectedFor(mapId, famille)`,
+donc un identifiant identique sur une autre carte ne peut pas devenir une cible
+de remplacement. Les six entrées ont été reprises : canvas, geste, les **deux**
+listes d'éléments superposés, raccourcis clavier, retour depuis l'histoire et
+retour depuis les événements.
+
+L'ordre des conditions de `MapSelectionInspector` n'a pas été touché : il ne
+masque plus rien puisqu'une seule famille peut être active.
+
+### Champs et Annuler/Rétablir
+
+Les inspecteurs resynchronisaient leurs champs sur le seul changement
+d'identifiant. Après une annulation, le champ gardait la valeur annulée et la
+réappliquait au clic suivant hors du champ.
+
+Les champs de panneau, de zone, de zone d'histoire et les cases d'arrivée d'un
+passage utilisent désormais `StudioCommitField`, le mécanisme déjà éprouvé
+ailleurs dans Studio : il réconcilie sur changement de valeur du document,
+valide à la perte de focus, et sait refuser une saisie invalide en restaurant
+la valeur stockée. La clé de chaque champ porte la carte et l'identifiant de sa
+cible, donc une saisie destinée à A ne peut pas atterrir dans B.
+
+La sauvegarde de la carte vide maintenant la saisie en cours
+(`unfocus` + `applyFocusChangesIfNeeded`) comme le faisaient déjà les espaces
+dialogue, cinématique, événements et progression.
+
+### Suppression des nouvelles entités référencées
+
+`MapEntityEditingCommands.delete()` appelait `removeEntityFromMap` sans garde.
+Elle passe maintenant par `deletionProblem()`, qui relit
+`buildNarrativeDependencyIndex` comme le fait la suppression d'un personnage, et
+vérifie d'abord que la cible appartient encore au document courant. La
+protection est dans la commande, pas seulement dans l'état du bouton.
+L'inspecteur affiche la raison, désactive le bouton et prend aussi en compte les
+brouillons d'interaction non enregistrés (`blocksDeletion`). Rien n'est supprimé
+en cascade, aucune référence n'est vidée, et un refus n'ajoute pas d'entrée
+d'historique.
+
+### Parcours de passage sur disque
+
+| Nature de la preuve | Fichier |
+| --- | --- |
+| test de commandes | `warp_editing_test.dart`, `entity_editing_test.dart`, `gameplay_zone_editing_test.dart`, `trigger_editing_test.dart`, `entity_deletion_guard_test.dart` |
+| test de widgets | `selection_identity_test.dart`, `inspector_fields_undo_test.dart`, `warp_canvas_test.dart`, `entity_canvas_test.dart`, `gameplay_zone_canvas_test.dart` |
+| sauvegarde/réouverture sur disque | `warp_disk_journey_test.dart` |
+| parcours du moteur de jeu | `warp_disk_journey_test.dart`, `gameplay_zone_runtime_test.dart`, `warp_runtime_destination_test.dart` |
+| manipulation native réellement exécutée | aucune — voir les limites |
+
+`warp_disk_journey_test.dart` monte une fixture temporaire à partir du projet
+d'exemple (deux vraies cartes, un atlas réel), déplace le point de départ et
+pose un passage avec les commandes Studio, enregistre par
+`LocalMapWorkspaceAdapter`, ferme les propriétaires, rouvre avec de nouveaux
+adaptateurs, recharge par `loadRuntimeMapBundle`, puis fait **marcher** le
+joueur pas à pas jusqu'à ce que le moteur renvoie `WarpTriggered`. La carte
+d'arrivée est ensuite chargée par la même chaîne runtime à partir du
+`targetMapId` rapporté, et la position d'arrivée est vérifiée. Un second cas
+vérifie qu'un passage enregistré en « au contact » ne se déclenche pas sur un pas
+simple. Les décors et les calques de la fixture sont comparés avant et après le
+cycle.
+
+### Résultats mesurés sur l'état final
+
+| Vérification | Résultat | Journal |
+| --- | --- | --- |
+| formatage des fichiers touchés | 21 fichiers reformatés sur 75 | — |
+| analyse Studio | aucune remarque | `logs/analyse.txt` |
+| frontières d'architecture | 12 verts | `logs/architecture.txt` |
+| placements et interactions | 74 verts | `logs/placements-cible.txt` |
+| suite Studio complète | 802 verts, 2 ignorés, aucun échec | `logs/suite-studio-finale.txt` |
+
+### Défaut trouvé en chemin
+
+Le parcours a révélé une seconde liste d'éléments superposés, dans
+`MapWorkspaceInspector`, qui écrivait `document.selectedId` directement sans
+passer par la sélection unifiée : le décor affiché et le décor déplacé
+pouvaient différer. Elle passe désormais par le même point d'entrée.
+
+### Limites restantes
+
+- le parcours d'intégration s'arrête au contrat que `PlayableMapGame` applique
+  (`WarpTriggered` puis chargement du bundle d'arrivée) : le jeu Flame complet,
+  ses animations de transition et le rendu ne sont pas instanciés dans ce test ;
+- aucune manipulation native n'a été exécutée dans cette intervention : tout est
+  mesuré par tests Dart et par des écritures disque réelles ;
+- une carte accepte toujours plusieurs points de départ du joueur ; le moteur
+  retient le premier trouvé, ce que le parcours d'intégration contourne en
+  déplaçant le départ existant au lieu d'en ajouter un ;
+- les objets ramassables (`item`) et la famille `custom` restent des besoins
+  ouverts : aucun port de Studio n'expose encore le catalogue d'objets. Ce n'est
+  pas une exclusion produit, c'est un raccordement qui reste à faire.
+
 ## Ce que ce ticket ne fait pas
 
 - il ne remplace pas `map_editor` : les familles `item` et `custom`, les

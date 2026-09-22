@@ -102,11 +102,7 @@ class GameplayZoneEditingCommands {
   );
 
   void setPriority(String id, int priority) => document.commit(
-    updateGameplayZoneOnMap(
-      document.current,
-      zoneId: id,
-      priority: priority,
-    ),
+    updateGameplayZoneOnMap(document.current, zoneId: id, priority: priority),
   );
 
   void move(String id, GridPos pos) => document.commit(
@@ -117,9 +113,8 @@ class GameplayZoneEditingCommands {
     resizeGameplayZoneOnMap(document.current, zoneId: id, size: size),
   );
 
-  void delete(String id) => document.commit(
-    removeGameplayZoneFromMap(document.current, zoneId: id),
-  );
+  void delete(String id) =>
+      document.commit(removeGameplayZoneFromMap(document.current, zoneId: id));
 
   void updateEncounter(
     String id, {

@@ -73,7 +73,10 @@ void main() {
     );
     expect(zone.kind, GameplayZoneKind.hazard);
     expect(zone.hazard, isNotNull);
-    expect(view.selectedZoneId, zone.id);
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.zone),
+      zone.id,
+    );
     expect(
       storyZones,
       isEmpty,
@@ -146,7 +149,7 @@ void main() {
     await tester.pump();
 
     expect(
-      view.selectedZoneId,
+      view.selectedFor(document.current.id, MapSelectionFamily.zone),
       zone.id,
       reason: 'the author can come back to a zone to change it',
     );
@@ -178,7 +181,10 @@ void main() {
         size: GridSize(width: 1, height: 1),
       ),
     );
-    expect(view.selectedZoneId, zone.id);
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.zone),
+      zone.id,
+    );
   });
 
   testWidgets('an existing zone does not steal the decor selection', (
@@ -198,7 +204,7 @@ void main() {
     await tester.pump();
 
     expect(
-      view.selectedZoneId,
+      view.selectedFor(document.current.id, MapSelectionFamily.zone),
       isNull,
       reason: 'in select mode a zone never captures the decor selection',
     );

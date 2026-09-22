@@ -58,28 +58,36 @@ class MapCharacterGesture {
         document,
         project,
       ).place(placed, origin);
-      view
-        ..clearSelection()
-        ..selectedPlacementId = entity.id;
-      document.selectedId = null;
+      view.select(document, MapSelectionFamily.marker, entity.id);
       document.stackPosition = origin;
-      return MapCharacterGesture._(document, project, view, origin, null, false);
+      return MapCharacterGesture._(
+        document,
+        project,
+        view,
+        origin,
+        null,
+        false,
+      );
     }
     if (view.tool == StudioMapTool.warp && view.warpDestination != null) {
       final warp = WarpEditingCommands(
         document,
         project,
       ).place(view.warpDestination!, origin);
-      view.selectedWarpId = warp.id;
-      view.selectedEntityId = null;
-      document.selectedId = null;
+      view.select(document, MapSelectionFamily.warp, warp.id);
       document.stackPosition = origin;
-      return MapCharacterGesture._(document, project, view, origin, null, false);
+      return MapCharacterGesture._(
+        document,
+        project,
+        view,
+        origin,
+        null,
+        false,
+      );
     }
     if (view.tool == StudioMapTool.character && view.character != null) {
       final entity = commands.place(view.character!, origin);
-      view.selectedEntityId = entity.id;
-      document.selectedId = null;
+      view.select(document, MapSelectionFamily.character, entity.id);
       document.stackPosition = origin;
       return MapCharacterGesture._(
         document,
@@ -96,14 +104,18 @@ class MapCharacterGesture {
       final placements = MapEntityEditingCommands(document, project).at(origin);
       final marker =
           placements
-              .where((entry) => entry.id == view.selectedPlacementId)
+              .where(
+                (entry) =>
+                    entry.id ==
+                    view.selectedFor(
+                      document.current.id,
+                      MapSelectionFamily.marker,
+                    ),
+              )
               .firstOrNull ??
           placements.firstOrNull;
       if (marker != null) {
-        view
-          ..clearSelection()
-          ..selectedPlacementId = marker.id;
-        document.selectedId = null;
+        view.select(document, MapSelectionFamily.marker, marker.id);
         document.stackPosition = origin;
         return MapCharacterGesture._(
           document,
@@ -116,12 +128,19 @@ class MapCharacterGesture {
       }
       final warps = WarpEditingCommands(document, project).at(origin);
       final chosen =
-          warps.where((entry) => entry.id == view.selectedWarpId).firstOrNull ??
+          warps
+              .where(
+                (entry) =>
+                    entry.id ==
+                    view.selectedFor(
+                      document.current.id,
+                      MapSelectionFamily.warp,
+                    ),
+              )
+              .firstOrNull ??
           warps.firstOrNull;
       if (chosen != null) {
-        view.selectedWarpId = chosen.id;
-        view.selectedEntityId = null;
-        document.selectedId = null;
+        view.select(document, MapSelectionFamily.warp, chosen.id);
         document.stackPosition = origin;
         return MapCharacterGesture._(
           document,
@@ -135,7 +154,14 @@ class MapCharacterGesture {
       }
     }
     final selected = hits
-        .where((entry) => entry.id == view.selectedEntityId)
+        .where(
+          (entry) =>
+              entry.id ==
+              view.selectedFor(
+                document.current.id,
+                MapSelectionFamily.character,
+              ),
+        )
         .firstOrNull;
     final selectedDecorHere =
         document.selected != null &&
@@ -147,8 +173,7 @@ class MapCharacterGesture {
       return null;
     }
     final entity = selected ?? hits.first;
-    view.selectedEntityId = entity.id;
-    document.selectedId = null;
+    view.select(document, MapSelectionFamily.character, entity.id);
     document.stackPosition = origin;
     return MapCharacterGesture._(
       document,
@@ -221,9 +246,7 @@ class MapCharacterGesture {
             project,
           ).at(area.pos).firstOrNull;
           if (existing != null) {
-            view
-              ..clearSelection()
-              ..selectedTriggerId = existing.id;
+            view.select(document, MapSelectionFamily.trigger, existing.id);
             return null;
           }
         }
@@ -231,9 +254,8 @@ class MapCharacterGesture {
       }
       final commands = GameplayZoneEditingCommands(document, project);
       final existing = single ? commands.at(area.pos).firstOrNull : null;
-      view
-        ..clearSelection()
-        ..selectedZoneId = (existing ?? commands.place(view.zoneKind, area)).id;
+      final zone = existing ?? commands.place(view.zoneKind, area);
+      view.select(document, MapSelectionFamily.zone, zone.id);
       return null;
     }
     final position = destination;

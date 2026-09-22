@@ -4,6 +4,7 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import 'package:avelune_studio/presentation/features/map_workspace/map_selection_inspector.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_column.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,8 +42,8 @@ void main() {
       final view = MapWorkspaceViewState()
         ..paletteTab = 'Passages'
         ..tool = StudioMapTool.warp
-        ..warpDestination = workspaceEntries.last
-        ..selectedWarpId = warp.id;
+        ..warpDestination = workspaceEntries.last;
+      view.select(document, MapSelectionFamily.warp, warp.id);
       addTearDown(view.dispose);
       final search = TextEditingController();
       addTearDown(search.dispose);
@@ -97,7 +98,12 @@ void main() {
       expect(find.text('Passages'), findsWidgets);
       expect(find.text('Jardin'), findsWidgets);
       expect(find.text('Passage'), findsOneWidget);
-      expect(find.byKey(const ValueKey('warp-target-x')), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is StudioCommitField && widget.label == 'Case X',
+        ),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const ValueKey('warp-destination-problem')),
         findsNothing,

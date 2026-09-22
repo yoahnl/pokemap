@@ -17,6 +17,7 @@ class MapWorkspaceInspector extends StatefulWidget {
     required this.project,
     required this.document,
     required this.visuals,
+    required this.view,
     required this.onChanged,
     this.onOpenResource,
     this.onEditResource,
@@ -26,6 +27,7 @@ class MapWorkspaceInspector extends StatefulWidget {
   final ProjectManifest project;
   final EditableMapDocument document;
   final MapWorkspaceVisuals visuals;
+  final MapWorkspaceViewState view;
   final VoidCallback onChanged;
   final ValueChanged<ProjectElementEntry>? onOpenResource;
   final ValueChanged<ProjectElementEntry>? onEditResource;
@@ -40,6 +42,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
   ProjectManifest get project => widget.project;
   EditableMapDocument get document => widget.document;
   MapWorkspaceVisuals get visuals => widget.visuals;
+  MapWorkspaceViewState get view => widget.view;
   VoidCallback get onChanged => widget.onChanged;
   @override
   void initState() {
@@ -206,7 +209,11 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     : visuals.thumbnail(element, size: 36),
                 selected: instance.id == document.selectedId,
                 onTap: () {
-                  document.selectedId = instance.id;
+                  view.select(
+                    document,
+                    MapSelectionFamily.decor,
+                    instance.id,
+                  );
                   onChanged();
                 },
               );

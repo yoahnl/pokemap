@@ -45,6 +45,8 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
       unawaited(_scenes?.save());
       return;
     }
+    FocusManager.instance.primaryFocus?.unfocus();
+    FocusManager.instance.applyFocusChangesIfNeeded();
     final document = _controller.active;
     if (document != null) {
       unawaited(
@@ -168,10 +170,16 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
     }
     final view = _view!;
     view.tool = StudioMapTool.select;
-    view.selectedEntityId = location.entityId;
-    view.selectedTriggerId = location.triggerId;
     view.positioned = true;
-    location.document.selectedId = null;
+    final entityId = location.entityId;
+    final triggerId = location.triggerId;
+    if (entityId != null) {
+      view.select(location.document, MapSelectionFamily.character, entityId);
+    } else if (triggerId != null) {
+      view.select(location.document, MapSelectionFamily.trigger, triggerId);
+    } else {
+      view.clearSelection(location.document);
+    }
     location.document.stackPosition = location.position;
     _openMap();
     _toolChanged();

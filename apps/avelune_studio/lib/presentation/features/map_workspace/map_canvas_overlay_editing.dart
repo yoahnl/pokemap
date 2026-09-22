@@ -26,18 +26,26 @@ MapCanvasOverlay buildEditingOverlay({
     project: project,
     selected: document.selected,
     selectedEntity: map.entities
-        .where((entity) => entity.id == view.selectedEntityId)
+        .where(
+          (entity) =>
+              entity.id ==
+              view.selectedFor(map.id, MapSelectionFamily.character),
+        )
         .firstOrNull,
     entityPreview: gesture?.destination,
-    selectedWarpId: view.selectedWarpId,
+    selectedWarpId: view.selectedFor(map.id, MapSelectionFamily.warp),
     warpPreview: gesture?.warp == null ? null : gesture?.destination,
-    selectedMarkerId: view.selectedPlacementId,
-selectedZoneId: view.selectedZoneId,
+    selectedMarkerId: view.selectedFor(map.id, MapSelectionFamily.marker),
+    selectedZoneId: view.selectedFor(map.id, MapSelectionFamily.zone),
     markerPreview: gesture?.entity == null ? null : gesture?.destination,
     zone: gesture?.zone == true
         ? gesture!.rectangle
         : map.triggers
-              .where((trigger) => trigger.id == view.selectedTriggerId)
+              .where(
+                (trigger) =>
+                    trigger.id ==
+                    view.selectedFor(map.id, MapSelectionFamily.trigger),
+              )
               .firstOrNull
               ?.area,
     preview: preview,

@@ -136,7 +136,13 @@ void main() {
       find.byType(MapWorkspaceLayout),
     );
     expect(layout.activeSpace, 'map');
-    expect(layout.view!.selectedEntityId, 'chief');
+    expect(
+      layout.view!.selectedFor(
+        document.current.id,
+        MapSelectionFamily.character,
+      ),
+      'chief',
+    );
     expect(layout.view!.tool, StudioMapTool.select);
     expect(fixture.controller.active, same(document));
     expect(document.current, same(dirtyMap));

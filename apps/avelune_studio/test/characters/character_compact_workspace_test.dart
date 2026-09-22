@@ -103,7 +103,8 @@ void main() {
         controller.project!,
       );
       final entity = commands.place(guide, const GridPos(x: 3, y: 4));
-      final view = MapWorkspaceViewState()..selectedEntityId = entity.id;
+      final view = MapWorkspaceViewState()
+        ..select(controller.active!, MapSelectionFamily.character, entity.id);
       addTearDown(view.dispose);
       controller.historyGuard = (_, _) => 'Interaction non enregistrée';
       var saves = 0;
@@ -126,7 +127,13 @@ void main() {
           )
           .value();
       expect(controller.active!.current.entities, hasLength(2));
-      expect(view.selectedEntityId, isNot(entity.id));
+      expect(
+        view.selectedFor(
+          controller.active!.current.id,
+          MapSelectionFamily.character,
+        ),
+        isNot(entity.id),
+      );
       controller.historyGuard = null;
       bindings[const SingleActivator(LogicalKeyboardKey.delete)]!();
       expect(controller.active!.current.entities.single.id, entity.id);

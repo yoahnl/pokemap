@@ -76,7 +76,10 @@ void main() {
     final warp = document.current.warps.single;
     expect(warp.pos, const GridPos(x: 3, y: 4));
     expect(warp.targetMapId, 'b');
-    expect(view.selectedWarpId, warp.id);
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.warp),
+      warp.id,
+    );
     expect(document.undoCount, 1);
     expect(tester.takeException(), isNull);
   });
@@ -114,14 +117,17 @@ void main() {
     await tester.tapAt(transformed(7, 5));
     await tester.pump();
     expect(
-      view.selectedWarpId,
+      view.selectedFor(document.current.id, MapSelectionFamily.warp),
       warp.id,
       reason: 'the click lands on the warp the author sees, not on a neighbour',
     );
 
     await tester.tapAt(transformed(2, 2));
     await tester.pump();
-    expect(view.selectedWarpId, other.id);
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.warp),
+      other.id,
+    );
     expect(
       document.current.warps.map((entry) => entry.pos),
       [const GridPos(x: 7, y: 5), const GridPos(x: 2, y: 2)],
@@ -138,9 +144,8 @@ void main() {
       document,
       project,
     ).place(garden, const GridPos(x: 4, y: 4));
-    view
-      ..tool = StudioMapTool.select
-      ..selectedWarpId = warp.id;
+    view.tool = StudioMapTool.select;
+    view.select(document, MapSelectionFamily.warp, warp.id);
     await host(tester);
 
     final gesture = await tester.startGesture(cell(tester, 4, 4));
@@ -178,11 +183,14 @@ void main() {
     await tester.pump();
 
     expect(
-      view.selectedEntityId,
+      view.selectedFor(document.current.id, MapSelectionFamily.character),
       npc.id,
       reason: 'an entity stays more specific than the warp under it',
     );
-    expect(view.selectedWarpId, isNull);
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.warp),
+      isNull,
+    );
     expect(document.current.warps.single.id, warp.id);
     expect(tester.takeException(), isNull);
   });

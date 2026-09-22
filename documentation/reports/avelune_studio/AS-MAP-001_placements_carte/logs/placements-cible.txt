@@ -1,0 +1,137 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 103.0.0 (108.0.0 available)
+  analyzer 13.3.0 (14.4.0 available)
+  archive 4.0.9 (4.3.0 available)
+  code_assets 2.0.0 (2.1.0 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 11.0.3 (13.1.0 available)
+  flutter_riverpod 3.4.2 (3.4.3 available)
+  gamepads 0.1.11 (0.1.12 available)
+  gamepads_android 0.1.9 (0.1.10 available)
+  gamepads_darwin 0.1.3 (0.1.4 available)
+  gamepads_linux 0.1.2 (0.1.3 available)
+  gamepads_platform_interface 0.1.3 (0.1.4 available)
+  gamepads_web 0.1.2 (0.1.3 available)
+  gamepads_windows 0.3.1 (0.3.2 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  package_config 2.2.0 (3.0.0 available)
+  platform 3.1.6 (3.2.0 available)
+  riverpod 3.4.2 (3.4.3 available)
+  synchronized 3.4.1+2 (3.4.2 available)
+  test 1.31.1 (1.32.0 available)
+  test_api 0.7.12 (0.7.14 available)
+  test_core 0.6.18 (0.6.20 available)
+  vector_math 2.4.2 (2.4.3 available)
+  win32 5.15.0 (6.4.0 available)
+Got dependencies!
+24 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_disk_journey_test.dart: a warp saved on disk really carries the player to the other map
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77/project.json
+[runtime_loader] project manifest read ok bytes=8480
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77/maps/jardin.json
+[runtime_loader] map file read ok bytes=17566
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=1 placedElements=3 warps=1 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77 tilesets=1
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77/project.json mapId=clairiere
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77/maps/clairiere.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77/maps/clairiere.json
+[runtime_loader] map file read ok bytes=17187
+[runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_CD4E77 tilesets=1
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:01 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_disk_journey_test.dart: a warp saved as bump does not fire on a plain step
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_cioIag/project.json mapId=jardin
+[runtime_loader] project manifest lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_cioIag/project.json
+[runtime_loader] project manifest read ok bytes=8480
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_cioIag/maps/jardin.json
+[runtime_loader] map file lookup path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_cioIag/maps/jardin.json
+[runtime_loader] map file read ok bytes=17565
+[runtime_loader] map validated id=jardin size=24x16 layers=3 entities=1 placedElements=3 warps=1 triggers=0
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_cioIag/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_asmap_cioIag tilesets=1
+00:01 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:01 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:01 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:01 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:01 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:01 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the encounter zone inspector holds the charter
+00:01 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/marker_visual_test.dart: the spawn inspector holds the charter
+00:02 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/zone_visual_test.dart: the hazard zone inspector holds the charter
+00:02 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/marker_visual_test.dart: the sign inspector holds the charter
+00:02 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:02 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:02 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:02 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:03 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:03 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:03 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:03 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:03 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:03 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_visual_test.dart: the warp palette and inspector hold the charter at Size(1536.0, 1024.0)
+00:03 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:03 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:03 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:03 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:03 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:03 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:03 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:03 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:04 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:05 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone sign title is not re-applied when leaving the field
+00:05 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/trigger_editing_test.dart: clicking with the story tool finds the zone again
+00:05 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/trigger_editing_test.dart: clicking with the story tool finds the zone again
+00:05 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/entity_canvas_test.dart: the player start is placed and selected in one click
+00:05 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone zone name is not re-applied when leaving the field
+00:05 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart: an undone zone name is not re-applied when leaving the field
+00:05 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: choosing a decor drops the gameplay zone selection
+00:05 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: choosing a decor drops the gameplay zone selection
+00:05 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: choosing a decor drops the gameplay zone selection
+00:06 +50: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: choosing a decor drops the gameplay zone selection
+00:06 +51: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: choosing a decor drops the gameplay zone selection
+00:06 +52: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: choosing a decor drops the gameplay zone selection
+00:06 +53: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: choosing a decor drops the gameplay zone selection
+00:06 +54: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: choosing a decor drops the gameplay zone selection
+00:06 +55: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: choosing a decor drops the gameplay zone selection
+00:06 +56: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:06 +57: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:07 +58: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:07 +59: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:07 +60: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:07 +61: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:07 +62: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:07 +63: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:07 +64: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:07 +65: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: choosing a destination then clicking places the warp
+00:07 +66: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: the delete button acts on the element shown, not a stale one
+00:07 +67: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: a warp keeps its identity through zoom and pan
+00:07 +68: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: a click on empty ground leaves no destructive inspector
+00:07 +69: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: a click on empty ground leaves no destructive inspector
+00:07 +70: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/warp_canvas_test.dart: a character on the same cell keeps the selection
+00:07 +71: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: selecting never writes to the document or the history
+00:07 +72: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: a twin id on another map never becomes the target
+00:07 +73: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/selection_identity_test.dart: the target survives pan and zoom without moving anything
+00:08 +74: All tests passed!

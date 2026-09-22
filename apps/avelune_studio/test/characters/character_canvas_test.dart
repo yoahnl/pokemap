@@ -38,10 +38,10 @@ void main() {
         ),
         isNotNull,
       );
-      expect(view.selectedEntityId, instance.id);
+      expect(view.selectedFor(document.current.id, MapSelectionFamily.character), instance.id);
       decors.place(workspaceElement, instance.pos);
       final covering = document.selectedId;
-      view.selectedEntityId = null;
+      view.select(document, MapSelectionFamily.decor, covering!);
       expect(
         MapCharacterGesture.start(
           document: document,
@@ -54,7 +54,7 @@ void main() {
       expect(document.selectedId, covering);
       expect(characters.at(instance.pos).single.id, instance.id);
       final before = document.current;
-      view.selectedEntityId = instance.id;
+      view.select(document, MapSelectionFamily.character, instance.id);
       final gesture = MapCharacterGesture.start(
         document: document,
         project: project,

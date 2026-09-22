@@ -8,7 +8,7 @@ class MapEditingCommands {
   final ProjectManifest project;
   static int _nextId = 0;
 
-  void place(ProjectElementEntry element, GridPos position) {
+  String? place(ProjectElementEntry element, GridPos position) {
     var map = document.current;
     final layer = supportLayer(map);
     if (!map.layers.any((entry) => entry.id == layer.id)) {
@@ -37,10 +37,11 @@ class MapEditingCommands {
               ) +
           1,
     );
-    if (!_fits(instance, element)) return;
+    if (!_fits(instance, element)) return null;
     document.commit(upsertMapPlacedElement(map, instance: instance));
     document.selectedId = id;
     document.stackPosition = position;
+    return id;
   }
 
   void move(String id, GridPos position) {

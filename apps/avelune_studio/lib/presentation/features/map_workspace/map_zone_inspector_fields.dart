@@ -121,10 +121,8 @@ List<Widget> zonePayloadFields({
         onChanged: (cost) => cost == null
             ? null
             : onChanged(
-                () => commands.updateMovementEffect(
-                  zone.id,
-                  movementCost: cost,
-                ),
+                () =>
+                    commands.updateMovementEffect(zone.id, movementCost: cost),
               ),
       ),
     ];
@@ -151,9 +149,7 @@ List<Widget> zonePayloadFields({
         ],
         onChanged: (kind) => kind == null
             ? null
-            : onChanged(
-                () => commands.updateHazard(zone.id, hazardKind: kind),
-              ),
+            : onChanged(() => commands.updateHazard(zone.id, hazardKind: kind)),
       ),
       const SizedBox(height: 12),
       DropdownButtonFormField<int>(

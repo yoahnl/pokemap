@@ -53,9 +53,8 @@ void main() {
         commands.updateHazard(zone.id, damagePerStep: 2);
       }
 
-      final view = MapWorkspaceViewState()
-        ..tool = StudioMapTool.gameplayZone
-        ..selectedZoneId = zone.id;
+      final view = MapWorkspaceViewState()..tool = StudioMapTool.gameplayZone;
+      view.select(document, MapSelectionFamily.zone, zone.id);
       addTearDown(view.dispose);
       final search = TextEditingController();
       addTearDown(search.dispose);

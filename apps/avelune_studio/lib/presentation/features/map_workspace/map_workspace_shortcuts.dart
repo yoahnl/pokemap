@@ -22,7 +22,9 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
       ? null
       : CharacterEditingCommands(document, project);
   void delete() {
-    final id = view?.selectedEntityId;
+    final id = document == null
+        ? null
+        : view?.selectedFor(document.current.id, MapSelectionFamily.character);
     if (id == null || characters?.selected(id) == null) {
       commands?.deleteSelected();
       return;
@@ -36,7 +38,7 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
         return;
       }
       characters!.delete(id);
-      view!.selectedEntityId = null;
+      view!.clearSelection(document);
     } catch (error) {
       document!.error = error.toString();
     }
@@ -79,9 +81,18 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
       meta: meta,
       control: !meta,
     )] = () => guarded(() {
-      final id = view?.selectedEntityId;
+      final id = document == null
+          ? null
+          : view?.selectedFor(
+              document.current.id,
+              MapSelectionFamily.character,
+            );
       if (id != null && characters?.selected(id) != null) {
-        view!.selectedEntityId = characters!.duplicate(id).id;
+        view!.select(
+          document!,
+          MapSelectionFamily.character,
+          characters!.duplicate(id).id,
+        );
       }
     });
     result[SingleActivator(

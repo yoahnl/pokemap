@@ -40,9 +40,8 @@ void main() {
       ),
     );
 
-    final view = MapWorkspaceViewState()
-      ..tool = StudioMapTool.zone
-      ..selectedTriggerId = 'quai';
+    final view = MapWorkspaceViewState()..tool = StudioMapTool.zone;
+    view.select(document, MapSelectionFamily.trigger, 'quai');
     addTearDown(view.dispose);
     final key = GlobalKey();
 

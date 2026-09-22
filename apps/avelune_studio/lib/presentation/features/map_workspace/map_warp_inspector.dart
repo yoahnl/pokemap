@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/warp_editing_commands.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
+import '../../shared/widgets/inputs/studio_commit_field.dart';
 
 class MapWarpInspector extends StatefulWidget {
   const MapWarpInspector({
@@ -28,27 +28,28 @@ class MapWarpInspector extends StatefulWidget {
 }
 
 class _MapWarpInspectorState extends State<MapWarpInspector> {
-  final _x = TextEditingController();
-  final _y = TextEditingController();
-  String? _appliedTo;
-
   WarpEditingCommands get _commands =>
       WarpEditingCommands(widget.document, widget.project);
 
-  @override
-  void dispose() {
-    _x.dispose();
-    _y.dispose();
-    super.dispose();
-  }
-
-  void _syncFields() {
-    final warp = widget.warp;
-    final key = '${warp.id}:${warp.targetPos.x}:${warp.targetPos.y}';
-    if (_appliedTo == key) return;
-    _appliedTo = key;
-    _x.text = '${warp.targetPos.x}';
-    _y.text = '${warp.targetPos.y}';
+  bool _commitTarget(String raw, {required bool horizontal}) {
+    final parsed = int.tryParse(raw.trim());
+    if (parsed == null || parsed < 0) {
+      widget.document.error =
+          'La case d’arrivée doit être exprimée en nombres positifs.';
+      widget.onChanged();
+      return false;
+    }
+    final current = widget.warp.targetPos;
+    if (horizontal ? parsed == current.x : parsed == current.y) return true;
+    _change(
+      () => _commands.retarget(
+        widget.warp.id,
+        targetPos: horizontal
+            ? GridPos(x: parsed, y: current.y)
+            : GridPos(x: current.x, y: parsed),
+      ),
+    );
+    return true;
   }
 
   void _change(VoidCallback action) {
@@ -60,30 +61,10 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
     widget.onChanged();
   }
 
-  void _applyTargetPos() {
-    final x = int.tryParse(_x.text.trim());
-    final y = int.tryParse(_y.text.trim());
-    if (x == null || y == null || x < 0 || y < 0) {
-      _appliedTo = null;
-      setState(_syncFields);
-      widget.document.error =
-          'La case d’arrivée doit être exprimée en nombres positifs.';
-      widget.onChanged();
-      return;
-    }
-    if (x == widget.warp.targetPos.x && y == widget.warp.targetPos.y) return;
-    _change(
-      () => _commands.retarget(
-        widget.warp.id,
-        targetPos: GridPos(x: x, y: y),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    _syncFields();
     final warp = widget.warp;
+    final owner = '${widget.document.current.id}/${warp.id}';
     final destinations = _commands.destinations();
     final problem = _commands.destinationProblem(warp);
     final known = destinations.any((entry) => entry.id == warp.targetMapId);
@@ -121,32 +102,20 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
         Row(
           children: [
             Expanded(
-              child: TextField(
-                key: const ValueKey('warp-target-x'),
-                controller: _x,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: 'Case X'),
-                onSubmitted: (_) => _applyTargetPos(),
-                onTapOutside: (_) {
-                  _applyTargetPos();
-                  FocusManager.instance.primaryFocus?.unfocus();
-                },
+              child: StudioCommitField(
+                key: ValueKey('warp-target-x-$owner'),
+                label: 'Case X',
+                value: '${warp.targetPos.x}',
+                tryCommit: (raw) => _commitTarget(raw, horizontal: true),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
-                key: const ValueKey('warp-target-y'),
-                controller: _y,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: 'Case Y'),
-                onSubmitted: (_) => _applyTargetPos(),
-                onTapOutside: (_) {
-                  _applyTargetPos();
-                  FocusManager.instance.primaryFocus?.unfocus();
-                },
+              child: StudioCommitField(
+                key: ValueKey('warp-target-y-$owner'),
+                label: 'Case Y',
+                value: '${warp.targetPos.y}',
+                tryCommit: (raw) => _commitTarget(raw, horizontal: false),
               ),
             ),
           ],
@@ -192,8 +161,7 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
               StudioTool(
                 label: 'Ouvrir la carte d’arrivée',
                 icon: Icons.open_in_new,
-                onPressed: () =>
-                    widget.onOpenDestination!(warp.targetMapId),
+                onPressed: () => widget.onOpenDestination!(warp.targetMapId),
               ),
             StudioTool(
               label: 'Supprimer le passage',

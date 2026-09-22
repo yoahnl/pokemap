@@ -65,9 +65,12 @@ void main() {
     final spawn = document.current.entities.single;
     expect(spawn.kind, MapEntityKind.spawn);
     expect(spawn.pos, const GridPos(x: 6, y: 2));
-    expect(view.selectedPlacementId, spawn.id);
     expect(
-      view.selectedEntityId,
+      view.selectedFor(document.current.id, MapSelectionFamily.marker),
+      spawn.id,
+    );
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.character),
       isNull,
       reason: 'a marker never poses as a character',
     );
@@ -85,7 +88,10 @@ void main() {
 
     await tester.tapAt(cell(tester, 4, 4));
     await tester.pump();
-    expect(view.selectedPlacementId, sign.id);
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.marker),
+      sign.id,
+    );
 
     final gesture = await tester.startGesture(cell(tester, 4, 4));
     await gesture.moveTo(cell(tester, 8, 5));
@@ -116,8 +122,14 @@ void main() {
     await tester.tapAt(cell(tester, 5, 5));
     await tester.pump();
 
-    expect(view.selectedEntityId, npc.id);
-    expect(view.selectedPlacementId, isNull);
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.character),
+      npc.id,
+    );
+    expect(
+      view.selectedFor(document.current.id, MapSelectionFamily.marker),
+      isNull,
+    );
     expect(tester.takeException(), isNull);
   });
 

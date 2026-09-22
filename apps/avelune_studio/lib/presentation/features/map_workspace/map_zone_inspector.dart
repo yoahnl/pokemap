@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
+import '../../shared/widgets/inputs/studio_commit_field.dart';
 import 'map_zone_inspector_fields.dart';
 
 class MapZoneInspector extends StatefulWidget {
@@ -26,17 +27,8 @@ class MapZoneInspector extends StatefulWidget {
 }
 
 class _MapZoneInspectorState extends State<MapZoneInspector> {
-  final _name = TextEditingController();
-  String? _appliedTo;
-
   GameplayZoneEditingCommands get _commands =>
       GameplayZoneEditingCommands(widget.document, widget.project);
-
-  @override
-  void dispose() {
-    _name.dispose();
-    super.dispose();
-  }
 
   void _change(VoidCallback action) {
     action();
@@ -46,10 +38,7 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
   @override
   Widget build(BuildContext context) {
     final zone = widget.zone;
-    if (_appliedTo != zone.id) {
-      _appliedTo = zone.id;
-      _name.text = zone.name;
-    }
+    final owner = '${widget.document.current.id}/${zone.id}';
     final problem = _commands.coverageProblem(zone);
     final area = zone.area;
     return Column(
@@ -62,18 +51,11 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
           'depuis ${area.pos.x}, ${area.pos.y}',
         ),
         const SizedBox(height: 12),
-        TextField(
-          key: const ValueKey('zone-name'),
-          controller: _name,
-          decoration: const InputDecoration(labelText: 'Nom'),
-          onSubmitted: (value) =>
-              _change(() => _commands.rename(zone.id, value)),
-          onTapOutside: (_) {
-            if (_name.text != zone.name) {
-              _change(() => _commands.rename(zone.id, _name.text));
-            }
-            FocusManager.instance.primaryFocus?.unfocus();
-          },
+        StudioCommitField(
+          key: ValueKey('zone-name-$owner'),
+          label: 'Nom',
+          value: zone.name,
+          onCommit: (value) => _change(() => _commands.rename(zone.id, value)),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<GameplayZoneKind>(

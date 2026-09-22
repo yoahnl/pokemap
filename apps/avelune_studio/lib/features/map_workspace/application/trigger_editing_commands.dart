@@ -38,16 +38,17 @@ class TriggerEditingCommands {
   );
 
   String? deletionProblem(String id) {
-    final usages = buildNarrativeDependencyIndex(
-      project: project,
-      maps: [document.current],
-    ).usagesFor(
-      NarrativeDependencyKey.mapSource(
-        mapId: document.current.id,
-        sourceKind: 'trigger',
-        sourceId: id,
-      ),
-    );
+    final usages =
+        buildNarrativeDependencyIndex(
+          project: project,
+          maps: [document.current],
+        ).usagesFor(
+          NarrativeDependencyKey.mapSource(
+            mapId: document.current.id,
+            sourceKind: 'trigger',
+            sourceId: id,
+          ),
+        );
     return usages.isEmpty
         ? null
         : 'Cette zone porte une interaction de l’histoire. Retirez sa liaison '

@@ -5,6 +5,7 @@ import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_entity_editing_commands.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
+import '../../shared/widgets/inputs/studio_commit_field.dart';
 
 class MapMarkerInspector extends StatefulWidget {
   const MapMarkerInspector({
@@ -14,51 +15,48 @@ class MapMarkerInspector extends StatefulWidget {
     required this.entity,
     required this.onChanged,
     required this.onDeleted,
+    this.draftBlocked,
   });
   final EditableMapDocument document;
   final ProjectManifest project;
   final MapEntity entity;
   final VoidCallback onChanged;
   final VoidCallback onDeleted;
+  final bool Function(String)? draftBlocked;
 
   @override
   State<MapMarkerInspector> createState() => _MapMarkerInspectorState();
 }
 
 class _MapMarkerInspectorState extends State<MapMarkerInspector> {
-  final _title = TextEditingController();
-  final _text = TextEditingController();
-  String? _appliedTo;
-
   MapEntityEditingCommands get _commands =>
       MapEntityEditingCommands(widget.document, widget.project);
 
-  @override
-  void dispose() {
-    _title.dispose();
-    _text.dispose();
-    super.dispose();
-  }
-
-  void _syncFields() {
-    final sign = widget.entity.sign;
-    if (sign == null || _appliedTo == widget.entity.id) return;
-    _appliedTo = widget.entity.id;
-    _title.text = sign.title;
-    _text.text = sign.plainText;
-  }
-
   void _change(VoidCallback action) {
-    action();
+    try {
+      action();
+    } catch (error) {
+      widget.document.error = error is StateError
+          ? error.message
+          : error.toString();
+    }
     widget.onChanged();
   }
 
+  String? get _deletionProblem =>
+      _commands.deletionProblem(widget.entity.id) ??
+      (widget.draftBlocked?.call(widget.entity.id) == true
+          ? 'Une interaction en cours d’écriture utilise cet élément. '
+                'Enregistrez-la ou retirez sa liaison avant de le supprimer.'
+          : null);
+
   @override
   Widget build(BuildContext context) {
-    _syncFields();
     final entity = widget.entity;
+    final owner = '${widget.document.current.id}/${entity.id}';
     final spawn = entity.spawn;
     final sign = entity.sign;
+    final blocked = _deletionProblem;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -155,36 +153,22 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
           ],
         ],
         if (sign != null) ...[
-          TextField(
-            key: const ValueKey('sign-title'),
-            controller: _title,
-            decoration: const InputDecoration(labelText: 'Titre'),
-            onSubmitted: (value) =>
+          StudioCommitField(
+            key: ValueKey('sign-title-$owner'),
+            label: 'Titre',
+            value: sign.title,
+            onCommit: (value) =>
                 _change(() => _commands.updateSign(entity.id, title: value)),
-            onTapOutside: (_) {
-              if (_title.text != sign.title) {
-                _change(
-                  () => _commands.updateSign(entity.id, title: _title.text),
-                );
-              }
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
           ),
           const SizedBox(height: 12),
-          TextField(
-            key: const ValueKey('sign-text'),
-            controller: _text,
+          StudioCommitField(
+            key: ValueKey('sign-text-$owner'),
+            label: 'Texte affiché',
+            value: sign.plainText,
             maxLines: 4,
-            minLines: 2,
-            decoration: const InputDecoration(labelText: 'Texte affiché'),
-            onTapOutside: (_) {
-              if (_text.text != sign.plainText) {
-                _change(
-                  () => _commands.updateSign(entity.id, plainText: _text.text),
-                );
-              }
-              FocusManager.instance.primaryFocus?.unfocus();
-            },
+            onCommit: (value) => _change(
+              () => _commands.updateSign(entity.id, plainText: value),
+            ),
           ),
           const SizedBox(height: 12),
           StudioChoice(
@@ -199,13 +183,27 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
           ),
         ],
         const SizedBox(height: 16),
+        if (blocked != null) ...[
+          Text(
+            blocked,
+            key: const ValueKey('marker-deletion-problem'),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+          const SizedBox(height: 8),
+        ],
         StudioTool(
-          label: spawn != null ? 'Supprimer ce départ' : 'Supprimer le panneau',
+          label: blocked != null
+              ? 'Suppression bloquée par l’histoire'
+              : spawn != null
+              ? 'Supprimer ce départ'
+              : 'Supprimer le panneau',
           icon: Icons.delete_outline,
-          onPressed: () {
-            _change(() => _commands.delete(entity.id));
-            widget.onDeleted();
-          },
+          onPressed: blocked != null
+              ? null
+              : () {
+                  _change(() => _commands.delete(entity.id));
+                  widget.onDeleted();
+                },
         ),
       ],
     );

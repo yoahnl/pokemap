@@ -56,7 +56,10 @@ void main() {
 
     commands.updateEncounter(zone.id, tableId: herbs.id);
     expect(commands.coverageProblem(commands.selected(zone.id)!), isNull);
-    expect(commands.tableOf(commands.selected(zone.id)!)!.name, 'Hautes herbes');
+    expect(
+      commands.tableOf(commands.selected(zone.id)!)!.name,
+      'Hautes herbes',
+    );
 
     final orphaned = GameplayZoneEditingCommands(document, workspaceProject);
     expect(

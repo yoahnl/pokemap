@@ -26,9 +26,8 @@ class WarpEditingCommands {
   List<ProjectMapEntry> destinations() =>
       project.maps.where((entry) => entry.id != document.current.id).toList();
 
-  ProjectMapEntry? destinationOf(MapWarp warp) => project.maps
-      .where((entry) => entry.id == warp.targetMapId)
-      .firstOrNull;
+  ProjectMapEntry? destinationOf(MapWarp warp) =>
+      project.maps.where((entry) => entry.id == warp.targetMapId).firstOrNull;
 
   String? destinationProblem(MapWarp warp) => destinationOf(warp) == null
       ? 'La carte de destination n’existe plus dans le projet.'

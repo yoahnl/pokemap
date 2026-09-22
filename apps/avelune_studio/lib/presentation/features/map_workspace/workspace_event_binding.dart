@@ -123,9 +123,13 @@ extension _WorkspaceEventBinding on _MapWorkspaceScreenState {
     }
     final view = _view!;
     view.tool = StudioMapTool.select;
-    view.selectedEntityId = entity?.id;
-    view.selectedTriggerId = trigger?.id;
-    document.selectedId = null;
+    if (entity != null) {
+      view.select(document, MapSelectionFamily.character, entity.id);
+    } else if (trigger != null) {
+      view.select(document, MapSelectionFamily.trigger, trigger.id);
+    } else {
+      view.clearSelection(document);
+    }
     final position = entity?.pos ?? trigger?.area.pos;
     _eventMapReturn = true;
     _openMap();

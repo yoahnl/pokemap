@@ -76,9 +76,7 @@ void main() {
     final warp = commands.place(garden, const GridPos(x: 2, y: 2));
     final orphaned = WarpEditingCommands(
       document,
-      workspaceProject.copyWith(
-        maps: [workspaceEntries.first],
-      ),
+      workspaceProject.copyWith(maps: [workspaceEntries.first]),
     );
     expect(orphaned.destinationOf(warp), isNull);
     expect(

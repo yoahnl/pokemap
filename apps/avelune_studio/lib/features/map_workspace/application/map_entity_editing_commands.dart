@@ -13,7 +13,8 @@ class MapEntityEditingCommands {
   String _id(MapEntityKind kind) {
     String id;
     do {
-      id = '${kind.name}-${DateTime.now().microsecondsSinceEpoch}-'
+      id =
+          '${kind.name}-${DateTime.now().microsecondsSinceEpoch}-'
           '${_sequence++}';
     } while (document.current.entities.any((entity) => entity.id == id));
     return id;
@@ -69,8 +70,32 @@ class MapEntityEditingCommands {
     moveEntityOnMap(document.current, entityId: id, pos: position),
   );
 
-  void delete(String id) =>
-      document.commit(removeEntityFromMap(document.current, entityId: id));
+  String? deletionProblem(String id) {
+    if (selected(id) == null) {
+      return 'Cet élément n’appartient plus à cette carte.';
+    }
+    final usages =
+        buildNarrativeDependencyIndex(
+          project: project,
+          maps: [document.current],
+        ).usagesFor(
+          NarrativeDependencyKey.mapSource(
+            mapId: document.current.id,
+            sourceKind: 'entity',
+            sourceId: id,
+          ),
+        );
+    return usages.isEmpty
+        ? null
+        : 'Cet élément est utilisé par l’histoire. Retirez ses liaisons avant '
+              'de le supprimer.';
+  }
+
+  void delete(String id) {
+    final problem = deletionProblem(id);
+    if (problem != null) throw StateError(problem);
+    document.commit(removeEntityFromMap(document.current, entityId: id));
+  }
 
   void rename(String id, String name) => document.commit(
     updateEntityOnMap(document.current, entityId: id, name: name),
@@ -110,10 +135,6 @@ class MapEntityEditingCommands {
   }
 
   void setBlocking(String id, {required bool blocks}) => document.commit(
-    updateEntityOnMap(
-      document.current,
-      entityId: id,
-      blocksMovement: blocks,
-    ),
+    updateEntityOnMap(document.current, entityId: id, blocksMovement: blocks),
   );
 }

@@ -27,6 +27,8 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final view = MapWorkspaceViewState();
+    addTearDown(view.dispose);
     await tester.pumpWidget(
       MaterialApp(
         theme: studioTheme(),
@@ -36,6 +38,7 @@ void main() {
               project: workspaceProject,
               document: document,
               visuals: WorkspaceTestVisuals(),
+              view: view,
               tool: tool,
               onChanged: () => update(() {}),
             ),
