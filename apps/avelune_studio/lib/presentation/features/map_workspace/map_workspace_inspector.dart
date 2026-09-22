@@ -209,11 +209,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     : visuals.thumbnail(element, size: 36),
                 selected: instance.id == document.selectedId,
                 onTap: () {
-                  view.select(
-                    document,
-                    MapSelectionFamily.decor,
-                    instance.id,
-                  );
+                  view.select(document, MapSelectionFamily.decor, instance.id);
                   onChanged();
                 },
               );

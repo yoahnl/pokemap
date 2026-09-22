@@ -70,7 +70,12 @@ class MapSelectionHarness {
                     onChanged: () => setState(() {}),
                     onOpenElement: (_) {},
                     onEditElement: (_) {},
-                    deletionBlocked: draftBlocked,
+                    referenceGuard: draftBlocked == null
+                        ? null
+                        : ({required mapId, required entityId}) =>
+                              draftBlocked!(entityId)
+                              ? 'Un brouillon en cours utilise cet élément.'
+                              : null,
                   ),
                 ],
               );

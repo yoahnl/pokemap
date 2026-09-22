@@ -62,4 +62,35 @@ extension _WorkspaceWorldBinding on _MapWorkspaceScreenState {
       },
     );
   }
+
+  /// The drafts that still point at a map entity: events being written, world
+  /// rules not yet published — including incomplete ones whose target is
+  /// already chosen — and interaction sessions.
+  MapDraftReferenceSources _draftReferenceSources() {
+    final world = _world;
+    final events = _events;
+    final narrative = _narrative;
+    return MapDraftReferenceSources(
+      eventDrafts: [
+        if (events != null)
+          for (final id in events.dirtyIds)
+            ?events.record(id),
+      ],
+      ruleTargets: [
+        if (world != null)
+          for (final draft in world.pendingRules.values)
+            if (draft.target?.entityId case final entityId?)
+              (mapId: draft.target!.mapId, entityId: entityId),
+      ],
+      interactionDrafts: [
+        if (narrative != null)
+          for (final session in narrative.sessions.values)
+            if (session.dirty)
+              if (session.current.interaction.source.toJson() case final source)
+                if (source['mapId'] case final String mapId)
+                  if (source['entityId'] case final String entityId)
+                    (mapId: mapId, entityId: entityId),
+      ],
+    );
+  }
 }

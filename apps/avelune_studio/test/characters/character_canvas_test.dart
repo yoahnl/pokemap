@@ -38,7 +38,10 @@ void main() {
         ),
         isNotNull,
       );
-      expect(view.selectedFor(document.current.id, MapSelectionFamily.character), instance.id);
+      expect(
+        view.selectedFor(document.current.id, MapSelectionFamily.character),
+        instance.id,
+      );
       decors.place(workspaceElement, instance.pos);
       final covering = document.selectedId;
       view.select(document, MapSelectionFamily.decor, covering!);

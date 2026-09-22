@@ -15,22 +15,25 @@ class MapMarkerInspector extends StatefulWidget {
     required this.entity,
     required this.onChanged,
     required this.onDeleted,
-    this.draftBlocked,
+    this.referenceGuard,
   });
   final EditableMapDocument document;
   final ProjectManifest project;
   final MapEntity entity;
   final VoidCallback onChanged;
   final VoidCallback onDeleted;
-  final bool Function(String)? draftBlocked;
+  final MapReferenceGuard? referenceGuard;
 
   @override
   State<MapMarkerInspector> createState() => _MapMarkerInspectorState();
 }
 
 class _MapMarkerInspectorState extends State<MapMarkerInspector> {
-  MapEntityEditingCommands get _commands =>
-      MapEntityEditingCommands(widget.document, widget.project);
+  MapEntityEditingCommands get _commands => MapEntityEditingCommands(
+    widget.document,
+    widget.project,
+    draftGuard: widget.referenceGuard,
+  );
 
   void _change(VoidCallback action) {
     try {
@@ -43,12 +46,7 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
     widget.onChanged();
   }
 
-  String? get _deletionProblem =>
-      _commands.deletionProblem(widget.entity.id) ??
-      (widget.draftBlocked?.call(widget.entity.id) == true
-          ? 'Une interaction en cours d’écriture utilise cet élément. '
-                'Enregistrez-la ou retirez sa liaison avant de le supprimer.'
-          : null);
+  String? get _deletionProblem => _commands.deletionProblem(widget.entity.id);
 
   @override
   Widget build(BuildContext context) {

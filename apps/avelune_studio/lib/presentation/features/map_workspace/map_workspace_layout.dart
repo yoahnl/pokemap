@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import '../../shared/widgets/layout/studio_application_frame.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
@@ -41,7 +42,9 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.onStory,
     this.onEditInteraction,
     this.onZoneDrawn,
-    this.deletionBlocked,
+    this.referenceGuard,
+    this.onContextMenu,
+    this.movingHint,
     this.activeSpace = 'map',
     this.onHome,
   });
@@ -69,7 +72,9 @@ class MapWorkspaceLayout extends StatelessWidget {
   final VoidCallback? onStory;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<MapRect>? onZoneDrawn;
-  final bool Function(String)? deletionBlocked;
+  final MapReferenceGuard? referenceGuard;
+  final void Function(GridPos, Offset)? onContextMenu;
+  final String? movingHint;
   final String activeSpace;
   final VoidCallback? onHome;
 
@@ -141,7 +146,7 @@ class MapWorkspaceLayout extends StatelessWidget {
             close?.call();
             onActivate(entry);
           },
-          deletionBlocked: deletionBlocked,
+          referenceGuard: referenceGuard,
         );
       }
 
@@ -200,6 +205,8 @@ class MapWorkspaceLayout extends StatelessWidget {
                 onClose: onClose,
               ),
             if (error != null) StudioNotice(error!, isError: true, maxLines: 2),
+            if (error == null && movingHint != null)
+              StudioNotice(movingHint!, maxLines: 2),
             Expanded(
               child:
                   resourceContent ??
@@ -239,6 +246,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                                       onChanged: onChanged,
                                       gestureGeneration: generation,
                                       onZoneDrawn: onZoneDrawn,
+                                      onContextMenu: onContextMenu,
                                     ),
                                   ),
                                 ),

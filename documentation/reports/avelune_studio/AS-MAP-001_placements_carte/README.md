@@ -357,6 +357,85 @@ pouvaient différer. Elle passe désormais par le même point d'entrée.
   ouverts : aucun port de Studio n'expose encore le catalogue d'objets. Ce n'est
   pas une exclusion produit, c'est un raccordement qui reste à faire.
 
+## Lot 6 — Protections terminées et passage prouvé dans le Player
+
+### Suppression : les vrais brouillons comptent
+
+`deletionProblem()` ne voyait que les références enregistrées et les anciennes
+sessions d'interactions. Les versions de travail d'Événements et d'États et
+règles du monde passaient au travers.
+
+`MapDraftReferenceIndex` agrège désormais les brouillons de leurs propriétaires
+réels : les enregistrements en attente d'`EventWorkspaceController`, les
+`pendingRules` du monde — **y compris incomplètes**, en lisant directement le
+`WorldRuleTarget` (carte + entité) sans forcer le brouillon dans un modèle
+canonique invalide — et les sessions d'interactions. L'index se reconstruit
+seulement quand la signature des brouillons change, jamais à chaque build.
+
+Le garde est injecté dans la commande (`draftGuard`), donc la protection agit à
+l'exécution, pas seulement sur l'état du bouton. Les identités sont qualifiées :
+un homonyme sur une autre carte ne bloque ni n'autorise à tort.
+
+### Sauvegarde : bouton et raccourci sur le même chemin
+
+Le bouton Enregistrer appelait directement la sauvegarde, sans valider la
+saisie ; ⌘S était avalé par la garde qui refuse les actions dans un
+`EditableText`. Les deux passent maintenant par `_saveWorkspaceDocument`, qui
+valide la saisie du propriétaire courant avant d'écrire. La garde clavier a une
+variante tolérante réservée à la sauvegarde : Supprimer et Dupliquer restent
+bloqués pendant la frappe.
+
+### Passage dans le véritable Player
+
+`warp_player_journey_test.dart` monte `PlayableMapGame` sur les fichiers que
+Studio vient d'écrire, envoie les déplacements par `handleRuntimeInputEvent` —
+le chemin d'entrée réel — et laisse le Player déclencher et effectuer la
+transition. Le journal du moteur le montre : `mapEnter map=clairiere
+reason=warp`. La carte active et la position d'arrivée sont ensuite observées
+sur le jeu lui-même. Le test ne charge pas la destination à sa place et ne
+repositionne pas le joueur.
+
+Le harnais reprend la convention des tests runtime existants
+(`_LoadedPlayableMapGame`), car une instance nue n'est jamais montée par un
+`GameWidget`.
+
+### Tests ajoutés
+
+| Nature | Fichier |
+| --- | --- |
+| brouillons réels des propriétaires Événements et Monde | `test/map_workspace/draft_reference_guard_test.dart` (5) |
+| sauvegarde dans le véritable hôte, écriture et relecture disque | `test/map_workspace/save_while_typing_test.dart` (3) |
+| parcours dans le véritable Player | `test/map_workspace/warp_player_journey_test.dart` (2) |
+
+
+### Résultats mesurés sur l'état final
+
+| Vérification | Résultat |
+| --- | --- |
+| formatage des fichiers touchés | 13 fichiers reformatés sur 199 |
+| analyse Studio | aucune remarque |
+| frontières d'architecture | 12 verts |
+| placements, protections et menu | 98 verts |
+| suite Studio complète | 825 verts, 2 ignorés, 1 échec de charge |
+
+L'unique échec de la suite est `desktop_workspace_layout_test`, sur son message
+connu « Les E/S réelles ne terminent pas entre les frames en 20 secondes ». Il
+passe seul en 24 s. Un premier passage, sur une machine saturée (36 minutes au
+lieu de 3), avait produit 6 échecs de ce type ; les cinq autres repassent tous
+isolément et le second passage à froid ne les reproduit pas.
+
+Journaux : `logs/analyse.txt`, `logs/architecture.txt`,
+`logs/placements-cible.txt`, `logs/suite-studio-finale.txt`.
+
+### Limites restantes
+
+- le menu contextuel est livré séparément (AS-MAP-002) ;
+- aucune manipulation native macOS n'a été exécutée dans cette intervention ;
+- une carte accepte toujours plusieurs points de départ du joueur ;
+- les objets ramassables (`item`) et la famille `custom` restent des besoins
+  ouverts : aucun port de Studio n'expose le catalogue d'objets. Ce n'est pas
+  une exclusion produit.
+
 ## Ce que ce ticket ne fait pas
 
 - il ne remplace pas `map_editor` : les familles `item` et `custom`, les

@@ -39,6 +39,12 @@ import '../world/world_view_state.dart';
 import '../world/world_workspace_page.dart';
 import '../narrative/narrative_navigation.dart';
 import '../narrative/narrative_overview_view_state.dart';
+import 'package:flutter/services.dart';
+import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_command_runner.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_shortcuts.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
@@ -50,6 +56,7 @@ import '../resources/resource_catalog.dart';
 import '../resources/resource_image_import.dart';
 import 'workspace_secondary_content.dart';
 import '../resources/resource_brush_selection.dart';
+import 'map_context_menu.dart';
 import 'map_workspace_layout.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
@@ -66,6 +73,8 @@ part 'workspace_cinematic_binding.dart';
 part 'workspace_presentation_binding.dart';
 part 'workspace_keyboard_binding.dart';
 part 'workspace_lifecycle_binding.dart';
+part 'workspace_context_menu_binding.dart';
+part 'workspace_navigation_binding.dart';
 part 'workspace_world_binding.dart';
 part 'workspace_verification_binding.dart';
 
@@ -140,6 +149,12 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   WorkspaceSpace _dialogueOrigin = WorkspaceSpace.story;
   final _eventView = EventViewState();
   late final _eventMaps = EventMapLoader(_controller);
+  late final _draftReferences = MapDraftReferenceIndex(_draftReferenceSources);
+  GridPos? _contextCell;
+  MapContextTarget? _contextTarget;
+  MapContextMenuRequest? _contextRequest;
+  String? _contextMapId;
+  String? _movingHint;
   WorkspaceSpace _eventOrigin = WorkspaceSpace.story;
   bool _eventMapReturn = false;
   final _progressionViews = StoryProgressionViewStore();
@@ -241,46 +256,14 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     }
   }
 
+  void _enterSpace(WorkspaceSpace space) {
+    if (mounted) setState(() => _space = space);
+  }
+
   void _toolChanged() {
     _gestureGeneration++;
     retainWorkspaceBrush(_visuals, _view);
     _changed();
-  }
-
-  void _show(WorkspaceSpace space) {
-    final inPresentation = _space == WorkspaceSpace.presentation;
-    if (inPresentation && space != _space) {
-      _presentations?.suspendPreview?.call();
-    }
-    if (inPresentation && _presentations?.flushEdits?.call() == false) return;
-    if (_space == WorkspaceSpace.cinematic) {
-      _cinematics?.transport.pause();
-      FocusManager.instance.primaryFocus?.unfocus();
-      FocusManager.instance.applyFocusChangesIfNeeded();
-    }
-    if (space != WorkspaceSpace.map) _cinematicMapReturn = false;
-    if (_space == WorkspaceSpace.dialogue) {
-      FocusManager.instance.primaryFocus?.unfocus();
-      FocusManager.instance.applyFocusChangesIfNeeded();
-    }
-    if (space != WorkspaceSpace.map) _eventMapReturn = false;
-    if (space != WorkspaceSpace.map) _verificationMapReturn = false;
-    if (_space == WorkspaceSpace.events) {
-      FocusManager.instance.primaryFocus?.unfocus();
-      FocusManager.instance.applyFocusChangesIfNeeded();
-    }
-    if (_space == WorkspaceSpace.progression) {
-      FocusManager.instance.primaryFocus?.unfocus();
-      FocusManager.instance.applyFocusChangesIfNeeded();
-      if (space == WorkspaceSpace.story) {
-        _storyViewState.storyId = _stories?.activeId;
-        _storyViewState.stepId = null;
-      }
-    }
-    _navigationRequest++;
-    _interactionNotice?.close();
-    _narrative?.cancelOpening();
-    if (mounted) setState(() => _space = space);
   }
 
   Future<void> _close() async {

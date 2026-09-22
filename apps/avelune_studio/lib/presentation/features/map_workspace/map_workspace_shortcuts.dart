@@ -12,6 +12,7 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
   MapWorkspaceViewState? view,
   void Function(void Function()) guarded, {
   VoidCallback? onSave,
+  void Function(void Function())? guardedWhileTyping,
 }) {
   final document = controller.active;
   final project = controller.project;
@@ -69,7 +70,7 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
       LogicalKeyboardKey.keyS,
       meta: meta,
       control: !meta,
-    )] = () => guarded(() {
+    )] = () => (guardedWhileTyping ?? guarded)(() {
       if (onSave != null) {
         onSave();
       } else if (document != null) {

@@ -30,7 +30,7 @@ class MapSelectionInspector extends StatelessWidget {
     required this.onEditElement,
     this.onEditInteraction,
     this.onOpenMap,
-    this.deletionBlocked,
+    this.referenceGuard,
     this.width = 300,
   });
   final EditableMapDocument document;
@@ -41,7 +41,7 @@ class MapSelectionInspector extends StatelessWidget {
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<String>? onOpenMap;
-  final bool Function(String)? deletionBlocked;
+  final MapReferenceGuard? referenceGuard;
   final double width;
 
   @override
@@ -58,6 +58,7 @@ class MapSelectionInspector extends StatelessWidget {
     final marker = MapEntityEditingCommands(
       document,
       project,
+      draftGuard: referenceGuard,
     ).selected(view.selectedFor(mapId, MapSelectionFamily.marker));
     final zone = GameplayZoneEditingCommands(
       document,
@@ -181,7 +182,7 @@ class MapSelectionInspector extends StatelessWidget {
                         document: document,
                         project: project,
                         entity: marker,
-                        draftBlocked: deletionBlocked,
+                        referenceGuard: referenceGuard,
                         onChanged: onChanged,
                         onDeleted: () {
                           view.clearSelection(document);
@@ -232,7 +233,11 @@ class MapSelectionInspector extends StatelessWidget {
                         },
                         onEditInteraction: onEditInteraction ?? (_) {},
                         deletionBlocked:
-                            deletionBlocked?.call(selected.id) ?? false,
+                            referenceGuard?.call(
+                              mapId: mapId,
+                              entityId: selected.id,
+                            ) !=
+                            null,
                       ),
                     ),
                   )

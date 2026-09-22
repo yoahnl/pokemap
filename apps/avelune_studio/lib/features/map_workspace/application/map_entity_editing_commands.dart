@@ -4,10 +4,14 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 
 const studioEntityKinds = [MapEntityKind.spawn, MapEntityKind.sign];
 
+typedef MapReferenceGuard =
+    String? Function({required String mapId, required String entityId});
+
 class MapEntityEditingCommands {
-  MapEntityEditingCommands(this.document, this.project);
+  MapEntityEditingCommands(this.document, this.project, {this.draftGuard});
   final EditableMapDocument document;
   final ProjectManifest project;
+  final MapReferenceGuard? draftGuard;
   static int _sequence = 0;
 
   String _id(MapEntityKind kind) {
@@ -85,10 +89,11 @@ class MapEntityEditingCommands {
             sourceId: id,
           ),
         );
-    return usages.isEmpty
-        ? null
-        : 'Cet élément est utilisé par l’histoire. Retirez ses liaisons avant '
-              'de le supprimer.';
+    if (usages.isNotEmpty) {
+      return 'Cet élément est utilisé par l’histoire. Retirez ses liaisons '
+          'avant de le supprimer.';
+    }
+    return draftGuard?.call(mapId: document.current.id, entityId: id);
   }
 
   void delete(String id) {

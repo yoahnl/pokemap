@@ -19,6 +19,7 @@ class MapWorkspaceCanvas extends StatefulWidget {
     required this.onChanged,
     required this.gestureGeneration,
     this.onZoneDrawn,
+    this.onContextMenu,
   });
   final EditableMapDocument document;
   final ProjectManifest project;
@@ -27,6 +28,7 @@ class MapWorkspaceCanvas extends StatefulWidget {
   final VoidCallback onChanged;
   final int gestureGeneration;
   final ValueChanged<MapRect>? onZoneDrawn;
+  final void Function(GridPos cell, Offset globalPosition)? onContextMenu;
   @override
   State<MapWorkspaceCanvas> createState() => _MapWorkspaceCanvasState();
 }
@@ -62,6 +64,12 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   }
 
   void _down(PointerDownEvent event) {
+    if (event.buttons == kSecondaryButton) {
+      // Never reaches the painting, placement or erasing path.
+      _cancel();
+      widget.onContextMenu?.call(_cell(event.localPosition), event.position);
+      return;
+    }
     if (event.buttons != kPrimaryButton ||
         widget.view.tool == StudioMapTool.pan) {
       return;
