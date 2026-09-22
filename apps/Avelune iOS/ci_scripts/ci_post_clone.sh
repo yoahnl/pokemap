@@ -11,20 +11,18 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Pinned to flutter_runtime/.metadata: `flutter build swift-package` does not
-# exist on stable yet.
-FLUTTER_REVISION="e3005e3402d9cfa2043114c8bc53c59d12e9b98e"
+# Pinned to the tag matching flutter_runtime/.metadata. Cloning the tag rather
+# than the bare revision matters: Flutter derives its version with `git
+# describe`, so a tagless checkout reports 0.0.0-unknown and pub refuses to
+# solve. `flutter build swift-package` does not exist on stable yet.
+FLUTTER_TAG="3.48.0-0.4.pre"
 FLUTTER_DIR="$HOME/flutter"
 FLUTTER_BIN="$FLUTTER_DIR/bin/flutter"
 
 if [ ! -x "$FLUTTER_BIN" ]; then
   rm -rf "$FLUTTER_DIR"
-  git init --quiet "$FLUTTER_DIR"
-  git -C "$FLUTTER_DIR" remote add origin https://github.com/flutter/flutter.git
-  if git -C "$FLUTTER_DIR" fetch --depth 1 --quiet origin "$FLUTTER_REVISION"; then
-    git -C "$FLUTTER_DIR" checkout --quiet FETCH_HEAD
-  else
-    echo "Révision épinglée indisponible, repli sur la pointe de beta."
+  if ! git clone --depth 1 --branch "$FLUTTER_TAG" https://github.com/flutter/flutter.git "$FLUTTER_DIR"; then
+    echo "Tag $FLUTTER_TAG indisponible, repli sur la pointe de beta."
     rm -rf "$FLUTTER_DIR"
     git clone --depth 1 --branch beta https://github.com/flutter/flutter.git "$FLUTTER_DIR"
   fi
@@ -60,6 +58,11 @@ if [ -n "${FLUTTER_STORAGE_BASE_URL:-}" ]; then
   run_flutter_bootstrap "$FLUTTER_STORAGE_BASE_URL"
 else
   run_flutter_bootstrap "" || run_flutter_bootstrap "https://storage.flutter-io.cn"
+fi
+
+if flutter --version | grep -q "0.0.0-unknown"; then
+  echo "Flutter ne résout pas sa version : le clone est sans tag, pub refusera de résoudre."
+  exit 1
 fi
 
 cd "$APP_DIR"
