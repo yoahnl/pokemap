@@ -35,9 +35,11 @@ class MapWorkspaceCanvas extends StatefulWidget {
 
 class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   final _focus = FocusNode();
+  final _surface = GlobalKey();
   GridPos? _start;
   GridPos? _preview;
   MapPlacedElement? _moving;
+  bool _armed = false;
   MapCanvasStroke? _stroke;
   MapData? _gestureSource;
   MapCharacterGesture? _characterGesture;
@@ -76,21 +78,24 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     }
     _focus.requestFocus();
     final cell = _cell(event.localPosition);
-    try {
-      _characterGesture = MapCharacterGesture.start(
-        document: widget.document,
-        project: widget.project,
-        view: widget.view,
-        origin: cell,
-      );
-      if (_characterGesture != null) {
+    final armed = widget.view.armedDecorIn(widget.document.current);
+    if (armed == null) {
+      try {
+        _characterGesture = MapCharacterGesture.start(
+          document: widget.document,
+          project: widget.project,
+          view: widget.view,
+          origin: cell,
+        );
+        if (_characterGesture != null) {
+          widget.onChanged();
+          return;
+        }
+      } catch (error) {
+        widget.document.error = error.toString();
         widget.onChanged();
         return;
       }
-    } catch (error) {
-      widget.document.error = error.toString();
-      widget.onChanged();
-      return;
     }
     _start = cell;
     _gestureSource = widget.document.current;
@@ -109,9 +114,12 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
         widget.document.current.id,
         MapSelectionFamily.decor,
       );
-      _moving = hits.any((e) => e.id == held)
-          ? hits.firstWhere((e) => e.id == held)
-          : hits.firstOrNull;
+      _armed = armed != null;
+      _moving =
+          armed ??
+          (hits.any((e) => e.id == held)
+              ? hits.firstWhere((e) => e.id == held)
+              : hits.firstOrNull);
       final moving = _moving;
       if (moving == null) {
         widget.view.clearSelection(widget.document);
@@ -185,6 +193,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     final moving = _moving;
     final preview = _preview;
     if (moving != null && preview != null) _commands.move(moving.id, preview);
+    if (_armed) widget.view.pendingMove = null;
     final stroke = _stroke;
     if (stroke != null) {
       try {
@@ -202,6 +211,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     _start = null;
     _preview = null;
     _moving = null;
+    _armed = false;
     _stroke = null;
     _gestureSource = null;
     _characterGesture = null;
@@ -218,23 +228,13 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     final map = widget.document.current;
     return LayoutBuilder(
       builder: (context, constraints) {
-        void recenter() => widget.view.fitViewport(
+        widget.view.attachViewport(
           constraints.biggest,
           Size(map.size.width * _width, map.size.height * _height),
-        );
-        widget.view.centerOn = (cell) => widget.view.centerCell(
-          cell,
-          constraints.biggest,
           Size(_width, _height),
+          mounted: () => mounted,
+          surface: _surface,
         );
-
-        widget.view.recenter = recenter;
-        if (!widget.view.positioned) {
-          widget.view.positioned = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) recenter();
-          });
-        }
         return ClipRect(
           child: InteractiveViewer(
             key: const ValueKey('map-viewport'),
@@ -255,6 +255,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                 onPointerUp: _up,
                 onPointerCancel: (_) => setState(_cancel),
                 child: SizedBox(
+                  key: _surface,
                   width: map.size.width * _width,
                   height: map.size.height * _height,
                   child: Stack(

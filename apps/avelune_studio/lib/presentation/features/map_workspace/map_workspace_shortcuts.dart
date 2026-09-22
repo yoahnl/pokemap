@@ -3,8 +3,12 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_command_runner.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_selection_context.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 
 Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
@@ -14,6 +18,7 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
   VoidCallback? onSave,
   void Function(void Function())? guardedWhileTyping,
   VoidCallback? onContextMenu,
+  MapContextActionContext? Function(GridPos cell)? contextAt,
 }) {
   final document = controller.active;
   final project = controller.project;
@@ -24,25 +29,38 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
       ? null
       : CharacterEditingCommands(document, project);
   void delete() {
-    final id = document == null
-        ? null
-        : view?.selectedFor(document.current.id, MapSelectionFamily.character);
-    if (id == null || characters?.selected(id) == null) {
+    if (document == null || project == null) return;
+    final selected = selectedContextTarget(document, project, view);
+    if (selected == null) {
       commands?.deleteSelected();
       return;
     }
+    final target = selected.target;
     try {
-      final before = document!.current;
-      final after = removeEntityFromMap(before, entityId: id);
-      final problem = controller.historyGuard?.call(before, after);
-      if (problem != null) {
-        document.error = problem;
+      if (target.family == MapContextFamily.character) {
+        final before = document.current;
+        final after = removeEntityFromMap(before, entityId: target.id);
+        final problem = controller.historyGuard?.call(before, after);
+        if (problem != null) {
+          document.error = problem;
+          return;
+        }
+      }
+      final refusal = MapContextCommandRunner(
+        contextAt?.call(selected.at) ??
+            MapContextActionContext(
+              document: document,
+              project: project,
+              position: selected.at,
+            ),
+      ).run(MapContextCommand.delete, target);
+      if (refusal != null) {
+        document.error = refusal;
         return;
       }
-      characters!.delete(id);
-      view!.clearSelection(document);
+      view?.clearSelection(document);
     } catch (error) {
-      document!.error = error.toString();
+      document.error = error.toString();
     }
   }
 

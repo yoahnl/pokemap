@@ -43,9 +43,35 @@ class MapWorkspaceViewState {
   MapSelectionTarget? _target;
   MapSelectionTarget? get target => _target;
 
+  MapSelectionTarget? _pendingMove;
+  String? _moveHint;
+
   /// Armed by the context menu: the element the next drag must move, whatever
   /// else sits under the pointer.
-  MapSelectionTarget? pendingMove;
+  MapSelectionTarget? get pendingMove => _pendingMove;
+  set pendingMove(MapSelectionTarget? target) {
+    _pendingMove = target;
+    _moveHint = null;
+  }
+
+  String? get moveHint => _pendingMove == null ? null : _moveHint;
+
+  void armMove(MapSelectionTarget target, String hint) {
+    _pendingMove = target;
+    _moveHint = hint;
+  }
+
+  MapPlacedElement? armedDecorIn(MapData map) {
+    final armed = _pendingMove;
+    if (armed == null ||
+        armed.family != MapSelectionFamily.decor ||
+        armed.mapId != map.id ||
+        tool != StudioMapTool.select) {
+      return null;
+    }
+    return map.placedElements.where((item) => item.id == armed.id).firstOrNull;
+  }
+
   GameplayZoneKind zoneKind = GameplayZoneKind.encounter;
   String characterQuery = '';
   double characterScrollOffset = 0;
@@ -61,6 +87,7 @@ class MapWorkspaceViewState {
   bool positioned = false;
   VoidCallback? recenter;
   void Function(GridPos)? centerOn;
+  Offset? Function(GridPos)? globalOfCell;
 
   void fitViewport(Size viewport, Size content) {
     final scale = math.min(
@@ -78,6 +105,31 @@ class MapWorkspaceViewState {
         1,
       )
       ..scaleByDouble(scale, scale, 1, 1);
+  }
+
+  void attachViewport(
+    Size viewport,
+    Size content,
+    Size tile, {
+    required bool Function() mounted,
+    GlobalKey? surface,
+  }) {
+    void fit() => fitViewport(viewport, content);
+    centerOn = (cell) => centerCell(cell, viewport, tile);
+    recenter = fit;
+    globalOfCell = (cell) {
+      final box = surface?.currentContext?.findRenderObject();
+      return box is RenderBox && box.attached
+          ? box.localToGlobal(
+              Offset((cell.x + 1) * tile.width, (cell.y + 1) * tile.height),
+            )
+          : null;
+    };
+    if (positioned) return;
+    positioned = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted()) fit();
+    });
   }
 
   void centerCell(GridPos cell, Size viewport, Size tile) {

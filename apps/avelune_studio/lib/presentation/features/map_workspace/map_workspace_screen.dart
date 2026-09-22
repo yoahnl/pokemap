@@ -46,6 +46,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_me
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_selection_context.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_shortcuts.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
@@ -154,7 +155,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   MapContextTarget? _contextTarget;
   MapContextMenuRequest? _contextRequest;
   String? _contextMapId;
-  String? _movingHint;
   WorkspaceSpace _eventOrigin = WorkspaceSpace.story;
   bool _eventMapReturn = false;
   final _progressionViews = StoryProgressionViewStore();
@@ -245,6 +245,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   void _changed() {
+    _releaseStaleMapState();
     final map = _controller.active?.current;
     if (map != null && _visuals != null && !identical(map, _preparedMap)) {
       _preparedMap = map;

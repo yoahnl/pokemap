@@ -170,8 +170,8 @@ class _MapContextMenuState extends State<MapContextMenu> {
               MapContextCommand.properties,
               '${target.label} · ${target.kindLabel}',
             ),
-            selected: target.id == request.selected?.id,
-            key: ValueKey('map-context-pick-${target.id}'),
+            selected: target.sameAs(request.selected),
+            key: ValueKey('map-context-pick-${target.key}'),
             onPressed: () => widget.onTarget(target),
           ),
       ];

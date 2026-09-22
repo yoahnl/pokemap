@@ -1,5 +1,6 @@
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
@@ -144,7 +145,14 @@ void main() {
       findsWidgets,
     );
 
-    await tester.tap(find.byKey(ValueKey('map-context-pick-${npc.id}')));
+    final pick = MapContextTarget(
+      mapId: h.document.current.id,
+      family: MapContextFamily.character,
+      id: npc.id,
+      label: '',
+      kindLabel: '',
+    );
+    await tester.tap(find.byKey(ValueKey('map-context-pick-${pick.key}')));
     await tester.pumpAndSettle();
 
     expect(h.selected(MapSelectionFamily.character), npc.id);

@@ -64,7 +64,9 @@ class MapCharacterGesture {
     }
 
     final armed = view.pendingMove;
-    if (armed != null && armed.mapId == document.current.id) {
+    if (armed != null &&
+        armed.mapId == document.current.id &&
+        armed.family != MapSelectionFamily.decor) {
       return MapCharacterGesture._(
         document,
         project,

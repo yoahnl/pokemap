@@ -19,6 +19,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
         onSave: _saveWorkspaceDocument,
         guardedWhileTyping: _keyboardWhileTyping,
         onContextMenu: _openContextMenuFromKeyboard,
+        contextAt: _contextAt,
       ),
       child: Focus(
         autofocus: true,
@@ -124,7 +125,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onZoneDrawn: _narrative == null ? null : _zone,
                           referenceGuard: _draftReferences.guard,
                           onContextMenu: _openContextMenu,
-                          movingHint: _movingHint,
+                          movingHint: _view?.moveHint,
                           onOpenElement: (element) => _openResources(element),
                           onEditElement: (element) =>
                               _openResources(element, true),

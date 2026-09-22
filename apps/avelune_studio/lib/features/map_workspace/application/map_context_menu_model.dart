@@ -128,6 +128,37 @@ List<MapContextTarget> mapContextTargetsAt(
   ];
 }
 
+typedef MapContextPlacement = ({MapContextTarget target, GridPos at});
+
+MapContextPlacement? locateMapContextTarget(
+  EditableMapDocument document,
+  ProjectManifest project,
+  MapContextFamily family,
+  String id,
+) {
+  final map = document.current;
+  final at = switch (family) {
+    MapContextFamily.decor =>
+      map.placedElements.where((item) => item.id == id).firstOrNull?.pos,
+    MapContextFamily.character || MapContextFamily.marker =>
+      map.entities.where((item) => item.id == id).firstOrNull?.pos,
+    MapContextFamily.warp =>
+      map.warps.where((item) => item.id == id).firstOrNull?.pos,
+    MapContextFamily.zone =>
+      map.gameplayZones.where((item) => item.id == id).firstOrNull?.area.pos,
+    MapContextFamily.trigger =>
+      map.triggers.where((item) => item.id == id).firstOrNull?.area.pos,
+    MapContextFamily.cell => null,
+  };
+  if (at == null) return null;
+  final target = mapContextTargetsAt(
+    document,
+    project,
+    at,
+  ).where((item) => item.family == family && item.id == id).firstOrNull;
+  return target == null ? null : (target: target, at: at);
+}
+
 String _warpLabel(ProjectManifest project, MapWarp warp) {
   final destination = project.maps
       .where((entry) => entry.id == warp.targetMapId)

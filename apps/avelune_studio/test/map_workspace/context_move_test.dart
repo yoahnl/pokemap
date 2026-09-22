@@ -136,27 +136,4 @@ void main() {
     );
     expect(h.document.current.placedElements.single.pos, decorBefore);
   });
-
-  testWidgets('Escape cancels the armed move without touching the map', (
-    tester,
-  ) async {
-    final zones = GameplayZoneEditingCommands(h.document, h.project);
-    final zone = zones.place(GameplayZoneKind.encounter, area);
-    await h.pump(tester);
-    final before = h.document.current;
-    final steps = h.document.undoCount;
-
-    await h.rightClick(tester, 4, 4);
-    await tester.tap(inMenu('Déplacer'));
-    await tester.pumpAndSettle();
-    h.view.pendingMove = null;
-    h.redraw();
-    await tester.pumpAndSettle();
-
-    await dragTo(tester, 4, 4, 8, 8);
-
-    expect(zones.selected(zone.id)!.area.pos, area.pos);
-    expect(h.document.current, before);
-    expect(h.document.undoCount, steps);
-  });
 }

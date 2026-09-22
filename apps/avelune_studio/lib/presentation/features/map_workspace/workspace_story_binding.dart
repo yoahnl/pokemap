@@ -122,7 +122,10 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.interaction);
   }
 
-  Future<String?> _openStoryInteraction(String id) async {
+  Future<String?> _openStoryInteraction(
+    String id, {
+    WorkspaceSpace from = WorkspaceSpace.story,
+  }) async {
     if (_events?.record(id) != null) {
       _openEvents(id);
       return null;
@@ -142,14 +145,14 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
         : await narrative.openRecord(record!);
     if (!mounted ||
         request != _navigationRequest ||
-        _space != WorkspaceSpace.story ||
+        _space != from ||
         widget.home?.visible == true) {
       return null;
     }
     if (!opened) {
       return narrative.error ?? 'Cette interaction est indisponible.';
     }
-    _interactionOrigin = WorkspaceSpace.story;
+    _interactionOrigin = from;
     _show(WorkspaceSpace.interaction);
     return null;
   }

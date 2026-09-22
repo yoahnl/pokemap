@@ -13,7 +13,7 @@ extension _WorkspaceKeyboardBinding on _MapWorkspaceScreenState {
       null;
 
   void _keyboard(void Function() action) {
-    if (_keyboardBusy || _typing) return;
+    if (_keyboardBusy || _typing || _contextRequest != null) return;
     action();
     _toolChanged();
   }

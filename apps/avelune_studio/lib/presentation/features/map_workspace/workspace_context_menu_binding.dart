@@ -1,16 +1,32 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
-  MapSelectionFamily _selectionFamily(MapContextFamily family) =>
-      switch (family) {
-        MapContextFamily.decor => MapSelectionFamily.decor,
-        MapContextFamily.character => MapSelectionFamily.character,
-        MapContextFamily.marker => MapSelectionFamily.marker,
-        MapContextFamily.warp => MapSelectionFamily.warp,
-        MapContextFamily.zone => MapSelectionFamily.zone,
-        MapContextFamily.trigger => MapSelectionFamily.trigger,
-        MapContextFamily.cell => MapSelectionFamily.decor,
-      };
+  void _releaseStaleMapState() {
+    final document = _controller.active;
+    final project = _controller.project;
+    for (final entry in _views.entries) {
+      if (entry.key != document?.base.mapId) entry.value.pendingMove = null;
+    }
+    if (_contextMapId != null && _contextMapId != document?.current.id) {
+      _contextRequest = null;
+      _contextCell = null;
+      _contextTarget = null;
+      _contextMapId = null;
+    }
+    final view = document == null ? null : _views[document.base.mapId];
+    final armed = view?.pendingMove;
+    if (armed != null &&
+        project != null &&
+        locateMapContextTarget(
+              document!,
+              project,
+              contextFamilyOf(armed.family),
+              armed.id,
+            ) ==
+            null) {
+      view!.pendingMove = null;
+    }
+  }
 
   MapContextActionContext? _contextAt(GridPos cell) {
     final document = _controller.active;
@@ -31,14 +47,27 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
   /// on its cell.
   void _openContextMenuFromKeyboard() {
     final document = _controller.active;
-    final target = _view?.target;
-    if (document == null) return;
-    final cell = document.stackPosition ?? const GridPos(x: 0, y: 0);
-    if (target != null && target.mapId != document.current.id) return;
-    _openContextMenu(cell, const Offset(120, 120));
+    final project = _controller.project;
+    if (document == null || project == null) return;
+    final selected = selectedContextTarget(document, project, _view);
+    if (selected == null) {
+      document.error =
+          'Sélectionnez un élément de la carte pour ouvrir son menu.';
+      _changed();
+      return;
+    }
+    _openContextMenu(
+      selected.at,
+      _view?.globalOfCell?.call(selected.at) ?? const Offset(120, 120),
+      target: selected.target,
+    );
   }
 
-  void _openContextMenu(GridPos cell, Offset globalPosition) {
+  void _openContextMenu(
+    GridPos cell,
+    Offset globalPosition, {
+    MapContextTarget? target,
+  }) {
     final context = _contextAt(cell);
     if (context == null) return;
     final targets = mapContextTargetsAt(
@@ -46,7 +75,9 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
       context.project,
       cell,
     );
-    final selected = targets.firstOrNull;
+    final selected = target == null
+        ? targets.firstOrNull
+        : targets.where(target.sameAs).firstOrNull;
     _contextCell = cell;
     _contextMapId = context.document.current.id;
     _contextTarget = selected;
@@ -69,7 +100,7 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
       _view?.clearSelection(document);
       return;
     }
-    _view?.select(document, _selectionFamily(target.family), target.id);
+    _view?.select(document, selectionFamilyOf(target.family), target.id);
   }
 
   void _closeContextMenu() {
@@ -142,28 +173,29 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
         openStoryZone: (trigger) =>
             unawaited(_openExistingStoryZone(context.document, trigger)),
         startMove: (target) {
-          final family = _selectionFamily(target.family);
+          final family = selectionFamilyOf(target.family);
           _view
             ?..tool = StudioMapTool.select
             ..select(context.document, family, target.id)
-            ..pendingMove = MapSelectionTarget(
-              mapId: context.document.current.id,
-              family: family,
-              id: target.id,
+            ..armMove(
+              MapSelectionTarget(
+                mapId: context.document.current.id,
+                family: family,
+                id: target.id,
+              ),
+              'Faites glisser ${target.label} vers sa nouvelle case, ou '
+              'appuyez sur Échap pour annuler.',
             );
           context.document.stackPosition = context.position;
-          _movingHint =
-              'Faites glisser ${target.label} vers sa nouvelle case, ou '
-              'appuyez sur Échap pour annuler.';
           _toolChanged();
         },
       );
 
   /// Every interaction attached to this exact source: unsaved sessions,
   /// event drafts and saved records alike.
-  List<String> _interactionsOnSource(String mapId, String triggerId) {
+  Map<String, String> _interactionsOnSource(String mapId, String triggerId) {
     final narrative = _narrative;
-    if (narrative == null) return const [];
+    if (narrative == null) return const {};
     bool matches(NarrativeEventSourceRef? source) {
       final json = source?.toJson();
       return json != null &&
@@ -171,16 +203,20 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
           json['triggerId'] == triggerId;
     }
 
-    final found = <String>{
-      for (final entry in narrative.sessions.entries)
-        if (matches(entry.value.current.interaction.source)) entry.key,
-      for (final record
-          in _events?.records ??
-              narrative.project.eventRegistry?.records ??
-              const <NarrativeEventRecord>[])
-        if (matches(recordSource(record))) record.id,
-    };
-    return found.toList();
+    final found = <String, String>{};
+    for (final entry in narrative.sessions.entries) {
+      final interaction = entry.value.current.interaction;
+      if (matches(interaction.source)) found[entry.key] = interaction.name;
+    }
+    for (final record
+        in _events?.records ??
+            narrative.project.eventRegistry?.records ??
+            const <NarrativeEventRecord>[]) {
+      if (matches(recordSource(record))) {
+        found.putIfAbsent(record.id, () => eventName(record));
+      }
+    }
+    return found;
   }
 
   /// Opens the interaction already attached to a story zone. It never creates
@@ -198,20 +234,47 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
       _changed();
       return;
     }
-    if (found.length > 1) {
-      document.error =
-          '${found.length} interactions utilisent cette zone. Choisissez '
-          'celle à ouvrir dans Événements.';
-      _openEvents();
-      return;
-    }
-    final request = ++_navigationRequest;
-    final problem = await _openStoryInteraction(found.single);
-    if (!mounted || request != _navigationRequest) return;
-    if (_controller.active?.current.id != mapId) return;
-    if (problem != null) {
-      document.error = problem;
-      _changed();
-    }
+    final id = found.length == 1
+        ? found.keys.single
+        : await _chooseInteraction(found);
+    bool stillHere() =>
+        mounted &&
+        _space == WorkspaceSpace.map &&
+        _controller.active?.current.id == mapId;
+    if (id == null || !stillHere()) return;
+    final problem = await _openStoryInteraction(id, from: WorkspaceSpace.map);
+    if (problem == null || !stillHere()) return;
+    document.error = problem;
+    _changed();
   }
+
+  Future<String?> _chooseInteraction(Map<String, String> found) =>
+      showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Quelle interaction ouvrir ?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final entry in found.entries)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: StudioButton(
+                    label: entry.value,
+                    secondary: true,
+                    onPressed: () => Navigator.pop(dialogContext, entry.key),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            StudioButton(
+              label: 'Annuler',
+              secondary: true,
+              onPressed: () => Navigator.pop(dialogContext),
+            ),
+          ],
+        ),
+      );
 }
