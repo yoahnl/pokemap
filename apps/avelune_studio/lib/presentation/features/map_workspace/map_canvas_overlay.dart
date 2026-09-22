@@ -14,6 +14,11 @@ class MapCanvasOverlay extends CustomPainter {
     this.strokeCells = const [],
     this.selectedEntity,
     this.entityPreview,
+    this.selectedWarpId,
+    this.warpPreview,
+    this.selectedMarkerId,
+    this.markerPreview,
+    this.selectedZoneId,
     this.zone,
     this.labelBackground,
     this.labelForeground,
@@ -29,6 +34,11 @@ class MapCanvasOverlay extends CustomPainter {
   final List<GridPos> strokeCells;
   final MapEntity? selectedEntity;
   final GridPos? entityPreview;
+  final String? selectedWarpId;
+  final GridPos? warpPreview;
+  final String? selectedMarkerId;
+  final GridPos? markerPreview;
+  final String? selectedZoneId;
   final MapRect? zone;
   final Color? labelBackground, labelForeground;
 
@@ -77,6 +87,124 @@ class MapCanvasOverlay extends CustomPainter {
     }
   }
 
+  void _paintBadge(
+    Canvas canvas,
+    Rect rect,
+    String text, {
+    required bool chosen,
+  }) {
+    canvas.drawRect(
+      rect.deflate(chosen ? 1 : 1.5),
+      Paint()
+        ..color = color.withValues(alpha: chosen ? 1 : .75)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = chosen ? 2 : 1.5,
+    );
+    final label = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: labelForeground ?? color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '\u2026',
+    )..layout(maxWidth: cellWidth * 6);
+    if (labelBackground != null) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+          rect.left + 1,
+          rect.top - label.height - 2,
+          label.width + 6,
+          label.height + 4,
+        ),
+        Paint()..color = labelBackground!,
+      );
+    }
+    label.paint(canvas, Offset(rect.left + 4, rect.top - label.height));
+    label.dispose();
+  }
+
+  void _paintGameplayZones(Canvas canvas) {
+    if (map.gameplayZones.isEmpty) return;
+    final clip = canvas.getLocalClipBounds();
+    for (final zone in map.gameplayZones) {
+      final rect = Rect.fromLTWH(
+        zone.area.pos.x * cellWidth,
+        zone.area.pos.y * cellHeight,
+        zone.area.size.width * cellWidth,
+        zone.area.size.height * cellHeight,
+      );
+      if (!clip.overlaps(rect)) continue;
+      _paintBadge(
+        canvas,
+        rect,
+        zone.name.trim().isEmpty ? 'Zone de jeu' : zone.name,
+        chosen: zone.id == selectedZoneId,
+      );
+    }
+  }
+
+  void _paintMarkers(Canvas canvas) {
+    final clip = canvas.getLocalClipBounds();
+    for (final entity in map.entities) {
+      if (entity.kind != MapEntityKind.spawn &&
+          entity.kind != MapEntityKind.sign) {
+        continue;
+      }
+      final chosen = entity.id == selectedMarkerId;
+      final pos = chosen ? (markerPreview ?? entity.pos) : entity.pos;
+      final rect = Rect.fromLTWH(
+        pos.x * cellWidth,
+        pos.y * cellHeight,
+        entity.size.width * cellWidth,
+        entity.size.height * cellHeight,
+      );
+      if (!clip.overlaps(rect)) continue;
+      _paintBadge(canvas, rect, _markerLabel(entity), chosen: chosen);
+    }
+  }
+
+  String _markerLabel(MapEntity entity) {
+    if (entity.kind == MapEntityKind.spawn) {
+      return entity.spawn?.role == EntitySpawnRole.playerStart
+          ? 'D\u00e9part du joueur'
+          : 'Apparition';
+    }
+    final title = entity.sign?.title.trim() ?? '';
+    return title.isEmpty ? 'Panneau' : title;
+  }
+
+  void _paintWarps(Canvas canvas) {
+    if (map.warps.isEmpty) return;
+    final clip = canvas.getLocalClipBounds();
+    for (final warp in map.warps) {
+      final chosen = warp.id == selectedWarpId;
+      final pos = chosen ? (warpPreview ?? warp.pos) : warp.pos;
+      final rect = Rect.fromLTWH(
+        pos.x * cellWidth,
+        pos.y * cellHeight,
+        cellWidth,
+        cellHeight,
+      );
+      if (!clip.overlaps(rect)) continue;
+      final destination = project.maps
+          .where((entry) => entry.id == warp.targetMapId)
+          .firstOrNull;
+      _paintBadge(
+        canvas,
+        rect,
+        destination == null
+            ? 'Destination introuvable'
+            : '\u2192 ${destination.name}',
+        chosen: chosen,
+      );
+    }
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -99,6 +227,9 @@ class MapCanvasOverlay extends CustomPainter {
       }
     }
     _paintStoryZones(canvas);
+    _paintGameplayZones(canvas);
+    _paintMarkers(canvas);
+    _paintWarps(canvas);
     paint.color = color.withValues(alpha: .4);
     for (final cell in strokeCells) {
       canvas.drawRect(

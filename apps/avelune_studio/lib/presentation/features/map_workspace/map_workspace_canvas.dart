@@ -1,10 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import '../../theme/studio_tokens.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay_editing.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'map_canvas_stroke.dart';
@@ -97,6 +96,8 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
     } else if (tool == StudioMapTool.select) {
       widget.view.selectedEntityId = null;
       widget.view.selectedTriggerId = null;
+      widget.view.selectedWarpId = null;
+      widget.view.selectedPlacementId = null;
       final hits = _commands.stack(cell);
       final selected = widget.document.selected;
       _moving = selected != null && hits.any((e) => e.id == selected.id)
@@ -197,7 +198,6 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
   @override
   Widget build(BuildContext context) {
     final map = widget.document.current;
-    final colors = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
         void recenter() => widget.view.fitViewport(
@@ -252,34 +252,17 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas> {
                       Positioned.fill(
                         child: IgnorePointer(
                           child: CustomPaint(
-                            painter: MapCanvasOverlay(
+                            painter: buildEditingOverlay(
+                              context: context,
                               map: map,
                               project: widget.project,
-                              selected: widget.document.selected,
-                              selectedEntity: map.entities
-                                  .where(
-                                    (e) => e.id == widget.view.selectedEntityId,
-                                  )
-                                  .firstOrNull,
-                              entityPreview: _characterGesture?.destination,
-                              zone: _characterGesture?.zone == true
-                                  ? _characterGesture!.rectangle
-                                  : map.triggers
-                                        .where(
-                                          (trigger) =>
-                                              trigger.id ==
-                                              widget.view.selectedTriggerId,
-                                        )
-                                        .firstOrNull
-                                        ?.area,
+                              document: widget.document,
+                              view: widget.view,
+                              gesture: _characterGesture,
+                              stroke: _stroke,
                               preview: _preview,
                               cellWidth: _width,
                               cellHeight: _height,
-                              grid: widget.view.grid,
-                              color: StudioColors.of(context).canvasSelection,
-                              labelBackground: colors.surface,
-                              labelForeground: colors.onSurface,
-                              strokeCells: List.of(_stroke?.cells ?? []),
                             ),
                           ),
                         ),

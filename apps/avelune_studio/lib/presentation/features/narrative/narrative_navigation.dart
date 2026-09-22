@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+import '../../../features/map_workspace/application/trigger_editing_commands.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 
 String? workspaceNarrativeError(
@@ -38,11 +39,7 @@ Future<void> openNarrativeZone(
     type: TriggerType.event,
     area: area,
   );
-  document.commit(
-    document.current.copyWith(
-      triggers: [...document.current.triggers, trigger],
-    ),
-  );
+  TriggerEditingCommands(document, narrative.project).add(trigger);
   await narrative.openSource(
     document,
     NarrativeEventSourceRef.triggerEnter(document.current.id, trigger.id),

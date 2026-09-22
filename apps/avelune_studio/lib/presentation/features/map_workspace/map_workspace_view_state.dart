@@ -8,7 +8,11 @@ enum StudioMapTool {
   paint,
   terrain,
   character,
+  warp,
+  spawn,
+  sign,
   zone,
+  gameplayZone,
   erase,
   pan,
 }
@@ -20,8 +24,13 @@ class MapWorkspaceViewState {
   TileLayerPaletteEntry? tile;
   ProjectSmartTilePreset? terrain;
   ProjectCharacterEntry? character;
+  ProjectMapEntry? warpDestination;
   String? selectedEntityId;
   String? selectedTriggerId;
+  String? selectedWarpId;
+  String? selectedPlacementId;
+  String? selectedZoneId;
+  GameplayZoneKind zoneKind = GameplayZoneKind.encounter;
   String characterQuery = '';
   double characterScrollOffset = 0;
   bool grid = true;
@@ -72,6 +81,25 @@ class MapWorkspaceViewState {
     tile = null;
     terrain = null;
     tool = character == null ? StudioMapTool.select : StudioMapTool.character;
+  }
+
+  void prepareWarpPlacement() {
+    paletteTab = 'Passages';
+    brush = null;
+    tile = null;
+    terrain = null;
+    character = null;
+    tool = warpDestination == null
+        ? StudioMapTool.select
+        : StudioMapTool.warp;
+  }
+
+  void clearSelection() {
+    selectedEntityId = null;
+    selectedWarpId = null;
+    selectedTriggerId = null;
+    selectedPlacementId = null;
+    selectedZoneId = null;
   }
 
   void dispose() {

@@ -11,6 +11,7 @@ import '../../shared/widgets/layout/studio_palette_card.dart';
 import 'map_palette_grid.dart';
 import '../../shared/widgets/inputs/studio_palette_tabs.dart';
 import 'map_tile_palette.dart';
+import 'map_warp_palette.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 
@@ -112,6 +113,23 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
         },
       );
     }
+    if (kind == 'Passages') {
+      return MapWarpPalette(
+        destinations: widget.project.maps
+            .where((entry) => entry.id != widget.document.current.id)
+            .toList(),
+        selectedId: view.warpDestination?.id,
+        onPick: (entry) {
+          view.warpDestination = entry;
+          view.brush = null;
+          view.tile = null;
+          view.terrain = null;
+          view.character = null;
+          view.tool = StudioMapTool.warp;
+          widget.onChanged();
+        },
+      );
+    }
     if (kind == 'Tuiles') {
       return MapTilePalette(
         sources: sources,
@@ -206,7 +224,13 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
           Text('Palette', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           StudioPaletteTabs(
-            items: const ['Décors', 'Terrains', 'Tuiles', 'Personnages'],
+            items: const [
+              'Décors',
+              'Terrains',
+              'Tuiles',
+              'Personnages',
+              'Passages',
+            ],
             selected: kind,
             onChanged: (value) => setState(() {
               view.paletteTab = value;
@@ -214,7 +238,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
             }),
           ),
           const SizedBox(height: 8),
-          if (kind != 'Personnages') ...[
+          if (kind != 'Personnages' && kind != 'Passages') ...[
             StudioSearchField(
               controller: widget.search,
               label: kind == 'Décors'
@@ -230,6 +254,10 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
           Text(
             kind == 'Personnages' && view.character == null
                 ? 'Choisissez un personnage à placer.'
+                : kind == 'Passages'
+                ? view.warpDestination == null
+                      ? 'Choisissez la carte vers laquelle mène le passage.'
+                      : 'Passage vers ${view.warpDestination!.name}'
                 : view.terrain != null
                 ? '${view.terrain!.name} · raccords automatiques'
                 : view.character?.name ??

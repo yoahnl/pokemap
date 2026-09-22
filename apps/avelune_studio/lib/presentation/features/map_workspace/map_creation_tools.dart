@@ -82,6 +82,33 @@ class MapCreationTools extends StatelessWidget {
                 },
               ),
               StudioTool(
+                label: 'Placer le départ du joueur',
+                icon: Icons.flag_outlined,
+                selected: view.tool == StudioMapTool.spawn,
+                onPressed: () => activate(StudioMapTool.spawn),
+              ),
+              StudioTool(
+                label: 'Placer un panneau',
+                icon: Icons.signpost_outlined,
+                selected: view.tool == StudioMapTool.sign,
+                onPressed: () => activate(StudioMapTool.sign),
+              ),
+              StudioTool(
+                label: 'Placer un passage',
+                icon: Icons.meeting_room_outlined,
+                selected: view.tool == StudioMapTool.warp,
+                onPressed: () {
+                  view.prepareWarpPlacement();
+                  onChanged();
+                },
+              ),
+              StudioTool(
+                label: 'Dessiner une zone de jeu',
+                icon: Icons.grass_outlined,
+                selected: view.tool == StudioMapTool.gameplayZone,
+                onPressed: () => activate(StudioMapTool.gameplayZone),
+              ),
+              StudioTool(
                 label: 'Dessiner une zone d’histoire',
                 icon: Icons.crop_square,
                 selected: view.tool == StudioMapTool.zone,

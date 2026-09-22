@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import '../../shared/widgets/layout/studio_application_frame.dart';
-import 'map_creation_tools.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'map_workspace_toolbar.dart';
 import 'map_workspace_canvas.dart';
-import 'map_workspace_panels.dart';
+import 'map_workspace_palette_column.dart';
 import 'workspace_resource_diagnostics.dart';
 import 'map_selection_inspector.dart';
 import 'workspace_compact_panel.dart';
@@ -91,39 +90,18 @@ class MapWorkspaceLayout extends StatelessWidget {
       final inspectorWidth = c.maxWidth >= 1400 ? 300.0 : 280.0;
       Widget paletteContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
-        return SizedBox(
+        return MapWorkspacePaletteColumn(
           width: close == null ? paletteWidth : 360,
-          child: Column(
-            children: [
-              MapCreationTools(
-                view: view!,
-                onChanged: () {
-                  onToolChanged();
-                  refresh();
-                },
-                storyAvailable: onZoneDrawn != null,
-              ),
-              Expanded(
-                child: MapWorkspacePalette(
-                  width: close == null ? paletteWidth : 360,
-                  project: project,
-                  document: doc,
-                  visuals: visuals!,
-                  view: view!,
-                  search: search,
-                  onChanged: () {
-                    onToolChanged();
-                    refresh();
-                    close?.call();
-                  },
-                  onResources: () {
-                    close?.call();
-                    onResources();
-                  },
-                ),
-              ),
-            ],
-          ),
+          project: project,
+          document: doc,
+          visuals: visuals!,
+          view: view!,
+          search: search,
+          storyAvailable: onZoneDrawn != null,
+          onToolChanged: onToolChanged,
+          onRefresh: refresh,
+          onResources: onResources,
+          onClose: close,
         );
       }
 
@@ -156,6 +134,12 @@ class MapWorkspaceLayout extends StatelessWidget {
           onEditInteraction: (entity) {
             close?.call();
             onEditInteraction?.call(entity);
+          },
+          onOpenMap: (id) {
+            final entry = project.maps.where((e) => e.id == id).firstOrNull;
+            if (entry == null) return;
+            close?.call();
+            onActivate(entry);
           },
           deletionBlocked: deletionBlocked,
         );

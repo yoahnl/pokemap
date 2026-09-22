@@ -15,9 +15,10 @@ class StudioPaletteTabs extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final colors = Theme.of(context).colorScheme;
+      final dense = items.length > 4;
       return Wrap(
         spacing: 6,
-        runSpacing: 6,
+        runSpacing: dense ? 4 : 6,
         children: [
           for (final name in items)
             SizedBox(
@@ -26,10 +27,14 @@ class StudioPaletteTabs extends StatelessWidget {
                 message: name,
                 child: TextButton(
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                       horizontal: 8,
-                      vertical: 8,
+                      vertical: dense ? 4 : 8,
                     ),
+                    minimumSize: dense ? const Size(0, 32) : null,
+                    tapTargetSize: dense
+                        ? MaterialTapTargetSize.shrinkWrap
+                        : null,
                     foregroundColor: selected == name
                         ? colors.onPrimaryContainer
                         : colors.onSurface,
